@@ -1,0 +1,26 @@
+language: go
+
+go:
+  - "1.15"
+
+services:
+  - docker
+
+cache:
+  directories:
+    - $GOPATH/pkg/mod
+
+script:
+  - make test
+  - make build
+  - make test-style
+
+after_success:
+  - make test-coverage
+
+notifications:
+    email:
+      recipients:
+        - ashokponkumar@in.ibm.com
+      on_success: never 
+      on_failure: always
