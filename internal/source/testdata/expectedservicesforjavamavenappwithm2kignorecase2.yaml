@@ -1,0 +1,18 @@
+---
+- serviceName: java-maven
+  image: java-maven:latest
+  translationType: Any2Kube
+  containerBuildType: CNB
+  sourceType:
+    - Directory
+  targetOptions:
+    - cloudfoundry/cnb:cflinuxfs3
+  sourceArtifacts:
+    SourceCode:
+      - includeme/includeme/java-maven
+  buildArtifacts:
+    SourceCode:
+      - includeme/includeme/java-maven
+  updateContainerBuildPipeline: true
+  updateDeployPipeline: true
+...

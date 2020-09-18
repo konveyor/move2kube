@@ -1,0 +1,106 @@
+name: myproject
+services:
+    nodejs:
+        podspec:
+            volumes: []
+            initcontainers: []
+            containers:
+                - name: nodejs
+                  image: nodejs:latest
+                  command: []
+                  args: []
+                  workingdir: ""
+                  ports: []
+                  envfrom: []
+                  env: []
+                  resources:
+                    limits: {}
+                    requests: {}
+                  volumemounts: []
+                  volumedevices: []
+                  livenessprobe: null
+                  readinessprobe: null
+                  startupprobe: null
+                  lifecycle: null
+                  terminationmessagepath: ""
+                  terminationmessagepolicy: ""
+                  imagepullpolicy: ""
+                  securitycontext: null
+                  stdin: false
+                  stdinonce: false
+                  tty: false
+            ephemeralcontainers: []
+            restartpolicy: ""
+            terminationgraceperiodseconds: null
+            activedeadlineseconds: null
+            dnspolicy: ""
+            nodeselector: {}
+            serviceaccountname: ""
+            deprecatedserviceaccount: ""
+            automountserviceaccounttoken: null
+            nodename: ""
+            hostnetwork: false
+            hostpid: false
+            hostipc: false
+            shareprocessnamespace: null
+            securitycontext: null
+            imagepullsecrets: []
+            hostname: ""
+            subdomain: ""
+            affinity: null
+            schedulername: ""
+            tolerations: []
+            hostaliases: []
+            priorityclassname: ""
+            priority: null
+            dnsconfig: null
+            readinessgates: []
+            runtimeclassname: null
+            enableservicelinks: null
+            preemptionpolicy: null
+            overhead: {}
+            topologyspreadconstraints: []
+        name: nodejs
+        annotations: {}
+        labels: {}
+        replicas: 0
+        networks: []
+        exposeservice: false
+        daemon: false
+storages: []
+containers:
+    - imagenames:
+        - nodejs:latest
+      new: true
+      newfiles:
+        nodejscnbbuilder.sh: |-
+            #   Copyright IBM Corporation 2020
+            #
+            #   Licensed under the Apache License, Version 2.0 (the "License");
+            #   you may not use this file except in compliance with the License.
+            #   You may obtain a copy of the License at
+            #
+            #        http://www.apache.org/licenses/LICENSE-2.0
+            #
+            #   Unless required by applicable law or agreed to in writing, software
+            #   distributed under the License is distributed on an "AS IS" BASIS,
+            #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+            #   See the License for the specific language governing permissions and
+            #   limitations under the License.
+
+            pack build nodejs:latest -B cloudfoundry/cnb:cflinuxfs3
+      exposedports:
+        - 8080
+      userid: -1
+      accesseddirs: []
+kubernetes:
+    artifactType: Yamls
+    clusterType: Kubernetes
+targetclusterspec:
+    storageClasses: []
+    apiKindVersionMap: {}
+cachedobjects: []
+values:
+    registryurl: ""
+    registrynamespace: ""
+    services: {}

@@ -1,0 +1,34 @@
+---
+- serviceName: nodejs
+  image: nodejs:latest
+  translationType: Any2Kube
+  containerBuildType: CNB
+  sourceType:
+    - Directory
+  targetOptions:
+    - cloudfoundry/cnb:cflinuxfs3
+  sourceArtifacts:
+    SourceCode:
+      - .
+  buildArtifacts:
+    SourceCode:
+      - .
+  updateContainerBuildPipeline: true
+  updateDeployPipeline: true
+- serviceName: svc1
+  image: svc1:latest
+  translationType: Compose2Kube
+  containerBuildType: NewDockerfile
+  sourceType:
+    - Directory
+  targetOptions:
+    - cloudfoundry/cnb:cflinuxfs3
+  sourceArtifacts:
+    SourceCode:
+      - svc1src
+  buildArtifacts:
+    SourceCode:
+      - svc1src
+  updateContainerBuildPipeline: true
+  updateDeployPipeline: true
+...

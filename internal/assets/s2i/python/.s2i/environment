@@ -1,0 +1,5 @@
+{{- range $key, $value := . }}
+{{- if and (ne $key "Builder") (ne $key "ImageName") (ne $key "Port") }}
+{{ $key }}={{ $value }}
+{{- end }}
+{{- end }}

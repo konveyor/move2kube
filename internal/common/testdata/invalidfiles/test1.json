@@ -1,0 +1,5 @@
+{
+    some invalid json "name": "name1",
+    "foo": 42,
+    "bar": ["bar"]
+}

@@ -1,0 +1,18 @@
+---
+- serviceName: includeme
+  image: includeme:latest
+  translationType: Any2Kube
+  containerBuildType: CNB
+  sourceType:
+    - Directory
+  targetOptions:
+    - cloudfoundry/cnb:cflinuxfs3
+  sourceArtifacts:
+    SourceCode:
+      - excludeme/includeme
+  buildArtifacts:
+    SourceCode:
+      - excludeme/includeme
+  updateContainerBuildPipeline: true
+  updateDeployPipeline: true
+...

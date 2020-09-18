@@ -1,0 +1,436 @@
+/*
+Copyright IBM Corporation 2020
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package common
+
+import (
+	"bytes"
+	"encoding/json"
+	"hash/crc64"
+	"io/ioutil"
+	"math"
+	"os"
+	"path/filepath"
+	"reflect"
+	"regexp"
+	"strconv"
+	"strings"
+	"text/template"
+
+	"github.com/konveyor/move2kube/internal/assets"
+	"github.com/konveyor/move2kube/types"
+	log "github.com/sirupsen/logrus"
+	"github.com/xrash/smetrics"
+	yaml "gopkg.in/yaml.v3"
+)
+
+//GetFilesByExt returns files by extension
+func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
+	var files []string
+	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
+		log.Warnf("Error in walking through files due to : %q", err)
+		return nil, err
+	} else if !info.IsDir() {
+		log.Warnf("The path %q is not a directory.", inputPath)
+	}
+	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Warnf("Skipping path %q due to error: %q", path, err)
+			return nil
+		}
+		// Skip directories
+		if info.IsDir() {
+			return nil
+		}
+		fext := filepath.Ext(path)
+		for _, ext := range exts {
+			if fext == ext {
+				files = append(files, path)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Warnf("Error in walking through files due to : %q", err)
+		return files, err
+	}
+	log.Debugf("No of files with %s ext identified : %d", exts, len(files))
+	return files, nil
+}
+
+//GetFilesByName returns files by name
+func GetFilesByName(inputPath string, names []string) ([]string, error) {
+	var files []string
+	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
+		log.Warnf("Error in walking through files due to : %q", err)
+		return files, err
+	} else if !info.IsDir() {
+		log.Warnf("The path %q is not a directory.", inputPath)
+	}
+	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Warnf("Skipping path %q due to error: %q", path, err)
+			return nil
+		}
+		// Skip directories
+		if info.IsDir() {
+			return nil
+		}
+		fname := filepath.Base(path)
+		for _, name := range names {
+			if fname == name {
+				files = append(files, path)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Warnf("Error in walking through files due to : %s", err)
+		return files, nil
+	}
+	log.Debugf("No of files with %s names identified : %d", names, len(files))
+	return files, nil
+}
+
+//YamlAttrPresent returns YAML attributes
+func YamlAttrPresent(path string, attr string) (bool, interface{}) {
+	yamlFile, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Warnf("Error in reading yaml file %s: %s. Skipping", path, err)
+		return false, nil
+	}
+	var fileContents map[string]interface{}
+	err = yaml.Unmarshal(yamlFile, &fileContents)
+	if err != nil {
+		log.Warnf("Error in unmarshalling yaml file %s: %s. Skipping", path, err)
+		return false, nil
+	}
+	if value, ok := fileContents[attr]; ok {
+		log.Debugf("%s file has %s attribute", path, attr)
+		return true, value
+	}
+	return false, nil
+}
+
+// GetImageNameAndTag splits an image full name and returns the image name and tag
+func GetImageNameAndTag(image string) (string, string) {
+	parts := strings.Split(image, "/")
+	imageAndTag := strings.Split(parts[len(parts)-1], ":")
+	imageName := imageAndTag[0]
+	var tag string
+	if len(imageAndTag) == 1 {
+		// no tag, assume latest
+		tag = "latest"
+	} else {
+		tag = imageAndTag[1]
+	}
+
+	return imageName, tag
+}
+
+// WriteYaml writes an yaml to disk
+func WriteYaml(outputPath string, data interface{}) error {
+	var b bytes.Buffer
+	encoder := yaml.NewEncoder(&b)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(data); err != nil {
+		log.Error("Error while Encoding object")
+		return err
+	}
+	if err := encoder.Close(); err != nil {
+		log.Error("Error while closing the encoder. Data not written to file", outputPath, "Error:", err)
+		return err
+	}
+	err := ioutil.WriteFile(outputPath, b.Bytes(), DefaultFilePermission)
+	if err != nil {
+		log.Errorf("Error writing yaml to file: %s", err)
+		return err
+	}
+	return nil
+}
+
+// ReadYaml reads an yaml into an object
+func ReadYaml(file string, data interface{}) error {
+	yamlFile, err := ioutil.ReadFile(file)
+	if err != nil {
+		log.Debugf("Error in reading yaml file %s: %s.", file, err)
+		return err
+	}
+	err = yaml.Unmarshal(yamlFile, data)
+	if err != nil {
+		log.Debugf("Error in unmarshalling yaml file %s: %s.", file, err)
+		return err
+	}
+	rv := reflect.ValueOf(data)
+	if rv.Kind() == reflect.Ptr && rv.Elem().Kind() == reflect.Struct {
+		rv = rv.Elem()
+		fv := rv.FieldByName("APIVersion")
+		if fv.IsValid() {
+			if fv.Kind() == reflect.String {
+				val := strings.TrimSpace(fv.String())
+				if strings.HasPrefix(val, types.SchemeGroupVersion.Group) && !strings.HasSuffix(val, types.SchemeGroupVersion.Version) {
+					log.Warnf("The application file (%s) was generated using a different version than (%s)", val, types.SchemeGroupVersion.String())
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// WriteJSON writes an json to disk
+func WriteJSON(outputPath string, data interface{}) error {
+	var b bytes.Buffer
+	encoder := json.NewEncoder(&b)
+	if err := encoder.Encode(data); err != nil {
+		log.Error("Error while Encoding object")
+		return err
+	}
+	err := ioutil.WriteFile(outputPath, b.Bytes(), DefaultFilePermission)
+	if err != nil {
+		log.Errorf("Error writing json to file: %s", err)
+		return err
+	}
+	return nil
+}
+
+// ReadJSON reads an json into an object
+func ReadJSON(file string, data interface{}) error {
+	jsonFile, err := ioutil.ReadFile(file)
+	if err != nil {
+		log.Debugf("Error in reading json file %s: %s.", file, err)
+		return err
+	}
+	err = json.Unmarshal(jsonFile, &data)
+	if err != nil {
+		log.Debugf("Error in unmarshalling json file %s: %s.", file, err)
+		return err
+	}
+	return nil
+}
+
+// NormalizeForFilename normalizes a string to only filename valid characters
+func NormalizeForFilename(name string) string {
+	processedString := MakeFileNameCompliant(name)
+	//TODO: Make it more robust by taking some characters from start and also from end
+	const maxPrefixLength = 15
+	if len(processedString) > maxPrefixLength {
+		processedString = processedString[0:maxPrefixLength]
+	}
+	crc64Table := crc64.MakeTable(0xC96C5795D7870F42)
+	crc64Int := crc64.Checksum([]byte(name), crc64Table)
+	return processedString + "_" + strconv.FormatUint(crc64Int, 16)
+}
+
+// NormalizeForServiceName converts the string to be compatible for service name
+func NormalizeForServiceName(svcName string) string {
+	re := regexp.MustCompile("[._]")
+	newName := strings.ToLower(re.ReplaceAllString(svcName, "-"))
+	if newName != svcName {
+		log.Infof("Changing service name to %s from %s", svcName, newName)
+	}
+	return newName
+}
+
+// IsStringPresent checks if a value is present in a slice
+func IsStringPresent(list []string, value string) bool {
+	for _, val := range list {
+		if strings.EqualFold(val, value) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsIntPresent checks if a value is present in a slice
+func IsIntPresent(list []int, value int) bool {
+	for _, val := range list {
+		if val == value {
+			return true
+		}
+	}
+	return false
+}
+
+// MergeStringSlices merges two string slices
+func MergeStringSlices(slice1 []string, slice2 []string) []string {
+	for _, item := range slice2 {
+		if !IsStringPresent(slice1, item) {
+			slice1 = append(slice1, item)
+		}
+	}
+	return slice1
+}
+
+// MergeIntSlices merges two int slices
+func MergeIntSlices(slice1 []int, slice2 []int) []int {
+	for _, item := range slice2 {
+		if !IsIntPresent(slice1, item) {
+			slice1 = append(slice1, item)
+		}
+	}
+	return slice1
+}
+
+// GetStringFromTemplate returns string for a template
+func GetStringFromTemplate(tpl string, config interface{}) (string, error) {
+	var tplbuffer bytes.Buffer
+	var packageTemplate = template.Must(template.New("").Parse(tpl))
+	err := packageTemplate.Execute(&tplbuffer, config)
+	if err != nil {
+		log.Warnf("Unable to translate template %q to string using the data %v", tpl, config)
+		return "", err
+	}
+	return tplbuffer.String(), nil
+}
+
+// WriteTemplateToFile writes a templated string to a file
+func WriteTemplateToFile(tpl string, config interface{}, writepath string, filemode os.FileMode) error {
+	var tplbuffer bytes.Buffer
+	var packageTemplate = template.Must(template.New("").Parse(tpl))
+	err := packageTemplate.Execute(&tplbuffer, config)
+	if err != nil {
+		log.Warnf("Unable to translate template %q to string using the data %v", tpl, config)
+		return err
+	}
+	err = ioutil.WriteFile(writepath, tplbuffer.Bytes(), filemode)
+	if err != nil {
+		log.Warnf("Error writing file at %s : %s", writepath, err)
+		return err
+	}
+	return nil
+}
+
+// GetClosestMatchingString returns the closest matching string for a given search string
+func GetClosestMatchingString(options []string, searchstring string) string {
+	// tokenize all strings
+	reg := regexp.MustCompile("[^a-zA-Z0-9]+")
+	searchstring = reg.ReplaceAllString(searchstring, "")
+	searchstring = strings.ToLower(searchstring)
+
+	leastDistance := math.MaxInt32
+	matchString := ""
+
+	// Simply find the option with least distance
+	for _, option := range options {
+		// do tokensize the search space string too
+		tokenizedOption := reg.ReplaceAllString(option, "")
+		tokenizedOption = strings.ToLower(tokenizedOption)
+
+		currDistance := smetrics.WagnerFischer(tokenizedOption, searchstring, 1, 1, 2)
+
+		if currDistance < leastDistance {
+			matchString = option
+			leastDistance = currDistance
+		}
+	}
+
+	return matchString
+}
+
+// MergeStringMaps merges two string maps
+func MergeStringMaps(map1 map[string]string, map2 map[string]string) map[string]string {
+	mergedmap := make(map[string]string)
+	for k, v := range map1 {
+		mergedmap[k] = v
+	}
+	for k, v := range map2 {
+		mergedmap[k] = v
+	}
+	return mergedmap
+}
+
+// MakeFileNameCompliant returns a DNS-1123 standard string
+// Motivated by https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
+// Also see page 1 "ASSUMPTIONS" heading of https://tools.ietf.org/html/rfc952
+// Also see page 13 of https://tools.ietf.org/html/rfc1123#page-13
+func MakeFileNameCompliant(name string) string {
+	if len(name) == 0 {
+		log.Error("The input name is empty.")
+		return ""
+	}
+	baseName := filepath.Base(name)
+	invalidChars := regexp.MustCompile("[^a-zA-Z0-9-.]+")
+	processedName := invalidChars.ReplaceAllString(baseName, "-")
+	if len(processedName) > 63 {
+		log.Warnf("The processed name %q is longer than 63 characters long.", processedName)
+	}
+	first := processedName[0]
+	last := processedName[len(processedName)-1]
+	if first == '-' || first == '.' || last == '-' || last == '.' {
+		log.Warnf("The first and/or last characters of the name %q are not alphanumeric.", processedName)
+	}
+	return processedName
+}
+
+// CleanAndFindCommonDirectory finds the common ancestor directory among a list of absolute paths.
+// Cleans the paths you give it before finding the directory.
+// Also see FindCommonDirectory
+func CleanAndFindCommonDirectory(paths []string) string {
+	cleanedpaths := make([]string, len(paths))
+	for i, path := range paths {
+		cleanedpaths[i] = filepath.Clean(path)
+	}
+	return FindCommonDirectory(cleanedpaths)
+}
+
+// FindCommonDirectory finds the common ancestor directory among a list of cleaned absolute paths.
+// Will not clean the paths you give it before trying to find the directory.
+// Also see CleanAndFindCommonDirectory
+func FindCommonDirectory(paths []string) string {
+	if len(paths) == 0 {
+		return ""
+	}
+	slash := string(filepath.Separator)
+	commonDir := paths[0]
+	for commonDir != slash {
+		found := true
+		for _, path := range paths {
+			if !strings.HasPrefix(path+slash, commonDir+slash) {
+				found = false
+				break
+			}
+		}
+		if found {
+			break
+		}
+		commonDir = filepath.Dir(commonDir)
+	}
+	return commonDir
+}
+
+// CreateAssetsData creates an assets directory and dumps the assets data into it
+func CreateAssetsData() (assetsPath string, tempPath string, finalerr error) {
+	assetsPath = AssetsPath
+	tempPath = TempPath
+
+	if newTempPath, err := ioutil.TempDir("", TempDirPrefix); err != nil {
+		log.Errorf("Unable to create temp dir. Defaulting to local path.")
+	} else {
+		tempPath = newTempPath
+		assetsPath = filepath.Join(newTempPath, AssetsDir)
+	}
+
+	if err := os.MkdirAll(assetsPath, DefaultDirectoryPermission); err != nil {
+		log.Errorf("Unable to create the assets directory at path %q Error: %q", assetsPath, err)
+		return "", "", err
+	}
+	if err := UnTarString(assets.Tar, assetsPath); err != nil {
+		log.Errorf("Unable to untar the assets into the assets directory at path %q Error: %q", assetsPath, err)
+		return "", "", err
+	}
+
+	return assetsPath, tempPath, nil
+}

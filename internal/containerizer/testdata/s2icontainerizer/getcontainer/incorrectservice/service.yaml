@@ -1,0 +1,16 @@
+serviceName: nodejs
+image: nodejs:latest
+translationType: Any2Kube
+containerBuildType: S2I
+sourceType:
+  - Directory
+targetOptions:
+  - m2kassets/s2i/php
+sourceArtifacts:
+  SourceCode:
+    - .
+buildArtifacts:
+  SourceCode:
+    - .
+updateContainerBuildPipeline: true
+updateDeployPipeline: true

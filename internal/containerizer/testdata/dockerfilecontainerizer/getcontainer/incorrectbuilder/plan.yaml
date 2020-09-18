@@ -1,0 +1,29 @@
+apiVersion: move2kube.io/v1alpha1
+kind: Plan
+metadata:
+  name: myproject
+spec:
+  inputs:
+    rootDir: ../../samples/dockerfile/
+    services:
+      dockerfile:
+        - serviceName: dockerfile
+          image: dockerfile:latest
+          translationType: Any2Kube
+          containerBuildType: NewDockerfile
+          sourceType:
+            - Directory
+          targetOptions:
+            - m2kassets/dockerfiles/nodejs
+          sourceArtifacts:
+            SourceCode:
+              - .
+          buildArtifacts:
+            SourceCode:
+              - .
+          updateContainerBuildPipeline: true
+          updateDeployPipeline: true
+  outputs:
+    kubernetes:
+      artifactType: Yamls
+      clusterType: Kubernetes

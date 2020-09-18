@@ -1,0 +1,7 @@
+---
+key1:
+    subkey1: foo
+    subkey2:
+        - bar
+        - baz
+...

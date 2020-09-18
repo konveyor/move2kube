@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "name": "api",
+  "version": "0.1.0",
+  "description": "API that calculate the nth fibonacci number",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "redis": "^3.0.2"
+  }
+}

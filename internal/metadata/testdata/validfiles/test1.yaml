@@ -1,0 +1,19 @@
+---
+apiVersion: move2kube.io/v1alpha1
+kind: ClusterMetadata
+metadata: 
+  name: name1
+spec:
+  storageClasses:
+    - class1
+    - class2
+  apiKindVersionMap:
+    key1:
+      - 1.0.0
+      - 1.1.0
+      - 1.1.1
+    key2:
+      - 2.0.0
+      - 2.2.0
+      - 2.2.2
+...

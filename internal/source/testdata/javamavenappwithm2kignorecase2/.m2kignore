@@ -1,0 +1,6 @@
+.
+includeme/
+includeme/excludeme1/
+includeme/excludeme1/*
+includeme/excludeme2/
+includeme/excludeme2/*

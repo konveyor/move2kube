@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+    api:
+        image: fibonacci-api:latest
+        build: ./api
+        ports:
+            - "1234:1234"
+        environment:
+            - REDIS_URL=redis://redis:6379
+    redis:
+        image: redis
+    web:
+        image: fibonacci-web:latest
+        build: ./web
+        ports:
+            - "8080:80"
+        environment:
+            - API_URL=http://api:1234/fib
