@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/konveyor/move2kube.svg?branch=master)](https://travis-ci.org/konveyor/move2kube)
 
 # Move2Kube
 
