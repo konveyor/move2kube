@@ -28,12 +28,4 @@ if [[ $filepaths ]]; then
   didfail=1
 fi
 
-filepaths=$(find_files_without_string 'IBM Corporation')
-
-if [[ $filepaths ]]; then
-  echo "The following files are missing the copyright:"
-  echo "$filepaths"
-  didfail=1
-fi
-
 exit "$didfail"

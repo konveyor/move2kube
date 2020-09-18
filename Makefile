@@ -110,7 +110,7 @@ ${GOLINT}:
 
 .PHONY: test-style
 test-style: ${GOLANGCILINT} ${GOLINT} 
-	${GOLANGCILINT} run
+	${GOLANGCILINT} run --timeout 3m
 	${GOLINT} ${PKG}
 	scripts/licensecheck.sh
 
