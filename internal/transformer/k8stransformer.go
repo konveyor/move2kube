@@ -119,7 +119,7 @@ func (kt *K8sTransformer) WriteObjects(outpath string) error {
 
 	_, err := writeTransformedObjects(artifactspath, objs)
 	if err != nil {
-		log.Errorf("Error occured while writing transformed objects %s", err)
+		log.Errorf("Error occurred while writing transformed objects %s", err)
 	}
 	if kt.Helm {
 		_ = kt.createOperator(kt.Name, outpath)

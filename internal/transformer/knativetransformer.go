@@ -67,7 +67,7 @@ func (kt *KnativeTransformer) WriteObjects(outpath string) error {
 
 	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects)
 	if err != nil {
-		log.Errorf("Error occured while writing transformed objects %s", err)
+		log.Errorf("Error occurred while writing transformed objects %s", err)
 	}
 	kt.writeDeployScript(kt.Name, outpath)
 	kt.writeReadeMe(kt.Name, areNewImagesCreated, outpath)

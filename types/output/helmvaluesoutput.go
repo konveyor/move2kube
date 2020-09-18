@@ -23,7 +23,7 @@ const (
 	ServicesTag string = "services"
 	// ImageTagTag is the tag name for images
 	ImageTagTag string = "imagetag"
-	// ContainersTag is the tag name for conatiners
+	// ContainersTag is the tag name for containers
 	ContainersTag string = "containers"
 )
 

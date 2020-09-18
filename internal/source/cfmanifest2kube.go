@@ -99,7 +99,6 @@ func (c CfManifestTranslator) GetServiceOptions(inputPath string, plan plantypes
 		}
 		path, _ := plan.GetRelativePath(fullpath)
 		for _, application := range applications {
-			containerizationoptionsfound := false
 			fullbuilddirectory := filepath.Dir(fullpath)
 			if application.Path != "" {
 				fullbuilddirectory = filepath.Join(fullpath, application.Path)
@@ -122,8 +121,8 @@ func (c CfManifestTranslator) GetServiceOptions(inputPath string, plan plantypes
 				service.UpdateContainerBuildPipeline = false
 				services = append(services, service)
 				appsCovered = append(appsCovered, applicationName)
-				containerizationoptionsfound = true
 			} else {
+				containerizationoptionsfound := false
 				for _, cop := range allcontainerizers.GetContainerizationOptions(plan, fullbuilddirectory) {
 					service := c.newService(applicationName)
 					service.ContainerBuildType = cop.ContainerizationType
@@ -192,7 +191,6 @@ func (c CfManifestTranslator) GetServiceOptions(inputPath string, plan plantypes
 			for _, application := range apps {
 				applicationName := application.Name
 				if !common.IsStringPresent(appsCovered, applicationName) {
-					containerizationoptionsfound := false
 					fullbuilddirectory := filepath.Dir(appfilepath)
 					applicationName := application.Name
 					if applicationName == "" {
@@ -207,8 +205,8 @@ func (c CfManifestTranslator) GetServiceOptions(inputPath string, plan plantypes
 						}
 						service.UpdateContainerBuildPipeline = false
 						services = append(services, service)
-						containerizationoptionsfound = true
 					} else {
+						containerizationoptionsfound := false
 						//TODO: Think whether we should include this for only runtime manifest file
 						for _, cop := range allcontainerizers.GetContainerizationOptions(plan, fullbuilddirectory) {
 							service := c.newService(applicationName)
