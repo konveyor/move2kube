@@ -19,7 +19,9 @@ package common
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"hash/crc64"
+	"io"
 	"io/ioutil"
 	"math"
 	"os"
@@ -433,4 +435,37 @@ func CreateAssetsData() (assetsPath string, tempPath string, finalerr error) {
 	}
 
 	return assetsPath, tempPath, nil
+}
+
+// CopyFile copies a file from src to dst.
+// The dst file will be truncated if it exists.
+// Returns an error if it failed to copy all the bytes.
+func CopyFile(dst, src string) error {
+	srcfile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("Failed to open the source file at path %q Error: %q", src, err)
+	}
+	defer srcfile.Close()
+
+	srcfileinfo, err := srcfile.Stat()
+	if err != nil {
+		return fmt.Errorf("Failed to get size of the source file at path %q Error: %q", src, err)
+	}
+	srcfilesize := srcfileinfo.Size()
+
+	dstfile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, DefaultFilePermission)
+	if err != nil {
+		return fmt.Errorf("Failed to create the destination file at path %q Error: %q", dst, err)
+	}
+	defer dstfile.Close()
+
+	written, err := io.Copy(dstfile, srcfile)
+	if written != srcfilesize {
+		return fmt.Errorf("Failed to copy all the bytes from source %q to destination %q. %d out of %d bytes written. Error: %v", src, dst, written, srcfilesize, err)
+	}
+	if err != nil {
+		return fmt.Errorf("Failed to copy from source %q to destination %q. Error: %q", src, dst, err)
+	}
+
+	return dstfile.Close()
 }

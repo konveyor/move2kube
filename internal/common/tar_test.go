@@ -100,34 +100,39 @@ func TestTarAsString(t *testing.T) {
 	})
 
 	t.Run("tar as string when the path is a file", func(t *testing.T) {
-		path1 := "testdata/datafortestingtar/tobetarred/test1.yaml"
+		testdatapath := "testdata/datafortestingtar/tobetarred/test1.yaml"
+		tempdir := t.TempDir()
+		filepath := filepath.Join(tempdir, "test1.yaml")
+		if err := common.CopyFile(filepath, testdatapath); err != nil {
+			t.Fatalf("Failed to copy test data from %q to %q for testing. Error %q", testdatapath, filepath, err)
+		}
 		// want := ""
 		expectedInfos := []myFileInfo{
-			{".", 217, 0644, false},
+			{".", 217, common.DefaultFilePermission, false},
 		}
-		data, err := ioutil.ReadFile(path1)
+		data, err := ioutil.ReadFile(filepath)
 		if err != nil {
-			t.Fatalf("Failed to read the test data at %q. Error %q", path1, err)
+			t.Fatalf("Failed to read the test data at %q. Error %q", filepath, err)
 		}
 		expectedContents := []string{
 			string(data),
 		}
-		if tarstring, err := common.TarAsString(path1, []string{}); err != nil {
-			t.Fatalf("Failed to tar the file %q. Error: %q", path1, err)
+		if tarstring, err := common.TarAsString(filepath, []string{}); err != nil {
+			t.Fatalf("Failed to tar the file %q. Error: %q", filepath, err)
 		} else if err := myUnTarForTesting(tarstring, expectedInfos, expectedContents); err != nil {
-			t.Fatal("Failed to tar the file", path1, "properly. Error:", err)
+			t.Fatal("Failed to tar the file", filepath, "properly. Error:", err)
 		}
 	})
 
 	t.Run("tar as string when the path is an empty directory", func(t *testing.T) {
 		parent := t.TempDir()
 		path1 := filepath.Join(parent, "foobar")
-		if err := os.Mkdir(path1, os.ModePerm); err != nil {
+		if err := os.Mkdir(path1, common.DefaultDirectoryPermission); err != nil {
 			t.Fatal("Failed to make the directory", path1, "Error:", err)
 		}
 		// want := ""
 		expectedInfos := []myFileInfo{
-			{".", 0, 0o20000000755, true},
+			{".", 0, os.ModeDir | common.DefaultDirectoryPermission, true},
 		}
 		expectedContents := []string{}
 		if tarstring, err := common.TarAsString(path1, []string{}); err != nil {
@@ -138,27 +143,39 @@ func TestTarAsString(t *testing.T) {
 	})
 
 	t.Run("tar as string when the path is a filled directory", func(t *testing.T) {
+		// Setup
 		testdirpath := "testdata/datafortestingtar/tobetarred"
 		// want := ""
-		expectedInfos := []myFileInfo{
-			{".", 0, 0o20000000755, true},
-		}
-		expectedContents := []string{
-			"",
-		}
-		finfos, err := ioutil.ReadDir(testdirpath)
-		if err != nil {
-			t.Fatalf("Failed to read the testdata at path: %q", testdirpath)
-		}
-		for _, finfo := range finfos {
-			expectedInfos = append(expectedInfos, newMyFileInfo(finfo))
+		expectedInfos := []myFileInfo{}
+		expectedContents := []string{}
+		err := filepath.Walk(testdirpath, func(path string, finfo os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			expectedInfo := newMyFileInfo(finfo)
+			if expectedInfo.Name, err = filepath.Rel(testdirpath, path); err != nil {
+				return err
+			}
+			if finfo.IsDir() {
+				expectedInfo.Size = 0
+				expectedInfos = append(expectedInfos, expectedInfo)
+				expectedContents = append(expectedContents, "")
+				return nil
+			}
+			expectedInfos = append(expectedInfos, expectedInfo)
 			testfilepath := filepath.Join(testdirpath, finfo.Name())
 			testfilecontents, err := ioutil.ReadFile(testfilepath)
 			if err != nil {
-				t.Fatalf("Failed to read the testdata at path: %q", testfilepath)
+				t.Fatalf("Failed to read the testdata at path: %q Error %q", testfilepath, err)
 			}
 			expectedContents = append(expectedContents, string(testfilecontents))
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("Failed to read the testdata at path: %q", testdirpath)
 		}
+
+		// Test
 		if tarstring, err := common.TarAsString(testdirpath, []string{}); err != nil {
 			t.Fatalf("Failed to tar the file %q. Error: %q", testdirpath, err)
 		} else if err := myUnTarForTesting(tarstring, expectedInfos, expectedContents); err != nil {
@@ -167,31 +184,43 @@ func TestTarAsString(t *testing.T) {
 	})
 
 	t.Run("tar as string while ignoring some files", func(t *testing.T) {
+		// Setup
 		testdirpath := "testdata/datafortestingtar/tobetarred"
 		ignoredFiles := []string{"test2.yml", "versioninfo.json", "foobar.json"}
 		// want := ""
-		expectedInfos := []myFileInfo{
-			{".", 0, 0o20000000755, true},
-		}
-		expectedContents := []string{
-			"",
-		}
-		finfos, err := ioutil.ReadDir(testdirpath)
-		if err != nil {
-			t.Fatalf("Failed to read the testdata at path: %q", testdirpath)
-		}
-		for _, finfo := range finfos {
-			if common.IsStringPresent(ignoredFiles, finfo.Name()) {
-				continue
+		expectedInfos := []myFileInfo{}
+		expectedContents := []string{}
+		err := filepath.Walk(testdirpath, func(path string, finfo os.FileInfo, err error) error {
+			if err != nil {
+				return err
 			}
-			expectedInfos = append(expectedInfos, newMyFileInfo(finfo))
+			expectedInfo := newMyFileInfo(finfo)
+			if expectedInfo.Name, err = filepath.Rel(testdirpath, path); err != nil {
+				return err
+			}
+			if common.IsStringPresent(ignoredFiles, expectedInfo.Name) {
+				return nil
+			}
+			if finfo.IsDir() {
+				expectedInfo.Size = 0
+				expectedInfos = append(expectedInfos, expectedInfo)
+				expectedContents = append(expectedContents, "")
+				return nil
+			}
+			expectedInfos = append(expectedInfos, expectedInfo)
 			testfilepath := filepath.Join(testdirpath, finfo.Name())
 			testfilecontents, err := ioutil.ReadFile(testfilepath)
 			if err != nil {
-				t.Fatalf("Failed to read the testdata at path: %q", testfilepath)
+				t.Fatalf("Failed to read the testdata at path: %q Error %q", testfilepath, err)
 			}
 			expectedContents = append(expectedContents, string(testfilecontents))
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("Failed to read the testdata at path: %q", testdirpath)
 		}
+
+		// Test
 		if tarstring, err := common.TarAsString(testdirpath, ignoredFiles); err != nil {
 			t.Fatalf("Failed to tar the file %q. Error: %q", testdirpath, err)
 		} else if err := myUnTarForTesting(tarstring, expectedInfos, expectedContents); err != nil {
