@@ -59,7 +59,7 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 	kt.Values = ir.Values
 	kt.Containers = ir.Containers
 	kt.TargetClusterSpec = ir.TargetClusterSpec
-	kt.Helm = (ir.Kubernetes.ArtifactType != plantypes.Yamls)
+	kt.Helm = (ir.Kubernetes.ArtifactType == plantypes.Helm)
 
 	kt.TransformedObjects = (&apiresourceset.K8sAPIResourceSet{}).CreateAPIResources(ir)
 
