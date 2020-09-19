@@ -39,11 +39,16 @@ type K8sAPIResourceSet struct {
 
 // GetScheme returns K8s scheme
 func (k *K8sAPIResourceSet) GetScheme() *runtime.Scheme {
+	must := func(err error) {
+		if err != nil {
+			panic(err)
+		}
+	}
 	scheme := runtime.NewScheme()
-	_ = okdapi.Install(scheme)
-	_ = okdapi.InstallKube(scheme)
-	_ = k8sapischeme.AddToScheme(scheme)
-	_ = tektonscheme.AddToScheme(scheme)
+	must(okdapi.Install(scheme))
+	must(okdapi.InstallKube(scheme))
+	must(k8sapischeme.AddToScheme(scheme))
+	must(tektonscheme.AddToScheme(scheme))
 	return scheme
 }
 
@@ -69,14 +74,14 @@ func (k *K8sAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Object {
 
 // GetServiceOptions analyses a directory and returns possible plan services
 func (k *K8sAPIResourceSet) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
-	services := make([]plantypes.Service, 0)
+	services := []plantypes.Service{}
 	//TODO: Should we add service analysis too, to get service name?
 
 	codecs := serializer.NewCodecFactory(k.GetScheme())
 
 	files, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
 	if err != nil {
-		log.Warnf("Unable to fetch yaml files and recognize k8 yamls : %s", err)
+		log.Warnf("Unable to fetch yaml files and recognize k8 yamls. Error: %q", err)
 	}
 	for _, path := range files {
 		data, err := ioutil.ReadFile(path)
@@ -88,15 +93,15 @@ func (k *K8sAPIResourceSet) GetServiceOptions(inputPath string, plan plantypes.P
 		if err != nil {
 			log.Debugf("ignoring file %s since serialization failed", path)
 			continue
-		} else {
-			name, _, err := (&apiresource.Deployment{}).GetNameAndPodSpec(obj)
-			if err == nil {
-				service := newK8sService(name)
-				relpath, _ := plan.GetRelativePath(path)
-				service.SourceArtifacts[plantypes.K8sFileArtifactType] = []string{relpath}
-				services = append(services, service)
-			}
 		}
+		name, _, err := (&apiresource.Deployment{}).GetNameAndPodSpec(obj)
+		if err != nil {
+			continue
+		}
+		service := newK8sService(name)
+		relpath, _ := plan.GetRelativePath(path)
+		service.SourceArtifacts[plantypes.K8sFileArtifactType] = []string{relpath}
+		services = append(services, service)
 	}
 	return services, nil
 }

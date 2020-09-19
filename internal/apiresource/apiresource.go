@@ -33,11 +33,12 @@ const (
 	selector = "io." + types.AppName + ".service"
 )
 
-// IAPIResource deines the interface to be deined for a new api resource
+// IAPIResource defines the interface to be defined for a new api resource
 type IAPIResource interface {
 	GetSupportedKinds() []string
 	CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object
-	ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) // Return nil if not supported
+	// Return nil if not supported
+	ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool)
 }
 
 // APIResource defines functions that are reusable across the api resources
@@ -53,7 +54,8 @@ func (o *APIResource) SetClusterContext(cluster collecttypes.ClusterMetadataSpec
 }
 
 // LoadResources loads the resources
-func (o *APIResource) LoadResources(objs []runtime.Object) []runtime.Object { //Returns resources it could not handle
+// Returns resources it could not handle
+func (o *APIResource) LoadResources(objs []runtime.Object) []runtime.Object {
 	ignoredResources := []runtime.Object{}
 	for _, obj := range objs {
 		if obj == nil {
@@ -82,47 +84,42 @@ func (o *APIResource) isSupportedKind(obj runtime.Object) bool {
 	return common.IsStringPresent(o.GetSupportedKinds(), kind)
 }
 
-func (o *APIResource) loadResource(obj runtime.Object, otherobjs []runtime.Object) bool { //Returns resources it could not handle
+// loadResource returns false if it could not handle the resource.
+func (o *APIResource) loadResource(obj runtime.Object, otherobjs []runtime.Object) bool {
 	if !o.isSupportedKind(obj) {
 		return false
 	}
-	supportedobjs, done := o.ConvertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(), otherobjs)
-	if !done {
+	supportedobjs, ok := o.ConvertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(), otherobjs)
+	if !ok {
 		return false
 	}
 	if o.cachedobjs == nil {
+		// TODO: might need to merge supportedobjs with itself here if they are not all unique.
+		// Alternatively assume ConvertToClusterSupportedKinds always gives unique resources.
 		o.cachedobjs = supportedobjs
 		return true
 	}
+
 	for _, supportedobj := range supportedobjs {
-		objs := []runtime.Object{}
 		merged := false
-		for _, cachedobj := range o.cachedobjs {
-			var mergedobj runtime.Object = nil
-			if o.isSameResource(cachedobj, supportedobj) {
-				mergedobj = o.merge(cachedobj, supportedobj)
-			}
-			if mergedobj != nil {
-				objs = append(objs, mergedobj)
+		for i, cachedobj := range o.cachedobjs {
+			if mergedobj, ok := o.merge(cachedobj, supportedobj); ok {
+				o.cachedobjs[i] = mergedobj
 				merged = true
-			} else {
-				objs = append(objs, cachedobj)
+				break
 			}
 		}
 		if !merged {
-			objs = append(objs, supportedobj)
+			o.cachedobjs = append(o.cachedobjs, supportedobj)
 		}
-		o.cachedobjs = objs
 	}
+
 	return true
 }
 
 // Could be different versions, but will still be marked as duplicate
 func (o *APIResource) isSameResource(obj1 runtime.Object, obj2 runtime.Object) bool {
-	if o.shareSameID(obj1, obj2) && obj1.GetObjectKind().GroupVersionKind().GroupKind().Empty() != obj2.GetObjectKind().GroupVersionKind().GroupKind().Empty() {
-		return true
-	}
-	return false
+	return o.shareSameID(obj1, obj2) && obj1.GetObjectKind().GroupVersionKind().GroupKind() == obj2.GetObjectKind().GroupVersionKind().GroupKind()
 }
 
 func (o *APIResource) shareSameID(obj1 runtime.Object, obj2 runtime.Object) bool {
@@ -140,21 +137,19 @@ func getServiceLabels(name string) map[string]string {
 
 // getAnnotations configures annotations
 func getAnnotations(service irtypes.Service) map[string]string {
-
 	annotations := map[string]string{}
 	for key, value := range service.Annotations {
 		annotations[key] = value
 	}
-
 	return annotations
 }
 
-func (o *APIResource) merge(obj1 runtime.Object, obj2 runtime.Object) runtime.Object {
-	if obj1.GetObjectKind().GroupVersionKind().Kind == obj2.GetObjectKind().GroupVersionKind().Kind {
-		reflect.ValueOf(obj2).MethodByName("DeepCopyInto").Call([]reflect.Value{reflect.ValueOf(obj1)})
-		return obj1
+func (o *APIResource) merge(obj1, obj2 runtime.Object) (runtime.Object, bool) {
+	if !o.isSameResource(obj1, obj2) {
+		return nil, false
 	}
-	return nil
+	reflect.ValueOf(obj2).MethodByName("DeepCopyInto").Call([]reflect.Value{reflect.ValueOf(obj1)})
+	return obj1, true
 }
 
 func (o *APIResource) getObjectID(obj runtime.Object) string {

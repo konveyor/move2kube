@@ -32,8 +32,10 @@ import (
 
 // Translate translates the artifacts and writes output
 func Translate(p plantypes.Plan, outpath string) {
-	sourceir, _ := source.Translate(p)
-
+	sourceir, err := source.Translate(p)
+	if err != nil {
+		log.Fatalf("Failed to translate the plan to intermediate representation. Error: %q", err)
+	}
 	log.Debugf("Total storages loaded : %d", len(sourceir.Storages))
 
 	log.Infoln("Begin Metadata loading")
@@ -51,20 +53,22 @@ func Translate(p plantypes.Plan, outpath string) {
 
 	log.Debugf("Total services loaded : %d", len(sourceir.Services))
 	log.Debugf("Total containers loaded : %d", len(sourceir.Containers))
-	optimizedir, _ := optimize.Optimize(sourceir)
+
+	optimizedir, err := optimize.Optimize(sourceir)
+	if err != nil {
+		log.Warnf("Failed to optimize the intermediate representation. Error: %q", err)
+		optimizedir = sourceir
+	}
+	log.Debugf("Total services optimized : %d", len(optimizedir.Services))
 
 	os.RemoveAll(outpath)
 	dct := transform.ComposeTransformer{}
-	err := dct.Transform(optimizedir)
-	if err != nil {
+	if err := dct.Transform(optimizedir); err != nil {
 		log.Errorf("Error during translate docker compose file : %s", err)
-	}
-	err = dct.WriteObjects(outpath)
-	if err != nil {
+	} else if err = dct.WriteObjects(outpath); err != nil {
 		log.Errorf("Unable to write docker compose objects : %s", err)
 	}
 
-	log.Debugf("Total services optimized : %d", len(optimizedir.Services))
 	ir, _ := customize.Customize(optimizedir)
 	log.Debugf("Total storages customized : %d", len(optimizedir.Storages))
 	if p.Spec.Outputs.Kubernetes.ArtifactType != plantypes.Yamls && p.Spec.Outputs.Kubernetes.ArtifactType != plantypes.Knative {
@@ -72,13 +76,10 @@ func Translate(p plantypes.Plan, outpath string) {
 	}
 
 	t := transform.GetTransformer(ir)
-	err = t.Transform(ir)
-	if err != nil {
-		log.Errorf("Error during translate : %s", err)
-	}
-	err = t.WriteObjects(outpath)
-	if err != nil {
-		log.Errorf("Unable to write objects : %s", err)
+	if err := t.Transform(ir); err != nil {
+		log.Fatalf("Error during translate. Error: %q", err)
+	} else if err := t.WriteObjects(outpath); err != nil {
+		log.Fatalf("Unable to write objects Error: %q", err)
 	}
 
 	log.Info("Execution completed")

@@ -57,7 +57,8 @@ func GetTransformer(ir irtypes.IR) Transformer {
 	return &K8sTransformer{}
 }
 
-func writeContainers(outpath string, containers []irtypes.Container, registryURL string, registryNamespace string) bool { //Returns if any scripts were written
+// writeContainers returns true if any scripts were written
+func writeContainers(outpath string, containers []irtypes.Container, registryURL string, registryNamespace string) bool {
 	containersdirectory := "containers"
 	containerspath := path.Join(outpath, containersdirectory)
 	log.Debugf("containerspath %s", containerspath)
@@ -192,11 +193,11 @@ func writeTransformedObjects(path string, objs []runtime.Object) ([]string, erro
 		objectMeta := val.FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
 		file := fmt.Sprintf("%s-%s.yaml", objectMeta.Name, strings.ToLower(typeMeta.Kind))
 		file = filepath.Join(path, file)
-		fileswritten = append(fileswritten, file)
-		if err := ioutil.WriteFile(file, []byte(data), common.DefaultFilePermission); err != nil {
-			log.Error("Failed to write %s: %s"+strings.ToLower(typeMeta.Kind), err)
+		if err := ioutil.WriteFile(file, data, common.DefaultFilePermission); err != nil {
+			log.Errorf("Failed to write %q Error: %q", typeMeta.Kind, err)
 			continue
 		}
+		fileswritten = append(fileswritten, file)
 		log.Debugf("%q created", file)
 	}
 	return fileswritten, nil
