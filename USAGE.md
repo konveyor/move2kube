@@ -18,4 +18,4 @@ Note: If information about any runtime instance say cloud foundry or kubernetes 
 
 ## Contact
 
-For more information, please contact Amith Singhee ([asinghee@in.ibm.com](mailto:asinghee@in.ibm.com)) or Ashok Pon Kumar ([ashokponkumar@in.ibm.com](mailto:ashokponkumar@in.ibm.com))
+For any questions reach out at [slack](https://cloud-native.slack.com/archives/C01AJ5WCXGF) in [cloud-native](https://slack.cncf.io/) workspace.
