@@ -100,7 +100,7 @@ ${GOLANGCOVER}:
 
 .PHONY: test-coverage
 test-coverage: ${GOLANGCOVER} ## Run tests with coverage
-	@go test -run . $(PKG) -covermode=atomic
+	@go test -run . $(PKG) -coverprofile=coverage.txt -covermode=atomic
 
 ${GOLANGCILINT}:
 	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.30.0
