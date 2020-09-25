@@ -1,6 +1,6 @@
 # Troubleshooting
 
-##  Move2kube Installation
+##  Move2kube Development
 
 ### Permissions of the `go` folder
 
@@ -48,4 +48,3 @@ Solution: Make sure the current user is part of the docker group:
 ```
 sudo usermod -aG docker <username>
 ```
-
