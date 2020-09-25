@@ -43,8 +43,9 @@ endif
 BINARY_VERSION ?= ${GIT_TAG}
 ifneq ($(BINARY_VERSION),)
 	LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.version=${BINARY_VERSION}
-	VERSION = $(BINARY_VERSION)
+	VERSION ?= $(BINARY_VERSION)
 endif
+VERSION ?= latest
 
 VERSION_METADATA = unreleased
 ifneq ($(GIT_TAG),)
@@ -152,8 +153,9 @@ info: ## Get version info
 
 .PHONY: cbuild
 cbuild: ## Build docker image
-	@docker build -t ${REGISTRYNS}/${BINNAME}:latest .
+	@docker build -t ${REGISTRYNS}/${BINNAME}:${VERSION} -t ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} .
 
 .PHONY: cpush
 cpush: ## Push docker image
 	@docker push ${REGISTRYNS}/${BINNAME}:latest
+	@docker push ${REGISTRYNS}/${BINNAME}:${VERSION}
