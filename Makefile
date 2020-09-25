@@ -16,6 +16,7 @@ BINNAME     ?= move2kube
 BINDIR      := $(CURDIR)/bin
 DISTDIR		:= $(CURDIR)/_dist
 TARGETS     := darwin/amd64 linux/amd64
+REGISTRYNS  := quay.io/konveyor
 
 GOPATH        = $(shell go env GOPATH)
 GOX           = $(GOPATH)/bin/gox
@@ -151,4 +152,8 @@ info: ## Get version info
 
 .PHONY: cbuild
 cbuild: ## Build docker image
-	@docker build -t ${BINNAME}:latest .
+	@docker build -t ${REGISTRYNS}/${BINNAME}:latest .
+
+.PHONY: cpush
+cpush: ## Push docker image
+	@docker push ${REGISTRYNS}/${BINNAME}:latest
