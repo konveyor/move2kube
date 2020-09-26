@@ -18,4 +18,4 @@ Note: If information about any runtime instance say cloud foundry or kubernetes 
 
 ## Contact
 
-For any questions reach out at [slack](https://cloud-native.slack.com/archives/C01AJ5WCXGF) in [cloud-native](https://slack.cncf.io/) workspace.
+For any questions reach out at [slack](https://kubernetes.slack.com/archives/CR85S82A2) in [kubernetes](https://slack.k8s.io/) workspace.
