@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	selector = "io." + types.AppName + ".service"
+	selector = types.GroupName + "/service"
 )
 
 // IAPIResource defines the interface to be defined for a new api resource

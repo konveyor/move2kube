@@ -26,7 +26,7 @@ const (
 	// AppNameShort represents the short app name
 	AppNameShort string = "m2k"
 	// GroupName is the group name use in this package
-	GroupName = AppName + ".io"
+	GroupName = AppName + ".konveyor.openshift.io"
 )
 
 // Kind stores the kind of the file
