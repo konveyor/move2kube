@@ -30,7 +30,7 @@ import (
 
 const (
 	networkPolicyKind   = "NetworkPolicy"
-	networkSelector     = "io." + types.AppName + ".network"
+	networkSelector     = types.GroupName + "/network"
 	networkPresentLabel = "true"
 )
 
