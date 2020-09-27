@@ -21,6 +21,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
+	"github.com/konveyor/move2kube/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 )
 
@@ -62,7 +63,7 @@ func (ingresso ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 		if tempService.Annotations == nil {
 			tempService.Annotations = make(map[string]string)
 		}
-		tempService.Annotations["move2kube.service.expose"] = "true"
+		tempService.Annotations[types.GroupName+"/expose"] = "true"
 		// Also set the special field
 		tempService.ExposeService = true
 		ir.Services[k] = tempService
