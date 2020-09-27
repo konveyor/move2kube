@@ -118,7 +118,7 @@ func (p *Problem) GetBoolAnswer() (ans bool, err error) {
 		return ans, fmt.Errorf("Problem yet to be resolved")
 	}
 	if p.Solution.Type == ConfirmSolutionFormType {
-		return false, fmt.Errorf("This question type does not ssupport this answer type")
+		return false, fmt.Errorf("This question type does not support this answer type")
 	}
 	if len(p.Solution.Answer) != 1 {
 		return false, fmt.Errorf("No answer available")
@@ -136,7 +136,7 @@ func (p *Problem) GetStringAnswer() (ans string, err error) {
 		return ans, fmt.Errorf("Problem yet to be resolved")
 	}
 	if p.Solution.Type == MultiSelectSolutionFormType || p.Solution.Type == ConfirmSolutionFormType {
-		return "", fmt.Errorf("This question type does not ssupport this answer type")
+		return "", fmt.Errorf("This question type does not support this answer type")
 	}
 	if len(p.Solution.Answer) != 1 {
 		return "", fmt.Errorf("Wrong number of answers")
