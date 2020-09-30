@@ -1,32 +1,24 @@
 language: go
-
 go:
-  - "1.15"
-
+- '1.15'
 services:
-  - docker
-
+- docker
 cache:
   directories:
-    - $GOPATH/pkg/mod
-
+  - "$GOPATH/pkg/mod"
 script:
-  - make test
-  - make build
-  - make test-style
-
+- make test
+- make build
+- make test-style
 after_success:
-  - echo "$QUAY_BOT_PASSWORD" | docker login --username "$QUAY_BOT_USERNAME" --password-stdin quay.io
-  - make cbuild
-  - make cpush
-  - docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:$TRAVIS_BRANCH
-  - docker push quay.io/konveyor/move2kube:$TRAVIS_BRANCH
-  - make test-coverage
-  - bash <(curl -s https://codecov.io/bash)
-
+- echo "$QUAY_BOT_PASSWORD" | docker login --username "$QUAY_BOT_USERNAME" --password-stdin
+  quay.io
+- make cbuild
+- make cpush
+- docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:$TRAVIS_BRANCH
+- docker push quay.io/konveyor/move2kube:$TRAVIS_BRANCH
+- make test-coverage
+- bash <(curl -s https://codecov.io/bash)
 notifications:
-    email:
-      recipients:
-        - ashokponkumar@in.ibm.com
-      on_success: never 
-      on_failure: always
+  slack:
+    secure: tJJdRWiZDQHPqur5en1CThyd6YydutYWqSiyWtq63IAJEOJIRYnRQzX/xifNNe2G0il6BUpsWtp7Z04UTlKYZvkFeP+SGJECfpyWJVd+8A6aPQVUQIddBfiCBgiDO0hT6KjyDxZGYoPybiXZvFt9Lqjn63AQYtiGntcC7zH7cXh0ZMX7KLW2JIZjEGCMMy+Ap39zbRJzHAk5F55/NoW8fIn4RncA/JBvQqGXRGKVj1cC8qbw2xjtNIQ6Gik1JZJrqPzIbgD81cKhSPyZNnJkZEVoJXT4h+orfIBOa5PyozQBIuEuJvoutNV1KwvvxVD2KI5YyVLKpr26VsAMOpoPjk7A/69B+NNYSPonNwUecZ8QRS/27/6SVAFJ/Njf/ZQ5GDi/EyOeBmnSzjuP30oBTrEOVKcRHIwRIBKx7AXA+E7gZn0fpXZduqvkGQ083jFzzGAZsIHJ2j2ZEaR2fkSnnNwTreohVKiu9WxtQ0UmA+dqiGns9NXKop0MZz12lMi/bqTgq8vOUll9fOqiZ+JyTQFqZ4kcUAtlVUBUyJE+FnNkMNcYMyCH+xljw9FeBp9/Yp3FbbbDoIxAIWDbaUcTx50EAegIhR+ubHNkd4jp7CBSL9oaJCalLFh6Bl8T3OX92Ruam8xudLD6s4OInQKSiiY5OkfIfX6g482qIbXp5Ac=
