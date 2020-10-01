@@ -5,9 +5,15 @@ Move2Kube is a command-line tool that accelerates the process of re-platforming 
 ## Setup
 
 1. Ensure that the move2kube executable is in path. `export PATH=$PATH:$PWD`
-1. To install dependencies such as `pack`, `kubectl` and `operator-sdk`, invoke `source installdeps.sh`.
+1. (Optional) To install dependencies such as `pack`, `kubectl` and `operator-sdk`, invoke `source installdeps.sh`.
 
 ## Usage
+
+### One step Simple approach
+
+`move2kube translate -s src`
+
+### Two step involved approach
 
 1. _Plan_ : Place source code in a directory say `src` and generate a plan. For example, you can use the `samples` directory.
     `move2kube plan -s src`
