@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.com/konveyor/move2kube.svg?branch=master)](https://travis-ci.com/konveyor/move2kube)
 [![Docker Repository on Quay](https://quay.io/repository/konveyor/move2kube/status "Docker Repository on Quay")](https://quay.io/repository/konveyor/move2kube)
+[![codecov](https://codecov.io/gh/konveyor/move2kube/branch/master/graph/badge.svg?token=QTPK8KN4J5)](undefined)
 [![License](https://img.shields.io/:license-apache-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/konveyor/move2kube/pulls)
 [![Go Report Card](https://goreportcard.com/badge/github.com/konveyor/move2kube)](https://goreportcard.com/report/github.com/konveyor/move2kube)
