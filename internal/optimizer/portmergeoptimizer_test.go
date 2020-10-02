@@ -17,12 +17,13 @@ limitations under the License.
 package optimize
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	"testing"
 )
 
 func TestPortMergeOptimizer(t *testing.T) {
@@ -116,8 +117,8 @@ func TestPortMergeOptimizer(t *testing.T) {
 
 		image1 := "image1"
 		image2 := "image2"
-		cont1 := types.NewContainer(image1, true)
-		cont2 := types.NewContainer(image2, true)
+		cont1 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image1, true)
+		cont2 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image2, true)
 		cont1.ExposedPorts = append(cont1.ExposedPorts, 8088)
 		cont2.ExposedPorts = append(cont2.ExposedPorts, 8000)
 		ir.Containers = append(ir.Containers, cont1, cont2)
@@ -160,8 +161,8 @@ func TestPortMergeOptimizer(t *testing.T) {
 		image1 := "image1"
 		image2 := "image2"
 		registry := "registry.com"
-		cont1 := types.NewContainer(image1, true)
-		cont2 := types.NewContainer(image2, true)
+		cont1 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image1, true)
+		cont2 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image2, true)
 		cont1.ExposedPorts = append(cont1.ExposedPorts, 8088)
 		cont2.ExposedPorts = append(cont2.ExposedPorts, 8000, 8080)
 		ir.Containers = append(ir.Containers, cont1, cont2)
@@ -205,8 +206,8 @@ func TestPortMergeOptimizer(t *testing.T) {
 		image1 := "image1"
 		image2 := "image2"
 		registry := "registry.com"
-		cont1 := types.NewContainer(image1, true)
-		cont2 := types.NewContainer(image2, true)
+		cont1 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image1, true)
+		cont2 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image2, true)
 		cont1.ExposedPorts = append(cont1.ExposedPorts, 8088)
 		cont2.ExposedPorts = append(cont2.ExposedPorts, 8000, 8080)
 		ir.Containers = append(ir.Containers, cont1, cont2)
@@ -295,8 +296,8 @@ func getExpectIRWithServiceContainingContainerPortsGivenImageName() types.IR {
 
 	image1 := "image1"
 	image2 := "image2"
-	cont1 := types.NewContainer(image1, true)
-	cont2 := types.NewContainer(image2, true)
+	cont1 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image1, true)
+	cont2 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image2, true)
 	cont1.ExposedPorts = append(cont1.ExposedPorts, 8088)
 	cont2.ExposedPorts = append(cont2.ExposedPorts, 8000)
 	ir.Containers = append(ir.Containers, cont1, cont2)
@@ -330,8 +331,8 @@ func getExpectIRWithServiceContainingContainerPortsGivenImageURL() types.IR {
 	image1 := "image1"
 	image2 := "image2"
 	registry := "registry.com"
-	cont1 := types.NewContainer(image1, true)
-	cont2 := types.NewContainer(image2, true)
+	cont1 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image1, true)
+	cont2 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image2, true)
 	cont1.ExposedPorts = append(cont1.ExposedPorts, 8088)
 	cont2.ExposedPorts = append(cont2.ExposedPorts, 8000, 8080)
 	ir.Containers = append(ir.Containers, cont1, cont2)
@@ -366,8 +367,8 @@ func getExpectIRWithServiceContainingContainerPortsGivenImageNameAndURL() types.
 	image1 := "image1"
 	image2 := "image2"
 	registry := "registry.com"
-	cont1 := types.NewContainer(image1, true)
-	cont2 := types.NewContainer(image2, true)
+	cont1 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image1, true)
+	cont2 := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, image2, true)
 	cont1.ExposedPorts = append(cont1.ExposedPorts, 8088)
 	cont2.ExposedPorts = append(cont2.ExposedPorts, 8000, 8080)
 	ir.Containers = append(ir.Containers, cont1, cont2)

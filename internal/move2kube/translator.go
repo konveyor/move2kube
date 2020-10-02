@@ -75,6 +75,13 @@ func Translate(p plantypes.Plan, outpath string) {
 		ir, _ = parameterize.Parameterize(ir)
 	}
 
+	cicd := transform.CICDTransformer{}
+	if err := cicd.Transform(ir); err != nil {
+		log.Errorf("Error while genrationg CI/CD resource fomr the IR. Error: %q", err)
+	} else if err = cicd.WriteObjects(outpath); err != nil {
+		log.Errorf("Unable to write the CI/CD artifacts to files. Error: %q", err)
+	}
+
 	t := transform.GetTransformer(ir)
 	if err := t.Transform(ir); err != nil {
 		log.Fatalf("Error during translate. Error: %q", err)

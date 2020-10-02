@@ -28,6 +28,7 @@ import (
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	outputtypes "github.com/konveyor/move2kube/types/output"
 	"github.com/konveyor/move2kube/types/plan"
+	plantypes "github.com/konveyor/move2kube/types/plan"
 )
 
 // IR is the intermediate representation
@@ -75,23 +76,26 @@ func (service *Service) AddVolume(volume corev1.Volume) {
 
 // Container defines structure of a container
 type Container struct {
-	ImageNames   []string
-	New          bool
-	NewFiles     map[string]string //[filename][filecontents]
-	ExposedPorts []int
-	UserID       int
-	AccessedDirs []string
+	ContainerBuildType plantypes.ContainerBuildTypeValue
+	CICDInfo           plantypes.CICDSpec
+	ImageNames         []string
+	New                bool
+	NewFiles           map[string]string //[filename][filecontents]
+	ExposedPorts       []int
+	UserID             int
+	AccessedDirs       []string
 }
 
 // NewContainer creates a new container
-func NewContainer(imagename string, new bool) Container {
+func NewContainer(containerBuildType plantypes.ContainerBuildTypeValue, imagename string, new bool) Container {
 	return Container{
-		ImageNames:   []string{imagename},
-		New:          new,
-		NewFiles:     make(map[string]string),
-		ExposedPorts: []int{},
-		UserID:       -1,
-		AccessedDirs: []string{},
+		ContainerBuildType: containerBuildType,
+		ImageNames:         []string{imagename},
+		New:                new,
+		NewFiles:           make(map[string]string),
+		ExposedPorts:       []int{},
+		UserID:             -1,
+		AccessedDirs:       []string{},
 	}
 }
 
@@ -103,7 +107,7 @@ func NewContainerFromImageInfo(i collecttypes.ImageInfo) Container {
 	} else {
 		log.Errorf("The image info %v has no tags. Leaving the tag empty for the container.", i)
 	}
-	c := NewContainer(imagename, false)
+	c := NewContainer(plantypes.ReuseContainerBuildTypeValue, imagename, false)
 	c.ImageNames = i.Spec.Tags
 	c.ExposedPorts = i.Spec.PortsToExpose
 	c.UserID = i.Spec.UserID
@@ -113,6 +117,9 @@ func NewContainerFromImageInfo(i collecttypes.ImageInfo) Container {
 
 // Merge merges containers
 func (c *Container) Merge(newc Container) bool {
+	if c.ContainerBuildType != newc.ContainerBuildType {
+		return false
+	}
 	for _, imagename := range newc.ImageNames {
 		if common.IsStringPresent(c.ImageNames, imagename) {
 			if c.New != newc.New {

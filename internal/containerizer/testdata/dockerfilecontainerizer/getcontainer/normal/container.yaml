@@ -1,3 +1,9 @@
+containerbuildtype: NewDockerfile
+cicdinfo:
+  gitrepodir: ""
+  gitrepourl: ""
+  gitrepobranch: ""
+  targetpath: Dockerfile.dockerfile
 imagenames:
   - dockerfile:latest
 new: true

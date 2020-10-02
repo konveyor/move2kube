@@ -39,7 +39,7 @@ func (d *ReuseDockerfileContainerizer) GetContainerBuildStrategy() plantypes.Con
 
 // GetContainer returns the container for the service
 func (d *ReuseDockerfileContainerizer) GetContainer(path string, serviceName string, imageName string, dockerfile string, context string) (irtypes.Container, error) {
-	container := irtypes.NewContainer(imageName, true)
+	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), imageName, true)
 	_, err := os.Stat(filepath.Join(path, dockerfile))
 	if os.IsNotExist(err) {
 		log.Errorf("Unable to find docker file %s : %s", dockerfile, err)

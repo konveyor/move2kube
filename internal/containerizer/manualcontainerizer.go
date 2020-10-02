@@ -45,7 +45,7 @@ func (d ManualContainerizer) GetContainerBuildStrategy() plantypes.ContainerBuil
 func (d ManualContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	// TODO: Fix exposed ports too
 	if service.ContainerBuildType == d.GetContainerBuildStrategy() {
-		container := irtypes.NewContainer(service.Image, true)
+		container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
 		return container, nil
 	}
 	return irtypes.Container{}, fmt.Errorf("Unsupported service type for Containerization or insufficient information in service")

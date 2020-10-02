@@ -18,12 +18,14 @@ package common
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"hash/crc64"
 	"io"
 	"io/ioutil"
 	"math"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -32,6 +34,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/go-git/go-git/v5"
 	"github.com/konveyor/move2kube/internal/assets"
 	"github.com/konveyor/move2kube/types"
 	log "github.com/sirupsen/logrus"
@@ -241,7 +244,7 @@ func NormalizeForFilename(name string) string {
 	}
 	crc64Table := crc64.MakeTable(0xC96C5795D7870F42)
 	crc64Int := crc64.Checksum([]byte(name), crc64Table)
-	return processedString + "_" + strconv.FormatUint(crc64Int, 16)
+	return processedString + "-" + strconv.FormatUint(crc64Int, 16)
 }
 
 // NormalizeForServiceName converts the string to be compatible for service name
@@ -385,6 +388,81 @@ func MakeFileNameCompliant(name string) string {
 	return processedName
 }
 
+// GetSHA256Hash returns the SHA256 hash of the string.
+// The hash is 256 bits/32 bytes and encoded as a 64 char hexadecimal string.
+func GetSHA256Hash(s string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(s)))
+}
+
+// MakeStringDNSNameCompliant makes the string into a valid DNS name.
+func MakeStringDNSNameCompliant(s string) string {
+	name := strings.ToLower(s)
+	name = regexp.MustCompile(`[^a-z0-9-.]`).ReplaceAllString(name, "-")
+	start, end := name[0], name[len(name)-1]
+	if start == '-' || start == '.' || end == '-' || end == '.' {
+		log.Warnf("The first and/or last characters of the string %q are not alphanumeric.", s)
+	}
+	return name
+}
+
+// MakeStringDNSSubdomainNameCompliant makes the string a valid DNS subdomain name.
+// See https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
+// 1. contain no more than 253 characters
+// 2. contain only lowercase alphanumeric characters, '-' or '.'
+// 3. start with an alphanumeric character
+// 4. end with an alphanumeric character
+func MakeStringDNSSubdomainNameCompliant(s string) string {
+	name := s
+	if len(name) > 253 {
+		hash := GetSHA256Hash(name)
+		name = name[:253-65] // leave room for the hash (64 chars) plus hyphen (1 char).
+		name = name + "-" + hash
+	}
+	return MakeStringDNSNameCompliant(name)
+}
+
+// MakeStringDNSLabelNameCompliant makes the string a valid DNS label name.
+// See https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names
+// 1. contain at most 63 characters
+// 2. contain only lowercase alphanumeric characters or '-'
+// 3. start with an alphanumeric character
+// 4. end with an alphanumeric character
+func MakeStringDNSLabelNameCompliant(s string) string {
+	name := s
+	if len(name) > 63 {
+		hash := GetSHA256Hash(name)
+		hash = hash[:32]
+		name = name[:63-33] // leave room for the hash (32 chars) plus hyphen (1 char).
+		name = name + "-" + hash
+	}
+	return MakeStringDNSNameCompliant(name)
+}
+
+// MakeStringPathSegmentNameCompliant makes the string a valid path segment name.
+// See https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#path-segment-names
+// The name cannot be "." or ".." and the name should not contain "/" or "%".
+// See https://tools.ietf.org/html/rfc3986#section-3.3
+// segment       = *pchar
+// pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
+// unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+// pct-encoded   = "%" HEXDIG HEXDIG
+// sub-delims    = "!" / "$" / "&" / "'" / "(" / ")" / "*" / "+" / "," / ";" / "="
+// 2.3.  Unreserved Characters
+//    Characters that are allowed in a URI but do not have a reserved
+//    purpose are called unreserved.  These include uppercase and lowercase
+//    letters, decimal digits, hyphen, period, underscore, and tilde.
+//       unreserved  = ALPHA / DIGIT / "-" / "." / "_" / "~"
+// 1.3.  Syntax Notation
+//    This specification uses the Augmented Backus-Naur Form (ABNF)
+//    notation of [RFC2234], including the following core ABNF syntax rules
+//    defined by that specification: ALPHA (letters), CR (carriage return),
+//    DIGIT (decimal digits), DQUOTE (double quote), HEXDIG (hexadecimal
+//    digits), LF (line feed), and SP (space).  The complete URI syntax is
+//    collected in Appendix A.
+// func MakeStringPathSegmentNameCompliant(s string) string {
+// 	return s
+// }
+
 // CleanAndFindCommonDirectory finds the common ancestor directory among a list of absolute paths.
 // Cleans the paths you give it before finding the directory.
 // Also see FindCommonDirectory
@@ -476,4 +554,107 @@ func CopyFile(dst, src string) error {
 	}
 
 	return dstfile.Close()
+}
+
+// UniqueStrings returns a new slice with only the unique strings from the input slice.
+func UniqueStrings(xs []string) []string {
+	exists := map[string]int{}
+	nextIdx := 0
+	for _, x := range xs {
+		if _, ok := exists[x]; ok {
+			continue
+		}
+		exists[x] = nextIdx
+		nextIdx++
+	}
+	unique := make([]string, len(exists))
+	for x, idx := range exists {
+		unique[idx] = x
+	}
+	return unique
+}
+
+// GetGitRemoteNames returns a list of remotes if there is a repo and remotes exists.
+func GetGitRemoteNames(path string) ([]string, error) {
+	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
+	if err != nil {
+		return nil, err
+	}
+	remotes, err := repo.Remotes()
+	if err != nil {
+		return nil, err
+	}
+	remoteNames := []string{}
+	for _, remote := range remotes {
+		remoteNames = append(remoteNames, remote.Config().Name)
+	}
+	return remoteNames, nil
+}
+
+// GetGitRepoDetails returns the remote urls for a git repo at path.
+func GetGitRepoDetails(path, remoteName string) (remoteURLs []string, branch string, repoDir string, finalerr error) {
+	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
+	if err != nil {
+		log.Debugf("Unable to open the path %q as a git repo. Error: %q", path, err)
+		return nil, "", "", err
+	}
+
+	if workTree, err := repo.Worktree(); err == nil {
+		repoDir = workTree.Filesystem.Root()
+	} else {
+		log.Debugf("Unable to get the repo directory. Error: %q", err)
+	}
+
+	if ref, err := repo.Head(); err == nil {
+		branch = filepath.Base(string(ref.Name()))
+	} else {
+		log.Debugf("Unable to get the current branch. Error: %q", err)
+	}
+
+	if remote, err := repo.Remote(remoteName); err == nil {
+		remoteURLs = remote.Config().URLs
+	} else {
+		log.Debugf("Unable to get remote named %s Error: %q", remoteName, err)
+	}
+
+	return remoteURLs, branch, repoDir, nil
+}
+
+// GetGitRepoName returns the remote repo's name and context
+func GetGitRepoName(path string) (repo string, root string) {
+	r, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
+	if err != nil {
+		log.Debugf("Unable to open %s as a git repo : %s", path, err)
+		return "", ""
+	}
+	remote, err := r.Remote("origin")
+	if err != nil {
+		log.Debugf("Unable to get origin remote : %s", err)
+		return "", ""
+	}
+	if len(remote.Config().URLs) == 0 {
+		log.Debugf("Unable to get origins")
+		return "", ""
+	}
+	u := remote.Config().URLs[0]
+	if strings.HasPrefix(u, "git") {
+		parts := strings.Split(u, ":")
+		if len(parts) != 2 {
+			// Unable to find git repo name
+			return "", ""
+		}
+		u = parts[1]
+	}
+	giturl, err := url.Parse(u)
+	if err != nil {
+		log.Debugf("Unable to get origin remote host : %s", err)
+		return "", ""
+	}
+	name := filepath.Base(giturl.Path)
+	name = strings.TrimSuffix(name, filepath.Ext(name))
+	w, err := r.Worktree()
+	if err != nil {
+		log.Warnf("Unable to get root of repo : %s", err)
+	}
+	return name, w.Filesystem.Root()
 }

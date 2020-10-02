@@ -96,6 +96,9 @@ func (c Any2KubeTranslator) GetServiceOptions(inputPath string, plan plantypes.P
 					service.SourceArtifacts[plantypes.SourceDirectoryArtifactType] = append(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType], path)
 					service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType] = append(service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType], path)
 				}
+				if foundRepo, err := service.GatherGitInfo(fullpath, plan); foundRepo && err != nil {
+					log.Warnf("Error while parsing the git repo at path %q Error: %q", fullpath, err)
+				}
 				services = append(services, service)
 			}
 			//return nil

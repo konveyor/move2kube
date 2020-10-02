@@ -102,8 +102,7 @@ func (c *CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (answer qatypes
 }
 
 func (c *CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
-	ans := []string{}
-	var d bool
+	var ans, d bool
 	if len(prob.Solution.Default) > 0 {
 		d, err = strconv.ParseBool(prob.Solution.Default[0])
 		if err != nil {
@@ -119,7 +118,7 @@ func (c *CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (answer qatypes.Pro
 		log.Fatalf("Error while asking a question : %s", err)
 		return prob, err
 	}
-	err = prob.SetAnswer(ans)
+	err = prob.SetAnswer([]string{fmt.Sprintf("%v", ans)})
 	return prob, err
 }
 

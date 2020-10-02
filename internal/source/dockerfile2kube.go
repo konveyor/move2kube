@@ -18,13 +18,11 @@ package source
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	git "github.com/go-git/go-git/v5"
 	dockerparser "github.com/moby/buildkit/frontend/dockerfile/parser"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -68,6 +66,9 @@ func (c DockerfileTranslator) GetServiceOptions(inputPath string, plan plantypes
 				ns.AddSourceArtifact(plantypes.DockerfileArtifactType, p)
 				ns.ContainerizationTargetOptions = append(ns.ContainerizationTargetOptions, p)
 			}
+			if foundRepo, err := ns.GatherGitInfo(dfs[0].path, plan); foundRepo && err != nil {
+				log.Warnf("Error while parsing the git repo at path %q Error: %q", dfs[0].path, err)
+			}
 			services = append(services, ns)
 		}
 	}
@@ -98,6 +99,8 @@ func (c DockerfileTranslator) Translate(services []plantypes.Service, p plantype
 				}
 			}
 			con, err := c.GetContainer(fp, service.ServiceName, service.Image, filepath.Base(dfp), context)
+			con.CICDInfo = service.CICDInfo
+			con.CICDInfo.TargetPath = service.ContainerizationTargetOptions[0]
 			if err != nil {
 				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
 			} else {
@@ -149,46 +152,6 @@ func isDockerFile(path string) (isDockerfile bool, err error) {
 	return false, fmt.Errorf("%s is not a valid Dockerfile", path)
 }
 
-func getGitRepoName(path string) (repo string, root string) {
-	r, err := git.PlainOpenWithOptions(filepath.Dir(path), &git.PlainOpenOptions{
-		DetectDotGit: true,
-	})
-	if err != nil {
-		log.Debugf("Unable to open %s as a git repo : %s", path, err)
-		return "", ""
-	}
-	remote, err := r.Remote("origin")
-	if err != nil {
-		log.Debugf("Unable to get origin remote : %s", err)
-		return "", ""
-	}
-	if len(remote.Config().URLs) == 0 {
-		log.Debugf("Unable to get origins")
-		return "", ""
-	}
-	u := remote.Config().URLs[0]
-	if strings.HasPrefix(u, "git") {
-		parts := strings.Split(u, ":")
-		if len(parts) != 2 {
-			// Unable to find git repo name
-			return "", ""
-		}
-		u = parts[1]
-	}
-	giturl, err := url.Parse(u)
-	if err != nil {
-		log.Debugf("Unable to get origin remote host : %s", err)
-		return "", ""
-	}
-	name := filepath.Base(giturl.Path)
-	name = strings.TrimSuffix(name, filepath.Ext(name))
-	w, err := r.Worktree()
-	if err != nil {
-		log.Warnf("Unable to get root of repo : %s", err)
-	}
-	return name, w.Filesystem.Root()
-}
-
 func getDockerfileServices(inputpath string, projName string) (sDockerfiles map[string][]dockerfile, err error) {
 	if info, err := os.Stat(inputpath); os.IsNotExist(err) {
 		log.Warnf("Error in walking through files due to : %s", err)
@@ -217,7 +180,7 @@ func getDockerfileServices(inputpath string, projName string) (sDockerfiles map[
 	log.Debugf("No of dockerfiles identified : %d", len(files))
 	repoDockerfiles := make(map[string][]dockerfile)
 	for _, f := range files {
-		repo, context := getGitRepoName(f)
+		repo, context := common.GetGitRepoName(filepath.Dir(f))
 		if repo == "" {
 			repo = projName
 			context = inputpath

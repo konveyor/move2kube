@@ -1,19 +1,25 @@
 ---
-- serviceName: nodejs
-  image: nodejs:latest
-  translationType: Any2Kube
-  containerBuildType: CNB
-  sourceType:
-    - Directory
-  targetOptions:
-    - cloudfoundry/cnb:cflinuxfs3
-    - gcr.io/buildpacks/builder
-  sourceArtifacts:
-    SourceCode:
-      - .
-  buildArtifacts:
-    SourceCode:
-      - .
-  updateContainerBuildPipeline: true
-  updateDeployPipeline: true
+  - cicdinfo:
+      gitrepodir: ""
+      gitrepourl: ""
+      gitrepobranch: ""
+      targetpath: ""
+    serviceName: nodejs
+    image: nodejs:latest
+    translationType: Any2Kube
+    containerBuildType: CNB
+    sourceType:
+      - Directory
+    targetOptions:
+      - cloudfoundry/cnb:cflinuxfs3
+      - gcr.io/buildpacks/builder
+    sourceArtifacts:
+      SourceCode:
+        - .
+    buildArtifacts:
+      SourceCode:
+        - .
+    updateContainerBuildPipeline: true
+    updateDeployPipeline: true
 ...
+  

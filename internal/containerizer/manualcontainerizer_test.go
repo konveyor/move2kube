@@ -40,7 +40,7 @@ func TestManualGetContainer(t *testing.T) {
 		mustreadyaml(t, join(testdatapath, "plan.yaml"), &plan)
 		service := plantypes.Service{}
 		mustreadyaml(t, join(testdatapath, "service.yaml"), &service)
-		want := irtypes.NewContainer(service.Image, true)
+		want := irtypes.NewContainer(plantypes.ManualContainerBuildTypeValue, service.Image, true)
 
 		manualcontainerizer := new(containerizer.ManualContainerizer)
 

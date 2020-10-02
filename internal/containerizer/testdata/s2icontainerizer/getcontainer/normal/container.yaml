@@ -1,3 +1,9 @@
+containerbuildtype: S2I
+cicdinfo:
+  gitrepodir: ""
+  gitrepourl: ""
+  gitrepobranch: ""
+  targetpath: ""
 imagenames:
   - nodejs:latest
 new: true

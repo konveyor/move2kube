@@ -31,8 +31,10 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
 	github.com/tektoncd/pipeline v0.16.3
+	github.com/tektoncd/triggers v0.8.1
+	github.com/whilp/git-urls v1.0.0
 	github.com/xrash/smetrics v0.0.0-20200730060457-89a2a8a1fb0b
-	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
+	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 	k8s.io/api v0.18.8
 	k8s.io/apimachinery v0.18.8

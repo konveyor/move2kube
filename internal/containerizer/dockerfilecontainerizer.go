@@ -97,7 +97,8 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 	if service.ContainerBuildType != d.GetContainerBuildStrategy() || len(service.ContainerizationTargetOptions) == 0 {
 		return irtypes.Container{}, fmt.Errorf("Unsupported service type for Containerization or insufficient information in service")
 	}
-	container := irtypes.NewContainer(service.Image, true)
+	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
+	container.CICDInfo = service.CICDInfo
 	dfdirectory := plan.GetFullPath(service.ContainerizationTargetOptions[0])
 	content, err := ioutil.ReadFile(filepath.Join(dfdirectory, "Dockerfile"))
 	dockerfilename := "Dockerfile." + service.ServiceName
@@ -135,7 +136,8 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 		}
 	}
 	//log.Debugf("Creating Dockerfile at %s with %s", filepath.Join(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0], service.ServiceName+"Dockerfile"), dockerfilestring)
-	container.AddFile(filepath.Join(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0], dockerfilename), dockerfilestring)
+	dockerfilePath := filepath.Join(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0], dockerfilename)
+	container.AddFile(dockerfilePath, dockerfilestring)
 	dockerbuildscript, err := common.GetStringFromTemplate(scripts.Dockerbuild_sh, struct {
 		Dockerfilename string
 		ImageName      string
@@ -149,6 +151,7 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 		log.Warnf("Unable to translate template to string : %s", scripts.Dockerbuild_sh)
 	} else {
 		container.AddFile(filepath.Join(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0], service.ServiceName+"dockerbuild.sh"), dockerbuildscript)
+		container.CICDInfo.TargetPath = dockerfilePath
 	}
 	err = filepath.Walk(dfdirectory, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
