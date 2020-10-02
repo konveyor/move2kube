@@ -208,7 +208,7 @@ func TestGetImageNameAndTag(t *testing.T) {
 
 type givesYamlError struct{}
 
-func (_ *givesYamlError) MarshalYAML() (interface{}, error) {
+func (*givesYamlError) MarshalYAML() (interface{}, error) {
 	return nil, fmt.Errorf("Can't marshal this type to yaml.")
 }
 
@@ -325,7 +325,7 @@ func TestReadYaml(t *testing.T) {
 
 type givesJSONError struct{}
 
-func (_ *givesJSONError) MarshalJSON() ([]byte, error) {
+func (*givesJSONError) MarshalJSON() ([]byte, error) {
 	return nil, fmt.Errorf("Can't marshal this type to json.")
 }
 

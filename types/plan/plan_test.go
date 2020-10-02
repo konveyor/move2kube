@@ -432,11 +432,11 @@ func TestNewPlan(t *testing.T) {
 }
 
 func TestNewService(t *testing.T) {
-	svc_name := "foo"
-	var trans_type plan.TranslationTypeValue = "bar"
-	s := plan.NewService(svc_name, trans_type)
-	if s.ServiceName != svc_name || s.TranslationType != trans_type {
-		t.Error("Service name and translation type have not been set correctly. Expected:", svc_name, trans_type, "Actual:", s.ServiceName, s.TranslationType)
+	svcName := "foo"
+	var transType plan.TranslationTypeValue = "bar"
+	s := plan.NewService(svcName, transType)
+	if s.ServiceName != svcName || s.TranslationType != transType {
+		t.Error("Service name and translation type have not been set correctly. Expected:", svcName, transType, "Actual:", s.ServiceName, s.TranslationType)
 	}
 	if s.SourceTypes == nil || s.BuildArtifacts == nil || s.SourceArtifacts == nil {
 		t.Error("Failed to instantiate the service fields properly. Actual:", s)

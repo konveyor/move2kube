@@ -63,8 +63,7 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (answer qatypes.Problem, e
 }
 
 func (c *CliEngine) fetchSelectAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
-	var ans string = ""
-	d := ""
+	var ans, d string
 	if len(prob.Solution.Default) > 0 {
 		d = prob.Solution.Default[0]
 	} else {
