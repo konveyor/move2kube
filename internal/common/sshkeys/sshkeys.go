@@ -1,0 +1,232 @@
+/*
+Copyright IBM Corporation 2020
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package sshkeys
+
+import (
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+	"io/ioutil"
+	"os/user"
+	"path/filepath"
+
+	commonknownhosts "github.com/konveyor/move2kube/internal/common/knownhosts"
+	"github.com/konveyor/move2kube/internal/qaengine"
+	qatypes "github.com/konveyor/move2kube/types/qaengine"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh"
+)
+
+var (
+	// DomainToPublicKeys maps domains to public keys gathered with known-hosts/get-public-keys.sh
+	DomainToPublicKeys = map[string][]string{
+		"github.com":    []string{"github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ=="},
+		"gitlab.com":    []string{"gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf", "gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9", "gitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY="},
+		"bitbucket.org": []string{"bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw=="},
+	}
+	privateKeyDir                 = ""
+	firstTimeLoadingSSHKeysOfUser = true
+	privateKeysToConsider         = []string{}
+)
+
+// Setup
+func init() {
+	// Try to get the public keys from ~/.ssh/known_hosts
+	usr, err := user.Current()
+	if err != nil {
+		log.Warn("Failed to get the current user. Error:", err)
+		return
+	}
+	home := usr.HomeDir
+	log.Debug("home directory:", home)
+	privateKeyDir = filepath.Join(home, ".ssh")
+	knownHostsPath := filepath.Join(home, ".ssh", "known_hosts")
+	newKeys, err := commonknownhosts.ParseKnownHosts(knownHostsPath)
+	if err != nil {
+		log.Warnf("Failed to get public keys from the known_hosts file at path %q Error: %q", knownHostsPath, err)
+		return
+	}
+	for domain, keys := range newKeys {
+		if _, ok := DomainToPublicKeys[domain]; !ok {
+			DomainToPublicKeys[domain] = keys
+		}
+	}
+	log.Debug("DomainToPublicKeys:", DomainToPublicKeys)
+}
+
+func loadSSHKeysOfCurrentUser() {
+	if !firstTimeLoadingSSHKeysOfUser {
+		return
+	}
+	firstTimeLoadingSSHKeysOfUser = false
+	log.Debugf("Looking in ssh directory at path %q for keys.", privateKeyDir)
+
+	// Ask if we should look at the private keys
+	problem, err := qatypes.NewConfirmProblem(fmt.Sprintf("The CI/CD pipeline needs access to the git repos in order to clone, build and push. If any of the repos require ssh keys you will need to provide them. Do you want to load the private ssh keys from [%s]?:", privateKeyDir), []string{"No, I will add them later if necessary."}, false)
+	if err != nil {
+		log.Fatalf("Unable to create problem : %s", err)
+	}
+	problem, err = qaengine.FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer : %s", err)
+	}
+	ans, err := problem.GetBoolAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer : %s", err)
+	}
+	if !ans {
+		log.Debug("Don't read private keys. They will be added later if necessary.")
+		return
+	}
+
+	// Ask which keys we should consider
+	finfos, err := ioutil.ReadDir(privateKeyDir)
+	if err != nil {
+		log.Errorf("Failed to read the ssh directory at path %q Error: %q", privateKeyDir, err)
+		return
+	}
+	if len(finfos) == 0 {
+		log.Warn("No key files where found in", privateKeyDir)
+		return
+	}
+	filenames := []string{}
+	for _, finfo := range finfos {
+		filenames = append(filenames, finfo.Name())
+	}
+	problem, err = qatypes.NewMultiSelectProblem(fmt.Sprintf("These are the files we found in %q . Which keys should we consider?", privateKeyDir), []string{"Select all the keys that give acess to git repos."}, filenames, filenames)
+	if err != nil {
+		log.Fatalf("Unable to create problem : %s", err)
+	}
+	problem, err = qaengine.FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer : %s", err)
+	}
+	filenames, err = problem.GetSliceAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer : %s", err)
+	}
+	if len(filenames) == 0 {
+		log.Info("All key files ignored.")
+		return
+	}
+	// Save the filenames for now. We will decrypt them if and when we need them.
+	privateKeysToConsider = filenames
+}
+
+func marshalRSAIntoPEM(key *rsa.PrivateKey) string {
+	keyBytes := x509.MarshalPKCS1PrivateKey(key)
+	PEMBlk := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: keyBytes}
+	PEMBytes := pem.EncodeToMemory(PEMBlk)
+	return string(PEMBytes)
+}
+
+func marshalECDSAIntoPEM(key *ecdsa.PrivateKey) string {
+	keyBytes, err := x509.MarshalECPrivateKey(key)
+	if err != nil {
+		log.Errorf("Failed to marshal the ECDSA key. Error: %q", err)
+		return ""
+	}
+	PEMBlk := &pem.Block{Type: "EC PRIVATE KEY", Bytes: keyBytes}
+	PEMBytes := pem.EncodeToMemory(PEMBlk)
+	return string(PEMBytes)
+}
+
+func loadSSHKey(filename string) (string, error) {
+	path := filepath.Join(privateKeyDir, filename)
+	fileBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Errorf("Failed to read the private key file at path %q Error: %q", path, err)
+		return "", err
+	}
+	key, err := ssh.ParseRawPrivateKey(fileBytes)
+	if err != nil {
+		// Could be an encrypted private key.
+		if _, ok := err.(*ssh.PassphraseMissingError); !ok {
+			log.Errorf("Failed to parse the private key file at path %q Error %q", path, err)
+			return "", err
+		}
+
+		problem, err := qatypes.NewPasswordProblem(fmt.Sprintf("Enter the password to decrypt the private key %q : ", filename), []string{"Password:"})
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
+		}
+		problem, err = qaengine.FetchAnswer(problem)
+		if err != nil {
+			log.Fatalf("Unable to fetch answer : %s", err)
+		}
+		password, err := problem.GetStringAnswer()
+		if err != nil {
+			log.Fatalf("Unable to get answer : %s", err)
+		}
+
+		key, err = ssh.ParseRawPrivateKeyWithPassphrase(fileBytes, []byte(password))
+		if err != nil {
+			log.Errorf("Failed to parse the encrypted private key file at path %q Error %q", path, err)
+			return "", err
+		}
+	}
+	// *ecdsa.PrivateKey
+	switch actualKey := key.(type) {
+	case *rsa.PrivateKey:
+		return marshalRSAIntoPEM(actualKey), nil
+	case *ecdsa.PrivateKey:
+		return marshalECDSAIntoPEM(actualKey), nil
+	default:
+		log.Errorf("Unknown key type [%T]", key)
+		return "", fmt.Errorf("Unknown key type [%T]", key)
+	}
+}
+
+// GetSSHKey returns the private key for the given domain.
+func GetSSHKey(domain string) (string, bool) {
+	loadSSHKeysOfCurrentUser()
+	if len(privateKeysToConsider) == 0 {
+		return "", false
+	}
+
+	filenames := []string{}
+	for _, filename := range privateKeysToConsider {
+		filenames = append(filenames, filename)
+	}
+	filenames = append(filenames, "NONE")
+	problem, err := qatypes.NewSelectProblem(fmt.Sprintf("Select the key to use to for the git domain %s :", domain), []string{"If none of the keys are correct, select None."}, "NONE", filenames)
+	if err != nil {
+		log.Fatalf("Unable to create problem : %s", err)
+	}
+	problem, err = qaengine.FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer : %s", err)
+	}
+	filename, err := problem.GetStringAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer : %s", err)
+	}
+	if filename == "NONE" {
+		log.Debugf("No key selected for domain %s", domain)
+		return "", false
+	}
+
+	log.Debug("Loading the key", filename)
+	key, err := loadSSHKey(filename)
+	if err != nil {
+		log.Warnf("Failed to load the key %q Error %q", filename, err)
+		return "", false
+	}
+	return key, true
+}

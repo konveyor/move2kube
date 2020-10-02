@@ -117,7 +117,7 @@ func (p *Problem) GetBoolAnswer() (ans bool, err error) {
 	if !p.Resolved {
 		return ans, fmt.Errorf("Problem yet to be resolved")
 	}
-	if p.Solution.Type == ConfirmSolutionFormType {
+	if p.Solution.Type != ConfirmSolutionFormType {
 		return false, fmt.Errorf("This question type does not support this answer type")
 	}
 	if len(p.Solution.Answer) != 1 {

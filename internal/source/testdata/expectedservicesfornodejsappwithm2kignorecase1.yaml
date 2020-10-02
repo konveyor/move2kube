@@ -1,5 +1,10 @@
 ---
-- serviceName: includeme
+- cicdinfo:
+    gitrepodir: ""
+    gitrepourl: ""
+    gitrepobranch: ""
+    targetpath: ""
+  serviceName: includeme
   image: includeme:latest
   translationType: Any2Kube
   containerBuildType: CNB

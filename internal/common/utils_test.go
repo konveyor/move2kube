@@ -449,11 +449,11 @@ func TestNormalizeForFilename(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
 	tcs := []struct{ name, in, out string }{
-		{"normalize an invalid filename", "foobar%${/2\n\tinv.json.yaml.", "2-inv.json.yaml_d65d80a1c389718f"},
-		{"normalize a valid filename", "foobar", "foobar_534a426c0464b01e"},
-		{"normalize a long valid filename", "thisisalongfilenamefoobar", "thisisalongfile_730bb88a395ce114"},
-		{"normalize a valid filename with an extension", "foobar.json", "foobar.json_f161da8efa921f1f"},
-		{"normalize a valid filepath", "path/to/a/file/foobar.json", "foobar.json_b1760918996ebb3"},
+		{"normalize an invalid filename", "foobar%${/2\n\tinv.json.yaml.", "2-inv.json.yaml-d65d80a1c389718f"},
+		{"normalize a valid filename", "foobar", "foobar-534a426c0464b01e"},
+		{"normalize a long valid filename", "thisisalongfilenamefoobar", "thisisalongfile-730bb88a395ce114"},
+		{"normalize a valid filename with an extension", "foobar.json", "foobar.json-f161da8efa921f1f"},
+		{"normalize a valid filepath", "path/to/a/file/foobar.json", "foobar.json-b1760918996ebb3"},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -820,6 +820,29 @@ func TestFindCommonDirectory(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			output := common.FindCommonDirectory(tc.in)
 			if output != tc.out {
+				t.Fatal("Expected:", tc.out, "Actual:", output)
+			}
+		})
+	}
+}
+
+func TestUniqueStrings(t *testing.T) {
+	log.SetLevel(log.DebugLevel)
+
+	tcs := []struct {
+		name string
+		in   []string
+		out  []string
+	}{
+		{"Empty input slice", []string{}, []string{}},
+		{"No duplicates", []string{"foo", "bar", "baz"}, []string{"foo", "bar", "baz"}},
+		{"Some duplicates", []string{"abc", "foo", "bar", "foo", "baz", "foo", "abc", "abc"}, []string{"abc", "foo", "bar", "baz"}},
+		{"Only duplicates", []string{"foo", "foo", "foo", "foo", "foo", "foo", "foo"}, []string{"foo"}},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			output := common.UniqueStrings(tc.in)
+			if !reflect.DeepEqual(output, tc.out) {
 				t.Fatal("Expected:", tc.out, "Actual:", output)
 			}
 		})

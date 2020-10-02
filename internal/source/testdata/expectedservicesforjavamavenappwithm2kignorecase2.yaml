@@ -1,5 +1,10 @@
 ---
-- serviceName: java-maven
+- cicdinfo:
+    gitrepodir: ""
+    gitrepourl: ""
+    gitrepobranch: ""
+    targetpath: ""
+  serviceName: java-maven
   image: java-maven:latest
   translationType: Any2Kube
   containerBuildType: CNB

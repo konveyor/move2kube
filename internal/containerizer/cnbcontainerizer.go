@@ -70,7 +70,7 @@ func (d *CNBContainerizer) GetContainerBuildStrategy() plantypes.ContainerBuildT
 // GetContainer returns the container for the service
 func (d *CNBContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	// TODO: Fix exposed ports too
-	container := irtypes.NewContainer(service.Image, true)
+	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
 	if service.ContainerBuildType == d.GetContainerBuildStrategy() && len(service.ContainerizationTargetOptions) > 0 {
 		builder := service.ContainerizationTargetOptions[0]
 		cnbbuilderstring, err := common.GetStringFromTemplate(scripts.CNBBuilder_sh, struct {

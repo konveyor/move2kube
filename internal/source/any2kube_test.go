@@ -25,13 +25,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	log "github.com/sirupsen/logrus"
-
+	"github.com/google/go-cmp/cmp/cmpopts"
 	common "github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/source"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	yaml "gopkg.in/yaml.v3"
+	log "github.com/sirupsen/logrus"
 )
 
 func TestGetServiceOptions(t *testing.T) {
@@ -103,7 +102,9 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		plan.Spec.Inputs.RootDir = inputPath
+		if err := plan.Spec.Inputs.SetRootDir(inputPath); err != nil {
+			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
+		}
 
 		want := []plantypes.Service{}
 		if err := common.ReadYaml("testdata/expectedservicesfornodejsapp.yaml", &want); err != nil {
@@ -112,6 +113,11 @@ func TestGetServiceOptions(t *testing.T) {
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
+		// Don't compare CICDInfo
+		for i := range services {
+			services[i].CICDInfo = plantypes.CICDSpec{}
+		}
+
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
@@ -133,7 +139,9 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		plan.Spec.Inputs.RootDir = inputPath
+		if err := plan.Spec.Inputs.SetRootDir(inputPath); err != nil {
+			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
+		}
 		plan.Spec.Inputs.Services = map[string][]plantypes.Service{
 			"svc1": {svc1},
 			"svc2": {svc2},
@@ -146,6 +154,11 @@ func TestGetServiceOptions(t *testing.T) {
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
+		// Don't compare CICDInfo
+		for i := range services {
+			services[i].CICDInfo = plantypes.CICDSpec{}
+		}
+
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
@@ -165,18 +178,18 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		plan.Spec.Inputs.RootDir = inputPath
+		if err := plan.Spec.Inputs.SetRootDir(inputPath); err != nil {
+			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
+		}
 		plan.Spec.Inputs.Services = map[string][]plantypes.Service{
 			"svc1": {svc1},
 		}
 
 		want := []plantypes.Service{}
-		// if err := common.ReadYaml("testdata/expectedservicesfornodejsapp.yaml", &want); err != nil {
-		// 	t.Fatal("Failed to read the expected output services from yaml. Error:", err)
-		// }
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
+
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
@@ -194,8 +207,9 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		plan.Spec.Inputs.RootDir = inputPath
-
+		if err := plan.Spec.Inputs.SetRootDir(inputPath); err != nil {
+			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
+		}
 		want := []plantypes.Service{}
 		if err := common.ReadYaml("testdata/expectedservicesfornodejsappwithm2kignorecase1.yaml", &want); err != nil {
 			t.Fatal("Failed to read the expected output services from yaml. Error:", err)
@@ -203,6 +217,11 @@ func TestGetServiceOptions(t *testing.T) {
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
+		// Don't compare CICDInfo
+		for i := range services {
+			services[i].CICDInfo = plantypes.CICDSpec{}
+		}
+
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
@@ -218,8 +237,9 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		plan.Spec.Inputs.RootDir = inputPath
-
+		if err := plan.Spec.Inputs.SetRootDir(inputPath); err != nil {
+			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
+		}
 		want := []plantypes.Service{}
 		if err := common.ReadYaml("testdata/expectedservicesforjavamavenappwithm2kignorecase2.yaml", &want); err != nil {
 			t.Fatal("Failed to read the expected output services from yaml. Error:", err)
@@ -227,12 +247,14 @@ func TestGetServiceOptions(t *testing.T) {
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
+		// Don't compare CICDInfo
+		for i := range services {
+			services[i].CICDInfo = plantypes.CICDSpec{}
+		}
+
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		// if err := common.WriteYaml("testdata/hmm.yaml", services); err != nil {
-		// 	t.Fatal("error", err)
-		// }
 		if !reflect.DeepEqual(services, want) {
 			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
@@ -349,7 +371,6 @@ func TestTranslate(t *testing.T) {
 
 	t.Run("get intermediate representation with no services and an empty plan", func(t *testing.T) {
 		// Setup
-		// inputpath := "this/does/not/exit/foobar/"
 		translator := source.Any2KubeTranslator{}
 		services := []plantypes.Service{}
 		plan := plantypes.NewPlan()
@@ -378,25 +399,20 @@ func TestTranslate(t *testing.T) {
 		plan := plantypes.NewPlan()
 
 		// Output
-		testdataoutput := "testdata/datafortestingtranslate/expectedirfornodejsapp.yaml"
-		wantbytes, err := ioutil.ReadFile(testdataoutput)
-		if err != nil {
-			t.Fatalf("Failed to read the testdata at path %q Error: %q", testdataoutput, err)
+		testdatapath := "testdata/datafortestingtranslate/expectedirfornodejsapp.yaml"
+
+		want := irtypes.IR{}
+		if err := common.ReadYaml(testdatapath, &want); err != nil {
+			t.Fatalf("Failed to read the test data at path %q Error: %q", testdatapath, err)
 		}
-		wantyaml := string(wantbytes)
 
 		// Test
 		ir, err := translator.Translate(services, plan)
 		if err != nil {
 			t.Fatal("Failed to get the intermediate representation. Error:", err)
 		}
-		irbytes, err := yaml.Marshal(ir)
-		if err != nil {
-			t.Fatal("Failed to marshal the intermediate representation to yaml for comparison. Error:", err)
-		}
-		iryaml := string(irbytes)
-		if iryaml != wantyaml {
-			t.Fatalf("Failed to get the intermediate representation properly. Difference:\n%s", cmp.Diff(wantyaml, iryaml))
+		if !cmp.Equal(ir, want, cmpopts.EquateEmpty()) {
+			t.Fatalf("Failed to get the intermediate representation properly. Differences:\n%s", cmp.Diff(want, ir, cmpopts.EquateEmpty()))
 		}
 	})
 }

@@ -39,7 +39,7 @@ func TestReuseGetContainer(t *testing.T) {
 		mustreadyaml(t, join(testdatapath, "plan.yaml"), &plan)
 		service := plantypes.Service{}
 		mustreadyaml(t, join(testdatapath, "service.yaml"), &service)
-		want := irtypes.NewContainer(service.Image, false)
+		want := irtypes.NewContainer(plantypes.ReuseContainerBuildTypeValue, service.Image, false)
 
 		reusecontainerizer := new(containerizer.ReuseContainerizer)
 

@@ -39,7 +39,9 @@ func TestCreatePlan(t *testing.T) {
 
 		want := plantypes.NewPlan()
 		want.Name = prjName
-		want.Spec.Inputs.RootDir = inputPath
+		if err := want.Spec.Inputs.SetRootDir(inputPath); err != nil {
+			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
+		}
 
 		// Test
 		p := move2kube.CreatePlan(inputPath, prjName)
@@ -67,7 +69,9 @@ func TestCreatePlan(t *testing.T) {
 
 		want := plantypes.NewPlan()
 		want.Name = prjName
-		want.Spec.Inputs.RootDir = inputPath
+		if err := want.Spec.Inputs.SetRootDir(inputPath); err != nil {
+			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
+		}
 
 		// Test
 		p := move2kube.CreatePlan(inputPath, prjName)
@@ -97,9 +101,19 @@ func TestCreatePlan(t *testing.T) {
 		if err := common.ReadYaml("testdata/expectedplanfornodejsapp.yaml", &want); err != nil {
 			t.Fatal("failed to read the expected output plan from yaml. Error:", err)
 		}
+		if err := want.Spec.Inputs.SetRootDir(inputPath); err != nil {
+			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
+		}
 
 		// Test
 		p := move2kube.CreatePlan(inputPath, prjName)
+		// Don't compare the CICDInfo since that will detect the move2kube repo, even though the nodejs sample itself has no repo.
+		for _, svcs := range p.Spec.Inputs.Services {
+			for i := range svcs {
+				svcs[i].CICDInfo = plantypes.CICDSpec{}
+			}
+		}
+
 		if !reflect.DeepEqual(p, want) {
 			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
 		}

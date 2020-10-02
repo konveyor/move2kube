@@ -1,75 +1,15 @@
+---
 name: myproject
 services:
     nodejs:
         podspec:
-            volumes: []
-            initcontainers: []
             containers:
                 - name: nodejs
                   image: nodejs:latest
-                  command: []
-                  args: []
-                  workingdir: ""
-                  ports: []
-                  envfrom: []
-                  env: []
-                  resources:
-                    limits: {}
-                    requests: {}
-                  volumemounts: []
-                  volumedevices: []
-                  livenessprobe: null
-                  readinessprobe: null
-                  startupprobe: null
-                  lifecycle: null
-                  terminationmessagepath: ""
-                  terminationmessagepolicy: ""
-                  imagepullpolicy: ""
-                  securitycontext: null
-                  stdin: false
-                  stdinonce: false
-                  tty: false
-            ephemeralcontainers: []
-            restartpolicy: ""
-            terminationgraceperiodseconds: null
-            activedeadlineseconds: null
-            dnspolicy: ""
-            nodeselector: {}
-            serviceaccountname: ""
-            deprecatedserviceaccount: ""
-            automountserviceaccounttoken: null
-            nodename: ""
-            hostnetwork: false
-            hostpid: false
-            hostipc: false
-            shareprocessnamespace: null
-            securitycontext: null
-            imagepullsecrets: []
-            hostname: ""
-            subdomain: ""
-            affinity: null
-            schedulername: ""
-            tolerations: []
-            hostaliases: []
-            priorityclassname: ""
-            priority: null
-            dnsconfig: null
-            readinessgates: []
-            runtimeclassname: null
-            enableservicelinks: null
-            preemptionpolicy: null
-            overhead: {}
-            topologyspreadconstraints: []
         name: nodejs
-        annotations: {}
-        labels: {}
-        replicas: 0
-        networks: []
-        exposeservice: false
-        daemon: false
-storages: []
 containers:
-    - imagenames:
+    - containerbuildtype: "CNB"
+      imagenames:
         - nodejs:latest
       new: true
       newfiles:
@@ -92,15 +32,7 @@ containers:
       exposedports:
         - 8080
       userid: -1
-      accesseddirs: []
 kubernetes:
     artifactType: Yamls
     clusterType: Kubernetes
-targetclusterspec:
-    storageClasses: []
-    apiKindVersionMap: {}
-cachedobjects: []
-values:
-    registryurl: ""
-    registrynamespace: ""
-    services: {}
+...

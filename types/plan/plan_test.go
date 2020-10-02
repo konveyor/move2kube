@@ -17,6 +17,7 @@ limitations under the License.
 package plan_test
 
 import (
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -215,10 +216,7 @@ func TestGetFullPath(t *testing.T) {
 func TestGetRelativePath(t *testing.T) {
 	assetsPath := common.AssetsPath
 	assetsDir := common.AssetsDir
-	root := "tests/getfullpath/root"
-	if root == assetsDir {
-		root += "1234"
-	}
+	root := "this/is/the/path/to/the/source/directory"
 	j := filepath.Join
 	/*
 		// Since the result is a relative path it will contain ../ in cases like the one shown below:
@@ -226,6 +224,20 @@ func TestGetRelativePath(t *testing.T) {
 		input := "foo/abc"
 		GetRelativePath(input) == "../abc"
 	*/
+
+	// Start setup to test when the path is absolute
+	absPathTestInput := t.TempDir()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal("Failed to get the current working directory. Error:", err)
+	}
+	wdroot := j(wd, root)
+	absPathTestOutput, err := filepath.Rel(wdroot, absPathTestInput)
+	if err != nil {
+		t.Fatalf("Failed to get make the path %q relative to the source directory %q. Error: %q", absPathTestInput, wdroot, err)
+	}
+	// End setup to test when the path is absolute
+
 	var testcases = []struct {
 		in   string
 		out  string
@@ -236,11 +248,13 @@ func TestGetRelativePath(t *testing.T) {
 		{j(root, "foo", assetsDir, "bar"), j("foo", assetsDir, "bar"), false},
 		{j(assetsPath, "foo"), j(assetsDir, "foo"), false},
 		{j(assetsPath, "foo", "bar"), j(assetsDir, "foo", "bar"), false},
-		{j("/", "foo", "bar"), "", true},
+		{absPathTestInput, absPathTestOutput, false},
 	}
 
 	p := plan.NewPlan()
-	p.Spec.Inputs.RootDir = root
+	if err := p.Spec.Inputs.SetRootDir(root); err != nil {
+		t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", root, err)
+	}
 	for _, testcase := range testcases {
 		res, err := p.GetRelativePath(testcase.in)
 		if testcase.fail {

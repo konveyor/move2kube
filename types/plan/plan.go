@@ -17,6 +17,7 @@ limitations under the License.
 package plan
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -177,6 +178,8 @@ func (output *KubernetesOutput) Merge(newoutput KubernetesOutput) {
 
 // Inputs defines the input section of plan
 type Inputs struct {
+	AbsRootDir          string                                   `yaml:"absRootDir"`
+	RelRootDir          string                                   `yaml:"relRootDir"`
 	RootDir             string                                   `yaml:"rootDir"`
 	K8sFiles            []string                                 `yaml:"kubernetesYamls,omitempty"`
 	QACaches            []string                                 `yaml:"qaCaches,omitempty"`
@@ -184,8 +187,48 @@ type Inputs struct {
 	TargetInfoArtifacts map[TargetInfoArtifactTypeValue][]string `yaml:"targetInfoArtifacts,omitempty"` //[targetinfoartifacttype][List of artifacts]
 }
 
+// SetRootDir sets the path to the source directory in the plan.Spec.Inputs
+func (inputs *Inputs) SetRootDir(path string) error {
+	path = filepath.Clean(path)
+	inputs.RootDir = path
+
+	if filepath.IsAbs(path) {
+		inputs.AbsRootDir = path
+		currDir, err := os.Getwd()
+		if err != nil {
+			log.Errorf("Failed to get the current working directory. Error %q", err)
+			return err
+		}
+		relPath, err := filepath.Rel(currDir, path)
+		if err != nil {
+			log.Errorf("Failed to make the source directory %q relative to the current working directory %q Error %q", path, currDir, err)
+			return err
+		}
+		inputs.RelRootDir = relPath
+	} else {
+		inputs.RelRootDir = path
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			log.Errorf("Failed to get the absolute path for the source directory %q Error %q", path, err)
+			return err
+		}
+		inputs.AbsRootDir = absPath
+	}
+
+	return nil
+}
+
+// CICDSpec contains information specific to creating the CI/CD pipeline.
+type CICDSpec struct {
+	GitRepoDir    string
+	GitRepoURL    string
+	GitRepoBranch string
+	TargetPath    string
+}
+
 // Service defines a plan service
 type Service struct {
+	CICDInfo                      CICDSpec
 	ServiceName                   string                               `yaml:"serviceName"`
 	Image                         string                               `yaml:"image"`
 	TranslationType               TranslationTypeValue                 `yaml:"translationType"`
@@ -196,6 +239,54 @@ type Service struct {
 	BuildArtifacts                map[BuildArtifactTypeValue][]string  `yaml:"buildArtifacts,omitempty"` //[buildartifacttype][List of artifacts]
 	UpdateContainerBuildPipeline  bool                                 `yaml:"updateContainerBuildPipeline"`
 	UpdateDeployPipeline          bool                                 `yaml:"updateDeployPipeline"`
+}
+
+// GatherGitInfo tries to find the git repo for the path if one exists.
+// It returns true of it found a git repo.
+func (service *Service) GatherGitInfo(path string, plan Plan) (bool, error) {
+	if finfo, err := os.Stat(path); err != nil {
+		log.Errorf("Failed to stat the path %q Error %q", path, err)
+		return false, err
+	} else if !finfo.IsDir() {
+		pathDir := filepath.Dir(path)
+		log.Debugf("The path %q is not a directory. Using %q instead.", path, pathDir)
+		path = pathDir
+	}
+
+	preferredRemote := "upstream"
+	remoteNames, err := common.GetGitRemoteNames(path)
+	if err != nil || len(remoteNames) == 0 {
+		log.Debugf("No remotes found at path %q Error: %q", path, err)
+	} else {
+		if !common.IsStringPresent(remoteNames, preferredRemote) {
+			preferredRemote = "origin"
+			if !common.IsStringPresent(remoteNames, preferredRemote) {
+				preferredRemote = remoteNames[0]
+			}
+		}
+	}
+
+	remoteURLs, branch, repoDir, err := common.GetGitRepoDetails(path, preferredRemote)
+	if err != nil {
+		log.Debugf("Failed to get the git repo at path %q Error: %q", path, err)
+		return false, err
+	}
+
+	service.CICDInfo.GitRepoBranch = branch
+	if len(remoteURLs) == 0 {
+		log.Debugf("The git repo at path %q has no remotes set.", path)
+	} else {
+		service.CICDInfo.GitRepoURL = remoteURLs[0]
+	}
+
+	relRepoDir, err := plan.GetRelativePath(repoDir)
+	if err != nil {
+		log.Errorf("Failed to make the path to the repo directory %q relative to plan root directory %q Error %q", repoDir, plan.Spec.Inputs.AbsRootDir, err)
+		return true, err
+	}
+
+	service.CICDInfo.GitRepoDir = relRepoDir
+	return true, nil
 }
 
 func (service *Service) merge(newservice Service) bool {
@@ -314,18 +405,17 @@ func (p Plan) GetFullPath(path string) string {
 
 // GetRelativePath returns the relative path with respect to the rootdir, unless the directory is in assets path
 func (p Plan) GetRelativePath(path string) (string, error) {
+	// Special case for files inside m2kassets directory
 	if strings.HasPrefix(path, common.TempPath) {
-		rel, err := filepath.Rel(common.TempPath, path)
-		if err != nil {
-			return "", err
-		}
-		return rel, nil
+		return filepath.Rel(common.TempPath, path)
 	}
-	rel, err := filepath.Rel(p.Spec.Inputs.RootDir, path)
-	if err != nil {
-		return "", err
+
+	// Common use case
+	if filepath.IsAbs(path) {
+		return filepath.Rel(p.Spec.Inputs.AbsRootDir, path)
 	}
-	return rel, nil
+
+	return filepath.Rel(p.Spec.Inputs.RelRootDir, path)
 }
 
 // AddServicesToPlan adds a list of services to a plan

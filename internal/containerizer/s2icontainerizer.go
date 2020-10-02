@@ -98,7 +98,7 @@ func (d *S2IContainerizer) GetContainer(plan plantypes.Plan, service plantypes.S
 		return irtypes.Container{}, fmt.Errorf("Unsupported service type for Containerization or insufficient information in service")
 	}
 
-	container := irtypes.NewContainer(service.Image, true)
+	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
 	dfdirectory := plan.GetFullPath(service.ContainerizationTargetOptions[0])
 	abspath, err := filepath.Abs(plan.GetFullPath(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0]))
 	if err != nil {

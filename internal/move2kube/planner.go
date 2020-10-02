@@ -32,7 +32,9 @@ func CreatePlan(inputPath string, prjName string) plantypes.Plan {
 	var p = plantypes.NewPlan()
 	p.Name = prjName
 	// Setup rootdir.
-	p.Spec.Inputs.RootDir = inputPath
+	if err := p.Spec.Inputs.SetRootDir(inputPath); err != nil {
+		log.Errorf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
+	}
 
 	translationPlanners := source.GetSourceLoaders()
 	log.Infoln("Planning Translation")
