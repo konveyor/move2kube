@@ -137,9 +137,8 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 		} else if d1, ok := obj.(*corev1.Pod); ok {
 			var replicas int32 = 2
 			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec, replicas)}, true
-		} else {
-			return []runtime.Object{obj}, true
 		}
+		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, replicationControllerKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
@@ -149,9 +148,8 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 		} else if d1, ok := obj.(*corev1.Pod); ok {
 			var replicas int32 = 2
 			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec, replicas)}, true
-		} else {
-			return []runtime.Object{obj}, true
 		}
+		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, podKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
@@ -160,9 +158,8 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, corev1.RestartPolicyAlways)}, true
 		} else if d1, ok := obj.(*corev1.ReplicationController); ok {
 			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, corev1.RestartPolicyAlways)}, true
-		} else {
-			return []runtime.Object{obj}, true
 		}
+		return []runtime.Object{obj}, true
 	}
 	return nil, false
 }
