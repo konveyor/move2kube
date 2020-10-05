@@ -56,9 +56,9 @@ func (i K8sFilesLoader) UpdatePlan(inputPath string, plan *plantypes.Plan) error
 		if err != nil {
 			log.Debugf("ignoring file %s since serialization failed", path)
 			continue
-		} else {
-			plan.Spec.Inputs.K8sFiles = append(plan.Spec.Inputs.K8sFiles, relpath)
 		}
+
+		plan.Spec.Inputs.K8sFiles = append(plan.Spec.Inputs.K8sFiles, relpath)
 	}
 	return nil
 }
@@ -77,9 +77,9 @@ func (i K8sFilesLoader) LoadToIR(p plantypes.Plan, ir *irtypes.IR) error {
 		if err != nil {
 			log.Debugf("ignoring file %s since serialization failed", path)
 			continue
-		} else {
-			ir.CachedObjects = append(ir.CachedObjects, obj)
 		}
+
+		ir.CachedObjects = append(ir.CachedObjects, obj)
 	}
 	return nil
 }
