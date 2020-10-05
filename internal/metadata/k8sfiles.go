@@ -17,7 +17,9 @@ limitations under the License.
 package metadata
 
 import (
+	"errors"
 	"io/ioutil"
+	"syscall"
 
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -38,6 +40,9 @@ func (i K8sFilesLoader) UpdatePlan(inputPath string, plan *plantypes.Plan) error
 
 	files, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
 	if err != nil {
+		if errors.Is(err, syscall.EACCES) { // if err is permission denied error then return it
+			return err
+		}
 		log.Warnf("Unable to fetch yaml files and recognize k8 yamls : %s", err)
 	}
 	for _, path := range files {
