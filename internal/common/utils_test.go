@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -72,17 +73,16 @@ func TestGetFilesByExt(t *testing.T) {
 		}
 	})
 
-	// TODO: do we need to handle this edge case?
-	// t.Run("get files by extension when you don't have permissions for the directory", func(t *testing.T) {
-	// 	parentDir := t.TempDir()
-	// 	path1 := filepath.Join(parentDir, "app1")
-	// 	if err := os.Mkdir(path1, 0); err != nil {
-	// 		t.Fatal("Failed to create the temporary directory", path1, "for testing. Error:", err)
-	// 	}
-	// 	if _, err := common.GetFilesByExt(path1, []string{".yaml", ".yml"}); err == nil {
-	// 		t.Fatal("Should have given an error since we don't have permissions to read the directory.")
-	// 	}
-	// })
+	t.Run("get files by extension when you don't have permissions for the directory", func(t *testing.T) {
+		parentDir := t.TempDir()
+		path1 := filepath.Join(parentDir, "app1")
+		if err := os.Mkdir(path1, 0); err != nil {
+			t.Fatal("Failed to create the temporary directory", path1, "for testing. Error:", err)
+		}
+		if _, err := common.GetFilesByExt(path1, []string{".yaml", ".yml"}); err == nil {
+			t.Fatal("Should have given an error since we don't have permissions to read the directory.")
+		}
+	})
 }
 
 func TestGetFilesByName(t *testing.T) {
@@ -127,17 +127,16 @@ func TestGetFilesByName(t *testing.T) {
 		}
 	})
 
-	// TODO: do we need to handle this edge case?
-	// t.Run("get files by name when you don't have permissions for the directory", func(t *testing.T) {
-	// 	parentDir := t.TempDir()
-	// 	path1 := filepath.Join(parentDir, "app1")
-	// 	if err := os.Mkdir(path1, 0); err != nil {
-	// 		t.Fatal("Failed to create the temporary directory", path1, "for testing. Error:", err)
-	// 	}
-	// 	if _, err := common.GetFilesByName(path1, []string{"test1.yaml", "test2.yml"}); err == nil {
-	// 		t.Fatal("Should have given an error since we don't have permissions to read the directory.")
-	// 	}
-	// })
+	t.Run("get files by name when you don't have permissions for the directory", func(t *testing.T) {
+		parentDir := t.TempDir()
+		path1 := filepath.Join(parentDir, "app1")
+		if err := os.Mkdir(path1, 0); err != nil {
+			t.Fatal("Failed to create the temporary directory", path1, "for testing. Error:", err)
+		}
+		if _, err := common.GetFilesByName(path1, []string{"test1.yaml", "test2.yml"}); err == nil {
+			t.Fatal("Should have given an error since we don't have permissions to read the directory.")
+		}
+	})
 }
 
 func TestYamlAttrPresent(t *testing.T) {
