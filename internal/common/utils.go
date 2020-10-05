@@ -49,6 +49,10 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 		log.Warnf("The path %q is not a directory.", inputPath)
 	}
 	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil && path == inputPath { // if walk for root search path return gets error
+			// then stop walking and return this error
+			return err
+		}
 		if err != nil {
 			log.Warnf("Skipping path %q due to error: %q", path, err)
 			return nil
@@ -83,6 +87,10 @@ func GetFilesByName(inputPath string, names []string) ([]string, error) {
 		log.Warnf("The path %q is not a directory.", inputPath)
 	}
 	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil && path == inputPath { // if walk for root search path return gets error
+			// then stop walking and return this error
+			return err
+		}
 		if err != nil {
 			log.Warnf("Skipping path %q due to error: %q", path, err)
 			return nil
@@ -101,7 +109,7 @@ func GetFilesByName(inputPath string, names []string) ([]string, error) {
 	})
 	if err != nil {
 		log.Warnf("Error in walking through files due to : %s", err)
-		return files, nil
+		return files, err
 	}
 	log.Debugf("No of files with %s names identified : %d", names, len(files))
 	return files, nil
