@@ -17,14 +17,15 @@ limitations under the License.
 package metadata_test
 
 import (
+	"io"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/konveyor/move2kube/internal/metadata"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
-	"io"
-	"io/ioutil"
-	"os"
-	"testing"
 )
 
 type K8sFilesLoaderTestSuite struct {
@@ -47,8 +48,7 @@ func (s *K8sFilesLoaderTestSuite) SetupTest() {
 
 func (s *K8sFilesLoaderTestSuite) TestEmptyDir() {
 	// git fails to handle empty directories so create temporary directory
-	dir, err := ioutil.TempDir("", "move2kube_empty")
-	s.NoError(err)
+	dir := s.T().TempDir()
 	want := plantypes.NewPlan()
 	s.NoError(s.loader.UpdatePlan(dir, &s.plan))
 	s.Equal(want, s.plan)
@@ -67,16 +67,16 @@ func (s *K8sFilesLoaderTestSuite) copyfile(src, dst string) {
 
 func (s *K8sFilesLoaderTestSuite) TestBadPerm() {
 	// git poorly handles directory permissions so create temporary directory
-	dir, err := ioutil.TempDir("", "move2kube_badperm")
+	dir := s.T().TempDir()
+	s.copyfile("testdata/k8s/valid/valid.yaml", filepath.Join(dir, "valid.yml"))
+	err := os.Chmod(dir, 0) // d---------
 	s.NoError(err)
-	err = os.Chmod(dir, 0355) // d-wxr-xr-x
-	s.NoError(err)
-	log.Debugf("dir is %s", dir)
-	s.copyfile("testdata/k8s/valid/valid.yaml", dir+"/valid.yml")
+
 	want := plantypes.NewPlan()
-	// TODO: IMHO this should return error
-	s.NoError(s.loader.UpdatePlan(dir, &s.plan))
+	s.Error(s.loader.UpdatePlan(dir, &s.plan))
 	s.Equal(want, s.plan)
+	err = os.Chmod(dir, os.ModePerm) // restore permissions to safely remove dir on cleanup
+	s.NoError(err)
 }
 
 func (s *K8sFilesLoaderTestSuite) TestInvalid() {
