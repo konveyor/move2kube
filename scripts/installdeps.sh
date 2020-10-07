@@ -33,7 +33,7 @@ fi
 
 mkdir -p bin
 curl -o pack.tgz -LJO https://github.com/buildpacks/pack/releases/download/v0.12.0/pack-v0.12.0-$PACKPLATFORM.tgz && tar -xzf pack.tgz && mv pack bin/ && rm pack.tgz
-curl -o kubectl -LJO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/$KUBECTLPLATFORM/amd64/kubectl && mv kubectl bin/
+curl -o kubectl -LJO https://storage.googleapis.com/kubernetes-release/release/"$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)"/bin/$KUBECTLPLATFORM/amd64/kubectl && mv kubectl bin/
 chmod +x bin/kubectl
 curl -o operator-sdk -LJO https://github.com/operator-framework/operator-sdk/releases/download/v1.0.0/operator-sdk-v1.0.0-x86_64-$OPERATORSDKPLATFORM && mv operator-sdk bin/
 chmod +x bin/operator-sdk
