@@ -22,6 +22,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,6 +30,18 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+)
+
+const (
+	checksumSuffix = ".sha256sum"
+)
+
+var (
+	// binName is the name of the exectuable
+	binName string
+	// version is the version of the exectuable
+	version string
 )
 
 func sha256sum(source, target string) error {
@@ -41,17 +54,9 @@ func sha256sum(source, target string) error {
 	if _, err := io.Copy(hasher, file); err != nil {
 		return fmt.Errorf("Failed to caculate the checksum for the archive at path %q Error %q", source, err)
 	}
-	hash := string(hasher.Sum(nil))
-	filename := filepath.Base(target)
-
-	err = common.WriteTemplateToFile(`{{.Hash}} {{.Filename}}`, struct {
-		Hash     string
-		Filename string
-	}{
-		Hash:     hash,
-		Filename: filename,
-	}, target, common.DefaultFilePermission)
-	if err != nil {
+	filename := filepath.Base(source)
+	hashAndFilename := fmt.Sprintf("%x  %s", hasher.Sum(nil), filename) // Same format as the output of shasum -a 256 myarchive.tar.gz
+	if err := ioutil.WriteFile(target, []byte(hashAndFilename), common.DefaultFilePermission); err != nil {
 		return fmt.Errorf("Failed to write the checksum to file at path %q Error %q", target, err)
 	}
 	return file.Close()
@@ -83,31 +88,15 @@ func copy(sourceFiles []string, target string) error {
 	return nil
 }
 
-func main() {
-	log.SetLevel(log.DebugLevel)
-	binName := os.Args[1]
-	version := os.Args[2]
-	checksumSuffix := ".sha256sum"
-	join := filepath.Join
-
-	log.Infof("Creating archive files for distribution.")
-	log.Debug("BINNAME:", binName)
-	log.Debug("VERSION:", version)
-
-	currDir, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Failed to get the current working directory. Error: %q", err)
-	}
-
-	log.Debug("Find the directories containing the build output.")
+func findDistDirs() []string {
 	osArchRegex := regexp.MustCompile("^[^-]+-[^-]+$")
 	distDirs := []string{}
 
-	err = filepath.Walk(currDir, func(path string, finfo os.FileInfo, err error) error {
+	err := filepath.Walk(".", func(path string, finfo os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if path == currDir {
+		if path == "." {
 			return nil
 		}
 		if !finfo.IsDir() {
@@ -120,18 +109,20 @@ func main() {
 		return filepath.SkipDir
 	})
 	if err != nil {
-		log.Fatalf("Failed to create the archive files. Error: %q", err)
+		log.Fatalf("Failed to walk through the current working directory. Error: %q", err)
 	}
 	if len(distDirs) == 0 {
 		log.Fatal("Failed to find the directories containing the build output.")
 	}
-	log.Debug("distDirs:", distDirs)
+	return distDirs
+}
 
-	log.Debug("Create the archives.")
-	tempDir := join(currDir, binName)
-	extraFiles, err := filepath.Glob(join(currDir, "files", "*"))
+func createArchives(distDirs []string) {
+	tempDir := binName
+	extraFilesDir := filepath.Join("files", "*")
+	extraFiles, err := filepath.Glob(extraFilesDir)
 	if err != nil {
-		log.Fatalf("Failed to get the files in the directory at path %q Error %q", currDir, err)
+		log.Fatalf("Failed to get the files in the directory at path %q Error %q", extraFilesDir, err)
 	}
 
 	log.Debug("tempDir:", tempDir)
@@ -147,7 +138,7 @@ func main() {
 		}
 
 		log.Debug("Copy the files over.")
-		buildArtifacts, err := filepath.Glob(join(distDir, "*"))
+		buildArtifacts, err := filepath.Glob(filepath.Join(distDir, "*"))
 		if err != nil {
 			log.Fatalf("Failed to get the files in the build directory at path %q Error %q", distDir, err)
 		}
@@ -162,29 +153,72 @@ func main() {
 		log.Debug("Name and make the archives.")
 		osArch := filepath.Base(distDir)
 		tarArchiveName := fmt.Sprintf("%s-%s-%s.tar.gz", binName, version, osArch)
-		tarArchivePath := join(currDir, tarArchiveName)
-		if err := createTar(tempDir, tarArchivePath); err != nil {
+		log.Debug("osArch:", osArch)
+		log.Debug("tarArchiveName:", tarArchiveName)
+		if err := createTar(tempDir, tarArchiveName); err != nil {
 			log.Fatal(err)
 		}
 		zipArchiveName := fmt.Sprintf("%s-%s-%s.zip", binName, version, osArch)
-		zipArchivePath := join(currDir, zipArchiveName)
-		if err := createZip(tempDir, zipArchivePath); err != nil {
+		log.Debug("zipArchiveName:", zipArchiveName)
+		if err := createZip(tempDir, zipArchiveName); err != nil {
 			log.Fatal(err)
 		}
 
 		log.Debug("Calculate and write the checksums to files.")
-		if err := sha256sum(tarArchivePath, tarArchivePath+checksumSuffix); err != nil {
+		if err := sha256sum(tarArchiveName, tarArchiveName+checksumSuffix); err != nil {
 			log.Fatal(err)
 		}
-		if err := sha256sum(zipArchivePath, zipArchivePath+checksumSuffix); err != nil {
+		if err := sha256sum(zipArchiveName, zipArchiveName+checksumSuffix); err != nil {
 			log.Fatal(err)
 		}
 	}
 
 	log.Debug("Cleanup the temporary directory.")
 	if err := os.RemoveAll(tempDir); err != nil {
-		log.Errorf("Failed to remove the temporary directory at path %q Error: %q", tempDir, err)
+		log.Warnf("Failed to remove the temporary directory at path %q Error: %q", tempDir, err)
 	}
+}
+
+func createDistributions() {
+	log.Infof("Creating archive files for distribution.")
+
+	log.Debug("BINNAME:", binName)
+	log.Debug("VERSION:", version)
+
+	log.Debug("Find the directories containing the build output.")
+	distDirs := findDistDirs()
+	log.Debug("distDirs:", distDirs)
+
+	log.Debug("Create the archives.")
+	createArchives(distDirs)
 
 	log.Infof("Done!")
+}
+
+var rootCmd = &cobra.Command{
+	Use:   "go run builddist.go",
+	Short: "builddist creates the distribution files.",
+	Long:  `Generate the archives and the corresponding checksum files.`,
+	Run: func(_ *cobra.Command, _ []string) {
+		createDistributions()
+	},
+}
+
+func init() {
+	rootCmd.Flags().StringVarP(&binName, "binname", "b", "", "Name of the executable")
+	rootCmd.Flags().StringVarP(&version, "version", "v", "", "Version of the executable")
+	must := func(err error) {
+		if err != nil {
+			panic(err)
+		}
+	}
+	must(rootCmd.MarkFlagRequired("binname"))
+	must(rootCmd.MarkFlagRequired("version"))
+}
+
+func main() {
+	log.SetLevel(log.DebugLevel)
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal("Error:", err)
+	}
 }

@@ -129,7 +129,7 @@ build-cross: $(GOX) clean
 dist: clean build-cross ## Build Distribution
 	@mkdir -p $(DISTDIR)/files
 	@cp -r ./{LICENSE,scripts/installdeps.sh,USAGE.md,samples} $(DISTDIR)/files/
-	@cd $(DISTDIR) && go run ../scripts/builddist.go ${BINNAME} ${VERSION}
+	@cd $(DISTDIR) && go run ../scripts/builddist.go -b ${BINNAME} -v ${VERSION}
 
 .PHONY: clean
 clean:
