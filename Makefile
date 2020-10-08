@@ -69,7 +69,7 @@ help: ## This help.
 build: get $(BINDIR)/$(BINNAME) ## Build go code
 
 $(BINDIR)/$(BINNAME): $(SRC)
-	@go build -tags excludecodegen -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/${BINNAME}
+	@go build -tags excludecodegen,excludedist -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/${BINNAME}
 	@cp $(BINDIR)/$(BINNAME) $(GOPATH)/bin/
 
 .PHONY: get
@@ -129,13 +129,7 @@ build-cross: $(GOX) clean
 dist: clean build-cross ## Build Distribution
 	@mkdir -p $(DISTDIR)/files
 	@cp -r ./{LICENSE,scripts/installdeps.sh,USAGE.md,samples} $(DISTDIR)/files/
-	@cd $(DISTDIR) && \
-	 find * -maxdepth 1 -name "*-*" -type d \
-	  -exec cp -r $(DISTDIR)/files/* {} \; \
-	  -exec tar -zcf ${BINNAME}-${VERSION}-{}.tar.gz {} \; \
-	  -exec sh -c 'shasum -a 256 ${BINNAME}-${VERSION}-{}.tar.gz > ${BINNAME}-${VERSION}-{}.tar.gz.sha256sum' \; \
-	  -exec zip -r ${BINNAME}-${VERSION}-{}.zip {} \; \
-	  -exec sh -c 'shasum -a 256 ${BINNAME}-${VERSION}-{}.zip > ${BINNAME}-${VERSION}-{}.zip.sha256sum' \;
+	@cd $(DISTDIR) && go run ../scripts/builddist.go ${BINNAME} ${VERSION}
 
 .PHONY: clean
 clean:
