@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,7 +47,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 			t.Fatalf("Failed to find the builder %q locally and/or pull it.", builder)
 		}
 		if !reflect.DeepEqual(availableBuilders, want) {
-			t.Fatalf("Failed to add the builder %q to the list of available builders. Expected: %v Actual %v", builder, want, availableBuilders)
+			t.Fatalf("Failed to add the builder %q to the list of available builders. Difference:\n%s", builder, cmp.Diff(want, availableBuilders))
 		}
 		if !provider.isBuilderAvailable(builder) {
 			t.Fatalf("Failed to find the builder %q locally and/or pull it.", builder)

@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/konveyor/move2kube/internal/types"
@@ -42,7 +43,7 @@ func TestAddVolume(t *testing.T) {
 		// Test
 		s.AddVolume(v)
 		if !reflect.DeepEqual(s, want) {
-			t.Fatal("Failed to add volume to an empty service properly. Expected:", want, "Actual:", s)
+			t.Fatalf("Failed to add volume to an empty service properly. Difference:\n%s", cmp.Diff(want, s))
 		}
 	})
 
@@ -58,7 +59,7 @@ func TestAddVolume(t *testing.T) {
 		// Test
 		s.AddVolume(v)
 		if !reflect.DeepEqual(s, want) {
-			t.Fatal("Failed to add a volume with the same name to a filled service properly. Expected:", want, "Actual:", s)
+			t.Fatalf("Failed to add a volume with the same name to a filled service properly. Difference:\n%s", cmp.Diff(want, s))
 		}
 	})
 }
@@ -88,16 +89,16 @@ func TestNewContainerFromImageInfo(t *testing.T) {
 		imginfo1.Spec.Tags = []string{"tag1"}
 		c := types.NewContainerFromImageInfo(imginfo1)
 		if !reflect.DeepEqual(c.ImageNames, imginfo1.Spec.Tags) {
-			t.Fatal("Failed to initialze the image names from the tags properly. Expected image names:", imginfo1.Spec.Tags, "Actual:", c.ImageNames)
+			t.Fatalf("Failed to initialze the image names from the tags properly. Difference between image names:\n%s", cmp.Diff(imginfo1.Spec.Tags, c.ImageNames))
 		}
 		if !reflect.DeepEqual(c.ExposedPorts, imginfo1.Spec.PortsToExpose) {
-			t.Fatal("Failed to initialze the ports from the image info properly. Expected ports:", imginfo1.Spec.PortsToExpose, "Actual:", c.ExposedPorts)
+			t.Fatalf("Failed to initialze the ports from the image info properly. Difference between ports:\n%s", cmp.Diff(imginfo1.Spec.PortsToExpose, c.ExposedPorts))
 		}
 		if c.UserID != imginfo1.Spec.UserID {
 			t.Fatal("The user ids are not the same. Expected:", imginfo1.Spec.UserID, "Actual:", c.UserID)
 		}
 		if !reflect.DeepEqual(c.AccessedDirs, imginfo1.Spec.AccessedDirs) {
-			t.Fatal("Failed to initialze the directories from the image info properly. Expected ports:", imginfo1.Spec.AccessedDirs, "Actual:", c.AccessedDirs)
+			t.Fatalf("Failed to initialze the directories from the image info properly. Difference between ports:\n%s", cmp.Diff(imginfo1.Spec.AccessedDirs, c.AccessedDirs))
 		}
 	})
 
@@ -105,16 +106,16 @@ func TestNewContainerFromImageInfo(t *testing.T) {
 		imginfo1 := collecttypes.NewImageInfo()
 		c := types.NewContainerFromImageInfo(imginfo1)
 		if !reflect.DeepEqual(c.ImageNames, imginfo1.Spec.Tags) {
-			t.Fatal("Failed to initialze the image names from the tags properly. Expected image names:", imginfo1.Spec.Tags, "Actual:", c.ImageNames)
+			t.Fatalf("Failed to initialze the image names from the tags properly. Difference between image names:\n%s", cmp.Diff(imginfo1.Spec.Tags, c.ImageNames))
 		}
 		if !reflect.DeepEqual(c.ExposedPorts, imginfo1.Spec.PortsToExpose) {
-			t.Fatal("Failed to initialze the ports from the image info properly. Expected ports:", imginfo1.Spec.PortsToExpose, "Actual:", c.ExposedPorts)
+			t.Fatalf("Failed to initialze the ports from the image info properly. Difference between ports:\n%s", cmp.Diff(imginfo1.Spec.PortsToExpose, c.ExposedPorts))
 		}
 		if c.UserID != imginfo1.Spec.UserID {
 			t.Fatal("The user ids are not the same. Expected:", imginfo1.Spec.UserID, "Actual:", c.UserID)
 		}
 		if !reflect.DeepEqual(c.AccessedDirs, imginfo1.Spec.AccessedDirs) {
-			t.Fatal("Failed to initialze the directories from the image info properly. Expected ports:", imginfo1.Spec.AccessedDirs, "Actual:", c.AccessedDirs)
+			t.Fatalf("Failed to initialze the directories from the image info properly. Difference between ports:\n%s", cmp.Diff(imginfo1.Spec.AccessedDirs, c.AccessedDirs))
 		}
 	})
 }
@@ -134,7 +135,7 @@ func TestContainerMerge(t *testing.T) {
 
 		// Test
 		if c1.Merge(c2) || !reflect.DeepEqual(c1, want) { // TODO: If neither container has image name should it return true?
-			t.Fatal("Failed to merge 2 empty containers properly. Expected:", want, "Actual:", c1)
+			t.Fatalf("Failed to merge 2 empty containers properly. Difference:\n%s:", cmp.Diff(want, c1))
 		}
 	})
 
@@ -153,7 +154,7 @@ func TestContainerMerge(t *testing.T) {
 
 		// Test
 		if c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
-			t.Fatal("Should not merge 2 containers having no image names in common. Expected:", want, "Actual:", c1)
+			t.Fatalf("Should not merge 2 containers having no image names in common. Difference:\n%s:", cmp.Diff(want, c1))
 		}
 	})
 
@@ -172,7 +173,7 @@ func TestContainerMerge(t *testing.T) {
 
 		// Test
 		if !c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
-			t.Fatal("Failed to merge 2 containers having common image names properly. Expected:", want, "Actual:", c1)
+			t.Fatalf("Failed to merge 2 containers having common image names properly. Difference:\n%s:", cmp.Diff(want, c1))
 		}
 	})
 
@@ -196,7 +197,7 @@ func TestContainerMerge(t *testing.T) {
 
 		// Test
 		if !c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
-			t.Fatal("Failed to merge the 2 containers properly. Expected:", want, "Actual:", c1)
+			t.Fatalf("Failed to merge the 2 containers properly. Difference:\n%s:", cmp.Diff(want, c1))
 		}
 	})
 
@@ -223,7 +224,7 @@ func TestContainerMerge(t *testing.T) {
 
 		// Test
 		if !c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
-			t.Fatal("Failed to merge the 2 containers properly. Expected:", want, "Actual:", c1)
+			t.Fatalf("Failed to merge the 2 containers properly. Difference:\n%s:", cmp.Diff(want, c1))
 		}
 	})
 
@@ -248,7 +249,7 @@ func TestContainerMerge(t *testing.T) {
 
 		// Test
 		if !c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
-			t.Fatal("Failed to merge the 2 containers properly. Expected:", want, "Actual:", c1)
+			t.Fatalf("Failed to merge the 2 containers properly. Difference:\n%s:", cmp.Diff(want, c1))
 		}
 	})
 
@@ -270,7 +271,7 @@ func TestContainerMerge(t *testing.T) {
 
 		// Test
 		if !c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
-			t.Fatal("Failed to merge the 2 containers properly. Expected:", want, "Actual:", c1)
+			t.Fatalf("Failed to merge the 2 containers properly. Difference:\n%s:", cmp.Diff(want, c1))
 		}
 	})
 
@@ -302,7 +303,7 @@ func TestContainerMerge(t *testing.T) {
 
 		// Test
 		if !c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
-			t.Fatal("Failed to merge the 2 containers properly. Expected:", want, "Actual:", c1)
+			t.Fatalf("Failed to merge the 2 containers properly. Difference:\n%s:", cmp.Diff(want, c1))
 		}
 	})
 }
@@ -323,7 +324,7 @@ func TestAddFile(t *testing.T) {
 		// Test
 		c.AddFile(path1, contents1)
 		if !reflect.DeepEqual(c, want) {
-			t.Fatal("Failed to add the new script to the empty container properly. Expected:", want, "Actual:", c)
+			t.Fatalf("Failed to add the new script to the empty container properly. Difference:\n%s:", cmp.Diff(want, c))
 		}
 	})
 
@@ -341,7 +342,7 @@ func TestAddFile(t *testing.T) {
 		// Test
 		c.AddFile(path1, contents1)
 		if !reflect.DeepEqual(c, want) {
-			t.Fatal("Adding the same script to the same path should not change the container. Expected:", want, "Actual:", c)
+			t.Fatalf("Adding the same script to the same path should not change the container. Difference:\n%s:", cmp.Diff(want, c))
 		}
 	})
 
@@ -360,7 +361,7 @@ func TestAddFile(t *testing.T) {
 		// Test
 		c.AddFile(path1, contents2)
 		if !reflect.DeepEqual(c, want) {
-			t.Fatal("Adding a different script to the same path should not change the container. Expected:", want, "Actual:", c)
+			t.Fatalf("Adding a different script to the same path should not change the container. Difference:\n%s:", cmp.Diff(want, c))
 		}
 	})
 }
@@ -380,7 +381,7 @@ func TestAddExposedPort(t *testing.T) {
 		// Test
 		c.AddExposedPort(port1)
 		if !reflect.DeepEqual(c, want) {
-			t.Fatal("Failed to add the new port to the list of exposed ports properly. Expected:", want, "Actual:", c)
+			t.Fatalf("Failed to add the new port to the list of exposed ports properly. Difference:\n%s:", cmp.Diff(want, c))
 		}
 	})
 
@@ -397,7 +398,7 @@ func TestAddExposedPort(t *testing.T) {
 		// Test
 		c.AddExposedPort(port1)
 		if !reflect.DeepEqual(c, want) {
-			t.Fatal("Adding an already exposed port should not change the container. Expected:", want, "Actual:", c)
+			t.Fatalf("Adding an already exposed port should not change the container. Difference:\n%s:", cmp.Diff(want, c))
 		}
 	})
 }
@@ -417,7 +418,7 @@ func TestAddImageName(t *testing.T) {
 		// Test
 		c.AddImageName(img1)
 		if !reflect.DeepEqual(c, want) {
-			t.Fatal("Failed to add an image name to an empty container properly. Expected:", want, "Actual:", c)
+			t.Fatalf("Failed to add an image name to an empty container properly. Difference:\n%s:", cmp.Diff(want, c))
 		}
 	})
 
@@ -434,7 +435,7 @@ func TestAddImageName(t *testing.T) {
 		// Test
 		c.AddImageName(img1)
 		if !reflect.DeepEqual(c, want) {
-			t.Fatal("Adding an existing image name should not change the container. Expected:", want, "Actual:", c)
+			t.Fatalf("Adding an existing image name should not change the container. Difference:\n%s:", cmp.Diff(want, c))
 		}
 	})
 }
@@ -454,7 +455,7 @@ func TestAddAccessedDirs(t *testing.T) {
 		// Test
 		c.AddAccessedDirs(dir1)
 		if !reflect.DeepEqual(c, want) {
-			t.Fatal("Failed to add a new directory to an empty container properly. Expected:", want, "Actual:", c)
+			t.Fatalf("Failed to add a new directory to an empty container properly. Difference:\n%s:", cmp.Diff(want, c))
 		}
 	})
 
@@ -471,7 +472,7 @@ func TestAddAccessedDirs(t *testing.T) {
 		// Test
 		c.AddAccessedDirs(dir1)
 		if !reflect.DeepEqual(c, want) {
-			t.Fatal("Adding an existing directory should not change the container. Expected:", want, "Actual:", c)
+			t.Fatalf("Adding an existing directory should not change the container. Difference:\n%s:", cmp.Diff(want, c))
 		}
 	})
 }
@@ -503,7 +504,7 @@ func TestIRMerge(t *testing.T) {
 		// Test
 		ir1.Merge(ir2)
 		if !reflect.DeepEqual(ir1, want) {
-			t.Fatal("Failed to merge the 2 irs properly. Expected:", want, "Actual:", ir1)
+			t.Fatalf("Failed to merge the 2 irs properly. Difference:\n%s:", cmp.Diff(want, ir1))
 		}
 	})
 
@@ -523,7 +524,7 @@ func TestIRMerge(t *testing.T) {
 		// Test
 		ir1.Merge(ir2)
 		if !reflect.DeepEqual(ir1, want) {
-			t.Fatal("Failed to merge the 2 irs properly. Expected:", want, "Actual:", ir1)
+			t.Fatalf("Failed to merge the 2 irs properly. Difference:\n%s:", cmp.Diff(want, ir1))
 		}
 	})
 
@@ -545,7 +546,7 @@ func TestIRMerge(t *testing.T) {
 		// Test
 		ir1.Merge(ir2)
 		if !reflect.DeepEqual(ir1, want) {
-			t.Fatal("Failed to merge the 2 irs properly. Expected:", want, "Actual:", ir1)
+			t.Fatalf("Failed to merge the 2 irs properly. Difference:\n%s:", cmp.Diff(want, ir1))
 		}
 	})
 
@@ -581,7 +582,7 @@ func TestIRMerge(t *testing.T) {
 		// Test
 		ir1.Merge(ir2)
 		if !reflect.DeepEqual(ir1, want) {
-			t.Fatal("Failed to merge the 2 irs properly. Expected:", want, "Actual:", ir1)
+			t.Fatalf("Failed to merge the 2 irs properly. Difference:\n%s:", cmp.Diff(want, ir1))
 		}
 	})
 }
@@ -594,7 +595,7 @@ func TestStorageMerge(t *testing.T) {
 		s2 := types.Storage{}
 		want := types.Storage{}
 		if !s1.Merge(s2) || !reflect.DeepEqual(s1, want) {
-			t.Fatal("Failed to merge 2 empty storages properly. Expected:", want, "Actual:", s1)
+			t.Fatalf("Failed to merge 2 empty storages properly. Difference:\n%s:", cmp.Diff(want, s1))
 		}
 	})
 
@@ -606,7 +607,7 @@ func TestStorageMerge(t *testing.T) {
 		want := types.Storage{}
 		want.Name = "name1"
 		if s1.Merge(s2) || !reflect.DeepEqual(s1, want) {
-			t.Fatal("Should not merge 2 storages with different names. Merge should return false. Expected:", want, "Actual:", s1)
+			t.Fatalf("Should not merge 2 storages with different names. Merge should return false. Difference:\n%s:", cmp.Diff(want, s1))
 		}
 	})
 
@@ -620,7 +621,7 @@ func TestStorageMerge(t *testing.T) {
 		want.Content = map[string][]byte{"key2": []byte("val2")}
 		// Test
 		if !s1.Merge(s2) || !reflect.DeepEqual(s1, want) {
-			t.Fatal("Failed to merge 2 filled storages properly. Expected:", want, "Actual:", s1)
+			t.Fatalf("Failed to merge 2 filled storages properly. Difference:\n%s:", cmp.Diff(want, s1))
 		}
 	})
 }
@@ -641,7 +642,7 @@ func TestAddContainer(t *testing.T) {
 		// Test
 		ir.AddContainer(c)
 		if !reflect.DeepEqual(ir, want) {
-			t.Fatal("Failed to add the container properly. Expected:", want, "Actual:", ir)
+			t.Fatalf("Failed to add the container properly. Difference:\n%s:", cmp.Diff(want, ir))
 		}
 	})
 
@@ -662,7 +663,7 @@ func TestAddContainer(t *testing.T) {
 		// Test
 		ir.AddContainer(c1)
 		if !reflect.DeepEqual(ir, want) {
-			t.Fatal("Failed to add the container properly. Expected:", want, "Actual:", ir)
+			t.Fatalf("Failed to add the container properly. Difference:\n%s:", cmp.Diff(want, ir))
 		}
 	})
 }
@@ -684,7 +685,7 @@ func TestAddStorage(t *testing.T) {
 		// Test
 		ir.AddStorage(s)
 		if !reflect.DeepEqual(ir, want) {
-			t.Fatal("Failed to add the storage properly. Expected:", want, "Actual:", ir)
+			t.Fatalf("Failed to add the storage properly. Difference:\n%s:", cmp.Diff(want, ir))
 		}
 	})
 
@@ -703,7 +704,7 @@ func TestAddStorage(t *testing.T) {
 		// Test
 		ir.AddStorage(s)
 		if !reflect.DeepEqual(ir, want) {
-			t.Fatal("Failed to add the storage properly. Expected:", want, "Actual:", ir)
+			t.Fatalf("Failed to add the storage properly. Difference:\n%s:", cmp.Diff(want, ir))
 		}
 	})
 }

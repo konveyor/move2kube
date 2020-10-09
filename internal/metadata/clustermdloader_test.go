@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/konveyor/move2kube/internal/metadata"
@@ -43,7 +44,7 @@ func TestUpdatePlan(t *testing.T) {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
 		if !reflect.DeepEqual(p, want) {
-			t.Fatal("The updated plan is incorrect. Expected", want, "Actual:", p)
+			t.Fatalf("The updated plan is incorrect. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
 
@@ -59,7 +60,7 @@ func TestUpdatePlan(t *testing.T) {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
 		if !reflect.DeepEqual(p, want) {
-			t.Fatal("The updated plan is incorrect. Expected", want, "Actual:", p)
+			t.Fatalf("The updated plan is incorrect. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
 
@@ -75,7 +76,7 @@ func TestUpdatePlan(t *testing.T) {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
 		if !reflect.DeepEqual(p, want) {
-			t.Fatal("The updated plan is incorrect. Expected", want, "Actual:", p)
+			t.Fatalf("The updated plan is incorrect. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
 
@@ -94,7 +95,7 @@ func TestUpdatePlan(t *testing.T) {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
 		if !reflect.DeepEqual(p, want) {
-			t.Fatal("The updated plan is incorrect. Expected", want, "Actual:", p)
+			t.Fatalf("The updated plan is incorrect. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
 }

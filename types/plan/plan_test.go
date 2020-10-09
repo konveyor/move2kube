@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types/plan"
 )
@@ -298,7 +299,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		// Test
 		p.AddServicesToPlan(services)
 		if !reflect.DeepEqual(want, p) {
-			t.Fatal("The new services didn't get merged into existing services properly. Expected:", want, "Actual:", p)
+			t.Fatalf("The new services didn't get merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
 
@@ -327,7 +328,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		// Test
 		p.AddServicesToPlan(services)
 		if !reflect.DeepEqual(want, p) {
-			t.Fatal("The new services didn't get added and merged into existing services properly. Expected:", want, "Actual:", p)
+			t.Fatalf("The new services didn't get added and merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
 
@@ -349,7 +350,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		p.AddServicesToPlan(services)
 		p.AddServicesToPlan(services)
 		if !reflect.DeepEqual(want, p) {
-			t.Fatal("The new services didn't get merged into existing services properly. Expected:", want, "Actual:", p)
+			t.Fatalf("The new services didn't get merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
 
@@ -371,7 +372,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		p.AddServicesToPlan(services)
 		p.AddServicesToPlan(services)
 		if !reflect.DeepEqual(want, p) {
-			t.Fatal("The new services didn't get merged into existing services properly. Expected:", want, "Actual:", p)
+			t.Fatalf("The new services didn't get merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
 
@@ -395,7 +396,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		p.AddServicesToPlan(services)
 		p.AddServicesToPlan(services)
 		if !reflect.DeepEqual(want, p) {
-			t.Fatal("The new services didn't get merged into existing services properly. Expected:", want, "Actual:", p)
+			t.Fatalf("The new services didn't get merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
 
@@ -419,7 +420,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		p.AddServicesToPlan(services)
 		p.AddServicesToPlan(services)
 		if !reflect.DeepEqual(want, p) {
-			t.Fatal("The new services didn't get merged into existing services properly. Expected:", want, "Actual:", p)
+			t.Fatalf("The new services didn't get merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
 }

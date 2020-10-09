@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/types/output"
 )
 
@@ -29,7 +30,7 @@ func TestMerge(t *testing.T) {
 		h2 := output.HelmValues{}
 		want := output.HelmValues{}
 		if h1.Merge(h2); !reflect.DeepEqual(h1, want) {
-			t.Fatal("The value should not have changed after merge. Expected:", want, "Actual:", h1)
+			t.Fatalf("The value should not have changed after merge. Difference:\n%s:", cmp.Diff(want, h1))
 		}
 	})
 
@@ -47,7 +48,7 @@ func TestMerge(t *testing.T) {
 		want.RegistryURL = "url2"
 		want.StorageClass = "storagecls2"
 		if h1.Merge(h2); !reflect.DeepEqual(h1, want) {
-			t.Fatal("Failed to merge the helm values properly. Expected:", want, "Actual:", h1)
+			t.Fatalf("Failed to merge the helm values properly. Difference:\n%s:", cmp.Diff(want, h1))
 		}
 	})
 
@@ -71,7 +72,7 @@ func TestMerge(t *testing.T) {
 		want.GlobalVariables[key1] = val2
 
 		if h1.Merge(h2); !reflect.DeepEqual(h1, want) {
-			t.Fatal("Failed to merge the helm values properly. Expected:", want, "Actual:", h1)
+			t.Fatalf("Failed to merge the helm values properly. Difference:\n%s:", cmp.Diff(want, h1))
 		}
 	})
 
@@ -99,7 +100,7 @@ func TestMerge(t *testing.T) {
 		want.Services[key2] = output.Service{map[string]output.Container{con1: val1}}
 
 		if h1.Merge(h2); !reflect.DeepEqual(h1, want) {
-			t.Fatal("Failed to merge the helm values properly. Expected:", want, "Actual:", h1)
+			t.Fatalf("Failed to merge the helm values properly. Difference:\n%s:", cmp.Diff(want, h1))
 		}
 	})
 }

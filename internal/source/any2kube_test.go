@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 
 	common "github.com/konveyor/move2kube/internal/common"
@@ -49,7 +50,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
 		if !reflect.DeepEqual(services, want) {
-			t.Fatal("Failed to get the services properly. Expected:", want, "actual:", services)
+			t.Fatalf("Failed to get the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
@@ -66,7 +67,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
 		if !reflect.DeepEqual(services, want) {
-			t.Fatal("Failed to get the services properly. Expected:", want, "actual:", services)
+			t.Fatalf("Failed to get the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
@@ -91,7 +92,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
 		if !reflect.DeepEqual(services, want) {
-			t.Fatal("Failed to get the services properly. Expected:", want, "actual:", services)
+			t.Fatalf("Failed to get the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
@@ -115,7 +116,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
 		if !reflect.DeepEqual(services, want) {
-			t.Fatal("Failed to create the services properly. Expected:", want, "Actual", services)
+			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
@@ -149,7 +150,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
 		if !reflect.DeepEqual(services, want) {
-			t.Fatal("Failed to create the services properly. Expected:", want, "Actual", services)
+			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
@@ -180,7 +181,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
 		if !reflect.DeepEqual(services, want) {
-			t.Fatal("Failed to create the services properly. Expected:", want, "Actual", services)
+			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
@@ -206,7 +207,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
 		if !reflect.DeepEqual(services, want) {
-			t.Fatal("Failed to create the services properly. Expected:", want, "Actual", services)
+			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
@@ -233,7 +234,7 @@ func TestGetServiceOptions(t *testing.T) {
 		// 	t.Fatal("error", err)
 		// }
 		if !reflect.DeepEqual(services, want) {
-			t.Fatal("Failed to create the services properly. Expected:", want, "Actual", services)
+			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
@@ -279,7 +280,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
 		if !reflect.DeepEqual(services, want) {
-			t.Fatal("Failed to get the services properly. Expected:", want, "actual:", services)
+			t.Fatalf("Failed to get the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
@@ -338,7 +339,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
 		if !reflect.DeepEqual(services, want) {
-			t.Fatal("Failed to get the services properly. Expected:", want, "actual:", services)
+			t.Fatalf("Failed to get the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 }
@@ -360,7 +361,7 @@ func TestTranslate(t *testing.T) {
 			t.Fatal("Failed to get the intermediate representation. Error:", err)
 		}
 		if !reflect.DeepEqual(ir, want) {
-			t.Fatal("Failed to get the intermediate representation properly. Expected:", want, "actual:", ir)
+			t.Fatalf("Failed to get the intermediate representation properly. Difference:\n%s", cmp.Diff(want, ir))
 		}
 	})
 
@@ -395,7 +396,7 @@ func TestTranslate(t *testing.T) {
 		}
 		iryaml := string(irbytes)
 		if iryaml != wantyaml {
-			t.Fatal("Failed to get the intermediate representation properly. Expected:", wantyaml, "actual:", iryaml)
+			t.Fatalf("Failed to get the intermediate representation properly. Difference:\n%s", cmp.Diff(wantyaml, iryaml))
 		}
 	})
 }

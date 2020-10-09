@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/types"
 	"github.com/konveyor/move2kube/types/collection"
 )
@@ -33,7 +34,7 @@ func TestMerge(t *testing.T) {
 		want := collection.NewClusterMetadata("")
 		want.Kind = ""
 		if merged := cmeta1.Merge(cmeta2); !merged || !reflect.DeepEqual(cmeta1, want) {
-			t.Fatal("Failed to merge ClusterMetadata properly. Expected:", want, "Actual:", cmeta1)
+			t.Fatalf("Failed to merge ClusterMetadata properly. Difference:\n%s:", cmp.Diff(want, cmeta1))
 		}
 	})
 
@@ -48,7 +49,7 @@ func TestMerge(t *testing.T) {
 		want.Spec.StorageClasses = []string{"default"}
 
 		if merged := cmeta1.Merge(cmeta2); !merged || !reflect.DeepEqual(cmeta1, want) {
-			t.Fatal("Failed to merge ClusterMetadata properly. Expected:", want, "Actual:", cmeta1)
+			t.Fatalf("Failed to merge ClusterMetadata properly. Difference:\n%s:", cmp.Diff(want, cmeta1))
 		}
 	})
 
@@ -81,7 +82,7 @@ func TestMerge(t *testing.T) {
 		want.Spec.APIKindVersionMap = map[string][]string{key1: val2}
 
 		if merged := cmeta1.Merge(cmeta2); !merged || !reflect.DeepEqual(cmeta1, want) {
-			t.Fatal("Failed to merge ClusterMetadata properly. Expected:", want, "Actual:", cmeta1)
+			t.Fatalf("Failed to merge ClusterMetadata properly. Difference:\n%s:", cmp.Diff(want, cmeta1))
 		}
 	})
 
@@ -96,7 +97,7 @@ func TestMerge(t *testing.T) {
 		want.Spec.StorageClasses = []string{"222", "333"}
 
 		if merged := cmeta1.Merge(cmeta2); !merged || !reflect.DeepEqual(cmeta1, want) {
-			t.Fatal("Failed to merge ClusterMetadata properly. Expected:", want, "Actual:", cmeta1)
+			t.Fatalf("Failed to merge ClusterMetadata properly. Difference:\n%s:", cmp.Diff(want, cmeta1))
 		}
 	})
 }
