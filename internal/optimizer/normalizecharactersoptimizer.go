@@ -17,12 +17,10 @@ limitations under the License.
 package optimize
 
 import (
+	irtypes "github.com/konveyor/move2kube/internal/types"
+	corev1 "k8s.io/api/core/v1"
 	"regexp"
 	"strings"
-
-	corev1 "k8s.io/api/core/v1"
-
-	irtypes "github.com/konveyor/move2kube/internal/types"
 )
 
 // normalizeCharacterOptimizer identifies non-allowed characters and replaces them
@@ -31,34 +29,28 @@ type normalizeCharacterOptimizer struct {
 
 func (po normalizeCharacterOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	//TODO: Make this generic to ensure all fields have valid names
-	for k := range ir.Services {
-		scObj := ir.Services[k]
-		for _, serviceContainer := range scObj.Containers {
+	for i := range ir.Services {
+		for j := range ir.Services[i].Containers {
 			var tmpEnvArray []corev1.EnvVar
-			for _, env := range serviceContainer.Env {
+			for _, env := range ir.Services[i].Containers[j].Env {
 				if !strings.Contains(env.Name, "affinity") {
-					env.Name = strings.Trim(env.Name, "\t \n")
-					env.Value = strings.Trim(env.Value, "\t \n")
-					tmpString, err := stripQuotation(env.Name)
-					if err == nil {
-						env.Name = tmpString
-					}
-					tmpString, err = stripQuotation(env.Value)
-					if err == nil {
-						env.Value = tmpString
-					}
+					env.Name = strings.TrimSpace(env.Name)
+					env.Value = strings.TrimSpace(env.Value)
+					tmpString := stripQuotation(env.Name)
+					env.Name = tmpString
+					tmpString = stripQuotation(env.Value)
+					env.Value = tmpString
 					tmpEnvArray = append(tmpEnvArray, env)
 				}
 			}
-			serviceContainer.Env = tmpEnvArray
+			ir.Services[i].Containers[j].Env = tmpEnvArray
 		}
-		ir.Services[k] = scObj
 	}
 	return ir, nil
 }
 
-func stripQuotation(inputString string) (string, error) {
+func stripQuotation(inputString string) string {
 	regex := regexp.MustCompile(`^[',"](.*)[',"]$`)
 
-	return regex.ReplaceAllString(inputString, `$1`), nil
+	return regex.ReplaceAllString(inputString, `$1`)
 }
