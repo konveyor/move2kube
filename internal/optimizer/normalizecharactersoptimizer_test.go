@@ -17,11 +17,11 @@ limitations under the License.
 package optimize
 
 import (
+	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	"reflect"
 	"testing"
 )
 
@@ -35,8 +35,8 @@ func TestStripQuotation(t *testing.T) {
 
 		// Test
 		actual := stripQuotation(inputString)
-		if !reflect.DeepEqual(actual, want) {
-			t.Fatal("Failed to get the expected properly. Expected:", want, "actual:", actual)
+		if actual != want {
+			t.Fatalf("Failed to get the expected properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
 	})
 
@@ -47,8 +47,8 @@ func TestStripQuotation(t *testing.T) {
 
 		// Test
 		actual := stripQuotation(inputString)
-		if !reflect.DeepEqual(actual, want) {
-			t.Fatal("Failed to get the expected properly. Expected:", want, "actual:", actual)
+		if actual != want {
+			t.Fatalf("Failed to get the expected properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
 	})
 
@@ -59,8 +59,8 @@ func TestStripQuotation(t *testing.T) {
 
 		// Test
 		actual := stripQuotation(inputString)
-		if !reflect.DeepEqual(actual, want) {
-			t.Fatal("Failed to get the expected properly. Expected:", want, "actual:", actual)
+		if actual != want {
+			t.Fatalf("Failed to get the expected properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
 	})
 }
@@ -80,8 +80,8 @@ func TestOptimize(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the expected. Error:", err)
 		}
-		if !reflect.DeepEqual(actual, want) {
-			t.Fatal("Failed to get the expected properly. Expected:", want, "actual:", actual)
+		if !cmp.Equal(actual, want) {
+			t.Fatalf("Failed to get the intermediate representation properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
 	})
 
@@ -105,8 +105,8 @@ func TestOptimize(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the expected. Error:", err)
 		}
-		if !reflect.DeepEqual(actual, want) {
-			t.Fatal("Failed to get the expected properly. Expected:", want, "actual:", actual)
+		if !cmp.Equal(actual, want) {
+			t.Fatalf("Failed to get the intermediate representation properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
 	})
 
@@ -138,8 +138,8 @@ func TestOptimize(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the expected. Error:", err)
 		}
-		if !reflect.DeepEqual(actual, want) {
-			t.Fatal("Failed to get the expected properly. Expected:", want, "actual:", actual)
+		if !cmp.Equal(actual, want) {
+			t.Fatalf("Failed to get the intermediate representation properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
 	})
 
@@ -179,8 +179,8 @@ func TestOptimize(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the expected. Error:", err)
 		}
-		if !reflect.DeepEqual(actual, want) {
-			t.Fatal("Failed to get the expected properly. Expected:", want, "actual:", actual)
+		if !cmp.Equal(actual, want) {
+			t.Fatalf("Failed to get the intermediate representation properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
 	})
 
@@ -220,11 +220,9 @@ func TestOptimize(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the expected. Error:", err)
 		}
-		if !reflect.DeepEqual(actual, want) {
-			t.Fatal("Failed to get the expected properly. Expected:", want, "actual:", actual)
+		if !cmp.Equal(actual, want) {
+			t.Fatalf("Failed to get the intermediate representation properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
-		t.Log(actual.Services[svcname1].Containers[0].Env)
-		t.Log(want.Services[svcname1].Containers[0].Env)
 	})
 
 	t.Run("IR containing services and containers and some of the environment variables are invalid but their names contain the string affinity", func(t *testing.T) {
@@ -262,11 +260,9 @@ func TestOptimize(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the expected. Error:", err)
 		}
-		if !reflect.DeepEqual(actual, want) {
-			t.Fatal("Failed to get the expected properly. Expected:", want, "actual:", actual)
+		if !cmp.Equal(actual, want) {
+			t.Fatalf("Failed to get the intermediate representation properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
-		t.Log(actual.Services[svcname1].Containers[0].Env)
-		t.Log(want.Services[svcname1].Containers[0].Env)
 	})
 }
 
