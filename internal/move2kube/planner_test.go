@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -43,7 +44,7 @@ func TestCreatePlan(t *testing.T) {
 		// Test
 		p := move2kube.CreatePlan(inputPath, prjName)
 		if !reflect.DeepEqual(p, want) {
-			t.Fatal("Failed to create the plan properly. Expected:", want, "Actual", p)
+			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
 
@@ -71,7 +72,7 @@ func TestCreatePlan(t *testing.T) {
 		// Test
 		p := move2kube.CreatePlan(inputPath, prjName)
 		if !reflect.DeepEqual(p, want) {
-			t.Fatal("Failed to create the plan properly. Expected:", want, "Actual", p)
+			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
 
@@ -100,7 +101,7 @@ func TestCreatePlan(t *testing.T) {
 		// Test
 		p := move2kube.CreatePlan(inputPath, prjName)
 		if !reflect.DeepEqual(p, want) {
-			t.Fatal("Failed to create the plan properly. Expected:", want, "Actual", p)
+			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
 }

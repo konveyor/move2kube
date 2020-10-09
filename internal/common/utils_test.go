@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types/info"
 	log "github.com/sirupsen/logrus"
@@ -58,7 +59,7 @@ func TestGetFilesByExt(t *testing.T) {
 		}
 		want := []string{"testdata/validfiles/test1.yaml", "testdata/validfiles/test2.yml", "testdata/validfiles/versioninfo.yaml"}
 		if !reflect.DeepEqual(filepaths, want) {
-			t.Fatal("Failed to get the correct paths. Expected:", want, "Actual:", filepaths)
+			t.Fatalf("Failed to get the correct paths. Difference:\n%s", cmp.Diff(want, filepaths))
 		}
 	})
 
@@ -112,7 +113,7 @@ func TestGetFilesByName(t *testing.T) {
 		}
 		want := []string{"testdata/validfiles/test1.yaml", "testdata/validfiles/test2.yml"}
 		if !reflect.DeepEqual(filepaths, want) {
-			t.Fatal("Failed to get the correct paths. Expected:", want, "Actual:", filepaths)
+			t.Fatalf("Failed to get the correct paths. Difference:\n%s", cmp.Diff(want, filepaths))
 		}
 	})
 
@@ -427,7 +428,7 @@ func TestReadJSON(t *testing.T) {
 			t.Fatal("Failed to read json from the file", path1, "Error:", err)
 		}
 		if !reflect.DeepEqual(data1, want) {
-			t.Fatal("Failed to read the data properly. Expected:", want, "Actual:", data1)
+			t.Fatalf("Failed to read the data properly. Difference:\n%s", cmp.Diff(want, data1))
 		}
 	})
 
@@ -555,7 +556,7 @@ func TestMergeStringSlices(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			merged := common.MergeStringSlices(tc.inArr1, tc.inArr2)
 			if !reflect.DeepEqual(merged, tc.out) {
-				t.Fatalf("Failed to merge the arrays properly. Array1: %v Array2: %v Expected: %v Actual: %v", tc.inArr1, tc.inArr2, tc.out, merged)
+				t.Fatalf("Failed to merge the arrays properly. Array1: %v Array2: %v Difference:\n%s", tc.inArr1, tc.inArr2, cmp.Diff(tc.out, merged))
 			}
 		})
 	}
@@ -579,7 +580,7 @@ func TestMergeIntSlices(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			merged := common.MergeIntSlices(tc.inArr1, tc.inArr2)
 			if !reflect.DeepEqual(merged, tc.out) {
-				t.Fatalf("Failed to merge the arrays properly. Array1: %v Array2: %v Expected: %v Actual: %v", tc.inArr1, tc.inArr2, tc.out, merged)
+				t.Fatalf("Failed to merge the arrays properly. Array1: %v Array2: %v Difference:\n%s", tc.inArr1, tc.inArr2, cmp.Diff(tc.out, merged))
 			}
 		})
 	}
@@ -743,7 +744,7 @@ func TestMergeStringMaps(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			merged := common.MergeStringMaps(tc.inMap1, tc.inMap2)
 			if !reflect.DeepEqual(merged, tc.out) {
-				t.Fatalf("Failed to merge the maps properly. Map1: %v Map2: %v Expected: %v Actual: %v", tc.inMap1, tc.inMap2, tc.out, merged)
+				t.Fatalf("Failed to merge the maps properly. Map1: %v Map2: %v Difference:\n%s", tc.inMap1, tc.inMap2, cmp.Diff(tc.out, merged))
 			}
 		})
 	}

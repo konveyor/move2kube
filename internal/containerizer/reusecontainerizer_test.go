@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/containerizer"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -48,7 +49,7 @@ func TestReuseGetContainer(t *testing.T) {
 			t.Fatal("Failed to get the container. Error:", err)
 		}
 		if !reflect.DeepEqual(cont, want) {
-			t.Fatal("Failed to create the container properly. Expected:", want, "Actual:", cont)
+			t.Fatalf("Failed to create the container properly. Difference:\n%s", cmp.Diff(want, cont))
 		}
 	})
 

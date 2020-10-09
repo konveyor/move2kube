@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -54,7 +55,7 @@ func TestDockerFileGetContainer(t *testing.T) {
 			t.Fatal("Failed to get the container. Error:", err)
 		}
 		if !reflect.DeepEqual(cont, want) {
-			t.Fatal("Failed to create the container properly. Expected:", want, "Actual:", cont)
+			t.Fatalf("Failed to create the container properly. Difference:\n%s", cmp.Diff(want, cont))
 		}
 	})
 
