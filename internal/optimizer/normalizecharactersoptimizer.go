@@ -34,12 +34,8 @@ func (po normalizeCharacterOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error
 			var tmpEnvArray []corev1.EnvVar
 			for _, env := range ir.Services[i].Containers[j].Env {
 				if !strings.Contains(env.Name, "affinity") {
-					env.Name = strings.TrimSpace(env.Name)
-					env.Value = strings.TrimSpace(env.Value)
-					tmpString := stripQuotation(env.Name)
-					env.Name = tmpString
-					tmpString = stripQuotation(env.Value)
-					env.Value = tmpString
+					env.Name = stripQuotation(strings.TrimSpace(env.Name))
+					env.Value = stripQuotation(strings.TrimSpace(env.Value))
 					tmpEnvArray = append(tmpEnvArray, env)
 				}
 			}
@@ -50,6 +46,7 @@ func (po normalizeCharacterOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error
 }
 
 func stripQuotation(inputString string) string {
+	//TODO: check if regex is correct
 	regex := regexp.MustCompile(`^[',"](.*)[',"]$`)
 
 	return regex.ReplaceAllString(inputString, `$1`)
