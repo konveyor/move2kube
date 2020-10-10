@@ -53,9 +53,7 @@ var translateCmd = &cobra.Command{
 	Long:  "Translate artifacts using move2kube plan",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Global settings
-		if !ignoreEnv {
-			common.IgnoreEnvironment = true
-		}
+		common.IgnoreEnvironment = ignoreEnv
 		qaengine.StartEngine(qaskip, qaport, qadisablecli)
 		cachepaths := []string{}
 		for i := len(qacaches) - 1; i >= 0; i-- {
