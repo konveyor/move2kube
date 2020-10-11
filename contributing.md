@@ -1,18 +1,20 @@
 # Contributing
+
 Please read our code of conduct before contributing and make sure to follow it in all interactions with the project.
 
-If your proposed feature requires extensive changes/additions please contact us or raise a Github issue first.
+If your proposed feature requires extensive changes/additions please raise a Github issue and discuss the changes to align with project goals.
 
 In order to contribute please follow this process:
 
 1. Fork the repo on github and clone your fork.
 2. Make a new branch for your feature/bug fix. Example: `git checkout -b myfeature`
-3. Make your changes and commit.
-   - Note: Please run `make test-style` and `make test` before making any commits to run the linters and ensure they pass build and test. This requirement allows the use of `git bisect` to find the exact commit that introduced a specific bug.
+3. Make your changes and commit using `git commit -s -m "[commit message]"`.
+   - Note: Please run `make ci` before making any commits to run the linters and ensure they pass build and test.
 4. Make sure to format your code properly (`go fmt`) and update any relevant documentation, README.md, etc. about the changes you made.
    - Note: If it is a new feature please add unit tests for the same. If it is a bug fix please add tests/test cases to catch regressions in the future.
 
 ## Pull Request Process
+
 Once you are ready to have your work merged into the main repo follow these steps:
 
 1. Fetch the latest commits from upstream. `git fetch upstream`
