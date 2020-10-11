@@ -6,10 +6,14 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/konveyor/move2kube)](https://goreportcard.com/report/github.com/konveyor/move2kube)
 [<img src="https://img.shields.io/badge/slack-konveyor/move2kube-green.svg?logo=slack">](https://kubernetes.slack.com/archives/CR85S82A2)
 
-
 # Move2Kube
 
 Move2Kube is a command-line tool that accelerates the process of re-platforming to Kubernetes/Openshift. It does so by analysing the environment and source artifacts, and asking guidance from the user when required.
+
+## Install
+
+Command line : `curl -L https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/install.sh | bash -`  
+UI : Checkout `https://github.com/konveyor/move2kube-ui`
 
 ## Usage
 
