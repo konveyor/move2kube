@@ -29,10 +29,9 @@ func TestReplicaOptimizer(t *testing.T) {
 
 	t.Run("IR with no services", func(t *testing.T) {
 		// Setup
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
+		ir := getIRWithoutServices()
 		replicaOptimizer := replicaOptimizer{}
-		want := ir
+		want := getIRWithoutServices()
 
 		// Test
 		actual, err := replicaOptimizer.optimize(ir)
@@ -46,17 +45,9 @@ func TestReplicaOptimizer(t *testing.T) {
 
 	t.Run("IR with services with exact default minimum replicas", func(t *testing.T) {
 		// Setup
-		svcname1 := "svcname1"
-		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname2, Replicas: 2}
-
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
-		ir.Services[svcname1] = svc1
-		ir.Services[svcname2] = svc2
+		ir := getIRWithServicesWithDefaultMinimumReplicas()
 		replicaOptimizer := replicaOptimizer{}
-		want := ir
+		want := getIRWithServicesWithDefaultMinimumReplicas()
 
 		// Test
 		actual, err := replicaOptimizer.optimize(ir)
@@ -80,7 +71,7 @@ func TestReplicaOptimizer(t *testing.T) {
 		ir.Services[svcname1] = svc1
 		ir.Services[svcname2] = svc2
 		replicaOptimizer := replicaOptimizer{}
-		want := getExpectedIRWithDefaultMinimumReplicas()
+		want := getIRWithServicesWithDefaultMinimumReplicas()
 
 		// Test
 		actual, err := replicaOptimizer.optimize(ir)
@@ -94,17 +85,9 @@ func TestReplicaOptimizer(t *testing.T) {
 
 	t.Run("IR with services with more replicas than default minimum replicas", func(t *testing.T) {
 		// Setup
-		svcname1 := "svcname1"
-		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 4}
-		svc2 := types.Service{Name: svcname2, Replicas: 3}
-
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
-		ir.Services[svcname1] = svc1
-		ir.Services[svcname2] = svc2
+		ir := getServicesWithMoreReplicasThanDefaultMinimumReplicas()
 		replicaOptimizer := replicaOptimizer{}
-		want := ir
+		want := getServicesWithMoreReplicasThanDefaultMinimumReplicas()
 
 		// Test
 		actual, err := replicaOptimizer.optimize(ir)
@@ -122,7 +105,6 @@ func TestReplicaOptimizer(t *testing.T) {
 		svcname2 := "svcname2"
 		svc1 := types.Service{Name: svcname1, Replicas: 1}
 		svc2 := types.Service{Name: svcname2, Replicas: 4}
-
 		p := plantypes.NewPlan()
 		ir := types.NewIR(p)
 		ir.Services[svcname1] = svc1
@@ -141,7 +123,19 @@ func TestReplicaOptimizer(t *testing.T) {
 	})
 }
 
-func getExpectedIRWithDefaultMinimumReplicas() types.IR {
+func getServicesWithMoreReplicasThanDefaultMinimumReplicas() types.IR {
+	svcname1 := "svcname1"
+	svcname2 := "svcname2"
+	svc1 := types.Service{Name: svcname1, Replicas: 4}
+	svc2 := types.Service{Name: svcname2, Replicas: 3}
+	p := plantypes.NewPlan()
+	ir := types.NewIR(p)
+	ir.Services[svcname1] = svc1
+	ir.Services[svcname2] = svc2
+	return ir
+}
+
+func getIRWithServicesWithDefaultMinimumReplicas() types.IR {
 	svcname1 := "svcname1"
 	svcname2 := "svcname2"
 	svc1 := types.Service{Name: svcname1, Replicas: 2}
@@ -150,7 +144,6 @@ func getExpectedIRWithDefaultMinimumReplicas() types.IR {
 	ir := types.NewIR(p)
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
-
 	return ir
 }
 

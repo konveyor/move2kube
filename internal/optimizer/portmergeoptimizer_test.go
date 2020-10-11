@@ -30,10 +30,9 @@ func TestPortMergeOptimizer(t *testing.T) {
 
 	t.Run("IR with no services", func(t *testing.T) {
 		// Setup
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
+		ir := getIRWithoutServices()
 		portMergeOptimizer := portMergeOptimizer{}
-		want := ir
+		want := getIRWithoutServices()
 
 		// Test
 		actual, err := portMergeOptimizer.optimize(ir)
@@ -47,17 +46,9 @@ func TestPortMergeOptimizer(t *testing.T) {
 
 	t.Run("IR containing services that have no containers", func(t *testing.T) {
 		// Setup
-		svcname1 := "svcname1"
-		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname2, Replicas: 2}
-
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
-		ir.Services[svcname1] = svc1
-		ir.Services[svcname2] = svc2
+		ir := getIRWithServiceAndWithoutContainers()
 		portMergeOptimizer := portMergeOptimizer{}
-		want := ir
+		want := getIRWithServiceAndWithoutContainers()
 
 		// Test
 		actual, err := portMergeOptimizer.optimize(ir)
@@ -71,26 +62,9 @@ func TestPortMergeOptimizer(t *testing.T) {
 
 	t.Run("IR containing services and containers without image", func(t *testing.T) {
 		// Setup
-		c1 := corev1.Container{
-			Name: "container-1",
-		}
-		c2 := corev1.Container{
-			Name: "container-2",
-		}
-		svcname1 := "svcname1"
-		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname2, Replicas: 4}
-		svc1.Containers = append(svc1.Containers, c1)
-		svc2.Containers = append(svc2.Containers, c2)
-
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
-		ir.Services[svcname1] = svc1
-		ir.Services[svcname2] = svc2
-
+		ir := getIRWithServicesAndContainersWithoutImage()
 		portMergeOptimizer := portMergeOptimizer{}
-		want := ir
+		want := getIRWithServicesAndContainersWithoutImage()
 
 		// Test
 		actual, err := portMergeOptimizer.optimize(ir)
@@ -104,28 +78,9 @@ func TestPortMergeOptimizer(t *testing.T) {
 
 	t.Run("IR without Containers and Service containing containers with image", func(t *testing.T) {
 		// Setup
-		c1 := corev1.Container{
-			Name: "container-1",
-		}
-		c1.Image = "image1"
-		c2 := corev1.Container{
-			Name: "container-2",
-		}
-		c2.Image = "image2"
-		svcname1 := "svcname1"
-		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname2, Replicas: 4}
-		svc1.Containers = append(svc1.Containers, c1)
-		svc2.Containers = append(svc2.Containers, c2)
-
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
-		ir.Services[svcname1] = svc1
-		ir.Services[svcname2] = svc2
-
+		ir := getIRWithoutContainersAndServiceContainingContainersWithImage()
 		portMergeOptimizer := portMergeOptimizer{}
-		want := ir
+		want := getIRWithoutContainersAndServiceContainingContainersWithImage()
 
 		// Test
 		actual, err := portMergeOptimizer.optimize(ir)
@@ -269,6 +224,50 @@ func TestPortMergeOptimizer(t *testing.T) {
 			t.Fatalf("Failed to get the intermediate representation properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
 	})
+}
+
+func getIRWithoutContainersAndServiceContainingContainersWithImage() types.IR {
+	c1 := corev1.Container{
+		Name: "container-1",
+	}
+	c1.Image = "image1"
+	c2 := corev1.Container{
+		Name: "container-2",
+	}
+	c2.Image = "image2"
+	svcname1 := "svcname1"
+	svcname2 := "svcname2"
+	svc1 := types.Service{Name: svcname1, Replicas: 2}
+	svc2 := types.Service{Name: svcname2, Replicas: 4}
+	svc1.Containers = append(svc1.Containers, c1)
+	svc2.Containers = append(svc2.Containers, c2)
+
+	p := plantypes.NewPlan()
+	ir := types.NewIR(p)
+	ir.Services[svcname1] = svc1
+	ir.Services[svcname2] = svc2
+	return ir
+}
+
+func getIRWithServicesAndContainersWithoutImage() types.IR {
+	c1 := corev1.Container{
+		Name: "container-1",
+	}
+	c2 := corev1.Container{
+		Name: "container-2",
+	}
+	svcname1 := "svcname1"
+	svcname2 := "svcname2"
+	svc1 := types.Service{Name: svcname1, Replicas: 2}
+	svc2 := types.Service{Name: svcname2, Replicas: 4}
+	svc1.Containers = append(svc1.Containers, c1)
+	svc2.Containers = append(svc2.Containers, c2)
+
+	p := plantypes.NewPlan()
+	ir := types.NewIR(p)
+	ir.Services[svcname1] = svc1
+	ir.Services[svcname2] = svc2
+	return ir
 }
 
 func getExpectIRWithServiceContainingContainerPortsGivenImageName() types.IR {

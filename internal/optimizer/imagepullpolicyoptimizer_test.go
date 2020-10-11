@@ -31,10 +31,9 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 
 	t.Run("IR with no services", func(t *testing.T) {
 		// Setup
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
+		ir := getIRWithoutServices()
 		imagePullPolicyOptimizer := imagePullPolicyOptimizer{}
-		want := ir
+		want := getIRWithoutServices()
 
 		// Test
 		actual, err := imagePullPolicyOptimizer.optimize(ir)
@@ -48,17 +47,9 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 
 	t.Run("IR containing services that have no containers", func(t *testing.T) {
 		// Setup
-		svcname1 := "svcname1"
-		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname2, Replicas: 2}
-
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
-		ir.Services[svcname1] = svc1
-		ir.Services[svcname2] = svc2
+		ir := getIRWithServiceAndWithoutContainers()
 		imagePullPolicyOptimizer := imagePullPolicyOptimizer{}
-		want := ir
+		want := getIRWithServiceAndWithoutContainers()
 
 		// Test
 		actual, err := imagePullPolicyOptimizer.optimize(ir)
@@ -88,7 +79,7 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 		p := plantypes.NewPlan()
 		ir := types.NewIR(p)
 		ir.Services[svcname1] = svc1
-		ir.Services[svcname1] = svc2
+		ir.Services[svcname2] = svc2
 
 		imagePullPolicyOptimizer := imagePullPolicyOptimizer{}
 		want := getIRWithImagePullPolicySetAsAlways()
@@ -107,7 +98,7 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 		// Setup
 		ir := getIRWithImagePullPolicySetAsAlways()
 		imagePullPolicyOptimizer := imagePullPolicyOptimizer{}
-		want := ir
+		want := getIRWithImagePullPolicySetAsAlways()
 
 		// Test
 		actual, err := imagePullPolicyOptimizer.optimize(ir)
@@ -118,6 +109,24 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 			t.Fatalf("Failed to get the intermediate representation properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
 	})
+}
+
+func getIRWithServiceAndWithoutContainers() types.IR {
+	svcname1 := "svcname1"
+	svcname2 := "svcname2"
+	svc1 := types.Service{Name: svcname1, Replicas: 2}
+	svc2 := types.Service{Name: svcname2, Replicas: 2}
+	p := plantypes.NewPlan()
+	ir := types.NewIR(p)
+	ir.Services[svcname1] = svc1
+	ir.Services[svcname2] = svc2
+	return ir
+}
+
+func getIRWithoutServices() types.IR {
+	p := plantypes.NewPlan()
+	ir := types.NewIR(p)
+	return ir
 }
 
 func getIRWithImagePullPolicySetAsAlways() types.IR {
@@ -135,10 +144,9 @@ func getIRWithImagePullPolicySetAsAlways() types.IR {
 	svc2 := types.Service{Name: svcname2, Replicas: 4}
 	svc1.Containers = append(svc1.Containers, c1)
 	svc2.Containers = append(svc2.Containers, c2)
-
 	p := plantypes.NewPlan()
 	ir := types.NewIR(p)
 	ir.Services[svcname1] = svc1
-	ir.Services[svcname1] = svc2
+	ir.Services[svcname2] = svc2
 	return ir
 }
