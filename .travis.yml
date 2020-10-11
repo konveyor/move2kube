@@ -7,9 +7,7 @@ cache:
   directories:
   - "$GOPATH/pkg/mod"
 script:
-- make test
-- make build
-- make test-style
+- make ci
 after_success:
 - echo "$QUAY_BOT_PASSWORD" | docker login --username "$QUAY_BOT_USERNAME" --password-stdin
   quay.io
