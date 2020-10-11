@@ -46,9 +46,9 @@ func TestPortMergeOptimizer(t *testing.T) {
 
 	t.Run("IR containing services that have no containers", func(t *testing.T) {
 		// Setup
-		ir := getIRWithServiceAndWithoutContainers()
+		ir := getIRWithServicesAndWithoutContainers()
 		portMergeOptimizer := portMergeOptimizer{}
-		want := getIRWithServiceAndWithoutContainers()
+		want := getIRWithServicesAndWithoutContainers()
 
 		// Test
 		actual, err := portMergeOptimizer.optimize(ir)

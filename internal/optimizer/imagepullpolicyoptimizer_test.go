@@ -47,9 +47,9 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 
 	t.Run("IR containing services that have no containers", func(t *testing.T) {
 		// Setup
-		ir := getIRWithServiceAndWithoutContainers()
+		ir := getIRWithServicesAndWithoutContainers()
 		imagePullPolicyOptimizer := imagePullPolicyOptimizer{}
-		want := getIRWithServiceAndWithoutContainers()
+		want := getIRWithServicesAndWithoutContainers()
 
 		// Test
 		actual, err := imagePullPolicyOptimizer.optimize(ir)
@@ -111,7 +111,7 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 	})
 }
 
-func getIRWithServiceAndWithoutContainers() types.IR {
+func getIRWithServicesAndWithoutContainers() types.IR {
 	svcname1 := "svcname1"
 	svcname2 := "svcname2"
 	svc1 := types.Service{Name: svcname1, Replicas: 2}
