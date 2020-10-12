@@ -116,6 +116,11 @@ test-style: ${GOLANGCILINT} ${GOLINT}
 	${GOLINT} ${PKG}
 	scripts/licensecheck.sh
 
+# -- CI --
+
+.PHONY: ci
+ci: test build test-style ## Run CI routine
+
 # -- Release --
 
 $(GOX):

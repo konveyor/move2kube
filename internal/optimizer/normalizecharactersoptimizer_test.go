@@ -70,10 +70,9 @@ func TestOptimize(t *testing.T) {
 
 	t.Run("IR with no services", func(t *testing.T) {
 		// Setup
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
+		ir := getIRWithoutServices()
 		normalizeCharacterOptimizer := normalizeCharacterOptimizer{}
-		want := ir
+		want := getIRWithoutServices()
 
 		// Test
 		actual, err := normalizeCharacterOptimizer.optimize(ir)
@@ -87,18 +86,9 @@ func TestOptimize(t *testing.T) {
 
 	t.Run("IR containing services that have no containers", func(t *testing.T) {
 		// Setup
-		svcname1 := "svcname1"
-		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname2, Replicas: 4}
-
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
-		ir.Services[svcname1] = svc1
-		ir.Services[svcname2] = svc2
-
+		ir := getIRWithServicesAndWithoutContainers()
 		normalizeCharacterOptimizer := normalizeCharacterOptimizer{}
-		want := ir
+		want := getIRWithServicesAndWithoutContainers()
 
 		// Test
 		actual, err := normalizeCharacterOptimizer.optimize(ir)
@@ -112,26 +102,9 @@ func TestOptimize(t *testing.T) {
 
 	t.Run("IR containing services and containers but the containers have no environment variables", func(t *testing.T) {
 		// Setup
-		c1 := corev1.Container{
-			Name: "container-1",
-		}
-		c2 := corev1.Container{
-			Name: "container-2",
-		}
-		svcname1 := "svcname1"
-		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname2, Replicas: 4}
-		svc1.Containers = append(svc1.Containers, c1)
-		svc2.Containers = append(svc2.Containers, c2)
-
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
-		ir.Services[svcname1] = svc1
-		ir.Services[svcname1] = svc2
-
+		ir := getIRWithServicesAndContainersWithoutEnv()
 		normalizeCharacterOptimizer := normalizeCharacterOptimizer{}
-		want := ir
+		want := getIRWithServicesAndContainersWithoutEnv()
 
 		// Test
 		actual, err := normalizeCharacterOptimizer.optimize(ir)
@@ -145,34 +118,9 @@ func TestOptimize(t *testing.T) {
 
 	t.Run("An IR containing services and containers and all the environment variables are valid", func(t *testing.T) {
 		// Setup
-		c1 := corev1.Container{
-			Name: "container-1",
-			Env: []corev1.EnvVar{
-				{Name: "NAME", Value: "git-resource"},
-				{Name: "NO_PROXY", Value: "no-proxy.git.com"},
-			},
-		}
-		c2 := corev1.Container{
-			Name: "container-2",
-			Env: []corev1.EnvVar{
-				{Name: "NAME", Value: "git-resource2"},
-				{Name: "PROXY", Value: "proxy.git.com"},
-			},
-		}
-		svcname1 := "svcname1"
-		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname2, Replicas: 4}
-		svc1.Containers = append(svc1.Containers, c1)
-		svc2.Containers = append(svc2.Containers, c2)
-
-		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
-		ir.Services[svcname1] = svc1
-		ir.Services[svcname2] = svc2
-
+		ir := getIRWithServicesAndContainersWithValidEnv()
 		normalizeCharacterOptimizer := normalizeCharacterOptimizer{}
-		want := ir
+		want := getIRWithServicesAndContainersWithValidEnv()
 
 		// Test
 		actual, err := normalizeCharacterOptimizer.optimize(ir)
@@ -264,6 +212,56 @@ func TestOptimize(t *testing.T) {
 			t.Fatalf("Failed to get the intermediate representation properly. Differences:\n%s", cmp.Diff(want, actual))
 		}
 	})
+}
+
+func getIRWithServicesAndContainersWithValidEnv() types.IR {
+	c1 := corev1.Container{
+		Name: "container-1",
+		Env: []corev1.EnvVar{
+			{Name: "NAME", Value: "git-resource"},
+			{Name: "NO_PROXY", Value: "no-proxy.git.com"},
+		},
+	}
+	c2 := corev1.Container{
+		Name: "container-2",
+		Env: []corev1.EnvVar{
+			{Name: "NAME", Value: "git-resource2"},
+			{Name: "PROXY", Value: "proxy.git.com"},
+		},
+	}
+	svcname1 := "svcname1"
+	svcname2 := "svcname2"
+	svc1 := types.Service{Name: svcname1, Replicas: 2}
+	svc2 := types.Service{Name: svcname2, Replicas: 4}
+	svc1.Containers = append(svc1.Containers, c1)
+	svc2.Containers = append(svc2.Containers, c2)
+
+	p := plantypes.NewPlan()
+	ir := types.NewIR(p)
+	ir.Services[svcname1] = svc1
+	ir.Services[svcname2] = svc2
+	return ir
+}
+
+func getIRWithServicesAndContainersWithoutEnv() types.IR {
+	c1 := corev1.Container{
+		Name: "container-1",
+	}
+	c2 := corev1.Container{
+		Name: "container-2",
+	}
+	svcname1 := "svcname1"
+	svcname2 := "svcname2"
+	svc1 := types.Service{Name: svcname1, Replicas: 2}
+	svc2 := types.Service{Name: svcname2, Replicas: 4}
+	svc1.Containers = append(svc1.Containers, c1)
+	svc2.Containers = append(svc2.Containers, c2)
+
+	p := plantypes.NewPlan()
+	ir := types.NewIR(p)
+	ir.Services[svcname1] = svc1
+	ir.Services[svcname1] = svc2
+	return ir
 }
 
 func getExpectedIR() types.IR {
