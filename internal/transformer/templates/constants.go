@@ -41,6 +41,71 @@ cd {{$val}}
 ./{{$key}}
 cd -{{end}}
 `
+	BuildConfigTemplate_yml = `
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  app: move2kubebc 
+  template: move2kubebc 
+  name: move2kubebc 
+objects:
+#- apiVersion: v1
+#  kind: ImageStream
+#  metadata:
+#    annotations:
+#      description: Keeps track of changes in the application image
+#    name: ${NAME}
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      description: Defines how to build the application
+      template.alpha.openshift.io/wait-for-ready: "true"
+    name: ${NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}:latest
+    source:
+      dockerfile: |
+        FROM registry.access.redhat.com/ubi8/ubi:latest
+        #ARG JAVA_BASE_IMAGE=registry.access.redhat.com/ubi8/ubi:latest
+        #FROM ${JAVA_BASE_IMAGE}
+        
+        LABEL maintainer="Lev Shulman <lshulman@redhat.com>"
+        
+        RUN mkdir /app && yum install -y java-1.8.0-openjdk-devel maven
+        
+        #COPY settings.xml /root/.m2/
+        COPY . /app/
+        WORKDIR /app/
+        RUN  JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8 mvn clean install -DskipTests
+        
+        EXPOSE 8080
+        
+        CMD  java -Dfile.encoding=UTF-8 -Dcamel.server.port=8080 -Dserver.port=8080 -jar /app/${NAME}/target/${NAME}-1.0-SNAPSHOT.jar
+               
+      binary: {}
+      type: Binary
+    strategy:
+      dockerStrategy:
+        to:
+          kind: ImageStreamTag
+          name: service:latest
+      type: Docker
+      #    triggers:
+      #    - type: ImageChange
+      #    - type: ConfigChange
+parameters:
+- description: The name assigned to all of the frontend objects defined in this template.
+  displayName: Name
+  name: NAME
+  required: true
+  value: sample-service 
+
+`
+
 
 	Chart_tpl = `name: {{.Name}}
 description: A generated Helm Chart for {{.Name}} 

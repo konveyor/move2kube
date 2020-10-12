@@ -36,7 +36,9 @@ const (
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-pack build {{ .ImageName }} -B {{ .Builder }}`
+oc process -f build-config-template.yml -p NAME={{.Name}} | oc create -f -
+oc start-build {{.Name}} --from-dir=.
+#pack build {{ .ImageName }} -B {{ .Builder }}`
 
 	Dockerbuild_sh = `#   Copyright IBM Corporation 2020
 #

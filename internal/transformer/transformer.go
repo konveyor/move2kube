@@ -124,6 +124,12 @@ func writeContainers(outpath string, containers []irtypes.Container, registryURL
 		log.Debugf("buildScriptMap %s", buildScriptMap)
 		writepath := filepath.Join(outpath, "buildimages.sh")
 		err := common.WriteTemplateToFile(templates.Buildimages_sh, buildScriptMap, writepath, common.DefaultExecutablePermission)
+                if err != nil {
+                        log.Errorf("Unable to create script to build images : %s", err)
+                }
+
+		writepath = filepath.Join(outpath, "containers", "build-config-template.yml")
+		err = common.WriteTemplateToFile(templates.BuildConfigTemplate_yml, buildScriptMap, writepath, common.DefaultExecutablePermission)
 		if err != nil {
 			log.Errorf("Unable to create script to build images : %s", err)
 		}

@@ -76,9 +76,11 @@ func (d *CNBContainerizer) GetContainer(plan plantypes.Plan, service plantypes.S
 		cnbbuilderstring, err := common.GetStringFromTemplate(scripts.CNBBuilder_sh, struct {
 			ImageName string
 			Builder   string
+			Name 	  string
 		}{
 			ImageName: service.Image,
 			Builder:   builder,
+			Name:      service.ServiceName,
 		})
 		if err != nil {
 			log.Warnf("Unable to translate template to string : %s", scripts.CNBBuilder_sh)

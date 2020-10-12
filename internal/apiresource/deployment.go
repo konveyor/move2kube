@@ -124,7 +124,7 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 		} else if d1, ok := obj.(*corev1.ReplicationController); ok {
 			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec.Template.Spec, *d1.Spec.Replicas)}, true
 		} else if d1, ok := obj.(*corev1.Pod); ok {
-			var replicas int32 = 2
+			var replicas int32 = 1
 			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec, replicas)}, true
 		}
 		return []runtime.Object{obj}, true
@@ -135,7 +135,7 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 		} else if d1, ok := obj.(*corev1.ReplicationController); ok {
 			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec.Template.Spec, *d1.Spec.Replicas)}, true
 		} else if d1, ok := obj.(*corev1.Pod); ok {
-			var replicas int32 = 2
+			var replicas int32 = 1
 			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec, replicas)}, true
 		}
 		return []runtime.Object{obj}, true
@@ -146,7 +146,7 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 		} else if d1, ok := obj.(*appsv1.Deployment); ok {
 			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec.Template.Spec, *d1.Spec.Replicas)}, true
 		} else if d1, ok := obj.(*corev1.Pod); ok {
-			var replicas int32 = 2
+			var replicas int32 = 1
 			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec, replicas)}, true
 		}
 		return []runtime.Object{obj}, true
@@ -315,7 +315,8 @@ func (d *Deployment) toDeploymentConfig(meta metav1.ObjectMeta, podspec corev1.P
 		},
 		ObjectMeta: meta,
 		Spec: okdappsv1.DeploymentConfigSpec{
-			Replicas: int32(replicas),
+//			Replicas: int32(replicas),
+			Replicas: 1,
 			Selector: getServiceLabels(meta.Name),
 			Template: &corev1.PodTemplateSpec{
 				ObjectMeta: meta,
