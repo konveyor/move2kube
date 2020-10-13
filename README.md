@@ -65,6 +65,7 @@ Instructions can be found [here](./USAGE.md)
   * Operator
   * Docker compose
 
-## Discussion
 
-To discuss with the maintainers, reach out in [slack](https://kubernetes.slack.com/archives/CR85S82A2) in [kubernetes](https://slack.k8s.io/) workspace.
+## Discussion
+- Check out the [document guides](./docs) to extend Move2Kube.
+- To discuss with the maintainers, reach out in [slack](https://cloud-native.slack.com/archives/C01AJ5WCXGF) in [cloud-native](https://slack.cncf.io/) workspace.
