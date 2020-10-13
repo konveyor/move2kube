@@ -15,6 +15,7 @@ spec:
             - Directory
           targetOptions:
             - cloudfoundry/cnb:cflinuxfs3
+            - gcr.io/buildpacks/builder
           sourceArtifacts:
             SourceCode:
               - .
