@@ -39,7 +39,7 @@ var cnbcache = make(map[string][]string)
 
 // Init initializes the containerizer
 func (d *CNBContainerizer) Init(path string) {
-	d.builders = []string{"cloudfoundry/cnb:cflinuxfs3"}
+	d.builders = []string{"cloudfoundry/cnb:cflinuxfs3", "gcr.io/buildpacks/builder"}
 	//initRunc(d.builders)
 	//TODO: Load from CNB Builder name collector
 }
