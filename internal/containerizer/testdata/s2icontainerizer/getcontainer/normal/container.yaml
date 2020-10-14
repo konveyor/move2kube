@@ -1,9 +1,9 @@
 containerbuildtype: S2I
 repoinfo:
-  gitrepodir: ""
-  gitrepourl: ""
-  gitrepobranch: ""
-  targetpath: ""
+  gitRepoDir: ""
+  gitRepoURL: ""
+  gitRepoBranch: ""
+  targetPath: ""
 imagenames:
   - nodejs:latest
 new: true
