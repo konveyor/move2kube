@@ -178,8 +178,8 @@ func (output *KubernetesOutput) Merge(newoutput KubernetesOutput) {
 
 // Inputs defines the input section of plan
 type Inputs struct {
-	AbsRootDir          string                                   `yaml:"absRootDir"`
-	RelRootDir          string                                   `yaml:"relRootDir"`
+	AbsRootDir          string                                   `yaml:"-"`
+	RelRootDir          string                                   `yaml:"-"`
 	RootDir             string                                   `yaml:"rootDir"`
 	K8sFiles            []string                                 `yaml:"kubernetesYamls,omitempty"`
 	QACaches            []string                                 `yaml:"qaCaches,omitempty"`
@@ -220,15 +220,15 @@ func (inputs *Inputs) SetRootDir(path string) error {
 
 // RepoInfo contains information specific to creating the CI/CD pipeline.
 type RepoInfo struct {
-	GitRepoDir    string
-	GitRepoURL    string
-	GitRepoBranch string
-	TargetPath    string
+	GitRepoDir    string `yaml:"gitRepoDir"`
+	GitRepoURL    string `yaml:"gitRepoURL"`
+	GitRepoBranch string `yaml:"gitRepoBranch"`
+	TargetPath    string `yaml:"targetPath"`
 }
 
 // Service defines a plan service
 type Service struct {
-	RepoInfo                      RepoInfo
+	RepoInfo                      RepoInfo                             `yaml:"repoInfo,omitempty"`
 	ServiceName                   string                               `yaml:"serviceName"`
 	Image                         string                               `yaml:"image"`
 	TranslationType               TranslationTypeValue                 `yaml:"translationType"`

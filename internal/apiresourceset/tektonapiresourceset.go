@@ -114,20 +114,33 @@ func (*TektonAPIResourceSet) CreateResources(ir irtypes.IR) []runtime.Object {
 func createGitSecrets(gitSecretNamePrefix string, ir irtypes.IR) [](*corev1.Secret) {
 	secrets := [](*corev1.Secret){}
 	gitDomains := []string{}
+
 	for _, container := range ir.Containers {
 		gitRepoURL, err := giturls.Parse(container.RepoInfo.GitRepoURL)
 		if err != nil {
 			log.Warnf("Failed to parse git repo url %q Error: %q", container.RepoInfo.GitRepoURL, err)
 			continue
 		}
+		if gitRepoURL.Hostname() == "" {
+			continue
+		}
 		gitDomains = append(gitDomains, gitRepoURL.Hostname())
 	}
+
 	gitDomains = common.UniqueStrings(gitDomains)
+	if len(gitDomains) == 0 {
+		log.Warn("No remote git repos found. CI/CD pipeline requires a remote git repo to pull the source code from.")
+		gitSecretName := common.MakeStringDNSSubdomainNameCompliant(gitSecretNamePrefix)
+		secrets = append(secrets, createGitSecret(gitSecretName, ""))
+		return secrets
+	}
+
 	for _, gitDomain := range gitDomains {
 		gitSecretName := fmt.Sprintf("%s-%s", gitSecretNamePrefix, gitDomain)
 		gitSecretName = common.MakeStringDNSSubdomainNameCompliant(gitSecretName)
 		secrets = append(secrets, createGitSecret(gitSecretName, gitDomain))
 	}
+
 	return secrets
 }
 

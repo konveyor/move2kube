@@ -84,6 +84,7 @@ var translateCmd = &cobra.Command{
 			if err != nil {
 				log.Fatalf("Unable to read plan : %s", err)
 			}
+			p.Spec.Inputs.SetRootDir(p.Spec.Inputs.RootDir) // Since AbsRootDir and RelRootDir are not serialized. Also cleans up the user input path.
 			if cmd.Flags().Changed(nameFlag) {
 				p.Name = name
 			}
@@ -96,7 +97,7 @@ var translateCmd = &cobra.Command{
 			}
 		}
 		if srcpath != "" {
-			p.Spec.Inputs.RootDir = srcpath
+			p.Spec.Inputs.SetRootDir(srcpath)
 		}
 		fi, err = os.Stat(p.Spec.Inputs.RootDir)
 		if os.IsNotExist(err) {

@@ -1,9 +1,9 @@
 containerbuildtype: NewDockerfile
 repoinfo:
-  gitrepodir: ""
-  gitrepourl: ""
-  gitrepobranch: ""
-  targetpath: Dockerfile.dockerfile
+  gitRepoDir: ""
+  gitRepoURL: ""
+  gitRepoBranch: ""
+  targetPath: Dockerfile.dockerfile
 imagenames:
   - dockerfile:latest
 new: true
