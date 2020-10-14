@@ -77,7 +77,7 @@ func (service *Service) AddVolume(volume corev1.Volume) {
 // Container defines structure of a container
 type Container struct {
 	ContainerBuildType plantypes.ContainerBuildTypeValue
-	CICDInfo           plantypes.CICDSpec
+	RepoInfo           plantypes.RepoInfo
 	ImageNames         []string
 	New                bool
 	NewFiles           map[string]string //[filename][filecontents]

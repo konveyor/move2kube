@@ -113,9 +113,9 @@ func TestGetServiceOptions(t *testing.T) {
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
-		// Don't compare CICDInfo
+		// Don't compare RepoInfo
 		for i := range services {
-			services[i].CICDInfo = plantypes.CICDSpec{}
+			services[i].RepoInfo = plantypes.RepoInfo{}
 		}
 
 		if err != nil {
@@ -154,9 +154,9 @@ func TestGetServiceOptions(t *testing.T) {
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
-		// Don't compare CICDInfo
+		// Don't compare RepoInfo
 		for i := range services {
-			services[i].CICDInfo = plantypes.CICDSpec{}
+			services[i].RepoInfo = plantypes.RepoInfo{}
 		}
 
 		if err != nil {
@@ -217,9 +217,9 @@ func TestGetServiceOptions(t *testing.T) {
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
-		// Don't compare CICDInfo
+		// Don't compare RepoInfo
 		for i := range services {
-			services[i].CICDInfo = plantypes.CICDSpec{}
+			services[i].RepoInfo = plantypes.RepoInfo{}
 		}
 
 		if err != nil {
@@ -247,9 +247,9 @@ func TestGetServiceOptions(t *testing.T) {
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
-		// Don't compare CICDInfo
+		// Don't compare RepoInfo
 		for i := range services {
-			services[i].CICDInfo = plantypes.CICDSpec{}
+			services[i].RepoInfo = plantypes.RepoInfo{}
 		}
 
 		if err != nil {

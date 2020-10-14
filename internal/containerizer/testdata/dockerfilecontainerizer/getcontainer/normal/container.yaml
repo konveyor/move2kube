@@ -1,5 +1,5 @@
 containerbuildtype: NewDockerfile
-cicdinfo:
+repoinfo:
   gitrepodir: ""
   gitrepourl: ""
   gitrepobranch: ""

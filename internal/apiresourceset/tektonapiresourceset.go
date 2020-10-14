@@ -115,9 +115,9 @@ func createGitSecrets(gitSecretNamePrefix string, ir irtypes.IR) [](*corev1.Secr
 	secrets := [](*corev1.Secret){}
 	gitDomains := []string{}
 	for _, container := range ir.Containers {
-		gitRepoURL, err := giturls.Parse(container.CICDInfo.GitRepoURL)
+		gitRepoURL, err := giturls.Parse(container.RepoInfo.GitRepoURL)
 		if err != nil {
-			log.Warnf("Failed to parse git repo url %q Error: %q", container.CICDInfo.GitRepoURL, err)
+			log.Warnf("Failed to parse git repo url %q Error: %q", container.RepoInfo.GitRepoURL, err)
 			continue
 		}
 		gitDomains = append(gitDomains, gitRepoURL.Hostname())
@@ -240,11 +240,11 @@ func createCloneBuildPushPipeline(name, workspaceName string, ir irtypes.IR) run
 		}
 		if container.ContainerBuildType == plantypes.DockerFileContainerBuildTypeValue || container.ContainerBuildType == plantypes.ReuseDockerFileContainerBuildTypeValue {
 			cloneTaskName := "clone-" + fmt.Sprint(i)
-			gitRepoURL := container.CICDInfo.GitRepoURL
+			gitRepoURL := container.RepoInfo.GitRepoURL
 			if gitRepoURL == "" {
 				gitRepoURL = gitRepoURLPlaceholder
 			}
-			branchName := container.CICDInfo.GitRepoBranch
+			branchName := container.RepoInfo.GitRepoBranch
 			if branchName == "" {
 				branchName = defaultGitRepoBranch
 			}
@@ -270,10 +270,10 @@ func createCloneBuildPushPipeline(name, workspaceName string, ir irtypes.IR) run
 			dockerfilePath := dockerfilePathPlaceholder
 			contextPath := contextPathPlaceholder
 			// If there is a git repo, set the correct context and dockerfile paths.
-			if container.CICDInfo.GitRepoDir != "" {
-				relDockerfilePath, err := filepath.Rel(container.CICDInfo.GitRepoDir, container.CICDInfo.TargetPath)
+			if container.RepoInfo.GitRepoDir != "" {
+				relDockerfilePath, err := filepath.Rel(container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath)
 				if err != nil {
-					log.Errorf("Failed to make the path %q relative to the path %q Error %q", container.CICDInfo.GitRepoDir, container.CICDInfo.TargetPath, err)
+					log.Errorf("Failed to make the path %q relative to the path %q Error %q", container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath, err)
 				} else {
 					dockerfilePath = relDockerfilePath
 					// We can't figure out the context from the source. So assume the context is the directory containing the dockerfile.

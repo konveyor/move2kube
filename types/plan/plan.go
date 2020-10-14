@@ -218,8 +218,8 @@ func (inputs *Inputs) SetRootDir(path string) error {
 	return nil
 }
 
-// CICDSpec contains information specific to creating the CI/CD pipeline.
-type CICDSpec struct {
+// RepoInfo contains information specific to creating the CI/CD pipeline.
+type RepoInfo struct {
 	GitRepoDir    string
 	GitRepoURL    string
 	GitRepoBranch string
@@ -228,7 +228,7 @@ type CICDSpec struct {
 
 // Service defines a plan service
 type Service struct {
-	CICDInfo                      CICDSpec
+	RepoInfo                      RepoInfo
 	ServiceName                   string                               `yaml:"serviceName"`
 	Image                         string                               `yaml:"image"`
 	TranslationType               TranslationTypeValue                 `yaml:"translationType"`
@@ -272,11 +272,11 @@ func (service *Service) GatherGitInfo(path string, plan Plan) (bool, error) {
 		return false, err
 	}
 
-	service.CICDInfo.GitRepoBranch = branch
+	service.RepoInfo.GitRepoBranch = branch
 	if len(remoteURLs) == 0 {
 		log.Debugf("The git repo at path %q has no remotes set.", path)
 	} else {
-		service.CICDInfo.GitRepoURL = remoteURLs[0]
+		service.RepoInfo.GitRepoURL = remoteURLs[0]
 	}
 
 	relRepoDir, err := plan.GetRelativePath(repoDir)
@@ -285,7 +285,7 @@ func (service *Service) GatherGitInfo(path string, plan Plan) (bool, error) {
 		return true, err
 	}
 
-	service.CICDInfo.GitRepoDir = relRepoDir
+	service.RepoInfo.GitRepoDir = relRepoDir
 	return true, nil
 }
 
