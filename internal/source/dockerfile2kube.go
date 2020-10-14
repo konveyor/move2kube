@@ -99,8 +99,8 @@ func (c DockerfileTranslator) Translate(services []plantypes.Service, p plantype
 				}
 			}
 			con, err := c.GetContainer(fp, service.ServiceName, service.Image, filepath.Base(dfp), context)
-			con.CICDInfo = service.CICDInfo
-			con.CICDInfo.TargetPath = service.ContainerizationTargetOptions[0]
+			con.RepoInfo = service.RepoInfo
+			con.RepoInfo.TargetPath = service.ContainerizationTargetOptions[0]
 			if err != nil {
 				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
 			} else {

@@ -1,5 +1,5 @@
 ---
-- cicdinfo:
+- repoinfo:
     gitrepodir: ""
     gitrepourl: ""
     gitrepobranch: ""

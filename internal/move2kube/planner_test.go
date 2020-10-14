@@ -107,10 +107,10 @@ func TestCreatePlan(t *testing.T) {
 
 		// Test
 		p := move2kube.CreatePlan(inputPath, prjName)
-		// Don't compare the CICDInfo since that will detect the move2kube repo, even though the nodejs sample itself has no repo.
+		// Don't compare the RepoInfo since that will detect the move2kube repo, even though the nodejs sample itself has no repo.
 		for _, svcs := range p.Spec.Inputs.Services {
 			for i := range svcs {
-				svcs[i].CICDInfo = plantypes.CICDSpec{}
+				svcs[i].RepoInfo = plantypes.RepoInfo{}
 			}
 		}
 

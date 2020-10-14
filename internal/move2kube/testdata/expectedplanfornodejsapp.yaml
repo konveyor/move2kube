@@ -9,7 +9,7 @@ spec:
     rootDir: ../../samples/nodejs
     services:
       nodejs:
-        - cicdinfo:
+        - repoinfo:
             gitrepodir: ""
             gitrepourl: ""
             gitrepobranch: ""
