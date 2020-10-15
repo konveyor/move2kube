@@ -25,7 +25,8 @@ UI : Checkout `https://github.com/konveyor/move2kube-ui`
 
 ![Usage](./imgs/usage.png)
 
-Instructions can be found [here](./USAGE.md)
+Usage instructions can be found [here](./USAGE.md)  
+Some demo usage flows can be found in [here](https://github.com/konveyor/move2kube-demos)
 
 ## Setup
 
