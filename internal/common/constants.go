@@ -50,7 +50,7 @@ const (
 	// QACacheFile defines the location of the QA cache file
 	QACacheFile string = types.AppNameShort + "qacache.yaml"
 	// DefaultClusterType defines the default cluster type chosen by plan
-	DefaultClusterType string = "IBM-IKS"
+	DefaultClusterType string = "Kubernetes"
 	// IgnoreFilename is the name of the file containing the ignore rules and exceptions
 	IgnoreFilename string = "." + types.AppNameShort + "ignore"
 )
