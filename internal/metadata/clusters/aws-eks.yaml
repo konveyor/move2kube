@@ -1,7 +1,7 @@
 apiVersion: move2kube.io/v1alpha1
 kind: ClusterMetadata
 metadata:
-  name: awsEKS
+  name: AWS-EKS
 spec:
   storageClasses:
     - gp2
