@@ -123,7 +123,7 @@ func (p *packProvider) isBuilderSupported(path string, builder string) (bool, er
 }
 
 func (p *packProvider) getAllBuildpacks(builders []string) (map[string][]string, error) { //[Containerization target option value] buildpacks
-	buildpacks := make(map[string][]string)
+	buildpacks := map[string][]string{}
 	log.Debugf("Getting data of all builders %s", builders)
 	for _, builder := range builders {
 		cmd := exec.Command("pack", "inspect-builder", string(builder))

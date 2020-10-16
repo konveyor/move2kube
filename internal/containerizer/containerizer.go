@@ -57,7 +57,7 @@ func (c *Containerizers) InitContainerizers(path string) {
 
 // GetContainerizationOptions returns ContainerizerOptions for given sourcepath
 func (c *Containerizers) GetContainerizationOptions(plan plantypes.Plan, sourcepath string) []ContainerizationOption {
-	cops := make([]ContainerizationOption, 0)
+	cops := []ContainerizationOption{}
 	for _, containerizer := range c.containerizers {
 		if targetoptions := containerizer.GetTargetOptions(plan, sourcepath); len(targetoptions) != 0 {
 			cops = append(cops, ContainerizationOption{

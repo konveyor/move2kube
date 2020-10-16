@@ -112,7 +112,7 @@ func main() {
 }
 
 func makeConstants(directory string, tplstr string) error {
-	files := make(map[string]string)
+	files := map[string]string{}
 
 	log.Infof("Generating constants from %q", directory)
 	fs, err := ioutil.ReadDir(directory)

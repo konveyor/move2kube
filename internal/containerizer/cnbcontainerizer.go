@@ -35,7 +35,7 @@ type CNBContainerizer struct {
 }
 
 // Cache
-var cnbcache = make(map[string][]string)
+var cnbcache = map[string][]string{}
 
 // Init initializes the containerizer
 func (d *CNBContainerizer) Init(path string) {

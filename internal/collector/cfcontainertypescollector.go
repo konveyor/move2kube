@@ -84,7 +84,7 @@ func getBuildpackContainerizer(buildpackName string, options map[string][]string
 	buildpackcontainerizer := collecttypes.BuildpackContainerizer{}
 	buildpackcontainerizer.ContainerBuildType = plan.CNBContainerBuildTypeValue
 	buildpackcontainerizer.BuildpackName = buildpackName
-	bpoptions := make(map[string]string)
+	bpoptions := map[string]string{}
 	bps := []string{}
 	for targetoption, buildpacks := range options {
 		option := common.GetClosestMatchingString(buildpacks, buildpackName)

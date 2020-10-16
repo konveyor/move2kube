@@ -105,7 +105,7 @@ func (d *NetworkPolicy) createNetworkPolicy(networkName string) (*networkingv1.N
 }
 
 func getNetworkPolicyLabels(networks []string) map[string]string {
-	networklabels := make(map[string]string)
+	networklabels := map[string]string{}
 	for _, network := range networks {
 		networklabels[networkSelector+"/"+network] = networkPresentLabel
 	}

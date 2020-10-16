@@ -55,7 +55,7 @@ func TestMerge(t *testing.T) {
 	t.Run("merge global and service variables into filled helm value", func(t *testing.T) {
 		makeH := func() output.HelmValues {
 			h := output.HelmValues{}
-			h.GlobalVariables = make(map[string]string)
+			h.GlobalVariables = map[string]string{}
 			return h
 		}
 		key1 := "key1"
@@ -79,7 +79,7 @@ func TestMerge(t *testing.T) {
 	t.Run("merge ImageTagTree properly into filled helm value", func(t *testing.T) {
 		makeH := func() output.HelmValues {
 			h := output.HelmValues{}
-			h.Services = make(map[string]output.Service)
+			h.Services = map[string]output.Service{}
 			return h
 		}
 		key1 := "key1"

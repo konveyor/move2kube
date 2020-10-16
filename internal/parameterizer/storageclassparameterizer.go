@@ -27,7 +27,7 @@ type storageClassParameterizer struct {
 
 // Parameterize parameterizes the storage class
 func (sc storageClassParameterizer) parameterize(ir *irtypes.IR) error {
-	scMap := make(map[string][]int)
+	scMap := map[string][]int{}
 
 	for i, storage := range ir.Storages {
 		if storage.StorageType == irtypes.PVCKind {

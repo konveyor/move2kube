@@ -66,7 +66,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 		}
 	}
 
-	registryAuthList := make(map[string]string) //Registry url and auth
+	registryAuthList := map[string]string{} //Registry url and auth
 	defreg := ""
 	if !common.IgnoreEnvironment {
 		configFile, err := dockercliconfig.Load(dockercliconfig.Dir())
@@ -160,7 +160,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 		usedRegistries = append(usedRegistries, ir.Kubernetes.RegistryURL)
 	}
 
-	imagePullSecrets := make(map[string]string) // registryurl, pull secret
+	imagePullSecrets := map[string]string{} // registryurl, pull secret
 
 	for _, registry := range usedRegistries {
 		dauth := dockerclitypes.AuthConfig{}
@@ -238,7 +238,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 			dconfigbuffer := new(bytes.Buffer)
 			err := dconfigfile.SaveToWriter(dconfigbuffer)
 			if err == nil {
-				data := make(map[string][]byte)
+				data := map[string][]byte{}
 				data[".dockerconfigjson"] = dconfigbuffer.Bytes()
 				ir.AddStorage(irtypes.Storage{
 					Name:        imagePullSecrets[registry],

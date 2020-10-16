@@ -92,7 +92,7 @@ func NewContainer(containerBuildType plantypes.ContainerBuildTypeValue, imagenam
 		ContainerBuildType: containerBuildType,
 		ImageNames:         []string{imagename},
 		New:                new,
-		NewFiles:           make(map[string]string),
+		NewFiles:           map[string]string{},
 		ExposedPorts:       []int{},
 		UserID:             -1,
 		AccessedDirs:       []string{},
@@ -189,14 +189,14 @@ func NewIR(p plan.Plan) IR {
 	var ir IR
 	ir.Name = p.Name
 	ir.Kubernetes = p.Spec.Outputs.Kubernetes
-	ir.Containers = make([]Container, 0)
-	ir.Services = make(map[string]Service)
-	ir.Storages = make([]Storage, 0)
+	ir.Containers = []Container{}
+	ir.Services = map[string]Service{}
+	ir.Storages = []Storage{}
 	ir.TargetClusterSpec = collecttypes.ClusterMetadataSpec{
 		StorageClasses:    []string{},
-		APIKindVersionMap: make(map[string][]string),
+		APIKindVersionMap: map[string][]string{},
 	}
-	ir.Values.GlobalVariables = make(map[string]string)
+	ir.Values.GlobalVariables = map[string]string{}
 	return ir
 }
 

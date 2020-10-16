@@ -65,7 +65,7 @@ func (k *KnativeAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Obje
 
 // GetServiceOptions returns plan service options for an input folder
 func (k *KnativeAPIResourceSet) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
-	services := make([]plantypes.Service, 0)
+	services := []plantypes.Service{}
 
 	codecs := serializer.NewCodecFactory(k.GetScheme())
 
@@ -99,7 +99,7 @@ func (k *KnativeAPIResourceSet) GetServiceOptions(inputPath string, plan plantyp
 // Translate translates plan services to IR
 func (k *KnativeAPIResourceSet) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
 	ir := irtypes.NewIR(p)
-	ir.Services = make(map[string]irtypes.Service)
+	ir.Services = map[string]irtypes.Service{}
 	codecs := serializer.NewCodecFactory(k.GetScheme())
 
 	for _, service := range services {

@@ -245,7 +245,7 @@ func (c *ClusterCollector) getKindsForGroups(api *cgdiscovery.DiscoveryClient) (
 		return emptyMap
 	}()
 
-	mapKind := make(map[string][]schema.GroupVersion)
+	mapKind := map[string][]schema.GroupVersion{}
 
 	_, apiResourceList, err := api.ServerGroupsAndResources()
 	if err != nil {
@@ -328,7 +328,7 @@ func (c *ClusterCollector) collectUsingAPI() (map[string][]string, error) {
 
 	c.sortGroupVersionByPreferrence(gvList, &mapKind)
 
-	APIKindVersionMap := make(map[string][]string)
+	APIKindVersionMap := map[string][]string{}
 
 	for kind, gvList := range mapKind {
 		gvStrList := make([]string, len(gvList))
@@ -457,7 +457,7 @@ func (c *ClusterCollector) sortVersionList(vList *[]string) {
 }
 
 func (c *ClusterCollector) clusterByGroupsAndSortVersions(gvList []string) []string {
-	gvMap := make(map[string][]string)
+	gvMap := map[string][]string{}
 	for _, gvStr := range gvList {
 		gvObj, err := schema.ParseGroupVersion(gvStr)
 		if err != nil {
@@ -498,7 +498,7 @@ func (c *ClusterCollector) collectUsingCLI() (map[string][]string, error) {
 	}
 	log.Debugf("Got kind information for cluster")
 	nameList := strings.Split(string(outputStr), "\n")
-	mapKind := make(map[string][]schema.GroupVersion)
+	mapKind := map[string][]schema.GroupVersion{}
 	for _, name := range nameList {
 		tmpArray := strings.Split(name, ".")
 		if len(tmpArray) > 0 {
@@ -531,7 +531,7 @@ func (c *ClusterCollector) collectUsingCLI() (map[string][]string, error) {
 		}
 	}
 
-	apiMd := make(map[string][]string)
+	apiMd := map[string][]string{}
 
 	for kind, availableGroupList := range mapKind {
 		if len(availableGroupList) == 1 {

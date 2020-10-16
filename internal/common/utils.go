@@ -355,7 +355,7 @@ func GetClosestMatchingString(options []string, searchstring string) string {
 
 // MergeStringMaps merges two string maps
 func MergeStringMaps(map1 map[string]string, map2 map[string]string) map[string]string {
-	mergedmap := make(map[string]string)
+	mergedmap := map[string]string{}
 	for k, v := range map1 {
 		mergedmap[k] = v
 	}

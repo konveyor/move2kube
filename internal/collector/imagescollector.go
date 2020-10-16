@@ -102,7 +102,7 @@ func getDockerInspectResult(imageName string) ([]byte, error) {
 
 func getImageInfo(data []byte) collecttypes.ImageInfo {
 	imageInfo := collecttypes.NewImageInfo()
-	imgLayerInfo := make([]sourcetypes.DockerImage, 0)
+	imgLayerInfo := []sourcetypes.DockerImage{}
 	err := json.Unmarshal(data, &imgLayerInfo)
 	if err != nil {
 		log.Errorf("Unable to unmarshal image info : %s", err)

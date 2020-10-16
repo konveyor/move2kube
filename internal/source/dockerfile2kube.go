@@ -44,7 +44,7 @@ func (c DockerfileTranslator) GetTranslatorType() plantypes.TranslationTypeValue
 
 // GetServiceOptions - output a plan based on the input directory contents
 func (c DockerfileTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
-	services := make([]plantypes.Service, 0)
+	services := []plantypes.Service{}
 	sdfs, err := getDockerfileServices(inputPath, plan.Name)
 	if err != nil {
 		log.Errorf("Unable to get Dockerfiles : %s", err)
@@ -178,7 +178,7 @@ func getDockerfileServices(inputpath string, projName string) (sDockerfiles map[
 		log.Warnf("Error in walking through files due to : %s", err)
 	}
 	log.Debugf("No of dockerfiles identified : %d", len(files))
-	repoDockerfiles := make(map[string][]dockerfile)
+	repoDockerfiles := map[string][]dockerfile{}
 	for _, f := range files {
 		repo, context := common.GetGitRepoName(filepath.Dir(f))
 		if repo == "" {
@@ -192,7 +192,7 @@ func getDockerfileServices(inputpath string, projName string) (sDockerfiles map[
 			repoDockerfiles[repo] = append(dfs, df)
 		}
 	}
-	sDockerfiles = make(map[string][]dockerfile)
+	sDockerfiles = map[string][]dockerfile{}
 	for repo, dfs := range repoDockerfiles {
 		if len(dfs) == 1 {
 			sDockerfiles[repo] = []dockerfile{dfs[0]}
@@ -221,7 +221,7 @@ type dockerfile struct {
 }
 
 func bucketDFs(dfs []dockerfile) map[string][]dockerfile {
-	nDockerfiles := make(map[string][]dockerfile)
+	nDockerfiles := map[string][]dockerfile{}
 	commonPath := findCommonPrefix(dfs)
 	if commonPath != "." {
 		dfs = trimPrefix(dfs, commonPath)
@@ -241,7 +241,7 @@ func bucketDFs(dfs []dockerfile) map[string][]dockerfile {
 			nDockerfiles[prefix] = append(pdfs, df)
 		}
 	}
-	sDockerfiles := make(map[string][]dockerfile)
+	sDockerfiles := map[string][]dockerfile{}
 	for p, dfiles := range nDockerfiles {
 		if len(dfiles) == 1 {
 			sDockerfiles[p] = []dockerfile{dfiles[0]}

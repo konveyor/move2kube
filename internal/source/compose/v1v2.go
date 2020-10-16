@@ -119,7 +119,7 @@ func (c *V1V2Loader) ConvertToIR(composefilepath string, serviceName string) (ir
 
 func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project, serviceName string) (ir irtypes.IR, err error) {
 	ir = irtypes.IR{
-		Services: make(map[string]irtypes.Service),
+		Services: map[string]irtypes.Service{},
 	}
 
 	for name, composeServiceConfig := range composeObject.ServiceConfigs.All() {

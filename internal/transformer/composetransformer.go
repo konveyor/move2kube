@@ -53,13 +53,13 @@ func (kt *ComposeTransformer) Transform(ir irtypes.IR) error {
 	kt.Containers = ir.Containers
 	kt.Compose = composeConfig{
 		Version:  "3.5",
-		Services: make(map[string]composetypes.ServiceConfig),
+		Services: map[string]composetypes.ServiceConfig{},
 	}
 
 	var exposedPort uint32 = 8080
 	for _, service := range ir.Services {
 		for _, container := range service.Containers {
-			ports := make([]composetypes.ServicePortConfig, 0)
+			ports := []composetypes.ServicePortConfig{}
 			for _, port := range container.Ports {
 				ports = append(ports, composetypes.ServicePortConfig{
 					Target:    uint32(port.ContainerPort),

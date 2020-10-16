@@ -120,7 +120,7 @@ test-style: ${GOLANGCILINT} ${GOLINT}
 # -- CI --
 
 .PHONY: ci
-ci: test build test-style ## Run CI routine
+ci: clean build test test-style ## Run CI routine
 
 # -- Release --
 

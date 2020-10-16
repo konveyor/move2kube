@@ -43,7 +43,7 @@ type runcProvider struct {
 }
 
 func (r *runcProvider) getAllBuildpacks(builders []string) (map[string][]string, error) { //[Containerization target option value] buildpacks
-	buildpacks := make(map[string][]string)
+	buildpacks := map[string][]string{}
 	if !r.isAvailable() {
 		return buildpacks, errors.New("Runc not supported in this instance")
 	}

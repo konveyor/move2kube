@@ -38,10 +38,10 @@ func (it imageNameParameterizer) parameterize(ir *irtypes.IR) error {
 		}
 	}
 
-	ir.Values.Services = make(map[string]outputtypes.Service)
+	ir.Values.Services = map[string]outputtypes.Service{}
 	for _, service := range ir.Services {
 		ir.Values.Services[service.Name] = outputtypes.Service{
-			Containers: make(map[string]outputtypes.Container),
+			Containers: map[string]outputtypes.Container{},
 		}
 		for ci, serviceContainer := range service.Containers {
 			nImageName := ""
