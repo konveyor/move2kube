@@ -120,11 +120,14 @@ func TestGetClusters(t *testing.T) {
 		p := plantypes.NewPlan()
 		loader := metadata.ClusterMDLoader{}
 		cmMap := loader.GetClusters(p)
-		if _, ok := cmMap["Kubernetes"]; !ok {
+		if _, ok := cmMap["IBM-IKS"]; !ok {
 			t.Fatal("Missing builtin kubernetes cluster metadata. The returned cluster info:", cmMap)
 		}
-		if _, ok := cmMap["Openshift"]; !ok {
+		if _, ok := cmMap["IBM-Openshift"]; !ok {
 			t.Fatal("Missing builtin openshift cluster metadata. The returned cluster info:", cmMap)
+		}
+		if _, ok := cmMap["AWS-EKS"]; !ok {
+			t.Fatal("Missing builtin AWS-EKS cluster metadata. The returned cluster info:", cmMap)
 		}
 		for k, v := range cmMap {
 			if v.Kind != string(collecttypes.ClusterMetadataKind) {
@@ -142,11 +145,14 @@ func TestGetClusters(t *testing.T) {
 		p.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType] = []string{"testdata/validfiles/test1.yaml", "testdata/validfiles/test2.yml"}
 		loader := metadata.ClusterMDLoader{}
 		cmMap := loader.GetClusters(p)
-		if _, ok := cmMap["Kubernetes"]; !ok {
-			t.Fatal("Missing builtin kubernetes cluster metadata. The returned cluster info:", cmMap)
+		if _, ok := cmMap["IBM-IKS"]; !ok {
+			t.Fatal("Missing builtin IBM-IKS cluster metadata. The returned cluster info:", cmMap)
 		}
-		if _, ok := cmMap["Openshift"]; !ok {
-			t.Fatal("Missing builtin openshift cluster metadata. The returned cluster info:", cmMap)
+		if _, ok := cmMap["IBM-Openshift"]; !ok {
+			t.Fatal("Missing builtin IBM-Openshift cluster metadata. The returned cluster info:", cmMap)
+		}
+		if _, ok := cmMap["AWS-EKS"]; !ok {
+			t.Fatal("Missing builtin AWS-EKS cluster metadata. The returned cluster info:", cmMap)
 		}
 		for k, v := range cmMap {
 			if v.Kind != string(collecttypes.ClusterMetadataKind) {
@@ -164,11 +170,14 @@ func TestGetClusters(t *testing.T) {
 		p.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType] = []string{"testdata/validfilesnostorageclasses/test1.yaml", "testdata/validfilesnostorageclasses/test2.yml"}
 		loader := metadata.ClusterMDLoader{}
 		cmMap := loader.GetClusters(p)
-		if _, ok := cmMap["Kubernetes"]; !ok {
-			t.Fatal("Missing builtin kubernetes cluster metadata. The returned cluster info:", cmMap)
+		if _, ok := cmMap["IBM-IKS"]; !ok {
+			t.Fatal("Missing builtin IBM-IKS cluster metadata. The returned cluster info:", cmMap)
 		}
-		if _, ok := cmMap["Openshift"]; !ok {
-			t.Fatal("Missing builtin openshift cluster metadata. The returned cluster info:", cmMap)
+		if _, ok := cmMap["IBM-Openshift"]; !ok {
+			t.Fatal("Missing builtin IBM-Openshift cluster metadata. The returned cluster info:", cmMap)
+		}
+		if _, ok := cmMap["AWS-EKS"]; !ok {
+			t.Fatal("Missing builtin AWS-EKS cluster metadata. The returned cluster info:", cmMap)
 		}
 		for k, v := range cmMap {
 			if v.Kind != string(collecttypes.ClusterMetadataKind) {
