@@ -89,7 +89,7 @@ func (ic *storageCustomizer) customize(ir *irtypes.IR) error {
 }
 
 func (ic *storageCustomizer) convertHostPathToPVC() {
-	hostPathsVisited := make(map[string]string)
+	hostPathsVisited := map[string]string{}
 	for _, service := range ic.ir.Services {
 		log.Debugf("Service %s has %d volumes", service.Name, len(service.Volumes))
 		for vi, v := range service.Volumes {
@@ -194,7 +194,7 @@ func (ic storageCustomizer) selectStorageClass(storageClasses []string, claimNam
 }
 
 func (ic *storageCustomizer) getPVCs() map[string][]string {
-	pvcmap := make(map[string][]string)
+	pvcmap := map[string][]string{}
 	for _, s := range ic.ir.Storages {
 		if s.StorageType == irtypes.PVCKind {
 			svcList := []string{}

@@ -61,7 +61,7 @@ func (ingresso ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 
 		// Set the line in annotations
 		if tempService.Annotations == nil {
-			tempService.Annotations = make(map[string]string)
+			tempService.Annotations = map[string]string{}
 		}
 		tempService.Annotations[types.GroupName+"/expose"] = "true"
 		// Also set the special field

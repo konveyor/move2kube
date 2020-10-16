@@ -48,7 +48,7 @@ func (c CfManifestTranslator) GetTranslatorType() plantypes.TranslationTypeValue
 
 // GetServiceOptions - output a plan based on the input directory contents
 func (c CfManifestTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
-	services := make([]plantypes.Service, 0)
+	services := []plantypes.Service{}
 	allcontainerizers := new(containerizer.Containerizers)
 	allcontainerizers.InitContainerizers(inputPath)
 	containerizers := collecttypes.CfContainerizers{}

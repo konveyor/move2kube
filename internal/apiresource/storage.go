@@ -98,7 +98,7 @@ func (s *Storage) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 func (s *Storage) createConfigMap(st internaltypes.Storage) *corev1.ConfigMap {
 	cmName := common.MakeFileNameCompliant(st.Name)
 
-	data := make(map[string]string)
+	data := map[string]string{}
 	for k, v := range st.Content {
 		data[k] = string(v)
 	}
@@ -272,7 +272,7 @@ func convertVolumeBySupportedKind(volume corev1.Volume, cluster collecttypes.Clu
 }
 
 func stringMapToByteMap(sm map[string]string) map[string][]byte {
-	bm := make(map[string][]byte)
+	bm := map[string][]byte{}
 
 	for k, v := range sm {
 		bm[k] = []byte(v)
@@ -282,7 +282,7 @@ func stringMapToByteMap(sm map[string]string) map[string][]byte {
 }
 
 func byteMapToStringMap(bm map[string][]byte) map[string]string {
-	sm := make(map[string]string)
+	sm := map[string]string{}
 
 	for k, v := range bm {
 		sm[k] = string(v)

@@ -123,7 +123,7 @@ func (c *V3Loader) ConvertToIR(composefilepath string, serviceName string) (irty
 
 func (c *V3Loader) convertToIR(filedir string, composeObject types.Config) (irtypes.IR, error) {
 	ir := irtypes.IR{
-		Services: make(map[string]irtypes.Service),
+		Services: map[string]irtypes.Service{},
 	}
 
 	//Secret volumes translated to IR
@@ -405,7 +405,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config) (irty
 }
 
 func (c *V3Loader) buildEnvironment() map[string]string {
-	result := make(map[string]string)
+	result := map[string]string{}
 	//TODO: Check if any variable is mandatory and fill it with dummy value
 	if !common.IgnoreEnvironment {
 		env := os.Environ()
@@ -586,7 +586,7 @@ func (c *V3Loader) getAllDirContentAsMap(directoryPath string) (map[string][]byt
 	if err != nil {
 		return nil, err
 	}
-	dataMap := make(map[string][]byte)
+	dataMap := map[string][]byte{}
 	count := 0
 	for _, file := range fileList {
 		if file.IsDir() {

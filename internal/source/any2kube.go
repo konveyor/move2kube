@@ -43,7 +43,7 @@ func (c Any2KubeTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
 
 // GetServiceOptions - output a plan based on the input directory contents
 func (c Any2KubeTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
-	services := make([]plantypes.Service, 0)
+	services := []plantypes.Service{}
 	containerizers := new(containerizer.Containerizers)
 	containerizers.InitContainerizers(inputPath)
 	preContainerizedSourcePaths := []string{}

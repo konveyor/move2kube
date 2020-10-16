@@ -38,14 +38,14 @@ func (c ComposeTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
 
 // GetServiceOptions returns the service options for inputPath
 func (c ComposeTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
-	servicesMap := make(map[string]plantypes.Service)
+	servicesMap := map[string]plantypes.Service{}
 
 	//Load images
 	yamlpaths, err := common.GetFilesByExt(inputPath, []string{".yaml", ".yml"})
 	if err != nil {
 		log.Warnf("Unable to fetch yaml files and recognize compose yamls : %s", err)
 	}
-	imagemetadatapaths := make(map[string]string)
+	imagemetadatapaths := map[string]string{}
 	for _, path := range yamlpaths {
 		im := new(collecttypes.ImageInfo)
 		if common.ReadYaml(path, &im) == nil && im.Kind == string(collecttypes.ImageMetadataKind) {

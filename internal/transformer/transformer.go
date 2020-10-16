@@ -115,7 +115,7 @@ func writeContainers(outpath string, containers []irtypes.Container, registryURL
 		}
 	}
 	if len(buildscripts) > 0 {
-		buildScriptMap := make(map[string]string)
+		buildScriptMap := map[string]string{}
 		for _, value := range buildscripts {
 			buildScriptDir, buildScriptFile := filepath.Split(value)
 			buildScriptMap[buildScriptFile] = buildScriptDir

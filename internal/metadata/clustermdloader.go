@@ -64,7 +64,7 @@ func (i ClusterMDLoader) LoadToIR(p plantypes.Plan, ir *irtypes.IR) error {
 
 // GetClusters loads list of clusters
 func (i ClusterMDLoader) GetClusters(p plantypes.Plan) map[string]collecttypes.ClusterMetadata {
-	clusters := make(map[string]collecttypes.ClusterMetadata)
+	clusters := map[string]collecttypes.ClusterMetadata{}
 	for fname, clustermd := range clustersmetadata.Constants {
 		cm := collecttypes.ClusterMetadata{}
 		err := yaml.Unmarshal([]byte(clustermd), &cm)

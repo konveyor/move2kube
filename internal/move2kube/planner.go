@@ -90,7 +90,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	if err != nil {
 		log.Fatalf("Unable to get answer : %s", err)
 	}
-	planservices := make(map[string][]plantypes.Service)
+	planservices := map[string][]plantypes.Service{}
 	for _, s := range selectedServices {
 		planservices[s] = p.Spec.Inputs.Services[s]
 	}
@@ -120,7 +120,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	if len(selectedConTypes) == 0 {
 		log.Fatalf("No containerization technique was selected; Terminating.")
 	}
-	services := make(map[string][]plantypes.Service)
+	services := map[string][]plantypes.Service{}
 	for sn, s := range p.Spec.Inputs.Services {
 		sConTypes := []string{}
 		for _, so := range s {

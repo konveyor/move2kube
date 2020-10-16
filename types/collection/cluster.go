@@ -65,7 +65,7 @@ func (c *ClusterMetadata) Merge(newc ClusterMetadata) bool {
 		c.Spec.StorageClasses = []string{"default"}
 	}
 	//TODO: Do Intelligent merge of version
-	apiversionkindmap := make(map[string][]string)
+	apiversionkindmap := map[string][]string{}
 	for kindname, gvList := range newc.Spec.APIKindVersionMap {
 		if _, ok := c.Spec.APIKindVersionMap[kindname]; ok {
 			apiversionkindmap[kindname] = gvList
@@ -86,7 +86,7 @@ func (c *ClusterMetadataSpec) Merge(newc ClusterMetadataSpec) bool {
 	}
 	c.StorageClasses = newslice
 	//TODO: Do Intelligent merge of version
-	apiversionkindmap := make(map[string][]string)
+	apiversionkindmap := map[string][]string{}
 	for kindname, gvList := range newc.APIKindVersionMap {
 		if _, ok := c.APIKindVersionMap[kindname]; ok {
 			apiversionkindmap[kindname] = gvList
@@ -122,7 +122,7 @@ func NewClusterMetadata(contextName string) ClusterMetadata {
 		},
 		Spec: ClusterMetadataSpec{
 			StorageClasses:    []string{},
-			APIKindVersionMap: make(map[string][]string),
+			APIKindVersionMap: map[string][]string{},
 		},
 	}
 	return clusterMetadata

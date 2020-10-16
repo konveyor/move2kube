@@ -36,7 +36,7 @@ var (
 )
 
 func (r *containerRuntimeProvider) getAllBuildpacks(builders []string) (map[string][]string, error) { //[Containerization target option value] buildpacks
-	buildpacks := make(map[string][]string)
+	buildpacks := map[string][]string{}
 	containerRuntime, available := r.getContainerRuntime()
 	if !available {
 		return buildpacks, errors.New("Container runtime not supported in this instance")

@@ -109,7 +109,7 @@ func (k *K8sAPIResourceSet) GetServiceOptions(inputPath string, plan plantypes.P
 // Translate tanslates plan services to IR
 func (k *K8sAPIResourceSet) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
 	ir := irtypes.NewIR(p)
-	ir.Services = make(map[string]irtypes.Service)
+	ir.Services = map[string]irtypes.Service{}
 	codecs := serializer.NewCodecFactory(k.GetScheme())
 
 	for _, service := range services {

@@ -451,8 +451,8 @@ func NewPlan() Plan {
 		},
 		Spec: PlanSpec{
 			Inputs: Inputs{
-				Services:            make(map[string][]Service),
-				TargetInfoArtifacts: make(map[TargetInfoArtifactTypeValue][]string),
+				Services:            map[string][]Service{},
+				TargetInfoArtifacts: map[TargetInfoArtifactTypeValue][]string{},
 			},
 			Outputs: Outputs{
 				Kubernetes: KubernetesOutput{
@@ -472,10 +472,10 @@ func NewService(servicename string, translationtype TranslationTypeValue) Servic
 	service.ServiceName = servicename
 	service.Image = servicename + ":latest"
 	service.TranslationType = translationtype
-	service.SourceTypes = make([]SourceTypeValue, 0)
+	service.SourceTypes = []SourceTypeValue{}
 	service.ContainerBuildType = ReuseContainerBuildTypeValue
-	service.BuildArtifacts = make(map[BuildArtifactTypeValue][]string)
-	service.SourceArtifacts = make(map[SourceArtifactTypeValue][]string)
+	service.BuildArtifacts = map[BuildArtifactTypeValue][]string{}
+	service.SourceArtifacts = map[SourceArtifactTypeValue][]string{}
 	service.UpdateDeployPipeline = false
 	service.UpdateContainerBuildPipeline = false
 
