@@ -28,6 +28,9 @@ UI : Checkout `https://github.com/konveyor/move2kube-ui`
 Usage instructions can be found [here](./USAGE.md)  
 Some demo usage flows can be found in [here](https://github.com/konveyor/move2kube-demos)
 
+## Prerequisites
+* Docker <a href="https://docs.docker.com/desktop/">(MAC/Windows</a><a href="https://docs.docker.com/engine/install/ubuntu/">/Ubuntu)</a>
+
 ## Setup
 
 1. Obtain a recent version of `golang`. Known to work with `1.15`.
