@@ -45,8 +45,11 @@ askBeforeProceeding() {
     echo 'Move2Kube dependency installation script.'
     echo 'The following dependencies will be installed to '"$MOVE2KUBE_DEP_INSTALL_PATH"':'
     echo 'docker (only on Linux), pack, kubectl, operator-sdk'
-    echo "$MOVE2KUBE_DEP_INSTALL_PATH"' will be added to the $PATH'
     read -r -p 'Proceed? [y/N]:' oktoproceed
+}
+
+askIfWeShouldModifyBashProfile() {
+    read -r -p 'Should we add a line to your ~/.bash_profile that will append '"$MOVE2KUBE_DEP_INSTALL_PATH"' to the $PATH? [y/N]:' oktoaddtobashprofile
 }
 
 # fail_trap is executed if an error occurs.
@@ -124,6 +127,19 @@ if [ "${HAS_OPERATOR_SDK}" != 'true' ] || [ "$OPERATOR_SDK_V1" != 'true' ]; then
     echo 'Done.'
 fi
 
-echo 'PATH="$PATH:'"$MOVE2KUBE_DEP_INSTALL_PATH"'"' >>~/.bash_profile
 echo 'Installed the dependencies to '"$MOVE2KUBE_DEP_INSTALL_PATH"
-echo 'We have added a line to your '~/.bash_profile' to put '"$MOVE2KUBE_DEP_INSTALL_PATH"' on your $PATH. Either restart the shell or source ~/.bash_profile to see the changes.'
+
+# Check if $MOVE2KUBE_DEP_INSTALL_PATH is already in the $PATH
+if [[ :"$PATH": == *:"$MOVE2KUBE_DEP_INSTALL_PATH":* ]]; then
+    echo "$MOVE2KUBE_DEP_INSTALL_PATH"' is already in $PATH'
+else
+    askIfWeShouldModifyBashProfile
+    if [ "$oktoaddtobashprofile" != 'y' ]; then
+        echo 'Failed to get confirmation. Not modifying ~/.bash_profile'
+    else
+        echo 'PATH="$PATH:'"$MOVE2KUBE_DEP_INSTALL_PATH"'"' >>~/.bash_profile
+        echo 'We have added a line to your ~/.bash_profile to put '"$MOVE2KUBE_DEP_INSTALL_PATH"' on your $PATH. Either restart the shell or source ~/.bash_profile to see the changes.'
+    fi
+fi
+
+echo 'Finished!!'
