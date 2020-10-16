@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 
+	common "github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/metadata"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -116,10 +117,28 @@ func TestLoadToIR(t *testing.T) {
 func TestGetClusters(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
+	t.Run("check default cluster type is valid", func(t *testing.T) {
+		p := plantypes.NewPlan()
+		loader := metadata.ClusterMDLoader{}
+		cmMap := loader.GetClusters(p)
+		if _, ok := cmMap[common.DefaultClusterType]; !ok {
+			t.Fatal("Missing builtin "+common.DefaultClusterType+" cluster metadata. The returned cluster info:", cmMap)
+		}
+	})
+
 	t.Run("get clusters from an empty plan", func(t *testing.T) {
 		p := plantypes.NewPlan()
 		loader := metadata.ClusterMDLoader{}
 		cmMap := loader.GetClusters(p)
+		if _, ok := cmMap[common.DefaultClusterType]; !ok {
+			t.Fatal("Missing builtin "+common.DefaultClusterType+" cluster metadata. The returned cluster info:", cmMap)
+		}
+		if _, ok := cmMap["Kubernetes"]; !ok {
+			t.Fatal("Missing builtin kubernetes cluster metadata. The returned cluster info:", cmMap)
+		}
+		if _, ok := cmMap["Openshift"]; !ok {
+			t.Fatal("Missing builtin openshift cluster metadata. The returned cluster info:", cmMap)
+		}
 		if _, ok := cmMap["IBM-IKS"]; !ok {
 			t.Fatal("Missing builtin kubernetes cluster metadata. The returned cluster info:", cmMap)
 		}
