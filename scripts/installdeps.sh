@@ -49,13 +49,6 @@ askBeforeProceeding() {
     read -r -p 'Proceed? [y/N]:' oktoproceed
 }
 
-# cleanup temporary files.
-cleanup() {
-    if [[ -d "${MOVE2KUBE_DEP_INSTALL_PATH:-}" ]]; then
-        rm -rf "$MOVE2KUBE_DEP_INSTALL_PATH"
-    fi
-}
-
 # fail_trap is executed if an error occurs.
 fail_trap() {
     result=$?
@@ -63,7 +56,6 @@ fail_trap() {
         echo "Failed to install the dependencies."
         echo -e "\tFor support, go to https://github.com/konveyor/move2kube"
     fi
-    cleanup
     exit $result
 }
 
