@@ -70,6 +70,7 @@ build: get $(BINDIR)/$(BINNAME) ## Build go code
 
 $(BINDIR)/$(BINNAME): $(SRC)
 	@go build -tags excludecodegen,excludedist -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/${BINNAME}
+	@mkdir -p $(GOPATH)/bin/
 	@cp $(BINDIR)/$(BINNAME) $(GOPATH)/bin/
 
 .PHONY: get
