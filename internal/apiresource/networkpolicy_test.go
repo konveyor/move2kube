@@ -38,10 +38,6 @@ func TestGetSupportedKinds(t *testing.T) {
 	}
 }
 
-// if err := common.WriteYaml("testdata/hmm.yaml", actual); err != nil {
-// 	t.Fatal("failed to write the actual data to file. Error:", err)
-// }
-
 func TestCreateNewResources(t *testing.T) {
 	t.Run("empty IR and empty supported kinds", func(t *testing.T) {
 		// Setup
@@ -137,14 +133,15 @@ func TestCreateNewResources(t *testing.T) {
 			svc2Name: irtypes.Service{Name: svc2Name, Networks: []string{net2}},
 		}
 		supKinds := []string{"NetworkPolicy"}
-		wantNetPol := [](*networkingv1.NetworkPolicy){}
+
 		testDataPath := "testdata/networkpolicy/create-new-resources.yaml"
-		if err := common.ReadYaml(testDataPath, &wantNetPol); err != nil {
+		wantNetPols := []networkingv1.NetworkPolicy{}
+		if err := common.ReadYaml(testDataPath, &wantNetPols); err != nil {
 			t.Fatal("Failed to read the test data. Error:", err)
 		}
 		want := []runtime.Object{}
-		for _, obj := range wantNetPol {
-			want = append(want, obj)
+		for i := range wantNetPols {
+			want = append(want, &wantNetPols[i])
 		}
 		// Test
 		actual := netPolicy.CreateNewResources(ir, supKinds)
