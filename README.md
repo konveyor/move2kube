@@ -29,7 +29,8 @@ Usage instructions can be found [here](./USAGE.md)
 Some demo usage flows can be found in [here](https://github.com/konveyor/move2kube-demos)
 
 ## Prerequisites
-* Docker <a href="https://docs.docker.com/desktop/">(MAC/Windows</a><a href="https://docs.docker.com/engine/install/ubuntu/">/Ubuntu)</a>
+
+* Docker [(MAC](https://docs.docker.com/desktop/)[/Ubuntu](https://docs.docker.com/engine/install/ubuntu/)[/Windows WSL)](https://docs.docker.com/docker-for-windows/wsl/)
 
 ## Setup
 
@@ -69,7 +70,7 @@ Some demo usage flows can be found in [here](https://github.com/konveyor/move2ku
   * Operator
   * Docker compose
 
-
 ## Discussion
-- Check out the [document guides](./docs) to extend Move2Kube.
-- To discuss with the maintainers, reach out in [slack](https://cloud-native.slack.com/archives/C01AJ5WCXGF) in [cloud-native](https://slack.cncf.io/) workspace.
+
+* Check out the [document guides](./docs) to extend Move2Kube.
+* To discuss with the maintainers, reach out in [slack](https://cloud-native.slack.com/archives/C01AJ5WCXGF) in [cloud-native](https://slack.cncf.io/) workspace.
