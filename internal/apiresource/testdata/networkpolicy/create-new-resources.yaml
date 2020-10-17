@@ -1,0 +1,28 @@
+- typemeta:
+    kind: NetworkPolicy
+    apiversion: networking.k8s.io/v1
+  objectmeta:
+    name: net1
+  spec:
+    podselector:
+      matchlabels:
+        move2kube.konveyor.io/network/net1: "true"
+    ingress:
+      - from:
+          - podselector:
+              matchlabels:
+                move2kube.konveyor.io/network/net1: "true"
+- typemeta:
+    kind: NetworkPolicy
+    apiversion: networking.k8s.io/v1
+  objectmeta:
+    name: net2
+  spec:
+    podselector:
+      matchlabels:
+        move2kube.konveyor.io/network/net2: "true"
+    ingress:
+      - from:
+          - podselector:
+              matchlabels:
+                move2kube.konveyor.io/network/net2: "true"

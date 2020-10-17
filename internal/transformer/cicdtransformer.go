@@ -35,7 +35,7 @@ type CICDTransformer struct {
 
 // Transform creates tekton resources needed for CI/CD
 func (cicd *CICDTransformer) Transform(ir irtypes.IR) error {
-	cicd.cachedObjs = new(apiresourceset.TektonAPIResourceSet).CreateResources(ir)
+	cicd.cachedObjs = new(apiresourceset.TektonAPIResourceSet).CreateAPIResources(ir)
 	return nil
 }
 

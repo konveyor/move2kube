@@ -59,9 +59,9 @@ func Translate(p plantypes.Plan) (irtypes.IR, error) {
 		log.Debugf("Containers translated : %d", len(currir.Containers))
 		if err != nil {
 			log.Warnf("[%T] Failed : %s", l, err.Error())
-		} else {
-			log.Infof("[%T] Done", l)
+			continue
 		}
+		log.Infof("[%T] Done", l)
 		ir.Merge(currir)
 		log.Debugf("Total Services after translation : %d", len(ir.Services))
 		log.Debugf("Total Containers after translation : %d", len(ir.Containers))

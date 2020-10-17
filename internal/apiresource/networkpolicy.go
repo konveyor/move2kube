@@ -47,20 +47,21 @@ func (d *NetworkPolicy) GetSupportedKinds() []string {
 // CreateNewResources converts ir to runtime objects
 func (d *NetworkPolicy) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
+	if !common.IsStringPresent(supportedKinds, networkPolicyKind) {
+		log.Errorf("Could not find a valid resource type in cluster to create a NetworkPolicy")
+		return nil
+	}
 
 	for _, service := range ir.Services {
 		// Create services depending on whether the service needs to be externally exposed
-		if common.IsStringPresent(supportedKinds, networkPolicyKind) {
-			for _, net := range service.Networks {
-				log.Debugf("Network %s is detected at Source, shall be converted to equivalent NetworkPolicy at Destination", net)
-				obj, err := d.createNetworkPolicy(net)
-				if err != nil {
-					log.Warnf("Unable to create Network Policy for network %v for service %s : %s", net, service.Name, err)
-				}
-				objs = append(objs, obj)
+		for _, net := range service.Networks {
+			log.Debugf("Network %s is detected at Source, shall be converted to equivalent NetworkPolicy at Destination", net)
+			obj, err := d.createNetworkPolicy(net)
+			if err != nil {
+				log.Warnf("Unable to create Network Policy for network %v for service %s : %s", net, service.Name, err)
+				continue
 			}
-		} else {
-			log.Errorf("Could not find a valid resource type in cluster to create a NetworkPolicy")
+			objs = append(objs, obj)
 		}
 	}
 	return objs

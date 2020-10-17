@@ -73,8 +73,8 @@ const (
 type TektonAPIResourceSet struct {
 }
 
-// CreateResources creates CI/CD resources from the IR.
-func (*TektonAPIResourceSet) CreateResources(ir irtypes.IR) []runtime.Object {
+// CreateAPIResources creates CI/CD resources from the IR.
+func (*TektonAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Object {
 	projectName := ir.Name
 	// Prefix the project name and make the name a valid k8s name.
 	p := func(name string) string {
