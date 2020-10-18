@@ -1,4 +1,4 @@
-apiVersion: move2kube.io/v1alpha1
+apiVersion: move2kube.konveyor.io
 kind: ClusterMetadata
 metadata:
   name: Azure-AKS
