@@ -117,9 +117,11 @@ func (s *Storage) createConfigMap(st internaltypes.Storage) *corev1.ConfigMap {
 }
 
 func (s *Storage) createSecret(st internaltypes.Storage) *corev1.Secret {
-	secretName := common.MakeFileNameCompliant(st.Name)
+	secretName := common.MakeFileNameCompliant(st.Name) // TODO: probably remove this. Names should be manipulated at a higher level.
 	secType := corev1.SecretTypeOpaque
-	if st.StorageType == internaltypes.PullSecretKind {
+	if st.SecretType != "" {
+		secType = st.SecretType
+	} else if st.StorageType == internaltypes.PullSecretKind {
 		secType = corev1.SecretTypeDockerConfigJson
 	}
 	secret := &corev1.Secret{
@@ -128,10 +130,12 @@ func (s *Storage) createSecret(st internaltypes.Storage) *corev1.Secret {
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: secretName,
+			Name:        secretName,
+			Annotations: st.Annotations,
 		},
-		Type: secType,
-		Data: st.Content,
+		Type:       secType,
+		StringData: st.StringData,
+		Data:       st.Content,
 	}
 	return secret
 }

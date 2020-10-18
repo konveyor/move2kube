@@ -76,6 +76,12 @@ func (d *Service) CreateNewResources(ir irtypes.IR, supportedKinds []string) []r
 				ingressEnabled = true
 			}
 		}
+		if service.OnlyIngress {
+			if !exposeobjectcreated {
+				log.Errorf("Failed to create the ingress for service %q . Probable cause: The cluster doesn't support ingress resources.", service.Name)
+			}
+			continue
+		}
 		if common.IsStringPresent(supportedKinds, serviceKind) {
 			if exposeobjectcreated || !service.IsServiceExposed() {
 				//Create clusterip service
@@ -397,14 +403,28 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 		if !service.IsServiceExposed() {
 			continue
 		}
+		servicePort := intstr.IntOrString{Type: intstr.Int, IntVal: defaultServicePort}
+		if len(service.Containers) > 0 {
+			for _, container := range service.Containers {
+				if len(container.Ports) == 0 {
+					continue
+				}
+				port := container.Ports[0]
+				if port.Name != "" {
+					servicePort.Type = intstr.String
+					servicePort.StrVal = port.Name
+				} else {
+					servicePort.IntVal = port.ContainerPort
+				}
+				break
+			}
+		}
 		path := networkingv1beta1.HTTPIngressPath{
 			Path:     service.ServiceRelPath,
 			PathType: &pathType,
 			Backend: networkingv1beta1.IngressBackend{
 				ServiceName: service.Name,
-				ServicePort: intstr.IntOrString{
-					IntVal: defaultServicePort,
-				},
+				ServicePort: servicePort,
 			},
 		}
 		paths = append(paths, path)
@@ -422,28 +442,7 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 		},
 	}
 
-	// If TLS enabled, then add the TLS secret name and the host to the ingress.
-	// Otherwise, skip the TLS section.
-	if ir.IsIngressTLSEnabled() {
-		tls := []networkingv1beta1.IngressTLS{{Hosts: []string{ir.TargetClusterSpec.Host}, SecretName: ir.IngressTLSName}}
-		return &networkingv1beta1.Ingress{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       ingressKind,
-				APIVersion: networkingv1beta1.SchemeGroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        ir.Name,
-				Labels:      getServiceLabels(ir.Name),
-				Annotations: annotations,
-			},
-			Spec: networkingv1beta1.IngressSpec{
-				TLS:   tls,
-				Rules: rules,
-			},
-		}
-	}
-
-	return &networkingv1beta1.Ingress{
+	ingress := networkingv1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       ingressKind,
 			APIVersion: networkingv1beta1.SchemeGroupVersion.String(),
@@ -453,10 +452,16 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 			Labels:      getServiceLabels(ir.Name),
 			Annotations: annotations,
 		},
-		Spec: networkingv1beta1.IngressSpec{
-			Rules: rules,
-		},
+		Spec: networkingv1beta1.IngressSpec{Rules: rules},
 	}
+	// If TLS enabled, then add the TLS secret name and the host to the ingress.
+	// Otherwise, skip the TLS section.
+	if ir.IsIngressTLSEnabled() {
+		tls := []networkingv1beta1.IngressTLS{{Hosts: []string{ir.TargetClusterSpec.Host}, SecretName: ir.IngressTLSName}}
+		ingress.Spec.TLS = tls
+	}
+
+	return &ingress
 }
 
 // createService creates a service
