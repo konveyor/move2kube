@@ -19,24 +19,26 @@ package types
 import (
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/types/tekton"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	outputtypes "github.com/konveyor/move2kube/types/output"
 	"github.com/konveyor/move2kube/types/plan"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // IR is the intermediate representation
 type IR struct {
-	Name       string
-	Services   map[string]Service
-	Storages   []Storage
-	Containers []Container
+	Name            string
+	Services        map[string]Service
+	Storages        []Storage
+	Containers      []Container
+	Roles           []Role
+	RoleBindings    []RoleBinding
+	ServiceAccounts []ServiceAccount
 
 	Kubernetes plan.KubernetesOutput
 
@@ -45,7 +47,8 @@ type IR struct {
 
 	Values outputtypes.HelmValues
 
-	IngressTLSName string
+	IngressTLSName  string
+	TektonResources tekton.Resources
 }
 
 // Service defines structure of an IR service
@@ -58,7 +61,9 @@ type Service struct {
 	Replicas       int
 	Networks       []string
 	ServiceRelPath string //Ingress fan-out path
-	Daemon         bool   //Gets converted to DaemonSet
+	ExposeService  bool
+	OnlyIngress    bool
+	Daemon         bool //Gets converted to DaemonSet
 }
 
 // AddVolume adds a volume to a service
@@ -265,9 +270,12 @@ const (
 // Storage defines structure of a storage
 type Storage struct {
 	Name                             string
+	Annotations                      map[string]string // Optional field to store arbitrary metadata
 	corev1.PersistentVolumeClaimSpec                   //This promotion contains the volumeName which is used by configmap, secrets and pvc.
 	StorageType                      StorageKindType   //Type of storage cfgmap, secret, pvc
+	SecretType                       corev1.SecretType // Optional field to store the type of secret data
 	Content                          map[string][]byte //Optional field meant to store content for cfgmap or secret
+	StringData                       map[string]string //Optional field to store string content for cfmap or secret
 }
 
 // Merge merges storage
@@ -283,6 +291,40 @@ func (s *Storage) Merge(newst Storage) bool {
 	log.Debugf("Mismatching storages [%s, %s]", s.Name, newst.Name)
 	return false
 }
+
+// ServiceAccount holds the details about the service account resource
+type ServiceAccount struct {
+	Name        string
+	SecretNames []string
+}
+
+// RoleBinding holds the details about the role binding resource
+type RoleBinding struct {
+	Name               string
+	RoleName           string
+	ServiceAccountName string
+}
+
+// Role holds the details about the role resource
+type Role struct {
+	Name        string
+	PolicyRules []PolicyRule
+}
+
+// PolicyRule holds the details about the policy rules for the service account resources
+type PolicyRule struct {
+	APIGroups []string
+	Resources []string
+	Verbs     []string
+}
+
+// Secret holds the details about the secret resource
+// type Secret struct {
+// 	Name        string
+// 	SecretType  corev1.SecretType
+// 	Annotations map[string]string
+// 	StringData  map[string]string
+// }
 
 // AddContainer adds a conatainer to IR
 func (ir *IR) AddContainer(container Container) {
