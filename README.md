@@ -30,12 +30,9 @@ Some demo usage flows can be found in [here](https://github.com/konveyor/move2ku
 
 ## Prerequisites
 
-* Docker [(MAC](https://docs.docker.com/desktop/)[/Ubuntu](https://docs.docker.com/engine/install/ubuntu/)[/Windows WSL)](https://docs.docker.com/docker-for-windows/wsl/)
+* Docker [(MAC](https://docs.docker.com/desktop/)[/Ubuntu](https://docs.docker.com/engine/install/ubuntu/)[/Windows WSL)](https://docs.docker.com/docker-for-windows/wsl/) - If Cloud Native Buildpack (CNB) support is required.
 
-## Prerequisites
-* Docker <a href="https://docs.docker.com/desktop/">(MAC/Windows</a><a href="https://docs.docker.com/engine/install/ubuntu/">/Ubuntu)</a>
-
-## Setup
+## Development environment setup
 
 1. Obtain a recent version of `golang`. Known to work with `1.15`.
 1. Ensure `$GOPATH` is set. If it's not set:
