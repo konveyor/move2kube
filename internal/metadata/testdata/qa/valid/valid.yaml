@@ -1,0 +1,63 @@
+apiVersion: move2kube.io/v1alpha1
+kind: QACache
+spec:
+  solutions:
+    - description: Which services should we expose?
+      context:
+        - An Ingress object will be created for every exposed service.
+      solution:
+        type: MultiSelect
+        default:
+          - nodejs
+        options:
+          - nodejs
+        answer:
+          - nodejs
+      resolved: true
+    - description: 'Select the registry where your images are hosted:'
+      context:
+        - You can always change it later by changing the yamls.
+      solution:
+        type: Select
+        default:
+          - docker.io
+        options:
+          - Other
+          - docker.io
+        answer:
+          - Other
+      resolved: true
+    - description: 'Enter the name of the registry : '
+      context:
+        - 'Ex : docker.io'
+      solution:
+        type: Input
+        default:
+          - docker.io
+        answer:
+          - us.icr.io
+      resolved: true
+    - description: 'Enter the namespace where the new images are pushed : '
+      context:
+        - 'Ex : myproject'
+      solution:
+        type: Input
+        default:
+          - myproject
+        answer:
+          - myproj
+      resolved: true
+    - description: '[us.icr.io] What type of container registry login do you want to use?'
+      context:
+        - Docker login from config mode, will use the default config from your local machine.
+      solution:
+        type: Select
+        default:
+          - No authentication
+        options:
+          - Use existing pull secret
+          - No authentication
+          - UserName/Password
+        answer:
+          - No authentication
+      resolved: true
