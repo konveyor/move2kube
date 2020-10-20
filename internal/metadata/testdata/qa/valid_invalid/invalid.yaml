@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,3 +20,4 @@ spec:
           image: test
           ports:
             - containerPort: 80
+...
