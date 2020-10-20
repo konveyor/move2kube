@@ -17,8 +17,6 @@ limitations under the License.
 package metadata
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	common "github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
@@ -34,7 +32,7 @@ type QACacheLoader struct {
 func (i QACacheLoader) UpdatePlan(inputPath string, plan *plantypes.Plan) error {
 	files, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
 	if err != nil {
-		log.Warnf("Unable to fetch yaml files and recognize qacache metadata yamls : %s", err)
+		return err
 	}
 	for _, path := range files {
 		cm := new(qatypes.Cache)
