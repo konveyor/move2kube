@@ -129,7 +129,8 @@ func createGitSecrets(gitSecretNamePrefix string, ir irtypes.IR) [](*corev1.Secr
 
 	gitDomains = common.UniqueStrings(gitDomains)
 	if len(gitDomains) == 0 {
-		log.Warn("No remote git repos found. CI/CD pipeline requires a remote git repo to pull the source code from.")
+		// TODO: This message should be printed only if there are any new containers being created.
+		log.Debug("No remote git repos found. CI/CD pipeline requires a remote git repo to pull the source code from.")
 		gitSecretName := common.MakeStringDNSSubdomainNameCompliant(gitSecretNamePrefix)
 		secrets = append(secrets, createGitSecret(gitSecretName, ""))
 		return secrets
