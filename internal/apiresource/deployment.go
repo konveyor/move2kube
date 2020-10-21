@@ -71,8 +71,9 @@ func (d *Deployment) CreateNewResources(ir irtypes.IR, supportedKinds []string) 
 		if service.Daemon {
 			if common.IsStringPresent(supportedKinds, daemonSetKind) {
 				obj = d.createDaemonSet(service)
+			} else {
+				log.Errorf("Could not find a valid resource type in cluster to create a daemon set.")
 			}
-			log.Errorf("Could not find a valid resource type in cluster to create a daemon set.")
 		} else if service.RestartPolicy == corev1.RestartPolicyNever || service.RestartPolicy == corev1.RestartPolicyOnFailure {
 			if common.IsStringPresent(supportedKinds, jobKind) {
 				obj = d.createJob(service)
@@ -80,8 +81,9 @@ func (d *Deployment) CreateNewResources(ir irtypes.IR, supportedKinds []string) 
 				pod := d.createPod(service)
 				pod.Spec.RestartPolicy = corev1.RestartPolicyOnFailure
 				obj = pod
+			} else {
+				log.Errorf("Could not find a valid resource type in cluster to create a job/pod.")
 			}
-			log.Errorf("Could not find a valid resource type in cluster to create a job/pod.")
 		} else if common.IsStringPresent(supportedKinds, deploymentConfigKind) {
 			obj = d.createDeploymentConfig(service)
 		} else if common.IsStringPresent(supportedKinds, deploymentKind) {
