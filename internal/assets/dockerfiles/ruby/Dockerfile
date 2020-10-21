@@ -19,4 +19,4 @@ WORKDIR /{{.APPNAME}}
 RUN cd /{{.APPNAME}}
 RUN bundle install
 EXPOSE {{.Port}}
-CMD ["ruby","/{{.APPNAME}}/{{MAINSCRIPT.rb}}"]
+CMD ["ruby","/{{.APPNAME}}/{{.APPNAME}}.rb"]
