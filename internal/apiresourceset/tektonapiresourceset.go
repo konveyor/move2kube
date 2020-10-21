@@ -313,11 +313,11 @@ func createCloneBuildPushPipeline(name, workspaceName string, ir irtypes.IR) run
 			firstTask = false
 			prevTaskName = buildPushTaskName
 		} else if container.ContainerBuildType == plantypes.S2IContainerBuildTypeValue {
-			log.Errorf("TODO: Implement support for S2I")
+			log.Debugf("%v not yet supported for Tekton", container.ContainerBuildType)
 		} else if container.ContainerBuildType == plantypes.CNBContainerBuildTypeValue {
-			log.Errorf("TODO: Implement support for CNB")
+			log.Debugf("%v not yet supported for Tekton", container.ContainerBuildType)
 		} else {
-			log.Errorf("Unknown containerization method: %v", container.ContainerBuildType)
+			log.Debugf("Unknown containerization method: %v", container.ContainerBuildType)
 		}
 	}
 	pipeline.Spec.Tasks = tasks
