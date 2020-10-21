@@ -286,7 +286,8 @@ func createCloneBuildPushPipeline(name, workspaceName string, ir irtypes.IR) run
 			if container.RepoInfo.GitRepoDir != "" {
 				relDockerfilePath, err := filepath.Rel(container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath)
 				if err != nil {
-					log.Errorf("Failed to make the path %q relative to the path %q Error %q", container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath, err)
+					// TODO : Make it a error message after finishing the absolute path refactoring
+					log.Debugf("ERROR: Failed to make the path %q relative to the path %q Error %q", container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath, err)
 				} else {
 					dockerfilePath = relDockerfilePath
 					// We can't figure out the context from the source. So assume the context is the directory containing the dockerfile.
