@@ -17,6 +17,13 @@ limitations under the License.
 package metadata_test
 
 import (
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"regexp"
+
+	"gopkg.in/yaml.v2"
+
 	"reflect"
 	"testing"
 
@@ -47,6 +54,60 @@ func TestUpdatePlan(t *testing.T) {
 		if !reflect.DeepEqual(p, want) {
 			t.Fatalf("The updated plan is incorrect. Difference:\n%s", cmp.Diff(want, p))
 		}
+	})
+
+	t.Run("check if all clusters in constant were loaded", func(t *testing.T) {
+
+		type Teststruct struct {
+			//Kind string `yaml:"kind"`
+			Metadata struct {
+				Name string `yaml:"name"`
+			} `yaml:"metadata"`
+		}
+
+		p := plantypes.NewPlan()
+		loader := metadata.ClusterMDLoader{}
+		cmMap := loader.GetClusters(p)
+		//fmt.Println(cmMap)
+		files, err := ioutil.ReadDir("clusters/")
+		if err != nil {
+			fmt.Println("error reading clusters folder")
+		}
+
+		// filter the yaml files
+		re_yaml := regexp.MustCompile(".yaml")
+		re_yml := regexp.MustCompile(".yml")
+
+		var yfiles []string
+		for _, file := range files {
+			if re_yaml.MatchString(file.Name()) || re_yml.MatchString(file.Name()) {
+				yfiles = append(yfiles, file.Name())
+			}
+		}
+
+		// parse yaml files and collect the required info (medata-> names)
+		var metadata_names []string
+		fmt.Println("parsing yaml files:")
+		for _, yfile := range yfiles {
+			filename, _ := filepath.Abs("clusters/" + yfile)
+			//fmt.Println(filename)
+			content, _ := ioutil.ReadFile(filename)
+			test_struct := Teststruct{}
+			err = yaml.Unmarshal(content, &test_struct)
+			//fmt.Println(test_struct.Metadata.Name)
+			metadata_names = append(metadata_names, test_struct.Metadata.Name)
+		}
+		fmt.Println("finish parsing yaml files")
+		fmt.Println(metadata_names)
+
+		//TODO: Read all .yaml files in internal/metadata/clusters, and find the value in metadata.name using say a regex
+
+		for _, clustername := range metadata_names {
+			if _, ok := cmMap[clustername]; !ok {
+				t.Fatal("Missing builtin "+clustername+" cluster metadata. The returned cluster info:", cmMap)
+			}
+		}
+
 	})
 
 	t.Run("update plan with some empty files", func(t *testing.T) {
