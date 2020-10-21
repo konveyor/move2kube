@@ -378,12 +378,12 @@ func MakeFileNameCompliant(name string) string {
 	invalidChars := regexp.MustCompile("[^a-zA-Z0-9-.]+")
 	processedName := invalidChars.ReplaceAllString(baseName, "-")
 	if len(processedName) > 63 {
-		log.Warnf("The processed name %q is longer than 63 characters long.", processedName)
+		log.Debugf("Warning: The processed name %q is longer than 63 characters long.", processedName)
 	}
 	first := processedName[0]
 	last := processedName[len(processedName)-1]
 	if first == '-' || first == '.' || last == '-' || last == '.' {
-		log.Warnf("The first and/or last characters of the name %q are not alphanumeric.", processedName)
+		log.Debugf("Warning: The first and/or last characters of the name %q are not alphanumeric.", processedName)
 	}
 	return processedName
 }
