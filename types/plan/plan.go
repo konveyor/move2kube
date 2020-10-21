@@ -228,7 +228,6 @@ type RepoInfo struct {
 
 // Service defines a plan service
 type Service struct {
-	RepoInfo                      RepoInfo                             `yaml:"repoInfo,omitempty"`
 	ServiceName                   string                               `yaml:"serviceName"`
 	Image                         string                               `yaml:"image"`
 	TranslationType               TranslationTypeValue                 `yaml:"translationType"`
@@ -239,6 +238,7 @@ type Service struct {
 	BuildArtifacts                map[BuildArtifactTypeValue][]string  `yaml:"buildArtifacts,omitempty"` //[buildartifacttype][List of artifacts]
 	UpdateContainerBuildPipeline  bool                                 `yaml:"updateContainerBuildPipeline"`
 	UpdateDeployPipeline          bool                                 `yaml:"updateDeployPipeline"`
+	RepoInfo                      RepoInfo                             `yaml:"repoInfo,omitempty"`
 }
 
 // GatherGitInfo tries to find the git repo for the path if one exists.
