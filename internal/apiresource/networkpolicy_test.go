@@ -145,8 +145,20 @@ func TestCreateNewResources(t *testing.T) {
 		}
 		// Test
 		actual := netPolicy.CreateNewResources(ir, supKinds)
-		if !cmp.Equal(actual, want) {
-			t.Fatalf("Failed to create the network policy objects properly. Differences:\n%s", cmp.Diff(want, actual))
+		for _, wantres := range want {
+			matched := false
+			for _, actualres := range actual {
+				if cmp.Equal(actualres, wantres) {
+					if matched {
+						t.Fatalf("The expected network policy %v was found more than once in the returned list. Actual: %v", wantres, actual)
+					} else {
+						matched = true
+					}
+				}
+			}
+			if !matched {
+				t.Fatalf("Didn't find the expected network policy %v in the returned list. Actual: %v", wantres, actual)
+			}
 		}
 	})
 }
