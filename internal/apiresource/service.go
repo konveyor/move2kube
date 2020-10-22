@@ -40,7 +40,9 @@ const (
 	ingressKind = "Ingress"
 	routeKind   = "Route"
 	// We are defaulting service port to 80
-	defaultServicePort = 80
+	defaultServicePort     = 80
+	ingressRewriteSelector = "nginx.ingress.kubernetes.io/rewrite-target"
+	ingressRewriteValue    = "/"
 )
 
 // Service handles all objects related to a service
@@ -56,10 +58,10 @@ func (d *Service) GetSupportedKinds() []string {
 // CreateNewResources converts IR to runtime objects
 func (d *Service) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
-
+	ingressEnabled := false
 	for _, service := range ir.Services {
 		exposeobjectcreated := false
-		if service.ExposeService {
+		if service.IsServiceExposed() {
 			// Create services depending on whether the service needs to be externally exposed
 			if common.IsStringPresent(supportedKinds, routeKind) {
 				//Create Route
@@ -68,13 +70,14 @@ func (d *Service) CreateNewResources(ir irtypes.IR, supportedKinds []string) []r
 				exposeobjectcreated = true
 			} else if common.IsStringPresent(supportedKinds, ingressKind) {
 				//Create Ingress
-				obj := d.createIngress(service)
-				objs = append(objs, obj)
+				// obj := d.createIngress(service)
+				// objs = append(objs, obj)
 				exposeobjectcreated = true
+				ingressEnabled = true
 			}
 		}
 		if common.IsStringPresent(supportedKinds, serviceKind) {
-			if exposeobjectcreated || !service.ExposeService {
+			if exposeobjectcreated || !service.IsServiceExposed() {
 				//Create clusterip service
 				obj := d.createService(service, v1.ServiceTypeClusterIP)
 				objs = append(objs, obj)
@@ -87,6 +90,13 @@ func (d *Service) CreateNewResources(ir irtypes.IR, supportedKinds []string) []r
 			log.Errorf("Could not find a valid resource type in cluster to create a Service")
 		}
 	}
+
+	// Create one ingress for all services
+	if ingressEnabled {
+		obj := d.createIngress(ir)
+		objs = append(objs, obj)
+	}
+
 	return objs
 }
 
@@ -370,39 +380,83 @@ func (d *Service) createRoute(service irtypes.Service) *okdroutev1.Route {
 	return route
 }
 
-func (d *Service) createIngress(service irtypes.Service) *networkingv1beta1.Ingress {
-	ingress := &networkingv1beta1.Ingress{
+func (d *Service) getIngressAnnotations() map[string]string {
+	//TODO: If ingress controller is different, below annotation should change as well.
+	return map[string]string{ingressRewriteSelector: ingressRewriteValue}
+}
+
+// createIngress creates a single ingress for all services
+//TODO: Only supports fan-out. Virtual named hosting is not supported yet.
+func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
+	annotations := d.getIngressAnnotations()
+	pathType := networkingv1beta1.PathTypePrefix
+
+	// Create the fan-out paths
+	paths := make([]networkingv1beta1.HTTPIngressPath, 0)
+	for _, service := range ir.Services {
+		if !service.IsServiceExposed() {
+			continue
+		}
+		path := networkingv1beta1.HTTPIngressPath{
+			Path:     service.ServiceRelPath,
+			PathType: &pathType,
+			Backend: networkingv1beta1.IngressBackend{
+				ServiceName: service.Name,
+				ServicePort: intstr.IntOrString{
+					IntVal: defaultServicePort,
+				},
+			},
+		}
+		paths = append(paths, path)
+	}
+
+	// Configure the rule with the above fan-out paths
+	rules := []networkingv1beta1.IngressRule{
+		{
+			Host: ir.TargetClusterSpec.Host,
+			IngressRuleValue: networkingv1beta1.IngressRuleValue{
+				HTTP: &networkingv1beta1.HTTPIngressRuleValue{
+					Paths: paths,
+				},
+			},
+		},
+	}
+
+	// If TLS enabled, then add the TLS secret name and the host to the ingress.
+	// Otherwise, skip the TLS section.
+	if ir.IsIngressTLSEnabled() {
+		tls := []networkingv1beta1.IngressTLS{{Hosts: []string{ir.TargetClusterSpec.Host}, SecretName: ir.IngressTLSName}}
+		return &networkingv1beta1.Ingress{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       ingressKind,
+				APIVersion: networkingv1beta1.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        ir.Name,
+				Labels:      getServiceLabels(ir.Name),
+				Annotations: annotations,
+			},
+			Spec: networkingv1beta1.IngressSpec{
+				TLS:   tls,
+				Rules: rules,
+			},
+		}
+	}
+
+	return &networkingv1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       ingressKind,
 			APIVersion: networkingv1beta1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   service.Name,
-			Labels: getServiceLabels(service.Name),
+			Name:        ir.Name,
+			Labels:      getServiceLabels(ir.Name),
+			Annotations: annotations,
 		},
 		Spec: networkingv1beta1.IngressSpec{
-			Rules: []networkingv1beta1.IngressRule{
-				{
-					IngressRuleValue: networkingv1beta1.IngressRuleValue{
-						HTTP: &networkingv1beta1.HTTPIngressRuleValue{
-							Paths: []networkingv1beta1.HTTPIngressPath{
-								{
-									Path: "/",
-									Backend: networkingv1beta1.IngressBackend{
-										ServiceName: service.Name,
-										ServicePort: intstr.IntOrString{
-											IntVal: defaultServicePort,
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			Rules: rules,
 		},
 	}
-	return ingress
 }
 
 // createService creates a service

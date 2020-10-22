@@ -123,7 +123,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 	}
 
 	for name, composeServiceConfig := range composeObject.ServiceConfigs.All() {
-		serviceConfig := irtypes.Service{Name: common.NormalizeForServiceName(name)}
+		serviceConfig := irtypes.NewServiceWithName(common.NormalizeForServiceName(name))
 		if serviceName != serviceConfig.Name {
 			continue
 		}

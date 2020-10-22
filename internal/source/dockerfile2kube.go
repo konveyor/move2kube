@@ -85,7 +85,7 @@ func (c DockerfileTranslator) Translate(services []plantypes.Service, p plantype
 				log.Warnf("No target options for service %s. Ignoring service.", service.ServiceName)
 				continue
 			}
-			serviceConfig := irtypes.Service{Name: service.ServiceName}
+			serviceConfig := irtypes.NewServiceFromPlanService(service)
 			c := containerizer.ReuseDockerfileContainerizer{}
 			dfp := p.GetFullPath(service.ContainerizationTargetOptions[0])
 			fp := filepath.Dir(dfp)

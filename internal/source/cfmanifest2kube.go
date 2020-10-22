@@ -282,7 +282,7 @@ func (c CfManifestTranslator) Translate(services []plantypes.Service, p plantype
 					continue
 				}
 				application := applications[0]
-				serviceConfig := irtypes.Service{Name: service.ServiceName}
+				serviceConfig := irtypes.NewServiceFromPlanService(service)
 				serviceContainer := v1.Container{Name: service.ServiceName}
 				serviceContainer.Image = service.Image
 				//TODO: Add support for services, health check, memory
@@ -328,7 +328,7 @@ func (c CfManifestTranslator) Translate(services []plantypes.Service, p plantype
 					log.Errorf("Unable to translate service %s using cfmanifest at %s : %s", service.ServiceName, path, err)
 				}
 			} else {
-				serviceConfig := irtypes.Service{Name: service.ServiceName}
+				serviceConfig := irtypes.NewServiceFromPlanService(service)
 				serviceContainer := v1.Container{Name: service.ServiceName}
 				serviceContainer.Image = service.Image
 				if cfinstanceapp.Instances != 0 {

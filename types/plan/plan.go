@@ -239,6 +239,7 @@ type Service struct {
 	UpdateContainerBuildPipeline  bool                                 `yaml:"updateContainerBuildPipeline"`
 	UpdateDeployPipeline          bool                                 `yaml:"updateDeployPipeline"`
 	RepoInfo                      RepoInfo                             `yaml:"repoInfo,omitempty"`
+	ServiceRelPath                string                               `yaml:"serviceRelPath,omitempty"`
 }
 
 // GatherGitInfo tries to find the git repo for the path if one exists.
@@ -478,6 +479,6 @@ func NewService(servicename string, translationtype TranslationTypeValue) Servic
 	service.SourceArtifacts = map[SourceArtifactTypeValue][]string{}
 	service.UpdateDeployPipeline = false
 	service.UpdateContainerBuildPipeline = false
-
+	service.ServiceRelPath = "/" + servicename
 	return service
 }

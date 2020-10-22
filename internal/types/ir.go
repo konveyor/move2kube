@@ -44,19 +44,21 @@ type IR struct {
 	CachedObjects     []runtime.Object
 
 	Values outputtypes.HelmValues
+
+	IngressTLSName string
 }
 
 // Service defines structure of an IR service
 type Service struct {
 	corev1.PodSpec
 
-	Name          string
-	Annotations   map[string]string
-	Labels        map[string]string
-	Replicas      int
-	Networks      []string
-	ExposeService bool
-	Daemon        bool //Gets converted to DaemonSet
+	Name           string
+	Annotations    map[string]string
+	Labels         map[string]string
+	Replicas       int
+	Networks       []string
+	ServiceRelPath string //Ingress fan-out path
+	Daemon         bool   //Gets converted to DaemonSet
 }
 
 // AddVolume adds a volume to a service
@@ -152,6 +154,11 @@ func (c *Container) Merge(newc Container) bool {
 	return false
 }
 
+// IsServiceExposed checks if a service is exposed through ingress or not
+func (service *Service) IsServiceExposed() bool {
+	return service.ServiceRelPath != ""
+}
+
 // AddFile adds a file to a container
 func (c *Container) AddFile(path string, newcontents string) {
 	if contents, ok := c.NewFiles[path]; ok {
@@ -195,6 +202,7 @@ func NewIR(p plan.Plan) IR {
 	ir.TargetClusterSpec = collecttypes.ClusterMetadataSpec{
 		StorageClasses:    []string{},
 		APIKindVersionMap: map[string][]string{},
+		Host:              "",
 	}
 	ir.Values.GlobalVariables = map[string]string{}
 	return ir
@@ -223,6 +231,21 @@ func (ir *IR) Merge(newir IR) {
 	ir.TargetClusterSpec.Merge(newir.TargetClusterSpec)
 	ir.CachedObjects = append(ir.CachedObjects, newir.CachedObjects...)
 	ir.Values.Merge(newir.Values)
+}
+
+// IsIngressTLSEnabled checks if TLS is enabled for the ingress.
+func (ir *IR) IsIngressTLSEnabled() bool {
+	return ir.IngressTLSName != ""
+}
+
+// NewServiceFromPlanService initializes a service with just the plan object parameters.
+func NewServiceFromPlanService(service plantypes.Service) Service {
+	return Service{Name: service.ServiceName, ServiceRelPath: service.ServiceRelPath}
+}
+
+// NewServiceWithName initializes a service with just the name.
+func NewServiceWithName(serviceName string) Service {
+	return Service{Name: serviceName, ServiceRelPath: "/" + serviceName}
 }
 
 // StorageKindType defines storage type kind

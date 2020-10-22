@@ -21,4 +21,5 @@
       - excludeme/includeme
   updateContainerBuildPipeline: true
   updateDeployPipeline: true
+  serviceRelPath: /includeme
 ...

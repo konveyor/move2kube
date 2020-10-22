@@ -134,7 +134,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config) (irty
 
 	for _, composeServiceConfig := range composeObject.Services {
 		name := common.NormalizeForServiceName(composeServiceConfig.Name)
-		serviceConfig := irtypes.Service{Name: name}
+		serviceConfig := irtypes.NewServiceWithName(name)
 		serviceContainer := corev1.Container{}
 
 		serviceContainer.Image = composeServiceConfig.Image

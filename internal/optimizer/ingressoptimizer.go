@@ -17,21 +17,26 @@ limitations under the License.
 package optimize
 
 import (
-	"log"
-
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
+	log "github.com/sirupsen/logrus"
 )
 
-// ingressOptimizer identifies the services that needs to be externally exposed
+// ingressOptimizer optimizes the ingress options of the application
 type ingressOptimizer struct {
 }
 
-func (ingresso ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
+const (
+	exposeSelector = types.GroupName + ".service.expose"
+	exposeLabel    = "true"
+)
 
+// customize modifies image paths and secret
+func (ic ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	if len(ir.Services) == 0 {
+		log.Debugf("No services to optimize")
 		return ir, nil
 	}
 
@@ -43,7 +48,10 @@ func (ingresso ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 		i++
 	}
 
-	problem, err := qatypes.NewMultiSelectProblem("Which services should we expose?", []string{"An Ingress object will be created for every exposed service."}, servicesList, servicesList)
+	problem, err := qatypes.NewMultiSelectProblem("Select all services that should be exposed:",
+		[]string{"The services unselected here will not be exposed."},
+		servicesList,
+		servicesList)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -51,23 +59,66 @@ func (ingresso ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	if err != nil {
 		log.Fatalf("Unable to fetch answer : %s", err)
 	}
-	services, err := problem.GetSliceAnswer()
+	exposedServices, err := problem.GetSliceAnswer()
 	if err != nil {
 		log.Fatalf("Unable to get answer : %s", err)
 	}
 
-	for _, k := range services {
-		tempService := ir.Services[k]
-
-		// Set the line in annotations
-		if tempService.Annotations == nil {
-			tempService.Annotations = map[string]string{}
+	if len(exposedServices) > 0 {
+		host, tlsSecret := ic.configureHostAndTLS(ir.Name)
+		ir.TargetClusterSpec.Host = host
+		ir.IngressTLSName = tlsSecret
+		for _, k := range exposedServices {
+			tempService := ir.Services[k]
+			log.Infof("exposed service: %s", k)
+			// Set the line in annotations
+			if tempService.Annotations == nil {
+				tempService.Annotations = make(map[string]string)
+			}
+			tempService.Annotations[exposeSelector] = exposeLabel
+			if !tempService.IsServiceExposed() {
+				tempService.ServiceRelPath = "/" + tempService.Name
+			}
+			ir.Services[k] = tempService
 		}
-		tempService.Annotations[types.GroupName+"/expose"] = "true"
-		// Also set the special field
-		tempService.ExposeService = true
-		ir.Services[k] = tempService
+	} else {
+		log.Infof("No service exposed. skippig domain and TLS configuration")
 	}
 
 	return ir, nil
+}
+
+func (ic ingressOptimizer) configureHostAndTLS(name string) (string, string) {
+	defaultSubDomain := name + ".com"
+
+	problem, err := qatypes.NewInputProblem("Provide the ingress host domain",
+		[]string{"Ingress host domain is part of service URL"},
+		defaultSubDomain)
+	if err != nil {
+		log.Fatalf("Unable to create problem : %s", err)
+	}
+	problem, err = qaengine.FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer : %s", err)
+	}
+	host, err := problem.GetStringAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer : %s", err)
+	}
+
+	defaultSecret := ""
+	problem, err = qatypes.NewInputProblem("Provide the TLS secret for ingress", []string{"Enter TLS secret name"}, defaultSecret)
+	if err != nil {
+		log.Fatalf("Unable to create problem : %s", err)
+	}
+	problem, err = qaengine.FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer : %s", err)
+	}
+	secret, err := problem.GetStringAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer : %s", err)
+	}
+
+	return host, secret
 }

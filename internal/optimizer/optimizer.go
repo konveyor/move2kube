@@ -29,7 +29,7 @@ type optimizer interface {
 
 // getOptimizers returns loader for given format
 func getOptimizers() []optimizer {
-	var l = []optimizer{new(ingressOptimizer), new(normalizeCharacterOptimizer), new(replicaOptimizer), new(imagePullPolicyOptimizer), new(portMergeOptimizer)}
+	var l = []optimizer{new(normalizeCharacterOptimizer), new(ingressOptimizer), new(replicaOptimizer), new(imagePullPolicyOptimizer), new(portMergeOptimizer)}
 	return l
 }
 

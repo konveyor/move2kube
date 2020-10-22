@@ -113,7 +113,7 @@ func (k *K8sAPIResourceSet) Translate(services []plantypes.Service, p plantypes.
 	codecs := serializer.NewCodecFactory(k.GetScheme())
 
 	for _, service := range services {
-		irservice := irtypes.Service{Name: service.ServiceName}
+		irservice := irtypes.NewServiceFromPlanService(service)
 		if len(service.SourceArtifacts[plantypes.K8sFileArtifactType]) > 0 {
 			fullpath := p.GetFullPath(service.SourceArtifacts[plantypes.K8sFileArtifactType][0])
 			data, err := ioutil.ReadFile(fullpath)
