@@ -20,6 +20,8 @@ import (
 	"reflect"
 	"testing"
 
+	"path/filepath"
+
 	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 
@@ -47,6 +49,56 @@ func TestUpdatePlan(t *testing.T) {
 		if !reflect.DeepEqual(p, want) {
 			t.Fatalf("The updated plan is incorrect. Difference:\n%s", cmp.Diff(want, p))
 		}
+	})
+
+	t.Run("check if all clusters in constant were loaded", func(t *testing.T) {
+		p := plantypes.NewPlan()
+		loader := metadata.ClusterMDLoader{}
+		cmMap := loader.GetClusters(p)
+
+		inputPath := "clusters/"
+
+		yfiles, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
+		if err != nil {
+			log.Warnf("Unable to fetch yaml files and recognize cluster metadata yamls : %s", err)
+		}
+		var objectMetaNames []string
+		for _, yfile := range yfiles {
+			cm := collecttypes.ClusterMetadata{}
+			filename, _ := filepath.Abs(yfile)
+			if common.ReadYaml(filename, &cm) == nil {
+				objectMetaNames = append(objectMetaNames, cm.ObjectMeta.Name)
+			}
+		}
+
+		//TODO: Read all .yaml files in internal/metadata/clusters, and find the value in metadata.name using say a regex
+
+		// check cluster names in the yaml files are in the cmMap
+		for _, clustername := range objectMetaNames {
+			if _, ok := cmMap[clustername]; !ok {
+				t.Fatal("Missing builtin "+clustername+" cluster metadata. The returned cluster info:", cmMap)
+			}
+		}
+
+		// check cluster names in the cmap are in the yaml files
+
+		// transform slice into map
+		objectMetaNamesMap := make(map[string]string)
+		for _, name := range objectMetaNames {
+			objectMetaNamesMap[name] = name
+		}
+		// get names from cmMap
+		cmMapKeys := []string{}
+		for k := range cmMap {
+			cmMapKeys = append(cmMapKeys, k)
+		}
+
+		for _, clustername := range cmMapKeys {
+			if _, ok := objectMetaNamesMap[clustername]; !ok {
+				t.Fatal("Missing builtin " + clustername + " cluster metadata")
+			}
+		}
+
 	})
 
 	t.Run("update plan with some empty files", func(t *testing.T) {
