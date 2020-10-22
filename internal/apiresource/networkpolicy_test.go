@@ -145,6 +145,9 @@ func TestCreateNewResources(t *testing.T) {
 		}
 		// Test
 		actual := netPolicy.CreateNewResources(ir, supKinds)
+		if len(actual) != len(want) {
+			t.Fatalf("Expected %d resources to be created. Actual no. of resources %d. Actual list %v", len(want), len(actual), actual)
+		}
 		for _, wantres := range want {
 			matched := false
 			for _, actualres := range actual {
