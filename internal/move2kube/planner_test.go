@@ -111,6 +111,7 @@ func TestCreatePlan(t *testing.T) {
 		for _, svcs := range p.Spec.Inputs.Services {
 			for i := range svcs {
 				svcs[i].RepoInfo = plantypes.RepoInfo{}
+				svcs[i].ServiceRelPath = ""
 			}
 		}
 

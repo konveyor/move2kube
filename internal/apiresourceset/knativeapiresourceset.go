@@ -103,7 +103,7 @@ func (k *KnativeAPIResourceSet) Translate(services []plantypes.Service, p planty
 	codecs := serializer.NewCodecFactory(k.GetScheme())
 
 	for _, service := range services {
-		irservice := irtypes.Service{Name: service.ServiceName}
+		irservice := irtypes.NewServiceFromPlanService(service)
 		if len(service.SourceArtifacts[plantypes.KnativeFileArtifactType]) > 0 {
 			fullpath := p.GetFullPath(service.SourceArtifacts[plantypes.KnativeFileArtifactType][0])
 			data, err := ioutil.ReadFile(fullpath)

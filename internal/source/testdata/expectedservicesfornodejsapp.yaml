@@ -21,5 +21,6 @@
         - .
     updateContainerBuildPipeline: true
     updateDeployPipeline: true
+    serviceRelPath: /nodejs
 ...
   

@@ -76,10 +76,12 @@ func TestMerge(t *testing.T) {
 
 		cmeta2 := collection.NewClusterMetadata("")
 		cmeta2.Spec.APIKindVersionMap = map[string][]string{key1: val2, key2: val2}
+		cmeta2.Spec.Host = "host"
 
 		want := collection.NewClusterMetadata("")
 		want.Spec.StorageClasses = []string{"default"}
 		want.Spec.APIKindVersionMap = map[string][]string{key1: val2}
+		want.Spec.Host = "host"
 
 		if merged := cmeta1.Merge(cmeta2); !merged || !reflect.DeepEqual(cmeta1, want) {
 			t.Fatalf("Failed to merge ClusterMetadata properly. Difference:\n%s:", cmp.Diff(want, cmeta1))

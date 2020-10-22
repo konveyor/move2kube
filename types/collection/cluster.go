@@ -35,6 +35,7 @@ type ClusterMetadata struct {
 type ClusterMetadataSpec struct {
 	StorageClasses    []string            `yaml:"storageClasses"`
 	APIKindVersionMap map[string][]string `yaml:"apiKindVersionMap"` //[kubernetes kind]["gv1", "gv2",...,"gvn"] prioritized group-version
+	Host              string              `yaml:"host,omitempty"`    // Optional field, either collected with move2kube collect or by asking the user.
 }
 
 // Merge helps merge clustermetadata
@@ -72,6 +73,7 @@ func (c *ClusterMetadata) Merge(newc ClusterMetadata) bool {
 		}
 	}
 	c.Spec.APIKindVersionMap = apiversionkindmap
+	c.Spec.Host = newc.Spec.Host
 	return true
 }
 
@@ -93,6 +95,7 @@ func (c *ClusterMetadataSpec) Merge(newc ClusterMetadataSpec) bool {
 		}
 	}
 	c.APIKindVersionMap = apiversionkindmap
+	c.Host = newc.Host
 	return true
 }
 
@@ -123,6 +126,7 @@ func NewClusterMetadata(contextName string) ClusterMetadata {
 		Spec: ClusterMetadataSpec{
 			StorageClasses:    []string{},
 			APIKindVersionMap: map[string][]string{},
+			Host:              "",
 		},
 	}
 	return clusterMetadata

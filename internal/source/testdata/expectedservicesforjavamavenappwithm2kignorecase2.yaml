@@ -21,4 +21,5 @@
       - includeme/includeme/java-maven
   updateContainerBuildPipeline: true
   updateDeployPipeline: true
+  serviceRelPath: /java-maven
 ...

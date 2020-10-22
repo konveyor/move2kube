@@ -119,7 +119,7 @@ func (c Any2KubeTranslator) Translate(services []plantypes.Service, p plantypes.
 			continue
 		}
 		log.Debugf("Translating %s", service.ServiceName)
-		serviceConfig := irtypes.Service{Name: service.ServiceName}
+		serviceConfig := irtypes.NewServiceFromPlanService(service)
 		container, err := containerizers.GetContainer(p, service)
 		if err != nil {
 			log.Errorf("Unable to translate service %s : %s", service.ServiceName, err)

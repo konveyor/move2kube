@@ -72,8 +72,8 @@ func TestCreateNewResources(t *testing.T) {
 		svc1Name := "svc1"
 		svc2Name := "svc2"
 		ir.Services = map[string]irtypes.Service{
-			svc1Name: irtypes.Service{Name: svc1Name},
-			svc2Name: irtypes.Service{Name: svc2Name},
+			svc1Name: irtypes.NewServiceWithName(svc1Name),
+			svc2Name: irtypes.NewServiceWithName(svc2Name),
 		}
 		supKinds := []string{}
 		// Test
@@ -90,8 +90,8 @@ func TestCreateNewResources(t *testing.T) {
 		svc1Name := "svc1"
 		svc2Name := "svc2"
 		ir.Services = map[string]irtypes.Service{
-			svc1Name: irtypes.Service{Name: svc1Name},
-			svc2Name: irtypes.Service{Name: svc2Name},
+			svc1Name: irtypes.NewServiceWithName(svc1Name),
+			svc2Name: irtypes.NewServiceWithName(svc2Name),
 		}
 		supKinds := []string{"Pod", "Secret"}
 		// Test
@@ -108,8 +108,8 @@ func TestCreateNewResources(t *testing.T) {
 		svc1Name := "svc1"
 		svc2Name := "svc2"
 		ir.Services = map[string]irtypes.Service{
-			svc1Name: irtypes.Service{Name: svc1Name},
-			svc2Name: irtypes.Service{Name: svc2Name},
+			svc1Name: irtypes.NewServiceWithName(svc1Name),
+			svc2Name: irtypes.NewServiceWithName(svc2Name),
 		}
 		supKinds := []string{"NetworkPolicy"}
 		want := []runtime.Object{}
@@ -128,10 +128,19 @@ func TestCreateNewResources(t *testing.T) {
 		svc2Name := "svc2"
 		net1 := "net1"
 		net2 := "net2"
+
 		ir.Services = map[string]irtypes.Service{
-			svc1Name: irtypes.Service{Name: svc1Name, Networks: []string{net1}},
-			svc2Name: irtypes.Service{Name: svc2Name, Networks: []string{net2}},
+			svc1Name: irtypes.NewServiceWithName(svc1Name),
+			svc2Name: irtypes.NewServiceWithName(svc2Name),
 		}
+		tmpS := ir.Services[svc1Name]
+		tmpS.Networks = []string{net1}
+		ir.Services[svc1Name] = tmpS
+
+		tmpS = ir.Services[svc2Name]
+		tmpS.Networks = []string{net2}
+		ir.Services[svc2Name] = tmpS
+
 		supKinds := []string{"NetworkPolicy"}
 
 		testDataPath := "testdata/networkpolicy/create-new-resources.yaml"

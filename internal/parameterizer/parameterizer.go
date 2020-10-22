@@ -29,7 +29,7 @@ type Parameterizer interface {
 
 // getParameterizers returns different supported paramterizers
 func getParameterizers() []Parameterizer {
-	return []Parameterizer{new(imageNameParameterizer), new(storageClassParameterizer)}
+	return []Parameterizer{new(imageNameParameterizer), new(storageClassParameterizer), new(ingressParameterizer)}
 }
 
 // Parameterize parameterizes for usage as a helm chart

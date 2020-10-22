@@ -15,6 +15,7 @@
       - .
   updateContainerBuildPipeline: true
   updateDeployPipeline: true
+  serviceRelPath: ""
 - serviceName: svc1
   image: svc1:latest
   translationType: Compose2Kube
@@ -31,4 +32,5 @@
       - svc1src
   updateContainerBuildPipeline: true
   updateDeployPipeline: true
+  serviceRelPath: ""
 ...
