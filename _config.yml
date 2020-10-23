@@ -7,3 +7,6 @@ home_url: https://konveyor.github.io/move2kube/
 github_url: http://github.com/konveyor/move2kube
 slack_url: https://kubernetes.slack.com/archives/CR85S82A2
 forum_url: https://groups.google.com/forum/#!forum/konveyorio
+
+gems:
+- jekyll-seo-tag
