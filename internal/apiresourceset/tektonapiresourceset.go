@@ -97,7 +97,11 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 	ir.Name = oldir.Name
 	ir.TargetClusterSpec = oldir.TargetClusterSpec
 	ir.Kubernetes = oldir.Kubernetes
-	ir.Containers = oldir.Containers
+	for _, container := range oldir.Containers {
+		if container.New {
+			ir.Containers = append(ir.Containers, container)
+		}
+	}
 
 	// Prefix the project name and make the name a valid k8s name.
 	projectName := ir.Name
@@ -190,9 +194,6 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 	secrets := []irtypes.Storage{imageRegistrySecret}
 	gitDomains := []string{}
 	for _, container := range ir.Containers {
-		if !container.New {
-			continue
-		}
 		gitRepoURL, err := giturls.Parse(container.RepoInfo.GitRepoURL)
 		if err != nil {
 			log.Warnf("Failed to parse git repo url %q Error: %q", container.RepoInfo.GitRepoURL, err)
