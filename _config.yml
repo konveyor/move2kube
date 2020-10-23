@@ -1,0 +1,9 @@
+title: Konveyor Move2Kube
+description: Accelerate the process of re-platforming to Kubernetes/Openshift.
+show_downloads: true
+google_analytics:
+theme: move2kube
+home_url: https://konveyor.github.io/move2kube/
+github_url: http://github.com/konveyor/move2kube
+slack_url: https://kubernetes.slack.com/archives/CR85S82A2
+forum_url: https://groups.google.com/forum/#!forum/konveyorio
