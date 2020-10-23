@@ -120,6 +120,9 @@ func createGitSecrets(gitSecretNamePrefix string, ir irtypes.IR) [](*corev1.Secr
 	gitDomains := []string{}
 
 	for _, container := range ir.Containers {
+		if !container.New {
+			continue
+		}
 		gitRepoURL, err := giturls.Parse(container.RepoInfo.GitRepoURL)
 		if err != nil {
 			log.Warnf("Failed to parse git repo url %q Error: %q", container.RepoInfo.GitRepoURL, err)
@@ -252,6 +255,9 @@ func createCloneBuildPushPipeline(name, workspaceName string, ir irtypes.IR) run
 	firstTask := true
 	prevTaskName := ""
 	for i, container := range ir.Containers {
+		if !container.New {
+			continue
+		}
 		if container.ContainerBuildType == plantypes.ManualContainerBuildTypeValue || container.ContainerBuildType == plantypes.ReuseContainerBuildTypeValue {
 			log.Debugf("Manual or reuse containerization. We will skip this for CICD.")
 			continue
