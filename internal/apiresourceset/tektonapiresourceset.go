@@ -43,30 +43,32 @@ import (
 )
 
 const (
-	roleKind                             = "Role"
-	roleBindingKind                      = "RoleBinding"
-	pipelineKind                         = "Pipeline"
-	pipelineRunKind                      = "PipelineRun"
-	ingressKind                          = "Ingress"
-	eventListenerKind                    = "EventListener"
-	triggerTemplateKind                  = "TriggerTemplate"
-	gitRepoURLPlaceholder                = "<TODO: insert git repo url>"
-	gitDomainPlaceholder                 = "<TODO: insert git repo domain>"
-	contextPathPlaceholder               = "<TODO: insert path to the directory containing Dockerfile>"
-	dockerfilePathPlaceholder            = "<TODO: insert path to the Dockerfile>"
-	knownHostsPlaceholder                = "<TODO: insert the known host keys for your git repo>"
-	gitPrivateKeyPlaceholder             = "<TODO: insert the private ssh key for your git repo>"
-	defaultGitRepoBranch                 = "master"
-	baseGitSecretName                    = "git-repo"
-	baseWorkspaceName                    = "shared-data"
-	baseTektonTriggersServiceAccountName = "tekton-triggers-admin"
-	baseTriggerBindingName               = "git-event"
-	baseTriggerTemplateName              = "run-clone-build-push"
-	basePipelineName                     = "clone-build-push"
-	baseClonePushServiceAccountName      = "clone-push"
-	baseRegistrySecretName               = "image-registry"
-	baseGitEventListenerName             = "git-repo"
-	baseGitEventIngressName              = "git-repo"
+	roleKind                               = "Role"
+	roleBindingKind                        = "RoleBinding"
+	pipelineKind                           = "Pipeline"
+	pipelineRunKind                        = "PipelineRun"
+	ingressKind                            = "Ingress"
+	eventListenerKind                      = "EventListener"
+	triggerTemplateKind                    = "TriggerTemplate"
+	gitRepoURLPlaceholder                  = "<TODO: insert git repo url>"
+	gitDomainPlaceholder                   = "<TODO: insert git repo domain>"
+	contextPathPlaceholder                 = "<TODO: insert path to the directory containing Dockerfile>"
+	dockerfilePathPlaceholder              = "<TODO: insert path to the Dockerfile>"
+	knownHostsPlaceholder                  = "<TODO: insert the known host keys for your git repo>"
+	gitPrivateKeyPlaceholder               = "<TODO: insert the private ssh key for your git repo>"
+	defaultGitRepoBranch                   = "master"
+	baseGitSecretName                      = "git-repo"
+	baseWorkspaceName                      = "shared-data"
+	baseTektonTriggersServiceAccountName   = "tekton-triggers-admin"
+	baseTriggerBindingName                 = "git-event"
+	baseTriggerTemplateName                = "run-clone-build-push"
+	basePipelineName                       = "clone-build-push"
+	baseClonePushServiceAccountName        = "clone-push"
+	baseRegistrySecretName                 = "image-registry"
+	baseGitEventListenerName               = "git-repo"
+	baseGitEventIngressName                = "git-repo"
+	baseTektonTriggersAdminRoleName        = "tekton-triggers-admin-role"
+	baseTektonTriggersAdminRoleBindingName = "tekton-triggers-admin-role-binding"
 )
 
 // TektonAPIResourceSet is the set of CI/CD resources we generate.
@@ -92,9 +94,11 @@ func (*TektonAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Object 
 	tektonTriggersServiceAccountName := p(baseTektonTriggersServiceAccountName)
 	triggerTemplateName := p(baseTriggerTemplateName)
 	workspaceName := p(baseWorkspaceName)
+	tektonTriggersAdminRoleName := p(baseTektonTriggersAdminRoleName)
+	tektonTriggersAdminRoleBindingName := p(baseTektonTriggersAdminRoleBindingName)
 
 	gitSecrets := createGitSecrets(gitSecretNamePrefix, ir)
-	role, serviceAccount, roleBinding := createTektonTriggersRBAC("tekton-triggers-admin-role", tektonTriggersServiceAccountName, "tekton-triggers-admin-role-binding")
+	role, serviceAccount, roleBinding := createTektonTriggersRBAC(tektonTriggersAdminRoleName, tektonTriggersServiceAccountName, tektonTriggersAdminRoleBindingName)
 	objs := []runtime.Object{
 		role, serviceAccount, roleBinding,
 		createCloneBuildPushPipeline(pipelineName, workspaceName, ir),
