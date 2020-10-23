@@ -1,19 +1,39 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: ClusterMetadata
-metadata: 
-  name: Kubernetes
+metadata:
+  name: |
+    TektonTriggers
 spec:
   storageClasses:
     - default
   apiKindVersionMap:
+    APIService:
+      - apiregistration.k8s.io/v1
+    Binding:
+      - v1
+    CSIDriver:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
+    CSINode:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
+    CertificateSigningRequest:
+      - certificates.k8s.io/v1beta1
     ClusterRole:
       - rbac.authorization.k8s.io/v1
       - rbac.authorization.k8s.io/v1beta1
     ClusterRoleBinding:
       - rbac.authorization.k8s.io/v1
       - rbac.authorization.k8s.io/v1beta1
+    ClusterTask:
+      - tekton.dev/v1alpha1
+      - tekton.dev/v1beta1
+    ClusterTriggerBinding:
+      - triggers.tekton.dev/v1alpha1
     ComponentStatus:
       - v1
+    Condition:
+      - tekton.dev/v1alpha1
     ConfigMap:
       - v1
     ControllerRevision:
@@ -34,6 +54,8 @@ spec:
     Event:
       - events.k8s.io/v1beta1
       - v1
+    EventListener:
+      - triggers.tekton.dev/v1alpha1
     HorizontalPodAutoscaler:
       - autoscaling/v1
       - autoscaling/v2beta1
@@ -41,6 +63,8 @@ spec:
     Ingress:
       - networking.k8s.io/v1beta1
       - extensions/v1beta1
+    IngressClass:
+      - networking.k8s.io/v1beta1
     Job:
       - batch/v1
     Lease:
@@ -60,11 +84,21 @@ spec:
       - networking.k8s.io/v1
     Node:
       - v1
+      - v1
     PersistentVolume:
       - v1
     PersistentVolumeClaim:
       - v1
+    Pipeline:
+      - tekton.dev/v1alpha1
+      - tekton.dev/v1beta1
+    PipelineResource:
+      - tekton.dev/v1alpha1
+    PipelineRun:
+      - tekton.dev/v1alpha1
+      - tekton.dev/v1beta1
     Pod:
+      - v1
       - v1
     PodDisruptionBudget:
       - policy/v1beta1
@@ -87,6 +121,8 @@ spec:
     RoleBinding:
       - rbac.authorization.k8s.io/v1
       - rbac.authorization.k8s.io/v1beta1
+    Run:
+      - tekton.dev/v1alpha1
     Secret:
       - v1
     SelfSubjectAccessReview:
@@ -107,9 +143,21 @@ spec:
     SubjectAccessReview:
       - authorization.k8s.io/v1
       - authorization.k8s.io/v1beta1
+    Task:
+      - tekton.dev/v1alpha1
+      - tekton.dev/v1beta1
+    TaskRun:
+      - tekton.dev/v1alpha1
+      - tekton.dev/v1beta1
     TokenReview:
       - authentication.k8s.io/v1
       - authentication.k8s.io/v1beta1
+    Trigger:
+      - triggers.tekton.dev/v1alpha1
+    TriggerBinding:
+      - triggers.tekton.dev/v1alpha1
+    TriggerTemplate:
+      - triggers.tekton.dev/v1alpha1
     ValidatingWebhookConfiguration:
       - admissionregistration.k8s.io/v1beta1
       - admissionregistration.k8s.io/v1
