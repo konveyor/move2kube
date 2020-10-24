@@ -55,15 +55,16 @@ type IR struct {
 type Service struct {
 	corev1.PodSpec
 
-	Name           string
-	Annotations    map[string]string
-	Labels         map[string]string
-	Replicas       int
-	Networks       []string
-	ServiceRelPath string //Ingress fan-out path
-	ExposeService  bool
-	OnlyIngress    bool
-	Daemon         bool //Gets converted to DaemonSet
+	Name               string
+	BackendServiceName string // Optional field when ingress name is not the same as backend service name
+	Annotations        map[string]string
+	Labels             map[string]string
+	Replicas           int
+	Networks           []string
+	ServiceRelPath     string //Ingress fan-out path
+	ExposeService      bool
+	OnlyIngress        bool
+	Daemon             bool //Gets converted to DaemonSet
 }
 
 // AddVolume adds a volume to a service

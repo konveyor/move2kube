@@ -120,13 +120,14 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 	workspaceName := p(baseWorkspaceName)
 	tektonTriggersAdminRoleName := p(baseTektonTriggersAdminRoleName)
 	tektonTriggersAdminRoleBindingName := p(baseTektonTriggersAdminRoleBindingName)
+	gitEventIngressName := p(baseGitEventIngressName)
 	// https://github.com/tektoncd/triggers/blob/master/docs/eventlisteners.md#how-does-the-eventlistener-work
 	gitEventListenerServiceName := "el-" + gitEventListenerName
 
 	res := tekton.Resources{}
 	res.EventListeners = []tekton.EventListener{{
 		Name:                gitEventListenerName,
-		ServiceAccountName:  gitEventListenerName,
+		ServiceAccountName:  tektonTriggersAdminServiceAccountName,
 		TriggerBindingName:  triggerBindingName,
 		TriggerTemplateName: triggerTemplateName,
 	}}
@@ -146,9 +147,10 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 	ir.TektonResources = res
 	ir.Services = map[string]irtypes.Service{
 		gitEventListenerServiceName: {
-			Name:          gitEventListenerServiceName,
-			ExposeService: true,
-			OnlyIngress:   true,
+			Name:               gitEventIngressName,
+			BackendServiceName: gitEventListenerServiceName,
+			ExposeService:      true,
+			OnlyIngress:        true,
 			PodSpec: corev1.PodSpec{
 				Containers: []corev1.Container{{
 					Ports: []corev1.ContainerPort{{ContainerPort: int32(8080)}},
