@@ -64,14 +64,20 @@ type TektonAPIResourceSet struct {
 func (*TektonAPIResourceSet) getAPIResources(ir irtypes.IR) []apiresource.APIResource {
 	apiresources := []apiresource.APIResource{
 		apiresource.APIResource{IAPIResource: &apiresource.Service{}},
-		apiresource.APIResource{IAPIResource: &apiresource.EventListener{}},
-		apiresource.APIResource{IAPIResource: &apiresource.TriggerBinding{}},
-		apiresource.APIResource{IAPIResource: &apiresource.TriggerTemplate{}},
-		apiresource.APIResource{IAPIResource: &apiresource.Pipeline{}},
 		apiresource.APIResource{IAPIResource: &apiresource.ServiceAccount{}},
 		apiresource.APIResource{IAPIResource: &apiresource.RoleBinding{}},
 		apiresource.APIResource{IAPIResource: &apiresource.Role{}},
 		apiresource.APIResource{IAPIResource: &apiresource.Storage{}},
+	}
+	return apiresources
+}
+
+func (*TektonAPIResourceSet) getTektonAPIResources(ir irtypes.IR) []apiresource.APIResource {
+	apiresources := []apiresource.APIResource{
+		apiresource.APIResource{IAPIResource: &apiresource.EventListener{}},
+		apiresource.APIResource{IAPIResource: &apiresource.TriggerBinding{}},
+		apiresource.APIResource{IAPIResource: &apiresource.TriggerTemplate{}},
+		apiresource.APIResource{IAPIResource: &apiresource.Pipeline{}},
 	}
 	return apiresources
 }
@@ -83,6 +89,10 @@ func (tekSet *TektonAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.
 	for _, a := range tekSet.getAPIResources(ir) {
 		a.SetClusterContext(ir.TargetClusterSpec)
 		objs := a.GetUpdatedResources(ir)
+		targetobjs = append(targetobjs, objs...)
+	}
+	for _, a := range tekSet.getTektonAPIResources(ir) {
+		objs := a.CreateNewResources(ir, []string{})
 		targetobjs = append(targetobjs, objs...)
 	}
 	return targetobjs

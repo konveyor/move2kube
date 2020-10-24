@@ -20,7 +20,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/internal/types/tekton"
-	log "github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -47,13 +46,11 @@ func (*TriggerTemplate) GetSupportedKinds() []string {
 // CreateNewResources creates the runtime objects from the intermediate representation.
 func (tt *TriggerTemplate) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
-	if common.IsStringPresent(supportedKinds, triggerTemplateKind) {
-		irresources := ir.TektonResources.TriggerTemplates
-		for _, irresource := range irresources {
-			objs = append(objs, tt.createNewResource(irresource, ir))
-		}
-	} else {
-		log.Errorf("Could not find a valid resource type in cluster to create a trigger template.")
+	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
+	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
+	irresources := ir.TektonResources.TriggerTemplates
+	for _, irresource := range irresources {
+		objs = append(objs, tt.createNewResource(irresource, ir))
 	}
 	return objs
 }

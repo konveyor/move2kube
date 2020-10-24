@@ -50,13 +50,11 @@ func (*Pipeline) GetSupportedKinds() []string {
 // CreateNewResources creates the runtime objects from the intermediate representation.
 func (p *Pipeline) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
-	if common.IsStringPresent(supportedKinds, pipelineKind) {
-		irresources := ir.TektonResources.Pipelines
-		for _, irresource := range irresources {
-			objs = append(objs, p.createNewResource(irresource, ir))
-		}
-	} else {
-		log.Errorf("Could not find a valid resource type in cluster to create a pipeline.")
+	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
+	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
+	irresources := ir.TektonResources.Pipelines
+	for _, irresource := range irresources {
+		objs = append(objs, p.createNewResource(irresource, ir))
 	}
 	return objs
 }

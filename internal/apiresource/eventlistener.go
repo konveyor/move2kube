@@ -20,7 +20,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/internal/types/tekton"
-	log "github.com/sirupsen/logrus"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,13 +41,11 @@ func (*EventListener) GetSupportedKinds() []string {
 // CreateNewResources creates the runtime objects from the intermediate representation.
 func (el *EventListener) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
-	if common.IsStringPresent(supportedKinds, eventListenerKind) {
-		irresources := ir.TektonResources.EventListeners
-		for _, irresource := range irresources {
-			objs = append(objs, el.createNewResource(irresource))
-		}
-	} else {
-		log.Errorf("Could not find a valid resource type in cluster to create an event listener.")
+	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
+	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
+	irresources := ir.TektonResources.EventListeners
+	for _, irresource := range irresources {
+		objs = append(objs, el.createNewResource(irresource))
 	}
 	return objs
 }
