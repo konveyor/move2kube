@@ -467,7 +467,7 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 	// If TLS enabled, then add the TLS secret name and the host to the ingress.
 	// Otherwise, skip the TLS section.
 	if ir.IsIngressTLSEnabled() {
-		tls := []networkingv1beta1.IngressTLS{{Hosts: []string{ir.TargetClusterSpec.Host}, SecretName: ir.IngressTLSName}}
+		tls := []networkingv1beta1.IngressTLS{{Hosts: []string{ir.TargetClusterSpec.Host}, SecretName: ir.IngressTLSSecretName}}
 		ingress.Spec.TLS = tls
 	}
 

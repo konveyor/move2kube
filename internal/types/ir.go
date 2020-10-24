@@ -47,8 +47,8 @@ type IR struct {
 
 	Values outputtypes.HelmValues
 
-	IngressTLSName  string
-	TektonResources tekton.Resources
+	IngressTLSSecretName string
+	TektonResources      tekton.Resources
 }
 
 // Service defines structure of an IR service
@@ -241,7 +241,7 @@ func (ir *IR) Merge(newir IR) {
 
 // IsIngressTLSEnabled checks if TLS is enabled for the ingress.
 func (ir *IR) IsIngressTLSEnabled() bool {
-	return ir.IngressTLSName != ""
+	return ir.IngressTLSSecretName != ""
 }
 
 // NewServiceFromPlanService initializes a service with just the plan object parameters.
