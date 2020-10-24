@@ -209,8 +209,8 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 	} else {
 		for _, gitDomain := range gitDomains {
 			// This name is also used by tekton to create a volume to hold secrets. If there is a dot k8s will complain.
-			gitDomain = strings.Replace(gitDomain, ".", "-", -1)
-			gitSecretName := fmt.Sprintf("%s-%s", gitSecretNamePrefix, gitDomain)
+			normalizedGitDomain := strings.Replace(gitDomain, ".", "-", -1)
+			gitSecretName := fmt.Sprintf("%s-%s", gitSecretNamePrefix, normalizedGitDomain)
 			gitSecretName = common.MakeStringDNSSubdomainNameCompliant(gitSecretName)
 			secrets = append(secrets, createGitSecret(gitSecretName, gitDomain))
 		}
