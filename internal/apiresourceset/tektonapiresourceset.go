@@ -41,7 +41,6 @@ const (
 	gitDomainPlaceholder                   = "<TODO: insert git repo domain>"
 	knownHostsPlaceholder                  = "<TODO: insert the known host keys for your git repo>"
 	gitPrivateKeyPlaceholder               = "<TODO: insert the private ssh key for your git repo>"
-	storageClassPlaceholder                = "<TODO: insert the storage class you want to use>"
 	registryURLPlaceholder                 = "<TODO: insert the image registry URL>"
 	dockerConfigJSONPlaceholder            = "<TODO: insert your docker config json>"
 	baseGitSecretName                      = "git-repo"
@@ -133,10 +132,10 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 	res.TriggerTemplates = []tekton.TriggerTemplate{{
 		Name:               triggerTemplateName,
 		PipelineName:       pipelineName,
-		PipelineRunName:    pipelineName,
+		PipelineRunName:    pipelineName + "-$(uid)", // appends a random string to the name to make it unique
 		ServiceAccountName: clonePushServiceAccountName,
 		WorkspaceName:      workspaceName,
-		StorageClassName:   storageClassPlaceholder,
+		StorageClassName:   common.DefaultStorageClassName,
 	}}
 	res.Pipelines = []tekton.Pipeline{{
 		Name:          pipelineName,
@@ -148,7 +147,7 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 			Name:               gitEventIngressName,
 			BackendServiceName: gitEventListenerServiceName,
 			OnlyIngress:        true,
-			ServiceRelPath:     gitEventListenerServiceName,
+			ServiceRelPath:     "/" + gitEventListenerServiceName, // this has to be an absolute path otherwise k8s will complain
 			PodSpec: corev1.PodSpec{
 				Containers: []corev1.Container{{
 					Ports: []corev1.ContainerPort{{ContainerPort: int32(8080)}},
@@ -209,6 +208,8 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 		log.Warn("No remote git repos found. CI/CD pipeline requires a remote git repo to pull the source code from.")
 	} else {
 		for _, gitDomain := range gitDomains {
+			// This name is also used by tekton to create a volume to hold secrets. If there is a dot k8s will complain.
+			gitDomain = strings.Replace(gitDomain, ".", "-", -1)
 			gitSecretName := fmt.Sprintf("%s-%s", gitSecretNamePrefix, gitDomain)
 			gitSecretName = common.MakeStringDNSSubdomainNameCompliant(gitSecretName)
 			secrets = append(secrets, createGitSecret(gitSecretName, gitDomain))
