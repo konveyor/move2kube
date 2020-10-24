@@ -79,14 +79,14 @@ func (i ClusterMDLoader) GetClusters(p plantypes.Plan) map[string]collecttypes.C
 		clusters[cm.Name] = cm
 	}
 	for _, clusterfilepath := range p.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType] {
-		cm := new(collecttypes.ClusterMetadata)
+		cm := collecttypes.ClusterMetadata{}
 		if common.ReadYaml(p.GetFullPath(clusterfilepath), &cm) == nil && cm.Kind == string(collecttypes.ClusterMetadataKind) {
 			if len(cm.Spec.StorageClasses) == 0 {
 				cm.Spec.StorageClasses = []string{common.DefaultStorageClassName}
 				log.Debugf("No storage class in the cluster, adding [default]")
 			}
-			clusters[cm.Name] = *cm
-			clusters[clusterfilepath] = *cm
+			clusters[cm.Name] = cm
+			clusters[clusterfilepath] = cm
 		}
 	}
 	return clusters

@@ -403,6 +403,10 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 		if !service.IsServiceExposed() {
 			continue
 		}
+		serviceName := service.Name
+		if service.BackendServiceName != "" {
+			serviceName = service.BackendServiceName
+		}
 		servicePort := intstr.IntOrString{Type: intstr.Int, IntVal: defaultServicePort}
 		if len(service.Containers) > 0 {
 			for _, container := range service.Containers {
@@ -423,7 +427,7 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 			Path:     service.ServiceRelPath,
 			PathType: &pathType,
 			Backend: networkingv1beta1.IngressBackend{
-				ServiceName: service.Name,
+				ServiceName: serviceName,
 				ServicePort: servicePort,
 			},
 		}
@@ -442,14 +446,20 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 		},
 	}
 
+	ingressName := ir.Name
+	if len(ir.Services) == 1 {
+		for _, service := range ir.Services {
+			ingressName = service.Name
+		}
+	}
 	ingress := networkingv1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       ingressKind,
 			APIVersion: networkingv1beta1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        ir.Name,
-			Labels:      getServiceLabels(ir.Name),
+			Name:        ingressName,
+			Labels:      getServiceLabels(ingressName),
 			Annotations: annotations,
 		},
 		Spec: networkingv1beta1.IngressSpec{Rules: rules},
