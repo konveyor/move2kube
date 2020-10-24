@@ -481,8 +481,9 @@ func (d *Service) createService(service irtypes.Service, serviceType v1.ServiceT
 	if len(ports) == 0 {
 		// Configure a dummy port: https://github.com/kubernetes/kubernetes/issues/32766.
 		ports = []v1.ServicePort{{
-			Name: "headless",
-			Port: 55555,
+			Name:       "headless",
+			Port:       80,
+			TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: 8080},
 		}}
 		headless = true
 	}
