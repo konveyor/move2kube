@@ -67,7 +67,7 @@ func (ic ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	if len(exposedServices) > 0 {
 		host, tlsSecret := ic.configureHostAndTLS(ir.Name)
 		ir.TargetClusterSpec.Host = host
-		ir.IngressTLSName = tlsSecret
+		ir.IngressTLSSecretName = tlsSecret
 		for _, k := range exposedServices {
 			tempService := ir.Services[k]
 			log.Infof("exposed service: %s", k)

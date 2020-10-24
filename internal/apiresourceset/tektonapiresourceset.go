@@ -41,8 +41,6 @@ const (
 	gitDomainPlaceholder                   = "<TODO: insert git repo domain>"
 	knownHostsPlaceholder                  = "<TODO: insert the known host keys for your git repo>"
 	gitPrivateKeyPlaceholder               = "<TODO: insert the private ssh key for your git repo>"
-	ingressHostNamePlaceholder             = "<TODO: insert subdomain where you want to receive git events>"
-	ingressTLSSecretNamePlaceholder        = "<TODO: insert name of TLS secret>"
 	storageClassPlaceholder                = "<TODO: insert the storage class you want to use>"
 	registryURLPlaceholder                 = "<TODO: insert the image registry URL>"
 	dockerConfigJSONPlaceholder            = "<TODO: insert your docker config json>"
