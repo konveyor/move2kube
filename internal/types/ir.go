@@ -62,7 +62,6 @@ type Service struct {
 	Replicas           int
 	Networks           []string
 	ServiceRelPath     string //Ingress fan-out path
-	ExposeService      bool
 	OnlyIngress        bool
 	Daemon             bool //Gets converted to DaemonSet
 }

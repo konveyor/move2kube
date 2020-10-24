@@ -147,8 +147,8 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 		gitEventListenerServiceName: {
 			Name:               gitEventIngressName,
 			BackendServiceName: gitEventListenerServiceName,
-			ExposeService:      true,
 			OnlyIngress:        true,
+			ServiceRelPath:     gitEventListenerServiceName,
 			PodSpec: corev1.PodSpec{
 				Containers: []corev1.Container{{
 					Ports: []corev1.ContainerPort{{ContainerPort: int32(8080)}},
