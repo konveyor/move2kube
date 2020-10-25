@@ -18,7 +18,6 @@ package parameterize
 
 import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 )
 
 // ingressParameterizer parameterizes the image names
@@ -26,10 +25,8 @@ type ingressParameterizer struct {
 }
 
 func (ip ingressParameterizer) parameterize(ir *irtypes.IR) error {
-	// Parameterize the host with Release-Name prefix only if helm is enabled.
-	if ir.Kubernetes.ArtifactType == plantypes.Helm {
-		ir.TargetClusterSpec.Host = "{{ .Release.Name }}-" + ir.TargetClusterSpec.Host
-	}
+	ir.Values.IngressHost = ir.TargetClusterSpec.Host
+	ir.TargetClusterSpec.Host = "{{ .Release.Name }}-" + ir.Values.IngressHost
 
 	return nil
 }
