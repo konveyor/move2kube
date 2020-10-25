@@ -28,7 +28,7 @@ type ingressParameterizer struct {
 func (ip ingressParameterizer) parameterize(ir *irtypes.IR) error {
 	// Parameterize the host with Release-Name prefix only if helm is enabled.
 	if ir.Kubernetes.ArtifactType == plantypes.Helm {
-		ir.TargetClusterSpec.Host = "{{ .Release.Name }}" + "-" + ir.TargetClusterSpec.Host
+		ir.TargetClusterSpec.Host = "{{ .Release.Name }}-" + ir.TargetClusterSpec.Host
 	}
 
 	return nil

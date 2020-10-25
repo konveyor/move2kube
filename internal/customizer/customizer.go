@@ -28,7 +28,7 @@ type customizer interface {
 
 //GetCustomizers gets the customizers registered with it
 func getCustomizers() []customizer {
-	return []customizer{new(registryCustomizer), new(storageCustomizer)}
+	return []customizer{new(registryCustomizer), new(storageCustomizer), new(ingressCustomizer)}
 }
 
 //Customize invokes the customizes based on the customizer options

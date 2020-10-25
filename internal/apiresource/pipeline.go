@@ -115,7 +115,8 @@ func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.IR) *v
 			if container.RepoInfo.GitRepoDir != "" {
 				relDockerfilePath, err := filepath.Rel(container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath)
 				if err != nil {
-					log.Errorf("Failed to make the path %q relative to the path %q Error %q", container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath, err)
+					// TODO: Bump up the error after fixing abs path, rel path issues
+					log.Debugf("ERROR: Failed to make the path %q relative to the path %q Error %q", container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath, err)
 				} else {
 					dockerfilePath = relDockerfilePath
 					// We can't figure out the context from the source. So assume the context is the directory containing the dockerfile.

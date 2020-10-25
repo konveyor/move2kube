@@ -33,8 +33,6 @@ import (
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 )
 
-//TODO : Handle Endpoints
-
 const (
 	serviceKind = "Service"
 	ingressKind = "Ingress"
@@ -407,28 +405,12 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 		if service.BackendServiceName != "" {
 			serviceName = service.BackendServiceName
 		}
-		servicePort := intstr.IntOrString{Type: intstr.Int, IntVal: defaultServicePort}
-		if len(service.Containers) > 0 {
-			for _, container := range service.Containers {
-				if len(container.Ports) == 0 {
-					continue
-				}
-				port := container.Ports[0]
-				if port.Name != "" {
-					servicePort.Type = intstr.String
-					servicePort.StrVal = port.Name
-				} else {
-					servicePort.IntVal = port.ContainerPort
-				}
-				break
-			}
-		}
 		path := networkingv1beta1.HTTPIngressPath{
 			Path:     service.ServiceRelPath,
 			PathType: &pathType,
 			Backend: networkingv1beta1.IngressBackend{
 				ServiceName: serviceName,
-				ServicePort: servicePort,
+				ServicePort: intstr.IntOrString{Type: intstr.Int, IntVal: defaultServicePort},
 			},
 		}
 		paths = append(paths, path)
