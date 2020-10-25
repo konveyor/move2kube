@@ -29,6 +29,7 @@ const (
 
 // HelmValues defines the format of values.yaml
 type HelmValues struct {
+	IngressHost       string             `yaml:"ingresshost,omitempty"`
 	RegistryURL       string             `yaml:"registryurl"`
 	RegistryNamespace string             `yaml:"registrynamespace"`
 	Services          map[string]Service `yaml:"services"`

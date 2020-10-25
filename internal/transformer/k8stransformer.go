@@ -39,6 +39,10 @@ import (
 	plantypes "github.com/konveyor/move2kube/types/plan"
 )
 
+const (
+	helmTemplatesRelPath = "templates"
+)
+
 // K8sTransformer implements Transformer interface
 type K8sTransformer struct {
 	TransformedObjects     []runtime.Object
@@ -75,7 +79,7 @@ func (kt *K8sTransformer) WriteObjects(outpath string) error {
 	artifactspath := filepath.Join(outpath, kt.Name)
 	if kt.Helm {
 		_ = kt.generateHelmMetadata(artifactspath, kt.Values)
-		artifactspath = filepath.Join(artifactspath, "templates")
+		artifactspath = filepath.Join(artifactspath, helmTemplatesRelPath)
 	}
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))
 
@@ -150,6 +154,18 @@ func (kt *K8sTransformer) generateHelmMetadata(dirName string, values outputtype
 	err = common.WriteTemplateToFile(templates.Chart_tpl, ChartDetails{filepath.Base(dirName)}, filepath.Join(dirName, "Chart.yaml"), common.DefaultFilePermission)
 	if err != nil {
 		log.Errorf("Error while writing Chart.yaml : %s", err)
+	}
+
+	// Create templates directory
+	err = os.MkdirAll(filepath.Join(dirName, helmTemplatesRelPath), common.DefaultDirectoryPermission)
+	if err != nil {
+		log.Errorf("Unable to create templates directory : %s", err)
+	}
+
+	//NOTES.txt
+	err = ioutil.WriteFile(filepath.Join(dirName, helmTemplatesRelPath, "NOTES.txt"), []byte(templates.HelmNotes_txt), common.DefaultFilePermission)
+	if err != nil {
+		log.Errorf("Error while writing Helm NOTES.txt : %s", err)
 	}
 
 	//values.yaml
