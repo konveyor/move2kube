@@ -59,7 +59,7 @@ func (d *Service) CreateNewResources(ir irtypes.IR, supportedKinds []string) []r
 	ingressEnabled := false
 	for _, service := range ir.Services {
 		exposeobjectcreated := false
-		if service.IsServiceExposed() {
+		if service.HasValidAnnotation(common.ExposeSelector) {
 			// Create services depending on whether the service needs to be externally exposed
 			if common.IsStringPresent(supportedKinds, routeKind) {
 				//Create Route
@@ -81,7 +81,7 @@ func (d *Service) CreateNewResources(ir irtypes.IR, supportedKinds []string) []r
 			continue
 		}
 		if common.IsStringPresent(supportedKinds, serviceKind) {
-			if exposeobjectcreated || !service.IsServiceExposed() {
+			if exposeobjectcreated || !service.HasValidAnnotation(common.ExposeSelector) {
 				//Create clusterip service
 				obj := d.createService(service, v1.ServiceTypeClusterIP)
 				objs = append(objs, obj)
@@ -398,7 +398,7 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 	// Create the fan-out paths
 	paths := make([]networkingv1beta1.HTTPIngressPath, 0)
 	for _, service := range ir.Services {
-		if !service.IsServiceExposed() {
+		if !service.HasValidAnnotation(common.ExposeSelector) {
 			continue
 		}
 		serviceName := service.Name
