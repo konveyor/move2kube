@@ -29,9 +29,8 @@ import (
 )
 
 const (
-	networkPolicyKind   = "NetworkPolicy"
-	networkSelector     = types.GroupName + "/network"
-	networkPresentLabel = "true"
+	networkPolicyKind = "NetworkPolicy"
+	networkSelector   = types.GroupName + "/network"
 )
 
 // NetworkPolicy handles NetworkPolicy objects
@@ -90,7 +89,7 @@ func (d *NetworkPolicy) createNetworkPolicy(networkName string) (*networkingv1.N
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{networkSelector + "/" + networkName: networkPresentLabel},
+				MatchLabels: map[string]string{networkSelector + "/" + networkName: common.AnnotationLabelValue},
 			},
 			Ingress: []networkingv1.NetworkPolicyIngressRule{{
 				From: []networkingv1.NetworkPolicyPeer{{
@@ -108,7 +107,7 @@ func (d *NetworkPolicy) createNetworkPolicy(networkName string) (*networkingv1.N
 func getNetworkPolicyLabels(networks []string) map[string]string {
 	networklabels := map[string]string{}
 	for _, network := range networks {
-		networklabels[networkSelector+"/"+network] = networkPresentLabel
+		networklabels[networkSelector+"/"+network] = common.AnnotationLabelValue
 	}
 	return networklabels
 }

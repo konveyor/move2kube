@@ -17,9 +17,9 @@ limitations under the License.
 package optimize
 
 import (
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	"github.com/konveyor/move2kube/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,11 +27,6 @@ import (
 // ingressOptimizer optimizes the ingress options of the application
 type ingressOptimizer struct {
 }
-
-const (
-	exposeSelector = types.GroupName + "/service.expose"
-	exposeLabel    = "true"
-)
 
 // customize modifies image paths and secret
 func (ic ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
@@ -75,8 +70,8 @@ func (ic ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 		if tempService.Annotations == nil {
 			tempService.Annotations = make(map[string]string)
 		}
-		tempService.Annotations[exposeSelector] = exposeLabel
-		if !tempService.IsServiceExposed() {
+		tempService.Annotations[common.ExposeSelector] = common.AnnotationLabelValue
+		if tempService.ServiceRelPath == "" {
 			tempService.ServiceRelPath = "/"
 		}
 		ir.Services[k] = tempService

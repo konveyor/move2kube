@@ -81,6 +81,12 @@ func (service *Service) AddVolume(volume corev1.Volume) {
 	}
 }
 
+// HasValidAnnotation returns if an annotation is set for the service
+func (service *Service) HasValidAnnotation(annotation string) bool {
+	val, ok := service.Annotations[annotation]
+	return ok && val == common.AnnotationLabelValue
+}
+
 // Container defines structure of a container
 type Container struct {
 	ContainerBuildType plantypes.ContainerBuildTypeValue
@@ -157,11 +163,6 @@ func (c *Container) Merge(newc Container) bool {
 		log.Debugf("Mismatching during container merge [%s, %s]", c.ImageNames, imagename)
 	}
 	return false
-}
-
-// IsServiceExposed checks if a service is exposed through ingress or not
-func (service *Service) IsServiceExposed() bool {
-	return service.ServiceRelPath != ""
 }
 
 // AddFile adds a file to a container

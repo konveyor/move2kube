@@ -53,6 +53,10 @@ const (
 	DefaultClusterType string = "Kubernetes"
 	// IgnoreFilename is the name of the file containing the ignore rules and exceptions
 	IgnoreFilename string = "." + types.AppNameShort + "ignore"
+	// ExposeSelector tag is used to annotate services that are externally exposed
+	ExposeSelector string = types.GroupName + "/service.expose"
+	// AnnotationLabelValue represents the value when an annotation is valid
+	AnnotationLabelValue string = "true"
 )
 
 var (
