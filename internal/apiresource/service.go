@@ -59,7 +59,7 @@ func (d *Service) CreateNewResources(ir irtypes.IR, supportedKinds []string) []r
 	ingressEnabled := false
 	for _, service := range ir.Services {
 		exposeobjectcreated := false
-		if service.HasValidAnnotation(common.ExposeSelector) {
+		if service.HasValidAnnotation(common.ExposeSelector) || service.OnlyIngress {
 			// Create services depending on whether the service needs to be externally exposed
 			if common.IsStringPresent(supportedKinds, routeKind) {
 				//Create Route
