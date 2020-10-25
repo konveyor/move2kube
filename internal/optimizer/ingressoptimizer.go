@@ -29,7 +29,7 @@ type ingressOptimizer struct {
 }
 
 const (
-	exposeSelector = types.GroupName + ".service.expose"
+	exposeSelector = types.GroupName + "/service.expose"
 	exposeLabel    = "true"
 )
 
@@ -42,16 +42,20 @@ func (ic ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 
 	// Obtain a listing of services.
 	i := 0
-	servicesList := make([]string, len(ir.Services))
-	for k := range ir.Services {
-		servicesList[i] = k
+	exposedServices := make([]string, 0)
+	servicesList := make([]string, 0)
+	for sn, s := range ir.Services {
+		servicesList = append(servicesList, sn)
+		if s.ServiceRelPath != "" {
+			exposedServices = append(exposedServices, sn)
+		}
 		i++
 	}
 
 	problem, err := qatypes.NewMultiSelectProblem("Select all services that should be exposed:",
 		[]string{"The services unselected here will not be exposed."},
 		servicesList,
-		servicesList)
+		exposedServices)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -59,66 +63,24 @@ func (ic ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	if err != nil {
 		log.Fatalf("Unable to fetch answer : %s", err)
 	}
-	exposedServices, err := problem.GetSliceAnswer()
+	exposedServices, err = problem.GetSliceAnswer()
 	if err != nil {
 		log.Fatalf("Unable to get answer : %s", err)
 	}
 
-	if len(exposedServices) > 0 {
-		host, tlsSecret := ic.configureHostAndTLS(ir.Name)
-		ir.TargetClusterSpec.Host = host
-		ir.IngressTLSSecretName = tlsSecret
-		for _, k := range exposedServices {
-			tempService := ir.Services[k]
-			log.Infof("exposed service: %s", k)
-			// Set the line in annotations
-			if tempService.Annotations == nil {
-				tempService.Annotations = make(map[string]string)
-			}
-			tempService.Annotations[exposeSelector] = exposeLabel
-			if !tempService.IsServiceExposed() {
-				tempService.ServiceRelPath = "/" + tempService.Name
-			}
-			ir.Services[k] = tempService
+	for _, k := range exposedServices {
+		tempService := ir.Services[k]
+		log.Debugf("Exposed service: %s", k)
+		// Set the line in annotations
+		if tempService.Annotations == nil {
+			tempService.Annotations = make(map[string]string)
 		}
-	} else {
-		log.Infof("No service exposed. skippig domain and TLS configuration")
+		tempService.Annotations[exposeSelector] = exposeLabel
+		if !tempService.IsServiceExposed() {
+			tempService.ServiceRelPath = "/"
+		}
+		ir.Services[k] = tempService
 	}
 
 	return ir, nil
-}
-
-func (ic ingressOptimizer) configureHostAndTLS(name string) (string, string) {
-	defaultSubDomain := name + ".com"
-
-	problem, err := qatypes.NewInputProblem("Provide the ingress host domain",
-		[]string{"Ingress host domain is part of service URL"},
-		defaultSubDomain)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	host, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
-
-	defaultSecret := ""
-	problem, err = qatypes.NewInputProblem("Provide the TLS secret for ingress", []string{"Enter TLS secret name"}, defaultSecret)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	secret, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
-
-	return host, secret
 }
