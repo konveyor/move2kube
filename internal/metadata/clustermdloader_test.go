@@ -17,19 +17,16 @@ limitations under the License.
 package metadata_test
 
 import (
-	"reflect"
+	"path/filepath"
 	"testing"
 
-	"path/filepath"
-
 	"github.com/google/go-cmp/cmp"
-	log "github.com/sirupsen/logrus"
-
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/metadata"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	log "github.com/sirupsen/logrus"
 )
 
 func TestUpdatePlan(t *testing.T) {
@@ -46,7 +43,7 @@ func TestUpdatePlan(t *testing.T) {
 		if err := loader.UpdatePlan(inputPath, &p); err != nil {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
-		if !reflect.DeepEqual(p, want) {
+		if !cmp.Equal(p, want) {
 			t.Fatalf("The updated plan is incorrect. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
@@ -112,7 +109,7 @@ func TestUpdatePlan(t *testing.T) {
 		if err := loader.UpdatePlan(inputPath, &p); err != nil {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
-		if !reflect.DeepEqual(p, want) {
+		if !cmp.Equal(p, want) {
 			t.Fatalf("The updated plan is incorrect. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
@@ -128,7 +125,7 @@ func TestUpdatePlan(t *testing.T) {
 		if err := loader.UpdatePlan(inputPath, &p); err != nil {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
-		if !reflect.DeepEqual(p, want) {
+		if !cmp.Equal(p, want) {
 			t.Fatalf("The updated plan is incorrect. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
@@ -138,7 +135,7 @@ func TestUpdatePlan(t *testing.T) {
 		p := plantypes.NewPlan()
 		want := plantypes.NewPlan()
 		want.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType] = []string{"testdata/validfiles/test1.yaml", "testdata/validfiles/test2.yml"}
-		want.Spec.Outputs.Kubernetes.ClusterType = "name1"
+		want.Spec.Outputs.Kubernetes.TargetCluster = plantypes.TargetClusterType{Type: "name1"}
 		want.Spec.Outputs.Kubernetes.IgnoreUnsupportedKinds = true
 		loader := metadata.ClusterMDLoader{}
 		inputPath := "testdata/validfiles"
@@ -147,7 +144,7 @@ func TestUpdatePlan(t *testing.T) {
 		if err := loader.UpdatePlan(inputPath, &p); err != nil {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
-		if !reflect.DeepEqual(p, want) {
+		if !cmp.Equal(p, want) {
 			t.Fatalf("The updated plan is incorrect. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})

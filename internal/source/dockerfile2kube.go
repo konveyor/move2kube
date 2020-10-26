@@ -23,14 +23,13 @@ import (
 	"regexp"
 	"strings"
 
-	dockerparser "github.com/moby/buildkit/frontend/dockerfile/parser"
-	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	dockerparser "github.com/moby/buildkit/frontend/dockerfile/parser"
+	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // DockerfileTranslator implements Translator interface for using preexisting dockerfiles
@@ -38,85 +37,68 @@ type DockerfileTranslator struct {
 }
 
 // GetTranslatorType returns translator type
-func (c DockerfileTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
+func (dockerfileTranslator *DockerfileTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
 	return plantypes.Dockerfile2KubeTranslation
 }
 
 // GetServiceOptions - output a plan based on the input directory contents
-func (c DockerfileTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
+func (dockerfileTranslator *DockerfileTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
 	services := []plantypes.Service{}
 	sdfs, err := getDockerfileServices(inputPath, plan.Name)
 	if err != nil {
 		log.Errorf("Unable to get Dockerfiles : %s", err)
-	} else {
-		for sn, dfs := range sdfs {
-			ns := c.newService(sn)
-			ns.Image = sn + ":latest"
-			ns.ContainerizationTargetOptions = []string{}
-			relpath, err := plan.GetRelativePath(dfs[0].context)
-			if err != nil {
-				log.Warnf("Unable to get relative path of context %s : %s", dfs[0].context, err)
-			}
-			ns.AddBuildArtifact(plantypes.SourceDirectoryBuildArtifactType, relpath)
-			for _, df := range dfs {
-				p, err := plan.GetRelativePath(df.path)
-				if err != nil {
-					log.Warnf("Unable to get relative path of context %s : %s", df.path, err)
-				}
-				ns.AddSourceArtifact(plantypes.DockerfileArtifactType, p)
-				ns.ContainerizationTargetOptions = append(ns.ContainerizationTargetOptions, p)
-			}
-			if foundRepo, err := ns.GatherGitInfo(dfs[0].path, plan); foundRepo && err != nil {
-				log.Warnf("Error while parsing the git repo at path %q Error: %q", dfs[0].path, err)
-			}
-			services = append(services, ns)
-		}
+		return services, err
 	}
-	return services, err
+	for sn, dfs := range sdfs {
+		ns := dockerfileTranslator.newService(sn)
+		ns.Image = sn + ":latest"
+		relpath := dfs[0].context
+		ns.AddBuildArtifact(plantypes.SourceDirectoryBuildArtifactType, relpath)
+		for _, df := range dfs {
+			p := df.path
+			ns.AddSourceArtifact(plantypes.DockerfileArtifactType, p)
+			ns.ContainerizationTargetOptions = append(ns.ContainerizationTargetOptions, p)
+		}
+		if foundRepo, err := ns.GatherGitInfo(dfs[0].path, plan); foundRepo && err != nil {
+			log.Warnf("Error while parsing the git repo at path %q Error: %q", dfs[0].path, err)
+		}
+		services = append(services, ns)
+	}
+	return services, nil
 }
 
 // Translate translates artifacts to IR
-func (c DockerfileTranslator) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
+func (dockerfileTranslator *DockerfileTranslator) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
 	ir := irtypes.NewIR(p)
 	for _, service := range services {
-		if service.TranslationType == c.GetTranslatorType() {
-			log.Debugf("Translating %s", service.ServiceName)
-			if len(service.ContainerizationTargetOptions) == 0 {
-				log.Warnf("No target options for service %s. Ignoring service.", service.ServiceName)
-				continue
-			}
-			serviceConfig := irtypes.NewServiceFromPlanService(service)
-			c := containerizer.ReuseDockerfileContainerizer{}
-			dfp := p.GetFullPath(service.ContainerizationTargetOptions[0])
-			fp := filepath.Dir(dfp)
-			context := "."
-			if sc, ok := service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType]; ok {
-				if len(sc) > 0 {
-					curcontext, err := filepath.Rel(fp, p.GetFullPath(sc[0]))
-					if err == nil {
-						context = curcontext
-					}
-				}
-			}
-			con, err := c.GetContainer(fp, service.ServiceName, service.Image, filepath.Base(dfp), context)
-			con.RepoInfo = service.RepoInfo
-			con.RepoInfo.TargetPath = service.ContainerizationTargetOptions[0]
-			if err != nil {
-				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
-			} else {
-				ir.AddContainer(con)
-				serviceContainer := corev1.Container{Name: service.ServiceName}
-				serviceContainer.Image = service.Image
-				serviceConfig.Containers = []corev1.Container{serviceContainer}
-				ir.Services[service.ServiceName] = serviceConfig
-			}
+		if service.TranslationType != dockerfileTranslator.GetTranslatorType() {
+			continue
 		}
+		log.Debugf("Translating %s", service.ServiceName)
+		if len(service.ContainerizationTargetOptions) == 0 {
+			log.Warnf("No target options for service %s. Ignoring service.", service.ServiceName)
+			continue
+		}
+		con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(p, service)
+		if err != nil {
+			log.Warnf("Unable to get containization script even though build parameters are present. Error: %q", err)
+			continue
+		}
+		con.RepoInfo = service.RepoInfo
+		con.RepoInfo.TargetPath = service.ContainerizationTargetOptions[0]
+		ir.AddContainer(con)
+
+		irService := irtypes.NewServiceFromPlanService(service)
+		irService.Containers = []corev1.Container{
+			{Name: service.ServiceName, Image: service.Image},
+		}
+		ir.Services[service.ServiceName] = irService
 	}
 	return ir, nil
 }
 
-func (c DockerfileTranslator) newService(serviceName string) plantypes.Service {
-	service := plantypes.NewService(serviceName, c.GetTranslatorType())
+func (dockerfileTranslator *DockerfileTranslator) newService(serviceName string) plantypes.Service {
+	service := plantypes.NewService(serviceName, dockerfileTranslator.GetTranslatorType())
 	service.AddSourceType(plantypes.DirectorySourceTypeValue)
 	service.UpdateContainerBuildPipeline = true
 	service.UpdateDeployPipeline = true

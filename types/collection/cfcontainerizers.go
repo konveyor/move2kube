@@ -45,11 +45,10 @@ type BuildpackContainerizer struct {
 
 // NewCfContainerizers creates new CfContainerizers instance
 func NewCfContainerizers() CfContainerizers {
-	var cfcontainerizers = CfContainerizers{
+	return CfContainerizers{
 		TypeMeta: types.TypeMeta{
 			Kind:       string(CfContainerizersMetadataKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
 	}
-	return cfcontainerizers
 }

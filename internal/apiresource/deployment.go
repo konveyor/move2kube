@@ -170,20 +170,22 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 
 // GetNameAndPodSpec returns the name and podspec used by the deployment
 func (d *Deployment) GetNameAndPodSpec(obj runtime.Object) (name string, podSpec v1.PodSpec, err error) {
-	if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
+	switch d1 := obj.(type) {
+	case *okdappsv1.DeploymentConfig:
 		return d1.Name, d1.Spec.Template.Spec, nil
-	} else if d1, ok := obj.(*appsv1.Deployment); ok {
+	case *appsv1.Deployment:
 		return d1.Name, d1.Spec.Template.Spec, nil
-	} else if d1, ok := obj.(*corev1.ReplicationController); ok {
+	case *corev1.ReplicationController:
 		return d1.Name, d1.Spec.Template.Spec, nil
-	} else if d1, ok := obj.(*corev1.Pod); ok {
+	case *corev1.Pod:
 		return d1.Name, d1.Spec, nil
-	} else if d1, ok := obj.(*batchv1.Job); ok {
+	case *batchv1.Job:
 		return d1.Name, d1.Spec.Template.Spec, nil
-	} else if d1, ok := obj.(*appsv1.DaemonSet); ok {
+	case *appsv1.DaemonSet:
 		return d1.Name, d1.Spec.Template.Spec, nil
+	default:
+		return "", v1.PodSpec{}, fmt.Errorf("Incompatible object type")
 	}
-	return "", v1.PodSpec{}, fmt.Errorf("Incompatible object type")
 }
 
 // Create section

@@ -32,6 +32,7 @@ import (
 
 // IR is the intermediate representation
 type IR struct {
+	RootDir         string
 	Name            string
 	Services        map[string]Service
 	Storages        []Storage
@@ -201,6 +202,7 @@ func (c *Container) AddAccessedDirs(dirname string) {
 func NewIR(p plan.Plan) IR {
 	var ir IR
 	ir.Name = p.Name
+	ir.RootDir = p.Spec.Inputs.RootDir
 	ir.Kubernetes = p.Spec.Outputs.Kubernetes
 	ir.Containers = []Container{}
 	ir.Services = map[string]Service{}

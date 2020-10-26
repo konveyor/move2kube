@@ -52,6 +52,22 @@ var translateCmd = &cobra.Command{
 	Short: "Translate using move2kube plan",
 	Long:  "Translate artifacts using move2kube plan",
 	Run: func(cmd *cobra.Command, args []string) {
+		// Setup
+		var err error
+		planfile, err = filepath.Abs(planfile)
+		if err != nil {
+			log.Fatalf("Failed to make the plan file path %q absolute. Error: %q", planfile, err)
+		}
+		if srcpath != "" {
+			if srcpath, err = filepath.Abs(srcpath); err != nil {
+				log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
+			}
+		}
+		if outpath != "" {
+			if outpath, err = filepath.Abs(outpath); err != nil {
+				log.Fatalf("Failed to make the output directory path %q absolute. Error: %q", outpath, err)
+			}
+		}
 		// Global settings
 		common.IgnoreEnvironment = ignoreEnv
 		qaengine.StartEngine(qaskip, qaport, qadisablecli)
@@ -85,7 +101,6 @@ var translateCmd = &cobra.Command{
 			if err != nil {
 				log.Fatalf("Unable to read plan : %s", err)
 			}
-			p.Spec.Inputs.SetRootDir(p.Spec.Inputs.RootDir) // Since AbsRootDir and RelRootDir are not serialized. Also cleans up the user input path.
 			if cmd.Flags().Changed(nameFlag) {
 				p.Name = name
 			}
@@ -98,7 +113,9 @@ var translateCmd = &cobra.Command{
 			}
 		}
 		if srcpath != "" {
-			p.Spec.Inputs.SetRootDir(srcpath)
+			if err := move2kube.SetRootDir(&p, srcpath); err != nil {
+				log.Fatalf("Failed to set the root directory to %q Error: %q", srcpath, err)
+			}
 		}
 		fi, err = os.Stat(p.Spec.Inputs.RootDir)
 		if os.IsNotExist(err) {
@@ -108,10 +125,7 @@ var translateCmd = &cobra.Command{
 		} else if !fi.IsDir() {
 			log.Fatalf("Source path is a file, expected directory: %s.", p.Spec.Inputs.RootDir)
 		}
-		outpath = filepath.Clean(outpath)
-		if outpath == "." {
-			outpath = ""
-		}
+
 		outpath = filepath.Join(outpath, p.Name)
 		fi, err = os.Stat(outpath)
 		if os.IsNotExist(err) {
@@ -135,6 +149,11 @@ var translateCmd = &cobra.Command{
 }
 
 func init() {
+	must := func(err error) {
+		if err != nil {
+			panic(err)
+		}
+	}
 	viper.AutomaticEnv()
 
 	// Basic options
@@ -153,9 +172,9 @@ func init() {
 	translateCmd.Flags().BoolVar(&qaskip, qaskipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 	translateCmd.Flags().IntVar(&qaport, qaportFlag, 0, "Port for the QA service. By default it chooses a random free port.")
 
-	_ = translateCmd.Flags().MarkHidden(qadisablecliFlag)
-	_ = translateCmd.Flags().MarkHidden(qaskipFlag)
-	_ = translateCmd.Flags().MarkHidden(qaportFlag)
+	must(translateCmd.Flags().MarkHidden(qadisablecliFlag))
+	must(translateCmd.Flags().MarkHidden(qaskipFlag))
+	must(translateCmd.Flags().MarkHidden(qaportFlag))
 
 	rootCmd.AddCommand(translateCmd)
 }

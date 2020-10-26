@@ -17,8 +17,7 @@ limitations under the License.
 package apiresourceset
 
 import (
-	"reflect"
-
+	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -27,7 +26,7 @@ func intersection(objs1 []runtime.Object, objs2 []runtime.Object) []runtime.Obje
 	for _, obj1 := range objs1 {
 		found := false
 		for _, obj2 := range objs2 {
-			if reflect.DeepEqual(obj1, obj2) {
+			if cmp.Equal(obj1, obj2) {
 				found = true
 				break
 			}

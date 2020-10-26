@@ -33,6 +33,7 @@ import (
 
 // KnativeTransformer implements Transformer interface
 type KnativeTransformer struct {
+	RootDir                string
 	TransformedObjects     []runtime.Object
 	Containers             []irtypes.Container
 	Values                 outputtypes.HelmValues
@@ -52,6 +53,7 @@ func (kt *KnativeTransformer) Transform(ir irtypes.IR) error {
 	kt.TargetClusterSpec = ir.TargetClusterSpec
 	kt.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 	kt.TransformedObjects = (&apiresourceset.KnativeAPIResourceSet{}).CreateAPIResources(ir)
+	kt.RootDir = ir.RootDir
 
 	log.Debugf("Total transformed objects : %d", len(kt.TransformedObjects))
 
@@ -60,7 +62,7 @@ func (kt *KnativeTransformer) Transform(ir irtypes.IR) error {
 
 // WriteObjects writes Transformed objects to filesystem
 func (kt *KnativeTransformer) WriteObjects(outpath string) error {
-	areNewImagesCreated := writeContainers(outpath, kt.Containers, kt.Values.RegistryURL, kt.Values.RegistryNamespace)
+	areNewImagesCreated := writeContainers(kt.Containers, outpath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace)
 
 	artifactspath := filepath.Join(outpath, kt.Name)
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))

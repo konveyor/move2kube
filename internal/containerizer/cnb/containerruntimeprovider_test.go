@@ -17,7 +17,6 @@ limitations under the License.
 package cnb
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -46,7 +45,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 		if !provider.isBuilderAvailable(builder) {
 			t.Fatalf("Failed to find the builder %q locally and/or pull it.", builder)
 		}
-		if !reflect.DeepEqual(availableBuilders, want) {
+		if !cmp.Equal(availableBuilders, want) {
 			t.Fatalf("Failed to add the builder %q to the list of available builders. Difference:\n%s", builder, cmp.Diff(want, availableBuilders))
 		}
 		if !provider.isBuilderAvailable(builder) {

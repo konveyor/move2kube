@@ -24,17 +24,16 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
-
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer/scripts"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
-	dockerfileDetectscript string = types.AppNameShort + "dfdetect.sh"
+	dockerfileDetectScript string = types.AppNameShort + "dfdetect.sh"
 )
 
 // DockerfileContainerizer implements Containerizer interface
@@ -42,120 +41,123 @@ type DockerfileContainerizer struct {
 	dfcontainerizers []string //Paths to directories containing containerizers
 }
 
+// GetContainerBuildStrategy returns the ContaierBuildStrategy
+func (*DockerfileContainerizer) GetContainerBuildStrategy() plantypes.ContainerBuildTypeValue {
+	return plantypes.DockerFileContainerBuildTypeValue
+}
+
 // Init initializes docker file containerizer
 func (d *DockerfileContainerizer) Init(path string) {
-	var files, err = common.GetFilesByName(path, []string{dockerfileDetectscript})
+	files, err := common.GetFilesByName(path, []string{dockerfileDetectScript})
 	if err != nil {
 		log.Warnf("Unable to fetch files to recognize docker detect scripts : %s", err)
 	}
 	for _, file := range files {
-		fpath := filepath.Dir(file)
-		d.dfcontainerizers = append(d.dfcontainerizers, fpath)
+		d.dfcontainerizers = append(d.dfcontainerizers, filepath.Dir(file))
 	}
-	log.Debugf("Detected dockerfile containerization options : %s ", d.dfcontainerizers)
+	log.Debugf("Detected Dockerfile containerization options : %v", d.dfcontainerizers)
 }
 
 // GetTargetOptions returns the target options for a path
-func (d *DockerfileContainerizer) GetTargetOptions(plan plantypes.Plan, path string) []string {
+func (d *DockerfileContainerizer) GetTargetOptions(_ plantypes.Plan, path string) []string {
 	targetOptions := []string{}
 	for _, dfcontainerizer := range d.dfcontainerizers {
-		abspath, err := filepath.Abs(path)
+		output, err := d.detect(dfcontainerizer, path)
+		log.Debugf("Output of Dockerfile containerizer detect script %s : %s", dfcontainerizer, output)
 		if err != nil {
-			log.Errorf("Unable to resolve full path of directory %s : %s", abspath, err)
-		}
-		outputStr, err := d.detect(dfcontainerizer, abspath)
-		log.Debugf("Detect output of %s : %s", dfcontainerizer, outputStr)
-		if err != nil {
-			log.Debugf("%s detector cannot containerize %s : %s", dfcontainerizer, path, err)
+			log.Debugf("%s detector cannot containerize %s Error: %q", dfcontainerizer, path, err)
 			continue
-		} else {
-			if path != common.AssetsPath {
-				dfcontainerizer, _ = plan.GetRelativePath(dfcontainerizer)
-			}
-			targetOptions = append(targetOptions, dfcontainerizer)
 		}
+		targetOptions = append(targetOptions, dfcontainerizer)
 	}
 	return targetOptions
 }
 
-func (d *DockerfileContainerizer) detect(scriptpath string, directory string) (string, error) {
-	cmd := exec.Command("/bin/sh", dockerfileDetectscript, directory)
-	cmd.Dir = scriptpath
-	log.Debugf("Executing detect script %s on %s : %s", scriptpath, directory, cmd)
-	outputbytes, err := cmd.Output()
-	return string(outputbytes), err
-}
-
-// GetContainerBuildStrategy returns the ContaierBuildStrategy
-func (d *DockerfileContainerizer) GetContainerBuildStrategy() plantypes.ContainerBuildTypeValue {
-	return plantypes.DockerFileContainerBuildTypeValue
+func (*DockerfileContainerizer) detect(scriptDir string, directory string) (string, error) {
+	cmd := exec.Command("/bin/sh", dockerfileDetectScript, directory)
+	cmd.Dir = scriptDir
+	log.Debugf("Executing detect script %s on %s : %s", scriptDir, directory, cmd)
+	outputBytes, err := cmd.Output()
+	return string(outputBytes), err
 }
 
 // GetContainer returns the container for a service
 func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	// TODO: Fix exposed ports too
 	if service.ContainerBuildType != d.GetContainerBuildStrategy() || len(service.ContainerizationTargetOptions) == 0 {
-		return irtypes.Container{}, fmt.Errorf("Unsupported service type for Containerization or insufficient information in service")
+		return irtypes.Container{}, fmt.Errorf("Unsupported service type for containerization or insufficient information in service")
 	}
 	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
-	container.RepoInfo = service.RepoInfo
-	dfdirectory := plan.GetFullPath(service.ContainerizationTargetOptions[0])
-	content, err := ioutil.ReadFile(filepath.Join(dfdirectory, "Dockerfile"))
-	dockerfilename := "Dockerfile." + service.ServiceName
-	if err != nil {
-		log.Errorf("Unable to read docker file at %s : %s", dfdirectory, err)
-		return container, err
-	}
-	dockerfilestring := string(content)
-	abspath, err := filepath.Abs(plan.GetFullPath(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0]))
-	if err != nil {
-		log.Errorf("Unable to resolve full path of directory %q Error: %q", abspath, err)
-		return container, err
-	}
+	container.RepoInfo = service.RepoInfo // TODO: instead of passing this in from plan phase, we should gather git info here itself.
+	containerizerDir := service.ContainerizationTargetOptions[0]
 
-	outputStr, err := d.detect(dfdirectory, abspath)
+	// Create the Dockerfile.
+	dockerfileTemplatePath := filepath.Join(containerizerDir, "Dockerfile")
+	dockerfileTemplateBytes, err := ioutil.ReadFile(dockerfileTemplatePath)
 	if err != nil {
-		log.Errorf("Detect failed : %s", err)
+		log.Errorf("Unable to read the Dockerfile template at path %q Error: %q", dockerfileTemplatePath, err)
 		return container, err
 	}
-	if outputStr != "" {
+	dockerfileTemplate := string(dockerfileTemplateBytes)
+	sourceCodeDir := service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0] // TODO: what about the other source artifacts?
+
+	output, err := d.detect(containerizerDir, sourceCodeDir)
+	if err != nil {
+		log.Errorf("Detect using Dockerfile containerizer at path %q on the source code at path %q failed. Error: %q", containerizerDir, sourceCodeDir, err)
+		return container, err
+	}
+	log.Debugf("The Dockerfile containerizer at path %q produced the following output: %q", containerizerDir, output)
+
+	dockerfileContents := dockerfileTemplate
+	if output != "" {
 		m := map[string]interface{}{}
-		if err := json.Unmarshal([]byte(outputStr), &m); err != nil {
-			log.Errorf("Unable to unmarshal the output of the detect script at path %q. Output: %q Error: %q", dfdirectory, outputStr, err)
+		if err := json.Unmarshal([]byte(output), &m); err != nil {
+			log.Errorf("Unable to unmarshal the output of the detect script at path %q Output: %q Error: %q", containerizerDir, output, err)
 			return container, err
 		}
 
-		if value, present := m["Port"]; present {
-			portToExpose := int(value.(float64))
+		if value, ok := m["Port"]; ok {
+			portToExpose := int(value.(float64)) // Type assert to float64 because json numbers are floats.
 			container.ExposedPorts = append(container.ExposedPorts, portToExpose)
 		}
 
-		dockerfilestring, err = common.GetStringFromTemplate(string(content), m)
+		dockerfileContents, err = common.GetStringFromTemplate(dockerfileTemplate, m)
 		if err != nil {
 			log.Warnf("Template conversion failed : %s", err)
 		}
 	}
-	//log.Debugf("Creating Dockerfile at %s with %s", filepath.Join(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0], service.ServiceName+"Dockerfile"), dockerfilestring)
-	dockerfilePath := filepath.Join(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0], dockerfilename)
-	container.AddFile(dockerfilePath, dockerfilestring)
-	dockerbuildscript, err := common.GetStringFromTemplate(scripts.Dockerbuild_sh, struct {
+
+	relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, sourceCodeDir)
+	if err != nil {
+		log.Errorf("Failed to make the source code directory %q relative to the root directory %q Error: %q", sourceCodeDir, plan.Spec.Inputs.RootDir, err)
+		return container, err
+	}
+	dockerfileName := "Dockerfile." + service.ServiceName
+	dockerfilePath := filepath.Join(relOutputPath, dockerfileName)
+	container.AddFile(dockerfilePath, dockerfileContents)
+
+	// Create the docker build script.
+	dockerBuildScriptContents, err := common.GetStringFromTemplate(scripts.Dockerbuild_sh, struct {
 		Dockerfilename string
 		ImageName      string
 		Context        string
 	}{
-		Dockerfilename: dockerfilename,
+		Dockerfilename: dockerfileName,
 		ImageName:      service.Image,
 		Context:        ".",
 	})
 	if err != nil {
-		log.Warnf("Unable to translate template to string : %s", scripts.Dockerbuild_sh)
+		log.Errorf("Unable to translate Dockerfile template %s to string Error: %q", scripts.Dockerbuild_sh, err)
 	} else {
-		container.AddFile(filepath.Join(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0], service.ServiceName+"dockerbuild.sh"), dockerbuildscript)
+		dockerBuildScriptPath := filepath.Join(relOutputPath, service.ServiceName+"-docker-build.sh")
+		container.AddFile(dockerBuildScriptPath, dockerBuildScriptContents)
 		container.RepoInfo.TargetPath = dockerfilePath
 	}
-	err = filepath.Walk(dfdirectory, func(path string, info os.FileInfo, err error) error {
+
+	// Add any other files that are in the containerizer directory.
+	err = filepath.Walk(containerizerDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Warnf("Skipping path %s due to error: %s", path, err)
+			log.Warnf("Skipping path %s due to error. Error: %q", path, err)
 			return nil
 		}
 		// Skip directories
@@ -163,19 +165,19 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 			return nil
 		}
 		filename := filepath.Base(path)
-		if filename == "Dockerfile" || filename == dockerfileDetectscript {
+		if filename == "Dockerfile" || filename == dockerfileDetectScript {
 			return nil
 		}
-		content, err := ioutil.ReadFile(path)
+		contentBytes, err := ioutil.ReadFile(path)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("Failed to read the file at path %q Error: %q", path, err)
 		}
 		//TODO: Should we allow subdirectories?
-		container.AddFile(filepath.Join(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0], filename), string(content))
+		container.AddFile(filepath.Join(relOutputPath, filename), string(contentBytes))
 		return nil
 	})
 	if err != nil {
-		log.Warnf("Error in walking through files due to : %s", err)
+		log.Warnf("Error in walking through files at path %q Error: %q", containerizerDir, err)
 	}
 
 	return container, nil

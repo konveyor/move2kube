@@ -1,25 +1,32 @@
----
-- repoinfo:
-    gitrepodir: ""
-    gitrepourl: ""
-    gitrepobranch: ""
-    targetpath: ""
-  serviceName: java-maven
-  image: java-maven:latest
-  translationType: Any2Kube
-  containerBuildType: CNB
-  sourceType:
-    - Directory
-  targetOptions:
-    - cloudfoundry/cnb:cflinuxfs3
-    - gcr.io/buildpacks/builder
-  sourceArtifacts:
-    SourceCode:
-      - includeme/includeme/java-maven
-  buildArtifacts:
-    SourceCode:
-      - includeme/includeme/java-maven
-  updateContainerBuildPipeline: true
-  updateDeployPipeline: true
-  serviceRelPath: /java-maven
-...
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Plan
+metadata:
+  name: nodejs-app
+spec:
+  inputs:
+    rootDir: testdata/javamavenappwithm2kignorecase2
+    services:
+      java-maven:
+        - serviceName: java-maven
+          image: java-maven:latest
+          translationType: Any2Kube
+          containerBuildType: CNB
+          sourceType:
+            - Directory
+          targetOptions:
+            - cloudfoundry/cnb:cflinuxfs3
+            - gcr.io/buildpacks/builder
+          sourceArtifacts:
+            SourceCode:
+              - includeme/includeme/java-maven
+          buildArtifacts:
+            SourceCode:
+              - includeme/includeme/java-maven
+          updateContainerBuildPipeline: true
+          updateDeployPipeline: true
+          serviceRelPath: /java-maven
+  outputs:
+    kubernetes:
+      artifactType: Yamls
+      targetCluster:
+        type: Kubernetes

@@ -22,14 +22,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer"
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	"github.com/konveyor/move2kube/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // Any2KubeTranslator implements Translator interface for loading any source folder that can be containerized
@@ -37,120 +35,118 @@ type Any2KubeTranslator struct {
 }
 
 // GetTranslatorType returns translator type
-func (c Any2KubeTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
+func (*Any2KubeTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
 	return plantypes.Any2KubeTranslation
 }
 
 // GetServiceOptions - output a plan based on the input directory contents
-func (c Any2KubeTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
+func (any2KubeTranslator *Any2KubeTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
 	services := []plantypes.Service{}
 	containerizers := new(containerizer.Containerizers)
 	containerizers.InitContainerizers(inputPath)
 	preContainerizedSourcePaths := []string{}
-	for _, existingservices := range plan.Spec.Inputs.Services {
-		for _, existingservice := range existingservices {
-			if len(existingservice.SourceArtifacts[plantypes.SourceDirectoryArtifactType]) > 0 {
-				preContainerizedSourcePaths = append(preContainerizedSourcePaths, existingservice.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0])
+	for _, existingServices := range plan.Spec.Inputs.Services {
+		for _, existingService := range existingServices {
+			if len(existingService.SourceArtifacts[plantypes.SourceDirectoryArtifactType]) > 0 {
+				preContainerizedSourcePaths = append(preContainerizedSourcePaths, existingService.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0])
 			}
 		}
 	}
-	ignoreDirectories, ignoreContents := c.getIgnorePaths(inputPath)
-	err := filepath.Walk(inputPath, func(fullpath string, info os.FileInfo, err error) error {
+
+	ignoreDirectories, ignoreContents := any2KubeTranslator.getIgnorePaths(inputPath)
+
+	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Warnf("Skipping path %s due to error: %s", fullpath, err)
+			log.Warnf("Skipping path %q due to error. Error: %q", path, err)
 			return nil
 		}
-		if info.IsDir() {
-			path, _ := plan.GetRelativePath(fullpath)
-			if common.IsStringPresent(preContainerizedSourcePaths, path) {
-				return filepath.SkipDir //TODO: Should we go inside the directory in this case?
-			}
-			fullcleanpath, err := filepath.Abs(fullpath)
-			if err != nil {
-				log.Errorf("Unable to resolve full path of directory %s : %s", fullcleanpath, err)
-			}
-			if common.IsStringPresent(ignoreDirectories, fullcleanpath) {
-				if common.IsStringPresent(ignoreContents, fullcleanpath) {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			containerizationoptions := containerizers.GetContainerizationOptions(plan, fullpath)
-			if len(containerizationoptions) == 0 {
-				log.Debugf("No known containerization approach is supported for %s", fullpath)
-				if common.IsStringPresent(ignoreContents, fullcleanpath) {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-			for _, co := range containerizationoptions {
-				expandedPath, err := filepath.Abs(fullpath) // If fullpath is "." it will expand to the absolute path.
-				if err != nil {
-					log.Warnf("Failed to get the absolute path for %s", fullpath)
-					continue
-				}
-				service := c.newService(filepath.Base(expandedPath))
-				service.ContainerBuildType = co.ContainerizationType
-				service.ContainerizationTargetOptions = co.TargetOptions
-				if !common.IsStringPresent(service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType], path) {
-					service.SourceArtifacts[plantypes.SourceDirectoryArtifactType] = append(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType], path)
-					service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType] = append(service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType], path)
-				}
-				if foundRepo, err := service.GatherGitInfo(fullpath, plan); foundRepo && err != nil {
-					log.Warnf("Error while parsing the git repo at path %q Error: %q", fullpath, err)
-				}
-				services = append(services, service)
-			}
-			//return nil
-			return filepath.SkipDir // Skipping all subdirectories when base directory is a valid package
+		if !info.IsDir() {
+			return nil
 		}
-		return nil
+		if common.IsStringPresent(preContainerizedSourcePaths, path) {
+			return filepath.SkipDir //TODO: Should we go inside the directory in this case?
+		}
+		if common.IsStringPresent(ignoreDirectories, path) {
+			if common.IsStringPresent(ignoreContents, path) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		containerizationOptions := containerizers.GetContainerizationOptions(plan, path)
+		if len(containerizationOptions) == 0 {
+			log.Debugf("No known containerization approach is supported for directory %q", path)
+			if common.IsStringPresent(ignoreContents, path) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		for _, containerizationOption := range containerizationOptions {
+			serviceName := filepath.Base(path)
+			service := any2KubeTranslator.newService(serviceName)
+			service.ContainerBuildType = containerizationOption.ContainerizationType
+			service.ContainerizationTargetOptions = containerizationOption.TargetOptions
+			if !common.IsStringPresent(service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType], path) {
+				service.SourceArtifacts[plantypes.SourceDirectoryArtifactType] = append(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType], path)
+				service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType] = append(service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType], path)
+			}
+			if foundRepo, err := service.GatherGitInfo(path, plan); foundRepo && err != nil {
+				log.Warnf("Error while parsing the git repo at path %q Error: %q", path, err)
+			}
+			services = append(services, service)
+		}
+		return filepath.SkipDir // Skip all subdirectories when base directory is a valid package
 	})
+
+	if err != nil {
+		log.Errorf("Error occurred while walking through the directory at path %q Error: %q", inputPath, err)
+	}
+
 	return services, err
 }
 
 // Translate translates artifacts to IR
-func (c Any2KubeTranslator) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
-	ir := irtypes.NewIR(p)
+func (any2KubeTranslator *Any2KubeTranslator) Translate(services []plantypes.Service, plan plantypes.Plan) (irtypes.IR, error) {
+	ir := irtypes.NewIR(plan)
 	containerizers := new(containerizer.Containerizers)
-	containerizers.InitContainerizers(p.Spec.Inputs.RootDir)
+	containerizers.InitContainerizers(plan.Spec.Inputs.RootDir)
 	for _, service := range services {
-		if service.TranslationType != c.GetTranslatorType() {
+		if service.TranslationType != any2KubeTranslator.GetTranslatorType() {
 			continue
 		}
 		log.Debugf("Translating %s", service.ServiceName)
-		serviceConfig := irtypes.NewServiceFromPlanService(service)
-		container, err := containerizers.GetContainer(p, service)
+		container, err := containerizers.GetContainer(plan, service)
 		if err != nil {
-			log.Errorf("Unable to translate service %s : %s", service.ServiceName, err)
+			log.Errorf("Unable to translate service %s Error: %q", service.ServiceName, err)
 			continue
 		}
 		ir.AddContainer(container)
 		serviceContainer := corev1.Container{Name: service.ServiceName}
 		serviceContainer.Image = service.Image
-		serviceConfig.Containers = []corev1.Container{serviceContainer}
-		ir.Services[service.ServiceName] = serviceConfig
+		irService := irtypes.NewServiceFromPlanService(service)
+		irService.Containers = []corev1.Container{serviceContainer}
+		ir.Services[service.ServiceName] = irService
 	}
 	return ir, nil
 }
 
-func (c Any2KubeTranslator) newService(serviceName string) plantypes.Service {
-	service := plantypes.NewService(serviceName, c.GetTranslatorType())
+func (any2KubeTranslator *Any2KubeTranslator) newService(serviceName string) plantypes.Service {
+	service := plantypes.NewService(serviceName, any2KubeTranslator.GetTranslatorType())
 	service.AddSourceType(plantypes.DirectorySourceTypeValue)
 	service.UpdateContainerBuildPipeline = true
 	service.UpdateDeployPipeline = true
 	return service
 }
 
-func (c Any2KubeTranslator) getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContents []string) {
-	ignorefiles, err := common.GetFilesByName(inputPath, []string{"." + types.AppNameShort + "ignore"})
+func (*Any2KubeTranslator) getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContents []string) {
+	filePaths, err := common.GetFilesByName(inputPath, []string{common.IgnoreFilename})
 	if err != nil {
-		log.Warnf("Unable to fetch files to recognize ignore files : %s", err)
+		log.Warnf("Unable to fetch .m2kignore files at path %q Error: %q", inputPath, err)
+		return ignoreDirectories, ignoreContents
 	}
-	for _, ignorefile := range ignorefiles {
-		file, err := os.Open(ignorefile)
+	for _, filePath := range filePaths {
+		file, err := os.Open(filePath)
 		if err != nil {
-			log.Warnf("Failed opening ignore file: %s", err)
+			log.Warnf("Failed to open the .m2kignore file at path %q Error: %q", filePath, err)
 			continue
 		}
 		defer file.Close()
@@ -162,16 +158,10 @@ func (c Any2KubeTranslator) getIgnorePaths(inputPath string) (ignoreDirectories 
 			line := strings.TrimSpace(scanner.Text())
 			if strings.HasSuffix(line, "*") {
 				line = strings.TrimSuffix(line, "*")
-				path, err := filepath.Abs(filepath.Join(filepath.Dir(ignorefile), line))
-				if err != nil {
-					log.Errorf("Unable to resolve full path of directory %s : %s", path, err)
-				}
+				path := filepath.Join(filepath.Dir(filePath), line)
 				ignoreContents = append(ignoreContents, path)
 			} else {
-				path, err := filepath.Abs(filepath.Join(filepath.Dir(ignorefile), line))
-				if err != nil {
-					log.Errorf("Unable to resolve full path of directory %s : %s", path, err)
-				}
+				path := filepath.Join(filepath.Dir(filePath), line)
 				ignoreDirectories = append(ignoreDirectories, path)
 			}
 		}

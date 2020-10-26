@@ -21,25 +21,23 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
-
 	"github.com/docker/cli/cli/compose/loader"
 	"github.com/docker/cli/cli/compose/types"
 	libcomposeyaml "github.com/docker/libcompose/yaml"
+	"github.com/google/go-cmp/cmp"
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/containerizer"
+	irtypes "github.com/konveyor/move2kube/internal/types"
+	plantypes "github.com/konveyor/move2kube/types/plan"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-
-	"github.com/konveyor/move2kube/internal/containerizer"
-
-	"github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
 )
 
 // V3Loader loads a v3 compose file
@@ -47,7 +45,8 @@ type V3Loader struct {
 }
 
 // ConvertToIR loads an v3 compose file into IR
-func (c *V3Loader) ConvertToIR(composefilepath string, serviceName string) (irtypes.IR, error) {
+func (c *V3Loader) ConvertToIR(composefilepath string, plan plantypes.Plan, service plantypes.Service) (irtypes.IR, error) {
+	serviceName := service.ServiceName
 	loadedFile, err := ioutil.ReadFile(composefilepath)
 	if err != nil {
 		log.Warnf("Unable to load Compose file : %s", err)
@@ -114,7 +113,7 @@ func (c *V3Loader) ConvertToIR(composefilepath string, serviceName string) (irty
 	}
 
 	log.Debugf("About to start loading docker compose to intermediate rep")
-	ir, err := c.convertToIR(workingDir, *config)
+	ir, err := c.convertToIR(workingDir, *config, plan, service)
 	if err != nil {
 		return irtypes.IR{}, err
 	}
@@ -122,7 +121,7 @@ func (c *V3Loader) ConvertToIR(composefilepath string, serviceName string) (irty
 	return ir, nil
 }
 
-func (c *V3Loader) convertToIR(filedir string, composeObject types.Config) (irtypes.IR, error) {
+func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan plantypes.Plan, service plantypes.Service) (irtypes.IR, error) {
 	ir := irtypes.IR{
 		Services: map[string]irtypes.Service{},
 	}
@@ -144,8 +143,8 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config) (irty
 		}
 		if composeServiceConfig.Build.Dockerfile != "" && composeServiceConfig.Build.Context != "" {
 			//TODO: Add support for args and labels
-			c := containerizer.ReuseDockerfileContainerizer{}
-			con, err := c.GetContainer(filedir, name, serviceContainer.Image, composeServiceConfig.Build.Dockerfile, composeServiceConfig.Build.Context)
+			// filedir, name, serviceContainer.Image, composeServiceConfig.Build.Dockerfile, composeServiceConfig.Build.Context
+			con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
 			if err != nil {
 				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
 			} else {
@@ -210,7 +209,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config) (irty
 			serviceContainer.SecurityContext = securityContext
 		}
 		podSecurityContext := &corev1.PodSecurityContext{}
-		if !reflect.DeepEqual(*podSecurityContext, corev1.PodSecurityContext{}) {
+		if !cmp.Equal(*podSecurityContext, corev1.PodSecurityContext{}) {
 			serviceConfig.SecurityContext = podSecurityContext
 		}
 

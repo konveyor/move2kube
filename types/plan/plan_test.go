@@ -17,13 +17,10 @@ limitations under the License.
 package plan_test
 
 import (
-	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types/plan"
 )
 
@@ -38,7 +35,7 @@ func TestMerge(t *testing.T) {
 		}
 	})
 	t.Run("merge artifact type and ignore supported kinds from new k8s output into filled k8s output", func(t *testing.T) {
-		out1 := plan.KubernetesOutput{"111", "222", "333", "444", false}
+		out1 := plan.KubernetesOutput{"111", "222", "333", plan.TargetClusterType{Type: "444"}, false}
 		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true}
 		want := out1
 		want.ArtifactType = "type1"
@@ -49,7 +46,7 @@ func TestMerge(t *testing.T) {
 		}
 	})
 	t.Run("merge registry url from new k8s output into filled k8s output", func(t *testing.T) {
-		out1 := plan.KubernetesOutput{"111", "222", "333", "444", false}
+		out1 := plan.KubernetesOutput{"111", "222", "333", plan.TargetClusterType{Type: "444"}, false}
 		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true, RegistryURL: "url1"}
 		want := out1
 		want.ArtifactType = "type1"
@@ -61,7 +58,7 @@ func TestMerge(t *testing.T) {
 		}
 	})
 	t.Run("merge registry namespace from new k8s output into filled k8s output", func(t *testing.T) {
-		out1 := plan.KubernetesOutput{"111", "222", "333", "444", false}
+		out1 := plan.KubernetesOutput{"111", "222", "333", plan.TargetClusterType{Type: "444"}, false}
 		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true, RegistryNamespace: "namespace1"}
 		want := out1
 		want.ArtifactType = "type1"
@@ -73,7 +70,7 @@ func TestMerge(t *testing.T) {
 		}
 	})
 	t.Run("merge image pull secret from new k8s output into filled k8s output", func(t *testing.T) {
-		out1 := plan.KubernetesOutput{"111", "222", "333", "444", false}
+		out1 := plan.KubernetesOutput{"111", "222", "333", plan.TargetClusterType{Type: "444"}, false}
 		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true}
 		want := out1
 		want.ArtifactType = "type1"
@@ -84,12 +81,12 @@ func TestMerge(t *testing.T) {
 		}
 	})
 	t.Run("merge cluster type from new k8s output into filled k8s output", func(t *testing.T) {
-		out1 := plan.KubernetesOutput{"111", "222", "333", "444", false}
-		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true, ClusterType: "clus_type1"}
+		out1 := plan.KubernetesOutput{"111", "222", "333", plan.TargetClusterType{Type: "444"}, false}
+		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true, TargetCluster: plan.TargetClusterType{Type: "clus_type1"}}
 		want := out1
 		want.ArtifactType = "type1"
 		want.IgnoreUnsupportedKinds = true
-		want.ClusterType = "clus_type1"
+		want.TargetCluster = plan.TargetClusterType{Type: "clus_type1"}
 		out1.Merge(out2)
 		if out1 != want {
 			t.Fatal("Failed to merge the fields properly. Expected:", want, "Actual:", out1)
@@ -184,93 +181,6 @@ func TestAddSourceType(t *testing.T) {
 	}
 }
 
-func TestGetFullPath(t *testing.T) {
-	tempPath := common.TempPath
-	assetsDir := common.AssetsDir
-	assetsPath := common.AssetsPath
-	root := "tests/getfullpath/root"
-	if root == assetsPath {
-		root += "1234"
-	}
-	j := filepath.Join
-	// Assuming paths don't need to be cleaned since GetFullPath is an internal functions.
-	// Paths should be cleaned when first taken as input.
-	var testcases = []struct{ in, out string }{
-		{j("foo"), j(root, "foo")},
-		{j("foo", "bar"), j(root, "foo", "bar")},
-		{j("foo", assetsPath, "bar"), j(root, "foo", assetsPath, "bar")},
-		{j(tempPath, assetsDir, "foo"), j(root, tempPath, assetsDir, "foo")},
-		{j(assetsDir, "foo"), j(tempPath, assetsDir, "foo")},
-		{j(assetsDir, "foo", "bar"), j(tempPath, assetsDir, "foo", "bar")},
-	}
-
-	p := plan.NewPlan()
-	p.Spec.Inputs.RootDir = root
-	for _, testcase := range testcases {
-		if res := p.GetFullPath(testcase.in); res != testcase.out {
-			t.Error("Input:", testcase.in, "Expected:", testcase.out, "Actual:", res)
-		}
-	}
-}
-
-func TestGetRelativePath(t *testing.T) {
-	assetsPath := common.AssetsPath
-	assetsDir := common.AssetsDir
-	root := "this/is/the/path/to/the/source/directory"
-	j := filepath.Join
-	/*
-		// Since the result is a relative path it will contain ../ in cases like the one shown below:
-		root := "foo/bar"
-		input := "foo/abc"
-		GetRelativePath(input) == "../abc"
-	*/
-
-	// Start setup to test when the path is absolute
-	absPathTestInput := t.TempDir()
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatal("Failed to get the current working directory. Error:", err)
-	}
-	wdroot := j(wd, root)
-	absPathTestOutput, err := filepath.Rel(wdroot, absPathTestInput)
-	if err != nil {
-		t.Fatalf("Failed to get make the path %q relative to the source directory %q. Error: %q", absPathTestInput, wdroot, err)
-	}
-	// End setup to test when the path is absolute
-
-	var testcases = []struct {
-		in   string
-		out  string
-		fail bool
-	}{
-		{j(root, "foo"), j("foo"), false},
-		{j(root, "foo", "bar"), j("foo", "bar"), false},
-		{j(root, "foo", assetsDir, "bar"), j("foo", assetsDir, "bar"), false},
-		{j(assetsPath, "foo"), j(assetsDir, "foo"), false},
-		{j(assetsPath, "foo", "bar"), j(assetsDir, "foo", "bar"), false},
-		{absPathTestInput, absPathTestOutput, false},
-	}
-
-	p := plan.NewPlan()
-	if err := p.Spec.Inputs.SetRootDir(root); err != nil {
-		t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", root, err)
-	}
-	for _, testcase := range testcases {
-		res, err := p.GetRelativePath(testcase.in)
-		if testcase.fail {
-			if err == nil {
-				t.Error("Input:", testcase.in, "Expected testcase to fail. Actual:", res, err)
-			}
-		} else {
-			if err != nil {
-				t.Error("Input:", testcase.in, "Expected testcase to succeed. Actual:", res, err)
-			} else if res != testcase.out {
-				t.Error("Input:", testcase.in, "Expected:", testcase.out, "Actual:", res, err)
-			}
-		}
-	}
-}
-
 func TestAddServicesToPlan(t *testing.T) {
 	t.Run("add all services to empty plan", func(t *testing.T) {
 		// Setup
@@ -312,7 +222,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		want.Spec.Inputs.Services["333"] = []plan.Service{plan.NewService("333", "333"), plan.NewService("333", "444")}
 		// Test
 		p.AddServicesToPlan(services)
-		if !reflect.DeepEqual(want, p) {
+		if !cmp.Equal(want, p) {
 			t.Fatalf("The new services didn't get merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
@@ -341,7 +251,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		want.Spec.Inputs.Services[svc1.ServiceName] = []plan.Service{svc1, svc2}
 		// Test
 		p.AddServicesToPlan(services)
-		if !reflect.DeepEqual(want, p) {
+		if !cmp.Equal(want, p) {
 			t.Fatalf("The new services didn't get added and merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
@@ -363,7 +273,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		// Test
 		p.AddServicesToPlan(services)
 		p.AddServicesToPlan(services)
-		if !reflect.DeepEqual(want, p) {
+		if !cmp.Equal(want, p) {
 			t.Fatalf("The new services didn't get merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
@@ -385,7 +295,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		// Test
 		p.AddServicesToPlan(services)
 		p.AddServicesToPlan(services)
-		if !reflect.DeepEqual(want, p) {
+		if !cmp.Equal(want, p) {
 			t.Fatalf("The new services didn't get merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
@@ -409,7 +319,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		// Test
 		p.AddServicesToPlan(services)
 		p.AddServicesToPlan(services)
-		if !reflect.DeepEqual(want, p) {
+		if !cmp.Equal(want, p) {
 			t.Fatalf("The new services didn't get merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
@@ -433,7 +343,7 @@ func TestAddServicesToPlan(t *testing.T) {
 		// Test
 		p.AddServicesToPlan(services)
 		p.AddServicesToPlan(services)
-		if !reflect.DeepEqual(want, p) {
+		if !cmp.Equal(want, p) {
 			t.Fatalf("The new services didn't get merged into existing services properly. Difference:\n%s:", cmp.Diff(want, p))
 		}
 	})
