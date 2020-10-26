@@ -19,12 +19,10 @@ package plan
 import (
 	"os"
 	"path/filepath"
-	"strings"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types"
+	log "github.com/sirupsen/logrus"
 )
 
 // SourceTypeValue defines the type of source
@@ -155,8 +153,15 @@ type KubernetesOutput struct {
 	RegistryURL            string                  `yaml:"registryURL,omitempty"`
 	RegistryNamespace      string                  `yaml:"registryNamespace,omitempty"`
 	ArtifactType           TargetArtifactTypeValue `yaml:"artifactType"`
-	ClusterType            string                  `yaml:"clusterType,omitempty"`
+	TargetCluster          TargetClusterType       `yaml:"targetCluster,omitempty"`
 	IgnoreUnsupportedKinds bool                    `yaml:"ignoreUnsupportedKinds,omitempty"`
+}
+
+// TargetClusterType contains either the type of the target cluster or path to a file containing the target cluster metadata.
+// Specify one or the other, not both.
+type TargetClusterType struct {
+	Type string `yaml:"type,omitempty"`
+	Path string `yaml:"path,omitempty" m2kpath:"normal"`
 }
 
 // Merge allows merge of two Kubernetes Outputs
@@ -170,60 +175,27 @@ func (output *KubernetesOutput) Merge(newoutput KubernetesOutput) {
 		}
 		output.ArtifactType = newoutput.ArtifactType
 		output.IgnoreUnsupportedKinds = newoutput.IgnoreUnsupportedKinds
-		if newoutput.ClusterType != "" {
-			output.ClusterType = newoutput.ClusterType
+		if newoutput.TargetCluster.Type != "" {
+			output.TargetCluster = newoutput.TargetCluster
 		}
 	}
 }
 
 // Inputs defines the input section of plan
 type Inputs struct {
-	AbsRootDir          string                                   `yaml:"-"`
-	RelRootDir          string                                   `yaml:"-"`
 	RootDir             string                                   `yaml:"rootDir"`
-	K8sFiles            []string                                 `yaml:"kubernetesYamls,omitempty"`
-	QACaches            []string                                 `yaml:"qaCaches,omitempty"`
-	Services            map[string][]Service                     `yaml:"services"`                      // [serviceName][Services]
-	TargetInfoArtifacts map[TargetInfoArtifactTypeValue][]string `yaml:"targetInfoArtifacts,omitempty"` //[targetinfoartifacttype][List of artifacts]
-}
-
-// SetRootDir sets the path to the source directory in the plan.Spec.Inputs
-func (inputs *Inputs) SetRootDir(path string) error {
-	path = filepath.Clean(path)
-	inputs.RootDir = path
-
-	if filepath.IsAbs(path) {
-		inputs.AbsRootDir = path
-		currDir, err := os.Getwd()
-		if err != nil {
-			log.Errorf("Failed to get the current working directory. Error %q", err)
-			return err
-		}
-		relPath, err := filepath.Rel(currDir, path)
-		if err != nil {
-			log.Errorf("Failed to make the source directory %q relative to the current working directory %q Error %q", path, currDir, err)
-			return err
-		}
-		inputs.RelRootDir = relPath
-	} else {
-		inputs.RelRootDir = path
-		absPath, err := filepath.Abs(path)
-		if err != nil {
-			log.Errorf("Failed to get the absolute path for the source directory %q Error %q", path, err)
-			return err
-		}
-		inputs.AbsRootDir = absPath
-	}
-
-	return nil
+	K8sFiles            []string                                 `yaml:"kubernetesYamls,omitempty" m2kpath:"normal"`
+	QACaches            []string                                 `yaml:"qaCaches,omitempty" m2kpath:"normal"`
+	Services            map[string][]Service                     `yaml:"services"`                                       // [serviceName][Services]
+	TargetInfoArtifacts map[TargetInfoArtifactTypeValue][]string `yaml:"targetInfoArtifacts,omitempty" m2kpath:"normal"` //[targetinfoartifacttype][List of artifacts]
 }
 
 // RepoInfo contains information specific to creating the CI/CD pipeline.
 type RepoInfo struct {
-	GitRepoDir    string `yaml:"gitRepoDir"`
+	GitRepoDir    string `yaml:"gitRepoDir" m2kpath:"normal"`
 	GitRepoURL    string `yaml:"gitRepoURL"`
 	GitRepoBranch string `yaml:"gitRepoBranch"`
-	TargetPath    string `yaml:"targetPath"`
+	TargetPath    string `yaml:"targetPath" m2kpath:"normal"`
 }
 
 // Service defines a plan service
@@ -234,12 +206,27 @@ type Service struct {
 	TranslationType               TranslationTypeValue                 `yaml:"translationType"`
 	ContainerBuildType            ContainerBuildTypeValue              `yaml:"containerBuildType"`
 	SourceTypes                   []SourceTypeValue                    `yaml:"sourceType"`
-	ContainerizationTargetOptions []string                             `yaml:"targetOptions,omitempty"`
-	SourceArtifacts               map[SourceArtifactTypeValue][]string `yaml:"sourceArtifacts"`          //[translationartifacttype][List of artifacts]
-	BuildArtifacts                map[BuildArtifactTypeValue][]string  `yaml:"buildArtifacts,omitempty"` //[buildartifacttype][List of artifacts]
+	ContainerizationTargetOptions []string                             `yaml:"targetOptions,omitempty" m2kpath:"if:ContainerBuildType:in:NewDockerfile,ReuseDockerfile,S2I"`
+	SourceArtifacts               map[SourceArtifactTypeValue][]string `yaml:"sourceArtifacts" m2kpath:"keys:Kubernetes,Knative,DockerCompose,CfManifest,CfRunningManifest,SourceCode,Dockerfile"` //[translationartifacttype][List of artifacts]
+	BuildArtifacts                map[BuildArtifactTypeValue][]string  `yaml:"buildArtifacts,omitempty" m2kpath:"normal"`                                                                          //[buildartifacttype][List of artifacts]
 	UpdateContainerBuildPipeline  bool                                 `yaml:"updateContainerBuildPipeline"`
 	UpdateDeployPipeline          bool                                 `yaml:"updateDeployPipeline"`
 	RepoInfo                      RepoInfo                             `yaml:"repoInfo,omitempty"`
+}
+
+// NewService creates a new service
+func NewService(serviceName string, translationtype TranslationTypeValue) Service {
+	return Service{
+		ServiceName:                   serviceName,
+		ServiceRelPath:                "/" + serviceName,
+		Image:                         serviceName + ":latest",
+		TranslationType:               translationtype,
+		ContainerBuildType:            ReuseContainerBuildTypeValue,
+		SourceTypes:                   []SourceTypeValue{},
+		ContainerizationTargetOptions: []string{},
+		SourceArtifacts:               map[SourceArtifactTypeValue][]string{},
+		BuildArtifacts:                map[BuildArtifactTypeValue][]string{},
+	}
 }
 
 // GatherGitInfo tries to find the git repo for the path if one exists.
@@ -280,13 +267,7 @@ func (service *Service) GatherGitInfo(path string, plan Plan) (bool, error) {
 		service.RepoInfo.GitRepoURL = remoteURLs[0]
 	}
 
-	relRepoDir, err := plan.GetRelativePath(repoDir)
-	if err != nil {
-		log.Errorf("Failed to make the path to the repo directory %q relative to plan root directory %q Error %q", repoDir, plan.Spec.Inputs.AbsRootDir, err)
-		return true, err
-	}
-
-	service.RepoInfo.GitRepoDir = relRepoDir
+	service.RepoInfo.GitRepoDir = repoDir
 	return true, nil
 }
 
@@ -396,45 +377,22 @@ func (service *Service) addTargetOptions(sts []string) {
 	}
 }
 
-// GetFullPath returns the full path with rootdir, unless the directory is in assets path
-func (p Plan) GetFullPath(path string) string {
-	if strings.HasPrefix(path, common.AssetsDir) {
-		return filepath.Join(common.TempPath, path)
-	}
-	return filepath.Join(p.Spec.Inputs.RootDir, path)
-}
-
-// GetRelativePath returns the relative path with respect to the rootdir, unless the directory is in assets path
-func (p Plan) GetRelativePath(path string) (string, error) {
-	// Special case for files inside m2kassets directory
-	if strings.HasPrefix(path, common.TempPath) {
-		return filepath.Rel(common.TempPath, path)
-	}
-
-	// Common use case
-	if filepath.IsAbs(path) {
-		return filepath.Rel(p.Spec.Inputs.AbsRootDir, path)
-	}
-
-	return filepath.Rel(p.Spec.Inputs.RelRootDir, path)
-}
-
 // AddServicesToPlan adds a list of services to a plan
-func (p *Plan) AddServicesToPlan(services []Service) {
+func (plan *Plan) AddServicesToPlan(services []Service) {
 	for _, service := range services {
-		if _, ok := p.Spec.Inputs.Services[service.ServiceName]; !ok {
-			p.Spec.Inputs.Services[service.ServiceName] = []Service{}
+		if _, ok := plan.Spec.Inputs.Services[service.ServiceName]; !ok {
+			plan.Spec.Inputs.Services[service.ServiceName] = []Service{}
 			log.Debugf("Added new service to plan : %s", service.ServiceName)
 		}
 		merged := false
-		existingServices := p.Spec.Inputs.Services[service.ServiceName]
+		existingServices := plan.Spec.Inputs.Services[service.ServiceName]
 		for i := range existingServices {
 			if existingServices[i].merge(service) {
 				merged = true
 			}
 		}
 		if !merged {
-			p.Spec.Inputs.Services[service.ServiceName] = append(p.Spec.Inputs.Services[service.ServiceName], service)
+			plan.Spec.Inputs.Services[service.ServiceName] = append(plan.Spec.Inputs.Services[service.ServiceName], service)
 		}
 	}
 }
@@ -458,27 +416,11 @@ func NewPlan() Plan {
 			Outputs: Outputs{
 				Kubernetes: KubernetesOutput{
 					ArtifactType:           Yamls,
-					ClusterType:            common.DefaultClusterType,
+					TargetCluster:          TargetClusterType{Type: common.DefaultClusterType},
 					IgnoreUnsupportedKinds: false,
 				},
 			},
 		},
 	}
 	return plan
-}
-
-// NewService creates a new service
-func NewService(servicename string, translationtype TranslationTypeValue) Service {
-	var service Service
-	service.ServiceName = servicename
-	service.Image = servicename + ":latest"
-	service.TranslationType = translationtype
-	service.SourceTypes = []SourceTypeValue{}
-	service.ContainerBuildType = ReuseContainerBuildTypeValue
-	service.BuildArtifacts = map[BuildArtifactTypeValue][]string{}
-	service.SourceArtifacts = map[SourceArtifactTypeValue][]string{}
-	service.UpdateDeployPipeline = false
-	service.UpdateContainerBuildPipeline = false
-	service.ServiceRelPath = "/" + servicename
-	return service
 }

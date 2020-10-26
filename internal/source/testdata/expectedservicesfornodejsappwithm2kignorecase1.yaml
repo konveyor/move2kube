@@ -1,25 +1,32 @@
----
-- repoinfo:
-    gitrepodir: ""
-    gitrepourl: ""
-    gitrepobranch: ""
-    targetpath: ""
-  serviceName: includeme
-  image: includeme:latest
-  translationType: Any2Kube
-  containerBuildType: CNB
-  sourceType:
-    - Directory
-  targetOptions:
-    - cloudfoundry/cnb:cflinuxfs3
-    - gcr.io/buildpacks/builder
-  sourceArtifacts:
-    SourceCode:
-      - excludeme/includeme
-  buildArtifacts:
-    SourceCode:
-      - excludeme/includeme
-  updateContainerBuildPipeline: true
-  updateDeployPipeline: true
-  serviceRelPath: /includeme
-...
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Plan
+metadata:
+  name: nodejs-app
+spec:
+  inputs:
+    rootDir: testdata/nodejsappwithm2kignorecase1
+    services:
+      includeme:
+        - serviceName: includeme
+          image: includeme:latest
+          translationType: Any2Kube
+          containerBuildType: CNB
+          sourceType:
+            - Directory
+          targetOptions:
+            - cloudfoundry/cnb:cflinuxfs3
+            - gcr.io/buildpacks/builder
+          sourceArtifacts:
+            SourceCode:
+              - excludeme/includeme
+          buildArtifacts:
+            SourceCode:
+              - excludeme/includeme
+          updateContainerBuildPipeline: true
+          updateDeployPipeline: true
+          serviceRelPath: /includeme
+  outputs:
+    kubernetes:
+      artifactType: Yamls
+      targetCluster:
+        type: Kubernetes

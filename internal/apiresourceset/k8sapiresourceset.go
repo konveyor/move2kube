@@ -19,31 +19,30 @@ package apiresourceset
 import (
 	"io/ioutil"
 
-	log "github.com/sirupsen/logrus"
-
-	okdapi "github.com/openshift/api"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	k8sapischeme "k8s.io/client-go/kubernetes/scheme"
-
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	okdapi "github.com/openshift/api"
+	log "github.com/sirupsen/logrus"
 	tektonscheme "github.com/tektoncd/pipeline/pkg/client/clientset/versioned/scheme"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	k8sapischeme "k8s.io/client-go/kubernetes/scheme"
 )
 
 // K8sAPIResourceSet for handling K8s related resources
 type K8sAPIResourceSet struct {
 }
 
-// GetScheme returns K8s scheme
-func (k *K8sAPIResourceSet) GetScheme() *runtime.Scheme {
-	must := func(err error) {
-		if err != nil {
-			panic(err)
-		}
+func must(err error) {
+	if err != nil {
+		panic(err)
 	}
+}
+
+// GetScheme returns K8s scheme
+func (*K8sAPIResourceSet) GetScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	must(okdapi.Install(scheme))
 	must(okdapi.InstallKube(scheme))
@@ -52,88 +51,95 @@ func (k *K8sAPIResourceSet) GetScheme() *runtime.Scheme {
 	return scheme
 }
 
-func (k *K8sAPIResourceSet) getAPIResources(ir irtypes.IR) []apiresource.APIResource {
-	apiresources := []apiresource.APIResource{{IAPIResource: &apiresource.Deployment{ClusterSpec: ir.TargetClusterSpec}}, {IAPIResource: &apiresource.Storage{Cluster: ir.TargetClusterSpec}}, {IAPIResource: &apiresource.Service{Cluster: ir.TargetClusterSpec}}, {IAPIResource: &apiresource.ImageStream{Cluster: ir.TargetClusterSpec}}, {IAPIResource: &apiresource.NetworkPolicy{Cluster: ir.TargetClusterSpec}}}
+func (*K8sAPIResourceSet) getAPIResources(ir irtypes.IR) []apiresource.APIResource {
+	apiresources := []apiresource.APIResource{
+		{IAPIResource: &apiresource.Deployment{ClusterSpec: ir.TargetClusterSpec}},
+		{IAPIResource: &apiresource.Storage{Cluster: ir.TargetClusterSpec}},
+		{IAPIResource: &apiresource.Service{Cluster: ir.TargetClusterSpec}},
+		{IAPIResource: &apiresource.ImageStream{Cluster: ir.TargetClusterSpec}},
+		{IAPIResource: &apiresource.NetworkPolicy{Cluster: ir.TargetClusterSpec}},
+	}
 	return apiresources
 }
 
 // CreateAPIResources converts IR to runtime objects
-func (k *K8sAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Object {
-	targetobjs := []runtime.Object{}
-	ignoredobjs := ir.CachedObjects
-	for _, a := range k.getAPIResources(ir) {
-		a.SetClusterContext(ir.TargetClusterSpec)
-		resourceignoredobjs := a.LoadResources(ir.CachedObjects)
-		ignoredobjs = intersection(ignoredobjs, resourceignoredobjs)
-		objs := a.GetUpdatedResources(ir)
-		targetobjs = append(targetobjs, objs...)
+func (k8sAPIResourceSet *K8sAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Object {
+	targetObjs := []runtime.Object{}
+	ignoredObjs := ir.CachedObjects
+	for _, apiResource := range k8sAPIResourceSet.getAPIResources(ir) {
+		apiResource.SetClusterContext(ir.TargetClusterSpec)
+		resourceIgnoredObjs := apiResource.LoadResources(ir.CachedObjects)
+		ignoredObjs = intersection(ignoredObjs, resourceIgnoredObjs)
+		resourceObjs := apiResource.GetUpdatedResources(ir)
+		targetObjs = append(targetObjs, resourceObjs...)
 	}
-	targetobjs = append(targetobjs, ignoredobjs...)
-	return targetobjs
+	targetObjs = append(targetObjs, ignoredObjs...)
+	return targetObjs
 }
 
 // GetServiceOptions analyses a directory and returns possible plan services
-func (k *K8sAPIResourceSet) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
+func (k8sAPIResourceSet *K8sAPIResourceSet) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
 	services := []plantypes.Service{}
 	//TODO: Should we add service analysis too, to get service name?
 
-	codecs := serializer.NewCodecFactory(k.GetScheme())
+	codecs := serializer.NewCodecFactory(k8sAPIResourceSet.GetScheme())
 
-	files, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
+	filePaths, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
 	if err != nil {
-		log.Warnf("Unable to fetch yaml files and recognize k8 yamls. Error: %q", err)
+		log.Errorf("Unable to fetch yaml files at path %q Error: %q", inputPath, err)
+		return services, err
 	}
-	for _, path := range files {
-		data, err := ioutil.ReadFile(path)
+	for _, filePath := range filePaths {
+		data, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			log.Debugf("ignoring file %s", path)
+			log.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
 			continue
 		}
 		obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
 		if err != nil {
-			log.Debugf("ignoring file %s since serialization failed", path)
+			log.Debugf("Failed to decode the file at path %q as a k8s file. Error: %q", filePath, err)
 			continue
 		}
-		name, _, err := (&apiresource.Deployment{}).GetNameAndPodSpec(obj)
+		name, _, err := new(apiresource.Deployment).GetNameAndPodSpec(obj)
 		if err != nil {
 			continue
 		}
 		service := newK8sService(name)
-		relpath, _ := plan.GetRelativePath(path)
-		service.SourceArtifacts[plantypes.K8sFileArtifactType] = []string{relpath}
+		service.SourceArtifacts[plantypes.K8sFileArtifactType] = []string{filePath}
 		services = append(services, service)
 	}
 	return services, nil
 }
 
 // Translate tanslates plan services to IR
-func (k *K8sAPIResourceSet) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
-	ir := irtypes.NewIR(p)
-	ir.Services = map[string]irtypes.Service{}
-	codecs := serializer.NewCodecFactory(k.GetScheme())
+func (k8sAPIResourceSet *K8sAPIResourceSet) Translate(services []plantypes.Service, plan plantypes.Plan) (irtypes.IR, error) {
+	ir := irtypes.NewIR(plan)
+	codecs := serializer.NewCodecFactory(k8sAPIResourceSet.GetScheme())
 
 	for _, service := range services {
-		irservice := irtypes.NewServiceFromPlanService(service)
-		if len(service.SourceArtifacts[plantypes.K8sFileArtifactType]) > 0 {
-			fullpath := p.GetFullPath(service.SourceArtifacts[plantypes.K8sFileArtifactType][0])
-			data, err := ioutil.ReadFile(fullpath)
-			if err != nil {
-				log.Debugf("Unable to load file : %s", fullpath)
-				continue
-			}
-			obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
-			if err != nil {
-				log.Debugf("ignoring file %s since serialization failed", fullpath)
-				continue
-			}
-			_, podSpec, err := (&apiresource.Deployment{}).GetNameAndPodSpec(obj)
-			if err == nil {
-				irservice.PodSpec = podSpec
-			}
-		} else {
+		if len(service.SourceArtifacts[plantypes.K8sFileArtifactType]) == 0 {
 			log.Warnf("No k8s artifacts found in service %s", service.ServiceName)
+			continue
 		}
-		ir.Services[service.ServiceName] = irservice
+		irService := irtypes.NewServiceFromPlanService(service)
+		filePath := service.SourceArtifacts[plantypes.K8sFileArtifactType][0] // TODO: what about the other k8s files?
+		data, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			log.Errorf("Unable to read the k8s file at path %q Error: %q", filePath, err)
+			continue
+		}
+		obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
+		if err != nil {
+			log.Errorf("Failed to decode the k8s file at path %q Error: %q", filePath, err)
+			continue
+		}
+		_, podSpec, err := new(apiresource.Deployment).GetNameAndPodSpec(obj)
+		if err != nil {
+			log.Errorf("Failed to get the pod specification for the k8s file at path %q Error: %q", filePath, err)
+			continue
+		}
+		irService.PodSpec = podSpec
+		ir.Services[service.ServiceName] = irService
 	}
 	return ir, nil
 }
@@ -141,7 +147,7 @@ func (k *K8sAPIResourceSet) Translate(services []plantypes.Service, p plantypes.
 func newK8sService(serviceName string) plantypes.Service {
 	service := plantypes.NewService(serviceName, plantypes.Kube2KubeTranslation)
 	service.ContainerBuildType = plantypes.ReuseContainerBuildTypeValue
-	service.SourceTypes = []plantypes.SourceTypeValue{plantypes.K8sSourceTypeValue}
+	service.AddSourceType(plantypes.K8sSourceTypeValue)
 	service.UpdateContainerBuildPipeline = false
 	service.UpdateDeployPipeline = true
 	return service

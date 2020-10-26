@@ -17,7 +17,6 @@ limitations under the License.
 package containerizer_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -48,7 +47,7 @@ func TestReuseGetContainer(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the container. Error:", err)
 		}
-		if !reflect.DeepEqual(cont, want) {
+		if !cmp.Equal(cont, want) {
 			t.Fatalf("Failed to create the container properly. Difference:\n%s", cmp.Diff(want, cont))
 		}
 	})

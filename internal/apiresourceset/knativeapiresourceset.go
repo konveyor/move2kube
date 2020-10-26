@@ -19,17 +19,15 @@ package apiresourceset
 import (
 	"io/ioutil"
 
-	log "github.com/sirupsen/logrus"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	knativev1 "knative.dev/serving/pkg/apis/serving/v1"
-	knative "knative.dev/serving/pkg/client/clientset/versioned/scheme"
-
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	log "github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	knativev1 "knative.dev/serving/pkg/apis/serving/v1"
+	knative "knative.dev/serving/pkg/client/clientset/versioned/scheme"
 )
 
 // KnativeAPIResourceSet manages knative related objects
@@ -37,92 +35,95 @@ type KnativeAPIResourceSet struct {
 }
 
 // GetScheme returns knative scheme object
-func (k *KnativeAPIResourceSet) GetScheme() *runtime.Scheme {
+func (*KnativeAPIResourceSet) GetScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	_ = knative.AddToScheme(scheme)
+	must(knative.AddToScheme(scheme))
 	return scheme
 }
 
-func (k *KnativeAPIResourceSet) getAPIResources(ir irtypes.IR) []apiresource.APIResource {
+func (*KnativeAPIResourceSet) getAPIResources(ir irtypes.IR) []apiresource.APIResource {
 	apiresources := []apiresource.APIResource{{IAPIResource: &apiresource.KnativeService{Cluster: ir.TargetClusterSpec}}}
 	return apiresources
 }
 
 // CreateAPIResources converts ir object to runtime objects
-func (k *KnativeAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Object {
-	targetobjs := []runtime.Object{}
-	ignoredobjs := ir.CachedObjects
-	for _, apiresource := range k.getAPIResources(ir) {
-		apiresource.SetClusterContext(ir.TargetClusterSpec)
-		resourceignoredobjs := apiresource.LoadResources(ir.CachedObjects)
-		ignoredobjs = intersection(ignoredobjs, resourceignoredobjs)
-		objs := apiresource.GetUpdatedResources(ir)
-		targetobjs = append(targetobjs, objs...)
+func (knativeAPIResourceSet *KnativeAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Object {
+	targetObjs := []runtime.Object{}
+	ignoredObjs := ir.CachedObjects
+	for _, apiResource := range knativeAPIResourceSet.getAPIResources(ir) {
+		apiResource.SetClusterContext(ir.TargetClusterSpec)
+		resourceIgnoredObjs := apiResource.LoadResources(ir.CachedObjects)
+		ignoredObjs = intersection(ignoredObjs, resourceIgnoredObjs)
+		resourceObjs := apiResource.GetUpdatedResources(ir)
+		targetObjs = append(targetObjs, resourceObjs...)
 	}
-	targetobjs = append(targetobjs, ignoredobjs...)
-	return targetobjs
+	targetObjs = append(targetObjs, ignoredObjs...)
+	return targetObjs
 }
 
 // GetServiceOptions returns plan service options for an input folder
-func (k *KnativeAPIResourceSet) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
+func (knativeAPIResourceSet *KnativeAPIResourceSet) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
 	services := []plantypes.Service{}
 
-	codecs := serializer.NewCodecFactory(k.GetScheme())
+	codecs := serializer.NewCodecFactory(knativeAPIResourceSet.GetScheme())
 
-	files, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
+	filePaths, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
 	if err != nil {
-		log.Warnf("Unable to fetch yaml files and recognize knative yamls : %s", err)
+		log.Errorf("Unable to fetch yaml files at path %q Error: %q", inputPath, err)
+		return services, err
 	}
-	for _, path := range files {
-		//relpath, _ := plan.GetRelativePath(path)
-		data, err := ioutil.ReadFile(path)
+	for _, filePath := range filePaths {
+		data, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			log.Debugf("ignoring file %s", path)
+			log.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
 			continue
 		}
 		obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
 		if err != nil {
-			log.Debugf("ignoring file %s since serialization failed", path)
+			log.Debugf("Failed to decode the file at path %q as a knative file. Error: %q", filePath, err)
 			continue
-		} else {
-			if d1, ok := obj.(*knativev1.Service); ok {
-				service := newKnativeService(d1.Name)
-				relpath, _ := plan.GetRelativePath(path)
-				service.SourceArtifacts[plantypes.KnativeFileArtifactType] = []string{relpath}
-				services = append(services, service)
-			}
 		}
+		d1, ok := obj.(*knativev1.Service)
+		if ok {
+			continue
+		}
+		service := newKnativeService(d1.Name)
+		service.SourceArtifacts[plantypes.KnativeFileArtifactType] = []string{filePath}
+		services = append(services, service)
 	}
 	return services, nil
 }
 
 // Translate translates plan services to IR
-func (k *KnativeAPIResourceSet) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
+func (knativeAPIResourceSet *KnativeAPIResourceSet) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
 	ir := irtypes.NewIR(p)
 	ir.Services = map[string]irtypes.Service{}
-	codecs := serializer.NewCodecFactory(k.GetScheme())
+	codecs := serializer.NewCodecFactory(knativeAPIResourceSet.GetScheme())
 
 	for _, service := range services {
-		irservice := irtypes.NewServiceFromPlanService(service)
-		if len(service.SourceArtifacts[plantypes.KnativeFileArtifactType]) > 0 {
-			fullpath := p.GetFullPath(service.SourceArtifacts[plantypes.KnativeFileArtifactType][0])
-			data, err := ioutil.ReadFile(fullpath)
-			if err != nil {
-				log.Debugf("Unable to load file : %s", fullpath)
-				continue
-			}
-			obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
-			if err != nil {
-				log.Debugf("ignoring file %s since serialization failed", fullpath)
-				continue
-			}
-			if d1, ok := obj.(*knativev1.Service); ok {
-				irservice.PodSpec = d1.Spec.ConfigurationSpec.Template.Spec.PodSpec
-			}
-		} else {
+		if len(service.SourceArtifacts[plantypes.KnativeFileArtifactType]) == 0 {
 			log.Warnf("No knative artifacts found in service %s", service.ServiceName)
+			continue
 		}
-		ir.Services[service.ServiceName] = irservice
+		irService := irtypes.NewServiceFromPlanService(service)
+		filePath := service.SourceArtifacts[plantypes.KnativeFileArtifactType][0]
+		data, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			log.Errorf("Unable to read the knative file at path %q Error: %q", filePath, err)
+			continue
+		}
+		obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
+		if err != nil {
+			log.Errorf("Failed to decode the knative file at path %q Error: %q", filePath, err)
+			continue
+		}
+		d1, ok := obj.(*knativev1.Service)
+		if !ok {
+			log.Errorf("The knative file at path %q does not contain the required type. Expected: %T Actual: %T", filePath, new(knativev1.Service), obj)
+			continue
+		}
+		irService.PodSpec = d1.Spec.ConfigurationSpec.Template.Spec.PodSpec
+		ir.Services[service.ServiceName] = irService
 	}
 	return ir, nil
 }

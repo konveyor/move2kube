@@ -500,10 +500,20 @@ func FindCommonDirectory(paths []string) string {
 }
 
 // CreateAssetsData creates an assets directory and dumps the assets data into it
-func CreateAssetsData() (assetsPath string, tempPath string, finalerr error) {
-	assetsPath = AssetsPath
-	tempPath = TempPath
+func CreateAssetsData() (assetsPath string, tempPath string, err error) {
+	// Return the absolute version of existing asset paths.
+	tempPath, err = filepath.Abs(TempPath)
+	if err != nil {
+		log.Errorf("Unable to make the temporary directory path %q absolute. Error: %q", tempPath, err)
+		return "", "", err
+	}
+	assetsPath, err = filepath.Abs(AssetsPath)
+	if err != nil {
+		log.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
+		return "", "", err
+	}
 
+	// Try to create a new temporary directory for the assets.
 	if newTempPath, err := ioutil.TempDir("", TempDirPrefix); err != nil {
 		log.Errorf("Unable to create temp dir. Defaulting to local path.")
 	} else {
@@ -511,6 +521,7 @@ func CreateAssetsData() (assetsPath string, tempPath string, finalerr error) {
 		assetsPath = filepath.Join(newTempPath, AssetsDir)
 	}
 
+	// Either way create the subdirectory and untar the assets into it.
 	if err := os.MkdirAll(assetsPath, DefaultDirectoryPermission); err != nil {
 		log.Errorf("Unable to create the assets directory at path %q Error: %q", assetsPath, err)
 		return "", "", err

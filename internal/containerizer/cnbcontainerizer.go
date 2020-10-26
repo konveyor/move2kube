@@ -83,7 +83,13 @@ func (d *CNBContainerizer) GetContainer(plan plantypes.Plan, service plantypes.S
 		if err != nil {
 			log.Warnf("Unable to translate template to string : %s", scripts.CNBBuilder_sh)
 		} else {
-			container.AddFile(filepath.Join(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0], service.ServiceName+"cnbbuilder.sh"), cnbbuilderstring)
+			sourceCodeDir := service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0]
+			relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, sourceCodeDir)
+			if err != nil {
+				log.Errorf("Failed to make the source code directory %q relative to the root directory %q Error: %q", sourceCodeDir, plan.Spec.Inputs.RootDir, err)
+				return container, err
+			}
+			container.AddFile(filepath.Join(relOutputPath, service.ServiceName+"-cnb-build.sh"), cnbbuilderstring)
 		}
 		container.ExposedPorts = []int{8080}
 		return container, nil

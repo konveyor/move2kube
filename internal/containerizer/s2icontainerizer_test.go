@@ -19,12 +19,12 @@ package containerizer_test
 import (
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer"
+	"github.com/konveyor/move2kube/internal/move2kube"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
@@ -62,10 +62,12 @@ func TestS2IGetContainer(t *testing.T) {
 		testdatapath := "testdata/s2icontainerizer/getcontainer/normal/"
 		want := irtypes.Container{}
 		mustreadyaml(t, join(testdatapath, "container.yaml"), &want)
-		plan := plantypes.Plan{}
-		mustreadyaml(t, join(testdatapath, "plan.yaml"), &plan)
-		service := plantypes.Service{}
-		mustreadyaml(t, join(testdatapath, "service.yaml"), &service)
+		planPath := join(testdatapath, "plan.yaml")
+		plan, err := move2kube.ReadPlan(planPath)
+		if err != nil {
+			t.Fatalf("Failed to read the plan at path %q Error: %q", planPath, err)
+		}
+		service := plan.Spec.Inputs.Services["nodejs"][0]
 
 		s2icontainerizer := new(containerizer.S2IContainerizer)
 
@@ -74,7 +76,7 @@ func TestS2IGetContainer(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the container. Error:", err)
 		}
-		if !reflect.DeepEqual(cont, want) {
+		if !cmp.Equal(cont, want) {
 			t.Fatalf("Failed to create the container properly. Difference:\n%s", cmp.Diff(want, cont))
 		}
 	})

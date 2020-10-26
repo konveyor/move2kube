@@ -49,7 +49,7 @@ func TestParameterizer(t *testing.T) {
 		actual.TargetClusterSpec.Host = ""
 
 		if !cmp.Equal(actual, want, cmpopts.EquateEmpty()) {
-			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual))
+			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual, cmpopts.EquateEmpty()))
 		}
 
 	})
@@ -70,7 +70,7 @@ func TestParameterizer(t *testing.T) {
 		actual.TargetClusterSpec.Host = ""
 
 		if !cmp.Equal(actual, want, cmpopts.EquateEmpty()) {
-			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual))
+			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual, cmpopts.EquateEmpty()))
 		}
 
 	})
@@ -89,7 +89,7 @@ func TestParameterizer(t *testing.T) {
 		want.Values.Services = map[string]output.Service{"svcname1": {Containers: map[string]output.Container{"container-1": {TagName: "latest"}}}}
 
 		if !cmp.Equal(actual, want, cmpopts.EquateEmpty()) {
-			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual))
+			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual, cmpopts.EquateEmpty()))
 		}
 
 	})
@@ -130,7 +130,7 @@ func TestParameterizer(t *testing.T) {
 		want.Values.StorageClass = "storage-1cn"
 
 		if !cmp.Equal(actual, want, cmpopts.EquateEmpty()) {
-			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual))
+			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual, cmpopts.EquateEmpty()))
 		}
 
 	})
@@ -148,7 +148,7 @@ func TestParameterizer(t *testing.T) {
 		want.TargetClusterSpec.Host = "{{ .Release.Name }}-{{ .Values.ingresshost }}"
 
 		if !cmp.Equal(actual, want, cmpopts.EquateEmpty()) {
-			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual))
+			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual, cmpopts.EquateEmpty()))
 		}
 
 	})

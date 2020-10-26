@@ -18,40 +18,56 @@ package move2kube_test
 
 import (
 	"os"
-	"reflect"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	log "github.com/sirupsen/logrus"
-
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/move2kube"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	log "github.com/sirupsen/logrus"
 )
+
+func setupAssets(t *testing.T) {
+	assetsPath, tempPath, err := common.CreateAssetsData()
+	if err != nil {
+		t.Fatalf("Unable to create the assets directory. Error: %q", err)
+	}
+
+	common.TempPath = tempPath
+	common.AssetsPath = assetsPath
+}
 
 func TestCreatePlan(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
 	t.Run("create plan for empty app and without the cache folder", func(t *testing.T) {
 		// Setup
+		setupAssets(t)
+		defer os.RemoveAll(common.TempPath)
+
 		inputPath := t.TempDir()
 		prjName := "project1"
 
 		want := plantypes.NewPlan()
 		want.Name = prjName
-		if err := want.Spec.Inputs.SetRootDir(inputPath); err != nil {
+		if err := move2kube.SetRootDir(&want, inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
 
 		// Test
 		p := move2kube.CreatePlan(inputPath, prjName)
-		if !reflect.DeepEqual(p, want) {
+		if !cmp.Equal(p, want) {
 			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
 
 	t.Run("create plan for empty app", func(t *testing.T) {
 		// Setup
+		setupAssets(t)
+		defer os.RemoveAll(common.TempPath)
+
 		inputPath := t.TempDir()
 		prjName := "project1"
 
@@ -69,54 +85,45 @@ func TestCreatePlan(t *testing.T) {
 
 		want := plantypes.NewPlan()
 		want.Name = prjName
-		if err := want.Spec.Inputs.SetRootDir(inputPath); err != nil {
+		if err := move2kube.SetRootDir(&want, inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
 
 		// Test
 		p := move2kube.CreatePlan(inputPath, prjName)
-		if !reflect.DeepEqual(p, want) {
+		if !cmp.Equal(p, want) {
 			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
 		}
 	})
 
 	t.Run("create plan for a simple nodejs app", func(t *testing.T) {
 		// Setup
-		inputPath := "../../samples/nodejs"
+		setupAssets(t)
+		defer os.RemoveAll(common.TempPath)
+
 		prjName := "nodejs-app"
+		relInputPath := "../../samples/nodejs"
+		inputPath, err := filepath.Abs(relInputPath)
+		if err != nil {
+			t.Fatalf("Failed to make the path %q Error: %q", relInputPath, err)
+		}
 
-		// If the cache folder exists delete it
-		if _, err := os.Stat(common.AssetsPath); !os.IsNotExist(err) {
-			if err := os.RemoveAll(common.AssetsPath); err != nil {
-				t.Fatal("Failed to remove the cache folder from previous runs. Error:", err)
-			}
-		}
-		// Create the cache folder (.m2k) it expects to find.
-		if err := os.Mkdir(common.AssetsPath, os.ModeDir|os.ModePerm); err != nil {
-			t.Fatal("Failed to make the common.AssetsPath directory:", common.AssetsPath, "Error:", err)
-		}
-		defer os.RemoveAll(common.AssetsPath)
-
-		want := plantypes.NewPlan()
-		if err := common.ReadYaml("testdata/expectedplanfornodejsapp.yaml", &want); err != nil {
-			t.Fatal("failed to read the expected output plan from yaml. Error:", err)
-		}
-		if err := want.Spec.Inputs.SetRootDir(inputPath); err != nil {
-			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
+		testDataPlanPath := "testdata/expectedplanfornodejsapp.yaml"
+		want, err := move2kube.ReadPlan(testDataPlanPath)
+		if err != nil {
+			t.Fatalf("Cannot read the plan at path %q Error: %q", testDataPlanPath, err)
 		}
 
 		// Test
-		p := move2kube.CreatePlan(inputPath, prjName)
-		// Don't compare the RepoInfo since that will detect the move2kube repo, even though the nodejs sample itself has no repo.
-		for _, svcs := range p.Spec.Inputs.Services {
-			for i := range svcs {
-				svcs[i].RepoInfo = plantypes.RepoInfo{}
-				svcs[i].ServiceRelPath = ""
+		actual := move2kube.CreatePlan(inputPath, prjName)
+		for _, services := range actual.Spec.Inputs.Services {
+			for i := range services {
+				services[i].RepoInfo = plantypes.RepoInfo{}
 			}
 		}
 
-		if !reflect.DeepEqual(p, want) {
-			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
+		if !cmp.Equal(actual, want, cmpopts.EquateEmpty()) {
+			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, actual, cmpopts.EquateEmpty()))
 		}
 	})
 }

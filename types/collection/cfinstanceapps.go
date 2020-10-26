@@ -49,11 +49,10 @@ type CfApplication struct {
 
 // NewCfInstanceApps creates a new instance of CfInstanceApps
 func NewCfInstanceApps() CfInstanceApps {
-	var cfInstanceApps = CfInstanceApps{
+	return CfInstanceApps{
 		TypeMeta: types.TypeMeta{
 			Kind:       string(CfInstanceAppsMetadataKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
 	}
-	return cfInstanceApps
 }

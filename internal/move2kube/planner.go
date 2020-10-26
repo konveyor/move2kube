@@ -17,24 +17,26 @@ limitations under the License.
 package move2kube
 
 import (
-	log "github.com/sirupsen/logrus"
+	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
 
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/metadata"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	"github.com/konveyor/move2kube/internal/source"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
+	log "github.com/sirupsen/logrus"
 )
 
 //CreatePlan creates the plan from all planners
 func CreatePlan(inputPath string, prjName string) plantypes.Plan {
-	var p = plantypes.NewPlan()
+	p := plantypes.NewPlan()
 	p.Name = prjName
-	// Setup rootdir.
-	if err := p.Spec.Inputs.SetRootDir(inputPath); err != nil {
-		log.Errorf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
-	}
+	p.Spec.Inputs.RootDir = inputPath
 
 	translationPlanners := source.GetSourceLoaders()
 	log.Infoln("Planning Translation")
@@ -70,7 +72,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	// Load qa caches
 	cachepaths := []string{}
 	for i := len(p.Spec.Inputs.QACaches) - 1; i >= 0; i-- {
-		cachepaths = append(cachepaths, p.GetFullPath(p.Spec.Inputs.QACaches[i]))
+		cachepaths = append(cachepaths, p.Spec.Inputs.QACaches[i])
 	}
 	qaengine.AddCaches(cachepaths)
 	// Identify services of interest
@@ -191,7 +193,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	p.Spec.Outputs.Kubernetes.ArtifactType = plantypes.TargetArtifactTypeValue(artifactType)
 
 	// Choose cluster type to target
-	clusters := metadata.ClusterMDLoader{}.GetClusters(p)
+	clusters := new(metadata.ClusterMDLoader).GetClusters(p)
 	clusterTypeList := []string{}
 	for c := range clusters {
 		clusterTypeList = append(clusterTypeList, c)
@@ -204,23 +206,195 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	if err != nil {
 		log.Fatalf("Unable to fetch answer : %s", err)
 	}
-	p.Spec.Outputs.Kubernetes.ClusterType, err = problem.GetStringAnswer()
+	clusterType, err := problem.GetStringAnswer()
 	if err != nil {
 		log.Fatalf("Unable to get answer : %s", err)
 	}
+	p.Spec.Outputs.Kubernetes.TargetCluster.Type = clusterType
+	p.Spec.Outputs.Kubernetes.TargetCluster.Path = ""
 
 	return p
 }
 
-//WritePlan writes the plan
-func WritePlan(plan plantypes.Plan, outputPath string) error {
-	err := common.WriteYaml(outputPath, plan)
-	return err
+type context struct {
+	ShouldConvert    bool
+	Convert          func(string) (string, error)
+	MapKeysToConvert []string
+	CurrentMapKey    reflect.Value
 }
 
-//ReadPlan reads the plan
-func ReadPlan(planFile string) (plantypes.Plan, error) {
-	var plan plantypes.Plan
-	err := common.ReadYaml(planFile, &plan)
-	return plan, err
+const (
+	structTag           = "m2kpath"
+	structTagNormal     = "normal"
+	structTagMapKeys    = "keys"
+	structTagCondition  = "if"
+	structTagCheckField = "in"
+)
+
+func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx context) (context, error) {
+	ctx := context{Convert: oldCtx.Convert}
+	tag, ok := structT.Field(i).Tag.Lookup(structTag)
+	if !ok {
+		ctx.ShouldConvert = false
+		return ctx, nil
+	}
+	if tag == structTagNormal {
+		ctx.ShouldConvert = true
+		return ctx, nil
+	}
+	// Special cases.
+	tagParts := strings.Split(tag, ":")
+	if len(tagParts) == 0 {
+		return ctx, fmt.Errorf("The m2kpath struct tag has an invalid format. Actual tag: %s", tag)
+	}
+	// Special case for converting subset of map.
+	if len(tagParts) == 2 && tagParts[0] == structTagMapKeys {
+		ctx.ShouldConvert = true
+		ctx.MapKeysToConvert = strings.Split(tagParts[1], ",")
+		return ctx, nil
+	}
+	// Special case for conditional conversion.
+	if len(tagParts) == 4 && tagParts[0] == structTagCondition && tagParts[2] == structTagCheckField {
+		targetField := structV.FieldByName(tagParts[1]).String()
+		validValues := strings.Split(tagParts[3], ",")
+		ctx.ShouldConvert = common.IsStringPresent(validValues, targetField)
+		return ctx, nil
+	}
+	return ctx, fmt.Errorf("Failed to process the tag. Actual tag: %s", tag)
+}
+
+func recurse(value reflect.Value, ctx context) error {
+	// fmt.Printf("type [%v] ctx [%v]\n", value.Type(), ctx)
+	switch value.Kind() {
+	case reflect.String:
+		if !ctx.ShouldConvert {
+			break
+		}
+		if len(ctx.MapKeysToConvert) > 0 {
+			if ctx.CurrentMapKey.Kind() != reflect.String {
+				return fmt.Errorf("Map keys are not of kind string. Actual kind: %v", ctx.CurrentMapKey.Kind())
+			}
+			if !common.IsStringPresent(ctx.MapKeysToConvert, ctx.CurrentMapKey.String()) {
+				break
+			}
+		}
+		s, err := ctx.Convert(value.String())
+		if err != nil {
+			return fmt.Errorf("Failed to convert %s Error: %q", value.String(), err)
+		}
+		value.SetString(s)
+	case reflect.Struct:
+		structV := value
+		structT := value.Type()
+		for i := 0; i < structV.NumField(); i++ {
+			ctx, err := processTag(structT, structV, i, ctx)
+			if err != nil {
+				return err
+			}
+			if err := recurse(structV.Field(i), ctx); err != nil {
+				return err
+			}
+		}
+	case reflect.Slice:
+		for i := 0; i < value.Len(); i++ {
+			if err := recurse(value.Index(i), ctx); err != nil {
+				return err
+			}
+		}
+	case reflect.Map:
+		iter := value.MapRange()
+		for iter.Next() {
+			ctx.CurrentMapKey = iter.Key()
+			if err := recurse(iter.Value(), ctx); err != nil {
+				return err
+			}
+		}
+	default:
+		//fmt.Println("default. Actual kind:", value.Kind())
+	}
+	return nil
+}
+
+func convertPathsDecode(plan *plantypes.Plan) error {
+	rootDir, err := filepath.Abs(plan.Spec.Inputs.RootDir)
+	if err != nil {
+		log.Errorf("Failed to make the root directory path %q absolute. Error %q", plan.Spec.Inputs.RootDir, err)
+		return err
+	}
+	plan.Spec.Inputs.RootDir = rootDir
+
+	relToAbs := func(relPath string) (string, error) {
+		if relPath == "" || filepath.IsAbs(relPath) {
+			return relPath, nil
+		}
+		if pathParts := strings.Split(relPath, string(os.PathSeparator)); len(pathParts) > 0 && pathParts[0] == common.AssetsDir {
+			return filepath.Join(common.TempPath, relPath), nil
+		}
+		return filepath.Join(rootDir, relPath), nil
+	}
+
+	ctx := context{Convert: relToAbs}
+	planV := reflect.ValueOf(plan).Elem()
+	return recurse(planV, ctx)
+}
+
+func convertPathsEncode(plan *plantypes.Plan) error {
+	rootDir := plan.Spec.Inputs.RootDir
+
+	absToRel := func(absPath string) (string, error) {
+		if absPath == "" || !filepath.IsAbs(absPath) {
+			return absPath, nil
+		}
+		if pathParts := strings.Split(absPath, string(os.PathSeparator)); len(pathParts) > 0 && common.IsStringPresent(pathParts, common.AssetsDir) {
+			return filepath.Rel(common.TempPath, absPath)
+		}
+		return filepath.Rel(rootDir, absPath)
+	}
+
+	ctx := context{Convert: absToRel}
+	planV := reflect.ValueOf(plan).Elem()
+	if err := recurse(planV, ctx); err != nil {
+		log.Errorf("Error while converting absolute paths to relative. Error: %q", err)
+	}
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Errorf("Failed to get the current working directory. Error %q", err)
+		return err
+	}
+	rootDir, err = filepath.Rel(pwd, rootDir)
+	if err != nil {
+		log.Errorf("Failed to make the root directory path %q relative to the current working directory %q Error %q", rootDir, pwd, err)
+		return err
+	}
+	plan.Spec.Inputs.RootDir = rootDir
+	return nil
+}
+
+// ReadPlan decodes the plan from yaml converting relative paths to absolute.
+func ReadPlan(path string) (plantypes.Plan, error) {
+	plan := plantypes.Plan{}
+	if err := common.ReadYaml(path, &plan); err != nil {
+		log.Errorf("Failed to load the plan file at path %q Error %q", path, err)
+		return plan, err
+	}
+
+	if err := convertPathsDecode(&plan); err != nil {
+		return plan, err
+	}
+	return plan, nil
+}
+
+// WritePlan encodes the plan to yaml converting absolute paths to relative.
+func WritePlan(path string, plan plantypes.Plan) error {
+	if err := convertPathsEncode(&plan); err != nil {
+		return err
+	}
+	return common.WriteYaml(path, plan)
+}
+
+// SetRootDir changes the root directory of the plan
+func SetRootDir(plan *plantypes.Plan, path string) error {
+	plan.Spec.Inputs.RootDir = path
+	return convertPathsDecode(plan)
 }

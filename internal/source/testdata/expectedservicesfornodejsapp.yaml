@@ -1,26 +1,32 @@
----
-  - repoinfo:
-      gitrepodir: ""
-      gitrepourl: ""
-      gitrepobranch: ""
-      targetpath: ""
-    serviceName: nodejs
-    image: nodejs:latest
-    translationType: Any2Kube
-    containerBuildType: CNB
-    sourceType:
-      - Directory
-    targetOptions:
-      - cloudfoundry/cnb:cflinuxfs3
-      - gcr.io/buildpacks/builder
-    sourceArtifacts:
-      SourceCode:
-        - .
-    buildArtifacts:
-      SourceCode:
-        - .
-    updateContainerBuildPipeline: true
-    updateDeployPipeline: true
-    serviceRelPath: /nodejs
-...
-  
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Plan
+metadata:
+  name: nodejs-app
+spec:
+  inputs:
+    rootDir: ../../samples/nodejs
+    services:
+      nodejs:
+        - serviceName: nodejs
+          image: nodejs:latest
+          translationType: Any2Kube
+          containerBuildType: CNB
+          sourceType:
+            - Directory
+          targetOptions:
+            - cloudfoundry/cnb:cflinuxfs3
+            - gcr.io/buildpacks/builder
+          sourceArtifacts:
+            SourceCode:
+              - .
+          buildArtifacts:
+            SourceCode:
+              - .
+          updateContainerBuildPipeline: true
+          updateDeployPipeline: true
+          serviceRelPath: /nodejs
+  outputs:
+    kubernetes:
+      artifactType: Yamls
+      targetCluster:
+        type: Kubernetes

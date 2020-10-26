@@ -21,12 +21,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/move2kube"
 	"github.com/konveyor/move2kube/internal/source"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -38,7 +38,7 @@ func TestGetServiceOptions(t *testing.T) {
 
 	t.Run("get services with a non existent directory and empty plan", func(t *testing.T) {
 		// Setup
-		inputpath := "this/does/not/exit/foobar/"
+		inputpath := "/this/does/not/exit/foobar/"
 		translator := source.Any2KubeTranslator{}
 		plan := plantypes.NewPlan()
 		want := []plantypes.Service{}
@@ -48,7 +48,7 @@ func TestGetServiceOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		if !reflect.DeepEqual(services, want) {
+		if !cmp.Equal(services, want) {
 			t.Fatalf("Failed to get the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
@@ -65,7 +65,7 @@ func TestGetServiceOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		if !reflect.DeepEqual(services, want) {
+		if !cmp.Equal(services, want) {
 			t.Fatalf("Failed to get the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
@@ -90,26 +90,31 @@ func TestGetServiceOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		if !reflect.DeepEqual(services, want) {
+		if !cmp.Equal(services, want) {
 			t.Fatalf("Failed to get the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
 	t.Run("get services from a simple nodejs app and empty plan", func(t *testing.T) {
 		// Setup
-		inputPath := "../../samples/nodejs"
+		relInputPath := "../../samples/nodejs"
+		inputPath, err := filepath.Abs(relInputPath)
+		if err != nil {
+			t.Fatalf("Failed to make the input path %q absolute. Error: %q", relInputPath, err)
+		}
 		translator := source.Any2KubeTranslator{}
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		if err := plan.Spec.Inputs.SetRootDir(inputPath); err != nil {
+		if err := move2kube.SetRootDir(&plan, inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
 
-		want := []plantypes.Service{}
-		if err := common.ReadYaml("testdata/expectedservicesfornodejsapp.yaml", &want); err != nil {
+		wantPlan, err := move2kube.ReadPlan("testdata/expectedservicesfornodejsapp.yaml")
+		if err != nil {
 			t.Fatal("Failed to read the expected output services from yaml. Error:", err)
 		}
+		want := wantPlan.Spec.Inputs.Services["nodejs"]
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
@@ -121,14 +126,18 @@ func TestGetServiceOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		if !reflect.DeepEqual(services, want) {
+		if !cmp.Equal(services, want) {
 			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
 	t.Run("get services from a simple nodejs app and filled plan", func(t *testing.T) {
 		// Setup
-		inputPath := "../../samples/nodejs"
+		relInputPath := "../../samples/nodejs"
+		inputPath, err := filepath.Abs(relInputPath)
+		if err != nil {
+			t.Fatalf("Failed to make the input path %q absolute. Error: %q", relInputPath, err)
+		}
 		translator := source.Any2KubeTranslator{}
 
 		// services
@@ -139,7 +148,7 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		if err := plan.Spec.Inputs.SetRootDir(inputPath); err != nil {
+		if err := move2kube.SetRootDir(&plan, inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
 		plan.Spec.Inputs.Services = map[string][]plantypes.Service{
@@ -147,10 +156,11 @@ func TestGetServiceOptions(t *testing.T) {
 			"svc2": {svc2},
 		}
 
-		want := []plantypes.Service{}
-		if err := common.ReadYaml("testdata/expectedservicesfornodejsapp.yaml", &want); err != nil {
+		wantPlan, err := move2kube.ReadPlan("testdata/expectedservicesfornodejsapp.yaml")
+		if err != nil {
 			t.Fatal("Failed to read the expected output services from yaml. Error:", err)
 		}
+		want := wantPlan.Spec.Inputs.Services["nodejs"]
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
@@ -162,23 +172,27 @@ func TestGetServiceOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		if !reflect.DeepEqual(services, want) {
+		if !cmp.Equal(services, want) {
 			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
 	t.Run("get services from a simple nodejs app that we already containerized", func(t *testing.T) {
 		// Setup
-		inputPath := "../../samples/nodejs"
+		relInputPath := "../../samples/nodejs"
+		inputPath, err := filepath.Abs(relInputPath)
+		if err != nil {
+			t.Fatalf("Failed to make the input path %q absolute. Error: %q", relInputPath, err)
+		}
 		translator := source.Any2KubeTranslator{}
 
 		// services
 		svc1 := plantypes.NewService("svc1", "Any2Kube")
-		svc1.SourceArtifacts[plantypes.SourceDirectoryArtifactType] = []string{"."}
+		svc1.SourceArtifacts[plantypes.SourceDirectoryArtifactType] = []string{inputPath}
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		if err := plan.Spec.Inputs.SetRootDir(inputPath); err != nil {
+		if err := move2kube.SetRootDir(&plan, inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
 		plan.Spec.Inputs.Services = map[string][]plantypes.Service{
@@ -193,7 +207,7 @@ func TestGetServiceOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		if !reflect.DeepEqual(services, want) {
+		if !cmp.Equal(services, want) {
 			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
@@ -202,18 +216,24 @@ func TestGetServiceOptions(t *testing.T) {
 		// 1. Ignore a directory, but include all subdirectories
 
 		// Setup
-		inputPath := "testdata/nodejsappwithm2kignorecase1"
+		relInputPath := "testdata/nodejsappwithm2kignorecase1"
+		inputPath, err := filepath.Abs(relInputPath)
+		if err != nil {
+			t.Fatalf("Failed to make the input path %q absolute. Error: %q", relInputPath, err)
+		}
 		translator := source.Any2KubeTranslator{}
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		if err := plan.Spec.Inputs.SetRootDir(inputPath); err != nil {
+		if err := move2kube.SetRootDir(&plan, inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
-		want := []plantypes.Service{}
-		if err := common.ReadYaml("testdata/expectedservicesfornodejsappwithm2kignorecase1.yaml", &want); err != nil {
+
+		wantPlan, err := move2kube.ReadPlan("testdata/expectedservicesfornodejsappwithm2kignorecase1.yaml")
+		if err != nil {
 			t.Fatal("Failed to read the expected output services from yaml. Error:", err)
 		}
+		want := wantPlan.Spec.Inputs.Services["includeme"]
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
@@ -225,25 +245,31 @@ func TestGetServiceOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		if !reflect.DeepEqual(services, want) {
+		if !cmp.Equal(services, want) {
 			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
 
 	t.Run("test m2kignore can be used to ignore everything but a very specific subdirectory", func(t *testing.T) {
 		// Setup
-		inputPath := "testdata/javamavenappwithm2kignorecase2"
+		relInputPath := "testdata/javamavenappwithm2kignorecase2"
+		inputPath, err := filepath.Abs(relInputPath)
+		if err != nil {
+			t.Fatalf("Failed to make the input path %q absolute. Error: %q", relInputPath, err)
+		}
 		translator := source.Any2KubeTranslator{}
 
 		plan := plantypes.NewPlan()
-		plan.Name = "nodejs-app"
-		if err := plan.Spec.Inputs.SetRootDir(inputPath); err != nil {
+		plan.Name = "java-maven-app"
+		if err := move2kube.SetRootDir(&plan, inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
-		want := []plantypes.Service{}
-		if err := common.ReadYaml("testdata/expectedservicesforjavamavenappwithm2kignorecase2.yaml", &want); err != nil {
+
+		wantPlan, err := move2kube.ReadPlan("testdata/expectedservicesforjavamavenappwithm2kignorecase2.yaml")
+		if err != nil {
 			t.Fatal("Failed to read the expected output services from yaml. Error:", err)
 		}
+		want := wantPlan.Spec.Inputs.Services["java-maven"]
 
 		// Test
 		services, err := translator.GetServiceOptions(inputPath, plan)
@@ -255,7 +281,7 @@ func TestGetServiceOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		if !reflect.DeepEqual(services, want) {
+		if !cmp.Equal(services, want) {
 			t.Fatalf("Failed to create the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
@@ -301,7 +327,7 @@ func TestGetServiceOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		if !reflect.DeepEqual(services, want) {
+		if !cmp.Equal(services, want) {
 			t.Fatalf("Failed to get the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
@@ -360,7 +386,7 @@ func TestGetServiceOptions(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the services. Error:", err)
 		}
-		if !reflect.DeepEqual(services, want) {
+		if !cmp.Equal(services, want) {
 			t.Fatalf("Failed to get the services properly. Difference:\n%s", cmp.Diff(want, services))
 		}
 	})
@@ -381,7 +407,7 @@ func TestTranslate(t *testing.T) {
 		if err != nil {
 			t.Fatal("Failed to get the intermediate representation. Error:", err)
 		}
-		if !reflect.DeepEqual(ir, want) {
+		if !cmp.Equal(ir, want) {
 			t.Fatalf("Failed to get the intermediate representation properly. Difference:\n%s", cmp.Diff(want, ir))
 		}
 	})

@@ -21,26 +21,24 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/docker/libcompose/config"
 	"github.com/docker/libcompose/lookup"
 	"github.com/docker/libcompose/project"
-
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-
+	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer"
 	irtypes "github.com/konveyor/move2kube/internal/types"
+	plantypes "github.com/konveyor/move2kube/types/plan"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // V1V2Loader loads a compoose file of versions 1 or 2
@@ -48,7 +46,8 @@ type V1V2Loader struct {
 }
 
 // ConvertToIR loads a compose file to IR
-func (c *V1V2Loader) ConvertToIR(composefilepath string, serviceName string) (ir irtypes.IR, err error) {
+func (c *V1V2Loader) ConvertToIR(composefilepath string, plan plantypes.Plan, service plantypes.Service) (ir irtypes.IR, err error) {
+	serviceName := service.ServiceName
 	filedata, err := ioutil.ReadFile(composefilepath)
 	if err != nil {
 		return
@@ -110,15 +109,16 @@ func (c *V1V2Loader) ConvertToIR(composefilepath string, serviceName string) (ir
 		log.Errorf("Failed to load compose file %s : %s", composefilepath, err)
 		return irtypes.IR{}, errors.Wrap(err, "Failed to load compose file")
 	}
-	ir, err = c.convertToIR(filepath.Dir(composefilepath), proj, serviceName)
+	ir, err = c.convertToIR(filepath.Dir(composefilepath), proj, plan, service)
 	if err != nil {
-		return irtypes.IR{}, err
+		return ir, err
 	}
 
 	return ir, nil
 }
 
-func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project, serviceName string) (ir irtypes.IR, err error) {
+func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project, plan plantypes.Plan, service plantypes.Service) (ir irtypes.IR, err error) {
+	serviceName := service.ServiceName
 	ir = irtypes.IR{
 		Services: map[string]irtypes.Service{},
 	}
@@ -143,7 +143,8 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		if composeServiceConfig.Build.Dockerfile != "" && composeServiceConfig.Build.Context != "" {
 			//TODO: Add support for args and labels
 			c := containerizer.ReuseDockerfileContainerizer{}
-			con, err := c.GetContainer(filedir, name, serviceContainer.Image, composeServiceConfig.Build.Dockerfile, composeServiceConfig.Build.Context)
+			// filedir, name, serviceContainer.Image, composeServiceConfig.Build.Dockerfile, composeServiceConfig.Build.Context)
+			con, err := c.GetContainer(plan, service)
 			if err != nil {
 				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
 			} else {
@@ -196,7 +197,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		if *securityContext != (corev1.SecurityContext{}) {
 			serviceContainer.SecurityContext = securityContext
 		}
-		if !reflect.DeepEqual(*podSecurityContext, corev1.PodSecurityContext{}) {
+		if !cmp.Equal(*podSecurityContext, corev1.PodSecurityContext{}) {
 			serviceConfig.SecurityContext = podSecurityContext
 		}
 		// group should be in gid format not group name

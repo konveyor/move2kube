@@ -32,8 +32,8 @@ const (
 )
 
 func makeVolumesFromTmpFS(serviceName string, tfsList []string) ([]corev1.VolumeMount, []corev1.Volume) {
-	var vmList []corev1.VolumeMount
-	var vList []corev1.Volume
+	vmList := []corev1.VolumeMount{}
+	vList := []corev1.Volume{}
 
 	for index, tfsObj := range tfsList {
 		volumeName := fmt.Sprintf("%s-%s-%d", serviceName, tmpFsPath, index)

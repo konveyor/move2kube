@@ -45,6 +45,7 @@ const (
 
 // K8sTransformer implements Transformer interface
 type K8sTransformer struct {
+	RootDir                string
 	TransformedObjects     []runtime.Object
 	Containers             []irtypes.Container
 	Values                 outputtypes.HelmValues
@@ -66,6 +67,7 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 	kt.Helm = (ir.Kubernetes.ArtifactType == plantypes.Helm)
 
 	kt.TransformedObjects = (&apiresourceset.K8sAPIResourceSet{}).CreateAPIResources(ir)
+	kt.RootDir = ir.RootDir
 
 	log.Debugf("Total transformed objects : %d", len(kt.TransformedObjects))
 
@@ -74,7 +76,7 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 
 // WriteObjects writes Transformed objects to filesystem
 func (kt *K8sTransformer) WriteObjects(outpath string) error {
-	areNewImagesCreated := writeContainers(outpath, kt.Containers, kt.Values.RegistryURL, kt.Values.RegistryNamespace)
+	areNewImagesCreated := writeContainers(kt.Containers, outpath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace)
 
 	artifactspath := filepath.Join(outpath, kt.Name)
 	if kt.Helm {

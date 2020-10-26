@@ -27,16 +27,14 @@ import (
 	"reflect"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/transformer/templates"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types/plan"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 //go:generate go run github.com/konveyor/move2kube/internal/common/generator templates
@@ -58,7 +56,7 @@ func GetTransformer(ir irtypes.IR) Transformer {
 }
 
 // writeContainers returns true if any scripts were written
-func writeContainers(outpath string, containers []irtypes.Container, registryURL string, registryNamespace string) bool {
+func writeContainers(containers []irtypes.Container, outpath, rootDir, registryURL, registryNamespace string) bool {
 	containersdirectory := "containers"
 	containerspath := path.Join(outpath, containersdirectory)
 	log.Debugf("containerspath %s", containerspath)
@@ -80,20 +78,17 @@ func writeContainers(outpath string, containers []irtypes.Container, registryURL
 		}
 		log.Debugf("New Container : %s", container.ImageNames[0])
 		dockerimages = append(dockerimages, container.ImageNames...)
-		for path, filecontents := range container.NewFiles {
-			writepath := filepath.Join(containerspath, path)
+		for relPath, filecontents := range container.NewFiles {
+			writepath := filepath.Join(containerspath, relPath)
 			directory := filepath.Dir(writepath)
-			err := os.MkdirAll(directory, common.DefaultDirectoryPermission)
-			if err != nil {
+			if err := os.MkdirAll(directory, common.DefaultDirectoryPermission); err != nil {
 				log.Errorf("Unable to create directory %s : %s", directory, err)
 				continue
 			}
-			var fileperm os.FileMode
+			fileperm := common.DefaultFilePermission
 			if filepath.Ext(writepath) == ".sh" {
 				fileperm = common.DefaultExecutablePermission
-				buildscripts = append(buildscripts, filepath.Join(containersdirectory, path))
-			} else {
-				fileperm = common.DefaultFilePermission
+				buildscripts = append(buildscripts, filepath.Join(containersdirectory, relPath))
 			}
 			log.Debugf("Writing at %s", writepath)
 			err = ioutil.WriteFile(writepath, []byte(filecontents), fileperm)
