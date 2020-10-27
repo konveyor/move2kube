@@ -53,6 +53,7 @@ func (c *V3Loader) ConvertToIR(composefilepath string, serviceName string) (irty
 		log.Warnf("Unable to load Compose file : %s", err)
 		return irtypes.IR{}, err
 	}
+
 	// Parse the Compose File
 	parsedComposeFile, err := loader.ParseYAML(loadedFile)
 	if err != nil {
@@ -364,9 +365,18 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config) (irty
 				})
 		}
 
-		for index, vol := range composeServiceConfig.Volumes {
+		for _, vol := range composeServiceConfig.Volumes {
 			if isPath(vol.Source) {
-				volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, index)
+				hPath := vol.Source
+				if !filepath.IsAbs(vol.Source) {
+					hPath, err := filepath.Abs(vol.Source)
+					if err != nil {
+						log.Debugf("Could not create an absolute path for [%s]", hPath)
+					}
+				}
+				// Generate a hash Id for the given source file path to be mounted.
+				hashID := getHash([]byte(hPath))
+				volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
 				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, corev1.VolumeMount{
 					Name:      volumeName,
 					MountPath: vol.Target,

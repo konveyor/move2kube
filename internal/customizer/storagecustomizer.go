@@ -18,7 +18,6 @@ package customizer
 
 import (
 	"fmt"
-	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 
@@ -44,11 +43,11 @@ func (ic *storageCustomizer) customize(ir *irtypes.IR) error {
 	ic.ir = ir
 	ic.convertHostPathToPVC()
 
-	if len(ir.Storages) == 0 {
+	if len(ic.ir.Storages) == 0 {
 		log.Debugf("Empty storage list. Nothing to customize.")
 		return nil
 	}
-	if ir.TargetClusterSpec.StorageClasses == nil || len(ir.TargetClusterSpec.StorageClasses) == 0 {
+	if ic.ir.TargetClusterSpec.StorageClasses == nil || len(ic.ir.TargetClusterSpec.StorageClasses) == 0 {
 		s := "No storage classes available in the cluster"
 		log.Warnf(s)
 		return fmt.Errorf(s)
@@ -68,7 +67,7 @@ func (ic *storageCustomizer) customize(ir *irtypes.IR) error {
 	if len(selectedKeys) > 1 {
 		if !ic.shouldConfigureSeparately(selectedKeys) {
 			storageClass := ic.selectStorageClass(ir.TargetClusterSpec.StorageClasses, alloption, []string{})
-			for _, storage := range ir.Storages {
+			for _, storage := range ic.ir.Storages {
 				if storage.StorageType == irtypes.PVCKind {
 					storage.PersistentVolumeClaimSpec.StorageClassName = &storageClass
 				}
@@ -77,13 +76,15 @@ func (ic *storageCustomizer) customize(ir *irtypes.IR) error {
 		}
 	}
 
-	for i, s := range ir.Storages {
+	for i, s := range ic.ir.Storages {
 		if svs, ok := claimSvcMap[s.Name]; ok {
-			storageClassName := ic.selectStorageClass(ir.TargetClusterSpec.StorageClasses, s.Name, svs)
+			storageClassName := ic.selectStorageClass(ic.ir.TargetClusterSpec.StorageClasses, s.Name, svs)
 			s.StorageClassName = &storageClassName
-			ir.Storages[i] = s
+			ic.ir.Storages[i] = s
 		}
 	}
+
+	(*ir) = (*ic.ir)
 
 	return nil
 }
@@ -94,9 +95,9 @@ func (ic *storageCustomizer) convertHostPathToPVC() {
 		log.Debugf("Service %s has %d volumes", service.Name, len(service.Volumes))
 		for vi, v := range service.Volumes {
 			if v.HostPath != nil {
-				if name, ok := hostPathsVisited[v.HostPath.Path]; ok {
+				if name, ok := hostPathsVisited[v.HostPath.Path]; !ok {
 					hostPathsVisited[v.HostPath.Path] = ""
-					log.Debugf("Detected host path [%s]", v.HostPath.Path)
+					log.Debugf("Detected host path [%+v]", v)
 					if !ic.shouldHostPathBeRetained(v.HostPath.Path) {
 						hostPathsVisited[v.HostPath.Path] = v.Name
 						v.VolumeSource = corev1.VolumeSource{
@@ -117,6 +118,8 @@ func (ic *storageCustomizer) convertHostPathToPVC() {
 								},
 							}}
 						ic.ir.AddStorage(storageObj)
+					} else {
+						log.Debugf("Host path [%s] is retained", v.HostPath.Path)
 					}
 				} else {
 					v.VolumeSource = corev1.VolumeSource{
@@ -132,9 +135,9 @@ func (ic *storageCustomizer) convertHostPathToPVC() {
 }
 
 func (ic storageCustomizer) shouldHostPathBeRetained(hostPath string) bool {
-	if filepath.IsAbs(hostPath) {
-		return true
-	}
+	// if filepath.IsAbs(hostPath) {
+	// 	return true
+	// }
 
 	problem, err := qatypes.NewConfirmProblem(fmt.Sprintf("Do you want to create PVC for host path [%s]?:", hostPath), []string{"Use PVC for persistent storage wherever applicable"}, false)
 	if err != nil {
