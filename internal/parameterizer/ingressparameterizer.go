@@ -26,7 +26,7 @@ type ingressParameterizer struct {
 
 func (ip ingressParameterizer) parameterize(ir *irtypes.IR) error {
 	ir.Values.IngressHost = ir.TargetClusterSpec.Host
-	ir.TargetClusterSpec.Host = "{{ .Release.Name }}-" + ir.Values.IngressHost
+	ir.TargetClusterSpec.Host = "{{ .Release.Name }}-{{ .Values.ingresshost }}"
 
 	return nil
 }
