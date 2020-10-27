@@ -215,7 +215,7 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 	}
 	gitDomains = common.UniqueStrings(gitDomains)
 	if len(gitDomains) == 0 {
-		log.Warn("No remote git repos found. CI/CD pipeline requires a remote git repo to pull the source code from.")
+		log.Info("No remote git repos detected. You might want to configure the git repository links manually.")
 	} else {
 		for _, gitDomain := range gitDomains {
 			// This name is also used by tekton to create a volume to hold secrets. If there is a dot k8s will complain.

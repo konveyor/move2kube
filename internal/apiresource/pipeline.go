@@ -142,9 +142,11 @@ func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.IR) *v
 			firstTask = false
 			prevTaskName = buildPushTaskName
 		} else if container.ContainerBuildType == plantypes.S2IContainerBuildTypeValue {
-			log.Errorf("TODO: Implement support for S2I")
+			// TODO: Implement support for S2I
+			log.Debugf("S2I not yet supported for Tekton")
 		} else if container.ContainerBuildType == plantypes.CNBContainerBuildTypeValue {
-			log.Errorf("TODO: Implement support for CNB")
+			// TODO: Implement support for CNB
+			log.Debugf("CNB not yet supported for Tekton")
 		} else {
 			log.Errorf("Unknown containerization method: %v", container.ContainerBuildType)
 		}
