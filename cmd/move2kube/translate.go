@@ -80,6 +80,7 @@ var translateCmd = &cobra.Command{
 				log.Fatalf("Error while accessing plan file path %s : %s ", planfile, err)
 			}
 		} else {
+			log.Infof("Detected a plan file in %s. Will translate using this plan.", planfile)
 			p, err = move2kube.ReadPlan(planfile)
 			if err != nil {
 				log.Fatalf("Unable to read plan : %s", err)
