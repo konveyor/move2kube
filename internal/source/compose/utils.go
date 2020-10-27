@@ -18,6 +18,7 @@ package compose
 
 import (
 	"fmt"
+	"hash/fnv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -55,4 +56,10 @@ func makeVolumesFromTmpFS(serviceName string, tfsList []string) ([]corev1.Volume
 
 func isPath(substring string) bool {
 	return strings.Contains(substring, "/") || substring == "."
+}
+
+func getHash(data []byte) uint64 {
+	hasher := fnv.New64a()
+	hasher.Write(data)
+	return hasher.Sum64()
 }

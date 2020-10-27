@@ -53,6 +53,7 @@ func (c *V1V2Loader) ConvertToIR(composefilepath string, serviceName string) (ir
 	if err != nil {
 		return
 	}
+
 	re := regexp.MustCompile(`(?s)\n\s+env_file:.*?(\n\s*[a-zA-Z]|$)`)
 	envFileStrings := re.FindAllString(string(filedata), -1)
 	for _, envFileString := range envFileStrings {
@@ -245,9 +246,18 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		}
 
 		if composeServiceConfig.Volumes != nil {
-			for index, vol := range composeServiceConfig.Volumes.Volumes {
+			for _, vol := range composeServiceConfig.Volumes.Volumes {
 				if isPath(vol.Source) {
-					volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, index)
+					hPath := vol.Source
+					if !filepath.IsAbs(vol.Source) {
+						hPath, err := filepath.Abs(vol.Source)
+						if err != nil {
+							log.Debugf("Could not create an absolute path for [%s]", hPath)
+						}
+					}
+					// Generate a hash Id for the given source file path to be mounted.
+					hashID := getHash([]byte(hPath))
+					volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
 					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, corev1.VolumeMount{
 						Name:      volumeName,
 						ReadOnly:  vol.AccessMode == modeReadOnly,
