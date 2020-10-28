@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Language Platforms"
-permalink: /tutorials/language-platforms.md/
+permalink: /tutorials/language-platforms/
 ---
 
 # Language Platforms

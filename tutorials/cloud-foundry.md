@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Cloud Foundry"
-permalink: /tutorials/cloud-foundry.md/
+permalink: /tutorials/cloud-foundry/
 ---
 
 # Cloud Foundry

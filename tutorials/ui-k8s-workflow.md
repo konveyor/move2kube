@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "UI Kubernetes Workflow"
-permalink: /tutorials/ui-k8s-workflow.md/
+permalink: /tutorials/ui-k8s-workflow/
 ---
 
 # UI Kubernetes Workflow

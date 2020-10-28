@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "UI Operator Workflow"
-permalink: /tutorials/ui-operator-workflow.md/
+permalink: /tutorials/ui-operator-workflow/
 ---
 
 # UI Operator Workflow

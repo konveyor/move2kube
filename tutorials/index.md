@@ -1,5 +1,5 @@
 ---
 layout: default
 title: "Tutorials"
-permalink: /tutorials/
+permalink: /tutorials-data/
 ---

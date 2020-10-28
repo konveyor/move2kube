@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "UI Local Machine Workflow"
-permalink: /tutorials/ui-local-workflow.md/
+permalink: /tutorials/ui-local-workflow/
 ---
 
 # UI Local Machine Workflow

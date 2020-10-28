@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Getting Started"
-permalink: /GettingStarted.md/
+permalink: /getting-started
 ---
 
 ## Getting Started

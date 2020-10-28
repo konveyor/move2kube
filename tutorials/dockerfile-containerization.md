@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Dockerfile Containerization"
-permalink: /tutorials/dockerfile-containerization.md/
+permalink: /tutorials/dockerfile-containerization/
 ---
 
 # Dockerfile Containerization
