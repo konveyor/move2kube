@@ -17,12 +17,12 @@ Move2Kube is a command line tool that uses source artifacts such as docker compo
 
 Move2Kube takes as input the source artifacts and outputs the target deployment artifacts.
 
-![Move2Kube-Usage](../images/m2k-usage.png)
+![Move2Kube-Usage](images/usage.png)
 
 For more detailed information :
 * [Installation](./install.md)
 * [Getting Started](./GettingStarted.md)
-* [Tutorials](./Tutorials.md)
+* [Tutorials](./Tutorial.md)
 
 ## Discussion
 
