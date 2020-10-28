@@ -12,3 +12,8 @@ getting_started_url: /GettingStarted.md
 tutorials_url: /Tutorials.md
 gems:
 - jekyll-seo-tag
+github:
+  repository_url: https://konveyor.github.io/move2kube/
+  repository_name: Move2Kube
+  owner_url: https://konveyor.github.io/
+  owner_name: Konveyor 
