@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 Gem::Specification.new do |s|
-  s.name          = 'move2kube'
+  s.name          = 'jekyll-theme-cayman'
   s.version       = '0.1.0'
   s.license       = 'Apache-2.0'
   s.authors       = ['IBM India Research Labs']
