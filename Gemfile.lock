@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    move2kube (0.1.0)
+    jekyll-theme-cayman (0.1.0)
       jekyll (> 3.5, < 5.0)
       jekyll-seo-tag (~> 2.0)
 
@@ -105,7 +105,7 @@ PLATFORMS
 
 DEPENDENCIES
   html-proofer (~> 3.0)
-  move2kube!
+  jekyll-theme-cayman!
   rubocop (~> 0.50)
   w3c_validators (~> 1.3)
 
