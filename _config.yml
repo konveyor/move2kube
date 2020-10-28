@@ -7,9 +7,9 @@ home_url: https://konveyor.github.io/move2kube/
 github_url: http://github.com/konveyor/move2kube
 slack_url: https://kubernetes.slack.com/archives/CR85S82A2
 forum_url: https://groups.google.com/forum/#!forum/konveyorio
-installation_url: /install.md
-getting_started_url: /GettingStarted.md
-tutorials_url: /Tutorials.md
+installation_url: /installation
+getting_started_url: /getting-started
+tutorials_url: /tutorials
 gems:
 - jekyll-seo-tag
 github:

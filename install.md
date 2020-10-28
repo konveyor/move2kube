@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Installation"
-permalink: /install.md/
+permalink: /installation
 ---
 
 
@@ -9,14 +9,14 @@ permalink: /install.md/
 
 ### Move2Kube Command Line Tool:
 
-**Github release**
-
-The binary can be downloaded from the [GitHub releases page](https://github.com/konveyor/move2kube/releases) of Move2Kube.
-
 **Linux / macOS / Windows WSL:**
 ```
 $ curl -L https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/install.sh | bash -
 ```
+
+**Github release**
+
+The binary can be downloaded from the [GitHub releases page](https://github.com/konveyor/move2kube/releases) of Move2Kube.
 
 **Go**
 

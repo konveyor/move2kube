@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Kubernetes-to-Kubernetes"
-permalink: /tutorials/kubernetes-to-kubernetes.md/
+permalink: /tutorials/kubernetes-to-kubernetes/
 ---
 
 # Kubernetes-to-Kubernetes

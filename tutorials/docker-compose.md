@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Docker compose translation"
-permalink: /tutorials/docker-compose.md/
+permalink: /tutorials/docker-compose/
 ---
 
 # Docker compose translation

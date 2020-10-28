@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Unified flow"
-permalink: /tutorials/unified-flow.md/
+permalink: /tutorials/unified-flow/
 ---
 
 # Unified Flow
