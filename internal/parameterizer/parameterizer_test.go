@@ -139,17 +139,18 @@ func TestParameterizer(t *testing.T) {
 
 		// scMap should be 1, we can parameterize
 		ir := getIRWithoutServices()
+		want := getIRWithoutServices()
 		actual, err := parameterize.Parameterize(ir)
 		if err != nil {
 			t.Fatal("Failed to parameterize the IR properly. Error:", err)
 		}
 
-		hostParam := "{{ .Release.Name }}-{{ .Values.ingresshost }}"
+		want.TargetClusterSpec.Host = "{{ .Release.Name }}-{{ .Values.ingresshost }}"
 
-		if actual.TargetClusterSpec.Host != hostParam {
-			t.Fatal("Failed to parameterize the IR properly")
-
+		if !cmp.Equal(actual, want, cmpopts.EquateEmpty()) {
+			t.Fatalf("Failed to parameterize the IR properly. Difference:\n%s", cmp.Diff(want, actual))
 		}
+
 	})
 
 }
