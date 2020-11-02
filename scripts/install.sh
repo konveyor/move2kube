@@ -28,6 +28,7 @@ HAS_CURL="$(type curl &>/dev/null && echo true || echo false)"
 HAS_WGET="$(type wget &>/dev/null && echo true || echo false)"
 HAS_OPENSSL="$(type openssl &>/dev/null && echo true || echo false)"
 HAS_SHA256SUM="$(type sha256sum &>/dev/null && echo true || echo false)"
+HAS_MOVE2KUBE="$(type "$BINARY_NAME" &>/dev/null && echo true || echo false)"
 
 initArch() {
     ARCH="$(uname -m)"
@@ -72,6 +73,35 @@ verifySupported() {
         echo "In order to verify checksum, sha256sum or openssl must first be installed."
         echo "Please install sha256sum or openssl or set VERIFY_CHECKSUM=false in your environment."
         exit 1
+    fi
+}
+
+# getLatestVersion gets the latest release version.
+getLatestVersion() {
+    # Get tag from release URL
+    local latest_release_url='https://github.com/konveyor/move2kube/releases'
+    if [ "${HAS_CURL}" == "true" ]; then
+        TAG="$(curl -Ls "$latest_release_url" | grep 'href="/konveyor/move2kube/releases/tag/v' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/' | rev | cut -d '/' -f1 | rev)"
+    elif [ "${HAS_WGET}" == "true" ]; then
+        TAG="$(wget -qO - "$latest_release_url" | grep 'href="/konveyor/move2kube/releases/tag/v' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/' | rev | cut -d '/' -f1 | rev)"
+    fi
+}
+
+# checkMove2KubeInstalledVersion checks which version of move2kube is installed and
+# if it needs to be changed.
+checkMove2KubeInstalledVersion() {
+    if [ "${HAS_MOVE2KUBE}" == "true" ]; then
+        local version
+        version="$("${BINARY_NAME}" version)"
+        if [[ "$version" == "$TAG" ]]; then
+            echo "Move2Kube ${version} is already the latest"
+            return 0
+        else
+            echo "Move2Kube ${TAG} is available. Changing from version ${version}."
+            return 1
+        fi
+    else
+        return 1
     fi
 }
 
@@ -180,9 +210,12 @@ main() {
     initArch
     initOS
     verifySupported
-    downloadFile
-    verifyFile
-    installFile
+    getLatestVersion
+    if ! checkMove2KubeInstalledVersion; then
+        downloadFile
+        verifyFile
+        installFile
+    fi
     testVersion
     echo 'Done!'
 }
