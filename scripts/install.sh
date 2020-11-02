@@ -19,7 +19,7 @@
 
 [[ $DEBUG ]] || DEBUG='false'
 [[ $BINARY_NAME ]] || BINARY_NAME='move2kube'
-[[ $TAG ]] || TAG='v0.1.0-alpha'
+[[ $TAG ]] || TAG='v0.1.0-alpha.1'
 [[ $USE_SUDO ]] || USE_SUDO='true'
 [[ $VERIFY_CHECKSUM ]] || VERIFY_CHECKSUM='true'
 [[ $MOVE2KUBE_INSTALL_DIR ]] || MOVE2KUBE_INSTALL_DIR='/usr/local/bin'
@@ -78,7 +78,7 @@ verifySupported() {
 # downloadFile downloads the latest binary package and also the checksum
 # for that binary.
 downloadFile() {
-    MOVE2KUBE_DIST="move2kube-$TAG-$OS-$ARCH.zip"
+    MOVE2KUBE_DIST="move2kube-$TAG-$OS-$ARCH.tar.gz"
     DOWNLOAD_URL="https://github.com/konveyor/move2kube/releases/download/$TAG/$MOVE2KUBE_DIST"
     CHECKSUM_URL="$DOWNLOAD_URL.sha256sum"
     MOVE2KUBE_TMP_ROOT="$(mktemp -dt move2kube-installer-XXXXXX)"
@@ -129,8 +129,8 @@ verifyChecksum() {
 installFile() {
     MOVE2KUBE_TMP="$MOVE2KUBE_TMP_ROOT/$BINARY_NAME"
     mkdir -p "$MOVE2KUBE_TMP"
-    bsdtar -xf "$MOVE2KUBE_TMP_FILE" -C "$MOVE2KUBE_TMP"
-    MOVE2KUBE_TMP_BIN="$MOVE2KUBE_TMP/$OS-$ARCH/$BINARY_NAME"
+    tar -xf "$MOVE2KUBE_TMP_FILE" -C "$MOVE2KUBE_TMP"
+    MOVE2KUBE_TMP_BIN="$MOVE2KUBE_TMP/$BINARY_NAME/$BINARY_NAME"
     echo "Preparing to install $BINARY_NAME into ${MOVE2KUBE_INSTALL_DIR}"
     runAsRoot cp "$MOVE2KUBE_TMP_BIN" "$MOVE2KUBE_INSTALL_DIR/$BINARY_NAME"
     echo "Successfully installed $BINARY_NAME into $MOVE2KUBE_INSTALL_DIR/$BINARY_NAME"
