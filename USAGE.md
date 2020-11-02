@@ -24,4 +24,4 @@ Note: If information about any runtime instance say cloud foundry or kubernetes 
 
 ## Contact
 
-For any questions reach out at [slack](https://kubernetes.slack.com/archives/CR85S82A2) in [kubernetes](https://slack.k8s.io/) workspace.
+For any questions reach out to us on the Slack channel given on our website https://konveyor.github.io/move2kube/
