@@ -10,6 +10,7 @@ permalink: /tutorial
 
 Tutorials about using Move2Kube to generate target artifacts for various source platforms can be found below.
 
+* [End-to-End Flow]({{ site.baseurl }}/tutorials/e2e-flow)
 * [Cloud Foundry]({{ site.baseurl }}/tutorials/cloud-foundry)
 * [Docker Compose]({{ site.baseurl }}/tutorials/docker-compose)
 * [Dockerfile Containerization]({{ site.baseurl }}/tutorials/dockerfile-containerization)
