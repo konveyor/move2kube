@@ -11,7 +11,7 @@ permalink: /installation
 
 **Linux / macOS / Windows WSL:**
 ```
-$ curl -L https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/install.sh | bash -
+bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/install.sh)
 ```
 
 **Github release**
