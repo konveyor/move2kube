@@ -38,19 +38,20 @@ var (
 
 // StartEngine starts the QA Engines
 func StartEngine(qaskip bool, qaport int, qadisablecli bool) {
+
+	var e Engine
+
 	if qaskip {
-		e := NewDefaultEngine()
-		AddEngine(e)
+		e = NewDefaultEngine()
 
 	} else if !qadisablecli {
-		e := NewCliEngine()
-		AddEngine(e)
+		e = NewCliEngine()
 
 	} else {
-		e := NewHTTPRESTEngine(qaport)
-		AddEngine(e)
-
+		e = NewHTTPRESTEngine(qaport)
 	}
+
+	AddEngine(e)
 }
 
 // AddEngine appends  an engine to the engines slice
