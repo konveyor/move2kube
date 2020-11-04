@@ -17,9 +17,9 @@ limitations under the License.
 package qaengine
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,12 +29,14 @@ func TestEngine(t *testing.T) {
 	t.Run("1. test AddEngine", func(t *testing.T) {
 
 		e := NewDefaultEngine()
+		want := NewDefaultEngine()
 		AddEngine(e)
 
-		etype := reflect.TypeOf(e)
-		eAfterType := reflect.TypeOf(engines[0])
+		if len(engines) != 1 {
+			t.Fatalf("Engine was not added correctly to the engines slice")
+		}
 
-		if len(engines) != 1 || etype.String() != eAfterType.String() {
+		if !cmp.Equal(engines[0], want) {
 			t.Fatalf("Engine was not added correctly")
 		}
 
