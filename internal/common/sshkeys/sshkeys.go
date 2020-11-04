@@ -40,23 +40,50 @@ var (
 		"gitlab.com":    []string{"gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf", "gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9", "gitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY="},
 		"bitbucket.org": []string{"bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw=="},
 	}
-	privateKeyDir                 = ""
-	firstTimeLoadingSSHKeysOfUser = true
-	privateKeysToConsider         = []string{}
+	privateKeyDir                    = ""
+	firstTimeLoadingKnownHostsOfUser = true
+	firstTimeLoadingSSHKeysOfUser    = true
+	privateKeysToConsider            = []string{}
 )
 
-// Setup
-func init() {
-	// Try to get the public keys from ~/.ssh/known_hosts
+// LoadKnownHostsOfCurrentUser loads the public keys from known_hosts
+func LoadKnownHostsOfCurrentUser() {
+	if !firstTimeLoadingKnownHostsOfUser {
+		return
+	}
+	firstTimeLoadingKnownHostsOfUser = false
 	usr, err := user.Current()
 	if err != nil {
 		log.Warn("Failed to get the current user. Error:", err)
 		return
 	}
 	home := usr.HomeDir
-	log.Debug("home directory:", home)
-	privateKeyDir = filepath.Join(home, ".ssh")
+	log.Debugf("Home directory: %q", home)
 	knownHostsPath := filepath.Join(home, ".ssh", "known_hosts")
+	log.Debugf("Looking in the known_hosts at path %q for public keys.", knownHostsPath)
+
+	// Ask if we should look at ~/.ssh/known_hosts
+	message := `The CI/CD pipeline needs access to the git repos in order to clone, build and push.
+Move2Kube has public keys for github.com, gitlab.com, and bitbucket.org by default.
+If any of the repos use ssh authentication we will need public keys in order to verify.
+Do you want to load the public keys from your [%s]?:`
+	problem, err := qatypes.NewConfirmProblem(fmt.Sprintf(message, knownHostsPath), []string{"No, I will add them later if necessary."}, false)
+	if err != nil {
+		log.Fatalf("Unable to create problem. Error: %q", err)
+	}
+	problem, err = qaengine.FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer. Error: %q", err)
+	}
+	ans, err := problem.GetBoolAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer. Error: %q", err)
+	}
+	if !ans {
+		log.Debug("Don't read public keys from known_hosts. They will be added later if necessary.")
+		return
+	}
+
 	newKeys, err := commonknownhosts.ParseKnownHosts(knownHostsPath)
 	if err != nil {
 		log.Warnf("Failed to get public keys from the known_hosts file at path %q Error: %q", knownHostsPath, err)
@@ -78,7 +105,10 @@ func loadSSHKeysOfCurrentUser() {
 	log.Debugf("Looking in ssh directory at path %q for keys.", privateKeyDir)
 
 	// Ask if we should look at the private keys
-	problem, err := qatypes.NewConfirmProblem(fmt.Sprintf("The CI/CD pipeline needs access to the git repos in order to clone, build and push. If any of the repos require ssh keys you will need to provide them. Do you want to load the private ssh keys from [%s]?:", privateKeyDir), []string{"No, I will add them later if necessary."}, false)
+	message := `The CI/CD pipeline needs access to the git repos in order to clone, build and push.
+If any of the repos require ssh keys you will need to provide them.
+Do you want to load the private ssh keys from [%s]?:`
+	problem, err := qatypes.NewConfirmProblem(fmt.Sprintf(message, privateKeyDir), []string{"No, I will add them later if necessary."}, false)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}

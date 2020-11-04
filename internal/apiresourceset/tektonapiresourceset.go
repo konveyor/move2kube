@@ -245,6 +245,7 @@ func createGitSecret(name, gitRepoDomain string) irtypes.Storage {
 	if gitRepoDomain == "" {
 		gitRepoDomain = gitDomainPlaceholder
 	} else {
+		sshkeys.LoadKnownHostsOfCurrentUser()
 		if pubKeys, ok := sshkeys.DomainToPublicKeys[gitRepoDomain]; ok { // Check in our hardcoded set of keys and their ~/.ssh/known_hosts file.
 			knownHosts = strings.Join(pubKeys, "\n")
 		} else if pubKeyLine, err := knownhosts.GetKnownHostsLine(gitRepoDomain); err == nil { // Check online by connecting to the host.
@@ -254,15 +255,15 @@ func createGitSecret(name, gitRepoDomain string) irtypes.Storage {
 			example := sshkeys.DomainToPublicKeys["github.com"][0]
 			problem, err := qatypes.NewInputProblem(problemDesc, []string{"Ex : " + example}, knownHostsPlaceholder)
 			if err != nil {
-				log.Fatalf("Unable to create problem : %s", err)
+				log.Fatalf("Unable to create problem. Error: %q", err)
 			}
 			problem, err = qaengine.FetchAnswer(problem)
 			if err != nil {
-				log.Fatalf("Unable to fetch answer : %s", err)
+				log.Fatalf("Unable to fetch answer. Error: %q", err)
 			}
 			newline, err := problem.GetStringAnswer()
 			if err != nil {
-				log.Fatalf("Unable to get answer : %s", err)
+				log.Fatalf("Unable to get answer. Error: %q", err)
 			}
 			knownHosts = newline
 		}
