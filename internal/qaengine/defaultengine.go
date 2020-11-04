@@ -23,7 +23,7 @@ type DefaultEngine struct {
 }
 
 // NewDefaultEngine creates a new instance of default engine
-func NewDefaultEngine() Engine {
+func NewDefaultEngine() *DefaultEngine {
 	ce := new(DefaultEngine)
 	return ce
 }
