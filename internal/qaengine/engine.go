@@ -40,28 +40,27 @@ var (
 func StartEngine(qaskip bool, qaport int, qadisablecli bool) {
 	if qaskip {
 		e := NewDefaultEngine()
-		err := e.StartEngine()
-		if err != nil {
-			log.Errorf("Ignoring engine %T due to error : %s", e, err)
-		} else {
-			engines = append(engines, e)
-		}
+		AddEngine(e)
+
 	} else if !qadisablecli {
 		e := NewCliEngine()
-		err := e.StartEngine()
-		if err != nil {
-			log.Errorf("Ignoring engine %T due to error : %s", e, err)
-		} else {
-			engines = append(engines, e)
-		}
+		AddEngine(e)
+
 	} else {
 		e := NewHTTPRESTEngine(qaport)
-		err := e.StartEngine()
-		if err != nil {
-			log.Errorf("Ignoring engine %T due to error : %s", e, err)
-		} else {
-			engines = append(engines, e)
-		}
+		AddEngine(e)
+
+	}
+}
+
+// AddEngine appends  an engine to the engines slice
+func AddEngine(e Engine) {
+
+	err := e.StartEngine()
+	if err != nil {
+		log.Errorf("Ignoring engine %T due to error : %s", e, err)
+	} else {
+		engines = append(engines, e)
 	}
 }
 
