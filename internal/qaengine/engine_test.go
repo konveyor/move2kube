@@ -32,7 +32,7 @@ func TestEngine(t *testing.T) {
 		want := NewDefaultEngine()
 		AddEngine(e)
 
-		if len(engines) != 0 {
+		if len(engines) != 1 {
 			t.Fatalf("Engine was not added correctly to the engines slice. Length of engines slice: %d", len(engines))
 		}
 
