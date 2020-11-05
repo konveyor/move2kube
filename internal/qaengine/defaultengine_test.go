@@ -30,6 +30,7 @@ func TestDefaultEngine(t *testing.T) {
 
 	t.Run("Fetch the default answer", func(t *testing.T) {
 
+		engines = []Engine{}
 		e := NewDefaultEngine()
 		AddEngine(e)
 
@@ -45,8 +46,14 @@ func TestDefaultEngine(t *testing.T) {
 			log.Fatalf("Unable to fetch answer : %s", err)
 		}
 
-		if problem.Solution.Answer[0] != common.DefaultRegistryURL {
-			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s", problem.Solution.Answer)
+		answer, err := problem.GetStringAnswer()
+		if err != nil {
+			log.Fatalf("Unable to get answer : %s", err)
+		}
+
+		if answer != common.DefaultRegistryURL {
+			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
+				answer, common.DefaultRegistryURL)
 		}
 
 	})
