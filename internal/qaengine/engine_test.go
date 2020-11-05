@@ -28,6 +28,9 @@ func TestEngine(t *testing.T) {
 
 	t.Run("1. test AddEngine", func(t *testing.T) {
 
+		//make sure the engines slice is empty
+		engines = []Engine{}
+
 		e := NewDefaultEngine()
 		want := NewDefaultEngine()
 		AddEngine(e)
