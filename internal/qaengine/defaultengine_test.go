@@ -19,30 +19,35 @@ package qaengine
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	qatypes "github.com/konveyor/move2kube/types/qaengine"
+
+	"github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
 )
 
-func TestEngine(t *testing.T) {
+func TestDefaultEngine(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
-	t.Run("1. test AddEngine", func(t *testing.T) {
-
-		//make sure the engines slice is empty
-		engines = nil
+	t.Run("Fetch the default answer", func(t *testing.T) {
 
 		e := NewDefaultEngine()
-		want := NewDefaultEngine()
 		AddEngine(e)
 
-		if len(engines) != 1 {
-			t.Fatalf("Engine was not added correctly to the engines slice. Length of engines slice: %d", len(engines))
+		problem, err := qatypes.NewInputProblem("Enter the name of the registry : ",
+			[]string{"Ex : " + common.DefaultRegistryURL},
+			common.DefaultRegistryURL)
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
 		}
 
-		if !cmp.Equal(engines[0], want) {
-			t.Fatalf("Engine was not added correctly. Difference:\n%s", cmp.Diff(want, engines[0]))
+		problem, err = FetchAnswer(problem)
+		if err != nil {
+			log.Fatalf("Unable to fetch answer : %s", err)
+		}
+
+		if problem.Solution.Answer[0] != common.DefaultRegistryURL {
+			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s", problem.Solution.Answer)
 		}
 
 	})
-
 }
