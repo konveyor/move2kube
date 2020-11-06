@@ -15,9 +15,9 @@
 # Takes as input the source folder and returns error if it is not fit
 BASE_DIR=$1
 
-found=`find $BASE_DIR/. -name "*.php" -print -quit | wc -l`
+found=$(find "$BASE_DIR"/. -name "*.php" -print -quit | wc -l)
 
-if [ $found -eq 1 ]; then
+if [ "$found" -eq 1 ]; then
    echo '{"Port": 8080, "BINDING": "0.0.0.0:8080", "APPNAME": "app"}'
 else
    exit 1
