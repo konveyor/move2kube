@@ -35,6 +35,9 @@ func (c *DefaultEngine) StartEngine() error {
 
 // FetchAnswer fetches the default answers
 func (c *DefaultEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
+	if len(prob.Solution.Default) == 0 {
+		prob.Solution.Default = append(prob.Solution.Answer, "")
+	}
 	err = prob.SetAnswer(prob.Solution.Default)
 	return prob, err
 }

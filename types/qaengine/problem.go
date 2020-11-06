@@ -69,7 +69,12 @@ type SolutionForm struct {
 
 // SetAnswer sets the answer
 func (p *Problem) SetAnswer(answer []string) error {
-	if p.Solution.Type != MultiSelectSolutionFormType && len(answer) != 1 {
+
+	if len(answer) == 0 {
+		return fmt.Errorf("The answer slice is empty")
+	}
+
+	if p.Solution.Type != MultiSelectSolutionFormType && len(answer) > 1 {
 		return fmt.Errorf("The question type is not multiselect, but there are multiple answers")
 	}
 	if p.Solution.Type == SelectSolutionFormType || p.Solution.Type == MultiSelectSolutionFormType {

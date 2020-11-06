@@ -204,9 +204,6 @@ func TestDefaultEngine(t *testing.T) {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
 
-		// added default part
-		problem.Solution.Default = append(problem.Solution.Answer, "")
-
 		problem, err = FetchAnswer(problem)
 		if err != nil {
 			log.Fatalf("Unable to fetch answer : %s", err)
