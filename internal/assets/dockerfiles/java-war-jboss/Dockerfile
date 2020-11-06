@@ -12,16 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Takes as input the source folder and returns error if it is not fit
-BASE_DIR=$1
-SPECIAL_FILES=("$BASE_DIR"/requirements.txt "$BASE_DIR"/setup.py "$BASE_DIR"/environment.yml "$BASE_DIR"/Pipfile)
-
-for fileName in "${SPECIAL_FILES[@]}"; do
-   if [ -f "$fileName" ]; then
-      startScript=$(grep -lRe "__main__" "$1" | awk '{print $1}' | xargs -n1 basename)
-      echo '{"MAINSCRIPT": "'"$startScript"'", "APPNAME": "app", "Port": 8080}'
-      exit 0
-   fi
-done
-
-exit 1
+FROM registry.access.redhat.com/jboss-eap-6/eap64-openshift:1.9-32.1604502274
+EXPOSE {{ .port }}
+COPY {{ .war_path }} /opt/eap/standalone/deployments/

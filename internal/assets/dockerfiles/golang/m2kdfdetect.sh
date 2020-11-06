@@ -13,10 +13,10 @@
 #   limitations under the License.
 
 # Takes as input the source directory and returns error if it is not fit
-found=`find $1/. -name "*.go" -print -quit | wc -l`
+found=$(find "$1"/. -name "*.go" -print -quit | wc -l)
 
-if [ ! $found -eq 1 ]; then
+if [ ! "$found" -eq 1 ]; then
     exit 1
 else
     echo '{"Port": 8080, "APPNAME": "app-bin"}'
-fi 
+fi
