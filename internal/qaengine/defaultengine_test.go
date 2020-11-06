@@ -19,16 +19,16 @@ package qaengine
 import (
 	"testing"
 
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
-
+	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
+	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 )
 
 func TestDefaultEngine(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
-	t.Run("Fetch the default answer", func(t *testing.T) {
+	t.Run("Test NewInputProblem", func(t *testing.T) {
 
 		engines = []Engine{}
 		e := NewDefaultEngine()
@@ -57,4 +57,135 @@ func TestDefaultEngine(t *testing.T) {
 		}
 
 	})
+
+	t.Run("Test NewSelectProblem", func(t *testing.T) {
+
+		engines = []Engine{}
+		e := NewDefaultEngine()
+		AddEngine(e)
+
+		desc := "Test description"
+		context := []string{"Test context"}
+		def := "Option B"
+		opts := []string{"Option A", "Option B", "Option C"}
+
+		problem, err := qatypes.NewSelectProblem(desc, context, def, opts)
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
+		}
+
+		problem, err = FetchAnswer(problem)
+		if err != nil {
+			log.Fatalf("Unable to fetch answer : %s", err)
+		}
+
+		answer, err := problem.GetStringAnswer()
+		if err != nil {
+			log.Fatalf("Unable to get answer : %s", err)
+		}
+
+		if answer != def {
+			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
+				answer, def)
+		}
+
+	})
+
+	t.Run("Test NewMultiSelectProblem", func(t *testing.T) {
+
+		engines = []Engine{}
+		e := NewDefaultEngine()
+		AddEngine(e)
+
+		desc := "Test description"
+		context := []string{"Test context"}
+		def := []string{"Option A", "Option C"}
+		opts := []string{"Option A", "Option B", "Option C", "Option D"}
+
+		problem, err := qatypes.NewMultiSelectProblem(desc, context, def, opts)
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
+		}
+
+		problem, err = FetchAnswer(problem)
+		if err != nil {
+			log.Fatalf("Unable to fetch answer : %s", err)
+		}
+
+		answer, err := problem.GetSliceAnswer()
+		if err != nil {
+			log.Fatalf("Unable to get answer : %s", err)
+		}
+
+		if !cmp.Equal(answer, def) {
+			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
+				answer, def)
+		}
+
+	})
+
+	t.Run("Test NewConfirmProblem", func(t *testing.T) {
+
+		engines = []Engine{}
+		e := NewDefaultEngine()
+		AddEngine(e)
+
+		desc := "Test description"
+		context := []string{"Test context"}
+		def := true
+
+		problem, err := qatypes.NewConfirmProblem(desc, context, def)
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
+		}
+
+		problem, err = FetchAnswer(problem)
+		if err != nil {
+			log.Fatalf("Unable to fetch answer : %s", err)
+		}
+
+		answer, err := problem.GetBoolAnswer()
+		if err != nil {
+			log.Fatalf("Unable to get answer : %s", err)
+		}
+
+		if answer != def {
+			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %v, expected answer: %v ",
+				answer, def)
+		}
+
+	})
+
+	t.Run("Test NewMultilineInputProblem", func(t *testing.T) {
+
+		engines = []Engine{}
+		e := NewDefaultEngine()
+		AddEngine(e)
+
+		desc := "Test description"
+		context := []string{"Test context"}
+		def := "Option B"
+
+		problem, err := qatypes.NewMultilineInputProblem(desc, context, def)
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
+		}
+
+		problem, err = FetchAnswer(problem)
+		if err != nil {
+			log.Fatalf("Unable to fetch answer : %s", err)
+		}
+
+		answer, err := problem.GetStringAnswer()
+		if err != nil {
+			log.Fatalf("Unable to get answer : %s", err)
+		}
+
+		if answer != def {
+			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %v, expected answer: %v ",
+				answer, def)
+		}
+
+	})
+
 }
