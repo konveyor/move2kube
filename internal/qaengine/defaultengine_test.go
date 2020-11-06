@@ -164,7 +164,9 @@ func TestDefaultEngine(t *testing.T) {
 
 		desc := "Test description"
 		context := []string{"Test context"}
-		def := "Option B"
+		def := `line1
+		line2
+		line3`
 
 		problem, err := qatypes.NewMultilineInputProblem(desc, context, def)
 		if err != nil {
@@ -182,8 +184,42 @@ func TestDefaultEngine(t *testing.T) {
 		}
 
 		if answer != def {
-			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %v, expected answer: %v ",
+			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, def)
+		}
+
+	})
+
+	t.Run("Test NewPasswordProblem", func(t *testing.T) {
+
+		engines = []Engine{}
+		e := NewDefaultEngine()
+		AddEngine(e)
+
+		desc := "Test description"
+		context := []string{"Password:"}
+
+		problem, err := qatypes.NewPasswordProblem(desc, context)
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
+		}
+
+		// added default part
+		problem.Solution.Default = append(problem.Solution.Answer, "")
+
+		problem, err = FetchAnswer(problem)
+		if err != nil {
+			log.Fatalf("Unable to fetch answer : %s", err)
+		}
+
+		answer, err := problem.GetStringAnswer()
+		if err != nil {
+			log.Fatalf("Unable to get answer : %s", err)
+		}
+
+		if answer != "" {
+			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
+				answer, "")
 		}
 
 	})
