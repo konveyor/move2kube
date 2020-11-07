@@ -13,10 +13,8 @@
 #   limitations under the License.
 
 FROM registry.access.redhat.com/ubi8/python-36
-COPY . /{{.APPNAME}}
-RUN mkdir -p /{{.APPNAME}}
-WORKDIR /{{.APPNAME}}
-RUN cd /{{.APPNAME}}
+WORKDIR /{{ .app_name }}
+COPY . .
 RUN pip install -r requirements.txt
-EXPOSE {{.Port}}
-CMD ["python", "/{{.APPNAME}}/{{.MAINSCRIPT}}"]
+EXPOSE {{ .port }}
+CMD ["python", "{{ .main_script_rel_path }}"]
