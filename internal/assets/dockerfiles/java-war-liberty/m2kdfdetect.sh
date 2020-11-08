@@ -12,6 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM registry.access.redhat.com/jboss-eap-6/eap64-openshift:1.9-32.1604502274
-COPY {{ .war_path }} /opt/eap/standalone/deployments/
-EXPOSE {{ .port }}
+# Takes as input the source directory and returns error if it is not fit
+main() {
+    [ "$#" -gt 1 ] && echo 'multiple WAR files. exiting' && exit 1
+    [ ! -e "$1" ] && echo 'no WAR files. exiting' && exit 1
+    printf '{"port":9080, "war_path":"%s"}' "$(basename "$1")"
+}
+
+main "$1/"*.war
