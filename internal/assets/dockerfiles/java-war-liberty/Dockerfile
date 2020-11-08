@@ -12,6 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM registry.access.redhat.com/jboss-eap-6/eap64-openshift:1.9-32.1604502274
-COPY {{ .war_path }} /opt/eap/standalone/deployments/
+FROM websphere-liberty:webProfile8
+COPY --chown=1001:0 {{ .war_path }} /config/dropins/
 EXPOSE {{ .port }}
