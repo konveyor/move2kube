@@ -1,11 +1,24 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: ClusterMetadata
-metadata: 
+metadata:
   name: Kubernetes
 spec:
   storageClasses:
     - default
   apiKindVersionMap:
+    APIService:
+      - apiregistration.k8s.io/v1
+    Binding:
+      - v1
+    CSIDriver:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
+    CSINode:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
+    CertificateSigningRequest:
+      - certificates.k8s.io/v1
+      - certificates.k8s.io/v1beta1
     ClusterRole:
       - rbac.authorization.k8s.io/v1
       - rbac.authorization.k8s.io/v1beta1
@@ -39,8 +52,12 @@ spec:
       - autoscaling/v2beta1
       - autoscaling/v2beta2
     Ingress:
+      - networking.k8s.io/v1
       - networking.k8s.io/v1beta1
       - extensions/v1beta1
+    IngressClass:
+      - networking.k8s.io/v1
+      - networking.k8s.io/v1beta1
     Job:
       - batch/v1
     Lease:
