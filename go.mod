@@ -36,8 +36,8 @@ require (
 	github.com/xrash/smetrics v0.0.0-20200730060457-89a2a8a1fb0b
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
-	k8s.io/api v0.18.8
-	k8s.io/apimachinery v0.18.8
+	k8s.io/api v0.19.3
+	k8s.io/apimachinery v0.19.4-rc.0
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	knative.dev/serving v0.18.0
 )
@@ -47,7 +47,7 @@ replace (
 	github.com/docker/cli => github.com/docker/cli v0.0.0-20200210162036-a4bedce16568
 	github.com/docker/docker v0.0.0 => github.com/docker/docker v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	github.com/xeipuuv/gojsonschema => github.com/xeipuuv/gojsonschema v0.0.0-20161030231247-84d19640f6a7 // indirect
-	k8s.io/api => k8s.io/api v0.18.8
-	k8s.io/apimachinery => k8s.io/apimachinery v0.18.8
-	k8s.io/client-go => k8s.io/client-go v0.18.8
+	k8s.io/api => k8s.io/api v0.19.3
+	k8s.io/apimachinery => k8s.io/apimachinery v0.19.3
+	k8s.io/client-go => k8s.io/client-go v0.19.3
 )
