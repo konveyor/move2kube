@@ -63,11 +63,11 @@ func (d *DockerfileContainerizer) GetTargetOptions(_ plantypes.Plan, path string
 	targetOptions := []string{}
 	for _, dfcontainerizer := range d.dfcontainerizers {
 		output, err := d.detect(dfcontainerizer, path)
-		log.Debugf("Output of Dockerfile containerizer detect script %s : %s", dfcontainerizer, output)
 		if err != nil {
 			log.Debugf("%s detector cannot containerize %s Error: %q", dfcontainerizer, path, err)
 			continue
 		}
+		log.Debugf("Output of Dockerfile containerizer detect script %s : %s", dfcontainerizer, output)
 		targetOptions = append(targetOptions, dfcontainerizer)
 	}
 	return targetOptions
@@ -76,6 +76,7 @@ func (d *DockerfileContainerizer) GetTargetOptions(_ plantypes.Plan, path string
 func (*DockerfileContainerizer) detect(scriptDir string, directory string) (string, error) {
 	cmd := exec.Command("/bin/sh", dockerfileDetectScript, directory)
 	cmd.Dir = scriptDir
+	cmd.Stderr = os.Stderr
 	log.Debugf("Executing detect script %s on %s : %s", scriptDir, directory, cmd)
 	outputBytes, err := cmd.Output()
 	return string(outputBytes), err
