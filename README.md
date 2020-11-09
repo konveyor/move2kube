@@ -75,7 +75,7 @@ Some demo usage flows can be found in [here](https://github.com/konveyor/move2ku
 ## Move2Kube Demo
 * A short demo of using Move2Kube end-to-end, i.e., starting from the generation of the target deployment artifacts using the source artifacts, to finally deploying the applications on Kubernetes using the generated target artifacts, can be watched in the below link.
 
-  [![asciicast](https://asciinema.org/a/VNSsqDwJRPuO18Se8geDflv53.svg)](https://asciinema.org/a/VNSsqDwJRPuO18Se8geDflv53)
+  ![End-to-End demo](./imgs/e2e-flow.svg)
 
 ## Discussion
 
