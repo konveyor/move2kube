@@ -75,4 +75,4 @@ Some demo usage flows can be found in [here](https://github.com/konveyor/move2ku
 ## Discussion
 
 * Check out the [document guides](./docs) to extend Move2Kube.
-* To discuss with the maintainers, reach out in [slack](https://cloud-native.slack.com/archives/C01AJ5WCXGF) in [cloud-native](https://slack.cncf.io/) workspace.
+* For any questions reach out to us on any of the communication channels given on our website https://konveyor.github.io/move2kube/
