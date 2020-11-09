@@ -64,11 +64,11 @@ func (d *S2IContainerizer) GetTargetOptions(_ plantypes.Plan, path string) []str
 	targetOptions := []string{}
 	for _, s2icontainerizer := range d.s2icontainerizers {
 		output, err := d.detect(s2icontainerizer, path)
-		log.Debugf("Output of S2I containerizer detect script %s : %s", s2icontainerizer, output)
 		if err != nil {
 			log.Debugf("%s detector cannot containerize %s Error: %q", s2icontainerizer, path, err)
 			continue
 		}
+		log.Debugf("Output of S2I containerizer detect script %s : %s", s2icontainerizer, output)
 		targetOptions = append(targetOptions, s2icontainerizer)
 	}
 	return targetOptions
@@ -77,6 +77,7 @@ func (d *S2IContainerizer) GetTargetOptions(_ plantypes.Plan, path string) []str
 func (*S2IContainerizer) detect(scriptDir string, directory string) (string, error) {
 	cmd := exec.Command("/bin/sh", s2iDetectScript, directory)
 	cmd.Dir = scriptDir
+	cmd.Stderr = os.Stderr
 	log.Debugf("Executing detect script %s on %s : %s", scriptDir, directory, cmd)
 	outputBytes, err := cmd.Output()
 	return string(outputBytes), err

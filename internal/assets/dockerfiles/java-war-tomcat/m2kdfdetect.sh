@@ -13,9 +13,18 @@
 #   limitations under the License.
 
 # Takes as input the source directory and returns error if it is not fit
+error() {
+    echo "$@" 1>&2
+}
+
+fail() {
+    error "$@"
+    exit 1
+}
+
 main() {
-    [ "$#" -gt 1 ] && echo 'multiple WAR files. exiting' && exit 1
-    [ ! -e "$1" ] && echo 'no WAR files. exiting' && exit 1
+    [ ! -e "$1" ] && fail 'no WAR files. exiting'
+    [ "$#" -gt 1 ] && error 'there are multiple WAR files. taking only the first one: '"$1"
     printf '{"port":8080, "war_path":"%s"}' "$(basename "$1")"
 }
 
