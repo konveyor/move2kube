@@ -1,8 +1,11 @@
+*.gem
 .sass-cache
 .jekyll-cache
 .jekyll-metadata
-vendor
 _site
 .DS_store
-bin
 internal
+.bundle
+.ruby-version
+Gemfile.lock
+node_modules
