@@ -1,0 +1,8 @@
+$sidebar-color: #1f2067;
+$konveyor-secondary: #3b3c93;
+//$link-color: $blue-100;
+$link-color: $cyan; //#1e6bb8;
+$nav-child-link-color: $cyan;//$konveyor-secondary; //#e32c02;
+$feedback-color: lighten($sidebar-color, 25%);
+$feedback-link-color: darken($link-color, 5%);
+$content-width: 800px;

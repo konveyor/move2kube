@@ -1,15 +1,17 @@
 ---
-title: Konveyor Move2Kube
 layout: default
+title: Home
+nav_order: 1
+description: "Konveyor Move2Kube"
+permalink: /
 ---
+# Konveyor Move2Kube
 
-# What is Move2Kube?
+## What is Move2Kube?
 
 A tool that accelerates the process of re-platforming to Kubernetes by analyzing source artifacts.
 
-## Move2Kube
-
-![move2kube](images/move2kube.png)
+![move2kube](assets/images/move2kube.png)
 
 Move2Kube is a command line tool that uses source artifacts such as docker compose files or cloud foundry manifest files, and even source code to generate kubernetes deployment artifacts including object yaml, helm charts, and operators.
 
@@ -35,12 +37,11 @@ With Move2Kube, generating the Kubernetes/OpenShift deployment artifacts for you
 <script id="asciicast-bbcIy29E2eLyzdwSDsvmJED1C" src="https://asciinema.org/a/bbcIy29E2eLyzdwSDsvmJED1C.js" async></script>
 </p>
 
-
 ## Usage
 
 Move2Kube takes as input the source artifacts and outputs the target deployment artifacts.
 
-![Move2Kube-Usage](images/usage.png)
+![Move2Kube-Usage](assets/images/usage.png)
 
 For more detailed information :
 * [Installation](./install.md)
