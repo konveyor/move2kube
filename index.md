@@ -44,9 +44,9 @@ Move2Kube takes as input the source artifacts and outputs the target deployment 
 ![Move2Kube-Usage](assets/images/usage.png)
 
 For more detailed information :
-* [Installation](./install.md)
-* [Getting Started](./GettingStarted.md)
-* [Tutorials](./Tutorial.md)
+* [Installation]({{ site.baseurl }}{% link docs/install.md %})
+* [Getting Started]({{ site.baseurl }}{% link docs/GettingStarted.md %})
+* [Tutorials]({{ site.baseurl }}{% link docs/tutorials/Tutorial.md %})
 
 ## Discussion
 
