@@ -14,7 +14,7 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 title: Konveyor MoveKube
-description: A Jekyll theme for documentation
+description: A tool that accelerates the process of re-platforming to Kubernetes
 baseurl: "/move2kube" # the subpath of your site, e.g. /blog
 url: "" #"konveyor.github.io/move2kube" # the base hostname & protocol for your site, e.g. http://example.com
 github:
@@ -106,7 +106,7 @@ external_navigation:
 
 # Google Analytics Tracking (optional)
 # e.g, UA-1234567-89
-ga_tracking: UA-2709176-10
+ga_tracking: G-J08VDXBTDB
 ga_tracking_anonymize_ip: true # Use GDPR compliant Google Analytics settings (true/nil by default)
 
 plugins:
