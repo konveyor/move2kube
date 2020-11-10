@@ -16,8 +16,8 @@
 BASE_DIR=$1
 IMAGE="registry.access.redhat.com/rhscl/ruby-25-rhel7:latest"
 
-if [ -f $BASE_DIR/Gemfile ]; then
-    echo '{"Builder": "'$IMAGE'", "Port": 8080}'
-else 
+if [ ! -f "$BASE_DIR"/Gemfile ]; then
     exit 1
 fi
+
+echo '{"builder": "'$IMAGE'", "port": 8080}'

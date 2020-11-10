@@ -28,14 +28,14 @@ if [ -f "$1/build.xml" ]; then
 fi
 
 if [ -f "$1/pom.xml" ]; then
-   echo '{"Builder": "'$WEB_IMAGE'", "Port": 8080}'
+   echo '{"builder": "'$WEB_IMAGE'", "port": 8080}'
    exit 0
 fi
 
-found=`find $BASE_DIR/. -name "*.java" -print -quit | wc -l`
+found="$(find "$BASE_DIR"/. -name "*.java" -print -quit | wc -l)"
 
-if [ $found -eq 1 ]; then
-    echo '{"Builder": "'$NATIVE_IMAGE'", "Port": 8080}'
-else 
-    exit 1
+if [ ! "$found" -eq 1 ]; then
+   exit 1
 fi
+
+echo '{"builder": "'$NATIVE_IMAGE'", "port": 8080}'

@@ -14,7 +14,6 @@
 
 # Build App
 FROM registry.access.redhat.com/ubi8/ubi:latest AS build_base
-
 WORKDIR /temp
 ENV GOPATH=/go
 ENV PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -22,15 +21,13 @@ RUN curl -o go.tar.gz https://dl.google.com/go/go1.15.linux-amd64.tar.gz
 RUN tar -xzf go.tar.gz && mv go /usr/local/
 RUN yum install git make -y 
 RUN mkdir -p $GOPATH/src $GOPATH/bin && chmod -R 777 $GOPATH
-WORKDIR /{{.APPNAME}}
+WORKDIR /{{ .app_name }}
 COPY . .
-RUN go build -o {{.APPNAME}}
-RUN cp ./{{.APPNAME}} /bin/{{.APPNAME}}
+RUN go build -o {{ .app_name }}
+RUN cp ./{{ .app_name }} /bin/{{ .app_name }}
 
 # Run App
-FROM registry.access.redhat.com/ubi8/ubi:latest
-COPY --from=build_base /bin/{{.APPNAME}} /bin/{{.APPNAME}}
-
-EXPOSE {{.Port}}
-
-CMD ["{{.APPNAME}}"]
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.3-201
+COPY --from=build_base /bin/{{ .app_name }} /bin/{{ .app_name }}
+EXPOSE {{ .port }}
+CMD ["{{ .app_name }}"]

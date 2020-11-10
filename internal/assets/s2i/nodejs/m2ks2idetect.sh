@@ -18,4 +18,4 @@ if [ ! -f "$1/package.json" ]; then
 fi
 
 IMAGE="registry.access.redhat.com/ubi8/nodejs-10"
-echo '{"Builder": "'$IMAGE'", "Port": 8080}'
+echo '{"builder": "'$IMAGE'", "port": 8080}'

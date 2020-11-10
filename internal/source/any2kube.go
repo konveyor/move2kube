@@ -122,6 +122,12 @@ func (any2KubeTranslator *Any2KubeTranslator) Translate(services []plantypes.Ser
 		ir.AddContainer(container)
 		serviceContainer := corev1.Container{Name: service.ServiceName}
 		serviceContainer.Image = service.Image
+		serviceContainerPorts := []corev1.ContainerPort{}
+		for _, port := range container.ExposedPorts {
+			serviceContainerPort := corev1.ContainerPort{ContainerPort: int32(port)}
+			serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
+		}
+		serviceContainer.Ports = serviceContainerPorts
 		irService := irtypes.NewServiceFromPlanService(service)
 		irService.Containers = []corev1.Container{serviceContainer}
 		ir.Services[service.ServiceName] = irService

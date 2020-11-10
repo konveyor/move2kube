@@ -13,9 +13,8 @@
 #   limitations under the License.
 
 FROM registry.access.redhat.com/ubi8/python-36
-
 WORKDIR /app
 COPY . .
 RUN pip install -r requirements.txt
-EXPOSE {{.Port}}
-CMD ["python", "manage.py", "runserver", "{{.BINDING}}"]
+EXPOSE {{ .port }}
+CMD ["python", "manage.py", "runserver", "{{ .binding }}"]

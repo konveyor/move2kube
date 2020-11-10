@@ -17,13 +17,8 @@ error() {
     echo "$@" 1>&2
 }
 
-fail() {
-    error "$@"
-    exit 1
-}
-
 main() {
-    [ ! -e "$1" ] && fail 'no WAR files. exiting'
+    [ ! -e "$1" ] && exit 1
     [ "$#" -gt 1 ] && error 'there are multiple WAR files. taking only the first one: '"$1"
     printf '{"port":8080, "war_path":"%s"}' "$(basename "$1")"
 }

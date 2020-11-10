@@ -12,9 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-
 FROM registry.access.redhat.com/ubi8/nodejs-12
 ADD . .
 RUN npm install
-EXPOSE {{.Port}}
+EXPOSE {{ .port }}
 CMD npm run -d start

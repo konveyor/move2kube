@@ -18,9 +18,9 @@ SPECIAL_FILES=("$BASE_DIR"/requirements.txt "$BASE_DIR"/setup.py "$BASE_DIR"/env
 
 for fileName in "${SPECIAL_FILES[@]}"; do
    if [ -f "$fileName" ]; then
-      main_script_path="$(grep -lRe "__main__" "$1" | awk '/.py$/ {print}' | head -n 1)"
+      main_script_path="$(grep -lRe "__main__" "$BASE_DIR" | awk '/.py$/ {print}' | head -n 1)"
       main_script_rel_path="$(realpath --relative-to="$BASE_DIR" "$main_script_path")"
-      printf '{"main_script_rel_path": "%s", "app_name": "app", "port": 8080}' "${main_script_rel_path}"
+      printf '{"main_script_rel_path": "%s", "app_name": "app", "port": 8080}' "$main_script_rel_path"
       exit 0
    fi
 done

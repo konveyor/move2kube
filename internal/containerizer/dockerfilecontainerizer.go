@@ -117,7 +117,7 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 			return container, err
 		}
 
-		if value, ok := m["Port"]; ok {
+		if value, ok := m[containerizerJSONPort]; ok {
 			portToExpose := int(value.(float64)) // Type assert to float64 because json numbers are floats.
 			container.ExposedPorts = append(container.ExposedPorts, portToExpose)
 		}

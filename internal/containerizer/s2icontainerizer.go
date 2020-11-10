@@ -109,13 +109,19 @@ func (d *S2IContainerizer) GetContainer(plan plantypes.Plan, service plantypes.S
 		return container, err
 	}
 
-	if value, ok := m["Port"]; ok {
+	if value, ok := m[containerizerJSONPort]; ok {
 		portToExpose := int(value.(float64)) // json numbers are float64
 		container.ExposedPorts = append(container.ExposedPorts, portToExpose)
 	}
 
-	m["ImageName"] = service.Image
-	s2iBuildScript, err := common.GetStringFromTemplate(scripts.S2IBuilder_sh, m)
+	m[containerizerJSONImageName] = service.Image
+	s2iBuildScript, err := common.GetStringFromTemplate(scripts.S2IBuilder_sh, struct {
+		Builder   string
+		ImageName string
+	}{
+		Builder:   m[containerizerJSONBuilder].(string),
+		ImageName: m[containerizerJSONImageName].(string),
+	})
 	if err != nil {
 		log.Errorf("Unable to translate the template %q to string. Error: %q", scripts.S2IBuilder_sh, err)
 		return container, err

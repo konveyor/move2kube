@@ -17,8 +17,8 @@ BASE_DIR=$1
 
 found=$(find "$BASE_DIR"/. -name "*.php" -print -quit | wc -l)
 
-if [ "$found" -eq 1 ]; then
-   echo '{"Port": 8080, "BINDING": "0.0.0.0:8080", "APPNAME": "app"}'
-else
+if [ ! "$found" -eq 1 ]; then
    exit 1
 fi
+
+echo '{"port": 8080, "binding": "0.0.0.0:8080", "app_name": "app"}'

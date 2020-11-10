@@ -13,13 +13,11 @@
 #   limitations under the License.
 
 FROM registry.access.redhat.com/ubi8/ubi:latest
-
 RUN yum update -y
 RUN yum install -y php
-
-RUN mkdir -p /{{.APPNAME}}
-COPY . /{{.APPNAME}}
-WORKDIR /{{.APPNAME}}
-RUN cd /{{.APPNAME}}
-EXPOSE {{.Port}}
-CMD ["php", "-S", "{{.BINDING}}"]
+RUN mkdir -p /{{ .app_name }}
+COPY . /{{ .app_name }}
+WORKDIR /{{ .app_name }}
+RUN cd /{{ .app_name }}
+EXPOSE {{ .port }}
+CMD ["php", "-S", "{{ .binding }}"]

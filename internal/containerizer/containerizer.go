@@ -25,6 +25,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	containerizerJSONPort      = "port"
+	containerizerJSONBuilder   = "builder"
+	containerizerJSONImageName = "image_name"
+)
+
 //go:generate go run github.com/konveyor/move2kube/internal/common/generator scripts
 
 // Containerizer interface defines interface for containerizing applications

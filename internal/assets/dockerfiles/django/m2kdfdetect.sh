@@ -17,6 +17,6 @@ BASE_DIR=$1
 
 if [ ! -f "$1/Pipfile" ]; then
    exit 1
-else
-   echo '{"Port": 8080, "BINDING": "0.0.0.0:8080"}'
 fi
+
+echo '{"port": 8080, "binding": "0.0.0.0:8080"}'
