@@ -8,7 +8,7 @@ imagenames:
   - dockerfile:latest
 new: true
 newfiles:
-  Dockerfile.dockerfile: |-
+  Dockerfile.dockerfile: |
     #   Copyright IBM Corporation 2020
     #
     #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,12 @@ newfiles:
     #   See the License for the specific language governing permissions and
     #   limitations under the License.
 
-
     FROM registry.access.redhat.com/ubi8/nodejs-12
     ADD . .
     RUN npm install
     EXPOSE 8080
     CMD npm run -d start
-  dockerfile-docker-build.sh: |-
+  dockerfile-docker-build.sh: |
     #   Copyright IBM Corporation 2020
     #
     #   Licensed under the Apache License, Version 2.0 (the "License");

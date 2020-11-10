@@ -16,11 +16,11 @@
 FROM registry.access.redhat.com/ubi8/ubi:latest AS build_base
 RUN yum install -y java-1.8.0-openjdk-devel
 RUN yum install -y maven
-COPY . /{{.APPNAME}}
-WORKDIR /{{.APPNAME}}
+COPY . /{{ .app_name }}
+WORKDIR /{{ .app_name }}
 RUN mvn package
 
 # Run App
 FROM registry.access.redhat.com/jboss-eap-6/eap64-openshift:latest
-EXPOSE {{.Port}}
-COPY --from=build_base /{{.APPNAME}}/target/* /opt/eap/standalone/deployments/
+EXPOSE {{ .port }}
+COPY --from=build_base /{{ .app_name }}/target/* /opt/eap/standalone/deployments/

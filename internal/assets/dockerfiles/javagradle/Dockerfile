@@ -19,12 +19,12 @@ RUN yum install -y wget
 RUN yum install -y unzip
 RUN wget https://services.gradle.org/distributions/gradle-6.6-bin.zip -P /tmp
 RUN unzip -d /opt/gradle /tmp/gradle-6.6-bin.zip
-ENV PATH="${PATH}:/opt/gradle/gradle-6.6/bin/"
-COPY . /{{.APPNAME}}
-WORKDIR /{{.APPNAME}}
+ENV PATH="$PATH:/opt/gradle/gradle-6.6/bin/"
+COPY . /{{ .app_name }}
+WORKDIR /{{ .app_name }}
 RUN gradle build
 
 # Run App
 FROM registry.access.redhat.com/jboss-eap-6/eap64-openshift:latest
-EXPOSE {{.Port}}
-COPY --from=build_base /{{.APPNAME}}/build/libs/* /opt/eap/standalone/deployments/
+EXPOSE {{ .port }}
+COPY --from=build_base /{{ .app_name }}/build/libs/* /opt/eap/standalone/deployments/

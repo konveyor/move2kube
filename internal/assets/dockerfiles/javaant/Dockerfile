@@ -18,11 +18,11 @@ RUN yum install -y wget
 RUN yum install -y unzip
 RUN wget https://mirrors.estointernet.in/apache//ant/binaries/apache-ant-1.10.8-bin.zip -P /tmp
 RUN unzip -d /opt/apache-ant /tmp/apache-ant-1.10.8-bin.zip
-ENV PATH="${PATH}:/opt/apache-ant/apache-ant-1.10.8/bin/"
-COPY . /{{.APPNAME}}
-WORKDIR /{{.APPNAME}}
-RUN {{.ANTCMD}}
+ENV PATH="$PATH:/opt/apache-ant/apache-ant-1.10.8/bin/"
+COPY . /{{ .app_name }}
+WORKDIR /{{ .app_name }}
+RUN {{ .ant_cmd }}
 
 FROM registry.access.redhat.com/jboss-eap-6/eap64-openshift:latest
-EXPOSE {{.Port}}
-COPY --from=build_base /{{.APPNAME}}/output/{{.APPNAME}}.ear /opt/eap/standalone/deployments/
+EXPOSE {{ .port }}
+COPY --from=build_base /{{ .app_name }}/output/{{ .app_name }}.ear /opt/eap/standalone/deployments/

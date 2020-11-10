@@ -13,15 +13,15 @@
 #   limitations under the License.
 
 # Takes as input the source folder and returns error if it is not fit
-BASE_DIR=$1
-SPECIAL_FILES=($BASE_DIR/requirements.txt $BASE_DIR/setup.py $BASE_DIR/environment.yml $BASE_DIR/Pipfile)
+BASE_DIR="$1"
+SPECIAL_FILES=("$BASE_DIR"/requirements.txt "$BASE_DIR"/setup.py "$BASE_DIR"/environment.yml "$BASE_DIR"/Pipfile)
 IMAGE="registry.access.redhat.com/rhscl/python-36-rhel7:latest"
 
-for fileName in "${SPECIAL_FILES[@]}"
-do
+for fileName in "${SPECIAL_FILES[@]}"; do
    if [ -f "$fileName" ]; then
-      startScript=`grep -lRe "__main__" $BASE_DIR | awk '{print $1}' | xargs -n1 basename`
-      echo '{"Builder": "'$IMAGE'", "APP_FILE": "'$startScript'", "Port": 8080}'
+      main_script_path="$(grep -lRe "__main__" "$BASE_DIR" | awk '/.py$/ {print}' | head -n 1)"
+      main_script_rel_path="$(realpath --relative-to="$BASE_DIR" "$main_script_path")"
+      printf '{"builder": "'$IMAGE'", "app_file": "%s", "app_name": "app", "port": 8080}' "$main_script_rel_path"
       exit 0
    fi
 done

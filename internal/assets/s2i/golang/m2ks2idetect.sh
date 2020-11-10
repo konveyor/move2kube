@@ -17,13 +17,13 @@ BASE_DIR=$1
 IMAGE="registry.access.redhat.com/ubi8/go-toolset:latest"
 
 if [ ! -f "$1/go.mod" ]; then
-   found=`find $BASE_DIR/. -name "*.go" -print -quit | wc -l`
+   found="$(find "$BASE_DIR"/. -name "*.go" -print -quit | wc -l)"
 
-   if [ $found -eq 1 ]; then
-      echo '{"Builder": "'$IMAGE'", "Port": 8080}' 
-   else 
+   if [ "$found" -eq 1 ]; then
+      echo '{"builder": "'$IMAGE'", "port": 8080}'
+   else
       exit 1
-   fi 
+   fi
 else
-   echo '{"Builder": "'$IMAGE'", "Port": 8080}'
+   echo '{"builder": "'$IMAGE'", "port": 8080}'
 fi

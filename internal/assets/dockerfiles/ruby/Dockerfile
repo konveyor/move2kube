@@ -13,10 +13,10 @@
 #   limitations under the License
 
 FROM ruby:2.5
-COPY . /{{.APPNAME}}
-RUN mkdir -p /{{.APPNAME}}
-WORKDIR /{{.APPNAME}}
-RUN cd /{{.APPNAME}}
+COPY . /{{ .app_name }}
+RUN mkdir -p /{{ .app_name }}
+WORKDIR /{{ .app_name }}
+RUN cd /{{ .app_name }}
 RUN bundle install
-EXPOSE {{.Port}}
-CMD ["ruby","/{{.APPNAME}}/{{.APPNAME}}.rb"]
+EXPOSE {{ .port }}
+CMD ["ruby","/{{ .app_name }}/{{ .app_name }}.rb"]

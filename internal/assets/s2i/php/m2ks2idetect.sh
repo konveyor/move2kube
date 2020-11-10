@@ -16,10 +16,10 @@
 BASE_DIR=$1
 IMAGE="registry.access.redhat.com/rhscl/php-72-rhel7:latest"
 
-found=`find $BASE_DIR/. -name "*.php" -print -quit | wc -l`
+found="$(find "$BASE_DIR"/. -name "*.php" -print -quit | wc -l)"
 
-if [ $found -eq 1 ]; then
-    echo '{"Builder": "'$IMAGE'", "Port": 8080}'
-else 
+if [ ! "$found" -eq 1 ]; then
     exit 1
 fi
+
+echo '{"builder": "'$IMAGE'", "port": 8080}'

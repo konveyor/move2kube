@@ -5,6 +5,8 @@ services:
       containers:
         - name: nodejs
           image: nodejs:latest
+          ports:
+            - containerport: 8080
     name: nodejs
     ServiceRelPath: ""
 containers:
@@ -13,7 +15,7 @@ containers:
       - nodejs:latest
     new: true
     newfiles:
-      nodejs-cnb-build.sh: |-
+      nodejs-cnb-build.sh: |
         #   Copyright IBM Corporation 2020
         #
         #   Licensed under the Apache License, Version 2.0 (the "License");

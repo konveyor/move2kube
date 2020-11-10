@@ -17,13 +17,13 @@ limitations under the License.
 package apiresource
 
 import (
-	"strconv"
+	"fmt"
 	"strings"
 
 	okdroutev1 "github.com/openshift/api/route/v1"
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	networkingv1beta1 "k8s.io/api/networking/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -40,12 +40,16 @@ const (
 	// We are defaulting service port to 80
 	defaultServicePort     = 80
 	ingressRewriteSelector = "nginx.ingress.kubernetes.io/rewrite-target"
-	ingressRewriteValue    = "/"
+	ingressRewriteValue    = "/$2"
 )
 
 // Service handles all objects related to a service
 type Service struct {
 	Cluster collecttypes.ClusterMetadataSpec
+}
+
+func getRewritePathRegex(path string) string {
+	return path + "(/|$)(.*)"
 }
 
 // GetSupportedKinds returns supported kinds
@@ -80,18 +84,18 @@ func (d *Service) CreateNewResources(ir irtypes.IR, supportedKinds []string) []r
 			}
 			continue
 		}
-		if common.IsStringPresent(supportedKinds, serviceKind) {
-			if exposeobjectcreated || !service.HasValidAnnotation(common.ExposeSelector) {
-				//Create clusterip service
-				obj := d.createService(service, v1.ServiceTypeClusterIP)
-				objs = append(objs, obj)
-			} else {
-				//Create Nodeport service - TODO: Should it be load balancer or Nodeport? Should it be QA?
-				obj := d.createService(service, v1.ServiceTypeNodePort)
-				objs = append(objs, obj)
-			}
-		} else {
+		if !common.IsStringPresent(supportedKinds, serviceKind) {
 			log.Errorf("Could not find a valid resource type in cluster to create a Service")
+			continue
+		}
+		if exposeobjectcreated || !service.HasValidAnnotation(common.ExposeSelector) {
+			//Create clusterip service
+			obj := d.createService(service, v1.ServiceTypeClusterIP)
+			objs = append(objs, obj)
+		} else {
+			//Create Nodeport service - TODO: Should it be load balancer or Nodeport? Should it be QA?
+			obj := d.createService(service, v1.ServiceTypeNodePort)
+			objs = append(objs, obj)
 		}
 	}
 
@@ -109,7 +113,7 @@ func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 	if common.IsStringPresent(supportedKinds, routeKind) {
 		if _, ok := obj.(*okdroutev1.Route); ok {
 			return []runtime.Object{obj}, true
-		} else if i, ok := obj.(*networkingv1beta1.Ingress); ok {
+		} else if i, ok := obj.(*networkingv1.Ingress); ok {
 			return d.ingressToRoute(*i), true
 		} else if s, ok := obj.(*v1.Service); ok {
 			if s.Spec.Type == v1.ServiceTypeLoadBalancer || s.Spec.Type == v1.ServiceTypeNodePort {
@@ -120,7 +124,7 @@ func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 	} else if common.IsStringPresent(supportedKinds, ingressKind) {
 		if r, ok := obj.(*okdroutev1.Route); ok {
 			return d.routeToIngress(*r), true
-		} else if _, ok := obj.(*networkingv1beta1.Ingress); ok {
+		} else if _, ok := obj.(*networkingv1.Ingress); ok {
 			return []runtime.Object{obj}, true
 		} else if s, ok := obj.(*v1.Service); ok {
 			if s.Spec.Type == v1.ServiceTypeLoadBalancer || s.Spec.Type == v1.ServiceTypeNodePort {
@@ -131,7 +135,7 @@ func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 	} else if common.IsStringPresent(supportedKinds, serviceKind) {
 		if r, ok := obj.(*okdroutev1.Route); ok {
 			return d.routeToService(*r), true
-		} else if i, ok := obj.(*networkingv1beta1.Ingress); ok {
+		} else if i, ok := obj.(*networkingv1.Ingress); ok {
 			return d.ingressToService(*i), true
 		} else if _, ok := obj.(*v1.Service); ok {
 			//TODO: Check if the destination cluster supports loadbalancer or nodeport and change between them.
@@ -141,7 +145,7 @@ func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 	return nil, false
 }
 
-func (d *Service) ingressToRoute(ingress networkingv1beta1.Ingress) []runtime.Object {
+func (d *Service) ingressToRoute(ingress networkingv1.Ingress) []runtime.Object {
 	var weight int32 = 1                       //Hard-coded to 1 to avoid Helm v3 errors
 	var ingressArray []okdroutev1.RouteIngress //Hard-coded to empty list to avoid Helm v3 errors
 	ingressArray = append(ingressArray, okdroutev1.RouteIngress{Host: ""})
@@ -150,6 +154,14 @@ func (d *Service) ingressToRoute(ingress networkingv1beta1.Ingress) []runtime.Ob
 
 	for _, ingressspec := range ingress.Spec.Rules {
 		for _, path := range ingressspec.IngressRuleValue.HTTP.Paths {
+			targetPort := intstr.IntOrString{}
+			if path.Backend.Service.Port.Name != "" {
+				targetPort.Type = intstr.String
+				targetPort.StrVal = path.Backend.Service.Port.Name
+			} else {
+				targetPort.Type = intstr.Int
+				targetPort.IntVal = path.Backend.Service.Port.Number
+			}
 			route := &okdroutev1.Route{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       routeKind,
@@ -158,11 +170,11 @@ func (d *Service) ingressToRoute(ingress networkingv1beta1.Ingress) []runtime.Ob
 				ObjectMeta: ingress.ObjectMeta,
 				Spec: okdroutev1.RouteSpec{
 					Port: &okdroutev1.RoutePort{
-						TargetPort: path.Backend.ServicePort,
+						TargetPort: targetPort,
 					},
 					To: okdroutev1.RouteTargetReference{
 						Kind:   serviceKind,
-						Name:   path.Backend.ServiceName,
+						Name:   path.Backend.Service.Name,
 						Weight: &weight,
 					},
 					Host: ingressspec.Host,
@@ -218,23 +230,32 @@ func (d *Service) serviceToRoute(service v1.Service) []runtime.Object {
 }
 
 func (d *Service) routeToIngress(route okdroutev1.Route) []runtime.Object {
-	ingress := &networkingv1beta1.Ingress{
+	targetPort := networkingv1.ServiceBackendPort{}
+	if route.Spec.Port.TargetPort.Type == intstr.String {
+		targetPort.Name = route.Spec.Port.TargetPort.StrVal
+	} else {
+		targetPort.Number = route.Spec.Port.TargetPort.IntVal
+	}
+
+	ingress := &networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       ingressKind,
-			APIVersion: networkingv1beta1.SchemeGroupVersion.String(),
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: route.ObjectMeta,
-		Spec: networkingv1beta1.IngressSpec{
-			Rules: []networkingv1beta1.IngressRule{
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
 				{
-					IngressRuleValue: networkingv1beta1.IngressRuleValue{
-						HTTP: &networkingv1beta1.HTTPIngressRuleValue{
-							Paths: []networkingv1beta1.HTTPIngressPath{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
 								{
 									Path: "",
-									Backend: networkingv1beta1.IngressBackend{
-										ServiceName: route.Spec.To.Name,
-										ServicePort: route.Spec.Port.TargetPort,
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: route.Spec.To.Name,
+											Port: targetPort,
+										},
 									},
 								},
 							},
@@ -247,7 +268,7 @@ func (d *Service) routeToIngress(route okdroutev1.Route) []runtime.Object {
 	}
 
 	if strings.HasPrefix(route.Spec.Host, "https") {
-		ingress.Spec.TLS = []networkingv1beta1.IngressTLS{
+		ingress.Spec.TLS = []networkingv1.IngressTLS{
 			{
 				Hosts:      []string{route.Spec.Host},
 				SecretName: "tlssecret-replaceme",
@@ -259,20 +280,28 @@ func (d *Service) routeToIngress(route okdroutev1.Route) []runtime.Object {
 }
 
 func (d *Service) serviceToIngress(service v1.Service) []runtime.Object {
-	rules := []networkingv1beta1.IngressRule{}
+	rules := []networkingv1.IngressRule{}
+	pathPrefix := "/" + service.Name
 	for _, serviceport := range service.Spec.Ports {
-		port := intstr.IntOrString{
-			IntVal: serviceport.Port,
+		path := pathPrefix
+		if len(service.Spec.Ports) > 1 {
+			// All ports cannot be exposed as /svcname because they will clash
+			path = pathPrefix + "/" + serviceport.Name
+			if serviceport.Name == "" {
+				path = pathPrefix + "/" + fmt.Sprintf("%d", serviceport.Port)
+			}
 		}
-		rule := networkingv1beta1.IngressRule{
-			IngressRuleValue: networkingv1beta1.IngressRuleValue{
-				HTTP: &networkingv1beta1.HTTPIngressRuleValue{
-					Paths: []networkingv1beta1.HTTPIngressPath{
+		rule := networkingv1.IngressRule{
+			IngressRuleValue: networkingv1.IngressRuleValue{
+				HTTP: &networkingv1.HTTPIngressRuleValue{
+					Paths: []networkingv1.HTTPIngressPath{
 						{
-							Path: "",
-							Backend: networkingv1beta1.IngressBackend{
-								ServiceName: service.Name,
-								ServicePort: port,
+							Path: getRewritePathRegex(path),
+							Backend: networkingv1.IngressBackend{
+								Service: &networkingv1.IngressServiceBackend{
+									Name: service.Name,
+									Port: networkingv1.ServiceBackendPort{Number: serviceport.Port},
+								},
 							},
 						},
 					},
@@ -282,18 +311,18 @@ func (d *Service) serviceToIngress(service v1.Service) []runtime.Object {
 		}
 		rules = append(rules, rule)
 	}
-	ingress := &networkingv1beta1.Ingress{
+	ingress := networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       ingressKind,
-			APIVersion: networkingv1beta1.SchemeGroupVersion.String(),
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: service.ObjectMeta,
-		Spec: networkingv1beta1.IngressSpec{
+		Spec: networkingv1.IngressSpec{
 			Rules: rules,
 		},
 	}
 	service.Spec.Type = v1.ServiceTypeClusterIP
-	return []runtime.Object{ingress, &service}
+	return []runtime.Object{&ingress, &service}
 }
 
 func (d *Service) routeToService(route okdroutev1.Route) []runtime.Object {
@@ -320,7 +349,7 @@ func (d *Service) routeToService(route okdroutev1.Route) []runtime.Object {
 	return []runtime.Object{svc}
 }
 
-func (d *Service) ingressToService(ingress networkingv1beta1.Ingress) []runtime.Object {
+func (d *Service) ingressToService(ingress networkingv1.Ingress) []runtime.Object {
 	objs := []runtime.Object{}
 	for _, ingressspec := range ingress.Spec.Rules {
 		for _, path := range ingressspec.IngressRuleValue.HTTP.Paths {
@@ -335,13 +364,13 @@ func (d *Service) ingressToService(ingress networkingv1beta1.Ingress) []runtime.
 					Ports: []v1.ServicePort{
 						{
 							//TODO: Check if this is the right mapping
-							Name: path.Backend.ServicePort.StrVal,
-							Port: path.Backend.ServicePort.IntVal,
+							Name: path.Backend.Service.Port.Name,
+							Port: path.Backend.Service.Port.Number,
 						},
 					},
 				},
 			}
-			svc.Name = path.Backend.ServiceName
+			svc.Name = path.Backend.Service.Name
 			objs = append(objs, svc)
 		}
 	}
@@ -391,38 +420,56 @@ func (d *Service) getIngressAnnotations() map[string]string {
 
 // createIngress creates a single ingress for all services
 //TODO: Only supports fan-out. Virtual named hosting is not supported yet.
-func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
+func (d *Service) createIngress(ir irtypes.IR) *networkingv1.Ingress {
 	annotations := d.getIngressAnnotations()
-	pathType := networkingv1beta1.PathTypePrefix
+	pathType := networkingv1.PathTypePrefix
 
 	// Create the fan-out paths
-	paths := make([]networkingv1beta1.HTTPIngressPath, 0)
+	httpIngressPaths := []networkingv1.HTTPIngressPath{}
 	for _, service := range ir.Services {
 		if !service.HasValidAnnotation(common.ExposeSelector) {
 			continue
 		}
-		serviceName := service.Name
-		if service.BackendServiceName != "" {
-			serviceName = service.BackendServiceName
+		backendServiceName := service.BackendServiceName
+		if service.BackendServiceName == "" {
+			backendServiceName = service.Name
 		}
-		path := networkingv1beta1.HTTPIngressPath{
-			Path:     service.ServiceRelPath,
-			PathType: &pathType,
-			Backend: networkingv1beta1.IngressBackend{
-				ServiceName: serviceName,
-				ServicePort: intstr.IntOrString{Type: intstr.Int, IntVal: defaultServicePort},
-			},
+		servicePorts := d.getServicePorts(service)
+		pathPrefix := service.ServiceRelPath
+		for _, servicePort := range servicePorts {
+			path := pathPrefix
+			if len(servicePorts) > 1 {
+				// All ports cannot be exposed as /ServiceRelPath because they will clash
+				path = pathPrefix + "/" + servicePort.Name
+				if servicePort.Name == "" {
+					path = pathPrefix + "/" + fmt.Sprintf("%d", servicePort.Port)
+				}
+			}
+			backendPort := networkingv1.ServiceBackendPort{Name: servicePort.Name}
+			if servicePort.Name == "" {
+				backendPort = networkingv1.ServiceBackendPort{Number: servicePort.Port}
+			}
+			httpIngressPath := networkingv1.HTTPIngressPath{
+				Path:     getRewritePathRegex(path),
+				PathType: &pathType,
+				Backend: networkingv1.IngressBackend{
+					Service: &networkingv1.IngressServiceBackend{
+						Name: backendServiceName,
+						Port: backendPort,
+					},
+				},
+			}
+			httpIngressPaths = append(httpIngressPaths, httpIngressPath)
 		}
-		paths = append(paths, path)
 	}
 
 	// Configure the rule with the above fan-out paths
-	rules := []networkingv1beta1.IngressRule{
+	rules := []networkingv1.IngressRule{
 		{
 			Host: ir.TargetClusterSpec.Host,
-			IngressRuleValue: networkingv1beta1.IngressRuleValue{
-				HTTP: &networkingv1beta1.HTTPIngressRuleValue{
-					Paths: paths,
+			IngressRuleValue: networkingv1.IngressRuleValue{
+				HTTP: &networkingv1.HTTPIngressRuleValue{
+					Paths: httpIngressPaths,
 				},
 			},
 		},
@@ -434,22 +481,22 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 			ingressName = service.Name
 		}
 	}
-	ingress := networkingv1beta1.Ingress{
+	ingress := networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       ingressKind,
-			APIVersion: networkingv1beta1.SchemeGroupVersion.String(),
+			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        ingressName,
 			Labels:      getServiceLabels(ingressName),
 			Annotations: annotations,
 		},
-		Spec: networkingv1beta1.IngressSpec{Rules: rules},
+		Spec: networkingv1.IngressSpec{Rules: rules},
 	}
 	// If TLS enabled, then add the TLS secret name and the host to the ingress.
 	// Otherwise, skip the TLS section.
 	if ir.IsIngressTLSEnabled() {
-		tls := []networkingv1beta1.IngressTLS{{Hosts: []string{ir.TargetClusterSpec.Host}, SecretName: ir.IngressTLSSecretName}}
+		tls := []networkingv1.IngressTLS{{Hosts: []string{ir.TargetClusterSpec.Host}, SecretName: ir.IngressTLSSecretName}}
 		ingress.Spec.TLS = tls
 	}
 
@@ -458,17 +505,7 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1beta1.Ingress {
 
 // createService creates a service
 func (d *Service) createService(service irtypes.Service, serviceType v1.ServiceType) *v1.Service {
-	ports := d.getServicePorts(service, serviceType)
-	headless := false
-	if len(ports) == 0 {
-		// Configure a dummy port: https://github.com/kubernetes/kubernetes/issues/32766.
-		ports = []v1.ServicePort{{
-			Name:       "headless",
-			Port:       80,
-			TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: 8080},
-		}}
-		headless = true
-	}
+	ports := d.getServicePorts(service)
 	svc := &v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       serviceKind,
@@ -485,24 +522,25 @@ func (d *Service) createService(service irtypes.Service, serviceType v1.ServiceT
 			Ports:    ports,
 		},
 	}
-	if headless {
+	if len(ports) == 0 {
 		svc.Spec.ClusterIP = "None"
 	}
 	return svc
 }
 
 // GetServicePorts configure the container service ports.
-func (d *Service) getServicePorts(service irtypes.Service, serviceType v1.ServiceType) []v1.ServicePort {
+func (d *Service) getServicePorts(service irtypes.Service) []v1.ServicePort {
 	servicePorts := []v1.ServicePort{}
 	for _, serviceContainer := range service.Containers {
 		for _, port := range serviceContainer.Ports {
-			var servicePort v1.ServicePort
-			var targetPort intstr.IntOrString
-			targetPort.IntVal = port.ContainerPort
-			targetPort.StrVal = strconv.Itoa(int(targetPort.IntVal))
-			servicePort = v1.ServicePort{
-				Name:       strconv.Itoa(defaultServicePort),
-				Port:       defaultServicePort,
+			targetPort := intstr.IntOrString{Type: intstr.String, StrVal: port.Name}
+			if port.Name == "" {
+				targetPort.Type = intstr.Int
+				targetPort.IntVal = port.ContainerPort
+			}
+			servicePort := v1.ServicePort{
+				Name:       port.Name,
+				Port:       port.ContainerPort,
 				TargetPort: targetPort,
 			}
 			servicePorts = append(servicePorts, servicePort)

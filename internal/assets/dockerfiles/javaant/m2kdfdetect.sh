@@ -15,6 +15,6 @@
 # Takes as input the source directory and returns error if it is not fit
 if [ ! -f "$1/build.xml" ]; then
    exit 1
-else
-   echo '{"Port": 8080, "ANTCMD": "ant all", "APPNAME": "simplewebapp"}'
 fi
+
+echo '{"port": 8080, "ant_cmd": "ant all", "app_name": "simplewebapp"}'
