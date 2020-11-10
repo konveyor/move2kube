@@ -16,7 +16,7 @@
 title: Konveyor MoveKube
 description: A Jekyll theme for documentation
 baseurl: "/move2kube" # the subpath of your site, e.g. /blog
-url: "konveyor.github.io/move2kube" # the base hostname & protocol for your site, e.g. http://example.com
+url: "" #"konveyor.github.io/move2kube" # the base hostname & protocol for your site, e.g. http://example.com
 github:
   repository_url: https://www.github.com/konveyor/move2kube/
   repository_name: Move2Kube
