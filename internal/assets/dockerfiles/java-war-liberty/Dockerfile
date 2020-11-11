@@ -12,9 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM registry.access.redhat.com/ubi8/python-36
-WORKDIR /{{ .app_name }}
-COPY . .
-RUN pip install -r requirements.txt
+FROM websphere-liberty:webProfile8
+COPY --chown=1001:0 {{ .war_path }} /config/dropins/
 EXPOSE {{ .port }}
-CMD ["python", "{{ .main_script_rel_path }}"]

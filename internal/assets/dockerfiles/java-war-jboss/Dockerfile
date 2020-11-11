@@ -12,9 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM registry.access.redhat.com/ubi8/python-36
-WORKDIR /{{ .app_name }}
-COPY . .
-RUN pip install -r requirements.txt
+FROM registry.access.redhat.com/jboss-eap-6/eap64-openshift:1.9-32.1604502274
+COPY {{ .war_path }} /opt/eap/standalone/deployments/
 EXPOSE {{ .port }}
-CMD ["python", "{{ .main_script_rel_path }}"]

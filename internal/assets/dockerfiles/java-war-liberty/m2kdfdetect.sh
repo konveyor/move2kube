@@ -12,9 +12,20 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM registry.access.redhat.com/ubi8/python-36
-WORKDIR /{{ .app_name }}
-COPY . .
-RUN pip install -r requirements.txt
-EXPOSE {{ .port }}
-CMD ["python", "{{ .main_script_rel_path }}"]
+# Takes as input the source directory and returns error if it is not fit
+error() {
+    echo "$@" 1>&2
+}
+
+fail() {
+    error "$@"
+    exit 1
+}
+
+main() {
+    [ ! -e "$1" ] && fail 'no WAR files. exiting'
+    [ "$#" -gt 1 ] && error 'there are multiple WAR files. taking only the first one: '"$1"
+    printf '{"port":9080, "war_path":"%s"}' "$(basename "$1")"
+}
+
+main "$1/"*.war
