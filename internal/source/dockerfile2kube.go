@@ -99,6 +99,7 @@ func (dockerfileTranslator *DockerfileTranslator) Translate(services []plantypes
 
 func (dockerfileTranslator *DockerfileTranslator) newService(serviceName string) plantypes.Service {
 	service := plantypes.NewService(serviceName, dockerfileTranslator.GetTranslatorType())
+	service.ContainerBuildType = plantypes.ReuseDockerFileContainerBuildTypeValue
 	service.AddSourceType(plantypes.DirectorySourceTypeValue)
 	service.UpdateContainerBuildPipeline = true
 	service.UpdateDeployPipeline = true
