@@ -16,6 +16,7 @@ limitations under the License.
 
 package optimize
 
+/*
 import (
 	"testing"
 
@@ -376,3 +377,4 @@ func getExpectIRWithServiceContainingContainerPortsGivenImageNameAndURL() types.
 
 	return ir
 }
+*/
