@@ -169,7 +169,7 @@ func WriteYaml(outputPath string, data interface{}) error {
 	}
 	err := ioutil.WriteFile(outputPath, b.Bytes(), DefaultFilePermission)
 	if err != nil {
-		log.Errorf("Error writing yaml to file: %s", err)
+		log.Errorf("Error writing yaml to file. error: %s,  outputPath %s", err, outputPath)
 		return err
 	}
 	return nil

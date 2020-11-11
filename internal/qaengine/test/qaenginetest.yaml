@@ -1,0 +1,71 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: QACache
+spec:
+  solutions:
+    - description: 'What type of container registry login do you want to use?'
+      context:
+        - Docker login from config mode, will use the default config from your local machine.
+      solution:
+        type: Select
+        default:
+          - No authentication
+        options:
+          - Use existing pull secret
+          - No authentication
+          - UserName/Password
+        answer:
+          - UserName/Password
+      resolved: true
+    - description: 'Enter the container registry username : '
+      context:
+        - Enter username for container registry login
+      solution:
+        type: Input
+        default:
+          - iamapikey
+        answer:
+          - testuser
+      resolved: true
+    - description: 'Enter the container registry password : '
+      context:
+        - Enter password for container registry login.
+      solution:
+        type: Password
+        answer:
+          - testpassword
+      resolved: true
+    - description: 'Confirm problem test description : '
+      context:
+        - Confirm input problem test context.
+      solution:
+        type: Confirm
+        answer: 
+          - true
+      resolved: true
+    - description: 'Multiline input problem test description : '
+      context:
+        - Multiline input problem test context.
+      solution:
+        type: MultiLine
+        answer: 
+        - |
+          line1 
+          line2 
+          line3 
+      resolved: true
+    - description: 'MultiSelect input problem test description : '
+      context:
+        - MultiSelect input problem test context
+      solution:
+        type: MultiSelect
+        default:
+          - Option A
+        options:
+          - Option A
+          - Option B
+          - Option C
+          - Option D
+        answer:
+          - Option A
+          - Option C
+      resolved: true
