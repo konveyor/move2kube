@@ -379,13 +379,13 @@ func ReadApplicationManifest(path string, serviceName string, artifactType plant
 	trimmedvariables, err := getMissingVariables(path)
 	if err != nil {
 		log.Debugf("Unable to read as cf manifest %s : %s", path, err)
-		return []manifest.Application{}, []string{}, err
+		return nil, nil, err
 	}
 
 	rawManifest, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Errorf("Unable to read manifest file %s", path)
-		return []manifest.Application{}, []string{}, err
+		log.Errorf("Unable to read manifest file at path %q Error: %q", path, err)
+		return nil, nil, err
 	}
 	tpl := template.NewTemplate(rawManifest)
 	fileVars := template.StaticVariables{}
@@ -398,15 +398,15 @@ func ReadApplicationManifest(path string, serviceName string, artifactType plant
 	}
 	rawManifest, err = tpl.Evaluate(fileVars, nil, template.EvaluateOpts{ExpectAllKeys: true})
 	if err != nil {
-		log.Errorf("Interpolation Error %s", err)
-		return []manifest.Application{}, []string{}, err
+		log.Debugf("Interpolation Error %s", err)
+		return nil, nil, err
 	}
 
 	var m manifest.Manifest
 	err = yaml.Unmarshal(rawManifest, &m)
 	if err != nil {
-		log.Errorf("UnMarshalling error %s", err)
-		return []manifest.Application{}, []string{}, err
+		log.Debugf("UnMarshalling error %s", err)
+		return nil, nil, err
 	}
 	if len(m.Applications) == 1 {
 		//If the service name is missing, use the directory name
