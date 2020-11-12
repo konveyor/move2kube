@@ -6,7 +6,7 @@ nav_order: 4
 has_children: true
 ---
 
-## Tutorials
+# Tutorials
 
 ![Move2Kube Usecases]({{ site.baseurl }}/assets/images/m2k-usecases.png)
 
