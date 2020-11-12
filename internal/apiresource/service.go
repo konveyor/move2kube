@@ -37,19 +37,11 @@ const (
 	serviceKind = "Service"
 	ingressKind = "Ingress"
 	routeKind   = "Route"
-	// We are defaulting service port to 80
-	defaultServicePort     = 80
-	ingressRewriteSelector = "nginx.ingress.kubernetes.io/rewrite-target"
-	ingressRewriteValue    = "/$2"
 )
 
 // Service handles all objects related to a service
 type Service struct {
 	Cluster collecttypes.ClusterMetadataSpec
-}
-
-func getRewritePathRegex(path string) string {
-	return path + "(/|$)(.*)"
 }
 
 // GetSupportedKinds returns supported kinds
@@ -296,7 +288,7 @@ func (d *Service) serviceToIngress(service v1.Service) []runtime.Object {
 				HTTP: &networkingv1.HTTPIngressRuleValue{
 					Paths: []networkingv1.HTTPIngressPath{
 						{
-							Path: getRewritePathRegex(path),
+							Path: path,
 							Backend: networkingv1.IngressBackend{
 								Service: &networkingv1.IngressServiceBackend{
 									Name: service.Name,
@@ -397,7 +389,8 @@ func (d *Service) createRoute(service irtypes.Service) *okdroutev1.Route {
 		Spec: okdroutev1.RouteSpec{
 			Port: &okdroutev1.RoutePort{
 				TargetPort: intstr.IntOrString{
-					IntVal: defaultServicePort,
+					Type:   intstr.Int,
+					IntVal: common.DefaultServicePort,
 				},
 			},
 			To: okdroutev1.RouteTargetReference{
@@ -413,15 +406,9 @@ func (d *Service) createRoute(service irtypes.Service) *okdroutev1.Route {
 	return route
 }
 
-func (d *Service) getIngressAnnotations() map[string]string {
-	//TODO: If ingress controller is different, below annotation should change as well.
-	return map[string]string{ingressRewriteSelector: ingressRewriteValue}
-}
-
 // createIngress creates a single ingress for all services
 //TODO: Only supports fan-out. Virtual named hosting is not supported yet.
 func (d *Service) createIngress(ir irtypes.IR) *networkingv1.Ingress {
-	annotations := d.getIngressAnnotations()
 	pathType := networkingv1.PathTypePrefix
 
 	// Create the fan-out paths
@@ -450,7 +437,7 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1.Ingress {
 				backendPort = networkingv1.ServiceBackendPort{Number: servicePort.Port}
 			}
 			httpIngressPath := networkingv1.HTTPIngressPath{
-				Path:     getRewritePathRegex(path),
+				Path:     path,
 				PathType: &pathType,
 				Backend: networkingv1.IngressBackend{
 					Service: &networkingv1.IngressServiceBackend{
@@ -487,9 +474,8 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1.Ingress {
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        ingressName,
-			Labels:      getServiceLabels(ingressName),
-			Annotations: annotations,
+			Name:   ingressName,
+			Labels: getServiceLabels(ingressName),
 		},
 		Spec: networkingv1.IngressSpec{Rules: rules},
 	}
