@@ -6,7 +6,7 @@ parent: Installation
 nav_order: 2
 ---
 
-# Move2Kube Web Interface:
+# Move2Kube Web Interface
 
    ```console
    $ git clone https://github.com/konveyor/move2kube-ui
