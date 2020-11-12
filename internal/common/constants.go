@@ -57,6 +57,8 @@ const (
 	ExposeSelector string = types.GroupName + "/service.expose"
 	// AnnotationLabelValue represents the value when an annotation is valid
 	AnnotationLabelValue string = "true"
+	// DefaultServicePort is the default port that will be added to a service.
+	DefaultServicePort = 8080
 )
 
 var (

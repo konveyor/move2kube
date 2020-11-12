@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
@@ -49,7 +50,6 @@ func (opt *portMergeOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 		log.Debugf("The service %s has no ports", service.Name)
 		portToContainerIdx := opt.gatherPorts(ir, service)
 		if len(portToContainerIdx) == 0 {
-			log.Debugf("There are no eligible ports for the service %s", service.Name)
 			continue
 		}
 		selectedPortToContainerIdx := opt.askQuestion(service, portToContainerIdx)
@@ -76,6 +76,14 @@ func (*portMergeOptimizer) gatherPorts(ir irtypes.IR, service irtypes.Service) m
 			}
 		}
 	}
+	if len(portToContainerIdx) == 0 {
+		if len(service.Containers) == 0 {
+			log.Infof("The service %s has no ports because it has no containers.", service.Name)
+		} else {
+			log.Infof("Could not find any eligibile ports for the service %s . Adding default port %d", service.Name, common.DefaultServicePort)
+			portToContainerIdx[common.DefaultServicePort] = 0 // the first container index
+		}
+	}
 	return portToContainerIdx
 }
 
@@ -99,7 +107,6 @@ func (*portMergeOptimizer) askQuestion(service irtypes.Service, portToContainerI
 		log.Fatalf("Unable to get answer : %s", err)
 	}
 	if len(eligiblePorts) == 0 {
-		log.Info("All ports deselected.")
 		return nil
 	}
 	selectedPortToContainerIdx := map[int]int{}
