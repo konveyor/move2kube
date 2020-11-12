@@ -7,6 +7,7 @@
   display: flex;
   flex-wrap: wrap;
   background-color: $sidebar-color;
+  background-image: linear-gradient(90deg, $konveyor-secondary, $sidebar-color);
 
   @include mq(md) {
     flex-wrap: nowrap;
