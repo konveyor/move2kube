@@ -26,7 +26,7 @@ type CacheEngine struct {
 }
 
 // NewCacheEngine creates a new cache instance
-func NewCacheEngine(cf string) Engine {
+func NewCacheEngine(cf string) *CacheEngine {
 	ce := new(CacheEngine)
 	ce.cache = qatypes.NewCache(cf)
 	return ce
