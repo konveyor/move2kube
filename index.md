@@ -13,7 +13,7 @@ A tool that accelerates the process of re-platforming to Kubernetes by analyzing
 
 ![move2kube](assets/images/move2kube.png)
 
-Move2Kube is a command line tool that uses source artifacts such as docker compose files or cloud foundry manifest files, and even source code to generate kubernetes deployment artifacts including object yaml, helm charts, and operators.
+Move2Kube is a tool that uses source artifacts such as docker compose files or cloud foundry manifest files, and even source code to generate kubernetes deployment artifacts including object yaml, helm charts, and operators.
 
 ## A quick start with Move2Kube
 With Move2Kube, generating the Kubernetes/OpenShift deployment artifacts for your source platform artifacts is now simple.
@@ -44,7 +44,7 @@ Move2Kube takes as input the source artifacts and outputs the target deployment 
 ![Move2Kube-Usage](assets/images/usage.png)
 
 For more detailed information :
-* [Installation]({{ site.baseurl }}{% link docs/install.md %})
+* [Installation]({{ site.baseurl }}{% link docs/installation/install.md %})
 * [Getting Started]({{ site.baseurl }}{% link docs/GettingStarted.md %})
 * [Tutorials]({{ site.baseurl }}{% link docs/tutorials/Tutorial.md %})
 
