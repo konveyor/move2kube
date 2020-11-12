@@ -26,14 +26,6 @@ spec:
         answer:
           - testuser
       resolved: true
-    - description: 'Enter the container registry password : '
-      context:
-        - Enter password for container registry login.
-      solution:
-        type: Password
-        answer:
-          - testpassword
-      resolved: true
     - description: 'Confirm problem test description : '
       context:
         - Confirm input problem test context.

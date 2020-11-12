@@ -27,7 +27,7 @@ import (
 func TestCacheEngine(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
-	qaTestPath := "test/qaenginetest.yaml"
+	qaTestPath := "testdata/qaenginetest.yaml"
 	tmpTestPath := "/tmp/qatest.yaml"
 
 	t.Run("Test NewInputProblem", func(t *testing.T) {
@@ -40,6 +40,8 @@ func TestCacheEngine(t *testing.T) {
 		desc := "Enter the container registry username : "
 		context := []string{"Enter username for container registry login"}
 		def := ""
+
+		want := "testuser"
 
 		problem, err := qatypes.NewInputProblem(desc, context, def)
 		if err != nil {
@@ -56,9 +58,9 @@ func TestCacheEngine(t *testing.T) {
 			log.Fatalf("Unable to get answer : %s", err)
 		}
 
-		if answer != "testuser" {
+		if answer != want {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
-				answer, "testuser")
+				answer, want)
 		}
 
 	})
@@ -74,6 +76,7 @@ func TestCacheEngine(t *testing.T) {
 		context := []string{"Docker login from config mode, will use the default config from your local machine."}
 		def := "No authentication"
 		opts := []string{"Use existing pull secret", "No authentication", "UserName/Password"}
+		want := "UserName/Password"
 
 		problem, err := qatypes.NewSelectProblem(desc, context, def, opts)
 		if err != nil {
@@ -90,9 +93,9 @@ func TestCacheEngine(t *testing.T) {
 			log.Fatalf("Unable to get answer : %s", err)
 		}
 
-		if answer != "UserName/Password" {
+		if answer != want {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
-				answer, "UserName/Password")
+				answer, want)
 		}
 
 	})
@@ -125,9 +128,6 @@ line3
 			log.Fatalf("Unable to get answer : %s", err)
 		}
 
-		//fmt.Println(answer)
-		//fmt.Println(cachedAnswer)
-
 		if answer != cachedAnswer {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, cachedAnswer)
@@ -145,6 +145,7 @@ line3
 		desc := "Confirm problem test description : "
 		context := []string{"Confirm input problem test context."}
 		def := true
+		want := true
 
 		problem, err := qatypes.NewConfirmProblem(desc, context, def)
 		if err != nil {
@@ -161,9 +162,9 @@ line3
 			log.Fatalf("Unable to get answer : %s", err)
 		}
 
-		if answer != true {
+		if answer != want {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %v, expected answer: %v ",
-				answer, true)
+				answer, want)
 		}
 
 	})
