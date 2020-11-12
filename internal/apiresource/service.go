@@ -533,13 +533,15 @@ func (d *Service) getServicePorts(service irtypes.Service) []v1.ServicePort {
 	servicePorts := []v1.ServicePort{}
 	for _, serviceContainer := range service.Containers {
 		for _, port := range serviceContainer.Ports {
+			portName := port.Name
 			targetPort := intstr.IntOrString{Type: intstr.String, StrVal: port.Name}
 			if port.Name == "" {
+				portName = fmt.Sprintf("port-%d", port.ContainerPort)
 				targetPort.Type = intstr.Int
 				targetPort.IntVal = port.ContainerPort
 			}
 			servicePort := v1.ServicePort{
-				Name:       port.Name,
+				Name:       portName,
 				Port:       port.ContainerPort,
 				TargetPort: targetPort,
 			}
