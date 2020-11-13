@@ -12,12 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM registry.access.redhat.com/ubi8/ubi:latest
-RUN yum update -y
-RUN yum install -y php
-RUN mkdir -p /{{ .app_name }}
-COPY . /{{ .app_name }}
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.3-201
+RUN microdnf update && microdnf install -y php && microdnf clean all
 WORKDIR /{{ .app_name }}
-RUN cd /{{ .app_name }}
+COPY . .
 EXPOSE {{ .port }}
 CMD ["php", "-S", "{{ .binding }}"]
