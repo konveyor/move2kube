@@ -52,7 +52,7 @@ func GetTransformer(ir irtypes.IR) Transformer {
 	if ir.Kubernetes.ArtifactType == plan.Knative {
 		return &KnativeTransformer{}
 	}
-	return &K8sTransformer{}
+	return NewK8sTransformer()
 }
 
 // writeContainers returns true if any scripts were written

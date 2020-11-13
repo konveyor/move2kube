@@ -53,6 +53,16 @@ type K8sTransformer struct {
 	Helm                   bool
 	Name                   string
 	IgnoreUnsupportedKinds bool
+	ServicePaths           map[string]string
+}
+
+// NewK8sTransformer creates a new instance of K8sTransformer
+func NewK8sTransformer() *K8sTransformer {
+	kt := new(K8sTransformer)
+	kt.TransformedObjects = []runtime.Object{}
+	kt.Containers = []irtypes.Container{}
+	kt.ServicePaths = map[string]string{}
+	return kt
 }
 
 // Transform translates intermediate representation to destination objects
@@ -66,8 +76,12 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 	kt.TargetClusterSpec = ir.TargetClusterSpec
 	kt.Helm = (ir.Kubernetes.ArtifactType == plantypes.Helm)
 
-	kt.TransformedObjects = (&apiresourceset.K8sAPIResourceSet{}).CreateAPIResources(ir)
+	kt.TransformedObjects = new(apiresourceset.K8sAPIResourceSet).CreateAPIResources(ir)
 	kt.RootDir = ir.RootDir
+
+	for _, service := range ir.Services {
+		kt.ServicePaths[service.Name] = service.ServiceRelPath
+	}
 
 	log.Debugf("Total transformed objects : %d", len(kt.TransformedObjects))
 
@@ -80,7 +94,9 @@ func (kt *K8sTransformer) WriteObjects(outpath string) error {
 
 	artifactspath := filepath.Join(outpath, kt.Name)
 	if kt.Helm {
-		_ = kt.generateHelmMetadata(artifactspath, kt.Values)
+		if err := kt.generateHelmMetadata(artifactspath, kt.Values); err != nil {
+			log.Debugf("Failed to generate helm metadata properly, continuing anyway. Error: %q", err)
+		}
 		artifactspath = filepath.Join(artifactspath, helmTemplatesRelPath)
 	}
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))
@@ -164,8 +180,19 @@ func (kt *K8sTransformer) generateHelmMetadata(dirName string, values outputtype
 		log.Errorf("Unable to create templates directory : %s", err)
 	}
 
+	notesStr, err := common.GetStringFromTemplate(templates.NOTES_txt, struct {
+		IsHelm       bool
+		ServicePaths map[string]string
+	}{
+		IsHelm:       true,
+		ServicePaths: kt.ServicePaths,
+	})
+	if err != nil {
+		log.Errorf("Failed to fill the NOTES.txt template %s with the service paths %v Error: %q", templates.NOTES_txt, kt.ServicePaths, err)
+	}
+
 	//NOTES.txt
-	err = ioutil.WriteFile(filepath.Join(dirName, helmTemplatesRelPath, "NOTES.txt"), []byte(templates.HelmNotes_txt), common.DefaultFilePermission)
+	err = ioutil.WriteFile(filepath.Join(dirName, helmTemplatesRelPath, "NOTES.txt"), []byte(templates.HelmNotes_txt+notesStr), common.DefaultFilePermission)
 	if err != nil {
 		log.Errorf("Error while writing Helm NOTES.txt : %s", err)
 	}
@@ -220,14 +247,30 @@ func (kt *K8sTransformer) createOperator(projectname string, basepath string) er
 }
 
 func (kt *K8sTransformer) writeDeployScript(proj string, outpath string) {
+	deployScriptPath := filepath.Join(outpath, "deploy.sh")
 	err := common.WriteTemplateToFile(templates.Deploy_sh, struct {
 		Project string
 	}{
 		Project: proj,
-	}, filepath.Join(outpath, "deploy.sh"), common.DefaultExecutablePermission)
+	}, deployScriptPath, common.DefaultExecutablePermission)
 	if err != nil {
-		log.Errorf("Unable to write deploy script : %s", err)
+		log.Errorf("Failed to write the deploy script at path %q Error: %q", deployScriptPath, err)
 	}
+
+	notesPath := filepath.Join(outpath, "NOTES.txt")
+	err = common.WriteTemplateToFile(templates.NOTES_txt, struct {
+		IsHelm       bool
+		IngressHost  string
+		ServicePaths map[string]string
+	}{
+		IsHelm:       false,
+		IngressHost:  kt.TargetClusterSpec.Host,
+		ServicePaths: kt.ServicePaths,
+	}, notesPath, common.DefaultFilePermission)
+	if err != nil {
+		log.Errorf("Failed to write the NOTES.txt file at path %q Error: %q", notesPath, err)
+	}
+
 }
 
 func (kt *K8sTransformer) writeReadMe(project string, areNewImages bool, isHelm bool, outpath string) {

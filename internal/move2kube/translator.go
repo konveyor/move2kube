@@ -61,7 +61,11 @@ func Translate(p plantypes.Plan, outpath string) {
 	}
 	log.Debugf("Total services optimized : %d", len(optimizedir.Services))
 
-	os.RemoveAll(outpath)
+	if err := os.RemoveAll(outpath); err != nil {
+		log.Errorf("Failed to remove the existing file/directory at the output path %q Error: %q", outpath, err)
+		log.Errorf("Anything in the output path will get overwritten.")
+	}
+
 	dct := transform.ComposeTransformer{}
 	if err := dct.Transform(optimizedir); err != nil {
 		log.Errorf("Error during translate docker compose file : %s", err)
@@ -71,8 +75,11 @@ func Translate(p plantypes.Plan, outpath string) {
 
 	ir, _ := customize.Customize(optimizedir)
 	log.Debugf("Total storages customized : %d", len(optimizedir.Storages))
-	if p.Spec.Outputs.Kubernetes.ArtifactType != plantypes.Yamls && p.Spec.Outputs.Kubernetes.ArtifactType != plantypes.Knative {
-		ir, _ = parameterize.Parameterize(ir)
+	if p.Spec.Outputs.Kubernetes.ArtifactType == plantypes.Helm {
+		ir, err = parameterize.Parameterize(ir)
+		if err != nil {
+			log.Debugf("Failed to paramterize the IR. Error: %q", err)
+		}
 	}
 
 	anyNewContainers := false
