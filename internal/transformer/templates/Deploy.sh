@@ -13,3 +13,4 @@
 #   limitations under the License.
 
 kubectl apply -f {{ .Project }}
+cat NOTES.txt
