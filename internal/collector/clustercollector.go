@@ -27,15 +27,15 @@ import (
 	"strings"
 
 	semver "github.com/Masterminds/semver/v3"
+	"github.com/konveyor/move2kube/internal/apiresourceset"
+	"github.com/konveyor/move2kube/internal/common"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	"github.com/konveyor/move2kube/internal/apiresourceset"
-	common "github.com/konveyor/move2kube/internal/common"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 	cgdiscovery "k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc" // See issue https://github.com/kubernetes/client-go/issues/345
 	cgclientcmd "k8s.io/client-go/tools/clientcmd"
 )
 
@@ -46,23 +46,21 @@ type ClusterCollector struct {
 
 // GetAnnotations returns annotations on which this collector should be invoked
 func (c ClusterCollector) GetAnnotations() []string {
-	annotations := []string{"k8s"}
-	return annotations
+	return []string{"k8s"}
 }
 
 //Collect gets the cluster metadata by querying the cluster. Assumes that the authentication with cluster is already done.
 func (c *ClusterCollector) Collect(inputPath string, outputPath string) error {
-
 	//Creating the output sub-directory if it does not exist
 	outputPath = filepath.Join(outputPath, "clusters")
 	err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission)
 	if err != nil {
-		log.Errorf("Unable to create outputpath %s : %s", outputPath, err)
+		log.Errorf("Unable to create output directory at path %q Error: %q", outputPath, err)
 		return err
 	}
 	cmd := c.getClusterCommand()
 	if cmd == "" {
-		errStr := "No Kubectl or oc in path. Add Kubectl to path and rerun to collect data about the cluster in context."
+		errStr := "No kubectl or oc in path. Add kubectl to path and rerun to collect data about the cluster in context."
 		log.Warnf(errStr)
 		return fmt.Errorf(errStr)
 	}
@@ -72,49 +70,50 @@ func (c *ClusterCollector) Collect(inputPath string, outputPath string) error {
 		return err
 	}
 	clusterMd := collecttypes.NewClusterMetadata(name)
-	clusterMd.Spec.StorageClasses, err = c.getStorageClasses()
-	if err != nil {
+	if clusterMd.Spec.StorageClasses, err = c.getStorageClasses(); err != nil {
 		//If no storage classes, this will be an empty array
 		clusterMd.Spec.StorageClasses = []string{}
 	}
 
-	APIKindVersionMap, err := c.collectUsingAPI()
+	clusterMd.Spec.APIKindVersionMap, err = c.collectUsingAPI()
 	if err != nil {
-		log.Warnf("Falling back to using CLI based collect")
+		log.Warnf("Failed to collect using the API. Error: %q . Falling back to using the CLI.", err)
 		clusterMd.Spec.APIKindVersionMap, err = c.collectUsingCLI()
 		if err != nil {
+			log.Warnf("Failed to collect using the CLI. Error: %q", err)
 			return err
 		}
-	} else {
-		clusterMd.Spec.APIKindVersionMap = APIKindVersionMap
 	}
 
 	c.groupOrderPolicy(&clusterMd.Spec.APIKindVersionMap)
 	//c.VersionOrderPolicy(&clusterMd.APIKindVersionMap)
 
 	outputPath = filepath.Join(outputPath, common.NormalizeForFilename(clusterMd.Name)+".yaml")
-	err = common.WriteYaml(outputPath, clusterMd)
-	return err
+	return common.WriteYaml(outputPath, clusterMd)
 }
 
 func (c *ClusterCollector) getClusterCommand() string {
-	if c.clusterCmd == "" {
-		cmd := "kubectl"
-		_, err := exec.LookPath(cmd)
-		if err != nil {
-			log.Warnf("Unable to find "+cmd+" : %v", err)
-			cmd = "oc"
-			_, err := exec.LookPath(cmd)
-			if err != nil {
-				log.Warnf("Unable to find "+cmd+" : %v", err)
-			} else {
-				c.clusterCmd = cmd
-			}
-		} else {
-			c.clusterCmd = cmd
-		}
+	if c.clusterCmd != "" {
+		return c.clusterCmd
 	}
-	return c.clusterCmd
+
+	cmd := "kubectl"
+	_, err := exec.LookPath(cmd)
+	if err == nil {
+		c.clusterCmd = cmd
+		return c.clusterCmd
+	}
+	log.Warnf("Unable to find the %s command. Error: %q", cmd, err)
+
+	cmd = "oc"
+	_, err = exec.LookPath(cmd)
+	if err == nil {
+		c.clusterCmd = cmd
+		return c.clusterCmd
+	}
+	log.Warnf("Unable to find the %s command. Error: %q", cmd, err)
+
+	return ""
 }
 
 func (c *ClusterCollector) getClusterContextName() (string, error) {
@@ -137,7 +136,7 @@ func (c *ClusterCollector) getStorageClasses() ([]string, error) {
 		return nil, err
 	}
 
-	var fileContents map[string]interface{}
+	fileContents := map[string]interface{}{}
 	err = yaml.Unmarshal(yamlOutput, &fileContents)
 	if err != nil {
 		log.Errorf("Error in unmarshalling yaml: %s. Skipping.", err)
@@ -145,7 +144,7 @@ func (c *ClusterCollector) getStorageClasses() ([]string, error) {
 	}
 
 	scArray := fileContents["items"].([]interface{})
-	var storageClasses []string
+	storageClasses := []string{}
 
 	for _, sc := range scArray {
 		if mapSC, ok := sc.(map[string]interface{}); ok {
@@ -180,9 +179,9 @@ func (c *ClusterCollector) getAPI() (*cgdiscovery.DiscoveryClient, error) {
 	rules := cgclientcmd.NewDefaultClientConfigLoadingRules()
 	cfg, err := cgclientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, &cgclientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
+		log.Warnf("Failed to get the default config for the cluster API client. Error: %q", err)
 		return nil, err
 	}
-
 	return cgdiscovery.NewDiscoveryClientForConfig(cfg)
 }
 
@@ -491,13 +490,13 @@ func (c *ClusterCollector) clusterByGroupsAndSortVersions(gvList []string) []str
 
 func (c *ClusterCollector) collectUsingCLI() (map[string][]string, error) {
 	cmd := exec.Command("bash", "-c", c.getClusterCommand()+" api-resources -o name")
-	outputStr, err := cmd.Output()
+	output, err := cmd.Output()
 	if err != nil {
 		log.Errorf("Error while running kubectl api-resources: %s", err)
 		return nil, err
 	}
 	log.Debugf("Got kind information for cluster")
-	nameList := strings.Split(string(outputStr), "\n")
+	nameList := strings.Split(string(output), "\n")
 	mapKind := map[string][]schema.GroupVersion{}
 	for _, name := range nameList {
 		tmpArray := strings.Split(name, ".")
@@ -579,13 +578,13 @@ func (c *ClusterCollector) getPreferredGVUsingCLI(kind string, availableGroupLis
 
 func (c *ClusterCollector) isSupportedGV(kind string, gvStr string) (bool, error) {
 	cmd := exec.Command("bash", "-c", c.getClusterCommand()+" explain "+kind+" --api-version="+gvStr+" --recursive")
-	outputStr, err := cmd.Output()
+	output, err := cmd.Output()
 	if err != nil {
 		log.Debugf("Error while running %s for verifying [%s]\n", c.getClusterCommand(), gvStr)
 		return false, err
 	}
 
-	lines := strings.Split(string(outputStr), "\n")
+	lines := strings.Split(string(output), "\n")
 
 	if len(lines) < 2 {
 		return false, fmt.Errorf("Description incomplete")
@@ -600,7 +599,7 @@ func (c *ClusterCollector) isSupportedGV(kind string, gvStr string) (bool, error
 
 func (c *ClusterCollector) getGVKUsingNameCLI(name string) (string, string, error) {
 	cmd := exec.Command("bash", "-c", c.getClusterCommand()+" explain "+name)
-	outputStr, err := cmd.Output()
+	output, err := cmd.Output()
 	if err != nil {
 		//log.Errorf("Error while running kubectl: %s\n", err)
 		return "", "", err
@@ -608,7 +607,7 @@ func (c *ClusterCollector) getGVKUsingNameCLI(name string) (string, string, erro
 
 	var gvk schema.GroupVersionKind
 
-	lines := strings.Split(string(outputStr), "\n")
+	lines := strings.Split(string(output), "\n")
 
 	if len(lines) < 2 {
 		return "", "", fmt.Errorf("Description incomplete")

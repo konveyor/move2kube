@@ -20,38 +20,33 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	collector "github.com/konveyor/move2kube/internal/collector"
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
+	log "github.com/sirupsen/logrus"
 )
 
 //Collect gets the metadata from multiple sources, filters it and dumps it into files within source directory
 func Collect(inputPath string, outputPath string, annotations []string) {
-	var collectors, err = collector.GetCollectors()
+	collectors, err := collector.GetCollectors()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to get the collectors. Error: %q", err)
 	}
-	//Creating the output directory if it does not exist
-	err = os.MkdirAll(outputPath, common.DefaultDirectoryPermission)
-	if err != nil {
-		log.Fatalf("Unable to create output directory %s : %s", outputPath, err)
+	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
+		log.Fatalf("Unable to create output directory at path %q Error: %q", outputPath, err)
 	}
 	log.Infoln("Begin collection")
-	for _, l := range collectors {
-		if len(annotations) != 0 {
-			collectorannotations := l.GetAnnotations()
-			if !hasOverlap(annotations, collectorannotations) {
+	for _, collector := range collectors {
+		if len(annotations) > 0 {
+			if !hasOverlap(annotations, collector.GetAnnotations()) {
 				continue
 			}
 		}
-		log.Infof("[%T] Begin collection", l)
-		err = l.Collect(inputPath, outputPath)
-		if err != nil {
-			log.Warnf("[%T] Failed : %s", l, err.Error())
-		} else {
-			log.Infof("[%T] Done", l)
+		log.Infof("[%T] Begin collection", collector)
+		if err = collector.Collect(inputPath, outputPath); err != nil {
+			log.Warnf("[%T] failed. Error: %q", collector, err)
+			continue
 		}
+		log.Infof("[%T] Done", collector)
 	}
 	log.Infoln("Collection done")
 }

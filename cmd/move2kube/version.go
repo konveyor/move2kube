@@ -24,19 +24,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-var long bool
-
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Print the client version information",
-	Long:  "Print the client version information",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(move2kube.GetVersion(long))
-	},
-}
-
 func init() {
 	viper.AutomaticEnv()
+
+	long := false
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the client version information",
+		Long:  "Print the client version information",
+		Run:   func(*cobra.Command, []string) { fmt.Println(move2kube.GetVersion(long)) },
+	}
 
 	versionCmd.Flags().BoolVarP(&long, "long", "l", false, "print the version details")
 

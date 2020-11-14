@@ -28,49 +28,54 @@ import (
 	"github.com/spf13/viper"
 )
 
-var planCmd = &cobra.Command{
-	Use:   "plan",
-	Short: "Plan out a move",
-	Long:  "Discover and create a plan file based on an input directory",
-	Run: func(cmd *cobra.Command, args []string) {
-		// Check if this is even a directory
-		var err error
-		planfile, err = filepath.Abs(planfile)
-		if err != nil {
-			log.Fatalf("Failed to make the plan file path %q absolute. Error: %q", planfile, err)
-		}
-		srcpath, err = filepath.Abs(srcpath)
-		if err != nil {
-			log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
-		}
-		// TODO: should we normalize the project name?
-		fi, err := os.Stat(srcpath)
-		if err != nil {
-			log.Fatalf("Unable to access source directory : %s", err)
-		}
-		if !fi.IsDir() {
-			log.Fatalf("Input is a file, expected directory: %s", srcpath)
-		}
-		fi, err = os.Stat(planfile)
-		if os.IsNotExist(err) {
-			if strings.HasSuffix(planfile, string(os.PathSeparator)) {
-				planfile = filepath.Join(planfile, common.DefaultPlanFile)
-			} else if !strings.Contains(filepath.Base(planfile), ".") {
-				planfile = filepath.Join(planfile, common.DefaultPlanFile)
-			}
-		} else if err != nil {
-			log.Fatalf("Error while accessing plan file path %s : %s ", planfile, err)
-		} else if fi.IsDir() {
+type planFlags struct {
+	planfile string
+	srcpath  string
+	name     string
+}
+
+func planHandler(flags planFlags) {
+	// Check if this is even a directory
+	var err error
+	planfile := flags.planfile
+	srcpath := flags.srcpath
+	name := flags.name
+
+	planfile, err = filepath.Abs(planfile)
+	if err != nil {
+		log.Fatalf("Failed to make the plan file path %q absolute. Error: %q", planfile, err)
+	}
+	srcpath, err = filepath.Abs(srcpath)
+	if err != nil {
+		log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
+	}
+	// TODO: should we normalize the project name?
+	fi, err := os.Stat(srcpath)
+	if err != nil {
+		log.Fatalf("Unable to access source directory : %s", err)
+	}
+	if !fi.IsDir() {
+		log.Fatalf("Input is a file, expected directory: %s", srcpath)
+	}
+	fi, err = os.Stat(planfile)
+	if os.IsNotExist(err) {
+		if strings.HasSuffix(planfile, string(os.PathSeparator)) {
+			planfile = filepath.Join(planfile, common.DefaultPlanFile)
+		} else if !strings.Contains(filepath.Base(planfile), ".") {
 			planfile = filepath.Join(planfile, common.DefaultPlanFile)
 		}
+	} else if err != nil {
+		log.Fatalf("Error while accessing plan file path %s : %s ", planfile, err)
+	} else if fi.IsDir() {
+		planfile = filepath.Join(planfile, common.DefaultPlanFile)
+	}
 
-		p := move2kube.CreatePlan(srcpath, name)
-		if err = move2kube.WritePlan(planfile, p); err != nil {
-			log.Errorf("Unable to write plan file (%s) : %s", planfile, err)
-			return
-		}
-		log.Infof("Plan can be found at [%s].", planfile)
-	},
+	p := move2kube.CreatePlan(srcpath, name)
+	if err = move2kube.WritePlan(planfile, p); err != nil {
+		log.Errorf("Unable to write plan file (%s) : %s", planfile, err)
+		return
+	}
+	log.Infof("Plan can be found at [%s].", planfile)
 }
 
 func init() {
@@ -81,9 +86,17 @@ func init() {
 	}
 	viper.AutomaticEnv()
 
-	planCmd.Flags().StringVarP(&srcpath, sourceFlag, "s", ".", "Specify source directory.")
-	planCmd.Flags().StringVarP(&planfile, planFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
-	planCmd.Flags().StringVarP(&name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
+	flags := planFlags{}
+	planCmd := &cobra.Command{
+		Use:   "plan",
+		Short: "Plan out a move",
+		Long:  "Discover and create a plan file based on an input directory",
+		Run:   func(*cobra.Command, []string) { planHandler(flags) },
+	}
+
+	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", ".", "Specify source directory.")
+	planCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
+	planCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 
 	must(planCmd.MarkFlagRequired(sourceFlag))
 
