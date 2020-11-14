@@ -80,6 +80,12 @@ func (cache *Cache) Write() error {
 
 // AddProblemSolutionToCache adds a problem to solution cache
 func (cache *Cache) AddProblemSolutionToCache(p Problem) bool {
+
+	if p.Solution.Type == PasswordSolutionFormType {
+		log.Debugf("Passwords are not added to the cache.")
+		return false
+	}
+
 	if !p.Resolved {
 		log.Warnf("Unresolved problem. Not going to be added to cache.")
 		return false
