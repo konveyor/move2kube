@@ -12,14 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from flask import Flask
+from flask import Flask, jsonify
 
 simpleRestApiApp = Flask (__name__)
 
-
-@simpleRestApiApp.route("/")
+@simpleRestApiApp.route("/python")
 def api():
-    return "This is a PYTHON web app"
-    
+    return jsonify(message="This is a Python REST API")
+
 if __name__ == "__main__":
     simpleRestApiApp.run(host='0.0.0.0', port=8080)

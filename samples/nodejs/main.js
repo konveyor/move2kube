@@ -18,6 +18,6 @@ var serverObj = require('http');
 var PORT = 8080;
 
 serverObj.createServer(function (requestObj, responseObj) {
-	responseObj.write('<h1>This is a node server</h1>');
+	responseObj.write('<h1>This is a NodeJS web app</h1>');
 	responseObj.end();
 }).listen(PORT);

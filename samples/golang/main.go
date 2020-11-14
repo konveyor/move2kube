@@ -23,11 +23,8 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/", func(writerObj http.ResponseWriter, requestObj *http.Request) {
-		fmt.Fprintf(writerObj, "This is a GOLANG web server app")
+	http.HandleFunc("/golang", func(response http.ResponseWriter, _ *http.Request) {
+		fmt.Fprintf(response, "This is a Go web app")
 	})
-
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		log.Fatal("Web server error")
-	}
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
