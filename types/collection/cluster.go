@@ -115,7 +115,7 @@ func (c *ClusterMetadataSpec) GetSupportedVersions(kind string) []string {
 
 // NewClusterMetadata creates a new cluster metadata instance
 func NewClusterMetadata(contextName string) ClusterMetadata {
-	var clusterMetadata = ClusterMetadata{
+	return ClusterMetadata{
 		TypeMeta: types.TypeMeta{
 			Kind:       string(ClusterMetadataKind),
 			APIVersion: types.SchemeGroupVersion.String(),
@@ -126,8 +126,6 @@ func NewClusterMetadata(contextName string) ClusterMetadata {
 		Spec: ClusterMetadataSpec{
 			StorageClasses:    []string{},
 			APIKindVersionMap: map[string][]string{},
-			Host:              "",
 		},
 	}
-	return clusterMetadata
 }
