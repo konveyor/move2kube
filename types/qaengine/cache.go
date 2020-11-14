@@ -17,6 +17,8 @@ limitations under the License.
 package qaengine
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -80,6 +82,12 @@ func (cache *Cache) Write() error {
 
 // AddProblemSolutionToCache adds a problem to solution cache
 func (cache *Cache) AddProblemSolutionToCache(p Problem) bool {
+
+	if p.Solution.Type == PasswordSolutionFormType {
+		log.Debugf("Passwords are not added to the cache.")
+		return false
+	}
+
 	if !p.Resolved {
 		log.Warnf("Unresolved problem. Not going to be added to cache.")
 		return false
@@ -114,7 +122,7 @@ func (cache *Cache) GetSolution(p Problem) (ans Problem, err error) {
 			return p, err
 		}
 	}
-	return p, nil
+	return p, fmt.Errorf("The problem %+v was not found in the cache", p)
 }
 
 func (cache *Cache) merge(c Cache) {
