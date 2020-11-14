@@ -18,13 +18,29 @@
 
 [[ $DEBUG ]] || DEBUG='false'
 
+print_usage() {
+    echo "Invalid args: $@"
+    echo 'Usage: installdeps.sh [-y]'
+    echo 'Use sudo when running in -y quiet mode.'
+}
+
+QUIET=false
+if [ "$#" -gt 0 ]; then
+    if [ "$#" -gt 1 ] || [ "$1" != '-y' ]; then
+        print_usage "$@"
+        exit 1
+    fi
+    echo 'Installing without prompting. Script should be run with sudo in order to install docker.'
+    QUIET=true
+fi
+
 MOVE2KUBE_DEP_INSTALL_PATH="$PWD/bin"
 
 HAS_DOCKER="$(type docker &>/dev/null && echo true || echo false)"
 HAS_PACK="$(type pack &>/dev/null && echo true || echo false)"
 HAS_KUBECTL="$(type kubectl &>/dev/null && echo true || echo false)"
 HAS_OPERATOR_SDK="$(type operator-sdk &>/dev/null && echo true || echo false)"
-if [ "$HAS_OPERATOR_SDK" == 'true' ]; then
+if [ "$HAS_OPERATOR_SDK" = 'true' ]; then
     if operator-sdk version | cut -d, -f1 | grep 'operator-sdk version: "v1' -q; then
         OPERATOR_SDK_V1='true'
     else
@@ -42,6 +58,10 @@ initOS() {
 }
 
 askBeforeProceeding() {
+    if [ "${QUIET}" = "true" ]; then
+        oktoproceed='y'
+        return 0
+    fi
     echo 'Move2Kube dependency installation script.'
     echo 'The following dependencies will be installed to '"$MOVE2KUBE_DEP_INSTALL_PATH"':'
     echo 'docker (only on Linux), pack, kubectl, operator-sdk'
@@ -49,6 +69,10 @@ askBeforeProceeding() {
 }
 
 askIfWeShouldModifyBashProfile() {
+    if [ "${QUIET}" = "true" ]; then
+        oktoaddtobashprofile='y'
+        return 0
+    fi
     read -r -p 'Should we add a line to your ~/.bash_profile that will append '"$MOVE2KUBE_DEP_INSTALL_PATH"' to the $PATH? [y/N]:' oktoaddtobashprofile
 }
 
@@ -70,18 +94,18 @@ set -e
 set -u
 
 # Set debug if desired
-if [ "${DEBUG}" == "true" ]; then
+if [ "${DEBUG}" = "true" ]; then
     set -x
 fi
 
 initOS
 
-if [ "$OS" == 'darwin' ]; then
+if [ "$OS" = 'darwin' ]; then
     PACKPLATFORM='macos'
     KUBECTLPLATFORM='darwin'
     OPERATORSDKPLATFORM='apple-darwin'
     echo 'Once this installation finishes, please do install docker from https://docs.docker.com/docker-for-mac/install/'
-elif [ "$OS" == 'linux' ]; then
+elif [ "$OS" = 'linux' ]; then
     PACKPLATFORM='linux'
     KUBECTLPLATFORM='linux'
     OPERATORSDKPLATFORM='linux-gnu'
@@ -99,10 +123,14 @@ fi
 
 mkdir -p "$MOVE2KUBE_DEP_INSTALL_PATH"
 
-if [ "${HAS_DOCKER}" != 'true' ] && [ "$OS" == 'linux' ]; then
+if [ "${HAS_DOCKER}" != 'true' ] && [ "$OS" = 'linux' ]; then
     if ! grep -q container_t '/proc/1/attr/current'; then
         echo 'Installing docker...'
-        curl -fsSL 'https://get.docker.com' -o 'get-docker.sh' && sudo sh 'get-docker.sh' && rm 'get-docker.sh'
+        if [ "${QUIET}" = "true" ]; then
+            curl -fsSL 'https://get.docker.com' -o 'get-docker.sh' && sh 'get-docker.sh' && rm 'get-docker.sh'
+        else
+            curl -fsSL 'https://get.docker.com' -o 'get-docker.sh' && sudo sh 'get-docker.sh' && rm 'get-docker.sh'
+        fi
         echo 'Done.'
     fi
 fi

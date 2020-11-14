@@ -29,7 +29,7 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY scripts/installdeps.sh scripts/installdeps.sh
-RUN cd / && source ${WORKDIR}/scripts/installdeps.sh && cd -
+RUN cd / && bash ${WORKDIR}/scripts/installdeps.sh -y && source ~/.bash_profile && cd -
 COPY . .
 # Build
 ARG VERSION=latest
