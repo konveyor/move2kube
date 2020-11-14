@@ -24,6 +24,6 @@ limitations under the License.
   <version>1.0</version>
   <name>simplewebapp Maven Webapp</name>
   <build>
-    <finalName>simplewebapp</finalName>
+    <finalName>java-maven</finalName>
   </build>
 </project>
