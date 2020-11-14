@@ -17,6 +17,8 @@ limitations under the License.
 package qaengine
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -120,7 +122,7 @@ func (cache *Cache) GetSolution(p Problem) (ans Problem, err error) {
 			return p, err
 		}
 	}
-	return p, nil
+	return p, fmt.Errorf("The problem %+v was not found in the cache", p)
 }
 
 func (cache *Cache) merge(c Cache) {

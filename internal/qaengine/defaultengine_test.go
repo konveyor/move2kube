@@ -190,35 +190,4 @@ func TestDefaultEngine(t *testing.T) {
 
 	})
 
-	t.Run("Test NewPasswordProblem", func(t *testing.T) {
-
-		engines = []Engine{}
-		e := NewDefaultEngine()
-		AddEngine(e)
-
-		desc := "Test description"
-		context := []string{"Password:"}
-
-		problem, err := qatypes.NewPasswordProblem(desc, context)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetStringAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
-		if answer != "" {
-			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
-				answer, "")
-		}
-
-	})
-
 }
