@@ -32,6 +32,7 @@ COPY scripts/installdeps.sh scripts/installdeps.sh
 RUN cd / && source ${WORKDIR}/scripts/installdeps.sh && cd -
 COPY . .
 # Build
+ARG VERSION=latest
 RUN make build
 RUN cp bin/${APPNAME} /bin/${APPNAME}
 
