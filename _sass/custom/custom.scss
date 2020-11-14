@@ -1,0 +1,18 @@
+ /* Three image containers (use 25% for four, and 50% for two, etc) */
+.column {
+  float: left;
+  width: 20%;//33.33%;
+  padding: 2px;
+}
+
+/* Clear floats after image containers */
+.row::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+/* to remove the line under the image links */
+.icon-link {
+text-decoration: none;
+}

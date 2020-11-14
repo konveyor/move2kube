@@ -94,15 +94,8 @@ gh_edit_view_mode: "tree" # "tree" or "edit" if you want the user to jump into t
 color_scheme: konveyor
 
 # External Links
-external_navigation:
-  - url: https://kubernetes.slack.com/archives/CR85S82A2
-    title: "&nbsp;&emsp;&emsp;Slack"
-  - url: https://konveyor.github.io/
-    title: "&nbsp;&emsp;&emsp;Konveyor"
-  - url: https://groups.google.com/g/konveyorio
-    title: "&nbsp;&emsp;&emsp;Forum"
-  - url: https://github.com/konveyor/move2kube
-    title: "&nbsp;&emsp;&emsp;View on GitHub"
+#  - url: https://kubernetes.slack.com/archives/CR85S82A2
+#    title: "&nbsp;&emsp;&emsp;Slack"
 
 # Google Analytics Tracking (optional)
 # e.g, UA-1234567-89
