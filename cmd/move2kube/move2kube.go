@@ -24,16 +24,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	verbose bool
-
-	planfile  string
-	outpath   string
-	srcpath   string
-	name      string
-	ignoreEnv bool
-)
-
 const (
 	nameFlag      = "name"
 	planFlag      = "plan"
@@ -41,21 +31,19 @@ const (
 	ignoreEnvFlag = "ignoreenv"
 )
 
+var verbose bool
+
 // RootCmd root level flags and commands
 var rootCmd = &cobra.Command{
 	Use:   "move2kube",
 	Short: "A tool to modernize to kubernetes/openshift",
 	Long:  `move2kube is a tool to help optimally translate from platforms such as docker-swarm, CF to Kubernetes.`,
-}
-
-func getRootCmd() *cobra.Command {
-	rootCmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+	PersistentPreRunE: func(*cobra.Command, []string) error {
 		if verbose {
 			log.SetLevel(log.DebugLevel)
 		}
 		return nil
-	}
-	return rootCmd
+	},
 }
 
 func init() {
@@ -70,7 +58,7 @@ func main() {
 	common.TempPath = tempPath
 	common.AssetsPath = assetsPath
 	defer os.RemoveAll(tempPath)
-	if err := getRootCmd().Execute(); err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		log.Fatalf("Error: %q", err)
 	}
 }
