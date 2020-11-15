@@ -25,6 +25,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
+	yaml "gopkg.in/yaml.v3"
 )
 
 type context struct {
@@ -196,12 +197,29 @@ func ReadPlan(path string) (Plan, error) {
 	return plan, nil
 }
 
+// Copy makes a copy of the plan.
+func (plan *Plan) Copy() (Plan, error) {
+	copy := Plan{}
+	planBytes, err := yaml.Marshal(plan)
+	if err != nil {
+		log.Errorf("Failed to marshal the plan to yaml. Error: %q", err)
+		return copy, err
+	}
+	err = yaml.Unmarshal(planBytes, &copy)
+	return copy, err
+}
+
 // WritePlan encodes the plan to yaml converting absolute paths to relative.
 func WritePlan(path string, plan Plan) error {
-	if err := convertPathsEncode(&plan); err != nil {
+	copy, err := plan.Copy()
+	if err != nil {
+		log.Errorf("Failed to create a copy of the plan before writing. Error: %q", err)
 		return err
 	}
-	return common.WriteYaml(path, plan)
+	if err := convertPathsEncode(&copy); err != nil {
+		return err
+	}
+	return common.WriteYaml(path, copy)
 }
 
 // IsAssetsPath returns true if it is a m2kassets path.

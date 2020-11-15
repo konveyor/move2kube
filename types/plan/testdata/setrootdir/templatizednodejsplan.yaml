@@ -1,0 +1,66 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Plan
+metadata:
+  name: nodejs-app
+spec:
+  inputs:
+    rootDir: {{ .PWD }}/new/root/directory
+    services:
+      nodejs:
+        - serviceName: nodejs
+          serviceRelPath: /nodejs
+          image: nodejs:latest
+          translationType: Any2Kube
+          containerBuildType: NewDockerfile
+          sourceType:
+            - Directory
+          targetOptions:
+            - {{ .TempDir }}/m2kassets/dockerfiles/nodejs
+          sourceArtifacts:
+            SourceCode:
+              - {{ .PWD }}/new/root/directory
+          buildArtifacts:
+            SourceCode:
+              - {{ .PWD }}/new/root/directory
+          updateContainerBuildPipeline: true
+          updateDeployPipeline: true
+        - serviceName: nodejs
+          serviceRelPath: /nodejs
+          image: nodejs:latest
+          translationType: Any2Kube
+          containerBuildType: S2I
+          sourceType:
+            - Directory
+          targetOptions:
+            - {{ .TempDir }}/m2kassets/s2i/nodejs
+          sourceArtifacts:
+            SourceCode:
+              - {{ .PWD }}/new/root/directory
+          buildArtifacts:
+            SourceCode:
+              - {{ .PWD }}/new/root/directory
+          updateContainerBuildPipeline: true
+          updateDeployPipeline: true
+        - serviceName: nodejs
+          serviceRelPath: /nodejs
+          image: nodejs:latest
+          translationType: Any2Kube
+          containerBuildType: CNB
+          sourceType:
+            - Directory
+          targetOptions:
+            - cloudfoundry/cnb:cflinuxfs3
+            - gcr.io/buildpacks/builder
+          sourceArtifacts:
+            SourceCode:
+              - {{ .PWD }}/new/root/directory
+          buildArtifacts:
+            SourceCode:
+              - {{ .PWD }}/new/root/directory
+          updateContainerBuildPipeline: true
+          updateDeployPipeline: true
+  outputs:
+    kubernetes:
+      artifactType: Yamls
+      targetCluster:
+        type: Kubernetes
