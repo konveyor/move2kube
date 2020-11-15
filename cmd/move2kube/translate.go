@@ -109,7 +109,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 	} else {
 		log.Infof("Detected a plan file in %s. Will translate using this plan.", planfile)
-		p, err = move2kube.ReadPlan(planfile)
+		p, err = plan.ReadPlan(planfile)
 		if err != nil {
 			log.Fatalf("Unable to read plan : %s", err)
 		}
@@ -125,7 +125,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 	}
 	if srcpath != "" {
-		if err := move2kube.SetRootDir(&p, srcpath); err != nil {
+		if err := p.SetRootDir(srcpath); err != nil {
 			log.Fatalf("Failed to set the root directory to %q Error: %q", srcpath, err)
 		}
 	}

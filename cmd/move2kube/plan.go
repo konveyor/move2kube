@@ -23,6 +23,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/move2kube"
+	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -71,7 +72,7 @@ func planHandler(flags planFlags) {
 	}
 
 	p := move2kube.CreatePlan(srcpath, name)
-	if err = move2kube.WritePlan(planfile, p); err != nil {
+	if err = plantypes.WritePlan(planfile, p); err != nil {
 		log.Errorf("Unable to write plan file (%s) : %s", planfile, err)
 		return
 	}

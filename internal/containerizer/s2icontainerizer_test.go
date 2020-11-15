@@ -24,7 +24,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer"
-	"github.com/konveyor/move2kube/internal/move2kube"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
@@ -63,7 +62,7 @@ func TestS2IGetContainer(t *testing.T) {
 		want := irtypes.Container{}
 		mustreadyaml(t, join(testdatapath, "container.yaml"), &want)
 		planPath := join(testdatapath, "plan.yaml")
-		plan, err := move2kube.ReadPlan(planPath)
+		plan, err := plantypes.ReadPlan(planPath)
 		if err != nil {
 			t.Fatalf("Failed to read the plan at path %q Error: %q", planPath, err)
 		}

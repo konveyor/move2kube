@@ -26,7 +26,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/move2kube"
 	"github.com/konveyor/move2kube/internal/source"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -106,11 +105,11 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		if err := move2kube.SetRootDir(&plan, inputPath); err != nil {
+		if err := plan.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
 
-		wantPlan, err := move2kube.ReadPlan("testdata/expectedservicesfornodejsapp.yaml")
+		wantPlan, err := plantypes.ReadPlan("testdata/expectedservicesfornodejsapp.yaml")
 		if err != nil {
 			t.Fatal("Failed to read the expected output services from yaml. Error:", err)
 		}
@@ -148,7 +147,7 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		if err := move2kube.SetRootDir(&plan, inputPath); err != nil {
+		if err := plan.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
 		plan.Spec.Inputs.Services = map[string][]plantypes.Service{
@@ -156,7 +155,7 @@ func TestGetServiceOptions(t *testing.T) {
 			"svc2": {svc2},
 		}
 
-		wantPlan, err := move2kube.ReadPlan("testdata/expectedservicesfornodejsapp.yaml")
+		wantPlan, err := plantypes.ReadPlan("testdata/expectedservicesfornodejsapp.yaml")
 		if err != nil {
 			t.Fatal("Failed to read the expected output services from yaml. Error:", err)
 		}
@@ -192,7 +191,7 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		if err := move2kube.SetRootDir(&plan, inputPath); err != nil {
+		if err := plan.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
 		plan.Spec.Inputs.Services = map[string][]plantypes.Service{
@@ -225,11 +224,11 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
-		if err := move2kube.SetRootDir(&plan, inputPath); err != nil {
+		if err := plan.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
 
-		wantPlan, err := move2kube.ReadPlan("testdata/expectedservicesfornodejsappwithm2kignorecase1.yaml")
+		wantPlan, err := plantypes.ReadPlan("testdata/expectedservicesfornodejsappwithm2kignorecase1.yaml")
 		if err != nil {
 			t.Fatal("Failed to read the expected output services from yaml. Error:", err)
 		}
@@ -261,11 +260,11 @@ func TestGetServiceOptions(t *testing.T) {
 
 		plan := plantypes.NewPlan()
 		plan.Name = "java-maven-app"
-		if err := move2kube.SetRootDir(&plan, inputPath); err != nil {
+		if err := plan.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
 
-		wantPlan, err := move2kube.ReadPlan("testdata/expectedservicesforjavamavenappwithm2kignorecase2.yaml")
+		wantPlan, err := plantypes.ReadPlan("testdata/expectedservicesforjavamavenappwithm2kignorecase2.yaml")
 		if err != nil {
 			t.Fatal("Failed to read the expected output services from yaml. Error:", err)
 		}
