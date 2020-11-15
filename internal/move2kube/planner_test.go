@@ -17,6 +17,7 @@ limitations under the License.
 package move2kube_test
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -124,6 +125,126 @@ func TestCreatePlan(t *testing.T) {
 
 		if !cmp.Equal(actual, want, cmpopts.EquateEmpty()) {
 			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, actual, cmpopts.EquateEmpty()))
+		}
+	})
+}
+
+func TestWritePlan(t *testing.T) {
+	t.Run("read the plan and write it out again", func(t *testing.T) {
+		// Setup
+		setupAssets(t)
+		defer os.RemoveAll(common.TempPath)
+
+		tmpDir := t.TempDir()
+		outputPath := filepath.Join(tmpDir, "actual.yaml")
+		relTestDataPlanPath := "testdata/setrootdir/nodejsplan.yaml"
+		testDataPlanPath, err := filepath.Abs(relTestDataPlanPath)
+		if err != nil {
+			t.Fatalf("Failed to make the test data plan path %q absolute. Error: %q", relTestDataPlanPath, err)
+		}
+
+		plan, err := move2kube.ReadPlan(testDataPlanPath)
+		if err != nil {
+			t.Fatalf("Failed to read the test data plan at path %q Error: %q", testDataPlanPath, err)
+		}
+		wantBytes, err := ioutil.ReadFile(testDataPlanPath)
+		if err != nil {
+			t.Fatalf("Failed to read the test data plan at path %q Error: %q", testDataPlanPath, err)
+		}
+
+		// Test
+		if err := move2kube.WritePlan(outputPath, plan); err != nil {
+			t.Fatalf("Failed to write the plan to the path %q Error %q", outputPath, err)
+		}
+
+		actualBytes, err := ioutil.ReadFile(outputPath)
+		if err != nil {
+			t.Fatalf("Failed to read the plan we wrote at path %q Error: %q", outputPath, err)
+		}
+
+		if !cmp.Equal(string(actualBytes), string(wantBytes)) {
+			t.Fatalf("Failed to reset the root directory to the old root directory. Difference:\n%s", cmp.Diff(string(wantBytes), string(actualBytes)))
+		}
+	})
+}
+
+func TestSetRootDir(t *testing.T) {
+	t.Run("set a new root directory", func(t *testing.T) {
+		// Setup
+		setupAssets(t)
+		defer os.RemoveAll(common.TempPath)
+
+		relNewRootDir := "new/root/directory"
+		relTestDataPlanPath := "testdata/setrootdir/nodejsplan.yaml"
+
+		newRootDir, err := filepath.Abs(relNewRootDir)
+		if err != nil {
+			t.Fatalf("Failed to make the new root directory path %q absolute. Error: %q", relNewRootDir, err)
+		}
+		testDataPlanPath, err := filepath.Abs(relTestDataPlanPath)
+		if err != nil {
+			t.Fatalf("Failed to make the test data plan path %q absolute. Error: %q", relTestDataPlanPath, err)
+		}
+
+		plan, err := move2kube.ReadPlan(testDataPlanPath)
+		if err != nil {
+			t.Fatalf("Failed to read the test data plan at path %q Error: %q", testDataPlanPath, err)
+		}
+
+		// Test
+		if err := move2kube.SetRootDir(&plan, newRootDir); err != nil {
+			t.Fatalf("Failed to set the root directory properly. Error: %q", err)
+		}
+		if plan.Spec.Inputs.RootDir != newRootDir {
+			t.Fatalf("Failed to set the root directory properly. Expected: %s Actual: %s", newRootDir, plan.Spec.Inputs.RootDir)
+		}
+	})
+
+	t.Run("set a new root directory and then reset to the old root directory", func(t *testing.T) {
+		// Setup
+		setupAssets(t)
+		defer os.RemoveAll(common.TempPath)
+
+		relOldRootDir := "../../samples/nodejs"
+		relNewRootDir := "new/root/directory"
+		relTestDataPlanPath := "testdata/setrootdir/nodejsplan.yaml"
+
+		oldRootDir, err := filepath.Abs(relOldRootDir)
+		if err != nil {
+			t.Fatalf("Failed to make the old root directory path %q absolute. Error: %q", relOldRootDir, err)
+		}
+		newRootDir, err := filepath.Abs(relNewRootDir)
+		if err != nil {
+			t.Fatalf("Failed to make the new root directory path %q absolute. Error: %q", relNewRootDir, err)
+		}
+		testDataPlanPath, err := filepath.Abs(relTestDataPlanPath)
+		if err != nil {
+			t.Fatalf("Failed to make the test data plan path %q absolute. Error: %q", relTestDataPlanPath, err)
+		}
+
+		plan, err := move2kube.ReadPlan(testDataPlanPath)
+		if err != nil {
+			t.Fatalf("Failed to read the test data plan at path %q Error: %q", testDataPlanPath, err)
+		}
+		planCopy, err := move2kube.ReadPlan(testDataPlanPath)
+		if err != nil {
+			t.Fatalf("Failed to read the test data plan at path %q , even though it succeeded the first time. Error: %q", testDataPlanPath, err)
+		}
+
+		// Test
+		// Set to the new root
+		if err := move2kube.SetRootDir(&plan, newRootDir); err != nil {
+			t.Fatalf("Failed to set the root directory properly. Error: %q", err)
+		}
+		if plan.Spec.Inputs.RootDir != newRootDir {
+			t.Fatalf("Failed to set the root directory properly. Expected: %s Actual: %s", newRootDir, plan.Spec.Inputs.RootDir)
+		}
+		// Reset to the old root
+		if err := move2kube.SetRootDir(&plan, oldRootDir); err != nil {
+			t.Fatalf("Failed to set the root directory properly the 2nd time. Error: %q", err)
+		}
+		if !cmp.Equal(plan, planCopy) {
+			t.Fatalf("Failed to reset the root directory to the old root directory. Difference:\n%s", cmp.Diff(planCopy, plan))
 		}
 	})
 }

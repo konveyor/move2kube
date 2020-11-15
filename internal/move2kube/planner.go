@@ -327,7 +327,7 @@ func convertPathsDecode(plan *plantypes.Plan) error {
 		if relPath == "" || filepath.IsAbs(relPath) {
 			return relPath, nil
 		}
-		if pathParts := strings.Split(relPath, string(os.PathSeparator)); len(pathParts) > 0 && pathParts[0] == common.AssetsDir {
+		if IsAssetsPath(relPath) {
 			return filepath.Join(common.TempPath, relPath), nil
 		}
 		return filepath.Join(rootDir, relPath), nil
@@ -345,7 +345,7 @@ func convertPathsEncode(plan *plantypes.Plan) error {
 		if absPath == "" || !filepath.IsAbs(absPath) {
 			return absPath, nil
 		}
-		if pathParts := strings.Split(absPath, string(os.PathSeparator)); len(pathParts) > 0 && common.IsStringPresent(pathParts, common.AssetsDir) {
+		if IsAssetsPath(absPath) {
 			return filepath.Rel(common.TempPath, absPath)
 		}
 		return filepath.Rel(rootDir, absPath)
@@ -393,8 +393,38 @@ func WritePlan(path string, plan plantypes.Plan) error {
 	return common.WriteYaml(path, plan)
 }
 
-// SetRootDir changes the root directory of the plan
-func SetRootDir(plan *plantypes.Plan, path string) error {
-	plan.Spec.Inputs.RootDir = path
-	return convertPathsDecode(plan)
+// IsAssetsPath returns true if it is a m2kassets path.
+func IsAssetsPath(path string) bool {
+	pathParts := strings.Split(path, string(os.PathSeparator))
+	if filepath.IsAbs(path) {
+		return common.IsStringPresent(pathParts, common.AssetsDir)
+	}
+	return len(pathParts) > 0 && pathParts[0] == common.AssetsDir
+}
+
+// SetRootDir changes the root directory of the plan.
+// The `rootDir` must be an cleaned absolute path.
+func SetRootDir(plan *plantypes.Plan, rootDir string) error {
+	oldRootDir := plan.Spec.Inputs.RootDir
+
+	convert := func(oldPath string) (string, error) {
+		if oldPath == "" || !filepath.IsAbs(oldPath) || IsAssetsPath(oldPath) {
+			return oldPath, nil
+		}
+		relPath, err := filepath.Rel(oldRootDir, oldPath)
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(rootDir, relPath), nil
+	}
+
+	ctx := context{Convert: convert}
+	planV := reflect.ValueOf(plan).Elem()
+	err := recurse(planV, ctx)
+	if err != nil {
+		return err
+	}
+
+	plan.Spec.Inputs.RootDir = rootDir
+	return nil
 }
