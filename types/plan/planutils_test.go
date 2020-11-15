@@ -25,6 +25,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	yaml "gopkg.in/yaml.v3"
 )
 
 func setupAssets(t *testing.T) {
@@ -84,6 +85,12 @@ func TestSetRootDir(t *testing.T) {
 
 		relNewRootDir := "new/root/directory"
 		relTestDataPlanPath := "testdata/setrootdir/nodejsplan.yaml"
+		testDataTemplatePlanPath := "testdata/setrootdir/templatizednodejsplan.yaml"
+
+		pwd, err := os.Getwd()
+		if err != nil {
+			t.Fatalf("Failed to get the current working directory. Error: %q", err)
+		}
 
 		newRootDir, err := filepath.Abs(relNewRootDir)
 		if err != nil {
@@ -98,6 +105,24 @@ func TestSetRootDir(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to read the test data plan at path %q Error: %q", testDataPlanPath, err)
 		}
+		templateBytes, err := ioutil.ReadFile(testDataTemplatePlanPath)
+		if err != nil {
+			t.Fatalf("Failed to read the test data templatized plan at path %q Error: %q", testDataTemplatePlanPath, err)
+		}
+		wantYaml, err := common.GetStringFromTemplate(string(templateBytes), struct {
+			PWD     string
+			TempDir string
+		}{
+			PWD:     pwd,
+			TempDir: common.TempPath,
+		})
+		if err != nil {
+			t.Fatalf("Failed to fill the template. Error: %q", err)
+		}
+		want := plantypes.Plan{}
+		if err := yaml.Unmarshal([]byte(wantYaml), &want); err != nil {
+			t.Fatalf("Error: %q", err)
+		}
 
 		// Test
 		if err := plan.SetRootDir(newRootDir); err != nil {
@@ -105,6 +130,9 @@ func TestSetRootDir(t *testing.T) {
 		}
 		if plan.Spec.Inputs.RootDir != newRootDir {
 			t.Fatalf("Failed to set the root directory properly. Expected: %s Actual: %s", newRootDir, plan.Spec.Inputs.RootDir)
+		}
+		if !cmp.Equal(plan, want) {
+			t.Fatalf("Failed to udpate the paths with the new root directory correctly. Difference:\n%s", cmp.Diff(want, plan))
 		}
 	})
 
