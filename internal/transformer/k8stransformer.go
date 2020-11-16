@@ -23,20 +23,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	knativev1 "knative.dev/serving/pkg/apis/serving/v1"
-
 	"github.com/konveyor/move2kube/internal/apiresourceset"
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/transformer/templates"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	outputtypes "github.com/konveyor/move2kube/types/output"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	log "github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	knativev1 "knative.dev/serving/pkg/apis/serving/v1"
 )
 
 const (
@@ -54,6 +51,8 @@ type K8sTransformer struct {
 	Name                   string
 	IgnoreUnsupportedKinds bool
 	ServicePaths           map[string]string
+	// TODO: fix copysources.sh for move2kube-ui and remove this
+	AddCopySourcesWarning bool
 }
 
 // NewK8sTransformer creates a new instance of K8sTransformer
@@ -78,6 +77,7 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 
 	kt.TransformedObjects = new(apiresourceset.K8sAPIResourceSet).CreateAPIResources(ir)
 	kt.RootDir = ir.RootDir
+	kt.AddCopySourcesWarning = ir.AddCopySourcesWarning
 
 	for _, service := range ir.Services {
 		kt.ServicePaths[service.Name] = service.ServiceRelPath
@@ -148,7 +148,7 @@ func (kt *K8sTransformer) WriteObjects(outpath string) error {
 	} else {
 		kt.writeDeployScript(kt.Name, outpath)
 	}
-	kt.writeReadMe(kt.Name, areNewImagesCreated, kt.Helm, outpath)
+	kt.writeReadMe(kt.Name, areNewImagesCreated, kt.Helm, kt.AddCopySourcesWarning, outpath)
 	return nil
 }
 
@@ -273,15 +273,17 @@ func (kt *K8sTransformer) writeDeployScript(proj string, outpath string) {
 
 }
 
-func (kt *K8sTransformer) writeReadMe(project string, areNewImages bool, isHelm bool, outpath string) {
+func (kt *K8sTransformer) writeReadMe(project string, areNewImages bool, isHelm bool, addCopySourcesWarning bool, outpath string) {
 	err := common.WriteTemplateToFile(templates.K8sReadme_md, struct {
-		Project   string
-		NewImages bool
-		Helm      bool
+		Project               string
+		NewImages             bool
+		Helm                  bool
+		AddCopySourcesWarning bool
 	}{
-		Project:   project,
-		NewImages: areNewImages,
-		Helm:      isHelm,
+		Project:               project,
+		NewImages:             areNewImages,
+		Helm:                  isHelm,
+		AddCopySourcesWarning: addCopySourcesWarning,
 	}, filepath.Join(outpath, "Readme.md"), common.DefaultFilePermission)
 	if err != nil {
 		log.Errorf("Unable to write readme : %s", err)
