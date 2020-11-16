@@ -143,10 +143,30 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 				log.Fatalf("Unable to get answer : %s", err)
 			}
 		}
+		// TODO: if we add more build types that require conversion add it here as well.
+		buildTypesRequiringConversion := []string{
+			string(plantypes.DockerFileContainerBuildTypeValue),
+			string(plantypes.ReuseDockerFileContainerBuildTypeValue),
+			string(plantypes.S2IContainerBuildTypeValue),
+		}
 		for _, so := range s {
 			if selectedSConType == string(so.ContainerBuildType) {
+				requiresConversion := common.IsStringPresent(buildTypesRequiringConversion, string(so.ContainerBuildType))
 				if len(so.ContainerizationTargetOptions) > 1 {
-					problem, err := qatypes.NewSelectProblem("Select containerization technique's mode for service "+sn+":", []string{"Choose the containerization technique mode of interest."}, so.ContainerizationTargetOptions[0], so.ContainerizationTargetOptions)
+					// Convert absolute paths to relative. TODO: We are assuming that this won't make it ambiguous.
+					options := so.ContainerizationTargetOptions
+					if requiresConversion {
+						options = []string{}
+						for _, option := range so.ContainerizationTargetOptions {
+							relOptionPath, err := p.GetRelativePath(option)
+							if err != nil {
+								log.Errorf("Failed to make the option path %q relative to the root directory. Error: %q", option, err)
+								continue
+							}
+							options = append(options, relOptionPath)
+						}
+					}
+					problem, err := qatypes.NewSelectProblem("Select containerization technique's mode for service "+sn+":", []string{"Choose the containerization technique mode of interest."}, options[0], options)
 					if err != nil {
 						log.Fatalf("Unable to create problem : %s", err)
 					}
@@ -157,6 +177,14 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 					selectedSConMode, err := problem.GetStringAnswer()
 					if err != nil {
 						log.Fatalf("Unable to get answer : %s", err)
+					}
+					if requiresConversion {
+						absOptionPath, err := p.GetAbsolutePath(selectedSConMode)
+						if err != nil {
+							log.Errorf("Failed to make the option path %q absolute. Error: %q", selectedSConMode, err)
+						} else {
+							selectedSConMode = absOptionPath
+						}
 					}
 					so.ContainerizationTargetOptions = []string{selectedSConMode}
 				}
