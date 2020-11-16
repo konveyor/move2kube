@@ -31,7 +31,7 @@ import (
 )
 
 // Translate translates the artifacts and writes output
-func Translate(p plantypes.Plan, outpath string) {
+func Translate(p plantypes.Plan, outpath string, qadisablecli bool) {
 	sourceir, err := source.Translate(p)
 	if err != nil {
 		log.Fatalf("Failed to translate the plan to intermediate representation. Error: %q", err)
@@ -98,6 +98,7 @@ func Translate(p plantypes.Plan, outpath string) {
 		}
 	}
 
+	ir.AddCopySourcesWarning = qadisablecli
 	t := transform.GetTransformer(ir)
 	if err := t.Transform(ir); err != nil {
 		log.Fatalf("Error during translate. Error: %q", err)

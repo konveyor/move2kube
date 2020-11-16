@@ -50,6 +50,11 @@ type IR struct {
 
 	IngressTLSSecretName string
 	TektonResources      tekton.Resources
+
+	// AddCopySourcesWarning adds a warning to the README
+	// that copysources may not work correctly when using the UI for translation.
+	// TODO: fix copysources.sh for move2kube-ui and remove this.
+	AddCopySourcesWarning bool
 }
 
 // Service defines structure of an IR service

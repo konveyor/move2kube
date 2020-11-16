@@ -155,7 +155,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	}
 
 	// Translate
-	move2kube.Translate(p, outpath)
+	move2kube.Translate(p, outpath, qadisablecli)
 	log.Infof("Translated target artifacts can be found at [%s].", outpath)
 }
 

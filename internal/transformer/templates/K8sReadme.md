@@ -19,3 +19,15 @@ Next Steps
 {{- if .Helm -}}* Your helm chart is at {{ .Project }}, you can install it using "helminstall.sh" or you can use the operator.{{- else -}}
 * Use "deploy.sh" to deploy your artifacts into a kubernetes cluster.
 {{- end}}
+{{if .AddCopySourcesWarning }}
+IMPORTANT!!: If you used the UI for translation then "copysources.sh" may copy to the wrong folder.  
+This is a limitation of the beta version. It should be fixed in future versions of move2kube-ui.  
+In the meantime you can either:
+- copy the sources to the appropriate folders inside "./containers/" manually. "./containers/" has  
+  the same folder structure as the sources folder so simply copy the appropriate source files/folders  
+  to the corresponding folders inside "./containers/".
+- move the sources into a directory with the same name and then try copysources with that.  
+  Example: if sources is a folder called "foo" you might try moving it into "foo/foo" and then  
+  doing "./copysources.sh path/to/foo". This will require you to read "copysource.sh" and have some knowledge  
+  of how "cp -r" works in order to get it right.
+{{ end }}
