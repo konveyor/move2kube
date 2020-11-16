@@ -135,35 +135,13 @@ func convertPathsDecode(plan *Plan) error {
 	}
 	plan.Spec.Inputs.RootDir = rootDir
 
-	relToAbs := func(relPath string) (string, error) {
-		if relPath == "" || filepath.IsAbs(relPath) {
-			return relPath, nil
-		}
-		if IsAssetsPath(relPath) {
-			return filepath.Join(common.TempPath, relPath), nil
-		}
-		return filepath.Join(rootDir, relPath), nil
-	}
-
-	ctx := context{Convert: relToAbs}
+	ctx := context{Convert: plan.GetAbsolutePath}
 	planV := reflect.ValueOf(plan).Elem()
 	return recurse(planV, ctx)
 }
 
 func convertPathsEncode(plan *Plan) error {
-	rootDir := plan.Spec.Inputs.RootDir
-
-	absToRel := func(absPath string) (string, error) {
-		if absPath == "" || !filepath.IsAbs(absPath) {
-			return absPath, nil
-		}
-		if IsAssetsPath(absPath) {
-			return filepath.Rel(common.TempPath, absPath)
-		}
-		return filepath.Rel(rootDir, absPath)
-	}
-
-	ctx := context{Convert: absToRel}
+	ctx := context{Convert: plan.GetRelativePath}
 	planV := reflect.ValueOf(plan).Elem()
 	if err := recurse(planV, ctx); err != nil {
 		log.Errorf("Error while converting absolute paths to relative. Error: %q", err)
@@ -174,7 +152,7 @@ func convertPathsEncode(plan *Plan) error {
 		log.Errorf("Failed to get the current working directory. Error %q", err)
 		return err
 	}
-	rootDir, err = filepath.Rel(pwd, rootDir)
+	rootDir, err := filepath.Rel(pwd, plan.Spec.Inputs.RootDir)
 	if err != nil {
 		log.Errorf("Failed to make the root directory path %q relative to the current working directory %q Error %q", rootDir, pwd, err)
 		return err
@@ -256,4 +234,35 @@ func (plan *Plan) SetRootDir(rootDir string) error {
 
 	plan.Spec.Inputs.RootDir = rootDir
 	return nil
+}
+
+// GetRelativePath returns a path relative to the root directory of the plan
+func (plan *Plan) GetRelativePath(absPath string) (string, error) {
+	if absPath == "" {
+		return absPath, nil
+	}
+	if !filepath.IsAbs(absPath) {
+		log.Debugf("The input path %q is not an absolute path. Cannot make it relative to the root directory.", absPath)
+		return absPath, nil
+	}
+	if IsAssetsPath(absPath) {
+		return filepath.Rel(common.TempPath, absPath)
+	}
+	return filepath.Rel(plan.Spec.Inputs.RootDir, absPath)
+}
+
+// GetAbsolutePath takes a path relative to the plan's root directory or
+// assets path and makes it absolute.
+func (plan *Plan) GetAbsolutePath(relPath string) (string, error) {
+	if relPath == "" {
+		return relPath, nil
+	}
+	if filepath.IsAbs(relPath) {
+		log.Debugf("The input path %q is not an relative path. Cannot make it absolute.", relPath)
+		return relPath, nil
+	}
+	if IsAssetsPath(relPath) {
+		return filepath.Join(common.TempPath, relPath), nil
+	}
+	return filepath.Join(plan.Spec.Inputs.RootDir, relPath), nil
 }
