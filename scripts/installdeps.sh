@@ -19,7 +19,7 @@
 [[ $DEBUG ]] || DEBUG='false'
 
 print_usage() {
-    echo "Invalid args: $@"
+    echo "Invalid args: $*"
     echo 'Usage: installdeps.sh [-y]'
     echo 'Use sudo when running in -y quiet mode.'
 }

@@ -11,4 +11,16 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-cp -r {{.Src}}/* {{.Dst}}/
+
+print_usage() {
+    echo "Invalid args: $*"
+    echo 'Usage: copysources.sh path/to/sources/'
+    echo 'Example: copysources.sh {{ .RelRootDir }}'
+}
+
+if [ "$#" -ne 1 ]; then
+    print_usage "$@"
+    exit 1
+fi
+
+cp -r "$1"/* {{.Dst}}/

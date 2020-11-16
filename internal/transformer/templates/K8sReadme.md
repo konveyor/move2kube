@@ -27,7 +27,7 @@ In the meantime you can either:
   the same folder structure as the sources folder so simply copy the appropriate source files/folders  
   to the corresponding folders inside "./containers/".
 - move the sources into a directory with the same name and then try copysources with that.  
-  Example: if sources is a folder called "foo" you might try moving it into "foo/foo" and then  
-  doing "./copysources.sh path/to/foo". This will require you to read "copysource.sh" and have some knowledge  
+  Example: if sources is a folder called "foo" you might try moving it into "foo/foo/foo" and then  
+  doing "./copysources.sh path/to/foo/". This will require you to read "copysource.sh" and have some knowledge  
   of how "cp -r" works in order to get it right.
 {{ end }}

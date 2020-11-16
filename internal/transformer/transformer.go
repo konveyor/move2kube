@@ -123,13 +123,18 @@ func writeContainers(containers []irtypes.Container, outpath, rootDir, registryU
 			log.Errorf("Unable to create script to build images : %s", err)
 		}
 
+		relRootDir, err := filepath.Rel(outpath, rootDir)
+		if err != nil {
+			log.Errorf("Failed to make the root directory path %q relative to the output directory %q Error %q", rootDir, outpath, err)
+			relRootDir = rootDir
+		}
 		writepath = filepath.Join(outpath, "copysources.sh")
 		err = common.WriteTemplateToFile(templates.CopySources_sh, struct {
-			Src string
-			Dst string
+			RelRootDir string
+			Dst        string
 		}{
-			Src: "$1", //Parameterized source folder
-			Dst: containersdirectory,
+			RelRootDir: relRootDir,
+			Dst:        containersdirectory,
 		}, writepath, common.DefaultExecutablePermission)
 		if err != nil {
 			log.Errorf("Unable to create script to build images : %s", err)
