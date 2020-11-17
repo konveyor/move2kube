@@ -3,7 +3,7 @@ layout: default
 title: "Dockerfile Containerization"
 permalink: /tutorials/dockerfile-containerization/
 parent: Tutorials
-nav_order: 3
+nav_order: 4
 ---
 
 # Dockerfile Containerization
