@@ -91,11 +91,7 @@ func (c *V3Loader) ConvertToIR(composefilepath string, plan plantypes.Plan, serv
 			}
 		}
 	}
-	workingDir, err := filepath.Abs(filepath.Dir(composefilepath))
-	if err != nil {
-		log.Errorf("Unable to compute full path of %s", composefilepath)
-		workingDir = filepath.Dir(composefilepath)
-	}
+	workingDir := filepath.Dir(composefilepath)
 	// Config details
 	configDetails := types.ConfigDetails{
 		WorkingDir: workingDir,
@@ -141,7 +137,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 		if serviceContainer.Image == "" {
 			serviceContainer.Image = name + ":latest"
 		}
-		if composeServiceConfig.Build.Dockerfile != "" && composeServiceConfig.Build.Context != "" {
+		if composeServiceConfig.Build.Dockerfile != "" || composeServiceConfig.Build.Context != "" {
 			//TODO: Add support for args and labels
 			// filedir, name, serviceContainer.Image, composeServiceConfig.Build.Dockerfile, composeServiceConfig.Build.Context
 			con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
