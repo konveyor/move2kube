@@ -17,6 +17,7 @@ limitations under the License.
 package source
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -308,7 +309,8 @@ func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes
 							Protocol: v1.ProtocolTCP,
 						})
 					}
-					envvar := v1.EnvVar{Name: "PORT", Value: string(cfinstanceapp.Ports[0])}
+
+					envvar := v1.EnvVar{Name: "PORT", Value: fmt.Sprintf("%d", cfinstanceapp.Ports[0])}
 					serviceContainer.Env = append(serviceContainer.Env, envvar)
 				} else {
 					serviceContainer.Ports = []v1.ContainerPort{
