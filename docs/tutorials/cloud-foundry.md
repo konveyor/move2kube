@@ -3,7 +3,7 @@ layout: default
 title: "Cloud Foundry"
 permalink: /tutorials/cloud-foundry/
 parent: Tutorials
-nav_order: 2
+nav_order: 3
 ---
 
 # Cloud Foundry

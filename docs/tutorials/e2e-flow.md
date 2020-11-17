@@ -1,19 +1,19 @@
 ---
 layout: default
-title: "End-to-End Flow"
+title: "Migrating apps (Golang and Node.js) to Kubernetes"
 permalink: /tutorials/e2e-flow/
 parent: Tutorials
 nav_order: 1
 ---
 
 
-# End-to-End Flow of using Move2Kube
+# Migrating and deploying Golang and Node.js apps to Kubernetes
 
 ## Description
 
 This document explains the steps that will install Move2Kube and also tells how to use Move2Kube to containerize and create deployment artifacts. We will be using the data from [samples/e2e-flow](https://github.com/konveyor/move2kube-demos/tree/main/samples/e2e-flow) which has two applications, one golang appication and one nodejs application. These applications can be Cloud Foundry applications or they can be normal applications deployed to VMs.
 
-Now, let's see how these applications can be translatred to Kubernetes. Here we are going to use the one step process for this sample usecase.
+Now, let's see how these applications can be translated to Kubernetes. Here we are going to use the one step process for this sample usecase.
 
 ## Prerequisites
 
