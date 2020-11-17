@@ -26,23 +26,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type composeIRTranslator interface {
+	ConvertToIR(filepath string, plan plantypes.Plan, service plantypes.Service) (irtypes.IR, error)
+}
+
 // ComposeTranslator implements Translator interface
 type ComposeTranslator struct {
 }
 
 // GetTranslatorType returns the translator type
-func (c ComposeTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
+func (c *ComposeTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
 	return plantypes.Compose2KubeTranslation
 }
 
 // GetServiceOptions returns the service options for inputPath
-func (c ComposeTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
-	servicesMap := map[string]plantypes.Service{}
-
+func (c *ComposeTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
 	//Load images
 	yamlpaths, err := common.GetFilesByExt(inputPath, []string{".yaml", ".yml"})
 	if err != nil {
-		log.Errorf("Unable to fetch yamls files at path %q Error: %q", inputPath, err)
+		log.Errorf("Unable to fetch yaml files at path %s Error: %q", inputPath, err)
 		return nil, err
 	}
 
@@ -58,13 +60,15 @@ func (c ComposeTranslator) GetServiceOptions(inputPath string, plan plantypes.Pl
 	}
 
 	//Fill data into plan
+	servicesMap := map[string]plantypes.Service{}
 	for _, path := range yamlpaths {
 		dc := sourcetypes.DockerCompose{}
 		if err := common.ReadYaml(path, &dc); err != nil {
 			continue
 		}
+		log.Debugf("Found a docker compose file at path %s", path)
 		for serviceName, dcservice := range dc.DCServices {
-			log.Debugf("Found a Docker compose service : %s", serviceName)
+			log.Debugf("Found a docker compose service : %s", serviceName)
 			serviceName = common.NormalizeForServiceName(serviceName)
 			if _, ok := servicesMap[serviceName]; !ok {
 				servicesMap[serviceName] = c.newService(serviceName)
@@ -91,24 +95,20 @@ func (c ComposeTranslator) GetServiceOptions(inputPath string, plan plantypes.Pl
 	return services, nil
 }
 
-type composeIRTranslator interface {
-	ConvertToIR(filepath string, plan plantypes.Plan, service plantypes.Service) (irtypes.IR, error)
-}
-
 // Translate translates the service to IR
-func (c ComposeTranslator) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
+func (c *ComposeTranslator) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
 	ir := irtypes.NewIR(p)
 
 	for _, service := range services {
 		if service.TranslationType != c.GetTranslatorType() {
+			log.Debugf("Expected service to have compose2kube translation type. Got %s . Skipping.", service.TranslationType)
 			continue
 		}
-		for _, fullpath := range service.SourceArtifacts[plantypes.ComposeFileArtifactType] {
-			log.Debugf("File %s being loaded from compose service : %s", fullpath, service.ServiceName)
-			var dcfile sourcetypes.DockerCompose
-			err := common.ReadYaml(fullpath, &dcfile)
-			if err != nil {
-				log.Errorf("Unable to read docker compose yaml %s for version : %s", fullpath, err)
+		for _, path := range service.SourceArtifacts[plantypes.ComposeFileArtifactType] {
+			log.Debugf("File %s being loaded from compose service : %s", path, service.ServiceName)
+			dcfile := sourcetypes.DockerCompose{}
+			if err := common.ReadYaml(path, &dcfile); err != nil {
+				log.Errorf("Unable to read docker compose yaml at path %s Error: %q", path, err)
 			}
 			log.Debugf("Docker Compose version: %s", dcfile.Version)
 			var t composeIRTranslator
@@ -118,31 +118,31 @@ func (c ComposeTranslator) Translate(services []plantypes.Service, p plantypes.P
 			case "3", "3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8":
 				t = new(compose.V3Loader)
 			default:
-				log.Errorf("Version %s of Docker Compose is not supported (%s). Please use version 1, 2 or 3.", dcfile.Version, fullpath)
+				log.Errorf("The compose file at path %s uses Docker Compose version %s which is not supported. Please use version 1, 2 or 3.", path, dcfile.Version)
+				continue
 			}
-			cir, err := t.ConvertToIR(fullpath, p, service)
+			cir, err := t.ConvertToIR(path, p, service)
 			if err != nil {
-				log.Errorf("Unable to parse docker compose file %s using %T : %s", fullpath, t, err)
-			} else {
-				ir.Merge(cir)
+				log.Errorf("Unable to parse the docker compose file at path %s using %T Error: %q", path, t, err)
+				continue
 			}
-			log.Debugf("Services returned by compose translator : %d", len(ir.Services))
+			ir.Merge(cir)
+			log.Debugf("compose translator returned %d services", len(ir.Services))
 		}
 		for _, path := range service.SourceArtifacts[plantypes.ImageInfoArtifactType] {
 			imgMD := collecttypes.ImageInfo{}
-			err := common.ReadYaml(path, &imgMD)
-			if err != nil {
-				log.Errorf("Unable to read image yaml %s : %s", path, err)
-			} else {
-				ir.AddContainer(irtypes.NewContainerFromImageInfo(imgMD))
+			if err := common.ReadYaml(path, &imgMD); err != nil {
+				log.Errorf("Failed to read image info yaml at path %s Error: %q", path, err)
+				continue
 			}
+			ir.AddContainer(irtypes.NewContainerFromImageInfo(imgMD))
 		}
 	}
 
 	return ir, nil
 }
 
-func (c ComposeTranslator) newService(serviceName string) plantypes.Service {
+func (c *ComposeTranslator) newService(serviceName string) plantypes.Service {
 	service := plantypes.NewService(serviceName, c.GetTranslatorType())
 	service.AddSourceType(plantypes.ComposeSourceTypeValue)
 	service.ContainerBuildType = plantypes.ReuseContainerBuildTypeValue //TODO: Identify when to use enhance

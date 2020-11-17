@@ -40,11 +40,10 @@ type ImageInfoSpec struct {
 
 // NewImageInfo creates a new imageinfo instance
 func NewImageInfo() ImageInfo {
-	var imageInfo = ImageInfo{
+	return ImageInfo{
 		TypeMeta: types.TypeMeta{
 			Kind:       string(ImageMetadataKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
 	}
-	return imageInfo
 }

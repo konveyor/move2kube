@@ -17,6 +17,7 @@ limitations under the License.
 package containerizer
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -40,25 +41,33 @@ func (d *ReuseDockerfileContainerizer) GetContainerBuildStrategy() plantypes.Con
 func (d *ReuseDockerfileContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
 
+	if len(service.ContainerizationTargetOptions) == 0 {
+		err := fmt.Errorf("Failed to reuse the Dockerfile. The service %s doesn't have any containerization target options", service.ServiceName)
+		log.Debugf("Error: %q", err)
+		return container, err
+	}
+
 	dockerfilePath := service.ContainerizationTargetOptions[0]
-	if _, err := os.Stat(dockerfilePath); os.IsNotExist(err) {
+	if _, err := os.Stat(dockerfilePath); os.IsNotExist(err) { // TODO: What about other types of errors?
 		log.Errorf("Unable to find the Dockerfile at path %q Error: %q", dockerfilePath, err)
-		log.Errorf("Will assume the dockerfile will be copied and will proceed.")
+		log.Errorf("Will assume the dockerfile will be copied and will proceed.") // TODO: is this correct? shouldn't we return here?
 	}
 
 	dockerfileDir := filepath.Dir(dockerfilePath)
-	dockerfileName := filepath.Base(dockerfilePath)
-	context := "."
-	if sc, ok := service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType]; ok {
-		if len(sc) > 0 {
-			var err error
-			rootDir := plan.Spec.Inputs.RootDir
-			sourceCodeDir := sc[0]
-			context, err = filepath.Rel(rootDir, sourceCodeDir)
+	buildScriptFilename := service.ServiceName + "-docker-build.sh"
+	buildScriptPath := filepath.Join(dockerfileDir, buildScriptFilename)
+
+	relContextPath := "."
+	if sourceCodeDirs, ok := service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType]; ok {
+		if len(sourceCodeDirs) > 0 {
+			sourceCodeDir := sourceCodeDirs[0]
+			log.Debugf("Using %q as the context path for Dockerfile at path %q", sourceCodeDir, dockerfilePath)
+			newRelContextPath, err := filepath.Rel(dockerfileDir, sourceCodeDir)
 			if err != nil {
-				log.Errorf("Failed to make the context path %q relative to the root directory %q Error: %q", sourceCodeDir, rootDir, err)
+				log.Errorf("Failed to make the context path %q relative to the directory containing the Dockerfile %q Error: %q", sourceCodeDir, dockerfileDir, err)
 				return container, err
 			}
+			relContextPath = newRelContextPath
 		}
 	}
 
@@ -67,19 +76,20 @@ func (d *ReuseDockerfileContainerizer) GetContainer(plan plantypes.Plan, service
 		ImageName      string
 		Context        string
 	}{
-		Dockerfilename: dockerfileName,
+		Dockerfilename: filepath.Base(dockerfilePath),
 		ImageName:      service.Image,
-		Context:        context,
+		Context:        relContextPath,
 	})
 	if err != nil {
 		log.Warnf("Unable to translate template to string : %s", scripts.Dockerbuild_sh)
 	}
-	relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, dockerfileDir)
+
+	relBuildScriptPath, err := plan.GetRelativePath(buildScriptPath)
 	if err != nil {
-		log.Errorf("Failed to make the Dockerfile directory %q relative to the root directory %q Error: %q", dockerfileDir, plan.Spec.Inputs.RootDir, err)
+		log.Errorf("Failed to make the build script path %q relative to the root directory %q Error: %q", buildScriptPath, plan.Spec.Inputs.RootDir, err)
 		return container, err
 	}
-	container.AddFile(filepath.Join(relOutputPath, service.ServiceName+"-docker-build.sh"), dockerBuildScript)
 
+	container.AddFile(relBuildScriptPath, dockerBuildScript)
 	return container, nil
 }
