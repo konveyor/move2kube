@@ -17,6 +17,9 @@ limitations under the License.
 package optimize
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
@@ -29,28 +32,26 @@ type ingressOptimizer struct {
 }
 
 // customize modifies image paths and secret
-func (ic ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
+func (opt *ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	if len(ir.Services) == 0 {
 		log.Debugf("No services to optimize")
 		return ir, nil
 	}
 
 	// Obtain a listing of services.
-	i := 0
-	exposedServices := make([]string, 0)
-	servicesList := make([]string, 0)
-	for sn, s := range ir.Services {
-		servicesList = append(servicesList, sn)
-		if s.ServiceRelPath != "" {
-			exposedServices = append(exposedServices, sn)
+	serviceNames := []string{}
+	exposedServiceNames := []string{}
+	for serviceName, service := range ir.Services {
+		serviceNames = append(serviceNames, serviceName)
+		if service.ServiceRelPath != "" {
+			exposedServiceNames = append(exposedServiceNames, serviceName)
 		}
-		i++
 	}
 
 	problem, err := qatypes.NewMultiSelectProblem("Select all services that should be exposed:",
 		[]string{"The services unselected here will not be exposed."},
-		servicesList,
-		exposedServices)
+		exposedServiceNames,
+		serviceNames)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -58,24 +59,59 @@ func (ic ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	if err != nil {
 		log.Fatalf("Unable to fetch answer : %s", err)
 	}
-	exposedServices, err = problem.GetSliceAnswer()
+	exposedServiceNames, err = problem.GetSliceAnswer()
 	if err != nil {
 		log.Fatalf("Unable to get answer : %s", err)
 	}
 
-	for _, k := range exposedServices {
-		tempService := ir.Services[k]
-		log.Debugf("Exposed service: %s", k)
-		// Set the line in annotations
+	if len(exposedServiceNames) == 0 {
+		log.Debugf("User deselected all services. Not exposing anything.")
+		return ir, nil
+	}
+
+	for _, exposedServiceName := range exposedServiceNames {
+		message := fmt.Sprintf("What URL/path should we expose the service %s on?", exposedServiceName)
+		hints := []string{"By default we expose the service on /<service name>:"}
+		exposedServiceRelPath := "/" + exposedServiceName
+		if len(exposedServiceNames) == 1 {
+			hints = []string{"Since there's only one exposed service, the default path is /"}
+			exposedServiceRelPath = "/"
+		}
+		problem, err := qatypes.NewInputProblem(message, hints, exposedServiceRelPath)
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
+		}
+		problem, err = qaengine.FetchAnswer(problem)
+		if err != nil {
+			log.Fatalf("Unable to fetch answer : %s", err)
+		}
+		exposedServiceRelPath, err = problem.GetStringAnswer()
+		if err != nil {
+			log.Fatalf("Unable to get answer : %s", err)
+		}
+		log.Debugf("Exposing service %s on path %s", exposedServiceName, exposedServiceRelPath)
+
+		exposedServiceRelPath = opt.normalizeServiceRelPath(exposedServiceRelPath)
+
+		tempService := ir.Services[exposedServiceName]
+		tempService.ServiceRelPath = exposedServiceRelPath
 		if tempService.Annotations == nil {
-			tempService.Annotations = make(map[string]string)
+			tempService.Annotations = map[string]string{}
 		}
 		tempService.Annotations[common.ExposeSelector] = common.AnnotationLabelValue
-		if tempService.ServiceRelPath == "" {
-			tempService.ServiceRelPath = "/"
-		}
-		ir.Services[k] = tempService
+		ir.Services[exposedServiceName] = tempService
 	}
 
 	return ir, nil
+}
+
+func (opt *ingressOptimizer) normalizeServiceRelPath(exposedServiceRelPath string) string {
+	exposedServiceRelPath = strings.TrimSpace(exposedServiceRelPath)
+	if len(exposedServiceRelPath) == 0 {
+		log.Warnf("User gave an empty service path. Assuming it should be exposed on /")
+	}
+	if !strings.HasPrefix(exposedServiceRelPath, "/") {
+		exposedServiceRelPath = "/" + exposedServiceRelPath
+	}
+	return exposedServiceRelPath
 }

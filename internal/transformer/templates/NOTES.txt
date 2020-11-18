@@ -1,16 +1,16 @@
 {{if .IsHelm}}
-{{if .ServicePaths}}
+{{if .ExposedServicePaths}}
 The services are accessible on the following paths:
-{{range $serviceName, $servicePath := .ServicePaths}}{{ $serviceName }} : http://{{"{{ .Release.Name }}-{{ .Values.ingresshost }}"}}{{ $servicePath }}
+{{range $serviceName, $servicePath := .ExposedServicePaths}}{{ $serviceName }} : http://{{"{{ .Release.Name }}-{{ .Values.ingresshost }}"}}{{ $servicePath }}
 {{end}}
 {{else}}
 This app has no exposed services.
 {{end}}
 {{else}}
 {{ $baseURL := .IngressHost }}
-{{if .ServicePaths}}
+{{if .ExposedServicePaths}}
 The services are accessible on the following paths:
-{{range $serviceName, $servicePath := .ServicePaths}}{{ $serviceName }} : http://{{ $baseURL }}{{ $servicePath }}
+{{range $serviceName, $servicePath := .ExposedServicePaths}}{{ $serviceName }} : http://{{ $baseURL }}{{ $servicePath }}
 {{end}}
 {{else}}
 This app has no exposed services.
