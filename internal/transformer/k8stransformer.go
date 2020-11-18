@@ -50,7 +50,7 @@ type K8sTransformer struct {
 	Helm                   bool
 	Name                   string
 	IgnoreUnsupportedKinds bool
-	ServicePaths           map[string]string
+	ExposedServicePaths    map[string]string
 	// TODO: fix copysources.sh for move2kube-ui and remove this
 	AddCopySourcesWarning bool
 }
@@ -60,7 +60,7 @@ func NewK8sTransformer() *K8sTransformer {
 	kt := new(K8sTransformer)
 	kt.TransformedObjects = []runtime.Object{}
 	kt.Containers = []irtypes.Container{}
-	kt.ServicePaths = map[string]string{}
+	kt.ExposedServicePaths = map[string]string{}
 	return kt
 }
 
@@ -80,7 +80,9 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 	kt.AddCopySourcesWarning = ir.AddCopySourcesWarning
 
 	for _, service := range ir.Services {
-		kt.ServicePaths[service.Name] = service.ServiceRelPath
+		if service.HasValidAnnotation(common.ExposeSelector) {
+			kt.ExposedServicePaths[service.Name] = service.ServiceRelPath
+		}
 	}
 
 	log.Debugf("Total transformed objects : %d", len(kt.TransformedObjects))
@@ -181,14 +183,14 @@ func (kt *K8sTransformer) generateHelmMetadata(dirName string, values outputtype
 	}
 
 	notesStr, err := common.GetStringFromTemplate(templates.NOTES_txt, struct {
-		IsHelm       bool
-		ServicePaths map[string]string
+		IsHelm              bool
+		ExposedServicePaths map[string]string
 	}{
-		IsHelm:       true,
-		ServicePaths: kt.ServicePaths,
+		IsHelm:              true,
+		ExposedServicePaths: kt.ExposedServicePaths,
 	})
 	if err != nil {
-		log.Errorf("Failed to fill the NOTES.txt template %s with the service paths %v Error: %q", templates.NOTES_txt, kt.ServicePaths, err)
+		log.Errorf("Failed to fill the NOTES.txt template %s with the service paths %v Error: %q", templates.NOTES_txt, kt.ExposedServicePaths, err)
 	}
 
 	//NOTES.txt
@@ -259,13 +261,13 @@ func (kt *K8sTransformer) writeDeployScript(proj string, outpath string) {
 
 	notesPath := filepath.Join(outpath, "NOTES.txt")
 	err = common.WriteTemplateToFile(templates.NOTES_txt, struct {
-		IsHelm       bool
-		IngressHost  string
-		ServicePaths map[string]string
+		IsHelm              bool
+		IngressHost         string
+		ExposedServicePaths map[string]string
 	}{
-		IsHelm:       false,
-		IngressHost:  kt.TargetClusterSpec.Host,
-		ServicePaths: kt.ServicePaths,
+		IsHelm:              false,
+		IngressHost:         kt.TargetClusterSpec.Host,
+		ExposedServicePaths: kt.ExposedServicePaths,
 	}, notesPath, common.DefaultFilePermission)
 	if err != nil {
 		log.Errorf("Failed to write the NOTES.txt file at path %q Error: %q", notesPath, err)
