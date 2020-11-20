@@ -44,77 +44,44 @@ import (
 type V3Loader struct {
 }
 
-// ConvertToIR loads an v3 compose file into IR
-func (c *V3Loader) ConvertToIR(composefilepath string, plan plantypes.Plan, service plantypes.Service) (irtypes.IR, error) {
-	serviceName := service.ServiceName
-	loadedFile, err := ioutil.ReadFile(composefilepath)
+// ParseV3 parses version 3 compose files
+func ParseV3(path string) (*types.Config, error) {
+	fileData, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Warnf("Unable to load Compose file : %s", err)
-		return irtypes.IR{}, err
+		log.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		return nil, err
 	}
-
 	// Parse the Compose File
-	parsedComposeFile, err := loader.ParseYAML(loadedFile)
+	parsedComposeFile, err := loader.ParseYAML(fileData)
 	if err != nil {
-		log.Warnf("Unable to parse Compose file : %s", err)
-		return irtypes.IR{}, err
+		log.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		return nil, err
 	}
-	// Remove unresolvable env files, so that the parser does not throw error
-	if val, ok := parsedComposeFile["services"]; ok {
-		if services, ok := val.(map[string]interface{}); ok {
-			if val, ok := services[serviceName]; ok {
-				if vals, ok := val.(map[string]interface{}); ok {
-					envfiles := make([]interface{}, 0)
-					if envfilesvals, ok := vals[envFile]; ok {
-						if envfilesvalsint, ok := envfilesvals.([]interface{}); ok {
-							for _, envfilesval := range envfilesvalsint {
-								if envfilesstr, ok := envfilesval.(string); ok {
-									path := envfilesstr
-									if !filepath.IsAbs(path) {
-										path = filepath.Join(filepath.Dir(composefilepath), path)
-									}
-									info, err := os.Stat(path)
-									if os.IsNotExist(err) || info.IsDir() {
-										log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", path, serviceName, composefilepath)
-									} else {
-										envfiles = append(envfiles, envfilesstr)
-									}
-								}
-							}
-						}
-					}
-					vals[envFile] = envfiles
-					services = make(map[string]interface{})
-					services[serviceName] = vals
-					parsedComposeFile["services"] = services
-				}
-			}
-		}
-	}
-	workingDir := filepath.Dir(composefilepath)
+	parsedComposeFile = removeNonExistentEnvFiles(path, parsedComposeFile)
 	// Config details
 	configDetails := types.ConfigDetails{
-		WorkingDir: workingDir,
-		ConfigFiles: []types.ConfigFile{{
-			Filename: composefilepath,
-			Config:   parsedComposeFile,
-		}},
-		Environment: c.buildEnvironment(),
+		WorkingDir:  filepath.Dir(path),
+		ConfigFiles: []types.ConfigFile{{Filename: path, Config: parsedComposeFile}},
+		Environment: getEnvironmentVariables(),
 	}
-	log.Debugf("About to load docker compose configuration")
 	config, err := loader.Load(configDetails)
+	if err != nil {
+		log.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		return nil, err
+	}
+	return config, nil
+}
+
+// ConvertToIR loads an v3 compose file into IR
+func (c *V3Loader) ConvertToIR(composefilepath string, plan plantypes.Plan, service plantypes.Service) (irtypes.IR, error) {
+	log.Debugf("About to load configuration from docker compose file at path %s", composefilepath)
+	config, err := ParseV3(composefilepath)
 	if err != nil {
 		log.Warnf("Error while loading docker compose config : %s", err)
 		return irtypes.IR{}, err
 	}
-
 	log.Debugf("About to start loading docker compose to intermediate rep")
-	ir, err := c.convertToIR(workingDir, *config, plan, service)
-	if err != nil {
-		return irtypes.IR{}, err
-	}
-
-	return ir, nil
+	return c.convertToIR(filepath.Dir(composefilepath), *config, plan, service)
 }
 
 func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan plantypes.Plan, service plantypes.Service) (irtypes.IR, error) {
@@ -129,6 +96,9 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 	ir.Storages = append(ir.Storages, c.getConfigStorages(composeObject.Configs)...)
 
 	for _, composeServiceConfig := range composeObject.Services {
+		if composeServiceConfig.Name != service.ServiceName {
+			continue
+		}
 		name := common.NormalizeForServiceName(composeServiceConfig.Name)
 		serviceConfig := irtypes.NewServiceWithName(name)
 		serviceContainer := corev1.Container{}
@@ -141,21 +111,11 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 			//TODO: Add support for args and labels
 			// filedir, name, serviceContainer.Image, composeServiceConfig.Build.Dockerfile, composeServiceConfig.Build.Context
 
-			// Context path is mandatory, Dockerfile is optional https://docs.docker.com/compose/compose-file/#build
-			composeFileDir := filedir
-			contextPath := filepath.Join(composeFileDir, composeServiceConfig.Build.Context)
-			dockerfilePath := filepath.Join(contextPath, "Dockerfile")
-			if composeServiceConfig.Build.Dockerfile != "" {
-				dockerfilePath = filepath.Join(contextPath, composeServiceConfig.Build.Dockerfile)
-			}
-			if checkForDockerfile(dockerfilePath) {
-				service.ContainerizationTargetOptions = append(service.ContainerizationTargetOptions, dockerfilePath)
-				con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
-				if err != nil {
-					log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
-				} else {
-					ir.AddContainer(con)
-				}
+			con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
+			if err != nil {
+				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
+			} else {
+				ir.AddContainer(con)
 			}
 		}
 		serviceContainer.WorkingDir = composeServiceConfig.WorkingDir
@@ -418,23 +378,6 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 	}
 
 	return ir, nil
-}
-
-func (c *V3Loader) buildEnvironment() map[string]string {
-	result := map[string]string{}
-	//TODO: Check if any variable is mandatory and fill it with dummy value
-	if !common.IgnoreEnvironment {
-		env := os.Environ()
-		for _, s := range env {
-			if !strings.Contains(s, "=") {
-				log.Debugf("unexpected environment %q", s)
-				continue
-			}
-			kv := strings.SplitN(s, "=", 2)
-			result[kv[0]] = kv[1]
-		}
-	}
-	return result
 }
 
 func (c *V3Loader) getSecretStorages(secrets map[string]types.SecretConfig) []irtypes.Storage {

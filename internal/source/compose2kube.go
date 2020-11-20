@@ -17,7 +17,8 @@ limitations under the License.
 package source
 
 import (
-	sourcetypes "github.com/konveyor/move2kube/internal/collector/sourcetypes"
+	"path/filepath"
+
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/source/compose"
 	irtypes "github.com/konveyor/move2kube/internal/types"
@@ -34,6 +35,97 @@ type composeIRTranslator interface {
 type ComposeTranslator struct {
 }
 
+func (c *ComposeTranslator) newService(serviceName string) plantypes.Service {
+	service := plantypes.NewService(serviceName, c.GetTranslatorType())
+	service.AddSourceType(plantypes.ComposeSourceTypeValue)
+	service.ContainerBuildType = plantypes.ReuseContainerBuildTypeValue //TODO: Identify when to use enhance
+	return service
+}
+
+func (c *ComposeTranslator) getReuseService(composeFilePath string, serviceName string, serviceImage string, imageMetadataPaths map[string]string) plantypes.Service {
+	service := c.newService(serviceName)
+	service.Image = serviceImage
+	if service.Image == "" {
+		service.Image = serviceName + ":latest"
+	}
+	service.UpdateContainerBuildPipeline = false
+	service.UpdateDeployPipeline = true
+	service.AddSourceArtifact(plantypes.ComposeFileArtifactType, composeFilePath)
+	if imagepath, ok := imageMetadataPaths[serviceImage]; ok {
+		service.AddSourceArtifact(plantypes.ImageInfoArtifactType, imagepath)
+	}
+	return service
+}
+
+func (c *ComposeTranslator) getReuseAndReuseDockerfileServices(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) []plantypes.Service {
+	services := []plantypes.Service{}
+	serviceName = common.NormalizeForServiceName(serviceName)
+	log.Debugf("Found a docker compose service : %s", serviceName)
+	if relContextPath != "" {
+		// Add reuse Dockerfile containerization option
+		reuseDockerfileService := c.getReuseService(composeFilePath, serviceName, serviceImage, imageMetadataPaths)
+
+		reuseDockerfileService.ContainerBuildType = plantypes.ReuseDockerFileContainerBuildTypeValue
+		reuseDockerfileService.UpdateContainerBuildPipeline = true
+		reuseDockerfileService.UpdateDeployPipeline = true
+
+		composeFileDir := filepath.Dir(composeFilePath)
+		contextPath := filepath.Join(composeFileDir, relContextPath)
+		if filepath.IsAbs(relContextPath) {
+			contextPath = relContextPath // this happens with v1v2 parser
+		}
+		reuseDockerfileService.AddSourceType(plantypes.DirectorySourceTypeValue)
+		reuseDockerfileService.AddBuildArtifact(plantypes.SourceDirectoryBuildArtifactType, contextPath)
+
+		dockerfilePath := filepath.Join(contextPath, "Dockerfile")
+		if relDockerfilePath != "" {
+			dockerfilePath = filepath.Join(contextPath, relDockerfilePath)
+			if filepath.IsAbs(relDockerfilePath) {
+				dockerfilePath = relDockerfilePath // this happens with v1v2 parser
+			}
+		}
+		reuseDockerfileService.AddSourceArtifact(plantypes.DockerfileArtifactType, dockerfilePath)
+		reuseDockerfileService.ContainerizationTargetOptions = append(reuseDockerfileService.ContainerizationTargetOptions, dockerfilePath)
+
+		services = append(services, reuseDockerfileService)
+	}
+	// Add reuse containerization
+	reuseService := c.getReuseService(composeFilePath, serviceName, serviceImage, imageMetadataPaths)
+	services = append(services, reuseService)
+	return services
+}
+
+func (c *ComposeTranslator) getServicesFromComposeFile(composeFilePath string, imageMetadataPaths map[string]string) []plantypes.Service {
+	services := []plantypes.Service{}
+	v3, err := compose.IsV3(composeFilePath)
+	if err != nil {
+		return services
+	}
+	if v3 {
+		dc, err := compose.ParseV3(composeFilePath)
+		if err != nil {
+			return services
+		}
+		log.Debugf("Found a docker compose file at path %s", composeFilePath)
+		for _, service := range dc.Services {
+			currServices := c.getReuseAndReuseDockerfileServices(composeFilePath, service.Name, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)
+			services = append(services, currServices...)
+		}
+	} else {
+		dc, err := compose.ParseV2(composeFilePath)
+		if err != nil {
+			return services
+		}
+		log.Debugf("Found a docker compose file at path %s", composeFilePath)
+		servicesMap := dc.ServiceConfigs.All()
+		for serviceName, service := range servicesMap {
+			currServices := c.getReuseAndReuseDockerfileServices(composeFilePath, serviceName, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)
+			services = append(services, currServices...)
+		}
+	}
+	return services
+}
+
 // GetTranslatorType returns the translator type
 func (c *ComposeTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
 	return plantypes.Compose2KubeTranslation
@@ -48,50 +140,24 @@ func (c *ComposeTranslator) GetServiceOptions(inputPath string, plan plantypes.P
 		return nil, err
 	}
 
-	imagemetadatapaths := map[string]string{}
+	imageMetadataPaths := map[string]string{}
 	for _, path := range yamlpaths {
 		im := collecttypes.ImageInfo{}
 		if err := common.ReadYaml(path, &im); err != nil || im.Kind != string(collecttypes.ImageMetadataKind) {
 			continue
 		}
 		for _, imagetag := range im.Spec.Tags {
-			imagemetadatapaths[imagetag] = path
+			imageMetadataPaths[imagetag] = path
 		}
 	}
 
 	//Fill data into plan
-	servicesMap := map[string]plantypes.Service{}
+	services := []plantypes.Service{}
 	for _, path := range yamlpaths {
-		dc := sourcetypes.DockerCompose{}
-		if err := common.ReadYaml(path, &dc); err != nil {
-			continue
-		}
-		log.Debugf("Found a docker compose file at path %s", path)
-		for serviceName, dcservice := range dc.DCServices {
-			log.Debugf("Found a docker compose service : %s", serviceName)
-			serviceName = common.NormalizeForServiceName(serviceName)
-			if _, ok := servicesMap[serviceName]; !ok {
-				servicesMap[serviceName] = c.newService(serviceName)
-			}
-			service := servicesMap[serviceName]
-			service.Image = dcservice.Image
-			if service.Image == "" {
-				service.Image = serviceName + ":latest"
-			}
-			service.UpdateContainerBuildPipeline = false
-			service.UpdateDeployPipeline = true
-			service.AddSourceArtifact(plantypes.ComposeFileArtifactType, path)
-			if imagepath, ok := imagemetadatapaths[dcservice.Image]; ok {
-				service.AddSourceArtifact(plantypes.ImageInfoArtifactType, imagepath)
-			}
-			servicesMap[serviceName] = service
-		}
+		currServices := c.getServicesFromComposeFile(path, imageMetadataPaths)
+		services = append(services, currServices...)
 	}
 
-	services := []plantypes.Service{}
-	for _, service := range servicesMap {
-		services = append(services, service)
-	}
 	return services, nil
 }
 
@@ -106,24 +172,19 @@ func (c *ComposeTranslator) Translate(services []plantypes.Service, p plantypes.
 		}
 		for _, path := range service.SourceArtifacts[plantypes.ComposeFileArtifactType] {
 			log.Debugf("File %s being loaded from compose service : %s", path, service.ServiceName)
-			dcfile := sourcetypes.DockerCompose{}
-			if err := common.ReadYaml(path, &dcfile); err != nil {
-				log.Errorf("Unable to read docker compose yaml at path %s Error: %q", path, err)
-			}
-			log.Debugf("Docker Compose version: %s", dcfile.Version)
-			var t composeIRTranslator
-			switch dcfile.Version {
-			case "", "1", "1.0", "2", "2.0", "2.1":
-				t = new(compose.V1V2Loader)
-			case "3", "3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8":
-				t = new(compose.V3Loader)
-			default:
-				log.Errorf("The compose file at path %s uses Docker Compose version %s which is not supported. Please use version 1, 2 or 3.", path, dcfile.Version)
+			v3, err := compose.IsV3(path)
+			if err != nil {
 				continue
 			}
-			cir, err := t.ConvertToIR(path, p, service)
+			var translator composeIRTranslator
+			if v3 {
+				translator = new(compose.V3Loader)
+			} else {
+				translator = new(compose.V1V2Loader)
+			}
+			cir, err := translator.ConvertToIR(path, p, service)
 			if err != nil {
-				log.Errorf("Unable to parse the docker compose file at path %s using %T Error: %q", path, t, err)
+				log.Errorf("Unable to parse the docker compose file at path %s using %T Error: %q", path, translator, err)
 				continue
 			}
 			ir.Merge(cir)
@@ -140,11 +201,4 @@ func (c *ComposeTranslator) Translate(services []plantypes.Service, p plantypes.
 	}
 
 	return ir, nil
-}
-
-func (c *ComposeTranslator) newService(serviceName string) plantypes.Service {
-	service := plantypes.NewService(serviceName, c.GetTranslatorType())
-	service.AddSourceType(plantypes.ComposeSourceTypeValue)
-	service.ContainerBuildType = plantypes.ReuseContainerBuildTypeValue //TODO: Identify when to use enhance
-	return service
 }
