@@ -142,13 +142,21 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		}
 		if composeServiceConfig.Build.Dockerfile != "" && composeServiceConfig.Build.Context != "" {
 			//TODO: Add support for args and labels
-			c := containerizer.ReuseDockerfileContainerizer{}
-			// filedir, name, serviceContainer.Image, composeServiceConfig.Build.Dockerfile, composeServiceConfig.Build.Context)
-			con, err := c.GetContainer(plan, service)
-			if err != nil {
-				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
-			} else {
-				ir.AddContainer(con)
+			// Context path is mandatory, Dockerfile is optional https://docs.docker.com/compose/compose-file/#build
+			composeFileDir := filedir
+			contextPath := filepath.Join(composeFileDir, composeServiceConfig.Build.Context)
+			dockerfilePath := filepath.Join(contextPath, "Dockerfile")
+			if composeServiceConfig.Build.Dockerfile != "" {
+				dockerfilePath = filepath.Join(contextPath, composeServiceConfig.Build.Dockerfile)
+			}
+			if checkForDockerfile(dockerfilePath) {
+				service.ContainerizationTargetOptions = append(service.ContainerizationTargetOptions, dockerfilePath)
+				con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
+				if err != nil {
+					log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
+				} else {
+					ir.AddContainer(con)
+				}
 			}
 		}
 		serviceContainer.Name = strings.ToLower(composeServiceConfig.ContainerName)
