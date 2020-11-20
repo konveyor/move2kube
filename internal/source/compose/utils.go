@@ -20,8 +20,11 @@ import (
 	"fmt"
 	"hash/fnv"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/konveyor/move2kube/internal/collector/sourcetypes"
+	"github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -32,6 +35,77 @@ const (
 	defaultSecretBasePath string = "/var/secrets"
 	envFile               string = "env_file"
 )
+
+// IsV3 returns if the docker-compose yaml is version 3
+func IsV3(path string) (bool, error) {
+	dcfile := sourcetypes.DockerCompose{}
+	if err := common.ReadYaml(path, &dcfile); err != nil {
+		log.Errorf("Unable to read docker compose yaml at path %s Error: %q", path, err)
+	}
+	log.Debugf("Docker Compose version: %s", dcfile.Version)
+	switch dcfile.Version {
+	case "", "1", "1.0", "2", "2.0", "2.1":
+		return false, nil
+	case "3", "3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8":
+		return true, nil
+	default:
+		err := fmt.Errorf("The compose file at path %s uses Docker Compose version %s which is not supported. Please use version 1, 2 or 3", path, dcfile.Version)
+		log.Errorf("Error: %q", err)
+		return false, err
+	}
+}
+
+func removeNonExistentEnvFiles(path string, parsedComposeFile map[string]interface{}) map[string]interface{} {
+	// Remove unresolvable env files, so that the parser does not throw error
+	composeFileDir := filepath.Dir(path)
+	if val, ok := parsedComposeFile["services"]; ok {
+		if services, ok := val.(map[string]interface{}); ok {
+			for serviceName, val := range services {
+				if vals, ok := val.(map[string]interface{}); ok {
+					if envfilesvals, ok := vals[envFile]; ok {
+						if envfilesvalsint, ok := envfilesvals.([]interface{}); ok {
+							envfiles := []interface{}{}
+							for _, envfilesval := range envfilesvalsint {
+								if envfilesstr, ok := envfilesval.(string); ok {
+									envFilePath := envfilesstr
+									if !filepath.IsAbs(path) {
+										envFilePath = filepath.Join(composeFileDir, envFilePath)
+									}
+									finfo, err := os.Stat(envFilePath)
+									if os.IsNotExist(err) || finfo.IsDir() {
+										log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+										continue
+									}
+									envfiles = append(envfiles, envfilesstr)
+								}
+							}
+							vals[envFile] = envfiles
+						}
+					}
+				}
+			}
+		}
+	}
+	return parsedComposeFile
+}
+
+func getEnvironmentVariables() map[string]string {
+	result := map[string]string{}
+	//TODO: Check if any variable is mandatory and fill it with dummy value
+	if common.IgnoreEnvironment {
+		return result
+	}
+	env := os.Environ()
+	for _, s := range env {
+		if !strings.Contains(s, "=") {
+			log.Debugf("unexpected environment %q", s)
+			continue
+		}
+		kv := strings.SplitN(s, "=", 2)
+		result[kv[0]] = kv[1]
+	}
+	return result
+}
 
 func checkForDockerfile(path string) bool {
 	finfo, err := os.Stat(path)

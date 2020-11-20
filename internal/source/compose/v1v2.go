@@ -18,8 +18,6 @@ package compose
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -45,76 +43,48 @@ import (
 type V1V2Loader struct {
 }
 
+// ParseV2 parses version 2 compose files
+func ParseV2(path string) (*project.Project, error) {
+	// fileData, err := ioutil.ReadFile(path)
+	// if err != nil {
+	// 	log.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+	// 	return nil, err
+	// }
+
+	context := project.Context{}
+	context.ComposeFiles = []string{path}
+	context.ResourceLookup = new(lookup.FileResourceLookup)
+	//TODO: Check if any variable is mandatory
+	someEnvFilePath := ".env"
+	if !common.IgnoreEnvironment {
+		absSomeEnvFilePath, err := filepath.Abs(someEnvFilePath)
+		if err != nil {
+			log.Errorf("Failed to make the path %s absolute. Error: %q", someEnvFilePath, err)
+			return nil, err
+		}
+		someEnvFilePath = absSomeEnvFilePath
+	}
+	context.EnvironmentLookup = &lookup.ComposableEnvLookup{
+		Lookups: []config.EnvironmentLookup{
+			&lookup.EnvfileLookup{Path: someEnvFilePath},
+			&lookup.OsEnvLookup{},
+		},
+	}
+	proj := project.NewProject(&context, nil, nil)
+	if err := proj.Parse(); err != nil {
+		log.Errorf("Failed to load docker compose file at path %s Error: %q", path, err)
+		return nil, err
+	}
+	return proj, nil
+}
+
 // ConvertToIR loads a compose file to IR
 func (c *V1V2Loader) ConvertToIR(composefilepath string, plan plantypes.Plan, service plantypes.Service) (ir irtypes.IR, err error) {
-	serviceName := service.ServiceName
-	filedata, err := ioutil.ReadFile(composefilepath)
+	proj, err := ParseV2(composefilepath)
 	if err != nil {
-		return
+		return irtypes.IR{}, err
 	}
-
-	re := regexp.MustCompile(`(?s)\n\s+env_file:.*?(\n\s*[a-zA-Z]|$)`)
-	envFileStrings := re.FindAllString(string(filedata), -1)
-	for _, envFileString := range envFileStrings {
-		lines := strings.Split(envFileString, "\n")
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if strings.HasPrefix(line, "-") {
-				line = strings.TrimSpace(strings.TrimPrefix(line, "-"))
-				envfilere := regexp.MustCompile(`[^\s+]+`)
-				envfile := envfilere.FindString(line)
-				if !filepath.IsAbs(envfile) {
-					envfile = filepath.Join(filepath.Dir(composefilepath), envfile)
-				}
-				_, err := os.Stat(envfile)
-				if os.IsNotExist(err) {
-					log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envfile, serviceName, composefilepath)
-					err = ioutil.WriteFile(envfile, []byte{}, common.DefaultFilePermission)
-					if err != nil {
-						log.Errorf("Unable to write temp env file %s : %s", envfile, err)
-					} else {
-						defer os.Remove(envfile)
-					}
-				}
-			}
-		}
-	}
-
-	context := &project.Context{}
-	context.ComposeFiles = []string{composefilepath}
-	if context.ResourceLookup == nil {
-		context.ResourceLookup = &lookup.FileResourceLookup{}
-	}
-	if context.EnvironmentLookup == nil {
-		//TODO: Check if any variable is mandatory
-		cwd := ""
-		if !common.IgnoreEnvironment {
-			cwd, err = os.Getwd()
-			if err != nil {
-				return irtypes.IR{}, nil
-			}
-		}
-		context.EnvironmentLookup = &lookup.ComposableEnvLookup{
-			Lookups: []config.EnvironmentLookup{
-				&lookup.EnvfileLookup{
-					Path: filepath.Join(cwd, ".env"),
-				},
-				&lookup.OsEnvLookup{},
-			},
-		}
-	}
-	proj := project.NewProject(context, nil, nil)
-	err = proj.Parse()
-	if err != nil {
-		log.Errorf("Failed to load compose file %s : %s", composefilepath, err)
-		return irtypes.IR{}, errors.Wrap(err, "Failed to load compose file")
-	}
-	ir, err = c.convertToIR(filepath.Dir(composefilepath), proj, plan, service)
-	if err != nil {
-		return ir, err
-	}
-
-	return ir, nil
+	return c.convertToIR(filepath.Dir(composefilepath), proj, plan, service)
 }
 
 func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project, plan plantypes.Plan, service plantypes.Service) (ir irtypes.IR, err error) {
@@ -124,10 +94,10 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 	}
 
 	for name, composeServiceConfig := range composeObject.ServiceConfigs.All() {
-		serviceConfig := irtypes.NewServiceWithName(common.NormalizeForServiceName(name))
-		if serviceName != serviceConfig.Name {
+		if name != service.ServiceName {
 			continue
 		}
+		serviceConfig := irtypes.NewServiceWithName(common.NormalizeForServiceName(name))
 		serviceConfig.Annotations = map[string]string(composeServiceConfig.Labels)
 		if composeServiceConfig.Hostname != "" {
 			serviceConfig.Hostname = composeServiceConfig.Hostname
@@ -142,21 +112,11 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		}
 		if composeServiceConfig.Build.Dockerfile != "" && composeServiceConfig.Build.Context != "" {
 			//TODO: Add support for args and labels
-			// Context path is mandatory, Dockerfile is optional https://docs.docker.com/compose/compose-file/#build
-			composeFileDir := filedir
-			contextPath := filepath.Join(composeFileDir, composeServiceConfig.Build.Context)
-			dockerfilePath := filepath.Join(contextPath, "Dockerfile")
-			if composeServiceConfig.Build.Dockerfile != "" {
-				dockerfilePath = filepath.Join(contextPath, composeServiceConfig.Build.Dockerfile)
-			}
-			if checkForDockerfile(dockerfilePath) {
-				service.ContainerizationTargetOptions = append(service.ContainerizationTargetOptions, dockerfilePath)
-				con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
-				if err != nil {
-					log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
-				} else {
-					ir.AddContainer(con)
-				}
+			con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
+			if err != nil {
+				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
+			} else {
+				ir.AddContainer(con)
 			}
 		}
 		serviceContainer.Name = strings.ToLower(composeServiceConfig.ContainerName)
