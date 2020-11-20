@@ -19,8 +19,10 @@ package compose
 import (
 	"fmt"
 	"hash/fnv"
+	"os"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -30,6 +32,23 @@ const (
 	defaultSecretBasePath string = "/var/secrets"
 	envFile               string = "env_file"
 )
+
+func checkForDockerfile(path string) bool {
+	finfo, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Errorf("There is no file at path %s Error: %q", path, err)
+			return false
+		}
+		log.Errorf("There was an error accessing the file at path %s Error: %q", path, err)
+		return false
+	}
+	if finfo.IsDir() {
+		log.Errorf("The path %s points to a directory. Expected a Dockerfile.", path)
+		return false
+	}
+	return true
+}
 
 func makeVolumesFromTmpFS(serviceName string, tfsList []string) ([]corev1.VolumeMount, []corev1.Volume) {
 	vmList := []corev1.VolumeMount{}
