@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/collector/sourcetypes"
@@ -53,40 +52,6 @@ func IsV3(path string) (bool, error) {
 		log.Errorf("Error: %q", err)
 		return false, err
 	}
-}
-
-func removeNonExistentEnvFiles(path string, parsedComposeFile map[string]interface{}) map[string]interface{} {
-	// Remove unresolvable env files, so that the parser does not throw error
-	composeFileDir := filepath.Dir(path)
-	if val, ok := parsedComposeFile["services"]; ok {
-		if services, ok := val.(map[string]interface{}); ok {
-			for serviceName, val := range services {
-				if vals, ok := val.(map[string]interface{}); ok {
-					if envfilesvals, ok := vals[envFile]; ok {
-						if envfilesvalsint, ok := envfilesvals.([]interface{}); ok {
-							envfiles := []interface{}{}
-							for _, envfilesval := range envfilesvalsint {
-								if envfilesstr, ok := envfilesval.(string); ok {
-									envFilePath := envfilesstr
-									if !filepath.IsAbs(path) {
-										envFilePath = filepath.Join(composeFileDir, envFilePath)
-									}
-									finfo, err := os.Stat(envFilePath)
-									if os.IsNotExist(err) || finfo.IsDir() {
-										log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
-										continue
-									}
-									envfiles = append(envfiles, envfilesstr)
-								}
-							}
-							vals[envFile] = envfiles
-						}
-					}
-				}
-			}
-		}
-	}
-	return parsedComposeFile
 }
 
 func getEnvironmentVariables() map[string]string {

@@ -18,6 +18,7 @@ package compose
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -43,14 +44,53 @@ import (
 type V1V2Loader struct {
 }
 
+type preprocessFunc func(rawServiceMap config.RawServiceMap) (config.RawServiceMap, error)
+
+func removeNonExistentEnvFilesV2(path string) preprocessFunc {
+	composeFileDir := filepath.Dir(path)
+	return func(rawServiceMap config.RawServiceMap) (config.RawServiceMap, error) {
+		// Remove unresolvable env files, so that the parser does not throw error
+		for serviceName, vals := range rawServiceMap {
+			if envfilesvals, ok := vals[envFile]; ok {
+				// env_file can be a string or list of strings
+				// https://docs.docker.com/compose/compose-file/compose-file-v2/#env_file
+				if envfilesstr, ok := envfilesvals.(string); ok {
+					envFilePath := envfilesstr
+					if !filepath.IsAbs(envFilePath) {
+						envFilePath = filepath.Join(composeFileDir, envFilePath)
+					}
+					finfo, err := os.Stat(envFilePath)
+					if os.IsNotExist(err) || finfo.IsDir() {
+						log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+						delete(vals, envFile)
+					}
+				} else if envfilesvalsint, ok := envfilesvals.([]interface{}); ok {
+					envfiles := []interface{}{}
+					for _, envfilesval := range envfilesvalsint {
+						if envfilesstr, ok := envfilesval.(string); ok {
+							envFilePath := envfilesstr
+							if !filepath.IsAbs(envFilePath) {
+								envFilePath = filepath.Join(composeFileDir, envFilePath)
+							}
+							finfo, err := os.Stat(envFilePath)
+							if os.IsNotExist(err) || finfo.IsDir() {
+								log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+								continue
+							}
+							envfiles = append(envfiles, envfilesstr)
+						}
+					}
+					vals[envFile] = envfiles
+				}
+			}
+		}
+
+		return rawServiceMap, nil
+	}
+}
+
 // ParseV2 parses version 2 compose files
 func ParseV2(path string) (*project.Project, error) {
-	// fileData, err := ioutil.ReadFile(path)
-	// if err != nil {
-	// 	log.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
-	// 	return nil, err
-	// }
-
 	context := project.Context{}
 	context.ComposeFiles = []string{path}
 	context.ResourceLookup = new(lookup.FileResourceLookup)
@@ -70,7 +110,12 @@ func ParseV2(path string) (*project.Project, error) {
 			&lookup.OsEnvLookup{},
 		},
 	}
-	proj := project.NewProject(&context, nil, nil)
+	parseOptions := config.ParseOptions{
+		Interpolate: true,
+		Validate:    true,
+		Preprocess:  removeNonExistentEnvFilesV2(path),
+	}
+	proj := project.NewProject(&context, nil, &parseOptions)
 	if err := proj.Parse(); err != nil {
 		log.Errorf("Failed to load docker compose file at path %s Error: %q", path, err)
 		return nil, err
@@ -110,8 +155,10 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		if serviceContainer.Image == "" {
 			serviceContainer.Image = name + ":latest"
 		}
-		if composeServiceConfig.Build.Dockerfile != "" && composeServiceConfig.Build.Context != "" {
+		if composeServiceConfig.Build.Dockerfile != "" || composeServiceConfig.Build.Context != "" {
 			//TODO: Add support for args and labels
+			// filedir, name, serviceContainer.Image, composeServiceConfig.Build.Dockerfile, composeServiceConfig.Build.Context
+
 			con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
 			if err != nil {
 				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
@@ -287,8 +334,8 @@ func (c *V1V2Loader) getEnvs(envars []string) []corev1.EnvVar {
 			})
 		} else {
 			envs = append(envs, corev1.EnvVar{
-				Name:  e[locs[0]+1:],
-				Value: e[:locs[0]],
+				Name:  e[:locs[0]],
+				Value: e[locs[0]+1:],
 			})
 		}
 	}

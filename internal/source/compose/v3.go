@@ -44,6 +44,52 @@ import (
 type V3Loader struct {
 }
 
+func removeNonExistentEnvFilesV3(path string, parsedComposeFile map[string]interface{}) map[string]interface{} {
+	// Remove unresolvable env files, so that the parser does not throw error
+	composeFileDir := filepath.Dir(path)
+	if val, ok := parsedComposeFile["services"]; ok {
+		if services, ok := val.(map[string]interface{}); ok {
+			for serviceName, val := range services {
+				if vals, ok := val.(map[string]interface{}); ok {
+					if envfilesvals, ok := vals[envFile]; ok {
+						// env_file can be a string or list of strings
+						// https://docs.docker.com/compose/compose-file/#env_file
+						if envfilesstr, ok := envfilesvals.(string); ok {
+							envFilePath := envfilesstr
+							if !filepath.IsAbs(envFilePath) {
+								envFilePath = filepath.Join(composeFileDir, envFilePath)
+							}
+							finfo, err := os.Stat(envFilePath)
+							if os.IsNotExist(err) || finfo.IsDir() {
+								log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+								delete(vals, envFile)
+							}
+						} else if envfilesvalsint, ok := envfilesvals.([]interface{}); ok {
+							envfiles := []interface{}{}
+							for _, envfilesval := range envfilesvalsint {
+								if envfilesstr, ok := envfilesval.(string); ok {
+									envFilePath := envfilesstr
+									if !filepath.IsAbs(envFilePath) {
+										envFilePath = filepath.Join(composeFileDir, envFilePath)
+									}
+									finfo, err := os.Stat(envFilePath)
+									if os.IsNotExist(err) || finfo.IsDir() {
+										log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+										continue
+									}
+									envfiles = append(envfiles, envfilesstr)
+								}
+							}
+							vals[envFile] = envfiles
+						}
+					}
+				}
+			}
+		}
+	}
+	return parsedComposeFile
+}
+
 // ParseV3 parses version 3 compose files
 func ParseV3(path string) (*types.Config, error) {
 	fileData, err := ioutil.ReadFile(path)
@@ -57,7 +103,7 @@ func ParseV3(path string) (*types.Config, error) {
 		log.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
 		return nil, err
 	}
-	parsedComposeFile = removeNonExistentEnvFiles(path, parsedComposeFile)
+	parsedComposeFile = removeNonExistentEnvFilesV3(path, parsedComposeFile)
 	// Config details
 	configDetails := types.ConfigDetails{
 		WorkingDir:  filepath.Dir(path),
