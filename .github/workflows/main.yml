@@ -9,7 +9,7 @@ on:
 jobs:
 
   build:
-    name: Build
+    name: Build and test
     runs-on: ubuntu-latest
     steps:
 
@@ -17,6 +17,11 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: ^1.15
+
+    - uses: actions/cache@v2
+      with:
+        path: "$GOPATH/pkg/mod"
+        key: ${{ runner.os }}
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
