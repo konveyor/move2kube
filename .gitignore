@@ -9,3 +9,5 @@ internal
 .ruby-version
 Gemfile.lock
 node_modules
+bin/
+coverage.txt
