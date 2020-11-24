@@ -1,12 +1,12 @@
 ---
 layout: default
-title: "Cloud Foundry"
+title: "Migrating Cloud Foundry apps to Kubernetes"
 permalink: /tutorials/cloud-foundry/
 parent: Tutorials
 nav_order: 3
 ---
 
-# Cloud Foundry
+# Migrating and deploying Cloud Foundry applications to Kubernetes
 
 ## Description
 

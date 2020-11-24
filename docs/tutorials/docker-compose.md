@@ -1,12 +1,12 @@
 ---
 layout: default
-title: "Docker compose translation"
+title: "Migrating Docker apps to Kubernetes"
 permalink: /tutorials/docker-compose/
 parent: Tutorials
 nav_order: 2
 ---
 
-# Docker compose translation
+# Migrating and deploying Docker applications to Kubernetes
 
 ## Description
 
