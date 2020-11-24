@@ -1,4 +1,4 @@
-name: Go
+name: move2kube
 
 on:
   push:
