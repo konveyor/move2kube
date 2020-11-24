@@ -17,6 +17,7 @@ limitations under the License.
 package types
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -27,6 +28,7 @@ import (
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -36,7 +38,7 @@ type IR struct {
 	Name            string
 	Services        map[string]Service
 	Storages        []Storage
-	Containers      []Container
+	Containers      []Container // Images to be built
 	Roles           []Role
 	RoleBindings    []RoleBinding
 	ServiceAccounts []ServiceAccount
@@ -61,15 +63,44 @@ type IR struct {
 type Service struct {
 	corev1.PodSpec
 
-	Name               string
-	BackendServiceName string // Optional field when ingress name is not the same as backend service name
-	Annotations        map[string]string
-	Labels             map[string]string
-	Replicas           int
-	Networks           []string
-	ServiceRelPath     string //Ingress fan-out path
-	OnlyIngress        bool
-	Daemon             bool //Gets converted to DaemonSet
+	Name                        string
+	BackendServiceName          string // Optional field when ingress name is not the same as backend service name
+	Annotations                 map[string]string
+	Labels                      map[string]string
+	ServiceToPodPortForwardings []ServiceToPodPortForwarding
+	Replicas                    int
+	Networks                    []string
+	ServiceRelPath              string //Ingress fan-out path
+	OnlyIngress                 bool
+	Daemon                      bool //Gets converted to DaemonSet
+}
+
+// Port is a port number with an optional port name.
+type Port networkingv1.ServiceBackendPort
+
+// ServiceToPodPortForwarding forwards a k8s service port to a k8s pod port
+type ServiceToPodPortForwarding struct {
+	ServicePort Port
+	PodPort     Port
+}
+
+// AddPortForwarding adds a new port forwarding to the service.
+func (service *Service) AddPortForwarding(servicePort Port, podPort Port) error {
+	for _, forwarding := range service.ServiceToPodPortForwardings {
+		if servicePort.Name != "" && forwarding.ServicePort.Name == servicePort.Name {
+			err := fmt.Errorf("The port name %s on %s service is already in use. Not adding the new forwarding", servicePort.Name, service.Name)
+			log.Warn(err)
+			return err
+		}
+		if forwarding.ServicePort.Number == servicePort.Number {
+			err := fmt.Errorf("The port number %d on %s service is already in use. Not adding the new forwarding", servicePort.Number, service.Name)
+			log.Warn(err)
+			return err
+		}
+	}
+	newForwarding := ServiceToPodPortForwarding{ServicePort: servicePort, PodPort: podPort}
+	service.ServiceToPodPortForwardings = append(service.ServiceToPodPortForwardings, newForwarding)
+	return nil
 }
 
 // AddVolume adds a volume to a service
@@ -93,13 +124,13 @@ func (service *Service) HasValidAnnotation(annotation string) bool {
 	return ok && val == common.AnnotationLabelValue
 }
 
-// Container defines structure of a container
+// Container defines images that need to be built or reused.
 type Container struct {
-	ContainerBuildType plantypes.ContainerBuildTypeValue
+	ContainerBuildType plantypes.ContainerBuildTypeValue // Method to use to build the image or "Reuse" if reusing an existing image.
 	RepoInfo           plantypes.RepoInfo
 	ImageNames         []string
-	New                bool
-	NewFiles           map[string]string //[filename][filecontents]
+	New                bool              // true if this is a new image that needs to be built
+	NewFiles           map[string]string //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
 	ExposedPorts       []int
 	UserID             int
 	AccessedDirs       []string

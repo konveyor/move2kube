@@ -117,7 +117,7 @@ func ParseV2(path string) (*project.Project, error) {
 	}
 	proj := project.NewProject(&context, nil, &parseOptions)
 	if err := proj.Parse(); err != nil {
-		log.Errorf("Failed to load docker compose file at path %s Error: %q", path, err)
+		log.Debugf("Failed to load docker compose file at path %s Error: %q", path, err)
 		return nil, err
 	}
 	return proj, nil
@@ -179,8 +179,8 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		serviceContainer.WorkingDir = composeServiceConfig.WorkingDir
 		serviceContainer.Stdin = composeServiceConfig.StdinOpen
 		serviceContainer.TTY = composeServiceConfig.Tty
-		ports := c.getPorts(composeServiceConfig.Ports, composeServiceConfig.Expose)
-		serviceContainer.Ports = ports
+		serviceContainer.Ports = c.getPorts(composeServiceConfig.Ports, composeServiceConfig.Expose)
+		c.addPorts(composeServiceConfig.Ports, composeServiceConfig.Expose, &serviceConfig)
 		podSecurityContext := &corev1.PodSecurityContext{}
 		securityContext := &corev1.SecurityContext{}
 		if composeServiceConfig.Privileged {
@@ -344,49 +344,100 @@ func (c *V1V2Loader) getEnvs(envars []string) []corev1.EnvVar {
 
 func (c *V1V2Loader) getPorts(composePorts []string, expose []string) []corev1.ContainerPort {
 	ports := []corev1.ContainerPort{}
-	exist := map[int32]bool{}
+	exist := map[int]bool{}
 	for _, port := range composePorts {
-		cp := c.getContainerPort(port)
-		if !exist[cp.ContainerPort] && cp != (corev1.ContainerPort{}) {
-			ports = append(ports, cp)
-			exist[cp.ContainerPort] = true
+		_, podPort, protocol, err := c.parseContainerPort(port)
+		if err != nil {
+			continue
+		}
+		if !exist[podPort] {
+			ports = append(ports, corev1.ContainerPort{ContainerPort: int32(podPort), Protocol: protocol})
+			exist[podPort] = true
 		}
 	}
 	for _, port := range expose {
-		cp := c.getContainerPort(port)
-		if !exist[cp.ContainerPort] && cp != (corev1.ContainerPort{}) {
-			ports = append(ports, cp)
-			exist[cp.ContainerPort] = true
+		_, podPort, protocol, err := c.parseContainerPort(port)
+		if err != nil {
+			continue
+		}
+		if !exist[podPort] {
+			ports = append(ports, corev1.ContainerPort{ContainerPort: int32(podPort), Protocol: protocol})
+			exist[podPort] = true
 		}
 	}
-
 	return ports
 }
 
-func (c *V1V2Loader) getContainerPort(value string) (cp corev1.ContainerPort) {
-	// 15000:15000/tcp  Default protocol TCP
-	proto := corev1.ProtocolTCP
-	parts := strings.Split(value, "/")
-	if len(parts) == 2 && strings.EqualFold(string(corev1.ProtocolUDP), parts[1]) {
-		proto = corev1.ProtocolUDP
-	}
-	// Split up the ports and IP
-	justPorts := strings.Split(parts[0], ":")
-	if len(justPorts) > 0 {
-		// ex. 127.0.0.1:80:80
-		// Get the container port
-		portStr := justPorts[len(justPorts)-1]
-		p, err := strconv.Atoi(portStr)
+func (c *V1V2Loader) addPorts(composePorts []string, expose []string, service *irtypes.Service) {
+	exist := map[int]bool{}
+	for _, port := range composePorts {
+		servicePortNumber, podPortNumber, _, err := c.parseContainerPort(port)
 		if err != nil {
-			log.Warnf("Invalid container port in %s ; Example: 127.0.0.1:80:80 or 80:80 or 80", parts[0])
-		} else {
-			cp = corev1.ContainerPort{
-				ContainerPort: int32(p),
-				Protocol:      proto,
-			}
+			continue
+		}
+		if !exist[servicePortNumber] {
+			// Forward the port on the k8s service to the k8s pod.
+			podPort := irtypes.Port{Number: int32(podPortNumber)}
+			servicePort := irtypes.Port{Number: int32(servicePortNumber)}
+			service.AddPortForwarding(servicePort, podPort)
+			exist[servicePortNumber] = true
 		}
 	}
-	return
+	for _, port := range expose {
+		servicePortNumber, podPortNumber, _, err := c.parseContainerPort(port)
+		if err != nil {
+			continue
+		}
+		if !exist[servicePortNumber] {
+			// Forward the port on the k8s service to the k8s pod.
+			podPort := irtypes.Port{Number: int32(podPortNumber)}
+			servicePort := irtypes.Port{Number: int32(servicePortNumber)}
+			service.AddPortForwarding(servicePort, podPort)
+			exist[servicePortNumber] = true
+		}
+	}
+}
+
+func (*V1V2Loader) parseContainerPort(value string) (servicePort int, podPort int, protocol corev1.Protocol, err error) {
+	protocol = corev1.ProtocolTCP
+	if strings.Contains(value, "/") {
+		parts := strings.Split(value, "/")
+		value = parts[0]
+		if strings.EqualFold(string(corev1.ProtocolUDP), parts[1]) {
+			protocol = corev1.ProtocolUDP
+		}
+	}
+	if !strings.Contains(value, ":") {
+		// "3000"
+		podPort, err = strconv.Atoi(value)
+		if err != nil {
+			log.Debugf("Failed to parse the port %s as an integer. Error: %q", value, err)
+			return podPort, podPort, protocol, err
+		}
+		return podPort, podPort, protocol, nil
+	}
+	// Split up the ports and IP
+	parts := strings.Split(value, ":")
+	// "8000:8000"
+	servicePortStr, podPortStr := parts[0], parts[1]
+	if len(parts) == 3 {
+		// "127.0.0.1:8001:8001"
+		servicePortStr, podPortStr = parts[1], parts[2]
+	} else if len(parts) > 3 {
+		err := fmt.Errorf("Failed to parse the port %s properly", value)
+		return servicePort, podPort, protocol, err
+	}
+	servicePort, err = strconv.Atoi(servicePortStr)
+	if err != nil {
+		log.Debugf("Failed to parse the port %s as an integer. Error: %q", servicePortStr, err)
+		return servicePort, servicePort, protocol, err
+	}
+	podPort, err = strconv.Atoi(podPortStr)
+	if err != nil {
+		log.Debugf("Failed to parse the port %s as an integer. Error: %q", podPortStr, err)
+		return servicePort, podPort, protocol, err
+	}
+	return servicePort, podPort, protocol, nil
 }
 
 func getGroupAdd(group []string) ([]int64, error) {

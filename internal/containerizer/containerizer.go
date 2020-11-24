@@ -78,15 +78,16 @@ func (c *Containerizers) GetContainerizationOptions(plan plantypes.Plan, sourcep
 // GetContainer get the container for a service
 func (c *Containerizers) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	for _, containerizer := range c.containerizers {
-		if containerizer.GetContainerBuildStrategy() == service.ContainerBuildType {
-			log.Debugf("Containerizing %s using %s", service.ServiceName, service.ContainerBuildType)
-			container, err := containerizer.GetContainer(plan, service)
-			if err != nil {
-				log.Errorf("Error during containerization : %s", err)
-				return irtypes.Container{}, err
-			}
-			return container, nil
+		if containerizer.GetContainerBuildStrategy() != service.ContainerBuildType {
+			continue
 		}
+		log.Debugf("Containerizing %s using %s", service.ServiceName, service.ContainerBuildType)
+		container, err := containerizer.GetContainer(plan, service)
+		if err != nil {
+			log.Errorf("Error during containerization : %s", err)
+			return irtypes.Container{}, err
+		}
+		return container, nil
 	}
-	return irtypes.Container{}, fmt.Errorf("Containerization strategy invalid for service : %s", service.ServiceName)
+	return irtypes.Container{}, fmt.Errorf("service %s has an invalid containerization strategy %s", service.ServiceName, service.ContainerBuildType)
 }

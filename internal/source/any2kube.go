@@ -122,13 +122,18 @@ func (any2KubeTranslator *Any2KubeTranslator) Translate(services []plantypes.Ser
 		ir.AddContainer(container)
 		serviceContainer := corev1.Container{Name: service.ServiceName}
 		serviceContainer.Image = service.Image
+		irService := irtypes.NewServiceFromPlanService(service)
 		serviceContainerPorts := []corev1.ContainerPort{}
 		for _, port := range container.ExposedPorts {
+			// Add the port to the k8s pod.
 			serviceContainerPort := corev1.ContainerPort{ContainerPort: int32(port)}
 			serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
+			// Forward the port on the k8s service to the k8s pod.
+			podPort := irtypes.Port{Number: int32(port)}
+			servicePort := podPort
+			irService.AddPortForwarding(servicePort, podPort)
 		}
 		serviceContainer.Ports = serviceContainerPorts
-		irService := irtypes.NewServiceFromPlanService(service)
 		irService.Containers = []corev1.Container{serviceContainer}
 		ir.Services[service.ServiceName] = irService
 	}

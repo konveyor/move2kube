@@ -174,6 +174,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 		}
 		serviceContainer.TTY = composeServiceConfig.Tty
 		serviceContainer.Ports = c.getPorts(composeServiceConfig.Ports, composeServiceConfig.Expose)
+		c.addPorts(composeServiceConfig.Ports, composeServiceConfig.Expose, &serviceConfig)
 
 		serviceConfig.Annotations = map[string]string(composeServiceConfig.Labels)
 		serviceConfig.Labels = common.MergeStringMaps(composeServiceConfig.Labels, composeServiceConfig.Deploy.Labels)
@@ -486,7 +487,7 @@ func (c *V3Loader) getConfigStorages(configs map[string]types.ConfigObjConfig) [
 	return Storages
 }
 
-func (c *V3Loader) getPorts(ports []types.ServicePortConfig, expose []string) []corev1.ContainerPort {
+func (*V3Loader) getPorts(ports []types.ServicePortConfig, expose []string) []corev1.ContainerPort {
 	containerPorts := []corev1.ContainerPort{}
 	exist := map[string]bool{}
 	for _, port := range ports {
@@ -494,6 +495,7 @@ func (c *V3Loader) getPorts(ports []types.ServicePortConfig, expose []string) []
 		if strings.EqualFold(string(corev1.ProtocolUDP), port.Protocol) {
 			proto = corev1.ProtocolUDP
 		}
+		// Add the port to the k8s pod.
 		containerPorts = append(containerPorts, corev1.ContainerPort{
 			ContainerPort: int32(port.Target),
 			Protocol:      proto,
@@ -511,6 +513,7 @@ func (c *V3Loader) getPorts(ports []types.ServicePortConfig, expose []string) []
 		if exist[portValue] {
 			continue
 		}
+		// Add the port to the k8s pod.
 		containerPorts = append(containerPorts, corev1.ContainerPort{
 			ContainerPort: cast.ToInt32(portValue),
 			Protocol:      protocol,
@@ -518,6 +521,40 @@ func (c *V3Loader) getPorts(ports []types.ServicePortConfig, expose []string) []
 	}
 
 	return containerPorts
+}
+
+func (*V3Loader) addPorts(ports []types.ServicePortConfig, expose []string, service *irtypes.Service) {
+	exist := map[string]bool{}
+	for _, port := range ports {
+		// Forward the port on the k8s service to the k8s pod.
+		podPort := irtypes.Port{
+			Number: int32(port.Target),
+		}
+		servicePort := irtypes.Port{
+			Number: int32(port.Published),
+		}
+		service.AddPortForwarding(servicePort, podPort)
+		exist[cast.ToString(port.Target)] = true
+	}
+	for _, port := range expose {
+		portValue := port
+		if strings.Contains(portValue, "/") {
+			splits := strings.Split(port, "/")
+			portValue = splits[0]
+		}
+		if exist[portValue] {
+			continue
+		}
+		// Forward the port on the k8s service to the k8s pod.
+		portNumber := cast.ToInt32(portValue)
+		podPort := irtypes.Port{
+			Number: portNumber,
+		}
+		servicePort := irtypes.Port{
+			Number: portNumber,
+		}
+		service.AddPortForwarding(servicePort, podPort)
+	}
 }
 
 func (c *V3Loader) getNetworks(composeServiceConfig types.ServiceConfig, composeObject types.Config) (networks []string) {
