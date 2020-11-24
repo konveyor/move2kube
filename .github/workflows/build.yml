@@ -37,7 +37,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Push image to quay
+    - name: Build and Push image to quay
       run: |
         echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
         make cbuild
