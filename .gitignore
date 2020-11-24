@@ -24,3 +24,5 @@ _dist
 bin
 .m2k
 coverage.txt
+.jekyll-cache/
+_site/
