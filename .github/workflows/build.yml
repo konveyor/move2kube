@@ -29,3 +29,9 @@ jobs:
 
     - name: Build and Test 
       run: make ci
+
+    - name: Test Coverage
+      run: make test-coverage
+
+    - name: Upload Coverage
+      uses: codecov/codecov-action@v1
