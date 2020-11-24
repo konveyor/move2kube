@@ -1,12 +1,12 @@
 ---
 layout: default
-title: "Dockerfile Containerization"
-permalink: /tutorials/dockerfile-containerization/
-parent: Tutorials
-nav_order: 4
+title: "Adding custom Dockerfile containerization technique"
+permalink: /extending-move2kube/custom-containerization/
+parent: Extending Move2Kube
+nav_order: 1
 ---
 
-# Dockerfile Containerization
+# Adding custom Dockerfile containerization technique
 
 ## Description
 
