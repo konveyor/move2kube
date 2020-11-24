@@ -69,44 +69,44 @@ help: ## This help.
 build: get $(BINDIR)/$(BINNAME) ## Build go code
 
 $(BINDIR)/$(BINNAME): $(SRC)
-	@go build -tags excludecodegen,excludedist -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/${BINNAME}
-	@mkdir -p $(GOPATH)/bin/
-	@cp $(BINDIR)/$(BINNAME) $(GOPATH)/bin/
+	go build -tags excludecodegen,excludedist -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/${BINNAME}
+	mkdir -p $(GOPATH)/bin/
+	cp $(BINDIR)/$(BINNAME) $(GOPATH)/bin/
 
 .PHONY: get
 get: go.mod
-	@go mod download
+	go mod download
 
 .PHONY: generate
 generate: 
-	@go generate ${PKG}
+	go generate ${PKG}
 
 .PHONY: deps
 deps: 
-	@source scripts/installdeps.sh
+	source scripts/installdeps.sh
 
 # -- Test --
 
 .PHONY: test
 test: ## Run tests
-	@go test -run . $(PKG) -race
+	go test -run . $(PKG) -race
 
 ${GOTEST}:
 	${GOGET} github.com/rakyll/gotest
 
 .PHONY: test-verbose
 test-verbose: ${GOTEST}
-	@gotest -run . $(PKG) -race -v
+	gotest -run . $(PKG) -race -v
 
 ${GOLANGCOVER}:
 	${GOGET} github.com/mattn/goveralls@v0.0.6
 
 .PHONY: test-coverage
 test-coverage: ${GOLANGCOVER} ## Run tests with coverage
-	@go test -run . $(PKG) -coverprofile=coverage.txt -covermode=atomic
+	go test -run . $(PKG) -coverprofile=coverage.txt -covermode=atomic
 
 ${GOLANGCILINT}:
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.31.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.31.0
 
 ${GOLINT}:
 	${GOGET} golang.org/x/lint/golint
@@ -133,14 +133,14 @@ build-cross: $(GOX) clean
 
 .PHONY: dist
 dist: clean build-cross ## Build Distribution
-	@mkdir -p $(DISTDIR)/files
-	@cp -r ./{LICENSE,scripts/installdeps.sh,USAGE.md,samples} $(DISTDIR)/files/
-	@cd $(DISTDIR) && go run ../scripts/builddist.go -b ${BINNAME} -v ${VERSION}
+	mkdir -p $(DISTDIR)/files
+	cp -r ./{LICENSE,scripts/installdeps.sh,USAGE.md,samples} $(DISTDIR)/files/
+	cd $(DISTDIR) && go run ../scripts/builddist.go -b ${BINNAME} -v ${VERSION}
 
 .PHONY: clean
 clean:
-	@rm -rf $(BINDIR) $(DISTDIR)
-	@go clean -cache
+	rm -rf $(BINDIR) $(DISTDIR)
+	go clean -cache
 
 .PHONY: info
 info: ## Get version info
@@ -153,9 +153,9 @@ info: ## Get version info
 
 .PHONY: cbuild
 cbuild: ## Build docker image
-	@docker build -t ${REGISTRYNS}/${BINNAME}:${VERSION} -t ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} .
+	docker build -t ${REGISTRYNS}/${BINNAME}:${VERSION} -t ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} .
 
 .PHONY: cpush
 cpush: ## Push docker image
-	@docker push ${REGISTRYNS}/${BINNAME}:latest
-	@docker push ${REGISTRYNS}/${BINNAME}:${VERSION}
+	docker push ${REGISTRYNS}/${BINNAME}:latest
+	docker push ${REGISTRYNS}/${BINNAME}:${VERSION}
