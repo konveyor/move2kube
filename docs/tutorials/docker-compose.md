@@ -1,12 +1,12 @@
 ---
 layout: default
-title: "Migrating Docker apps to Kubernetes"
+title: "Migrating Docker compose/swarm apps to Kubernetes"
 permalink: /tutorials/docker-compose/
 parent: Tutorials
 nav_order: 2
 ---
 
-# Migrating and deploying Docker applications to Kubernetes
+# Migrating and deploying Docker compose/swarm applications to Kubernetes
 
 ## Description
 
