@@ -162,8 +162,8 @@ func (c *ComposeTranslator) GetServiceOptions(inputPath string, plan plantypes.P
 }
 
 // Translate translates the service to IR
-func (c *ComposeTranslator) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
-	ir := irtypes.NewIR(p)
+func (c *ComposeTranslator) Translate(services []plantypes.Service, plan plantypes.Plan) (irtypes.IR, error) {
+	ir := irtypes.NewIR(plan)
 
 	for _, service := range services {
 		if service.TranslationType != c.GetTranslatorType() {
@@ -182,7 +182,7 @@ func (c *ComposeTranslator) Translate(services []plantypes.Service, p plantypes.
 			} else {
 				translator = new(compose.V1V2Loader)
 			}
-			cir, err := translator.ConvertToIR(path, p, service)
+			cir, err := translator.ConvertToIR(path, plan, service)
 			if err != nil {
 				log.Errorf("Unable to parse the docker compose file at path %s using %T Error: %q", path, translator, err)
 				continue

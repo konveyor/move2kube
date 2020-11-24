@@ -111,7 +111,7 @@ func (d *S2IContainerizer) GetContainer(plan plantypes.Plan, service plantypes.S
 
 	if value, ok := m[containerizerJSONPort]; ok {
 		portToExpose := int(value.(float64)) // json numbers are float64
-		container.ExposedPorts = append(container.ExposedPorts, portToExpose)
+		container.AddExposedPort(portToExpose)
 	}
 
 	m[containerizerJSONImageName] = service.Image

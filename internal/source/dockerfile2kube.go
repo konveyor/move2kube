@@ -68,30 +68,38 @@ func (dockerfileTranslator *DockerfileTranslator) GetServiceOptions(inputPath st
 }
 
 // Translate translates artifacts to IR
-func (dockerfileTranslator *DockerfileTranslator) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
-	ir := irtypes.NewIR(p)
+func (dockerfileTranslator *DockerfileTranslator) Translate(services []plantypes.Service, plan plantypes.Plan) (irtypes.IR, error) {
+	ir := irtypes.NewIR(plan)
 	for _, service := range services {
 		if service.TranslationType != dockerfileTranslator.GetTranslatorType() {
+			log.Debugf("The service %s has translation type %s . Expected %s . Skipping.", service.ServiceName, service.TranslationType, dockerfileTranslator.GetTranslatorType())
+			continue
+		}
+		if len(service.ContainerizationTargetOptions) == 0 {
+			log.Debugf("The service %s has no containerization target options. Skipping.", service.ServiceName)
 			continue
 		}
 		log.Debugf("Translating %s", service.ServiceName)
-		if len(service.ContainerizationTargetOptions) == 0 {
-			log.Warnf("No target options for service %s. Ignoring service.", service.ServiceName)
-			continue
-		}
-		con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(p, service)
+		irContainer, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
 		if err != nil {
-			log.Warnf("Unable to get containization script even though build parameters are present. Error: %q", err)
+			log.Warnf("Unable to get reuse the Dockerfile for service %s even though build parameters are present. Error: %q", service.ServiceName, err)
 			continue
 		}
-		con.RepoInfo = service.RepoInfo
-		con.RepoInfo.TargetPath = service.ContainerizationTargetOptions[0]
-		ir.AddContainer(con)
+		irContainer.RepoInfo = service.RepoInfo
+		irContainer.RepoInfo.TargetPath = service.ContainerizationTargetOptions[0]
+		ir.AddContainer(irContainer)
 
 		irService := irtypes.NewServiceFromPlanService(service)
-		irService.Containers = []corev1.Container{
-			{Name: service.ServiceName, Image: service.Image},
+		container := corev1.Container{Name: service.ServiceName, Image: service.Image}
+		for _, port := range irContainer.ExposedPorts {
+			// Add the port to the k8s pod.
+			container.Ports = append(container.Ports, corev1.ContainerPort{ContainerPort: int32(port)})
+			// Forward the port on the k8s service to the k8s pod.
+			podPort := irtypes.Port{Number: int32(port)}
+			servicePort := podPort
+			irService.AddPortForwarding(servicePort, podPort)
 		}
+		irService.Containers = []corev1.Container{container}
 		ir.Services[service.ServiceName] = irService
 	}
 	return ir, nil

@@ -39,7 +39,8 @@ const (
 func IsV3(path string) (bool, error) {
 	dcfile := sourcetypes.DockerCompose{}
 	if err := common.ReadYaml(path, &dcfile); err != nil {
-		log.Errorf("Unable to read docker compose yaml at path %s Error: %q", path, err)
+		log.Debugf("Unable to read docker compose yaml at path %s Error: %q", path, err)
+		return false, err
 	}
 	log.Debugf("Docker Compose version: %s", dcfile.Version)
 	switch dcfile.Version {
@@ -49,7 +50,7 @@ func IsV3(path string) (bool, error) {
 		return true, nil
 	default:
 		err := fmt.Errorf("The compose file at path %s uses Docker Compose version %s which is not supported. Please use version 1, 2 or 3", path, dcfile.Version)
-		log.Errorf("Error: %q", err)
+		log.Error(err)
 		return false, err
 	}
 }

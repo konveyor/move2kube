@@ -111,7 +111,7 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) GetServiceOptions(inputPath string, 
 	return services, nil
 }
 
-// Translate tanslates plan services to IR
+// Translate translates plan services to IR
 func (k8sAPIResourceSet *K8sAPIResourceSet) Translate(services []plantypes.Service, plan plantypes.Plan) (irtypes.IR, error) {
 	ir := irtypes.NewIR(plan)
 	codecs := serializer.NewCodecFactory(k8sAPIResourceSet.GetScheme())
@@ -139,6 +139,13 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) Translate(services []plantypes.Servi
 			continue
 		}
 		irService.PodSpec = podSpec
+		for _, container := range podSpec.Containers {
+			for _, port := range container.Ports {
+				podPort := irtypes.Port{Name: port.Name, Number: port.ContainerPort}
+				servicePort := podPort
+				irService.AddPortForwarding(servicePort, podPort)
+			}
+		}
 		ir.Services[service.ServiceName] = irService
 	}
 	return ir, nil

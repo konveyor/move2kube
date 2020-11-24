@@ -517,22 +517,22 @@ func (d *Service) createService(service irtypes.Service, serviceType v1.ServiceT
 // GetServicePorts configure the container service ports.
 func (d *Service) getServicePorts(service irtypes.Service) []v1.ServicePort {
 	servicePorts := []v1.ServicePort{}
-	for _, serviceContainer := range service.Containers {
-		for _, port := range serviceContainer.Ports {
-			portName := port.Name
-			targetPort := intstr.IntOrString{Type: intstr.String, StrVal: port.Name}
-			if port.Name == "" {
-				portName = fmt.Sprintf("port-%d", port.ContainerPort)
-				targetPort.Type = intstr.Int
-				targetPort.IntVal = port.ContainerPort
-			}
-			servicePort := v1.ServicePort{
-				Name:       portName,
-				Port:       port.ContainerPort,
-				TargetPort: targetPort,
-			}
-			servicePorts = append(servicePorts, servicePort)
+	for _, forwarding := range service.ServiceToPodPortForwardings {
+		servicePortName := forwarding.ServicePort.Name
+		if servicePortName == "" {
+			servicePortName = fmt.Sprintf("port-%d", forwarding.ServicePort.Number)
 		}
+		targetPort := intstr.IntOrString{Type: intstr.String, StrVal: forwarding.PodPort.Name}
+		if forwarding.PodPort.Name == "" {
+			targetPort.Type = intstr.Int
+			targetPort.IntVal = forwarding.PodPort.Number
+		}
+		servicePort := v1.ServicePort{
+			Name:       servicePortName,
+			Port:       forwarding.ServicePort.Number,
+			TargetPort: targetPort,
+		}
+		servicePorts = append(servicePorts, servicePort)
 	}
 	return servicePorts
 }

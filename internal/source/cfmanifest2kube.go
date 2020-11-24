@@ -31,6 +31,7 @@ import (
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 	v1 "k8s.io/api/core/v1"
 )
@@ -261,107 +262,135 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 }
 
 // Translate translates servies to IR
-func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error) {
-	ir := irtypes.NewIR(p)
+func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes.Service, plan plantypes.Plan) (irtypes.IR, error) {
+	ir := irtypes.NewIR(plan)
 	containerizers := new(containerizer.Containerizers)
-	containerizers.InitContainerizers(p.Spec.Inputs.RootDir)
+	containerizers.InitContainerizers(plan.Spec.Inputs.RootDir)
 	for _, service := range services {
-		if service.TranslationType == cfManifestTranslator.GetTranslatorType() {
-			log.Debugf("Translating %s", service.ServiceName)
+		if service.TranslationType != cfManifestTranslator.GetTranslatorType() {
+			continue
+		}
+		log.Debugf("Translating %s", service.ServiceName)
 
-			var cfinstanceapp collecttypes.CfApplication
-			if runninginstancefile, ok := service.SourceArtifacts[plantypes.CfRunningManifestArtifactType]; ok {
-				cfinstanceapp = getCfAppInstance(runninginstancefile[0], service.ServiceName)
+		var cfinstanceapp collecttypes.CfApplication
+		if runninginstancefile, ok := service.SourceArtifacts[plantypes.CfRunningManifestArtifactType]; ok {
+			var err error
+			cfinstanceapp, err = getCfAppInstance(runninginstancefile[0], service.ServiceName)
+			if err != nil {
+				log.Debugf("The file at path %s is not a valid cf apps file. Error: %q", runninginstancefile[0], err)
 			}
+		}
 
-			if paths, ok := service.SourceArtifacts[plantypes.CfManifestArtifactType]; ok {
-				path := paths[0]
-				applications, variables, err := ReadApplicationManifest(path, service.ServiceName, p.Spec.Outputs.Kubernetes.ArtifactType)
-				if err != nil {
-					log.Debugf("Error while trying to parse manifest : %s", err)
-					continue
+		if paths, ok := service.SourceArtifacts[plantypes.CfManifestArtifactType]; ok {
+			path := paths[0] // TODO: what about the rest of the manifests?
+			applications, variables, err := ReadApplicationManifest(path, service.ServiceName, plan.Spec.Outputs.Kubernetes.ArtifactType)
+			if err != nil {
+				log.Debugf("Error while trying to parse manifest : %s", err)
+				continue
+			}
+			log.Debugf("Using cf manifest file at path %s to translate service %s", path, service.ServiceName)
+			container, err := containerizers.GetContainer(plan, service)
+			if err != nil {
+				log.Errorf("Failed to containerize service %s in cf manifest file at path %s Error: %q", service.ServiceName, path, err)
+				continue
+			}
+			ir.AddContainer(container)
+			application := applications[0]
+			serviceConfig := irtypes.NewServiceFromPlanService(service)
+			serviceContainer := v1.Container{Name: service.ServiceName}
+			serviceContainer.Image = service.Image
+			for varname, value := range application.EnvironmentVariables {
+				serviceContainer.Env = append(serviceContainer.Env, v1.EnvVar{Name: varname, Value: value})
+			}
+			for _, variable := range variables {
+				ir.Values.GlobalVariables[variable] = variable
+			}
+			//TODO: Add support for services, health check, memory
+			if application.Instances.IsSet {
+				serviceConfig.Replicas = application.Instances.Value
+			} else if cfinstanceapp.Instances != 0 {
+				serviceConfig.Replicas = cfinstanceapp.Instances
+			}
+			for varname, value := range cfinstanceapp.Env {
+				serviceContainer.Env = append(serviceContainer.Env, v1.EnvVar{Name: varname, Value: value})
+			}
+			if len(cfinstanceapp.Ports) > 0 {
+				for _, port := range cfinstanceapp.Ports {
+					// Add the port to the k8s pod.
+					serviceContainer.Ports = append(serviceContainer.Ports, v1.ContainerPort{ContainerPort: port})
+					// Forward the port on the k8s service to the k8s pod.
+					podPort := irtypes.Port{Number: int32(port)}
+					servicePort := podPort
+					serviceConfig.AddPortForwarding(servicePort, podPort)
 				}
-				application := applications[0]
-				serviceConfig := irtypes.NewServiceFromPlanService(service)
-				serviceContainer := v1.Container{Name: service.ServiceName}
-				serviceContainer.Image = service.Image
-				//TODO: Add support for services, health check, memory
-				if application.Instances.IsSet {
-					serviceConfig.Replicas = application.Instances.Value
-				} else if cfinstanceapp.Instances != 0 {
-					serviceConfig.Replicas = cfinstanceapp.Instances
-				}
-				for varname, value := range application.EnvironmentVariables {
-					envvar := v1.EnvVar{Name: varname, Value: value}
-					serviceContainer.Env = append(serviceContainer.Env, envvar)
-				}
-				for varname, value := range cfinstanceapp.Env {
-					envvar := v1.EnvVar{Name: varname, Value: value}
-					serviceContainer.Env = append(serviceContainer.Env, envvar)
-				}
-				for _, variable := range variables {
-					ir.Values.GlobalVariables[variable] = variable
-				}
-				if cfinstanceapp.Ports != nil && len(cfinstanceapp.Ports) > 0 {
-					serviceContainer.Ports = []v1.ContainerPort{}
-					for _, port := range cfinstanceapp.Ports {
-						serviceContainer.Ports = append(serviceContainer.Ports, v1.ContainerPort{ContainerPort: port,
-							Protocol: v1.ProtocolTCP,
-						})
-					}
+				envvar := v1.EnvVar{Name: "PORT", Value: cast.ToString(cfinstanceapp.Ports[0])}
+				serviceContainer.Env = append(serviceContainer.Env, envvar)
+			} else {
+				port := int32(common.DefaultServicePort)
+				// Add the port to the k8s pod.
+				serviceContainer.Ports = []v1.ContainerPort{{ContainerPort: port}}
+				// Forward the port on the k8s service to the k8s pod.
+				podPort := irtypes.Port{Number: int32(port)}
+				servicePort := podPort
+				serviceConfig.AddPortForwarding(servicePort, podPort)
 
-					envvar := v1.EnvVar{Name: "PORT", Value: fmt.Sprintf("%d", cfinstanceapp.Ports[0])}
-					serviceContainer.Env = append(serviceContainer.Env, envvar)
-				} else {
-					serviceContainer.Ports = []v1.ContainerPort{
-						{ContainerPort: 8080,
-							Protocol: v1.ProtocolTCP,
-						}}
-					envvar := v1.EnvVar{Name: "PORT", Value: "8080"}
-					serviceContainer.Env = append(serviceContainer.Env, envvar)
-				}
-				serviceConfig.Containers = []v1.Container{serviceContainer}
-				container, err := containerizers.GetContainer(p, service)
-				if err == nil {
-					ir.AddContainer(container)
-					ir.Services[service.ServiceName] = serviceConfig
-				} else {
-					log.Errorf("Unable to translate service %s using cfmanifest at %s : %s", service.ServiceName, path, err)
+				envvar := v1.EnvVar{Name: "PORT", Value: cast.ToString(port)}
+				serviceContainer.Env = append(serviceContainer.Env, envvar)
+			}
+			for _, port := range container.ExposedPorts {
+				// Add the port to the k8s pod.
+				serviceContainer.Ports = append(serviceContainer.Ports, v1.ContainerPort{ContainerPort: int32(port)})
+				// Forward the port on the k8s service to the k8s pod.
+				podPort := irtypes.Port{Number: int32(port)}
+				servicePort := podPort
+				serviceConfig.AddPortForwarding(servicePort, podPort)
+			}
+			serviceConfig.Containers = []v1.Container{serviceContainer}
+			ir.Services[service.ServiceName] = serviceConfig
+		} else {
+			log.Debugf("No cf manifest file found for service %s", service.ServiceName)
+			container, err := containerizers.GetContainer(plan, service)
+			if err != nil {
+				log.Errorf("Failed to containerize service %s using cfmanifest translator. Error: %q", service.ServiceName, err)
+				continue
+			}
+			ir.AddContainer(container)
+			serviceConfig := irtypes.NewServiceFromPlanService(service)
+			serviceContainer := v1.Container{Name: service.ServiceName, Image: service.Image}
+			if cfinstanceapp.Instances != 0 {
+				serviceConfig.Replicas = cfinstanceapp.Instances
+			}
+			for varname, value := range cfinstanceapp.Env {
+				serviceContainer.Env = append(serviceContainer.Env, v1.EnvVar{Name: varname, Value: value})
+			}
+			if len(cfinstanceapp.Ports) > 0 {
+				for _, port := range cfinstanceapp.Ports {
+					// Add the port to the k8s pod.
+					serviceContainer.Ports = append(serviceContainer.Ports, v1.ContainerPort{ContainerPort: port})
+					// Forward the port on the k8s service to the k8s pod.
+					podPort := irtypes.Port{Number: port}
+					servicePort := podPort
+					serviceConfig.AddPortForwarding(servicePort, podPort)
 				}
 			} else {
-				serviceConfig := irtypes.NewServiceFromPlanService(service)
-				serviceContainer := v1.Container{Name: service.ServiceName}
-				serviceContainer.Image = service.Image
-				if cfinstanceapp.Instances != 0 {
-					serviceConfig.Replicas = cfinstanceapp.Instances
-				}
-				for varname, value := range cfinstanceapp.Env {
-					envvar := v1.EnvVar{Name: varname, Value: value}
-					serviceContainer.Env = append(serviceContainer.Env, envvar)
-				}
-				if cfinstanceapp.Ports != nil && len(cfinstanceapp.Ports) > 0 {
-					serviceContainer.Ports = []v1.ContainerPort{}
-					for _, port := range cfinstanceapp.Ports {
-						serviceContainer.Ports = append(serviceContainer.Ports, v1.ContainerPort{ContainerPort: port,
-							Protocol: v1.ProtocolTCP,
-						})
-					}
-				} else {
-					serviceContainer.Ports = []v1.ContainerPort{
-						{
-							ContainerPort: 8080,
-							Protocol:      v1.ProtocolTCP,
-						}}
-				}
-				serviceConfig.Containers = []v1.Container{serviceContainer}
-				container, err := containerizers.GetContainer(p, service)
-				if err == nil {
-					ir.AddContainer(container)
-					ir.Services[service.ServiceName] = serviceConfig
-				} else {
-					log.Errorf("Unable to translate service %s using cfinstancemanifest : %s", service.ServiceName, err)
-				}
+				port := int32(common.DefaultServicePort)
+				// Add the port to the k8s pod.
+				serviceContainer.Ports = []v1.ContainerPort{{ContainerPort: port}}
+				// Forward the port on the k8s service to the k8s pod.
+				podPort := irtypes.Port{Number: int32(port)}
+				servicePort := podPort
+				serviceConfig.AddPortForwarding(servicePort, podPort)
 			}
+			for _, port := range container.ExposedPorts {
+				// Add the port to the k8s pod.
+				serviceContainer.Ports = append(serviceContainer.Ports, v1.ContainerPort{ContainerPort: int32(port)})
+				// Forward the port on the k8s service to the k8s pod.
+				podPort := irtypes.Port{Number: int32(port)}
+				servicePort := podPort
+				serviceConfig.AddPortForwarding(servicePort, podPort)
+			}
+			serviceConfig.Containers = []v1.Container{serviceContainer}
+			ir.Services[service.ServiceName] = serviceConfig
 		}
 	}
 	return ir, nil
@@ -446,8 +475,8 @@ func getMissingVariables(path string) ([]string, error) {
 	return trimmedvariables, nil
 }
 
-func getCfInstanceApp(apps map[string][]collecttypes.CfApplication, name string) (string, collecttypes.CfApplication) {
-	for path, apps := range apps {
+func getCfInstanceApp(fileApps map[string][]collecttypes.CfApplication, name string) (string, collecttypes.CfApplication) {
+	for path, apps := range fileApps {
 		for _, app := range apps {
 			if app.Name == name {
 				return path, app
@@ -457,16 +486,15 @@ func getCfInstanceApp(apps map[string][]collecttypes.CfApplication, name string)
 	return "", collecttypes.CfApplication{}
 }
 
-func getCfAppInstance(path string, appname string) collecttypes.CfApplication {
+func getCfAppInstance(path string, appname string) (collecttypes.CfApplication, error) {
 	cfinstanceappsfile := collecttypes.CfInstanceApps{}
-	err := common.ReadYaml(path, &cfinstanceappsfile)
-	if err != nil {
-		log.Debugf("Not a valid apps file : %s %s", path, err)
+	if err := common.ReadYaml(path, &cfinstanceappsfile); err != nil {
+		return collecttypes.CfApplication{}, err
 	}
 	for _, app := range cfinstanceappsfile.Spec.CfApplications {
 		if app.Name == appname {
-			return app
+			return app, nil
 		}
 	}
-	return collecttypes.CfApplication{}
+	return collecttypes.CfApplication{}, fmt.Errorf("Failed to find the app %s in the cf apps file at path %s", appname, path)
 }

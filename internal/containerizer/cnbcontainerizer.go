@@ -17,7 +17,7 @@ limitations under the License.
 package containerizer
 
 import (
-	"errors"
+	"fmt"
 	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
@@ -71,30 +71,37 @@ func (d *CNBContainerizer) GetContainerBuildStrategy() plantypes.ContainerBuildT
 func (d *CNBContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	// TODO: Fix exposed ports too
 	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
-	if service.ContainerBuildType == d.GetContainerBuildStrategy() && len(service.ContainerizationTargetOptions) > 0 {
-		builder := service.ContainerizationTargetOptions[0]
-		cnbbuilderstring, err := common.GetStringFromTemplate(scripts.CNBBuilder_sh, struct {
-			ImageName string
-			Builder   string
-		}{
-			ImageName: service.Image,
-			Builder:   builder,
-		})
-		if err != nil {
-			log.Warnf("Unable to translate template to string : %s", scripts.CNBBuilder_sh)
-		} else {
-			sourceCodeDir := service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0]
-			relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, sourceCodeDir)
-			if err != nil {
-				log.Errorf("Failed to make the source code directory %q relative to the root directory %q Error: %q", sourceCodeDir, plan.Spec.Inputs.RootDir, err)
-				return container, err
-			}
-			container.AddFile(filepath.Join(relOutputPath, service.ServiceName+"-cnb-build.sh"), cnbbuilderstring)
-		}
-		container.ExposedPorts = []int{8080}
-		return container, nil
+	if service.ContainerBuildType != d.GetContainerBuildStrategy() {
+		return container, fmt.Errorf("Service %s has container build type %s . Expected %s", service.ServiceName, service.ContainerBuildType, d.GetContainerBuildStrategy())
 	}
-	return container, errors.New("Unsupported service type for Containerization or insufficient information in service")
+	if len(service.ContainerizationTargetOptions) == 0 {
+		return container, fmt.Errorf("Service %s has no containerization target options", service.ServiceName)
+	}
+	builder := service.ContainerizationTargetOptions[0]
+	cnbbuilderstring, err := common.GetStringFromTemplate(scripts.CNBBuilder_sh, struct {
+		ImageName string
+		Builder   string
+	}{
+		ImageName: service.Image,
+		Builder:   builder,
+	})
+	if err != nil {
+		log.Warnf("Unable to translate template %s to string. Error: %q", scripts.CNBBuilder_sh, err)
+		return container, err
+	}
+	if len(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType]) == 0 {
+		err := fmt.Errorf("Service %s has no source code directory specified", service.ServiceName)
+		return container, err
+	}
+	sourceCodeDir := service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0]
+	relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, sourceCodeDir)
+	if err != nil {
+		log.Errorf("Failed to make the source code directory %q relative to the root directory %q Error: %q", sourceCodeDir, plan.Spec.Inputs.RootDir, err)
+		return container, err
+	}
+	container.AddFile(filepath.Join(relOutputPath, service.ServiceName+"-cnb-build.sh"), cnbbuilderstring)
+	container.AddExposedPort(common.DefaultServicePort)
+	return container, nil
 }
 
 // GetAllBuildpacks returns all supported buildpacks

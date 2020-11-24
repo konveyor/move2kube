@@ -43,7 +43,7 @@ func (d *ReuseDockerfileContainerizer) GetContainer(plan plantypes.Plan, service
 
 	if len(service.ContainerizationTargetOptions) == 0 {
 		err := fmt.Errorf("Failed to reuse the Dockerfile. The service %s doesn't have any containerization target options", service.ServiceName)
-		log.Debugf("Error: %q", err)
+		log.Debug(err)
 		return container, err
 	}
 

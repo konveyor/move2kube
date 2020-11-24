@@ -8,7 +8,11 @@ services:
           ports:
             - containerport: 8080
     name: nodejs
-    ServiceRelPath: ""
+    servicetopodportforwardings:
+      - serviceport:
+          number: 8080
+        podport:
+          number: 8080
 containers:
   - containerbuildtype: "CNB"
     imagenames:
