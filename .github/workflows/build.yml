@@ -22,7 +22,6 @@ jobs:
       with:
         path: |
           ~/go/pkg/mod
-          ~/.cache/go-build
         key: ${{ runner.os }}
 
     - name: Check out code
