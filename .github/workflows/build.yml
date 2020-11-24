@@ -29,8 +29,3 @@ jobs:
 
     - name: Build and Test 
       run: make ci
-
-    - name: Slack Notification
-      uses: rtCamp/action-slack-notify@v2
-      env:
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
