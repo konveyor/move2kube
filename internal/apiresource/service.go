@@ -20,17 +20,17 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/konveyor/move2kube/internal/common"
+	irtypes "github.com/konveyor/move2kube/internal/types"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	okdroutev1 "github.com/openshift/api/route/v1"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	common "github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 )
 
 const (
@@ -280,7 +280,7 @@ func (d *Service) serviceToIngress(service v1.Service) []runtime.Object {
 			// All ports cannot be exposed as /svcname because they will clash
 			path = pathPrefix + "/" + serviceport.Name
 			if serviceport.Name == "" {
-				path = pathPrefix + "/" + fmt.Sprintf("%d", serviceport.Port)
+				path = pathPrefix + "/" + cast.ToString(serviceport.Port)
 			}
 		}
 		rule := networkingv1.IngressRule{
@@ -429,7 +429,7 @@ func (d *Service) createIngress(ir irtypes.IR) *networkingv1.Ingress {
 				// All ports cannot be exposed as /ServiceRelPath because they will clash
 				path = pathPrefix + "/" + servicePort.Name
 				if servicePort.Name == "" {
-					path = pathPrefix + "/" + fmt.Sprintf("%d", servicePort.Port)
+					path = pathPrefix + "/" + cast.ToString(servicePort.Port)
 				}
 			}
 			backendPort := networkingv1.ServiceBackendPort{Name: servicePort.Name}

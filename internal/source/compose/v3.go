@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -196,7 +195,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 			securityContext.Privileged = &composeServiceConfig.Privileged
 		}
 		if composeServiceConfig.User != "" {
-			uid, err := strconv.ParseInt(composeServiceConfig.User, 10, 64)
+			uid, err := cast.ToInt64E(composeServiceConfig.User)
 			if err != nil {
 				log.Warn("Ignoring user directive. User to be specified as a UID (numeric).")
 			} else {
@@ -241,7 +240,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 					resourceLimit[corev1.ResourceMemory] = *resource.NewQuantity(int64(memLimit), "RandomStringForFormat")
 				}
 				if composeServiceConfig.Deploy.Resources.Limits.NanoCPUs != "" {
-					cpuLimit, err := strconv.ParseFloat(composeServiceConfig.Deploy.Resources.Limits.NanoCPUs, 64)
+					cpuLimit, err := cast.ToFloat64E(composeServiceConfig.Deploy.Resources.Limits.NanoCPUs)
 					if err != nil {
 						log.Warnf("Unable to convert cpu limits resources value : %s", err)
 					}
@@ -259,7 +258,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 					resourceRequests[corev1.ResourceMemory] = *resource.NewQuantity(int64(MemReservation), "RandomStringForFormat")
 				}
 				if composeServiceConfig.Deploy.Resources.Reservations.NanoCPUs != "" {
-					cpuReservation, err := strconv.ParseFloat(composeServiceConfig.Deploy.Resources.Reservations.NanoCPUs, 64)
+					cpuReservation, err := cast.ToFloat64E(composeServiceConfig.Deploy.Resources.Reservations.NanoCPUs)
 					if err != nil {
 						log.Warnf("Unable to convert cpu limits reservation value : %s", err)
 					}

@@ -19,12 +19,12 @@ package qaengine
 import (
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 // SolutionFormType is the type that defines different types of solutions possible
@@ -93,7 +93,7 @@ func (p *Problem) SetAnswer(answer []string) error {
 		return nil
 	}
 	if p.Solution.Type == ConfirmSolutionFormType {
-		_, err := strconv.ParseBool(answer[0])
+		_, err := cast.ToBoolE(answer[0])
 		if err != nil {
 			log.Warnf("Error while parsing answer for confirm question type : %s", err)
 			return err
@@ -126,7 +126,7 @@ func (p *Problem) GetBoolAnswer() (ans bool, err error) {
 	if len(p.Solution.Answer) != 1 {
 		return false, fmt.Errorf("No answer available")
 	}
-	ans, err = strconv.ParseBool(p.Solution.Answer[0])
+	ans, err = cast.ToBoolE(p.Solution.Answer[0])
 	if err != nil {
 		return false, err
 	}
@@ -214,12 +214,12 @@ func newProblem(t SolutionFormType, desc string, context []string, def []string,
 			log.Warnf("Only one default is allowed for question %s.", desc)
 		}
 		if len(def) == 0 {
-			def = []string{strconv.FormatBool(false)}
+			def = []string{cast.ToString(false)}
 		} else {
-			_, err := strconv.ParseBool(def[0])
+			_, err := cast.ToBoolE(def[0])
 			if err != nil {
 				log.Warnf("Unable to parse default value %s. Setting as false", def[0])
-				def = []string{strconv.FormatBool(false)}
+				def = []string{cast.ToString(false)}
 			}
 			def = []string{def[0]}
 		}
@@ -272,7 +272,7 @@ func NewMultiSelectProblem(desc string, context []string, def []string, opts []s
 
 // NewConfirmProblem creates a new instance of confirm problem
 func NewConfirmProblem(desc string, context []string, def bool) (p Problem, err error) {
-	return newProblem(ConfirmSolutionFormType, desc, context, []string{strconv.FormatBool(def)}, []string{})
+	return newProblem(ConfirmSolutionFormType, desc, context, []string{cast.ToString(def)}, []string{})
 }
 
 // NewInputProblem creates a new instance of input problem

@@ -21,7 +21,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -35,6 +34,7 @@ import (
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -187,7 +187,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 			securityContext.Privileged = &composeServiceConfig.Privileged
 		}
 		if composeServiceConfig.User != "" {
-			uid, err := strconv.ParseInt(composeServiceConfig.User, 10, 64)
+			uid, err := cast.ToInt64E(composeServiceConfig.User)
 			if err != nil {
 				log.Warn("Ignoring user directive. User to be specified as a UID (numeric).")
 			} else {
@@ -409,7 +409,7 @@ func (*V1V2Loader) parseContainerPort(value string) (servicePort int, podPort in
 	}
 	if !strings.Contains(value, ":") {
 		// "3000"
-		podPort, err = strconv.Atoi(value)
+		podPort, err = cast.ToIntE(value)
 		if err != nil {
 			log.Debugf("Failed to parse the port %s as an integer. Error: %q", value, err)
 			return podPort, podPort, protocol, err
@@ -427,12 +427,12 @@ func (*V1V2Loader) parseContainerPort(value string) (servicePort int, podPort in
 		err := fmt.Errorf("Failed to parse the port %s properly", value)
 		return servicePort, podPort, protocol, err
 	}
-	servicePort, err = strconv.Atoi(servicePortStr)
+	servicePort, err = cast.ToIntE(servicePortStr)
 	if err != nil {
 		log.Debugf("Failed to parse the port %s as an integer. Error: %q", servicePortStr, err)
 		return servicePort, servicePort, protocol, err
 	}
-	podPort, err = strconv.Atoi(podPortStr)
+	podPort, err = cast.ToIntE(podPortStr)
 	if err != nil {
 		log.Debugf("Failed to parse the port %s as an integer. Error: %q", podPortStr, err)
 		return servicePort, podPort, protocol, err
@@ -443,7 +443,7 @@ func (*V1V2Loader) parseContainerPort(value string) (servicePort int, podPort in
 func getGroupAdd(group []string) ([]int64, error) {
 	var groupAdd []int64
 	for _, i := range group {
-		j, err := strconv.Atoi(i)
+		j, err := cast.ToIntE(i)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to get group_add")
 		}

@@ -102,6 +102,14 @@ func loadSSHKeysOfCurrentUser() {
 		return
 	}
 	firstTimeLoadingSSHKeysOfUser = false
+	usr, err := user.Current()
+	if err != nil {
+		log.Warn("Failed to get the current user. Error:", err)
+		return
+	}
+	home := usr.HomeDir
+	log.Debugf("Home directory: %q", home)
+	privateKeyDir = filepath.Join(home, ".ssh")
 	log.Debugf("Looking in ssh directory at path %q for keys.", privateKeyDir)
 
 	// Ask if we should look at the private keys

@@ -18,13 +18,13 @@ package optimize
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -90,7 +90,7 @@ func (*portMergeOptimizer) gatherPorts(ir irtypes.IR, service irtypes.Service) m
 func (*portMergeOptimizer) askQuestion(service irtypes.Service, portToContainerIdx map[int]int) map[int]int {
 	eligiblePorts := []string{}
 	for eligiblePort := range portToContainerIdx {
-		eligiblePorts = append(eligiblePorts, fmt.Sprintf("%d", eligiblePort))
+		eligiblePorts = append(eligiblePorts, cast.ToString(eligiblePort))
 	}
 	message := fmt.Sprintf("Service %s has no ports. Please select the ports that should be added to it:", service.Name)
 	hint := []string{"If this is a headless service deselect all the ports."}
@@ -111,7 +111,7 @@ func (*portMergeOptimizer) askQuestion(service irtypes.Service, portToContainerI
 	}
 	selectedPortToContainerIdx := map[int]int{}
 	for _, eligiblePort := range eligiblePorts {
-		selectedPort, err := strconv.Atoi(eligiblePort)
+		selectedPort, err := cast.ToIntE(eligiblePort)
 		if err != nil {
 			log.Debugf("Failed to parse %q as an integer port. Error: %q", eligiblePort, err)
 			continue
