@@ -51,7 +51,7 @@ VERSION_METADATA = unreleased
 ifneq ($(GIT_TAG),)
 	VERSION_METADATA =
 endif
-LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.metadata=${VERSION_METADATA}
+LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.buildmetadata=${VERSION_METADATA}
 
 LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.gitCommit=${GIT_COMMIT}
 LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.gitTreeState=${GIT_DIRTY}
