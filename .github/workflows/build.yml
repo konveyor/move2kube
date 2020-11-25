@@ -39,7 +39,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Pull latest image to reuse layers
-      run: docker pull quay.io/konveyor/move2kube:latest
+      run: |
+        docker pull quay.io/konveyor/move2kube:latest
+        docker pull quay.io/konveyor/move2kube-builder:latest
     - name: Build and Push image to quay
       run: |
         echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
