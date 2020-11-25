@@ -22,14 +22,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	sourcetypes "github.com/konveyor/move2kube/internal/collector/sourcetypes"
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 //ImagesCollector collects the docker images
@@ -109,7 +108,7 @@ func getImageInfo(data []byte) collecttypes.ImageInfo {
 	}
 	for _, image := range imgLayerInfo {
 		imageInfo.Spec.Tags = image.RepoTags
-		imageInfo.Spec.UserID, err = strconv.Atoi(image.CConfig.User)
+		imageInfo.Spec.UserID, err = cast.ToIntE(image.CConfig.User)
 		if err != nil {
 			log.Debugf("UserID not available in image metadata for [%s]", image.RepoTags[0])
 			imageInfo.Spec.UserID = -1
@@ -117,7 +116,7 @@ func getImageInfo(data []byte) collecttypes.ImageInfo {
 		imageInfo.Spec.AccessedDirs = append(imageInfo.Spec.AccessedDirs, image.CConfig.WorkingDir)
 		for key := range image.CConfig.EPorts {
 			regex := regexp.MustCompile("[0-9]+")
-			portNumber, err := strconv.Atoi(string(regex.FindAll([]byte(key), -1)[0]))
+			portNumber, err := cast.ToIntE(string(regex.FindAll([]byte(key), -1)[0]))
 			if err != nil {
 				log.Debugf("PortNumber not available in image metadata for [%s]", image.RepoTags[0])
 			} else {

@@ -18,12 +18,11 @@ package qaengine
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/AlecAivazis/survey/v2"
-	log "github.com/sirupsen/logrus"
-
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 // CliEngine handles the CLI based qa
@@ -104,7 +103,7 @@ func (c *CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (answer qatypes
 func (c *CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
 	var ans, d bool
 	if len(prob.Solution.Default) > 0 {
-		d, err = strconv.ParseBool(prob.Solution.Default[0])
+		d, err = cast.ToBoolE(prob.Solution.Default[0])
 		if err != nil {
 			log.Warnf("Unable to parse default value : %s", err)
 		}

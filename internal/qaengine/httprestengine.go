@@ -22,12 +22,12 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/phayes/freeport"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 const (
@@ -69,7 +69,7 @@ func (h *HTTPRESTEngine) StartEngine() error {
 	r.HandleFunc(currentSolutionURLPrefix, h.solutionHandler).Methods("POST")
 
 	http.Handle("/", r)
-	qaportstr := strconv.Itoa(h.port)
+	qaportstr := cast.ToString(h.port)
 
 	listener, err := net.Listen("tcp", ":"+qaportstr)
 	if err != nil {
