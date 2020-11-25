@@ -11,6 +11,7 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
+
     steps:
 
     - name: Set up Go
@@ -31,10 +32,13 @@ jobs:
       uses: codecov/codecov-action@v1
 
   imagebuild:
+    name: Image Build
     runs-on: ubuntu-latest
     needs: [build]
     if: ${{ github.ref == 'refs/heads/master' && github.event_name == 'push' }}
+
     steps:
+
     - uses: actions/checkout@v2
 
     - name: Build and Push image to quay
@@ -48,7 +52,7 @@ jobs:
       env:
         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         SLACK_ICON: https://github.com/actions.png?size=48
-        SLACK_MESSAGE: 'Built and Pushed quay.io/konveyor/move2kube:${{ github.head_ref }}'
+        SLACK_MESSAGE: 'Built and Pushed quay.io/konveyor/move2kube:latest'
         SLACK_TITLE: Success
         SLACK_USERNAME: GitHubActions
 
@@ -59,6 +63,6 @@ jobs:
         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
         SLACK_COLOR: '#BD3232'
         SLACK_ICON: https://github.com/actions.png?size=48
-        SLACK_MESSAGE: 'Failed to build and push image quay.io/konveyor/move2kube:${{ github.head_ref }}'
+        SLACK_MESSAGE: 'Failed to build and push image quay.io/konveyor/move2kube:latest'
         SLACK_TITLE: Failed
         SLACK_USERNAME: GitHubActions
