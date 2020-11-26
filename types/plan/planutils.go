@@ -202,10 +202,10 @@ func WritePlan(path string, plan Plan) error {
 
 // IsAssetsPath returns true if it is a m2kassets path.
 func IsAssetsPath(path string) bool {
-	pathParts := strings.Split(path, string(os.PathSeparator))
 	if filepath.IsAbs(path) {
-		return common.IsStringPresent(pathParts, common.AssetsDir)
+		return strings.HasPrefix(path, common.TempPath)
 	}
+	pathParts := strings.Split(path, string(os.PathSeparator))
 	return len(pathParts) > 0 && pathParts[0] == common.AssetsDir
 }
 
