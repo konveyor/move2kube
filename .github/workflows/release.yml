@@ -101,6 +101,17 @@ jobs:
           {
             "tag": "${GITHUB_REF/refs\/tags\//}"
           }
+    - name: Trigger move2kube-operator tagging
+      uses: mvasigh/dispatch-action@main
+      with:
+        token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+        repo: move2kube-operator
+        owner: konveyor
+        event_type: cli_tagged
+        message: |
+          {
+            "tag": "${GITHUB_REF/refs\/tags\//}"
+          }
     - name: Trigger move2kube-tests tagging
       uses: mvasigh/dispatch-action@main
       with:
