@@ -1,0 +1,43 @@
+name: Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag Name'     
+        required: true
+        default: 'v0.1.0-beta.2'
+
+jobs:
+
+  tag:
+    name: Tag
+    runs-on: ubuntu-latest
+    steps:
+    - name: Tag commit
+      uses: tvdias/github-tagger@v0.0.1
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        tag: ${{ github.event.inputs.tag }} 
+    - name: Trigger move2kube-api tagging
+      uses: mvasigh/dispatch-action@main
+      with:
+        token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+        repo: move2kube-api
+        owner: konveyor
+        event_type: cli_tagged
+        message: |
+          {
+            "tag": "${{ github.event.inputs.tag }} "
+          }
+    - name: Trigger move2kube-ui tagging
+      uses: mvasigh/dispatch-action@main
+      with:
+        token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+        repo: move2kube-ui
+        owner: konveyor
+        event_type: cli_tagged
+        message: |
+          {
+            "tag": "${{ github.event.inputs.tag }} "
+          }
