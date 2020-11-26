@@ -40,6 +40,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/xrash/smetrics"
 	yaml "gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 //GetFilesByExt returns files by extension
@@ -199,6 +200,52 @@ func ReadYaml(file string, data interface{}) error {
 				}
 			}
 		}
+	}
+	return nil
+}
+
+// ReadMove2KubeYaml reads move2kube specific yaml files (like m2k.plan) into an struct.
+// It checks if apiVersion to see if the group is move2kube and also reports if the
+// version is different from the expected version.
+func ReadMove2KubeYaml(path string, out interface{}) error {
+	yamlData, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Debugf("Failed to read the yaml file at path %s Error: %q", path, err)
+		return err
+	}
+	yamlMap := map[string]interface{}{}
+	if err := yaml.Unmarshal([]byte(yamlData), yamlMap); err != nil {
+		log.Debugf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
+		return err
+	}
+	groupVersionI, ok := yamlMap["apiVersion"]
+	if !ok {
+		err := fmt.Errorf("Did not find apiVersion in the yaml file at path %s", path)
+		log.Debug(err)
+		return err
+	}
+	groupVersionStr, ok := groupVersionI.(string)
+	if !ok {
+		err := fmt.Errorf("The apiVersion is not a string in the yaml file at path %s", path)
+		log.Debug(err)
+		return err
+	}
+	groupVersion, err := schema.ParseGroupVersion(groupVersionStr)
+	if err != nil {
+		log.Debugf("Failed to parse the apiVersion %s Error: %q", groupVersionStr, err)
+		return err
+	}
+	if groupVersion.Group != types.SchemeGroupVersion.Group {
+		err := fmt.Errorf("The file at path %s doesn't have the correct group. Expected group %s Actual group %s", path, types.SchemeGroupVersion.Group, groupVersion.Group)
+		log.Debug(err)
+		return err
+	}
+	if groupVersion.Version != types.SchemeGroupVersion.Version {
+		log.Warnf("The file at path %s was generated using a different version. File version is %s and move2kube version is %s", path, groupVersion.Version, types.SchemeGroupVersion.Version)
+	}
+	if err := yaml.Unmarshal(yamlData, out); err != nil {
+		log.Debugf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
+		return err
 	}
 	return nil
 }

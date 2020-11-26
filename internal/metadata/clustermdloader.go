@@ -120,12 +120,14 @@ func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[str
 
 func (*ClusterMDLoader) getClusterMetadata(path string) (collecttypes.ClusterMetadata, error) {
 	cm := collecttypes.ClusterMetadata{}
-	if err := common.ReadYaml(path, &cm); err != nil {
-		log.Errorf("Failed to read the cluster metadata at path %q Error: %q", path, err)
+	if err := common.ReadMove2KubeYaml(path, &cm); err != nil {
+		log.Debugf("Failed to read the cluster metadata at path %q Error: %q", path, err)
 		return cm, err
 	}
 	if cm.Kind != string(collecttypes.ClusterMetadataKind) {
-		return cm, fmt.Errorf("The file at path %q is not a valid cluster metadata. Expected kind: %s Actual kind: %s", path, collecttypes.ClusterMetadataKind, cm.Kind)
+		err := fmt.Errorf("The file at path %q is not a valid cluster metadata. Expected kind: %s Actual kind: %s", path, collecttypes.ClusterMetadataKind, cm.Kind)
+		log.Debug(err)
+		return cm, err
 	}
 	return cm, nil
 }

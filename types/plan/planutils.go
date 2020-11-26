@@ -164,7 +164,7 @@ func convertPathsEncode(plan *Plan) error {
 // ReadPlan decodes the plan from yaml converting relative paths to absolute.
 func ReadPlan(path string) (Plan, error) {
 	plan := Plan{}
-	if err := common.ReadYaml(path, &plan); err != nil {
+	if err := common.ReadMove2KubeYaml(path, &plan); err != nil {
 		log.Errorf("Failed to load the plan file at path %q Error %q", path, err)
 		return plan, err
 	}

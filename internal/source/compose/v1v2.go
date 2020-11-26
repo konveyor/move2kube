@@ -116,8 +116,13 @@ func ParseV2(path string) (*project.Project, error) {
 		Preprocess:  removeNonExistentEnvFilesV2(path),
 	}
 	proj := project.NewProject(&context, nil, &parseOptions)
-	if err := proj.Parse(); err != nil {
-		log.Debugf("Failed to load docker compose file at path %s Error: %q", path, err)
+	originalLevel := log.GetLevel()
+	log.SetLevel(log.FatalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
+	err := proj.Parse()
+	log.SetLevel(originalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
+	if err != nil {
+		err := fmt.Errorf("Failed to load docker compose file at path %s Error: %q", path, err)
+		log.Debug(err)
 		return nil, err
 	}
 	return proj, nil

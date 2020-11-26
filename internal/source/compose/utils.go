@@ -22,7 +22,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/konveyor/move2kube/internal/collector/sourcetypes"
 	"github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +34,7 @@ const (
 	envFile               string = "env_file"
 )
 
+/*
 // IsV3 returns if the docker-compose yaml is version 3
 func IsV3(path string) (bool, error) {
 	dcfile := sourcetypes.DockerCompose{}
@@ -54,6 +54,7 @@ func IsV3(path string) (bool, error) {
 		return false, err
 	}
 }
+*/
 
 func getEnvironmentVariables() map[string]string {
 	result := map[string]string{}

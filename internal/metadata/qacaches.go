@@ -38,7 +38,7 @@ func (*QACacheLoader) UpdatePlan(inputPath string, plan *plantypes.Plan) error {
 	}
 	for _, filePath := range filePaths {
 		cm := qatypes.Cache{}
-		if err := common.ReadYaml(filePath, &cm); err != nil {
+		if err := common.ReadMove2KubeYaml(filePath, &cm); err != nil {
 			log.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
 			continue
 		}
