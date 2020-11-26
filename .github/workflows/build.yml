@@ -64,11 +64,11 @@ jobs:
         client_payload: '{"tag": "${{ steps.gitvars.outputs.sha_short }}"}'
         wait_time: 5
         max_time: 1200
-    - name: Push image to quay
-      run: make cpush
     - name: Delete temp image tag
       if: always()
       run: skopeo delete docker://quay.io/konveyor/move2kube:${{ steps.gitvars.outputs.sha_short }}
+    - name: Push image to quay
+      run: make cpush
     - name: Trigger move2kube-api build
       uses: mvasigh/dispatch-action@main
       with:
