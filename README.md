@@ -80,4 +80,4 @@ Some demo usage flows can be found in [here](https://github.com/konveyor/move2ku
 ## Discussion
 
 * Check out the [document guides](./docs) to extend Move2Kube.
-* For any questions reach out to us on any of the communication channels given on our website https://konveyor.github.io/move2kube/
+* For any questions reach out to us on any of the communication channels given on our website https://konveyor.io/move2kube/

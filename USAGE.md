@@ -24,4 +24,4 @@ Note: If information about any runtime instance say cloud foundry or kubernetes 
 
 ## Contact
 
-For any questions reach out to us on any of the communication channels given on our website https://konveyor.github.io/move2kube/
+For any questions reach out to us on any of the communication channels given on our website https://konveyor.io/move2kube/
