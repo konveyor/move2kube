@@ -160,4 +160,5 @@ cbuild: ## Build docker image
 cpush: ## Push docker image
 	docker push ${REGISTRYNS}/${BINNAME}:latest
 	docker push ${REGISTRYNS}/${BINNAME}:${VERSION}
+	# To help with reusing layers and hence speeding up build
 	docker push ${REGISTRYNS}/${BINNAME}-builder:latest
