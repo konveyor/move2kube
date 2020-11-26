@@ -159,7 +159,7 @@ func getDCImageNames(directorypath string) ([]string, error) {
 		log.Warnf("Unable to fetch yaml files and recognize Docker image yamls : %s", err)
 	}
 	for _, path := range files {
-		dc := new(sourcetypes.DockerCompose)
+		dc := sourcetypes.DockerCompose{}
 		if common.ReadYaml(path, &dc) == nil {
 			for _, dcservice := range dc.DCServices {
 				imageNames = append(imageNames, dcservice.Image)

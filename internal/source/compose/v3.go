@@ -93,13 +93,15 @@ func removeNonExistentEnvFilesV3(path string, parsedComposeFile map[string]inter
 func ParseV3(path string) (*types.Config, error) {
 	fileData, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		err := fmt.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		log.Debug(err)
 		return nil, err
 	}
 	// Parse the Compose File
 	parsedComposeFile, err := loader.ParseYAML(fileData)
 	if err != nil {
-		log.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		err := fmt.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		log.Debug(err)
 		return nil, err
 	}
 	parsedComposeFile = removeNonExistentEnvFilesV3(path, parsedComposeFile)
@@ -111,7 +113,8 @@ func ParseV3(path string) (*types.Config, error) {
 	}
 	config, err := loader.Load(configDetails)
 	if err != nil {
-		log.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		err := fmt.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		log.Debug(err)
 		return nil, err
 	}
 	return config, nil

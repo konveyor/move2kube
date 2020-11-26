@@ -50,20 +50,22 @@ func TestUpdatePlan(t *testing.T) {
 
 	t.Run("check if all clusters in constant were loaded", func(t *testing.T) {
 		p := plantypes.NewPlan()
-		loader := metadata.ClusterMDLoader{}
-		cmMap := loader.GetClusters(p)
+		cmMap := new(metadata.ClusterMDLoader).GetClusters(p)
 
-		inputPath := "clusters/"
+		relInputPath := "clusters/"
+		inputPath, err := filepath.Abs(relInputPath)
+		if err != nil {
+			t.Fatalf("Failed to make the path %s absolute. Error: %q", relInputPath, err)
+		}
 
 		yfiles, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
 		if err != nil {
-			log.Warnf("Unable to fetch yaml files and recognize cluster metadata yamls : %s", err)
+			t.Fatalf("Unable to fetch yaml files and recognize cluster metadata yamls. Error : %q", err)
 		}
-		var objectMetaNames []string
+		objectMetaNames := []string{}
 		for _, yfile := range yfiles {
 			cm := collecttypes.ClusterMetadata{}
-			filename, _ := filepath.Abs(yfile)
-			if common.ReadYaml(filename, &cm) == nil {
+			if common.ReadMove2KubeYaml(yfile, &cm) == nil {
 				objectMetaNames = append(objectMetaNames, cm.ObjectMeta.Name)
 			}
 		}

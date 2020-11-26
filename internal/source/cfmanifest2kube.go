@@ -67,7 +67,7 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 	}
 	for _, filePath := range filePaths {
 		containerizersMetadata := collecttypes.CfContainerizers{}
-		err := common.ReadYaml(filePath, &containerizersMetadata)
+		err := common.ReadMove2KubeYaml(filePath, &containerizersMetadata)
 		if err != nil {
 			log.Debugf("Not a valid containerizer option file at path %q Error: %q", filePath, err)
 			continue
@@ -80,7 +80,7 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 	cfInstanceApps := map[string][]collecttypes.CfApplication{} //path
 	for _, filePath := range filePaths {
 		fileCfInstanceApps := collecttypes.CfInstanceApps{}
-		if err := common.ReadYaml(filePath, &fileCfInstanceApps); err != nil {
+		if err := common.ReadMove2KubeYaml(filePath, &fileCfInstanceApps); err != nil {
 			log.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
 			continue
 		}
@@ -488,7 +488,7 @@ func getCfInstanceApp(fileApps map[string][]collecttypes.CfApplication, name str
 
 func getCfAppInstance(path string, appname string) (collecttypes.CfApplication, error) {
 	cfinstanceappsfile := collecttypes.CfInstanceApps{}
-	if err := common.ReadYaml(path, &cfinstanceappsfile); err != nil {
+	if err := common.ReadMove2KubeYaml(path, &cfinstanceappsfile); err != nil {
 		return collecttypes.CfApplication{}, err
 	}
 	for _, app := range cfinstanceappsfile.Spec.CfApplications {

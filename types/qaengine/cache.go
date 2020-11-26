@@ -59,7 +59,7 @@ func NewCache(file string) Cache {
 // Load loads and merges cache
 func (cache *Cache) Load() error {
 	c := Cache{}
-	err := common.ReadYaml(cache.Spec.file, &c)
+	err := common.ReadMove2KubeYaml(cache.Spec.file, &c)
 	if err != nil {
 		log.Errorf("Unable to load cache : %s", err)
 	} else {
