@@ -43,12 +43,24 @@ jobs:
       run: |
         docker pull quay.io/konveyor/move2kube:latest || true
         docker pull quay.io/konveyor/move2kube-builder:latest || true
-    - name: Build and Push image to quay
+    - name: Quay login
+      run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
+    - name: Build image
+      run: make cbuild
+    - name: Push image to quay
       run: |
-        echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
-        make cbuild
         docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:${GITHUB_REF/refs\/tags\//}
         docker push quay.io/konveyor/move2kube:${GITHUB_REF/refs\/tags\//}
+    - name: Run test in move2kube-tests
+      uses: felixp8/dispatch-and-wait@v0.1.0
+      with:
+        owner: konveyor
+        repo: move2kube-tests
+        token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+        event_type: cli_build
+        client_payload: '{"tag": "${{ steps.gitvars.outputs.sha_short }}"}'
+        wait_time: 5
+        max_time: 1200
     - name: Success Slack Notification
       uses: rtCamp/action-slack-notify@v2
       env:

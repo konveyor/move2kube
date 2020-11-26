@@ -68,9 +68,7 @@ jobs:
       run: make cpush
     - name: Delete temp image tag
       if: always()
-      run: |
-        sudo apt-get -y install skopeo
-        skopeo delete docker://quay.io/konveyor/move2kube:${{ steps.gitvars.outputs.sha_short }}
+      run: skopeo delete docker://quay.io/konveyor/move2kube:${{ steps.gitvars.outputs.sha_short }}
     - name: Trigger move2kube-api build
       uses: mvasigh/dispatch-action@main
       with:
