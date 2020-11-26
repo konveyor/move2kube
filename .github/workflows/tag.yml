@@ -19,25 +19,3 @@ jobs:
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
         tag: ${{ github.event.inputs.tag }} 
-    - name: Trigger move2kube-api tagging
-      uses: mvasigh/dispatch-action@main
-      with:
-        token: ${{ secrets.MOVE2KUBE_PATOKEN }}
-        repo: move2kube-api
-        owner: konveyor
-        event_type: cli_tagged
-        message: |
-          {
-            "tag": "${{ github.event.inputs.tag }} "
-          }
-    - name: Trigger move2kube-ui tagging
-      uses: mvasigh/dispatch-action@main
-      with:
-        token: ${{ secrets.MOVE2KUBE_PATOKEN }}
-        repo: move2kube-ui
-        owner: konveyor
-        event_type: cli_tagged
-        message: |
-          {
-            "tag": "${{ github.event.inputs.tag }} "
-          }
