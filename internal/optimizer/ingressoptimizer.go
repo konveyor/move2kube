@@ -49,7 +49,7 @@ func (opt *ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	}
 
 	problem, err := qatypes.NewMultiSelectProblem("Select all services that should be exposed:",
-		[]string{"The services unselected here will not be exposed."},
+		[]string{"Exposed services will be reachable from outside the cluster."},
 		exposedServiceNames,
 		serviceNames)
 	if err != nil {
