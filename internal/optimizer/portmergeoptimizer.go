@@ -34,7 +34,7 @@ type portMergeOptimizer struct {
 
 //Optimize uses data from ir containers to fill ir.services
 func (opt *portMergeOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
-	for _, service := range ir.Services {
+	for serviceName, service := range ir.Services {
 		serviceHasNoPorts := true
 		for _, coreV1Container := range service.Containers {
 			if len(coreV1Container.Ports) > 0 {
@@ -57,7 +57,8 @@ func (opt *portMergeOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 			log.Infof("User deselected all ports. Not adding any ports to the service %s", service.Name)
 			continue
 		}
-		opt.exposePorts(service, selectedPortToContainerIdx)
+		opt.exposePorts(&service, selectedPortToContainerIdx)
+		ir.Services[serviceName] = service
 	}
 
 	return ir, nil
@@ -69,8 +70,9 @@ func (*portMergeOptimizer) gatherPorts(ir irtypes.IR, service irtypes.Service) m
 		if irContainer, ok := ir.GetContainer(coreV1Container.Image); ok {
 			for _, exposedPort := range irContainer.ExposedPorts {
 				if oldCoreV1ContainerIdx, ok := portToContainerIdx[exposedPort]; ok {
-					log.Warnf("The port %d is eligible to be exposed by both container %s and container %s",
-						exposedPort, service.Containers[oldCoreV1ContainerIdx].Name, coreV1Container.Name)
+					log.Debugf("The port %d is eligible to be exposed by both container %s and container %s of service %s",
+						exposedPort, service.Containers[oldCoreV1ContainerIdx].Name, coreV1Container.Name, service.Name)
+					continue
 				}
 				portToContainerIdx[exposedPort] = coreV1ContainerIdx
 			}
@@ -121,9 +123,13 @@ func (*portMergeOptimizer) askQuestion(service irtypes.Service, portToContainerI
 	return selectedPortToContainerIdx
 }
 
-func (*portMergeOptimizer) exposePorts(service irtypes.Service, portToContainerIdx map[int]int) {
+func (*portMergeOptimizer) exposePorts(service *irtypes.Service, portToContainerIdx map[int]int) {
 	for port, coreV1ContainerIdx := range portToContainerIdx {
-		coreV1Port := corev1.ContainerPort{ContainerPort: int32(port)}
-		service.Containers[coreV1ContainerIdx].Ports = append(service.Containers[coreV1ContainerIdx].Ports, coreV1Port)
+		// Add the port to the k8s pod.
+		service.Containers[coreV1ContainerIdx].Ports = append(service.Containers[coreV1ContainerIdx].Ports, corev1.ContainerPort{ContainerPort: int32(port)})
+		// Forward the port on the k8s service to the k8s pod.
+		podPort := irtypes.Port{Number: int32(port)}
+		servicePort := podPort
+		service.AddPortForwarding(servicePort, podPort)
 	}
 }
