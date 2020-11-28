@@ -17,8 +17,6 @@ limitations under the License.
 package apiresource
 
 import (
-	"strings"
-
 	okdimagev1 "github.com/openshift/api/image/v1"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -81,18 +79,16 @@ func (d *ImageStream) createImageStream(name string, service irtypes.Service) []
 		}
 
 		var tags []okdimagev1.TagReference
-		imagename, tag := common.GetImageNameAndTag(serviceContainer.Image)
+		_, tag := common.GetImageNameAndTag(serviceContainer.Image)
 		tags = []okdimagev1.TagReference{
 			{
 				From: &corev1.ObjectReference{
 					Kind: "DockerImage",
-					Name: imagename,
+					Name: serviceContainer.Image,
 				},
 				Name: tag,
 			},
 		}
-
-		dockerImageRepo := strings.Split(serviceContainer.Image, ":")[0]
 
 		is := &okdimagev1.ImageStream{
 			TypeMeta: metav1.TypeMeta{
@@ -103,10 +99,7 @@ func (d *ImageStream) createImageStream(name string, service irtypes.Service) []
 				Name:   name,
 				Labels: getServiceLabels(name),
 			},
-			Spec: okdimagev1.ImageStreamSpec{
-				DockerImageRepository: dockerImageRepo,
-				Tags:                  tags,
-			},
+			Spec: okdimagev1.ImageStreamSpec{Tags: tags},
 		}
 		imageStreams = append(imageStreams, is)
 	}
