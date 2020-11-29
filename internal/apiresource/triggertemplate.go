@@ -112,7 +112,7 @@ func (*TriggerTemplate) createNewResource(tt tekton.TriggerTemplate, ir irtypes.
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (tt *TriggerTemplate) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) {
+func (tt *TriggerTemplate) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
 	supKinds := tt.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {

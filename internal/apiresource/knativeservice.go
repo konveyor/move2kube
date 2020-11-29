@@ -70,7 +70,7 @@ func (d *KnativeService) CreateNewResources(ir irtypes.IR, supportedKinds []stri
 }
 
 // ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *KnativeService) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) {
+func (d *KnativeService) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
 	if d1, ok := obj.(*knativev1.Service); ok {
 		return []runtime.Object{d1}, true
 	}

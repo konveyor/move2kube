@@ -68,7 +68,7 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) CreateAPIResources(ir irtypes.IR) []
 	ignoredObjs := ir.CachedObjects
 	for _, apiResource := range k8sAPIResourceSet.getAPIResources(ir) {
 		apiResource.SetClusterContext(ir.TargetClusterSpec)
-		resourceIgnoredObjs := apiResource.LoadResources(ir.CachedObjects)
+		resourceIgnoredObjs := apiResource.LoadResources(ir.CachedObjects, ir)
 		ignoredObjs = intersection(ignoredObjs, resourceIgnoredObjs)
 		resourceObjs := apiResource.GetUpdatedResources(ir)
 		targetObjs = append(targetObjs, resourceObjs...)

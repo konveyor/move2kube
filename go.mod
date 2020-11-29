@@ -22,7 +22,7 @@ require (
 	github.com/moby/buildkit v0.7.2
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20200728170252-4d89ac9fbff6
-	github.com/openshift/api v0.0.0-20200326160804-ecb9283fe820 // 4.1
+	github.com/openshift/api v0.0.0-20200930075302-db52bc4ef99f // release-4.6
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.7.0
