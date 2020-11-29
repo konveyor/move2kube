@@ -63,7 +63,7 @@ func (*ServiceAccount) createNewResource(irserviceaccount irtypes.ServiceAccount
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (sa *ServiceAccount) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) {
+func (sa *ServiceAccount) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
 	supKinds := sa.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {

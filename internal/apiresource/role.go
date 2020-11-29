@@ -68,7 +68,7 @@ func (*Role) createNewResource(irrole irtypes.Role) *rbacv1.Role {
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (r *Role) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) {
+func (r *Role) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
 	supKinds := r.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {

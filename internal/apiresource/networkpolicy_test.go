@@ -178,49 +178,53 @@ func TestCreateNewResources(t *testing.T) {
 func TestConvertToClusterSupportedKinds(t *testing.T) {
 	t.Run("empty object and empty supported kinds", func(t *testing.T) {
 		// Setup
+		ir := irtypes.IR{}
 		netPolicy := apiresource.NetworkPolicy{}
 		obj := &networkingv1.NetworkPolicy{}
 		otherObjs := []runtime.Object{}
 		supKinds := []string{}
 		// Test
-		_, ok := netPolicy.ConvertToClusterSupportedKinds(obj, supKinds, otherObjs)
+		_, ok := netPolicy.ConvertToClusterSupportedKinds(obj, supKinds, otherObjs, ir)
 		if ok {
 			t.Fatal("Should have failed since supported kinds is empty.")
 		}
 	})
 	t.Run("some object and empty supported kinds", func(t *testing.T) {
 		// Setup
+		ir := irtypes.IR{}
 		netPolicy := apiresource.NetworkPolicy{}
 		obj := helperCreateNetworkPolicy("net1")
 		otherObjs := []runtime.Object{}
 		supKinds := []string{}
 		// Test
-		_, ok := netPolicy.ConvertToClusterSupportedKinds(obj, supKinds, otherObjs)
+		_, ok := netPolicy.ConvertToClusterSupportedKinds(obj, supKinds, otherObjs, ir)
 		if ok {
 			t.Fatal("Should have failed since supported kinds is empty.")
 		}
 	})
 	t.Run("invalid object and correct supported kinds", func(t *testing.T) {
 		// Setup
+		ir := irtypes.IR{}
 		netPolicy := apiresource.NetworkPolicy{}
 		obj := helperCreateSecret("sec1", map[string][]byte{"key1": []byte("val1")})
 		otherObjs := []runtime.Object{}
 		supKinds := []string{"Pod", "NetworkPolicy", "Secret"}
 		// Test
-		_, ok := netPolicy.ConvertToClusterSupportedKinds(obj, supKinds, otherObjs)
+		_, ok := netPolicy.ConvertToClusterSupportedKinds(obj, supKinds, otherObjs, ir)
 		if ok {
 			t.Fatal("Should have failed since the object is not a valid network policy.")
 		}
 	})
 	t.Run("some object and correct supported kinds", func(t *testing.T) {
 		// Setup
+		ir := irtypes.IR{}
 		netPolicy := apiresource.NetworkPolicy{}
 		obj := helperCreateNetworkPolicy("net1")
 		otherObjs := []runtime.Object{}
 		supKinds := []string{"Pod", "NetworkPolicy", "Secret"}
 		want := []runtime.Object{helperCreateNetworkPolicy("net1")}
 		// Test
-		actual, ok := netPolicy.ConvertToClusterSupportedKinds(obj, supKinds, otherObjs)
+		actual, ok := netPolicy.ConvertToClusterSupportedKinds(obj, supKinds, otherObjs, ir)
 		if !ok {
 			t.Fatal("Failed to convert to cluster supported kind, Function returned false. Actual:", actual)
 		}

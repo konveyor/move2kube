@@ -73,7 +73,7 @@ func (el *EventListener) createNewResource(ireventlistener tekton.EventListener)
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (el *EventListener) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) {
+func (el *EventListener) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
 	supKinds := el.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {

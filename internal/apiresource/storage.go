@@ -24,6 +24,7 @@ import (
 
 	common "github.com/konveyor/move2kube/internal/common"
 	internaltypes "github.com/konveyor/move2kube/internal/types"
+	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 )
 
@@ -71,7 +72,7 @@ func (s *Storage) CreateNewResources(ir internaltypes.IR, supportedKinds []strin
 }
 
 // ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (s *Storage) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) {
+func (s *Storage) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
 	if cfgMap, ok := obj.(*corev1.ConfigMap); ok {
 		if !common.IsStringPresent(supportedKinds, string(internaltypes.ConfigMapKind)) && common.IsStringPresent(supportedKinds, string(internaltypes.SecretKind)) {
 			return []runtime.Object{convertCfgMapToSecret(*cfgMap)}, true

@@ -38,7 +38,7 @@ type IAPIResource interface {
 	GetSupportedKinds() []string
 	CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object
 	// Return nil if not supported
-	ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool)
+	ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.IR) ([]runtime.Object, bool)
 }
 
 // APIResource defines functions that are reusable across the api resources
@@ -55,13 +55,13 @@ func (o *APIResource) SetClusterContext(cluster collecttypes.ClusterMetadataSpec
 
 // LoadResources loads the resources
 // Returns resources it could not handle
-func (o *APIResource) LoadResources(objs []runtime.Object) []runtime.Object {
+func (o *APIResource) LoadResources(objs []runtime.Object, ir irtypes.IR) []runtime.Object {
 	ignoredResources := []runtime.Object{}
 	for _, obj := range objs {
 		if obj == nil {
 			continue
 		}
-		if !o.loadResource(obj, objs) {
+		if !o.loadResource(obj, objs, ir) {
 			ignoredResources = append(ignoredResources, obj)
 		}
 	}
@@ -72,7 +72,7 @@ func (o *APIResource) LoadResources(objs []runtime.Object) []runtime.Object {
 func (o *APIResource) GetUpdatedResources(ir irtypes.IR) []runtime.Object {
 	objs := o.CreateNewResources(ir, o.getClusterSupportedKinds())
 	for _, obj := range objs {
-		if !o.loadResource(obj, objs) {
+		if !o.loadResource(obj, objs, ir) {
 			log.Errorf("Object created seems to be of an incompatible type : %+v", obj)
 		}
 	}
@@ -85,11 +85,11 @@ func (o *APIResource) isSupportedKind(obj runtime.Object) bool {
 }
 
 // loadResource returns false if it could not handle the resource.
-func (o *APIResource) loadResource(obj runtime.Object, otherobjs []runtime.Object) bool {
+func (o *APIResource) loadResource(obj runtime.Object, otherobjs []runtime.Object, ir irtypes.IR) bool {
 	if !o.isSupportedKind(obj) {
 		return false
 	}
-	supportedobjs, ok := o.ConvertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(), otherobjs)
+	supportedobjs, ok := o.ConvertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(), otherobjs, ir)
 	if !ok {
 		return false
 	}

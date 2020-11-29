@@ -156,7 +156,7 @@ func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.IR) *v
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (p *Pipeline) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) {
+func (p *Pipeline) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
 	supKinds := p.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {

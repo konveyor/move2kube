@@ -103,7 +103,7 @@ func (d *Deployment) CreateNewResources(ir irtypes.IR, supportedKinds []string) 
 }
 
 // ConvertToClusterSupportedKinds converts objects to kind supported by the cluster
-func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) {
+func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
 	if d1, ok := obj.(*appsv1.DaemonSet); ok {
 		if common.IsStringPresent(supportedKinds, daemonSetKind) {
 			return []runtime.Object{d1}, true

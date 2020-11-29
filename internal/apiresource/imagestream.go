@@ -61,7 +61,7 @@ func (d *ImageStream) CreateNewResources(ir irtypes.IR, supportedKinds []string)
 }
 
 // ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *ImageStream) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) {
+func (d *ImageStream) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
 	if common.IsStringPresent(supportedKinds, imageStreamKind) {
 		if _, ok := obj.(*okdimagev1.ImageStream); ok {
 			return []runtime.Object{obj}, true

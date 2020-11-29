@@ -67,7 +67,7 @@ func (d *NetworkPolicy) CreateNewResources(ir irtypes.IR, supportedKinds []strin
 }
 
 // ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *NetworkPolicy) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object) ([]runtime.Object, bool) {
+func (d *NetworkPolicy) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
 	if common.IsStringPresent(supportedKinds, networkPolicyKind) {
 		if _, ok := obj.(*networkingv1.NetworkPolicy); ok {
 			return []runtime.Object{obj}, true
