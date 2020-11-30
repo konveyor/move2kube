@@ -43,7 +43,7 @@ func (r *containerRuntimeProvider) getAllBuildpacks(builders []string) (map[stri
 	}
 	log.Debugf("Getting data of all builders %s", builders)
 	for _, builder := range builders {
-		inspectcmd := exec.Command(containerRuntime, "inspect", "--format", `{{ index .Config.Labels "`+orderLabel+`"}}`, builder)
+		inspectcmd := exec.Command(containerRuntime, "inspect", "--storage-driver=vfs", "--format", `{{ index .Config.Labels "`+orderLabel+`"}}`, builder)
 		log.Debugf("Inspecting image %s", builder)
 		output, err := inspectcmd.CombinedOutput()
 		if err != nil {
@@ -58,21 +58,14 @@ func (r *containerRuntimeProvider) getAllBuildpacks(builders []string) (map[stri
 
 func (r *containerRuntimeProvider) getContainerRuntime() (runtime string, available bool) {
 	if containerRuntime == "" {
-		detectcmd := exec.Command("docker", "run", "--rm", "hello-world")
+		detectcmd := exec.Command("podman", "run", "--storage-driver=vfs", "--rm", "hello-world")
 		output, err := detectcmd.CombinedOutput()
 		if err != nil {
-			log.Debugf("Docker not supported : %s : %s", err, output)
-			detectcmd := exec.Command("podman", "run", "--rm", "hello-world")
-			output, err = detectcmd.CombinedOutput()
-			if err != nil {
-				log.Debugf("Podman not supported : %s : %s", err, output)
-				containerRuntime = "none"
-				return containerRuntime, false
-			}
-			containerRuntime = "podman"
-			return containerRuntime, true
+			log.Debugf("Podman not supported : %s : %s", err, output)
+			containerRuntime = "none"
+			return containerRuntime, false
 		}
-		containerRuntime = "docker"
+		containerRuntime = "podman"
 		return containerRuntime, true
 	} else if containerRuntime == "none" {
 		return containerRuntime, false
@@ -89,7 +82,7 @@ func (r *containerRuntimeProvider) isBuilderAvailable(builder string) bool {
 		return true
 	}
 	// Check if the image exists locally
-	existcmd := exec.Command(containerRuntime, "images", "-q", builder)
+	existcmd := exec.Command(containerRuntime, "--storage-driver=vfs", "images", "-q", builder)
 	log.Debugf("Checking if the image %s exists locally", builder)
 	output, err := existcmd.Output()
 	if err != nil {
@@ -102,7 +95,7 @@ func (r *containerRuntimeProvider) isBuilderAvailable(builder string) bool {
 		return true
 	}
 
-	pullcmd := exec.Command(containerRuntime, "pull", builder)
+	pullcmd := exec.Command(containerRuntime, "pull", "--storage-driver=vfs", builder)
 	log.Debugf("Pulling image %s", builder)
 	output, err = pullcmd.CombinedOutput()
 	if err != nil {
@@ -122,7 +115,7 @@ func (r *containerRuntimeProvider) isBuilderSupported(path string, builder strin
 	if err != nil {
 		log.Warnf("Unable to resolve to absolute path : %s", err)
 	}
-	detectcmd := exec.Command(containerRuntime, "run", "--rm", "-v", p+":/workspace", builder, "/cnb/lifecycle/detector")
+	detectcmd := exec.Command(containerRuntime, "run", "--rm", "--storage-driver=vfs", "-v", p+":/workspace", builder, "/cnb/lifecycle/detector")
 	log.Debugf("Running detect on image %s", builder)
 	output, err := detectcmd.CombinedOutput()
 	if err != nil {
