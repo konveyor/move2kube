@@ -33,8 +33,9 @@ With Move2Kube, generating the Kubernetes/OpenShift deployment artifacts for you
    $ move2kube translate -s docker-compose
    ```
 1. Answer the questions and you will get the yaml files required for deploying the Docker Compose files in Kubernetes inside the `myproject` directory.
+
 <p align="center">
-<script id="asciicast-bbcIy29E2eLyzdwSDsvmJED1C" src="https://asciinema.org/a/bbcIy29E2eLyzdwSDsvmJED1C.js" async></script>
+<asciinema-player src="{{ site.baseurl }}/assets/asciinema/370563.cast" poster="npt:0:13" cols=88 title="Docker Compose to Kubernetes"></asciinema-player>
 </p>
 
 ## Usage
