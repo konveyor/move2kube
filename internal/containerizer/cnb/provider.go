@@ -28,7 +28,7 @@ const (
 
 var cnbwarnnotsupported = false
 var cnbwarnlongwait = true
-var cnbproviders = []provider{&containerRuntimeProvider{}, &packProvider{}, &runcProvider{}}
+var cnbproviders = []provider{&dockerAPIProvider{}, &containerRuntimeProvider{}, &packProvider{}, &runcProvider{}}
 
 type order []orderEntry
 
