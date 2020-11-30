@@ -16,3 +16,10 @@
 .icon-link {
 text-decoration: none;
 }
+
+/* to give line break if screen width is less than 800px */
+@media (min-width: 800px) {
+  .hidden-br {
+    display: none !important;
+  }
+}
