@@ -27,7 +27,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
 	t.Run("normal use case", func(t *testing.T) {
-		provider := containerRuntimeProvider{}
+		provider := dockerAPIProvider{}
 		builder := "cloudfoundry/cnb:cflinuxfs3"
 
 		// Test
@@ -37,7 +37,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	})
 
 	t.Run("normal use case where we get result from cache", func(t *testing.T) {
-		provider := containerRuntimeProvider{}
+		provider := dockerAPIProvider{}
 		builder := "cloudfoundry/cnb:cflinuxfs3"
 		want := []string{builder}
 
@@ -45,8 +45,8 @@ func TestIsBuilderAvailable(t *testing.T) {
 		if !provider.isBuilderAvailable(builder) {
 			t.Fatalf("Failed to find the builder %q locally and/or pull it.", builder)
 		}
-		if !cmp.Equal(availableBuilders, want) {
-			t.Fatalf("Failed to add the builder %q to the list of available builders. Difference:\n%s", builder, cmp.Diff(want, availableBuilders))
+		if !cmp.Equal(availableDockerImages, want) {
+			t.Fatalf("Failed to add the builder %q to the list of available builders. Difference:\n%s", builder, cmp.Diff(want, availableDockerImages))
 		}
 		if !provider.isBuilderAvailable(builder) {
 			t.Fatalf("Failed to find the builder %q locally and/or pull it.", builder)
@@ -54,7 +54,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	})
 
 	t.Run("check for a non existent image", func(t *testing.T) {
-		provider := containerRuntimeProvider{}
+		provider := dockerAPIProvider{}
 		builder := "this/doesnotexist:foobar"
 		if provider.isBuilderAvailable(builder) {
 			t.Fatalf("Should not have succeeded. The builder image %q does not exist", builder)
