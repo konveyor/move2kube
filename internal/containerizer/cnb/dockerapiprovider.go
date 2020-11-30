@@ -87,9 +87,8 @@ func (r *dockerAPIProvider) isBuilderAvailable(builder string) bool {
 	if common.IsStringPresent(availableDockerImages, builder) {
 		return true
 	}
-
-	err := r.pullImage(builder)
 	log.Debugf("Pulling image %s", builder)
+	err := r.pullImage(builder)
 	if err != nil {
 		log.Warnf("Error while pulling builder %s : %s", builder, err)
 		return false
@@ -126,7 +125,7 @@ func (r *dockerAPIProvider) pullImage(image string) error {
 		return err
 	}
 	if b, err := ioutil.ReadAll(out); err == nil {
-		log.Debug(b)
+		log.Debug(cast.ToString(b))
 	}
 	return nil
 }
