@@ -1,0 +1,14 @@
+on:
+  issues:
+    types: [opened]
+jobs:
+  createCard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Project Card
+        uses: peter-evans/create-or-update-project-card@v1
+        with:
+          token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+          project-name: Move2Kube
+          column-name: Backlog
+          project-location: konveyor
