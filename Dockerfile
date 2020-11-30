@@ -37,10 +37,8 @@ RUN make build
 RUN cp bin/${APPNAME} /bin/${APPNAME}
 
 # Run image
-FROM registry.access.redhat.com/ubi8/ubi:latest
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 ARG APPNAME=move2kube
-COPY misc/centos.repo /etc/yum.repos.d/centos.repo
-RUN yum update -y && yum install -y podman && yum clean all
 COPY --from=build_base /bin/${APPNAME} /bin/${APPNAME}
 COPY --from=build_base /bin/pack /bin/pack
 COPY --from=build_base /bin/kubectl /bin/kubectl
