@@ -27,9 +27,8 @@ type imagePullPolicyOptimizer struct {
 
 func (ep imagePullPolicyOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	for k, scObj := range ir.Services {
-		for ci, container := range scObj.Containers {
-			container.ImagePullPolicy = v1.PullAlways
-			scObj.Containers[ci] = container
+		for i := range scObj.Containers {
+			scObj.Containers[i].ImagePullPolicy = v1.PullAlways
 		}
 		ir.Services[k] = scObj
 	}

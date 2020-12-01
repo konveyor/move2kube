@@ -39,7 +39,7 @@ func (*EventListener) GetSupportedKinds() []string {
 }
 
 // CreateNewResources creates the runtime objects from the intermediate representation.
-func (el *EventListener) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
+func (el *EventListener) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
 	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
@@ -73,7 +73,7 @@ func (el *EventListener) createNewResource(ireventlistener tekton.EventListener)
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (el *EventListener) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
+func (el *EventListener) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	supKinds := el.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {

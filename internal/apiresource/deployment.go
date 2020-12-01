@@ -20,20 +20,18 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/runtime"
-
+	"github.com/konveyor/move2kube/internal/common"
+	internaltypes "github.com/konveyor/move2kube/internal/types"
+	irtypes "github.com/konveyor/move2kube/internal/types"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	okdappsv1 "github.com/openshift/api/apps/v1"
+	log "github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/konveyor/move2kube/internal/common"
-	internaltypes "github.com/konveyor/move2kube/internal/types"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 //TODO: Add support for replicaset, cronjob ad statefulset
@@ -64,7 +62,7 @@ func (d *Deployment) GetSupportedKinds() []string {
 }
 
 // CreateNewResources converts ir to runtime object
-func (d *Deployment) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
+func (d *Deployment) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	for _, service := range ir.Services {
 		var obj runtime.Object
@@ -103,7 +101,7 @@ func (d *Deployment) CreateNewResources(ir irtypes.IR, supportedKinds []string) 
 }
 
 // ConvertToClusterSupportedKinds converts objects to kind supported by the cluster
-func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
+func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	if d1, ok := obj.(*appsv1.DaemonSet); ok {
 		if common.IsStringPresent(supportedKinds, daemonSetKind) {
 			return []runtime.Object{d1}, true
@@ -301,20 +299,20 @@ func (d *Deployment) toDeploymentConfig(meta metav1.ObjectMeta, podspec corev1.P
 		Type: okdappsv1.DeploymentTriggerOnConfigChange,
 	}}
 	for _, container := range podspec.Containers {
-		_, tag := common.GetImageNameAndTag(container.Image)
+		imageStreamName, imageStreamTag := new(ImageStream).GetImageStreamNameAndTag(container.Image)
 		triggerPolicies = append(triggerPolicies, okdappsv1.DeploymentTriggerPolicy{
 			Type: okdappsv1.DeploymentTriggerOnImageChange,
 			ImageChangeParams: &okdappsv1.DeploymentTriggerImageChangeParams{
 				Automatic:      true,
 				ContainerNames: []string{container.Name},
 				From: corev1.ObjectReference{
-					Name: meta.Name + ":" + tag,
 					Kind: "ImageStreamTag",
+					Name: imageStreamName + ":" + imageStreamTag,
 				},
 			},
 		})
 	}
-	dc := &okdappsv1.DeploymentConfig{
+	dc := okdappsv1.DeploymentConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       deploymentConfigKind,
 			APIVersion: okdappsv1.SchemeGroupVersion.String(),
@@ -330,7 +328,7 @@ func (d *Deployment) toDeploymentConfig(meta metav1.ObjectMeta, podspec corev1.P
 			Triggers: triggerPolicies,
 		},
 	}
-	return dc
+	return &dc
 }
 
 func (d *Deployment) toDeployment(meta metav1.ObjectMeta, podspec corev1.PodSpec, replicas int32) *appsv1.Deployment {

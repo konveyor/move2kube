@@ -19,13 +19,12 @@ package apiresource
 import (
 	"reflect"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -36,9 +35,9 @@ const (
 // IAPIResource defines the interface to be defined for a new api resource
 type IAPIResource interface {
 	GetSupportedKinds() []string
-	CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object
+	CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object
 	// Return nil if not supported
-	ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.IR) ([]runtime.Object, bool)
+	ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, enhancedIR irtypes.EnhancedIR) ([]runtime.Object, bool)
 }
 
 // APIResource defines functions that are reusable across the api resources
@@ -55,7 +54,7 @@ func (o *APIResource) SetClusterContext(cluster collecttypes.ClusterMetadataSpec
 
 // LoadResources loads the resources
 // Returns resources it could not handle
-func (o *APIResource) LoadResources(objs []runtime.Object, ir irtypes.IR) []runtime.Object {
+func (o *APIResource) LoadResources(objs []runtime.Object, ir irtypes.EnhancedIR) []runtime.Object {
 	ignoredResources := []runtime.Object{}
 	for _, obj := range objs {
 		if obj == nil {
@@ -69,7 +68,7 @@ func (o *APIResource) LoadResources(objs []runtime.Object, ir irtypes.IR) []runt
 }
 
 // GetUpdatedResources converts IR to a runtime object
-func (o *APIResource) GetUpdatedResources(ir irtypes.IR) []runtime.Object {
+func (o *APIResource) GetUpdatedResources(ir irtypes.EnhancedIR) []runtime.Object {
 	objs := o.CreateNewResources(ir, o.getClusterSupportedKinds())
 	for _, obj := range objs {
 		if !o.loadResource(obj, objs, ir) {
@@ -85,7 +84,7 @@ func (o *APIResource) isSupportedKind(obj runtime.Object) bool {
 }
 
 // loadResource returns false if it could not handle the resource.
-func (o *APIResource) loadResource(obj runtime.Object, otherobjs []runtime.Object, ir irtypes.IR) bool {
+func (o *APIResource) loadResource(obj runtime.Object, otherobjs []runtime.Object, ir irtypes.EnhancedIR) bool {
 	if !o.isSupportedKind(obj) {
 		return false
 	}

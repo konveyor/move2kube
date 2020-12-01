@@ -43,7 +43,8 @@ func TestCreateNewResources(t *testing.T) {
 		// Setup
 		netPolicy := apiresource.NetworkPolicy{}
 		plan := plantypes.NewPlan()
-		ir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR(plan)
+		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		supKinds := []string{}
 		// Test
 		actual := netPolicy.CreateNewResources(ir, supKinds)
@@ -55,7 +56,8 @@ func TestCreateNewResources(t *testing.T) {
 		// Setup
 		netPolicy := apiresource.NetworkPolicy{}
 		plan := plantypes.NewPlan()
-		ir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR(plan)
+		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		supKinds := []string{"NetworkPolicy"}
 		want := []runtime.Object{}
 		// Test
@@ -68,7 +70,8 @@ func TestCreateNewResources(t *testing.T) {
 		// Setup
 		netPolicy := apiresource.NetworkPolicy{}
 		plan := plantypes.NewPlan()
-		ir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR(plan)
+		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
 		ir.Services = map[string]irtypes.Service{
@@ -86,7 +89,8 @@ func TestCreateNewResources(t *testing.T) {
 		// Setup
 		netPolicy := apiresource.NetworkPolicy{}
 		plan := plantypes.NewPlan()
-		ir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR(plan)
+		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
 		ir.Services = map[string]irtypes.Service{
@@ -104,7 +108,8 @@ func TestCreateNewResources(t *testing.T) {
 		// Setup
 		netPolicy := apiresource.NetworkPolicy{}
 		plan := plantypes.NewPlan()
-		ir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR(plan)
+		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
 		ir.Services = map[string]irtypes.Service{
@@ -123,7 +128,8 @@ func TestCreateNewResources(t *testing.T) {
 		// Setup
 		netPolicy := apiresource.NetworkPolicy{}
 		plan := plantypes.NewPlan()
-		ir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR(plan)
+		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
 		net1 := "net1"
@@ -178,7 +184,8 @@ func TestCreateNewResources(t *testing.T) {
 func TestConvertToClusterSupportedKinds(t *testing.T) {
 	t.Run("empty object and empty supported kinds", func(t *testing.T) {
 		// Setup
-		ir := irtypes.IR{}
+		oldir := irtypes.IR{}
+		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		netPolicy := apiresource.NetworkPolicy{}
 		obj := &networkingv1.NetworkPolicy{}
 		otherObjs := []runtime.Object{}
@@ -191,7 +198,8 @@ func TestConvertToClusterSupportedKinds(t *testing.T) {
 	})
 	t.Run("some object and empty supported kinds", func(t *testing.T) {
 		// Setup
-		ir := irtypes.IR{}
+		oldir := irtypes.IR{}
+		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		netPolicy := apiresource.NetworkPolicy{}
 		obj := helperCreateNetworkPolicy("net1")
 		otherObjs := []runtime.Object{}
@@ -204,7 +212,8 @@ func TestConvertToClusterSupportedKinds(t *testing.T) {
 	})
 	t.Run("invalid object and correct supported kinds", func(t *testing.T) {
 		// Setup
-		ir := irtypes.IR{}
+		oldir := irtypes.IR{}
+		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		netPolicy := apiresource.NetworkPolicy{}
 		obj := helperCreateSecret("sec1", map[string][]byte{"key1": []byte("val1")})
 		otherObjs := []runtime.Object{}
@@ -217,7 +226,8 @@ func TestConvertToClusterSupportedKinds(t *testing.T) {
 	})
 	t.Run("some object and correct supported kinds", func(t *testing.T) {
 		// Setup
-		ir := irtypes.IR{}
+		oldir := irtypes.IR{}
+		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		netPolicy := apiresource.NetworkPolicy{}
 		obj := helperCreateNetworkPolicy("net1")
 		otherObjs := []runtime.Object{}

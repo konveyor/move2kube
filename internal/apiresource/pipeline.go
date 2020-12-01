@@ -48,7 +48,7 @@ func (*Pipeline) GetSupportedKinds() []string {
 }
 
 // CreateNewResources creates the runtime objects from the intermediate representation.
-func (p *Pipeline) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
+func (p *Pipeline) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
 	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
@@ -59,7 +59,7 @@ func (p *Pipeline) CreateNewResources(ir irtypes.IR, supportedKinds []string) []
 	return objs
 }
 
-func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.IR) *v1beta1.Pipeline {
+func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.EnhancedIR) *v1beta1.Pipeline {
 	pipeline := new(v1beta1.Pipeline)
 	pipeline.TypeMeta = metav1.TypeMeta{
 		Kind:       pipelineKind,
@@ -76,6 +76,9 @@ func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.IR) *v
 	firstTask := true
 	prevTaskName := ""
 	for i, container := range ir.Containers {
+		if !container.New {
+			continue
+		}
 		if container.ContainerBuildType == plantypes.ManualContainerBuildTypeValue || container.ContainerBuildType == plantypes.ReuseContainerBuildTypeValue {
 			log.Debugf("Manual or reuse containerization. We will skip this for CICD.")
 			continue
@@ -156,7 +159,7 @@ func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.IR) *v
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (p *Pipeline) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
+func (p *Pipeline) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	supKinds := p.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {

@@ -17,18 +17,19 @@ limitations under the License.
 package apiresource
 
 import (
+	"fmt"
+
+	"github.com/konveyor/move2kube/internal/common"
+	irtypes "github.com/konveyor/move2kube/internal/types"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	okdimagev1 "github.com/openshift/api/image/v1"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	common "github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 )
 
-//TODO: Add support for Build, BuildConfig, ImageStreamImage, ImageStreamImport, ImageStreamLayers, ImageStreamMapping, ImageStreamTag, tekton
+//TODO: Add support for ImageStreamImage, ImageStreamImport, ImageStreamLayers, ImageStreamMapping, ImageStreamTag
 
 const (
 	// imageStreamKind defines the image stream kind
@@ -41,67 +42,65 @@ type ImageStream struct {
 }
 
 // GetSupportedKinds returns kinds supported by ImageStream
-func (d *ImageStream) GetSupportedKinds() []string {
+func (*ImageStream) GetSupportedKinds() []string {
 	return []string{imageStreamKind}
 }
 
 // CreateNewResources converts IR to runtime objects
-func (d *ImageStream) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
+func (imageStream *ImageStream) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
-
-	for _, service := range ir.Services {
-		if common.IsStringPresent(supportedKinds, imageStreamKind) {
-			newobjs := d.createImageStream(service.Name, service)
-			objs = append(objs, newobjs...)
-		} else {
-			log.Debugf("Could not find a valid resource type in cluster to create a ImageStream")
-		}
+	if !common.IsStringPresent(supportedKinds, imageStreamKind) {
+		log.Debugf("Could not find a valid resource type in cluster to create an ImageStream")
+		return objs
+	}
+	// Create an imagestream for each image that we are using
+	for _, irContainer := range ir.Containers {
+		imageStreamName, imageStreamTag := imageStream.GetImageStreamNameAndTag(irContainer.ImageNames[0])
+		imageStream := imageStream.createImageStream(imageStreamName, imageStreamTag, irContainer, ir)
+		objs = append(objs, &imageStream)
 	}
 	return objs
 }
 
+// GetImageStreamNameAndTag gives the image stream name and tag given the image name.
+func (*ImageStream) GetImageStreamNameAndTag(fullImageName string) (string, string) {
+	imageName, tag := common.GetImageNameAndTag(fullImageName)
+	imageStreamName := fmt.Sprintf("%s-%s", imageName, tag)
+	imageStreamName = common.MakeStringDNSSubdomainNameCompliant(imageStreamName)
+	return imageStreamName, tag
+}
+
+func (*ImageStream) createImageStream(name, tag string, irContainer irtypes.Container, ir irtypes.EnhancedIR) okdimagev1.ImageStream {
+	fullImageName := ir.GetFullImageName(irContainer.ImageNames[0])
+	tags := []okdimagev1.TagReference{
+		{
+			From: &corev1.ObjectReference{
+				Kind: "DockerImage",
+				Name: fullImageName,
+			},
+			Name: tag,
+		},
+	}
+	imageStream := okdimagev1.ImageStream{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       imageStreamKind,
+			APIVersion: okdimagev1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: getServiceLabels(name),
+		},
+		Spec: okdimagev1.ImageStreamSpec{Tags: tags},
+	}
+	return imageStream
+}
+
 // ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *ImageStream) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
+func (*ImageStream) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	if common.IsStringPresent(supportedKinds, imageStreamKind) {
 		if _, ok := obj.(*okdimagev1.ImageStream); ok {
 			return []runtime.Object{obj}, true
 		}
 	}
 	return nil, false
-}
-
-// createImageStream creates a ImageStream object
-func (d *ImageStream) createImageStream(name string, service irtypes.Service) []runtime.Object {
-	imageStreams := []runtime.Object{}
-	for _, serviceContainer := range service.Containers {
-		if serviceContainer.Image == "" {
-			serviceContainer.Image = name
-		}
-
-		var tags []okdimagev1.TagReference
-		_, tag := common.GetImageNameAndTag(serviceContainer.Image)
-		tags = []okdimagev1.TagReference{
-			{
-				From: &corev1.ObjectReference{
-					Kind: "DockerImage",
-					Name: serviceContainer.Image,
-				},
-				Name: tag,
-			},
-		}
-
-		is := &okdimagev1.ImageStream{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       imageStreamKind,
-				APIVersion: okdimagev1.SchemeGroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   name,
-				Labels: getServiceLabels(name),
-			},
-			Spec: okdimagev1.ImageStreamSpec{Tags: tags},
-		}
-		imageStreams = append(imageStreams, is)
-	}
-	return imageStreams
 }
