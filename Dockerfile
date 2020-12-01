@@ -37,11 +37,9 @@ RUN make build
 RUN cp bin/${APPNAME} /bin/${APPNAME}
 
 # Run image
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+FROM registry.access.redhat.com/ubi8/ubi:latest
 ARG APPNAME=move2kube
 COPY --from=build_base /bin/${APPNAME} /bin/${APPNAME}
-COPY --from=build_base /bin/pack /bin/pack
-COPY --from=build_base /bin/kubectl /bin/kubectl
 COPY --from=build_base /bin/operator-sdk /bin/operator-sdk
 VOLUME ["/wksps"]
 #"/var/run/docker.sock" needs to be mounted for CNB containerization to be used.
