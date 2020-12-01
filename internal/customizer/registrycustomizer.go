@@ -256,8 +256,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 	for _, service := range ir.Services {
 		for i, serviceContainer := range service.Containers {
 			if common.IsStringPresent(newimages, serviceContainer.Image) {
-				parts := strings.Split(serviceContainer.Image, "/")
-				image, tag := common.GetImageNameAndTag(parts[len(parts)-1])
+				image, tag := common.GetImageNameAndTag(serviceContainer.Image)
 				if ir.Kubernetes.RegistryURL != "" && ir.Kubernetes.RegistryNamespace != "" {
 					serviceContainer.Image = ir.Kubernetes.RegistryURL + "/" + ir.Kubernetes.RegistryNamespace + "/" + image + ":" + tag
 				} else if ir.Kubernetes.RegistryNamespace != "" {

@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common/deepcopy"
 	"github.com/konveyor/move2kube/internal/types/tekton"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	outputtypes "github.com/konveyor/move2kube/types/output"
@@ -32,16 +33,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// IR is the intermediate representation
+// IR is the intermediate representation filled by source translators
 type IR struct {
-	RootDir         string
-	Name            string
-	Services        map[string]Service
-	Storages        []Storage
-	Containers      []Container // Images to be built
-	Roles           []Role
-	RoleBindings    []RoleBinding
-	ServiceAccounts []ServiceAccount
+	RootDir    string
+	Name       string
+	Containers []Container // Images to be built
+	Services   map[string]Service
+	Storages   []Storage
 
 	Kubernetes plan.KubernetesOutput
 
@@ -51,12 +49,31 @@ type IR struct {
 	Values outputtypes.HelmValues
 
 	IngressTLSSecretName string
-	TektonResources      tekton.Resources
 
 	// AddCopySourcesWarning adds a warning to the README
 	// that copysources may not work correctly when using the UI for translation.
 	// TODO: fix copysources.sh for move2kube-ui and remove this.
 	AddCopySourcesWarning bool
+}
+
+// EnhancedIR is IR with extra data specific to API resource sets
+type EnhancedIR struct {
+	IR
+	Roles           []Role
+	RoleBindings    []RoleBinding
+	ServiceAccounts []ServiceAccount
+	BuildConfigs    []BuildConfig
+	TektonResources tekton.Resources
+}
+
+// BuildConfig contains the resources needed to create a BuildConfig
+type BuildConfig struct {
+	RepoInfo          plantypes.RepoInfo
+	Name              string
+	ImageStreamName   string
+	ImageStreamTag    string
+	SourceSecretName  string
+	WebhookSecretName string
 }
 
 // Service defines structure of an IR service
@@ -82,6 +99,87 @@ type Port networkingv1.ServiceBackendPort
 type ServiceToPodPortForwarding struct {
 	ServicePort Port
 	PodPort     Port
+}
+
+// Container defines images that need to be built or reused.
+type Container struct {
+	ContainerBuildType plantypes.ContainerBuildTypeValue // Method to use to build the image or "Reuse" if reusing an existing image.
+	RepoInfo           plantypes.RepoInfo
+	ImageNames         []string
+	New                bool              // true if this is a new image that needs to be built
+	NewFiles           map[string]string //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
+	ExposedPorts       []int
+	UserID             int
+	AccessedDirs       []string
+}
+
+// StorageKindType defines storage type kind
+type StorageKindType string
+
+// Storage defines structure of a storage
+type Storage struct {
+	Name                             string
+	Annotations                      map[string]string // Optional field to store arbitrary metadata
+	corev1.PersistentVolumeClaimSpec                   //This promotion contains the volumeName which is used by configmap, secrets and pvc.
+	StorageType                      StorageKindType   //Type of storage cfgmap, secret, pvc
+	SecretType                       corev1.SecretType // Optional field to store the type of secret data
+	Content                          map[string][]byte //Optional field meant to store content for cfgmap or secret
+	StringData                       map[string]string //Optional field to store string content for cfmap or secret
+}
+
+// ServiceAccount holds the details about the service account resource
+type ServiceAccount struct {
+	Name        string
+	SecretNames []string
+}
+
+// RoleBinding holds the details about the role binding resource
+type RoleBinding struct {
+	Name               string
+	RoleName           string
+	ServiceAccountName string
+}
+
+// Role holds the details about the role resource
+type Role struct {
+	Name        string
+	PolicyRules []PolicyRule
+}
+
+// PolicyRule holds the details about the policy rules for the service account resources
+type PolicyRule struct {
+	APIGroups []string
+	Resources []string
+	Verbs     []string
+}
+
+const (
+	// SecretKind defines storage type of Secret
+	SecretKind StorageKindType = "Secret"
+	// ConfigMapKind defines storage type of ConfigMap
+	ConfigMapKind StorageKindType = "ConfigMap"
+	// PVCKind defines storage type of PersistentVolumeClaim
+	PVCKind StorageKindType = "PersistentVolumeClaim"
+	// PullSecretKind defines storage type of pull secret
+	PullSecretKind StorageKindType = "PullSecret"
+)
+
+// NewEnhancedIRFromIR returns a new EnhancedIR given an IR
+// It makes a deep copy of the IR before embedding it in the EnhancedIR.
+func NewEnhancedIRFromIR(ir IR) EnhancedIR {
+	irCopy := deepcopy.DeepCopy(ir).(IR)
+	return EnhancedIR{IR: irCopy}
+}
+
+// GetFullImageName returns the full image name including registry url and namespace
+func (ir *IR) GetFullImageName(imageName string) string {
+	if ir.Kubernetes.RegistryURL != "" && ir.Kubernetes.RegistryNamespace != "" {
+		return ir.Kubernetes.RegistryURL + "/" + ir.Kubernetes.RegistryNamespace + "/" + imageName
+	}
+	if ir.Kubernetes.RegistryNamespace != "" {
+		return ir.Kubernetes.RegistryNamespace + "/" + imageName
+	}
+	return imageName
 }
 
 // AddPortForwarding adds a new port forwarding to the service.
@@ -122,18 +220,6 @@ func (service *Service) AddVolume(volume corev1.Volume) {
 func (service *Service) HasValidAnnotation(annotation string) bool {
 	val, ok := service.Annotations[annotation]
 	return ok && val == common.AnnotationLabelValue
-}
-
-// Container defines images that need to be built or reused.
-type Container struct {
-	ContainerBuildType plantypes.ContainerBuildTypeValue // Method to use to build the image or "Reuse" if reusing an existing image.
-	RepoInfo           plantypes.RepoInfo
-	ImageNames         []string
-	New                bool              // true if this is a new image that needs to be built
-	NewFiles           map[string]string //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
-	ExposedPorts       []int
-	UserID             int
-	AccessedDirs       []string
 }
 
 // NewContainer creates a new container
@@ -236,7 +322,7 @@ func (c *Container) AddAccessedDirs(dirname string) {
 
 // NewIR creates a new IR
 func NewIR(p plan.Plan) IR {
-	var ir IR
+	ir := IR{}
 	ir.Name = p.Name
 	ir.RootDir = p.Spec.Inputs.RootDir
 	ir.Kubernetes = p.Spec.Outputs.Kubernetes
@@ -292,31 +378,6 @@ func NewServiceWithName(serviceName string) Service {
 	return Service{Name: serviceName, ServiceRelPath: "/" + serviceName}
 }
 
-// StorageKindType defines storage type kind
-type StorageKindType string
-
-const (
-	// SecretKind defines storage type of Secret
-	SecretKind StorageKindType = "Secret"
-	// ConfigMapKind defines storage type of ConfigMap
-	ConfigMapKind StorageKindType = "ConfigMap"
-	// PVCKind defines storage type of PersistentVolumeClaim
-	PVCKind StorageKindType = "PersistentVolumeClaim"
-	// PullSecretKind defines storage type of pull secret
-	PullSecretKind StorageKindType = "PullSecret"
-)
-
-// Storage defines structure of a storage
-type Storage struct {
-	Name                             string
-	Annotations                      map[string]string // Optional field to store arbitrary metadata
-	corev1.PersistentVolumeClaimSpec                   //This promotion contains the volumeName which is used by configmap, secrets and pvc.
-	StorageType                      StorageKindType   //Type of storage cfgmap, secret, pvc
-	SecretType                       corev1.SecretType // Optional field to store the type of secret data
-	Content                          map[string][]byte //Optional field meant to store content for cfgmap or secret
-	StringData                       map[string]string //Optional field to store string content for cfmap or secret
-}
-
 // Merge merges storage
 func (s *Storage) Merge(newst Storage) bool {
 	if strings.Compare(s.Name, newst.Name) == 0 {
@@ -330,40 +391,6 @@ func (s *Storage) Merge(newst Storage) bool {
 	log.Debugf("Mismatching storages [%s, %s]", s.Name, newst.Name)
 	return false
 }
-
-// ServiceAccount holds the details about the service account resource
-type ServiceAccount struct {
-	Name        string
-	SecretNames []string
-}
-
-// RoleBinding holds the details about the role binding resource
-type RoleBinding struct {
-	Name               string
-	RoleName           string
-	ServiceAccountName string
-}
-
-// Role holds the details about the role resource
-type Role struct {
-	Name        string
-	PolicyRules []PolicyRule
-}
-
-// PolicyRule holds the details about the policy rules for the service account resources
-type PolicyRule struct {
-	APIGroups []string
-	Resources []string
-	Verbs     []string
-}
-
-// Secret holds the details about the secret resource
-// type Secret struct {
-// 	Name        string
-// 	SecretType  corev1.SecretType
-// 	Annotations map[string]string
-// 	StringData  map[string]string
-// }
 
 // AddContainer adds a conatainer to IR
 func (ir *IR) AddContainer(container Container) {

@@ -17,7 +17,7 @@ limitations under the License.
 package apiresource
 
 import (
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -36,7 +36,7 @@ func (*ServiceAccount) GetSupportedKinds() []string {
 }
 
 // CreateNewResources creates the runtime objects from the intermediate representation.
-func (sa *ServiceAccount) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
+func (sa *ServiceAccount) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if common.IsStringPresent(supportedKinds, rbacv1.ServiceAccountKind) {
 		irresources := ir.ServiceAccounts
@@ -63,7 +63,7 @@ func (*ServiceAccount) createNewResource(irserviceaccount irtypes.ServiceAccount
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (sa *ServiceAccount) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
+func (sa *ServiceAccount) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	supKinds := sa.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {

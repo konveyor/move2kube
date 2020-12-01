@@ -35,7 +35,7 @@ func (*TriggerBinding) GetSupportedKinds() []string {
 }
 
 // CreateNewResources creates the runtime objects from the intermediate representation.
-func (tb *TriggerBinding) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
+func (tb *TriggerBinding) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
 	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
@@ -58,7 +58,7 @@ func (*TriggerBinding) createNewResource(irtriggerbinding tekton.TriggerBinding)
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (tb *TriggerBinding) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
+func (tb *TriggerBinding) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	supKinds := tb.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {

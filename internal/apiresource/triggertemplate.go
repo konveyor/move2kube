@@ -44,7 +44,7 @@ func (*TriggerTemplate) GetSupportedKinds() []string {
 }
 
 // CreateNewResources creates the runtime objects from the intermediate representation.
-func (tt *TriggerTemplate) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
+func (tt *TriggerTemplate) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
 	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
@@ -55,7 +55,7 @@ func (tt *TriggerTemplate) CreateNewResources(ir irtypes.IR, supportedKinds []st
 	return objs
 }
 
-func (*TriggerTemplate) createNewResource(tt tekton.TriggerTemplate, ir irtypes.IR) *triggersv1alpha1.TriggerTemplate {
+func (*TriggerTemplate) createNewResource(tt tekton.TriggerTemplate, ir irtypes.EnhancedIR) *triggersv1alpha1.TriggerTemplate {
 	registryURL := ir.Kubernetes.RegistryURL
 	registryNamespace := ir.Kubernetes.RegistryNamespace
 	if registryURL == "" {
@@ -112,7 +112,7 @@ func (*TriggerTemplate) createNewResource(tt tekton.TriggerTemplate, ir irtypes.
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (tt *TriggerTemplate) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
+func (tt *TriggerTemplate) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	supKinds := tt.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {

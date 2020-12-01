@@ -51,19 +51,9 @@ func (*K8sAPIResourceSet) GetScheme() *runtime.Scheme {
 	return scheme
 }
 
-func (*K8sAPIResourceSet) getAPIResources(ir irtypes.IR) []apiresource.APIResource {
-	apiresources := []apiresource.APIResource{
-		{IAPIResource: &apiresource.Deployment{ClusterSpec: ir.TargetClusterSpec}},
-		{IAPIResource: &apiresource.Storage{Cluster: ir.TargetClusterSpec}},
-		{IAPIResource: &apiresource.Service{Cluster: ir.TargetClusterSpec}},
-		{IAPIResource: &apiresource.ImageStream{Cluster: ir.TargetClusterSpec}},
-		{IAPIResource: &apiresource.NetworkPolicy{Cluster: ir.TargetClusterSpec}},
-	}
-	return apiresources
-}
-
 // CreateAPIResources converts IR to runtime objects
-func (k8sAPIResourceSet *K8sAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Object {
+func (k8sAPIResourceSet *K8sAPIResourceSet) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
+	ir := irtypes.NewEnhancedIRFromIR(oldir)
 	targetObjs := []runtime.Object{}
 	ignoredObjs := ir.CachedObjects
 	for _, apiResource := range k8sAPIResourceSet.getAPIResources(ir) {
@@ -75,6 +65,16 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) CreateAPIResources(ir irtypes.IR) []
 	}
 	targetObjs = append(targetObjs, ignoredObjs...)
 	return targetObjs
+}
+
+func (*K8sAPIResourceSet) getAPIResources(ir irtypes.EnhancedIR) []apiresource.APIResource {
+	return []apiresource.APIResource{
+		{IAPIResource: &apiresource.Deployment{ClusterSpec: ir.TargetClusterSpec}},
+		{IAPIResource: &apiresource.Storage{Cluster: ir.TargetClusterSpec}},
+		{IAPIResource: &apiresource.Service{Cluster: ir.TargetClusterSpec}},
+		{IAPIResource: &apiresource.ImageStream{Cluster: ir.TargetClusterSpec}},
+		{IAPIResource: &apiresource.NetworkPolicy{Cluster: ir.TargetClusterSpec}},
+	}
 }
 
 // GetServiceOptions analyses a directory and returns possible plan services

@@ -49,7 +49,7 @@ func (d *Service) GetSupportedKinds() []string {
 }
 
 // CreateNewResources converts IR to runtime objects
-func (d *Service) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
+func (d *Service) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	ingressEnabled := false
 	for _, service := range ir.Services {
@@ -102,7 +102,7 @@ func (d *Service) CreateNewResources(ir irtypes.IR, supportedKinds []string) []r
 }
 
 // ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.IR) ([]runtime.Object, bool) {
+func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	if common.IsStringPresent(supportedKinds, routeKind) {
 		if _, ok := obj.(*okdroutev1.Route); ok {
 			return []runtime.Object{obj}, true
@@ -182,7 +182,7 @@ func (d *Service) ingressToRoute(ingress networkingv1.Ingress) []runtime.Object 
 	return objs
 }
 
-func (d *Service) serviceToRoutes(service v1.Service, ir irtypes.IR) []runtime.Object {
+func (d *Service) serviceToRoutes(service v1.Service, ir irtypes.EnhancedIR) []runtime.Object {
 	weight := int32(1)                          //Hard-coded to 1 to avoid Helm v3 errors
 	ingressArray := []okdroutev1.RouteIngress{} //Hard-coded to empty list to avoid Helm v3 errors
 	ingressArray = append(ingressArray, okdroutev1.RouteIngress{Host: ""})
@@ -229,7 +229,7 @@ func (d *Service) serviceToRoutes(service v1.Service, ir irtypes.IR) []runtime.O
 	return objs
 }
 
-func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.IR) []runtime.Object {
+func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.EnhancedIR) []runtime.Object {
 	targetPort := networkingv1.ServiceBackendPort{}
 	if route.Spec.Port.TargetPort.Type == intstr.String {
 		targetPort.Name = route.Spec.Port.TargetPort.StrVal
@@ -279,7 +279,7 @@ func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.IR) []runtim
 	return []runtime.Object{&ingress}
 }
 
-func (d *Service) serviceToIngress(service v1.Service, ir irtypes.IR) []runtime.Object {
+func (d *Service) serviceToIngress(service v1.Service, ir irtypes.EnhancedIR) []runtime.Object {
 	rules := []networkingv1.IngressRule{}
 	pathPrefix := "/" + service.Name
 	for _, serviceport := range service.Spec.Ports {
@@ -387,7 +387,7 @@ func (d *Service) ingressToService(ingress networkingv1.Ingress) []runtime.Objec
 	return objs
 }
 
-func (d *Service) createRoutes(service irtypes.Service, ir irtypes.IR) [](*okdroutev1.Route) {
+func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR) [](*okdroutev1.Route) {
 	routes := [](*okdroutev1.Route){}
 	servicePorts := d.getServicePorts(service)
 	pathPrefix := service.ServiceRelPath
@@ -411,7 +411,7 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.IR) [](*okdro
 //[https://bugzilla.redhat.com/show_bug.cgi?id=1773682]
 // Can't use https because of this https://github.com/openshift/origin/issues/2162
 // When service has multiple ports,the route needs a port name. Port number doesn't seem to work.
-func (d *Service) createRoute(service irtypes.Service, port v1.ServicePort, path string, ir irtypes.IR) *okdroutev1.Route {
+func (d *Service) createRoute(service irtypes.Service, port v1.ServicePort, path string, ir irtypes.EnhancedIR) *okdroutev1.Route {
 	weight := int32(1)                                                           //Hard-coded to 1 to avoid Helm v3 errors
 	ingressArray := []okdroutev1.RouteIngress{okdroutev1.RouteIngress{Host: ""}} //Hard-coded to empty string to avoid Helm v3 errors
 
@@ -443,7 +443,7 @@ func (d *Service) createRoute(service irtypes.Service, port v1.ServicePort, path
 
 // createIngress creates a single ingress for all services
 //TODO: Only supports fan-out. Virtual named hosting is not supported yet.
-func (d *Service) createIngress(ir irtypes.IR) *networkingv1.Ingress {
+func (d *Service) createIngress(ir irtypes.EnhancedIR) *networkingv1.Ingress {
 	pathType := networkingv1.PathTypePrefix
 
 	// Create the fan-out paths

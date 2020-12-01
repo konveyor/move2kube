@@ -41,13 +41,9 @@ func (*KnativeAPIResourceSet) GetScheme() *runtime.Scheme {
 	return scheme
 }
 
-func (*KnativeAPIResourceSet) getAPIResources(ir irtypes.IR) []apiresource.APIResource {
-	apiresources := []apiresource.APIResource{{IAPIResource: &apiresource.KnativeService{Cluster: ir.TargetClusterSpec}}}
-	return apiresources
-}
-
 // CreateAPIResources converts ir object to runtime objects
-func (knativeAPIResourceSet *KnativeAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Object {
+func (knativeAPIResourceSet *KnativeAPIResourceSet) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
+	ir := irtypes.NewEnhancedIRFromIR(oldir)
 	targetObjs := []runtime.Object{}
 	ignoredObjs := ir.CachedObjects
 	for _, apiResource := range knativeAPIResourceSet.getAPIResources(ir) {
@@ -59,6 +55,11 @@ func (knativeAPIResourceSet *KnativeAPIResourceSet) CreateAPIResources(ir irtype
 	}
 	targetObjs = append(targetObjs, ignoredObjs...)
 	return targetObjs
+}
+
+func (*KnativeAPIResourceSet) getAPIResources(ir irtypes.EnhancedIR) []apiresource.APIResource {
+	apiresources := []apiresource.APIResource{{IAPIResource: &apiresource.KnativeService{Cluster: ir.TargetClusterSpec}}}
+	return apiresources
 }
 
 // GetServiceOptions returns plan service options for an input folder

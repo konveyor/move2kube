@@ -17,15 +17,13 @@ limitations under the License.
 package apiresource
 
 import (
+	"github.com/konveyor/move2kube/internal/common"
+	irtypes "github.com/konveyor/move2kube/internal/types"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	common "github.com/konveyor/move2kube/internal/common"
-	internaltypes "github.com/konveyor/move2kube/internal/types"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 )
 
 // Storage handles all storage objectss
@@ -35,35 +33,35 @@ type Storage struct {
 
 // GetSupportedKinds returns cluster supported kinds
 func (s *Storage) GetSupportedKinds() []string {
-	return []string{string(internaltypes.PVCKind), string(internaltypes.ConfigMapKind), string(internaltypes.SecretKind)}
+	return []string{string(irtypes.PVCKind), string(irtypes.ConfigMapKind), string(irtypes.SecretKind)}
 }
 
 // CreateNewResources converts IR objects to runtime objects
-func (s *Storage) CreateNewResources(ir internaltypes.IR, supportedKinds []string) []runtime.Object {
+func (s *Storage) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 
 	for _, stObj := range ir.Storages {
-		if stObj.StorageType == internaltypes.ConfigMapKind {
-			if !common.IsStringPresent(supportedKinds, string(internaltypes.ConfigMapKind)) && common.IsStringPresent(supportedKinds, string(internaltypes.SecretKind)) {
+		if stObj.StorageType == irtypes.ConfigMapKind {
+			if !common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) && common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) {
 				objs = append(objs, s.createSecret(stObj))
 			} else {
 				objs = append(objs, s.createConfigMap(stObj))
 			}
 		}
 
-		if stObj.StorageType == internaltypes.SecretKind {
-			if !common.IsStringPresent(supportedKinds, string(internaltypes.SecretKind)) && common.IsStringPresent(supportedKinds, string(internaltypes.ConfigMapKind)) {
+		if stObj.StorageType == irtypes.SecretKind {
+			if !common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) && common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) {
 				objs = append(objs, s.createConfigMap(stObj))
 			} else {
 				objs = append(objs, s.createSecret(stObj))
 			}
 		}
 
-		if stObj.StorageType == internaltypes.PullSecretKind {
+		if stObj.StorageType == irtypes.PullSecretKind {
 			objs = append(objs, s.createSecret(stObj))
 		}
 
-		if stObj.StorageType == internaltypes.PVCKind {
+		if stObj.StorageType == irtypes.PVCKind {
 			objs = append(objs, s.createPVC(stObj))
 		}
 	}
@@ -72,23 +70,23 @@ func (s *Storage) CreateNewResources(ir internaltypes.IR, supportedKinds []strin
 }
 
 // ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (s *Storage) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
+func (s *Storage) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	if cfgMap, ok := obj.(*corev1.ConfigMap); ok {
-		if !common.IsStringPresent(supportedKinds, string(internaltypes.ConfigMapKind)) && common.IsStringPresent(supportedKinds, string(internaltypes.SecretKind)) {
+		if !common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) && common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) {
 			return []runtime.Object{convertCfgMapToSecret(*cfgMap)}, true
 		}
 		return []runtime.Object{cfgMap}, true
 	}
 
 	if secret, ok := obj.(*corev1.Secret); ok {
-		if !common.IsStringPresent(supportedKinds, string(internaltypes.SecretKind)) && common.IsStringPresent(supportedKinds, string(internaltypes.ConfigMapKind)) {
+		if !common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) && common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) {
 			return []runtime.Object{convertSecretToCfgMap(*secret)}, true
 		}
 		return []runtime.Object{secret}, true
 	}
 
 	if pvc, ok := obj.(*corev1.PersistentVolumeClaim); ok {
-		if !common.IsStringPresent(supportedKinds, string(internaltypes.PVCKind)) {
+		if !common.IsStringPresent(supportedKinds, string(irtypes.PVCKind)) {
 			log.Warnf("PVC not supported in target cluster. [%s]", pvc.Name)
 		}
 		return []runtime.Object{pvc}, true
@@ -96,7 +94,7 @@ func (s *Storage) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 	return nil, false
 }
 
-func (s *Storage) createConfigMap(st internaltypes.Storage) *corev1.ConfigMap {
+func (s *Storage) createConfigMap(st irtypes.Storage) *corev1.ConfigMap {
 	cmName := common.MakeFileNameCompliant(st.Name)
 
 	data := map[string]string{}
@@ -106,7 +104,7 @@ func (s *Storage) createConfigMap(st internaltypes.Storage) *corev1.ConfigMap {
 
 	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       string(internaltypes.ConfigMapKind),
+			Kind:       string(irtypes.ConfigMapKind),
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -117,17 +115,17 @@ func (s *Storage) createConfigMap(st internaltypes.Storage) *corev1.ConfigMap {
 	return configMap
 }
 
-func (s *Storage) createSecret(st internaltypes.Storage) *corev1.Secret {
+func (s *Storage) createSecret(st irtypes.Storage) *corev1.Secret {
 	secretName := common.MakeFileNameCompliant(st.Name) // TODO: probably remove this. Names should be manipulated at a higher level.
 	secType := corev1.SecretTypeOpaque
 	if st.SecretType != "" {
 		secType = st.SecretType
-	} else if st.StorageType == internaltypes.PullSecretKind {
+	} else if st.StorageType == irtypes.PullSecretKind {
 		secType = corev1.SecretTypeDockerConfigJson
 	}
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       string(internaltypes.SecretKind),
+			Kind:       string(irtypes.SecretKind),
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -141,10 +139,10 @@ func (s *Storage) createSecret(st internaltypes.Storage) *corev1.Secret {
 	return secret
 }
 
-func (s *Storage) createPVC(st internaltypes.Storage) *corev1.PersistentVolumeClaim {
+func (s *Storage) createPVC(st irtypes.Storage) *corev1.PersistentVolumeClaim {
 	pvc := &corev1.PersistentVolumeClaim{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       string(internaltypes.PVCKind),
+			Kind:       string(irtypes.PVCKind),
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -163,7 +161,7 @@ func convertCfgMapToSecret(cfgMap corev1.ConfigMap) *corev1.Secret {
 
 	s := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       string(internaltypes.SecretKind),
+			Kind:       string(irtypes.SecretKind),
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -182,7 +180,7 @@ func convertSecretToCfgMap(s corev1.Secret) *corev1.ConfigMap {
 
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       string(internaltypes.ConfigMapKind),
+			Kind:       string(irtypes.ConfigMapKind),
 			APIVersion: corev1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -247,20 +245,20 @@ func convertVolumeBySupportedKind(volume corev1.Volume, cluster collecttypes.Clu
 	}
 
 	if volume.VolumeSource.ConfigMap != nil {
-		if cluster.GetSupportedVersions(string(internaltypes.ConfigMapKind)) == nil && cluster.GetSupportedVersions(string(internaltypes.SecretKind)) != nil {
+		if cluster.GetSupportedVersions(string(irtypes.ConfigMapKind)) == nil && cluster.GetSupportedVersions(string(irtypes.SecretKind)) != nil {
 			return *convertCfgMapVolumeToSecretVolume(volume)
 		}
 		return volume
 	}
 	if volume.VolumeSource.Secret != nil {
-		if cluster.GetSupportedVersions(string(internaltypes.SecretKind)) == nil && cluster.GetSupportedVersions(string(internaltypes.ConfigMapKind)) != nil {
+		if cluster.GetSupportedVersions(string(irtypes.SecretKind)) == nil && cluster.GetSupportedVersions(string(irtypes.ConfigMapKind)) != nil {
 			return *convertSecretVolumeToCfgMapVolume(volume)
 		}
 		return volume
 	}
 	if volume.VolumeSource.PersistentVolumeClaim != nil {
 		//PVC -> Empty (If PVC not available)
-		if cluster.GetSupportedVersions(string(internaltypes.PVCKind)) == nil {
+		if cluster.GetSupportedVersions(string(irtypes.PVCKind)) == nil {
 			vEmpty := convertPVCVolumeToEmptyVolume(volume)
 			log.Warnf("PVC not supported in target cluster. Defaulting volume [%s] to emptyDir", volume.Name)
 			return *vEmpty

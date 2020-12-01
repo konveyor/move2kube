@@ -27,7 +27,6 @@ import (
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/internal/types/tekton"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -57,34 +56,13 @@ const (
 	baseTektonTriggersAdminRoleBindingName = "tekton-triggers-admin"
 )
 
-// TektonAPIResourceSet is the set of CI/CD resources we generate.
+// TektonAPIResourceSet is the set of tekton based CI/CD resources we generate.
 type TektonAPIResourceSet struct {
 }
 
-func (*TektonAPIResourceSet) getAPIResources(ir irtypes.IR) []apiresource.APIResource {
-	apiresources := []apiresource.APIResource{
-		apiresource.APIResource{IAPIResource: &apiresource.Service{}},
-		apiresource.APIResource{IAPIResource: &apiresource.ServiceAccount{}},
-		apiresource.APIResource{IAPIResource: &apiresource.RoleBinding{}},
-		apiresource.APIResource{IAPIResource: &apiresource.Role{}},
-		apiresource.APIResource{IAPIResource: &apiresource.Storage{}},
-	}
-	return apiresources
-}
-
-func (*TektonAPIResourceSet) getTektonAPIResources(ir irtypes.IR) []apiresource.APIResource {
-	apiresources := []apiresource.APIResource{
-		apiresource.APIResource{IAPIResource: &apiresource.EventListener{}},
-		apiresource.APIResource{IAPIResource: &apiresource.TriggerBinding{}},
-		apiresource.APIResource{IAPIResource: &apiresource.TriggerTemplate{}},
-		apiresource.APIResource{IAPIResource: &apiresource.Pipeline{}},
-	}
-	return apiresources
-}
-
 // CreateAPIResources converts IR to runtime objects
-func (tekSet *TektonAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.Object {
-	ir = tekSet.setupIR(ir)
+func (tekSet *TektonAPIResourceSet) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
+	ir := tekSet.setupEnhancedIR(oldir)
 	targetobjs := []runtime.Object{}
 	for _, a := range tekSet.getAPIResources(ir) {
 		a.SetClusterContext(ir.TargetClusterSpec)
@@ -98,17 +76,8 @@ func (tekSet *TektonAPIResourceSet) CreateAPIResources(ir irtypes.IR) []runtime.
 	return targetobjs
 }
 
-func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
-	// Create a new ir containing just the subset we care about
-	ir := irtypes.NewIR(plantypes.NewPlan())
-	ir.Name = oldir.Name
-	ir.TargetClusterSpec = oldir.TargetClusterSpec
-	ir.Kubernetes = oldir.Kubernetes
-	for _, container := range oldir.Containers {
-		if container.New {
-			ir.Containers = append(ir.Containers, container)
-		}
-	}
+func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
+	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.
 	projectName := ir.Name
@@ -222,7 +191,7 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 			normalizedGitDomain := strings.Replace(gitDomain, ".", "-", -1)
 			gitSecretName := fmt.Sprintf("%s-%s", gitSecretNamePrefix, normalizedGitDomain)
 			gitSecretName = common.MakeStringDNSSubdomainNameCompliant(gitSecretName)
-			secrets = append(secrets, createGitSecret(gitSecretName, gitDomain))
+			secrets = append(secrets, tekSet.createGitSecret(gitSecretName, gitDomain))
 		}
 	}
 	ir.Storages = append(ir.Storages, secrets...)
@@ -239,7 +208,26 @@ func (*TektonAPIResourceSet) setupIR(oldir irtypes.IR) irtypes.IR {
 	return ir
 }
 
-func createGitSecret(name, gitRepoDomain string) irtypes.Storage {
+func (*TektonAPIResourceSet) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
+	return []apiresource.APIResource{
+		apiresource.APIResource{IAPIResource: &apiresource.Service{}},
+		apiresource.APIResource{IAPIResource: &apiresource.ServiceAccount{}},
+		apiresource.APIResource{IAPIResource: &apiresource.RoleBinding{}},
+		apiresource.APIResource{IAPIResource: &apiresource.Role{}},
+		apiresource.APIResource{IAPIResource: &apiresource.Storage{}},
+	}
+}
+
+func (*TektonAPIResourceSet) getTektonAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
+	return []apiresource.APIResource{
+		apiresource.APIResource{IAPIResource: &apiresource.EventListener{}},
+		apiresource.APIResource{IAPIResource: &apiresource.TriggerBinding{}},
+		apiresource.APIResource{IAPIResource: &apiresource.TriggerTemplate{}},
+		apiresource.APIResource{IAPIResource: &apiresource.Pipeline{}},
+	}
+}
+
+func (*TektonAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes.Storage {
 	gitPrivateKey := gitPrivateKeyPlaceholder
 	knownHosts := knownHostsPlaceholder
 	if gitRepoDomain == "" {
@@ -251,9 +239,9 @@ func createGitSecret(name, gitRepoDomain string) irtypes.Storage {
 		} else if pubKeyLine, err := knownhosts.GetKnownHostsLine(gitRepoDomain); err == nil { // Check online by connecting to the host.
 			knownHosts = pubKeyLine
 		} else {
-			problemDesc := fmt.Sprintf("Unable to find the public key for the domain %s from known_hosts, please enter it. If you are not sure what this is press Enter and you will be able to edit it later: ", gitRepoDomain)
-			example := sshkeys.DomainToPublicKeys["github.com"][0]
-			problem, err := qatypes.NewInputProblem(problemDesc, []string{"Ex : " + example}, knownHostsPlaceholder)
+			problemDesc := fmt.Sprintf("Unable to find the public key for the domain %s from known_hosts, please enter it. If don't know the public key, just leave this empty and you will be able to add it later: ", gitRepoDomain)
+			hint := "Ex : " + sshkeys.DomainToPublicKeys["github.com"][0]
+			problem, err := qatypes.NewInputProblem(problemDesc, []string{hint}, knownHostsPlaceholder)
 			if err != nil {
 				log.Fatalf("Unable to create problem. Error: %q", err)
 			}

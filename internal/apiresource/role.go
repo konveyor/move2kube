@@ -39,7 +39,7 @@ func (*Role) GetSupportedKinds() []string {
 }
 
 // CreateNewResources creates the runtime objects from the intermediate representation.
-func (r *Role) CreateNewResources(ir irtypes.IR, supportedKinds []string) []runtime.Object {
+func (r *Role) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if common.IsStringPresent(supportedKinds, roleKind) {
 		irresources := ir.Roles
@@ -68,7 +68,7 @@ func (*Role) createNewResource(irrole irtypes.Role) *rbacv1.Role {
 }
 
 // ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (r *Role) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.IR) ([]runtime.Object, bool) {
+func (r *Role) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	supKinds := r.GetSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {
