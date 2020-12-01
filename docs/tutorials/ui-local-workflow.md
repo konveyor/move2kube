@@ -1,12 +1,12 @@
 ---
 layout: default
-title: "UI Local Machine Workflow"
-permalink: /tutorials/ui-local-workflow/
+title: "Using Move2Kube UI"
+permalink: /tutorials/move2kube-ui/
 parent: Tutorials
 nav_order: 4
 ---
 
-# UI Local Machine Workflow
+# Using Move2Kube UI
 
 ## Description
 
