@@ -46,7 +46,7 @@ Move2Kube takes as input the source artifacts and outputs the target deployment 
 
 For more detailed information :
 * [Installation]({{ site.baseurl }}{% link docs/installation/install.md %})
-* [Getting Started]({{ site.baseurl }}{% link docs/GettingStarted.md %})
+* [Getting Started]({{ site.baseurl }}{% link docs/getting-started/GettingStarted.md %})
 * [Tutorials]({{ site.baseurl }}{% link docs/tutorials/Tutorial.md %})
 
 ## Discussion
