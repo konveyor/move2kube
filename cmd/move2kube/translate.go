@@ -153,7 +153,9 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		if p, err = plan.ReadPlan(planfile); err != nil {
 			log.Fatalf("Unable to read the plan at path %s Error: %q", planfile, err)
 		}
-
+		if len(p.Spec.Inputs.Services) == 0 {
+			log.Fatalf("Failed to find any services. Aborting.")
+		}
 		if cmd.Flags().Changed(nameFlag) {
 			p.Name = name
 		}
