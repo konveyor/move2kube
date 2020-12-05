@@ -69,6 +69,9 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 		cachepaths = append(cachepaths, p.Spec.Inputs.QACaches[i])
 	}
 	qaengine.AddCaches(cachepaths)
+	if len(p.Spec.Inputs.Services) == 0 {
+		log.Fatalf("Failed to find any services. Aborting.")
+	}
 	// Identify services of interest
 	servicenames := []string{}
 	for sn := range p.Spec.Inputs.Services {
