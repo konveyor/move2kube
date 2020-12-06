@@ -1,0 +1,12 @@
+prerelease: true
+categories:
+  - title: "🚀 Features"
+    labels:
+      - "enhancement"
+  - title: "🐛 Bug Fixes"
+    labels:
+      - "bugfix"
+template: |
+  # Changelog
+
+  $CHANGES
