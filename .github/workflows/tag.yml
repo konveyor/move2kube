@@ -4,18 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag Name'     
+        description: "Tag Name"
         required: true
-        default: 'v0.1.0-beta.2'
+        default: "v0.1.0-beta.2"
 
 jobs:
-
   tag:
     name: Tag
     runs-on: ubuntu-latest
     steps:
-    - name: Tag commit
-      uses: tvdias/github-tagger@v0.0.1
-      with:
-        repo-token: "${{ secrets.GITHUB_TOKEN }}"
-        tag: ${{ github.event.inputs.tag }} 
+      - uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.PA_TOKEN }}
+          script: |
+            github.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/${{ github.event.inputs.tag }}",
+              sha: context.sha
+            })

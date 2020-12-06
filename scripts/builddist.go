@@ -42,6 +42,8 @@ var (
 	binName string
 	// version is the version of the exectuable
 	version string
+	// outputDir is the path where the artifacts should be generated.
+	outputDir string
 )
 
 func sha256sum(source, target string) error {
@@ -124,6 +126,10 @@ func createArchives(distDirs []string) {
 	if err != nil {
 		log.Fatalf("Failed to get the files in the directory at path %q Error %q", extraFilesDir, err)
 	}
+	if err := os.MkdirAll(outputDir, common.DefaultDirectoryPermission); err != nil {
+		log.Fatalf("Failed to make the output directory at path %s Error: %q", outputDir, err)
+	}
+	log.Debugf("Generating output in directory at path %s", outputDir)
 
 	log.Debug("tempDir:", tempDir)
 	log.Debug("extraFiles:", extraFiles)
@@ -153,22 +159,24 @@ func createArchives(distDirs []string) {
 		log.Debug("Name and make the archives.")
 		osArch := filepath.Base(distDir)
 		tarArchiveName := fmt.Sprintf("%s-%s-%s.tar.gz", binName, version, osArch)
+		tarArchivePath := filepath.Join(outputDir, tarArchiveName)
 		log.Debug("osArch:", osArch)
-		log.Debug("tarArchiveName:", tarArchiveName)
-		if err := createTar(tempDir, tarArchiveName); err != nil {
+		log.Debug("tarArchivePath:", tarArchivePath)
+		if err := createTar(tempDir, tarArchivePath); err != nil {
 			log.Fatal(err)
 		}
 		zipArchiveName := fmt.Sprintf("%s-%s-%s.zip", binName, version, osArch)
-		log.Debug("zipArchiveName:", zipArchiveName)
-		if err := createZip(tempDir, zipArchiveName); err != nil {
+		zipArchivePath := filepath.Join(outputDir, zipArchiveName)
+		log.Debug("zipArchivePath:", zipArchivePath)
+		if err := createZip(tempDir, zipArchivePath); err != nil {
 			log.Fatal(err)
 		}
 
 		log.Debug("Calculate and write the checksums to files.")
-		if err := sha256sum(tarArchiveName, tarArchiveName+checksumSuffix); err != nil {
+		if err := sha256sum(tarArchivePath, filepath.Join(outputDir, tarArchiveName+checksumSuffix)); err != nil {
 			log.Fatal(err)
 		}
-		if err := sha256sum(zipArchiveName, zipArchiveName+checksumSuffix); err != nil {
+		if err := sha256sum(zipArchivePath, filepath.Join(outputDir, zipArchiveName+checksumSuffix)); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -195,29 +203,27 @@ func createDistributions() {
 	log.Infof("Done!")
 }
 
-var rootCmd = &cobra.Command{
-	Use:   "go run builddist.go",
-	Short: "builddist creates the distribution files.",
-	Long:  `Generate the archives and the corresponding checksum files.`,
-	Run: func(_ *cobra.Command, _ []string) {
-		createDistributions()
-	},
-}
-
-func init() {
-	rootCmd.Flags().StringVarP(&binName, "binname", "b", "", "Name of the executable")
-	rootCmd.Flags().StringVarP(&version, "version", "v", "", "Version of the executable")
+func main() {
 	must := func(err error) {
 		if err != nil {
 			panic(err)
 		}
 	}
+
+	log.SetLevel(log.DebugLevel)
+
+	rootCmd := &cobra.Command{
+		Use:   "go run builddist.go",
+		Short: "builddist creates the distribution files.",
+		Long:  `Generate the archives and the corresponding checksum files.`,
+		Run:   func(_ *cobra.Command, _ []string) { createDistributions() },
+	}
+	rootCmd.Flags().StringVarP(&binName, "binname", "b", "", "Name of the executable")
+	rootCmd.Flags().StringVarP(&version, "version", "v", "", "Version of the executable")
+	rootCmd.Flags().StringVarP(&outputDir, "output", "o", "output", "Version of the executable")
 	must(rootCmd.MarkFlagRequired("binname"))
 	must(rootCmd.MarkFlagRequired("version"))
-}
 
-func main() {
-	log.SetLevel(log.DebugLevel)
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal("Error:", err)
 	}
