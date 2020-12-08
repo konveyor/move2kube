@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/github-script@v3
         with:
-          github-token: ${{ secrets.PA_TOKEN }}
+          github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           script: |
             github.git.createRef({
               owner: context.repo.owner,
