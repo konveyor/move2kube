@@ -64,13 +64,29 @@ layout: table_wrappers
         </div>
         <div class="column">
         <a href="https://github.com/konveyor/move2kube/" class="icon-link">
-          <img alt="GitHub" src="{{ site.baseurl }}/assets/images/GitHub-icon.png" width="30" height="14" title="Github">
+          <picture>
+             <source
+                media="(min-width: 800px)"
+                srcset="{{ site.baseurl }}/assets/images/GitHub-icon-light.png">
+             <source
+                media="(min-width: 300px)"
+                srcset="{{ site.baseurl }}/assets/images/GitHub-icon.png">
+             <img src="{{ site.baseurl }}/assets/images/GitHub-icon-light.png" width="30" height="20" title="GitHub" alt="Move2Kube on GitHub">
+          </picture>
         </a>
         </div>
       </div>
       <br>
       <a href="/">
-        <img alt="Konveyor" src="{{ site.baseurl }}/assets/images/konveyor-logo.png" width="150" height="70">
+        <picture>
+           <source
+              media="(min-width: 800px)"
+              srcset="{{ site.baseurl }}/assets/images/konveyor_logo.svg" width="150" height="70">
+           <source
+              media="(min-width: 300px)"
+              srcset="{{ site.baseurl }}/assets/images/konveyor-logo.png" width="150" height="70">
+           <img alt="Konveyor" src="{{ site.baseurl }}/assets/images/konveyor-logo.png" width="150" height="70">
+        </picture>
       </a>
       <br>
       An official Konveyor project<br><br>
@@ -188,5 +204,6 @@ layout: table_wrappers
       <div class="search-overlay"></div>
     {% endif %}
   </div>
+
 </body>
 </html>
