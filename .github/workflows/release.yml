@@ -8,10 +8,10 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
           go-version: ^1.15
-      - uses: actions/checkout@v2
       - run: make ci
       - run: make test-coverage
       - name: upload coverage
@@ -31,25 +31,27 @@ jobs:
     name: Create Release Draft
     runs-on: ubuntu-latest
     steps:
+      - id: only_tag
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v1
         with:
           node-version: "12"
       - name: create release draft
         run: |
           npm install github-release-notes@v0.17.3 -g
-          gren release --username=${{ github.repository_owner }} --repo=${{ github.event.repository.name }} --draft --prerelease --token=${{ secrets.GITHUB_TOKEN }}
+          gren release --draft --prerelease --tags ${{ steps.only_tag.outputs.tag }} --username=${{ github.repository_owner }} --repo=${{ github.event.repository.name }} --token=${{ secrets.GITHUB_TOKEN }}
       - run: make dist
       - name: upload release assets
-        uses: HarikrishnanBalagopal/upload-release-action@v2.2.0-beta.1
+        uses: HarikrishnanBalagopal/upload-release-action@v3
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           file: _dist/output/*
           file_glob: true
           overwrite: true
-      - id: only_tag
-        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
       - name: slack notification
         uses: rtCamp/action-slack-notify@v2
         env:
