@@ -1,18 +1,27 @@
+let printPreamble = true;
+const preamble = `# Changelog
+For more documentation and support please visit the website https://konveyor.github.io/move2kube/
+`;
+
+function printPreambleAndGroupName({ heading }) {
+  const line = `\n## ${heading}\n`;
+  if (printPreamble) {
+    printPreamble = false;
+    return preamble + line;
+  }
+  return line;
+}
+
 module.exports = {
   "dataSource": "prs",
+  "prefix": "Move2Kube ",
   "groupBy":
   {
     "🚀 Features": ["enhancement"],
     "🐛 Bug Fixes": ["bug"]
   },
   "template": {
-    "commit": ({ message, url, author, name }) => `- [${message}](${url}) - ${author ? `@${author}` : name}`,
-    "issue": "- {{labels}} {{name}} [{{text}}]({{url}})",
-    "label": "[**{{label}}**]",
-    "noLabel": "closed",
-    "group": "\n#### {{heading}}\n",
-    "changelogTitle": "# Changelog\n\n",
-    "release": "## {{release}} ({{date}})\n{{body}}",
-    "releaseSeparator": "\n---\n\n"
+    "group": printPreambleAndGroupName,
+    "issue": ({ name, text, url }) => `- ${name} [${text}](${url})`,
   }
 }
