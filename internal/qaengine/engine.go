@@ -85,7 +85,7 @@ func FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
 	for _, e := range engines {
 		ans, err = e.FetchAnswer(prob)
 		if err != nil {
-			log.Warnf("Error while fetching answer using engine %s : %s", e, err)
+			log.Debugf("Error while fetching answer using engine %+v Error: %q", e, err)
 		} else if ans.Resolved {
 			break
 		}

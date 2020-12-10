@@ -1,6 +1,6 @@
 let printPreamble = true;
-const preamble = `# Changelog
-For more documentation and support please visit the website https://konveyor.github.io/move2kube/
+const preamble = `For more documentation and support please visit https://konveyor.io/move2kube/
+# Changelog
 `;
 
 function printPreambleAndGroupName({ heading }) {
