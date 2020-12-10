@@ -28,8 +28,50 @@ jobs:
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 
-  create_release_draft:
+  run_move2kube_tests:
     needs: [build_and_test]
+    name: Run move2kube tests
+    runs-on: ubuntu-latest
+    steps:
+      - id: only_tag
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+      - uses: actions/checkout@v2
+      - name: pull latest image to reuse layers
+        run: |
+          docker pull quay.io/konveyor/move2kube:latest || true
+          docker pull quay.io/konveyor/move2kube-builder:latest || true
+      - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
+      - name: build container image
+        run: make cbuild
+      - name: push temporary image to quay
+        run: |
+          docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:${{ github.run_id }}
+          docker push quay.io/konveyor/move2kube:${{ github.run_id }}
+      - name: run tests in move2kube-tests
+        uses: felixp8/dispatch-and-wait@v0.1.0
+        with:
+          owner: konveyor
+          repo: move2kube-tests
+          token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+          event_type: cli_build
+          client_payload: '{"tag": "${{ github.run_id }}"}'
+          wait_time: 5
+          max_time: 1200
+      - if: failure()
+        name: delete temporary image from quay
+        run: skopeo delete docker://quay.io/konveyor/move2kube:${{ github.run_id }}
+      - if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: "#BD3232"
+          SLACK_ICON: https://github.com/actions.png?size=48
+          SLACK_MESSAGE: "Tests on move2kube-tests failed for move2kube on tag ${{ steps.only_tag.outputs.tag }}"
+          SLACK_TITLE: Failed
+          SLACK_USERNAME: GitHubActions
+
+  create_release_draft:
+    needs: [run_move2kube_tests]
     name: Create release draft
     runs-on: ubuntu-latest
     steps:
@@ -64,7 +106,7 @@ jobs:
           SLACK_USERNAME: GitHubActions
 
   image_build:
-    needs: [build_and_test]
+    needs: [run_move2kube_tests]
     name: Image build
     runs-on: ubuntu-latest
     steps:
@@ -75,6 +117,7 @@ jobs:
         run: |
           docker pull quay.io/konveyor/move2kube:latest || true
           docker pull quay.io/konveyor/move2kube-builder:latest || true
+          docker pull quay.io/konveyor/move2kube:${{ github.run_id }}
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build container image
         run: make cbuild
@@ -82,16 +125,9 @@ jobs:
         run: |
           docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}
           docker push quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}
-      - name: run tests in move2kube-tests
-        uses: felixp8/dispatch-and-wait@v0.1.0
-        with:
-          owner: konveyor
-          repo: move2kube-tests
-          token: ${{ secrets.MOVE2KUBE_PATOKEN }}
-          event_type: cli_build
-          client_payload: '{"tag": "${{ github.run_id }}"}'
-          wait_time: 5
-          max_time: 1200
+      - if: always()
+        name: delete temporary image from quay
+        run: skopeo delete docker://quay.io/konveyor/move2kube:${{ github.run_id }}
       - name: success slack notification
         uses: rtCamp/action-slack-notify@v2
         env:

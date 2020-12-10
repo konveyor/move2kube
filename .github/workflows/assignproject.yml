@@ -6,7 +6,7 @@ jobs:
   createCard:
     runs-on: ubuntu-latest
     steps:
-      - name: Create Project Card
+      - name: Create project card
         uses: peter-evans/create-or-update-project-card@v1
         with:
           token: ${{ secrets.MOVE2KUBE_PATOKEN }}
