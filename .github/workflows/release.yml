@@ -5,7 +5,7 @@ on: create
 jobs:
   build_and_test:
     if: startsWith(github.ref, 'refs/tags/v')
-    name: Build and Test
+    name: Build and test
     runs-on: ubuntu-latest
     steps:
       - id: only_tag
@@ -24,13 +24,13 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Build failed for tag ${{ steps.only_tag.outputs.tag }}"
+          SLACK_MESSAGE: "Build and test failed for move2kube on tag ${{ steps.only_tag.outputs.tag }}"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 
   create_release_draft:
     needs: [build_and_test]
-    name: Create Release Draft
+    name: Create release draft
     runs-on: ubuntu-latest
     steps:
       - id: only_tag
@@ -59,13 +59,13 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Release draft for ${{ steps.only_tag.outputs.tag }} created: https://github.com/konveyor/move2kube/releases"
+          SLACK_MESSAGE: "Release draft for move2kube ${{ steps.only_tag.outputs.tag }} created: https://github.com/konveyor/move2kube/releases"
           SLACK_TITLE: Success
           SLACK_USERNAME: GitHubActions
 
   image_build:
     needs: [build_and_test]
-    name: Image Build
+    name: Image build
     runs-on: ubuntu-latest
     steps:
       - id: only_tag
@@ -73,7 +73,6 @@ jobs:
       - uses: actions/checkout@v2
       - name: pull latest image to reuse layers
         run: |
-          echo 'The tag is ${{ steps.only_tag.outputs.tag }}'
           docker pull quay.io/konveyor/move2kube:latest || true
           docker pull quay.io/konveyor/move2kube-builder:latest || true
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
@@ -90,7 +89,7 @@ jobs:
           repo: move2kube-tests
           token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           event_type: cli_build
-          client_payload: '{"tag": "${{ steps.gitvars.outputs.sha_short }}"}'
+          client_payload: '{"tag": "${{ github.run_id }}"}'
           wait_time: 5
           max_time: 1200
       - name: success slack notification
@@ -111,47 +110,27 @@ jobs:
           SLACK_MESSAGE: "Failed to build and push image quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
-      - name: trigger move2kube-api tagging
-        uses: mvasigh/dispatch-action@main
+
+  trigger_other_repos:
+    needs: [image_build]
+    name: Trigger release in other repos
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repo:
+          [
+            "konveyor/move2kube-api",
+            "konveyor/move2kube-ui",
+            "konveyor/move2kube-operator",
+            "konveyor/move2kube-tests",
+          ]
+    steps:
+      - id: only_tag
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+      - name: Repository Dispatch
+        uses: peter-evans/repository-dispatch@v1
         with:
           token: ${{ secrets.MOVE2KUBE_PATOKEN }}
-          repo: move2kube-api
-          owner: konveyor
-          event_type: cli_tagged
-          message: |
-            {
-              "tag": "${{ steps.only_tag.outputs.tag }}"
-            }
-      - name: trigger move2kube-ui tagging
-        uses: mvasigh/dispatch-action@main
-        with:
-          token: ${{ secrets.MOVE2KUBE_PATOKEN }}
-          repo: move2kube-ui
-          owner: konveyor
-          event_type: cli_tagged
-          message: |
-            {
-              "tag": "${{ steps.only_tag.outputs.tag }}"
-            }
-      - name: trigger move2kube-operator tagging
-        uses: mvasigh/dispatch-action@main
-        with:
-          token: ${{ secrets.MOVE2KUBE_PATOKEN }}
-          repo: move2kube-operator
-          owner: konveyor
-          event_type: cli_tagged
-          message: |
-            {
-              "tag": "${{ steps.only_tag.outputs.tag }}"
-            }
-      - name: trigger move2kube-tests tagging
-        uses: mvasigh/dispatch-action@main
-        with:
-          token: ${{ secrets.MOVE2KUBE_PATOKEN }}
-          repo: move2kube-tests
-          owner: konveyor
-          event_type: cli_tagged
-          message: |
-            {
-              "tag": "${{ steps.only_tag.outputs.tag }}"
-            }
+          repository: ${{ matrix.repo }}
+          event-type: cli_tagged
+          client-payload: '{"tag": "${{ steps.only_tag.outputs.tag }}"}'
