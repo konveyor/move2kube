@@ -1,3 +1,4 @@
+name: Assign Project
 on:
   issues:
     types: [opened]
