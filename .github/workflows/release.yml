@@ -8,6 +8,8 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     steps:
+      - id: only_tag
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
@@ -22,7 +24,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: 'Build failed in ${GITHUB_REF/refs\/tags\//}'
+          SLACK_MESSAGE: "Build failed for tag ${{ steps.only_tag.outputs.tag }}"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 
@@ -96,7 +98,7 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: 'Built and Pushed quay.io/konveyor/move2kube:${GITHUB_REF/refs\/tags\//}'
+          SLACK_MESSAGE: "Built and pushed quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}"
           SLACK_TITLE: Success
           SLACK_USERNAME: GitHubActions
       - if: failure()
@@ -106,7 +108,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: 'Failed to build and push image quay.io/konveyor/move2kube:${GITHUB_REF/refs\/tags\//}'
+          SLACK_MESSAGE: "Failed to build and push image quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
       - name: trigger move2kube-api tagging
