@@ -121,13 +121,13 @@ jobs:
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build container image
         run: make cbuild
+      - if: always()
+        name: delete temporary image from quay
+        run: skopeo delete docker://quay.io/konveyor/move2kube:${{ github.run_id }}
       - name: push image to quay
         run: |
           docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}
           docker push quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}
-      - if: always()
-        name: delete temporary image from quay
-        run: skopeo delete docker://quay.io/konveyor/move2kube:${{ github.run_id }}
       - name: success slack notification
         uses: rtCamp/action-slack-notify@v2
         env:
