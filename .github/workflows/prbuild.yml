@@ -9,10 +9,12 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+      - id: info
+        uses: konveyor/get-env-info@v1
       - uses: actions/setup-go@v2
         with:
-          go-version: ^1.15
-      - uses: actions/checkout@v2
+          go-version: ${{ steps.info.outputs.go_version }}
       - run: make ci
       - run: make test-coverage
       - name: upload coverage

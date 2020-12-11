@@ -12,6 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+GO_VERSION  ?= 1.15
 BINNAME     ?= move2kube
 BINDIR      := $(CURDIR)/bin
 DISTDIR		:= $(CURDIR)/_dist
@@ -153,8 +154,9 @@ info: ## Get version info
 
 .PHONY: cbuild
 cbuild: ## Build docker image
-	docker build --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --target build_base -t ${REGISTRYNS}/${BINNAME}-builder:latest --build-arg VERSION=${VERSION} .
-	docker build --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest -t ${REGISTRYNS}/${BINNAME}:${VERSION} -t ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} .
+	docker build -t ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --target build_base                          --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
+	docker build -t ${REGISTRYNS}/${BINNAME}:${VERSION}     --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
+	docker tag ${REGISTRYNS}/${BINNAME}:${VERSION} ${REGISTRYNS}/${BINNAME}:latest
 
 .PHONY: cpush
 cpush: ## Push docker image

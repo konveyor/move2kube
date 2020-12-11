@@ -6,7 +6,7 @@ on:
       tag:
         description: "Tag Name"
         required: true
-        default: "v0.1.0-beta.2"
+        default: "v0.1.0-rc.2"
 
 jobs:
   tag:
