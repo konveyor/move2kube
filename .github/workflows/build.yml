@@ -9,10 +9,12 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+      - id: info
+        uses: konveyor/get-env-info@v1
       - uses: actions/setup-go@v2
         with:
-          go-version: ^1.15
-      - uses: actions/checkout@v2
+          go-version: ${{ steps.info.outputs.go_version }}
       - run: make ci
       - run: make test-coverage
       - name: upload coverage
@@ -33,13 +35,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - id: info
+        uses: konveyor/get-env-info@v1
       - name: pull latest image to reuse layers
         run: |
           docker pull quay.io/konveyor/move2kube:latest || true
           docker pull quay.io/konveyor/move2kube-builder:latest || true
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build image
-        run: make cbuild
+        run: GO_VERSION=${{ steps.info.outputs.go_version }} make cbuild
       - name: push temporary image to quay
         run: |
           docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:${{ github.run_id }}
@@ -73,14 +77,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - id: info
+        uses: konveyor/get-env-info@v1
       - name: pull latest image to reuse layers
         run: |
           docker pull quay.io/konveyor/move2kube:latest || true
           docker pull quay.io/konveyor/move2kube-builder:latest || true
           docker pull quay.io/konveyor/move2kube:${{ github.run_id }}
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
-      - name: build container image
-        run: make cbuild
+      - name: build image
+        run: GO_VERSION=${{ steps.info.outputs.go_version }} make cbuild
       - if: always()
         name: delete temporary image from quay
         run: skopeo delete docker://quay.io/konveyor/move2kube:${{ github.run_id }}

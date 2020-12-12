@@ -12,35 +12,43 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Build image
+# Builder image
 FROM registry.access.redhat.com/ubi8/ubi:latest AS build_base
-ARG APPNAME=move2kube
-# Get Dependencies
 WORKDIR /temp
+RUN dnf install -y git make
 ENV GOPATH=/go
-ENV PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-RUN curl -o go.tar.gz https://dl.google.com/go/go1.15.linux-amd64.tar.gz
-RUN tar -xzf go.tar.gz && mv go /usr/local/
-RUN yum install git make -y 
 RUN mkdir -p $GOPATH/src $GOPATH/bin && chmod -R 777 $GOPATH
+ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
+
+# Download Go.
+ARG GO_VERSION=1.15
+RUN curl -o go.tgz "https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz"
+RUN tar -xzf go.tgz && mv go /usr/local/
+
+# Copy only go.mod, go.sum and download packages to allow better caching.
+ARG APPNAME=move2kube
 ENV WORKDIR=${GOPATH}/src/${APPNAME}
 WORKDIR ${WORKDIR}
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
+
+# Install depedencies. We throw away everything except operator-sdk in the final image.
 COPY scripts/installdeps.sh scripts/installdeps.sh
 RUN cd / && bash ${WORKDIR}/scripts/installdeps.sh -y && source ~/.bash_profile && cd -
-COPY . .
+
 # Build
 ARG VERSION=latest
+COPY . .
 RUN make build
 RUN cp bin/${APPNAME} /bin/${APPNAME}
 
 # Run image
 FROM registry.access.redhat.com/ubi8/ubi:latest
+COPY --from=build_base /bin/operator-sdk /bin/operator-sdk
+
 ARG APPNAME=move2kube
 COPY --from=build_base /bin/${APPNAME} /bin/${APPNAME}
-COPY --from=build_base /bin/operator-sdk /bin/operator-sdk
 VOLUME ["/wksps"]
 #"/var/run/docker.sock" needs to be mounted for CNB containerization to be used.
 # Start app
