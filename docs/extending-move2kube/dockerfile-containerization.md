@@ -14,10 +14,10 @@ This document helps you to add customized docker files which could be parameteri
 
 ## Steps
 
-1. Install Move2Kube `curl -L https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/install.sh | bash -`
+1. Install Move2Kube `curl -L https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh | bash -`
 2. Writing a dockerfile template:
-    - To get a feel for the templates, check out other existing dockerfile containerizers [here](https://github.com/konveyor/move2kube/tree/master/internal/assets/dockerfiles).
-    - Specifically, let us discuss [java-maven docker file](https://github.com/konveyor/move2kube/blob/master/internal/assets/dockerfiles/javamaven/Dockerfile) as an illustration. This docker file template has two sections:
+    - To get a feel for the templates, check out other existing dockerfile containerizers [here](https://github.com/konveyor/move2kube/tree/main/internal/assets/dockerfiles).
+    - Specifically, let us discuss [java-maven docker file](https://github.com/konveyor/move2kube/blob/main/internal/assets/dockerfiles/javamaven/Dockerfile) as an illustration. This docker file template has two sections:
         - First one is the `build app` section where-in the base-layer and subsequent packages to be installed to facilitate the building of the `java-maven` app is specified. In this particular example, we have parameterized the `APPNAME`, but any other line could also be parameterized based on what we extract from the source artefacts (check out m2kdetect script section).
         - Second is the `run app` section where in the base-layer for running the app built from the previous section is specified, and the runnable artefacts obtained from the first phase are copied into this second image. All necessary dependencies for running the artefact could also be installed here. Note here that we have parameterized the port to be exposed. We could parameterize anything else as per the requirement of the language-platform.
         - Not all language-platforms might require two stage (build and run) dockerfile, but it is a good practice to separate it out as illustrated above.
@@ -25,7 +25,7 @@ This document helps you to add customized docker files which could be parameteri
     - This script is supposed to perform the following functions:
         - Detect the language-platform
         - Extract the required parameters from the source artefacts so as to fill the dockerfile template created previously (E.g. APPNAME, Port).
-    - A typical example of the detect script is shown [here](https://github.com/konveyor/move2kube/blob/master/internal/assets/dockerfiles/python/m2kdfdetect.sh).
+    - A typical example of the detect script is shown [here](https://github.com/konveyor/move2kube/blob/main/internal/assets/dockerfiles/python/m2kdfdetect.sh).
     - The script has to return the paramaters in json format if the matching language-platform is detected. If not, it should exit with exit code `1`. Following is an illustration for the `java-maven` case:
     ```
     echo '{"Port": 8080, "APPNAME": "app"}'

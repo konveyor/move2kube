@@ -16,11 +16,12 @@ A tool that accelerates the process of re-platforming to Kubernetes by analyzing
 Move2Kube is a tool that uses source artifacts such as Docker Compose files or Cloud Foundry manifest files, and even source code, to generate Kubernetes deployment artifacts including object yaml, Helm charts, and operators.
 
 ## A quick start with Move2Kube
+
 With Move2Kube, generating the Kubernetes/OpenShift deployment artifacts for your source platform artifacts is now simple.
 
 1. Install Move2Kube
    ```console
-   $ curl -L https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/install.sh | bash -
+   $ curl -L https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh | bash -
    ```
 
 1. Use [our sample docker-compose.yaml](https://raw.githubusercontent.com/konveyor/move2kube-demos/main/samples/docker-compose/docker-compose.yaml) file or your own
