@@ -1,0 +1,35 @@
+name: Label PRs
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened]
+
+jobs:
+  label_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr_welcome_msg = `Thanks for making a pull request! 😃`;
+            // https://github.com/commitizen/conventional-commit-types
+            const valid_pr_types = ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert'];
+
+            if(context.payload.pull_request.comments === 0) {
+              await github.issues.createComment({ ...context.repo, issue_number: context.payload.number, body: pr_welcome_msg});
+            }
+
+            const title = context.payload.pull_request.title;
+            const results = /^(\w+)(\(\w+\))?!?:/.exec(title);
+            if (results === null) return core.setFailed(`The title does not follow conventional commits spec: https://www.conventionalcommits.org/en/v1.0.0/#summary Title: ${title}`);
+
+            const pr_type = results[1];
+            core.info(`pr_type: ${pr_type}`);
+
+            if (!valid_pr_types.includes(pr_type)) return core.setFailed(`Unknown pull request type: ${pr_type}`);
+
+            const labels = context.payload.pull_request.labels;
+            const new_labels = labels.filter(label => !valid_pr_types.includes(label.name)); // keep all labels that are not in valid_pr_types
+            new_labels.push({name: pr_type});
+            await github.issues.update({ ...context.repo, issue_number: context.payload.number, labels: new_labels });
