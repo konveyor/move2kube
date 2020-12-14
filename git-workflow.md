@@ -22,15 +22,15 @@ Often our `local` repo and our fork `origin` will lag behind the main repo `upst
 It is important to sync up with `upstream` before we rebase and submit a pull request on Github.
 
 1. Get the latest code from upstream: `git fetch upstream`
-1. Switch to the master branch: `git checkout master`
-1. Fast forward your local master branch to catch up with upstream: `git merge --ff-only upstream/master`
+1. Switch to the main branch: `git checkout main`
+1. Fast forward your local main branch to catch up with upstream: `git merge --ff-only upstream/main`
 1. Push the changes to your fork: `git push`
 
 ## Making changes
-**ALWAYS BRANCH OUT OF MASTER**
+**ALWAYS BRANCH OUT OF MAIN**
 
 1. Follow the steps to sync up with `upstream`.
-1. Switch to the master branch: `git checkout master`
+1. Switch to the main branch: `git checkout main`
 1. Create a new branch and check it out: `git checkout -b my-feature-or-bug-fix-branch`
 1. Make some changes.
 1. Add all changes to the staging area before committing: `git add -A`
@@ -44,10 +44,10 @@ It is important to sync up with `upstream` before we rebase and submit a pull re
 1. Make sure all the changes are committed and the working tree is clean: `git status`
 1. Follow the steps to sync up with `upstream`.
 1. `git checkout my-feature-or-bug-fix-branch`
-1. Rebase onto the `upstream/master` branch: `git rebase upstream/master` . Fix any merge conflicts that occur.
+1. Rebase onto the `upstream/main` branch: `git rebase upstream/main` . Fix any merge conflicts that occur.
 1. Make sure the rebased code passes build and test: `make ci`
 1. After a successful rebase push the changes to your fork: `git push --force`
-1. Submit a pull request on Github between your branch `my-feature-or-bug-fix-branch` on your fork `origin` and the `master` branch on `upstream`.
+1. Submit a pull request on Github between your branch `my-feature-or-bug-fix-branch` on your fork `origin` and the `main` branch on `upstream`.
 
 ## Making changes to the current commit
 You can change the commit message of the current commit using: `git commit --amend -m 'my new commit message'`  
@@ -63,7 +63,7 @@ As we keep creating new branches for each pull request, eventually you can end u
 This doesn't affect anything other than visual clutter when doing `git log --graph --all`.  
 You may also want to reuse an old branch name such as `bugfix`.
 
-1. Checkout a branch you aren't going to delete: `git checkout master`
+1. Checkout a branch you aren't going to delete: `git checkout main`
 1. Delete the old branch locally: `git branch -d oldbranch`
 1. Delete it on the fork: `git push -d origin oldbranch`
 

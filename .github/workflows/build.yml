@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 jobs:
   build_and_test:
@@ -25,7 +25,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Build and test failed for move2kube master"
+          SLACK_MESSAGE: "Build and test failed for move2kube main"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 
@@ -67,7 +67,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Tests on move2kube-tests failed for move2kube master"
+          SLACK_MESSAGE: "Tests on move2kube-tests failed for move2kube main"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 
