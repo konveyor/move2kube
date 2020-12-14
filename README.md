@@ -13,7 +13,7 @@ Move2Kube is a command-line tool that accelerates the process of re-platforming 
 
 ## Install
 
-Command line : `curl -L https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/install.sh | bash -`  
+Command line : `curl -L https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh | bash -`  
 UI : Clone `https://github.com/konveyor/move2kube-ui` and run `docker-compose up`. The UI will now be accessible in `http://localhost:8080`.
 
 ## Usage

@@ -32,7 +32,7 @@ import (
 
 const (
 	pipelineKind              = "Pipeline"
-	defaultGitRepoBranch      = "master"
+	defaultGitRepoBranch      = "main"
 	gitRepoURLPlaceholder     = "<TODO: insert git repo url>"
 	contextPathPlaceholder    = "<TODO: insert path to the directory containing Dockerfile>"
 	dockerfilePathPlaceholder = "<TODO: insert path to the Dockerfile>"

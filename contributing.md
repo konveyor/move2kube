@@ -18,7 +18,7 @@ In order to contribute please follow this process:
 Once you are ready to have your work merged into the main repo follow these steps:
 
 1. Fetch the latest commits from upstream. `git fetch upstream`
-2. Rebase the commits from your branch onto the master branch. `git rebase upstream/master`
+2. Rebase the commits from your branch onto the main branch. `git rebase upstream/main`
    - Note: You will need to fix any merge conflicts that occur.
 3. Once all conflicts have been resolved, push the commits to your fork (`git push`) and submit a pull request on Github.
 4. The pull request may be merged after CI checks have passed and at least one maintainer has signed off on it.
