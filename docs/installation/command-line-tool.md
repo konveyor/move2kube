@@ -10,14 +10,14 @@ nav_order: 1
 
 ## Linux / macOS / Windows WSL **(Recommended)**:
    ```console
-   $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/install.sh)
+   $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
    ```
 
 ## Other alternate ways of installing Move2Kube:
 
 **Go**
 
-Installing using `go get` pulls from the master branch of [Move2Kube](https://github.com/konveyor/move2kube) with the latest development changes.
+Installing using `go get` pulls from the main branch of [Move2Kube](https://github.com/konveyor/move2kube) with the latest development changes.
    ```console
    $ go get –u github.com/konveyor/move2kube
    ```

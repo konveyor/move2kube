@@ -17,7 +17,7 @@ This document explains steps that will install move2kube and translate docker-co
 1. Install Move2Kube.
 
    ```console
-   $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/install.sh)
+   $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
    ```
 
 2. Install dependencies.
@@ -29,7 +29,7 @@ This document explains steps that will install move2kube and translate docker-co
    For convenience, we have provided a script which can help you to install all these dependencies in one go.
 
    ```console
-   $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/installdeps.sh)
+   $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/installdeps.sh)
    ```
    To verify that dependencies were correctly installed
    ```console

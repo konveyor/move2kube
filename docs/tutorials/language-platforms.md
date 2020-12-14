@@ -19,7 +19,7 @@ Now, let's see how these applications can be translated to Kubernetes.
 1. Install Move2Kube.
 
    ```console
-   $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/install.sh)
+   $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
    ```
 
 2. Install dependencies.
@@ -31,7 +31,7 @@ Now, let's see how these applications can be translated to Kubernetes.
    For convenience, we have provided a script which can help you to install all these dependencies in one go.
 
    ```console
-   $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/master/scripts/installdeps.sh)
+   $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/installdeps.sh)
    ```
    To verify that dependencies were correctly installed
    ```console

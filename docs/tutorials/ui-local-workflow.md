@@ -26,7 +26,7 @@ Similar to the command line tool, Move2Kube Web-UI can also be used to do the tr
 
    Now, let's see the structure inside the directory.
    ```console
-   move2kube-ui git:(master) $ ls
+   move2kube-ui git:(main) $ ls
    Dockerfile         README.md          contributing.md    package.json       tsconfig.json      webpack.prod.js
    LICENSE            code-of-conduct.md docker-compose.yml server.js          webpack.common.js  wksps
    Makefile           containers.txt     dr-surge.js        src                webpack.dev.js     yarn.lock
@@ -37,7 +37,7 @@ Similar to the command line tool, Move2Kube Web-UI can also be used to do the tr
 
 1. Do a `docker-compose up`.
     ```console
-    move2kube-ui git:(master) $ docker-compose up
+    move2kube-ui git:(main) $ docker-compose up
     Creating network "move2kube-ui_default" with the default driver
     Creating move2kube-ui_move2kubeapi_1 ... done
     Creating move2kube-ui_move2kubeui_1  ... done
