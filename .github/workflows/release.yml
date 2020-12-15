@@ -1,16 +1,28 @@
-name: Release
+name: Tag and Release
 
-on: create
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "current tag: The tag for this release"
+        required: true
+        default: v0.1.0-rc.2
+      prev_tag:
+        description: "previous tag: Tag from which to start calculating the changelog"
+        required: false
+      commit_ref:
+        description: "commit ref: The branch, tag or SHA of the commit to use for the release."
+        required: false
+        default: main
 
 jobs:
   build_and_test:
-    if: startsWith(github.ref, 'refs/tags/v')
     name: Build and test
     runs-on: ubuntu-latest
     steps:
-      - id: only_tag
-        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.commit_ref }}
       - id: info
         uses: konveyor/get-env-info@v1
       - uses: actions/setup-go@v2
@@ -26,7 +38,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Build and test failed for move2kube on tag ${{ steps.only_tag.outputs.tag }}"
+          SLACK_MESSAGE: "Build and test failed for move2kube on tag ${{ github.event.inputs.tag }}"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 
@@ -35,9 +47,9 @@ jobs:
     name: Run move2kube tests
     runs-on: ubuntu-latest
     steps:
-      - id: only_tag
-        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.commit_ref }}
       - id: info
         uses: konveyor/get-env-info@v1
       - name: pull latest image to reuse layers
@@ -45,7 +57,7 @@ jobs:
           docker pull quay.io/konveyor/move2kube:latest || true
           docker pull quay.io/konveyor/move2kube-builder:latest || true
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
-      - name: build container image
+      - name: build image
         run: GO_VERSION=${{ steps.info.outputs.go_version }} make cbuild
       - name: push temporary image to quay
         run: |
@@ -70,27 +82,60 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Tests on move2kube-tests failed for move2kube on tag ${{ steps.only_tag.outputs.tag }}"
+          SLACK_MESSAGE: "Tests on move2kube-tests failed for move2kube on tag ${{ github.event.inputs.tag }}"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 
-  create_release_draft:
+  tag:
     needs: [run_move2kube_tests]
+    name: Tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.commit_ref }}
+      - id: get_sha
+        run: |
+          echo "::set-output name=sha::$(git rev-parse HEAD)"
+      - uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+          script: |
+            github.git.createRef({
+              ...context.repo,
+              ref: "refs/tags/${{ github.event.inputs.tag }}",
+              sha: ${{ steps.get_sha.outputs.sha }}
+            })
+
+  create_release_draft:
+    needs: [tag]
     name: Create release draft
     runs-on: ubuntu-latest
     steps:
-      - id: only_tag
-        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
       - uses: actions/checkout@v2
         with:
+          ref: ${{ github.event.inputs.commit_ref }}
           fetch-depth: 0
+      - id: parse_semver
+        uses: booxmedialtd/ws-action-parse-semver@v1
+        with:
+          input_string: ${{ github.event.inputs.tag }}
       - uses: actions/setup-node@v1
         with:
           node-version: "12"
       - name: create release draft
         run: |
           npm install github-release-notes@v0.17.3 -g
-          gren release --draft --prerelease --tags ${{ steps.only_tag.outputs.tag }} --username=${{ github.repository_owner }} --repo=${{ github.event.repository.name }} --token=${{ secrets.GITHUB_TOKEN }}
+          options=()
+          if [[ '${{ steps.semver_parser.outputs.prerelease }}' ]] ; then
+            options+=( '--prerelease' )
+          fi
+          if [[ '${{ github.event.inputs.prev_tag }}' ]] ; then
+            options+=( '--tags ${{ github.event.inputs.tag }}..${{ github.event.inputs.prev_tag }}' )
+          else
+            options+=( '--tags ${{ github.event.inputs.tag }}' )
+          fi
+          gren release --draft "${options[@]}" --username=${{ github.repository_owner }} --repo=${{ github.event.repository.name }} --token=${{ secrets.GITHUB_TOKEN }}
       - id: info
         uses: konveyor/get-env-info@v1
       - uses: actions/setup-go@v2
@@ -110,18 +155,18 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Release draft for move2kube ${{ steps.only_tag.outputs.tag }} created: https://github.com/konveyor/move2kube/releases"
+          SLACK_MESSAGE: "Release draft for move2kube ${{ github.event.inputs.tag }} created: https://github.com/konveyor/move2kube/releases"
           SLACK_TITLE: Success
           SLACK_USERNAME: GitHubActions
 
   image_build:
-    needs: [run_move2kube_tests]
+    needs: [tag]
     name: Image build
     runs-on: ubuntu-latest
     steps:
-      - id: only_tag
-        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.commit_ref }}
       - id: info
         uses: konveyor/get-env-info@v1
       - name: pull latest image to reuse layers
@@ -137,14 +182,14 @@ jobs:
         run: skopeo delete docker://quay.io/konveyor/move2kube:${{ github.run_id }}
       - name: push image to quay
         run: |
-          docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}
-          docker push quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}
+          docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:${{ github.event.inputs.tag }}
+          docker push quay.io/konveyor/move2kube:${{ github.event.inputs.tag }}
       - name: success slack notification
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Built and pushed quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}"
+          SLACK_MESSAGE: "Built and pushed quay.io/konveyor/move2kube:${{ github.event.inputs.tag }}"
           SLACK_TITLE: Success
           SLACK_USERNAME: GitHubActions
       - if: failure()
@@ -154,7 +199,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Failed to build and push image quay.io/konveyor/move2kube:${{ steps.only_tag.outputs.tag }}"
+          SLACK_MESSAGE: "Failed to build and push image quay.io/konveyor/move2kube:${{ github.event.inputs.tag }}"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 
@@ -172,12 +217,10 @@ jobs:
             "konveyor/move2kube-tests",
           ]
     steps:
-      - id: only_tag
-        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
       - name: Repository Dispatch
         uses: peter-evans/repository-dispatch@v1
         with:
           token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           repository: ${{ matrix.repo }}
           event-type: cli_tagged
-          client-payload: '{"tag": "${{ steps.only_tag.outputs.tag }}"}'
+          client-payload: '{"tag": "${{ github.event.inputs.tag }}", "prev_tag": "${{ github.event.inputs.prev_tag }}", "commit_ref": "${{ github.event.inputs.commit_ref }}" }'

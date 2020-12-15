@@ -40,7 +40,7 @@ jobs:
                 return;
               }
             }
-            core.setFailed(`Failed to find a release with the tag ${tag}`);
+            return core.setFailed(`Failed to find a release with the tag ${tag}`);
       - name: publish
         uses: StuYarrow/publish-release@v1
         env:
