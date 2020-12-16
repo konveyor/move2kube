@@ -17,10 +17,8 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
@@ -93,20 +91,13 @@ func main() {
 	}
 	viper.AutomaticEnv()
 
-	commandUsedToInvoke := "kubectl-translate"
-	if strings.HasPrefix(filepath.Base(os.Args[0]), "kubectl-") {
-		// Invoked as a kubectl plugin
-		commandUsedToInvoke = "kubectl translate"
-	}
-
 	flags := translateFlags{}
 	translateCmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s [ -o <output directory> ] [ -n <project name> ] [ -q <list of qacache files> ] -s <source directory>", commandUsedToInvoke),
-		Short: "Translate containerizes your app and creates k8s resources to get your app running on k8s.",
-		Long: `Translate containerizes your app and creates k8s resources to get your app running on k8s.
-It supports translating docker-compose, docker swarm, and cloud foundry apps.
-Even if the app does not use any of the above, or even if it is not containerized
-it can still be translated.
+		Use:   "kubectl translate [ -o <output directory> ] [ -n <project name> ] [ -q <list of qacache files> ] -s <source directory>",
+		Short: "Translate creates all the resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.",
+		Long: `Translate creates all resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.
+It supports translating from docker swarm/docker-compose, cloud foundry apps and even other non-containerized applications.
+Even if the app does not use any of the above, or even if it is not containerized it can still be translated.
 
 This plugin is a small feature of a more flexible CLI tool called Move2Kube https://github.com/konveyor/move2kube
 For more documentation and support for this plugin and Move2Kube, visit https://konveyor.io/move2kube

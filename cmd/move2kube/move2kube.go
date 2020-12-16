@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,23 +28,33 @@ import (
 
 func main() {
 	verbose := false
-	commandUsedToInvoke := "move2kube"
-	if strings.HasPrefix(filepath.Base(os.Args[0]), "kubectl-") {
-		// Invoked as a kubectl plugin
-		commandUsedToInvoke = "kubectl move2kube"
-	}
 
 	// RootCmd root level flags and commands
 	rootCmd := &cobra.Command{
-		Use:   fmt.Sprintf("%s (version|collect|plan|translate) [ flags ]", commandUsedToInvoke),
-		Short: "A tool to modernize to kubernetes/openshift",
-		Long:  `move2kube is a tool to help optimally translate from platforms such as docker-swarm, CF to Kubernetes.`,
+		Use:   "move2kube",
+		Short: "Move2Kube creates all the resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.",
+		Long: `Move2Kube creates all resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.
+It supports translating from docker swarm/docker-compose, cloud foundry apps and even other non-containerized applications.
+Even if the app does not use any of the above, or even if it is not containerized it can still be translated.
+
+For more documentation and support, visit https://konveyor.io/move2kube
+`,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			if verbose {
 				log.SetLevel(log.DebugLevel)
 			}
 			return nil
 		},
+	}
+
+	if strings.HasPrefix(filepath.Base(os.Args[0]), "kubectl-") {
+		// Invoked as a kubectl plugin.
+
+		// Cobra doesn't have a way to specify a two word command (ie. "kubectl move2kube"), so set a custom usage template
+		// with kubectl in it. Cobra will use this template for the root and all child commands.
+		oldUsageTemplate := rootCmd.UsageTemplate()
+		newUsageTemplate := strings.NewReplacer("{{.UseLine}}", "kubectl {{.UseLine}}", "{{.CommandPath}}", "kubectl {{.CommandPath}}").Replace(oldUsageTemplate)
+		rootCmd.SetUsageTemplate(newUsageTemplate)
 	}
 
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
