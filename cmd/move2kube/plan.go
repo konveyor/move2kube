@@ -80,7 +80,7 @@ func planHandler(flags planFlags) {
 	log.Infof("Plan can be found at [%s].", planfile)
 }
 
-func init() {
+func getPlanCommand() *cobra.Command {
 	must := func(err error) {
 		if err != nil {
 			panic(err)
@@ -102,5 +102,5 @@ func init() {
 
 	must(planCmd.MarkFlagRequired(cmdcommon.SourceFlag))
 
-	rootCmd.AddCommand(planCmd)
+	return planCmd
 }

@@ -69,7 +69,7 @@ func collectHandler(flags collectFlags) {
 	log.Infof("Collect Output in [%s]. Copy this directory into the source directory to be used for planning.", outpath)
 }
 
-func init() {
+func getCollectCommand() *cobra.Command {
 	viper.AutomaticEnv()
 
 	flags := collectFlags{}
@@ -84,5 +84,5 @@ func init() {
 	collectCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutputFlag, "o", ".", "Specify output directory for collect.")
 	collectCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory for the artifacts to be considered while collecting.")
 
-	rootCmd.AddCommand(collectCmd)
+	return collectCmd
 }

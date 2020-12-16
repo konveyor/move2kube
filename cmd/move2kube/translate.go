@@ -138,7 +138,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	log.Infof("Translated target artifacts can be found at [%s].", outpath)
 }
 
-func init() {
+func getTranslateCommand() *cobra.Command {
 	must := func(err error) {
 		if err != nil {
 			panic(err)
@@ -174,5 +174,5 @@ func init() {
 	must(translateCmd.Flags().MarkHidden(cmdcommon.QASkipFlag))
 	must(translateCmd.Flags().MarkHidden(qaportFlag))
 
-	rootCmd.AddCommand(translateCmd)
+	return translateCmd
 }

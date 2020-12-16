@@ -93,9 +93,9 @@ func main() {
 	}
 	viper.AutomaticEnv()
 
-	commandUsedToInvoke := "kubectl translate"
+	commandUsedToInvoke := "kubectl-translate"
 	if strings.HasPrefix(filepath.Base(os.Args[0]), "kubectl-") {
-		commandUsedToInvoke = "kubectl-translate"
+		commandUsedToInvoke = "kubectl translate"
 	}
 
 	flags := translateFlags{}
