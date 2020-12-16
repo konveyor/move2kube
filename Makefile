@@ -151,7 +151,7 @@ dist: clean build-cross ## Build distribution
 .PHONY: dist-kubectl-translate
 dist-kubectl-translate: clean build-cross-kubectl-translate ## Build kubectl plugin distribution
 	mkdir -p $(DISTDIR)/files
-	cp -r ./LICENSE ./USAGE.md $(DISTDIR)/files/
+	cp -r ./LICENSE $(DISTDIR)/files/
 	cd $(DISTDIR) && go run ../scripts/builddist.go -b kubectl-translate -v ${VERSION}
 
 .PHONY: clean
