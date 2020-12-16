@@ -17,8 +17,10 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
@@ -91,9 +93,14 @@ func main() {
 	}
 	viper.AutomaticEnv()
 
+	commandUsedToInvoke := "kubectl translate"
+	if strings.HasPrefix(filepath.Base(os.Args[0]), "kubectl-") {
+		commandUsedToInvoke = "kubectl-translate"
+	}
+
 	flags := translateFlags{}
 	translateCmd := &cobra.Command{
-		Use:   "translate [ -o <output directory> ] [ -n <project name> ] [ -q <list of qacache files> ] -s <source directory>",
+		Use:   fmt.Sprintf("%s [ -o <output directory> ] [ -n <project name> ] [ -q <list of qacache files> ] -s <source directory>", commandUsedToInvoke),
 		Short: "Translate containerizes your app and creates k8s resources to get your app running on k8s.",
 		Long: `Translate containerizes your app and creates k8s resources to get your app running on k8s.
 It supports translating docker-compose, docker swarm, and cloud foundry apps.
