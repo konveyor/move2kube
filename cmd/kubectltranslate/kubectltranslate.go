@@ -45,11 +45,12 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	srcpath := flags.srcpath
 	outpath := flags.outpath
 	name := flags.name
+	qacaches := flags.qacaches
 
+	// These are just the defaults used in the move2kube translate command
 	qadisablecli := false
 	qaskip := false
 	qaport := 0
-	qacaches := flags.qacaches
 
 	if srcpath, err = filepath.Abs(srcpath); err != nil {
 		log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
