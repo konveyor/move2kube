@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func init() {
+func getVersionCommand() *cobra.Command {
 	viper.AutomaticEnv()
 
 	long := false
@@ -37,5 +37,5 @@ func init() {
 
 	versionCmd.Flags().BoolVarP(&long, "long", "l", false, "print the version details")
 
-	rootCmd.AddCommand(versionCmd)
+	return versionCmd
 }

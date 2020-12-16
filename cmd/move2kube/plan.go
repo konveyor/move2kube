@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/move2kube"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -79,7 +80,7 @@ func planHandler(flags planFlags) {
 	log.Infof("Plan can be found at [%s].", planfile)
 }
 
-func init() {
+func getPlanCommand() *cobra.Command {
 	must := func(err error) {
 		if err != nil {
 			panic(err)
@@ -95,11 +96,11 @@ func init() {
 		Run:   func(*cobra.Command, []string) { planHandler(flags) },
 	}
 
-	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", ".", "Specify source directory.")
-	planCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
-	planCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
+	planCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", ".", "Specify source directory.")
+	planCmd.Flags().StringVarP(&flags.planfile, cmdcommon.PlanFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
+	planCmd.Flags().StringVarP(&flags.name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 
-	must(planCmd.MarkFlagRequired(sourceFlag))
+	must(planCmd.MarkFlagRequired(cmdcommon.SourceFlag))
 
-	rootCmd.AddCommand(planCmd)
+	return planCmd
 }

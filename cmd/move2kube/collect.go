@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/move2kube"
 	"github.com/konveyor/move2kube/types"
 	log "github.com/sirupsen/logrus"
@@ -33,10 +34,6 @@ type collectFlags struct {
 	outpath     string
 	srcpath     string
 }
-
-const (
-	annotationsFlag = "annotations"
-)
 
 func collectHandler(flags collectFlags) {
 	var err error
@@ -72,7 +69,7 @@ func collectHandler(flags collectFlags) {
 	log.Infof("Collect Output in [%s]. Copy this directory into the source directory to be used for planning.", outpath)
 }
 
-func init() {
+func getCollectCommand() *cobra.Command {
 	viper.AutomaticEnv()
 
 	flags := collectFlags{}
@@ -83,9 +80,9 @@ func init() {
 		Run:   func(*cobra.Command, []string) { collectHandler(flags) },
 	}
 
-	collectCmd.Flags().StringVarP(&flags.annotations, annotationsFlag, "a", "", "Specify annotations to select collector subset.")
-	collectCmd.Flags().StringVarP(&flags.outpath, outpathFlag, "o", ".", "Specify output directory for collect.")
-	collectCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory for the artifacts to be considered while collecting.")
+	collectCmd.Flags().StringVarP(&flags.annotations, "annotations", "a", "", "Specify annotations to select collector subset.")
+	collectCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutputFlag, "o", ".", "Specify output directory for collect.")
+	collectCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory for the artifacts to be considered while collecting.")
 
-	rootCmd.AddCommand(collectCmd)
+	return collectCmd
 }

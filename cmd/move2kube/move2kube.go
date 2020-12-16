@@ -18,39 +18,51 @@ package main
 
 import (
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-const (
-	nameFlag      = "name"
-	planFlag      = "plan"
-	sourceFlag    = "source"
-	ignoreEnvFlag = "ignoreenv"
-)
-
-var verbose bool
-
-// RootCmd root level flags and commands
-var rootCmd = &cobra.Command{
-	Use:   "move2kube",
-	Short: "A tool to modernize to kubernetes/openshift",
-	Long:  `move2kube is a tool to help optimally translate from platforms such as docker-swarm, CF to Kubernetes.`,
-	PersistentPreRunE: func(*cobra.Command, []string) error {
-		if verbose {
-			log.SetLevel(log.DebugLevel)
-		}
-		return nil
-	},
-}
-
-func init() {
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
-}
-
 func main() {
+	verbose := false
+
+	// RootCmd root level flags and commands
+	rootCmd := &cobra.Command{
+		Use:   "move2kube",
+		Short: "Move2Kube creates all the resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.",
+		Long: `Move2Kube creates all resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.
+It supports translating from docker swarm/docker-compose, cloud foundry apps and even other non-containerized applications.
+Even if the app does not use any of the above, or even if it is not containerized it can still be translated.
+
+For more documentation and support, visit https://konveyor.io/move2kube
+`,
+		PersistentPreRunE: func(*cobra.Command, []string) error {
+			if verbose {
+				log.SetLevel(log.DebugLevel)
+			}
+			return nil
+		},
+	}
+
+	if strings.HasPrefix(filepath.Base(os.Args[0]), "kubectl-") {
+		// Invoked as a kubectl plugin.
+
+		// Cobra doesn't have a way to specify a two word command (ie. "kubectl move2kube"), so set a custom usage template
+		// with kubectl in it. Cobra will use this template for the root and all child commands.
+		oldUsageTemplate := rootCmd.UsageTemplate()
+		newUsageTemplate := strings.NewReplacer("{{.UseLine}}", "kubectl {{.UseLine}}", "{{.CommandPath}}", "kubectl {{.CommandPath}}").Replace(oldUsageTemplate)
+		rootCmd.SetUsageTemplate(newUsageTemplate)
+	}
+
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
+	rootCmd.AddCommand(getVersionCommand())
+	rootCmd.AddCommand(getCollectCommand())
+	rootCmd.AddCommand(getPlanCommand())
+	rootCmd.AddCommand(getTranslateCommand())
+
 	assetsPath, tempPath, err := common.CreateAssetsData()
 	if err != nil {
 		log.Fatalf("Unable to create the assets directory. Error: %q", err)
