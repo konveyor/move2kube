@@ -40,8 +40,6 @@ const (
 	IgnoreEnvFlag = "ignoreenv"
 )
 
-var verbose bool
-
 // CheckSourcePath checks if the source path is an existing directory.
 func CheckSourcePath(srcpath string) {
 	fi, err := os.Stat(srcpath)
