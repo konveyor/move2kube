@@ -42,7 +42,6 @@ var verbose bool
 func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	// Setup
 	var err error
-	ignoreEnv := false
 	srcpath := flags.srcpath
 	outpath := flags.outpath
 	name := flags.name
@@ -50,8 +49,9 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	qaskip := flags.qaskip
 
 	// These are just the defaults used in the move2kube translate command
-	qadisablecli := false
-	qaport := 0
+	qadisablecli := false // kubectl-translate does not support REST based access.
+	ignoreEnv := false    // Since kubectl is always supposed to run in the local machine, it will always use environment related info
+	qaport := 0           // setting 0, since kubectl-translate does not support REST API based access this value never gets used
 
 	if srcpath, err = filepath.Abs(srcpath); err != nil {
 		log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
