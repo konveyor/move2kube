@@ -95,6 +95,7 @@ func main() {
 
 	commandUsedToInvoke := "kubectl-translate"
 	if strings.HasPrefix(filepath.Base(os.Args[0]), "kubectl-") {
+		// Invoked as a kubectl plugin
 		commandUsedToInvoke = "kubectl translate"
 	}
 

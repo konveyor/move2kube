@@ -31,6 +31,7 @@ func main() {
 	verbose := false
 	commandUsedToInvoke := "move2kube"
 	if strings.HasPrefix(filepath.Base(os.Args[0]), "kubectl-") {
+		// Invoked as a kubectl plugin
 		commandUsedToInvoke = "kubectl move2kube"
 	}
 
