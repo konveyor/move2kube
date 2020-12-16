@@ -35,10 +35,6 @@ type collectFlags struct {
 	srcpath     string
 }
 
-const (
-	annotationsFlag = "annotations"
-)
-
 func collectHandler(flags collectFlags) {
 	var err error
 	annotations := flags.annotations
@@ -84,7 +80,7 @@ func init() {
 		Run:   func(*cobra.Command, []string) { collectHandler(flags) },
 	}
 
-	collectCmd.Flags().StringVarP(&flags.annotations, annotationsFlag, "a", "", "Specify annotations to select collector subset.")
+	collectCmd.Flags().StringVarP(&flags.annotations, "annotations", "a", "", "Specify annotations to select collector subset.")
 	collectCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutpathFlag, "o", ".", "Specify output directory for collect.")
 	collectCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory for the artifacts to be considered while collecting.")
 
