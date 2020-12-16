@@ -38,17 +38,6 @@ type translateFlags struct {
 
 var verbose bool
 
-func createOutputDirectoryAndCacheFile(outpath string) {
-	if err := os.MkdirAll(outpath, common.DefaultDirectoryPermission); err != nil {
-		log.Fatalf("Failed to create the output directory at path %s Error: %q", outpath, err)
-	}
-	cacheFilePath := filepath.Join(outpath, common.QACacheFile)
-	log.Debugf("Creating the cache file at path %s", cacheFilePath)
-	if err := qaengine.SetWriteCache(cacheFilePath); err != nil {
-		log.Warnf("Unable to write the cache file to path %q Error: %q", cacheFilePath, err)
-	}
-}
-
 func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	// Setup
 	var err error
@@ -83,7 +72,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	plan := move2kube.CreatePlan(srcpath, name)
 	outpath = filepath.Join(outpath, plan.Name)
 	cmdcommon.CheckOutputPath(outpath)
-	createOutputDirectoryAndCacheFile(outpath)
+	cmdcommon.CreateOutputDirectoryAndCacheFile(outpath)
 	plan = move2kube.CuratePlan(plan)
 
 	// Translate

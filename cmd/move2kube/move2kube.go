@@ -24,13 +24,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	nameFlag      = "name"
-	planFlag      = "plan"
-	sourceFlag    = "source"
-	ignoreEnvFlag = "ignoreenv"
-)
-
 var verbose bool
 
 // RootCmd root level flags and commands

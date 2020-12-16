@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
+	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/move2kube"
 	"github.com/konveyor/move2kube/internal/qaengine"
@@ -43,52 +44,12 @@ type translateFlags struct {
 }
 
 const (
-	outpathFlag      = "outpath"
 	curateFlag       = "curate"
 	qadisablecliFlag = "qadisablecli"
 	qaskipFlag       = "qaskip"
 	qaportFlag       = "qaport"
 	qacacheFlag      = "qacache"
 )
-
-func checkSourcePath(srcpath string) {
-	fi, err := os.Stat(srcpath)
-	if os.IsNotExist(err) {
-		log.Fatalf("The given source directory %s does not exist. Error: %q", srcpath, err)
-	}
-	if err != nil {
-		log.Fatalf("Error while accessing the given source directory %s Error: %q", srcpath, err)
-	}
-	if !fi.IsDir() {
-		log.Fatalf("The given source path %s is a file. Expected a directory. Exiting.", srcpath)
-	}
-}
-
-func checkOutputPath(outpath string) {
-	fi, err := os.Stat(outpath)
-	if os.IsNotExist(err) {
-		log.Debugf("Translated artifacts will be written to %s", outpath)
-		return
-	}
-	if err != nil {
-		log.Fatalf("Error while accessing output directory at path %s Error: %q . Exiting", outpath, err)
-	}
-	if !fi.IsDir() {
-		log.Fatalf("Output path %s is a file. Expected a directory. Exiting", outpath)
-	}
-	log.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
-}
-
-func createOutputDirectoryAndCacheFile(outpath string) {
-	if err := os.MkdirAll(outpath, common.DefaultDirectoryPermission); err != nil {
-		log.Fatalf("Failed to create the output directory at path %s Error: %q", outpath, err)
-	}
-	cacheFilePath := filepath.Join(outpath, common.QACacheFile)
-	log.Debugf("Creating the cache file at path %s", cacheFilePath)
-	if err := qaengine.SetWriteCache(cacheFilePath); err != nil {
-		log.Warnf("Unable to write the cache file to path %q Error: %q", cacheFilePath, err)
-	}
-}
 
 func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	// Setup
@@ -135,18 +96,18 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	}
 	if err != nil {
 		log.Debugf("No plan file found.")
-		if cmd.Flags().Changed(planFlag) || !cmd.Flags().Changed(sourceFlag) {
+		if cmd.Flags().Changed(cmdcommon.PlanFlag) || !cmd.Flags().Changed(cmdcommon.SourceFlag) {
 			// They specified path to a plan file which doesn't exist.
 			// OR
 			// They didn't specify path to a source directory.
 			log.Fatalf("Error while accessing plan file at path %s Error: %q", planfile, err)
 		}
-		checkSourcePath(srcpath)
+		cmdcommon.CheckSourcePath(srcpath)
 		log.Debugf("Creating a new plan.")
 		p = move2kube.CreatePlan(srcpath, name)
 		outpath = filepath.Join(outpath, p.Name)
-		checkOutputPath(outpath)
-		createOutputDirectoryAndCacheFile(outpath)
+		cmdcommon.CheckOutputPath(outpath)
+		cmdcommon.CreateOutputDirectoryAndCacheFile(outpath)
 		p = move2kube.CuratePlan(p)
 	} else {
 		log.Infof("Detected a plan file at path %s. Will translate using this plan.", planfile)
@@ -156,18 +117,18 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		if len(p.Spec.Inputs.Services) == 0 {
 			log.Fatalf("Failed to find any services. Aborting.")
 		}
-		if cmd.Flags().Changed(nameFlag) {
+		if cmd.Flags().Changed(cmdcommon.NameFlag) {
 			p.Name = name
 		}
-		if cmd.Flags().Changed(sourceFlag) {
+		if cmd.Flags().Changed(cmdcommon.SourceFlag) {
 			if err := p.SetRootDir(srcpath); err != nil {
 				log.Fatalf("Failed to set the root directory to %q Error: %q", srcpath, err)
 			}
 		}
-		checkSourcePath(p.Spec.Inputs.RootDir)
+		cmdcommon.CheckSourcePath(p.Spec.Inputs.RootDir)
 		outpath = filepath.Join(outpath, p.Name)
-		checkOutputPath(outpath)
-		createOutputDirectoryAndCacheFile(outpath)
+		cmdcommon.CheckOutputPath(outpath)
+		cmdcommon.CreateOutputDirectoryAndCacheFile(outpath)
 		if curate {
 			p = move2kube.CuratePlan(p)
 		}
@@ -195,15 +156,15 @@ func init() {
 	}
 
 	// Basic options
-	translateCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
+	translateCmd.Flags().StringVarP(&flags.planfile, cmdcommon.PlanFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	translateCmd.Flags().BoolVarP(&flags.curate, curateFlag, "c", false, "Specify whether to curate the plan with a q/a.")
-	translateCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory to translate. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
-	translateCmd.Flags().StringVarP(&flags.outpath, outpathFlag, "o", ".", "Path for output. Default will be directory with the project name.")
-	translateCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	translateCmd.Flags().StringSliceVarP(&flags.qacaches, qacacheFlag, "q", []string{}, "Specify qa cache file locations")
+	translateCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory to translate. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
+	translateCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutpathFlag, "o", ".", "Path for output. Default will be directory with the project name.")
+	translateCmd.Flags().StringVarP(&flags.name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
+	translateCmd.Flags().StringSliceVarP(&flags.qacaches, cmdcommon.QacacheFlag, "q", []string{}, "Specify qa cache file locations")
 
 	// Advanced options
-	translateCmd.Flags().BoolVar(&flags.ignoreEnv, ignoreEnvFlag, false, "Ignore data from local machine.")
+	translateCmd.Flags().BoolVar(&flags.ignoreEnv, cmdcommon.IgnoreEnvFlag, false, "Ignore data from local machine.")
 
 	// Hidden options
 	translateCmd.Flags().BoolVar(&flags.qadisablecli, qadisablecliFlag, false, "Enable/disable the QA Cli sub-system. Without this system, you will have to use the REST API to interact.")

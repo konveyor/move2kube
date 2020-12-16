@@ -18,16 +18,12 @@ package common
 
 import (
 	"os"
+	"path/filepath"
 
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/qaengine"
 	log "github.com/sirupsen/logrus"
 )
-
-type translateFlags struct {
-	outpath  string
-	srcpath  string
-	name     string
-	qacaches []string
-}
 
 const (
 	// SourceFlag is the name of the flag that contains path to the source folder
@@ -38,6 +34,10 @@ const (
 	QacacheFlag = "qacache"
 	// NameFlag is the name of the flag that contains the project name
 	NameFlag = "name"
+	// PlanFlag is the name of the flag that contains the path to the plan file.
+	PlanFlag = "plan"
+	// IgnoreEnvFlag is the name of the flag that tells us whether to use data collected from the local machine.
+	IgnoreEnvFlag = "ignoreenv"
 )
 
 var verbose bool
@@ -70,4 +70,16 @@ func CheckOutputPath(outpath string) {
 		log.Fatalf("Output path %s is a file. Expected a directory. Exiting", outpath)
 	}
 	log.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
+}
+
+// CreateOutputDirectoryAndCacheFile creates the output directory and qacache file
+func CreateOutputDirectoryAndCacheFile(outpath string) {
+	if err := os.MkdirAll(outpath, common.DefaultDirectoryPermission); err != nil {
+		log.Fatalf("Failed to create the output directory at path %s Error: %q", outpath, err)
+	}
+	cacheFilePath := filepath.Join(outpath, common.QACacheFile)
+	log.Debugf("Creating the cache file at path %s", cacheFilePath)
+	if err := qaengine.SetWriteCache(cacheFilePath); err != nil {
+		log.Warnf("Unable to write the cache file to path %q Error: %q", cacheFilePath, err)
+	}
 }
