@@ -46,7 +46,6 @@ type translateFlags struct {
 const (
 	curateFlag       = "curate"
 	qadisablecliFlag = "qadisablecli"
-	qaskipFlag       = "qaskip"
 	qaportFlag       = "qaport"
 	qacacheFlag      = "qacache"
 )
@@ -159,20 +158,20 @@ func init() {
 	translateCmd.Flags().StringVarP(&flags.planfile, cmdcommon.PlanFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	translateCmd.Flags().BoolVarP(&flags.curate, curateFlag, "c", false, "Specify whether to curate the plan with a q/a.")
 	translateCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory to translate. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
-	translateCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutpathFlag, "o", ".", "Path for output. Default will be directory with the project name.")
+	translateCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	translateCmd.Flags().StringVarP(&flags.name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	translateCmd.Flags().StringSliceVarP(&flags.qacaches, cmdcommon.QacacheFlag, "q", []string{}, "Specify qa cache file locations")
+	translateCmd.Flags().StringSliceVarP(&flags.qacaches, cmdcommon.QACacheFlag, "q", []string{}, "Specify qa cache file locations")
 
 	// Advanced options
 	translateCmd.Flags().BoolVar(&flags.ignoreEnv, cmdcommon.IgnoreEnvFlag, false, "Ignore data from local machine.")
 
 	// Hidden options
 	translateCmd.Flags().BoolVar(&flags.qadisablecli, qadisablecliFlag, false, "Enable/disable the QA Cli sub-system. Without this system, you will have to use the REST API to interact.")
-	translateCmd.Flags().BoolVar(&flags.qaskip, qaskipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
+	translateCmd.Flags().BoolVar(&flags.qaskip, cmdcommon.QASkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 	translateCmd.Flags().IntVar(&flags.qaport, qaportFlag, 0, "Port for the QA service. By default it chooses a random free port.")
 
 	must(translateCmd.Flags().MarkHidden(qadisablecliFlag))
-	must(translateCmd.Flags().MarkHidden(qaskipFlag))
+	must(translateCmd.Flags().MarkHidden(cmdcommon.QASkipFlag))
 	must(translateCmd.Flags().MarkHidden(qaportFlag))
 
 	rootCmd.AddCommand(translateCmd)

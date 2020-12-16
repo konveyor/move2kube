@@ -81,7 +81,7 @@ func init() {
 	}
 
 	collectCmd.Flags().StringVarP(&flags.annotations, "annotations", "a", "", "Specify annotations to select collector subset.")
-	collectCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutpathFlag, "o", ".", "Specify output directory for collect.")
+	collectCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutputFlag, "o", ".", "Specify output directory for collect.")
 	collectCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory for the artifacts to be considered while collecting.")
 
 	rootCmd.AddCommand(collectCmd)

@@ -28,16 +28,18 @@ import (
 const (
 	// SourceFlag is the name of the flag that contains path to the source folder
 	SourceFlag = "source"
-	// OutpathFlag is the name of the flag that contains path to the output folder
-	OutpathFlag = "outpath"
-	// QacacheFlag is the name of the flag that contains list of qacache files
-	QacacheFlag = "qacache"
+	// OutputFlag is the name of the flag that contains path to the output folder
+	OutputFlag = "output"
+	// QACacheFlag is the name of the flag that contains list of qacache files
+	QACacheFlag = "qacache"
 	// NameFlag is the name of the flag that contains the project name
 	NameFlag = "name"
-	// PlanFlag is the name of the flag that contains the path to the plan file.
+	// PlanFlag is the name of the flag that contains the path to the plan file
 	PlanFlag = "plan"
-	// IgnoreEnvFlag is the name of the flag that tells us whether to use data collected from the local machine.
+	// IgnoreEnvFlag is the name of the flag that tells us whether to use data collected from the local machine
 	IgnoreEnvFlag = "ignoreenv"
+	// QASkipFlag is the name of the flag that let's you skip all the question answers
+	QASkipFlag = "qaskip"
 )
 
 // CheckSourcePath checks if the source path is an existing directory.

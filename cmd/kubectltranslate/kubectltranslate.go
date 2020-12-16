@@ -33,6 +33,7 @@ type translateFlags struct {
 	outpath  string
 	srcpath  string
 	name     string
+	qaskip   bool
 	qacaches []string
 }
 
@@ -46,10 +47,10 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	outpath := flags.outpath
 	name := flags.name
 	qacaches := flags.qacaches
+	qaskip := flags.qaskip
 
 	// These are just the defaults used in the move2kube translate command
 	qadisablecli := false
-	qaskip := false
 	qaport := 0
 
 	if srcpath, err = filepath.Abs(srcpath); err != nil {
@@ -115,9 +116,10 @@ For more documentation and support for this plugin and Move2Kube, visit https://
 
 	// Basic options
 	translateCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", ".", "Specify source directory to translate. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
-	translateCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutpathFlag, "o", ".", "Path for output. Default will be directory with the project name.")
+	translateCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	translateCmd.Flags().StringVarP(&flags.name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	translateCmd.Flags().StringSliceVarP(&flags.qacaches, cmdcommon.QacacheFlag, "q", []string{}, "Specify qa cache file locations")
+	translateCmd.Flags().StringSliceVarP(&flags.qacaches, cmdcommon.QACacheFlag, "q", []string{}, "Specify qa cache file locations")
+	translateCmd.Flags().BoolVar(&flags.qaskip, cmdcommon.QASkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 
 	must(translateCmd.MarkFlagRequired(cmdcommon.SourceFlag))
 
