@@ -29,7 +29,7 @@ GOLANGCOVER   = $(GOPATH)/bin/goveralls
 PKG        := ./...
 LDFLAGS    := -w -s
 
-SRC        = $(shell find . -type f -name '*.go' -print)
+SRC        = $(shell find . -type f -name '*.go' -print0)
 ARCH       = $(shell uname -p)
 GIT_COMMIT = $(shell git rev-parse HEAD)
 GIT_SHA    = $(shell git rev-parse --short HEAD)
@@ -74,12 +74,18 @@ $(BINDIR)/$(BINNAME): $(SRC)
 	mkdir -p $(GOPATH)/bin/
 	cp $(BINDIR)/$(BINNAME) $(GOPATH)/bin/
 
+.PHONY: build-translate
+build-translate: get $(BINDIR)/translate ## Build translate plugin for kubectl https://github.com/kubernetes-sigs/krew
+
+$(BINDIR)/translate: $(SRC)
+	go build -tags excludecodegen,excludedist -ldflags '$(LDFLAGS)' -o $(BINDIR)/translate ./cmd/translate
+
 .PHONY: get
 get: go.mod
 	go mod download
 
 .PHONY: generate
-generate: 
+generate:
 	go generate ${PKG}
 
 .PHONY: deps
@@ -132,11 +138,21 @@ $(GOX):
 build-cross: $(GOX) clean
 	CGO_ENABLED=0 $(GOX) -parallel=3 -output="$(DISTDIR)/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/${BINNAME}
 
+.PHONY: build-cross-translate
+build-cross-translate: $(GOX) clean
+	CGO_ENABLED=0 $(GOX) -parallel=3 -output="$(DISTDIR)/{{.OS}}-{{.Arch}}/translate" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/translate
+
 .PHONY: dist
-dist: clean build-cross ## Build Distribution
+dist: clean build-cross ## Build distribution
 	mkdir -p $(DISTDIR)/files
 	cp -r ./LICENSE ./scripts/installdeps.sh ./USAGE.md ./samples $(DISTDIR)/files/
 	cd $(DISTDIR) && go run ../scripts/builddist.go -b ${BINNAME} -v ${VERSION}
+
+.PHONY: dist-translate
+dist-translate: clean build-cross-translate ## Build kubectl plugin distribution
+	mkdir -p $(DISTDIR)/files
+	cp -r ./LICENSE ./USAGE.md $(DISTDIR)/files/
+	cd $(DISTDIR) && go run ../scripts/builddist.go -b translate -v ${VERSION}
 
 .PHONY: clean
 clean:
