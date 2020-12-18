@@ -104,7 +104,7 @@ jobs:
             github.git.createRef({
               ...context.repo,
               ref: "refs/tags/${{ github.event.inputs.tag }}",
-              sha: ${{ steps.get_sha.outputs.sha }}
+              sha: "${{ steps.get_sha.outputs.sha }}"
             })
 
   create_release_draft:
