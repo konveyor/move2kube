@@ -23,6 +23,25 @@ Once you are ready to have your work merged into the main repo follow these step
 3. Once all conflicts have been resolved, push the commits to your fork (`git push`) and submit a pull request on Github.
 4. The pull request may be merged after CI checks have passed and at least one maintainer has signed off on it.
 
+## Pull request title and commit messages
+
+We adhere to the https://www.conventionalcommits.org/en/v1.0.0/ spec for commit messages as well as pull request titles.  
+It's a very simple spec, here are some example commit messages: https://www.conventionalcommits.org/en/v1.0.0/#examples
+
+The syntax is:
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+If your PR is about a new feature then use: `feat: my new feature`  
+If it is a bug fix use: `fix: something broken`  
+The valid PR types are `['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert']`
+
+The pull request title should simply be the first line of the commit message.
+
 ## Sign your commits
 
 The sign-off is a line at the end of the explanation for the patch. Your

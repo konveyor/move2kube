@@ -18,8 +18,7 @@ jobs:
           github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           script: |
             github.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              ...context.repo.owner,
               ref: "refs/tags/${{ github.event.inputs.tag }}",
               sha: context.sha
             })
