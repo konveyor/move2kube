@@ -25,8 +25,7 @@ Once you are ready to have your work merged into the main repo follow these step
 
 ## Pull request title and commit messages
 
-We adhere to the https://www.conventionalcommits.org/en/v1.0.0/ spec for commit messages as well as pull request titles.
-
+We adhere to the https://www.conventionalcommits.org/en/v1.0.0/ spec for commit messages as well as pull request titles.  
 It's a very simple spec, here are some example commit messages: https://www.conventionalcommits.org/en/v1.0.0/#examples
 
 The syntax is:
