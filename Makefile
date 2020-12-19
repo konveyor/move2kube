@@ -170,13 +170,13 @@ info: ## Get version info
 
 .PHONY: cbuild
 cbuild: ## Build docker image
-	docker build -t ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --target build_base                          --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
-	docker build -t ${REGISTRYNS}/${BINNAME}:${VERSION}     --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
+	docker build -t ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --target build_base                          --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
+	docker build -t ${REGISTRYNS}/${BINNAME}:${VERSION}         --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
+	docker tag ${REGISTRYNS}/${BINNAME}-builder:${VERSION} ${REGISTRYNS}/${BINNAME}-builder:latest
 	docker tag ${REGISTRYNS}/${BINNAME}:${VERSION} ${REGISTRYNS}/${BINNAME}:latest
 
 .PHONY: cpush
 cpush: ## Push docker image
-	docker push ${REGISTRYNS}/${BINNAME}:latest
-	docker push ${REGISTRYNS}/${BINNAME}:${VERSION}
 	# To help with reusing layers and hence speeding up build
-	docker push ${REGISTRYNS}/${BINNAME}-builder:latest
+	docker push ${REGISTRYNS}/${BINNAME}-builder:${VERSION}
+	docker push ${REGISTRYNS}/${BINNAME}:${VERSION}
