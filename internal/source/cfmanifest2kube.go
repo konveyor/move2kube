@@ -103,7 +103,7 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 		for _, application := range applications {
 			fullbuilddirectory := filepath.Dir(filePath)
 			if application.Path != "" {
-				fullbuilddirectory = filepath.Join(filePath, application.Path)
+				fullbuilddirectory = filepath.Join(filepath.Dir(filePath), application.Path)
 			}
 			applicationName := application.Name
 			if applicationName == "" {
