@@ -29,7 +29,7 @@ GOLANGCOVER   = $(GOPATH)/bin/goveralls
 PKG        := ./...
 LDFLAGS    := -w -s
 
-SRC        = $(shell find . -type f -name '*.go' -print0)
+SRC        = $(shell find . -type f -name '*.go' -print)
 ARCH       = $(shell uname -p)
 GIT_COMMIT = $(shell git rev-parse HEAD)
 GIT_SHA    = $(shell git rev-parse --short HEAD)
