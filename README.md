@@ -33,8 +33,7 @@ UI :
 
 ![Usage](./imgs/usage.png)
 
-Usage instructions can be found [here](./USAGE.md)  
-Some demo usage flows can be found in [here](https://github.com/konveyor/move2kube-demos)
+Checkout the [Getting started](https://konveyor.io/move2kube/docs/getting-started) guide and [Tutorials](https://konveyor.io/move2kube/docs/tutorial) for more information.
 
 ## Prerequisites
 
