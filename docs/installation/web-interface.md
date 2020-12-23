@@ -10,6 +10,7 @@ nav_order: 2
 
    ```console
    $ git clone https://github.com/konveyor/move2kube-ui
+   $ cd move2kube-ui
    $ docker-compose up
    ```
 
