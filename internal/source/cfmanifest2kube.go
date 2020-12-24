@@ -19,6 +19,7 @@ package source
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -103,7 +104,12 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 		for _, application := range applications {
 			fullbuilddirectory := filepath.Dir(filePath)
 			if application.Path != "" {
-				fullbuilddirectory = filepath.Join(filepath.Dir(filePath), application.Path)
+				fullappdirectory := filepath.Join(filepath.Dir(filePath), application.Path)
+				if _, err := os.Stat(fullappdirectory); !os.IsNotExist(err) {
+					fullbuilddirectory = fullappdirectory
+				} else {
+					log.Debugf("Path to app directory %s does not exist, assuming manifest directory as app path", fullappdirectory)
+				}
 			}
 			applicationName := application.Name
 			if applicationName == "" {
