@@ -11,7 +11,7 @@ Next Steps
 ----------
 {{if .NewImages -}}
 * Copy this directory into your base source directory, so that the scripts gets merged at the right contexts. 
-* Build your images using buildimages.sh
-* Push images to registry pushimages.sh
+* Build your images using ./scripts/buildimages.sh
+* Push images to registry ./scripts/pushimages.sh
 {{end -}}
-* Use deploy.sh to deploy your artifacts into a knative.
+* Use ./scripts/deploy.sh to deploy your artifacts into a knative.

@@ -67,6 +67,11 @@ func (cicd *CICDTransformer) WriteObjects(outDirectory string) error {
 			filePath := filepath.Join(outDirectory, relFilePath)
 			filePerms := common.DefaultFilePermission
 			if filepath.Ext(relFilePath) == ".sh" {
+				scriptspath := filepath.Join(outDirectory, common.ScriptsDir)
+				if err := os.MkdirAll(scriptspath, common.DefaultDirectoryPermission); err != nil {
+					log.Errorf("Unable to create directory %s : %s", scriptspath, err)
+				}
+				filePath = filepath.Join(scriptspath, relFilePath)
 				filePerms = common.DefaultExecutablePermission
 			}
 			if err := ioutil.WriteFile(filePath, []byte(fileContents), filePerms); err != nil {

@@ -14,8 +14,8 @@
 
 print_usage() {
     echo "Invalid args: $*"
-    echo 'Usage: copysources.sh path/to/sources/'
-    echo 'Example: copysources.sh {{ .RelRootDir }}'
+    echo 'Usage: ./scripts/copysources.sh path/to/sources/'
+    echo 'Example: ./scripts/copysources.sh {{ .RelRootDir }}'
 }
 
 if [ "$#" -ne 1 ]; then
