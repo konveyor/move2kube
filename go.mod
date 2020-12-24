@@ -19,7 +19,6 @@ require (
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/google/go-cmp v0.5.4
 	github.com/gorilla/mux v1.8.0
-	github.com/jinzhu/copier v0.1.0
 	github.com/moby/buildkit v0.7.2
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20200728170252-4d89ac9fbff6
