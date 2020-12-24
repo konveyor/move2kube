@@ -171,7 +171,6 @@ func getTranslateCommand() *cobra.Command {
 	translateCmd.Flags().IntVar(&flags.qaport, qaportFlag, 0, "Port for the QA service. By default it chooses a random free port.")
 
 	must(translateCmd.Flags().MarkHidden(qadisablecliFlag))
-	must(translateCmd.Flags().MarkHidden(cmdcommon.QASkipFlag))
 	must(translateCmd.Flags().MarkHidden(qaportFlag))
 
 	return translateCmd
