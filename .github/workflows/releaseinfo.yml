@@ -7,16 +7,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: info
-        uses: HarikrishnanBalagopal/nextrelease@v1
+        uses: konveyor/get-release-info@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/checkout@v2
         with:
           ref: gh-pages
-      - run: echo '${{ steps.info.outputs.release_info }}' > releaseinfo.json
+      - run: echo '${{ steps.info.outputs.release_info }}' > _data/releaseinfo.json
       - uses: EndBug/add-and-commit@v6
         with:
-          add: releaseinfo.json
+          add: _data/releaseinfo.json
           author_name: move2kube
           author_email: move2kube@gmail.com
           branch: gh-pages
