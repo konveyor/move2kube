@@ -1,0 +1,128 @@
+---
+layout: default
+title: "Create a new release"
+permalink: /internalpages/releases/
+nav_exclude: true
+search_exclude: true
+---
+
+<style>
+    .hidden {
+        display: none !important;
+    }
+
+    #create-release-result-success,
+    #publish-release-result-success {
+        padding: 1em;
+        background-color: #10ac7d;
+        color: white;
+    }
+
+    #create-release-result-error,
+    #publish-release-result-error {
+        padding: 1em;
+        background-color: #ff4646;
+        color: white;
+    }
+
+    #pa-token-section {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        height: 4em;
+    }
+
+    #pa-token-section>label {
+        flex-basis: 40%;
+    }
+
+    #pa-token-section>div {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        flex-basis: 60%;
+    }
+
+    #pa-token-section>div>input {
+        flex-basis: 80%;
+        padding-left: 1em;
+        padding-right: 1em;
+    }
+
+    #pa-token-section>div>button {
+        flex-basis: 20%;
+    }
+
+    #create-release-release-types {
+        display: flex;
+        padding: 1em;
+        justify-content: space-around;
+    }
+
+    .release-draft {
+        display: flex;
+        flex-direction: column;
+        padding: 1em;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 3px 10px rgba(0, 0, 0, 0.08);
+        border-radius: .2em;
+    }
+
+    .release-draft>div {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+    }
+
+    .release-draft>div>h3 {
+        display: inline;
+        font-family: monospace;
+        flex-basis: 70%;
+    }
+
+    .release-draft>div>button {
+        flex-basis: 10%;
+    }
+
+    button.btn.btn-red {
+        color: #fff;
+        background-color: #ac1010;
+        background-image: linear-gradient(#ff4802, #bb0a0a);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 4px 10px rgba(0, 0, 0, 0.12);
+    }
+</style>
+
+<section>
+    <h1>Releases</h1>
+    {% include releaseinfo.html %}
+</section>
+
+<section>
+    <h1>Create a new release</h1>
+    <section id="pa-token-section">
+        <label for="pa-token-input">Personal Access Token</label>
+        <div>
+            <input id="pa-token-input" name="pa-token" type="password" placeholder="personal access token" />
+            <button id="pa-token-button">OK</button>
+        </div>
+    </section>
+    <section id="create-release-section" class="hidden">
+        <div id="create-release-release-types">
+        </div>
+        <div id="create-release-result" class="hidden">
+            <div id="create-release-result-success" class="hidden">Success!!</div>
+            <div id="create-release-result-error" class="hidden">Error: some error</div>
+        </div>
+    </section>
+    <section id="publish-release-section" class="hidden">
+        <h1>Publish release draft</h1>
+        <div id="publish-release-release-drafts">
+        </div>
+        <div id="publish-release-result" class="hidden">
+            <div id="publish-release-result-success" class="hidden">Success!!</div>
+            <div id="publish-release-result-error" class="hidden">Error: some error</div>
+        </div>
+    </section>
+</section>
+
+
+<script type="module" src="{{ site.baseurl }}/assets/js/internalpages/releaseui-bundle.js"></script>
