@@ -1,0 +1,26 @@
+name: write release information to file
+
+on: workflow_dispatch
+
+jobs:
+  release_info:
+    runs-on: ubuntu-latest
+    steps:
+      - id: info
+        uses: HarikrishnanBalagopal/nextrelease@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v2
+        with:
+          ref: gh-pages
+      - run: echo '${{ steps.info.outputs.release_info }}' > releaseinfo.json
+      - uses: EndBug/add-and-commit@v6
+        with:
+          add: releaseinfo.json
+          author_name: move2kube
+          author_email: move2kube@gmail.com
+          branch: gh-pages
+          cwd: "."
+          message: "chore: update release information. run_id ${{ github.run_id }}"
+          pull_strategy: "--ff-only"
+          token: ${{ secrets.GITHUB_TOKEN }}
