@@ -121,7 +121,7 @@ function get_next_non_patch_release(data: releaseInfoT): releaseT {
 }
 
 async function publish_releases(owner_repo_ids: { owner: string, repo: string, release_id: number }[]): Promise<void> {
-    const workflow_filename = 'publishtest.yml';
+    const workflow_filename = 'publish.yml';
     const branch_to_run_on = 'main';
     try {
         if (!PA_TOKEN) {
@@ -244,7 +244,7 @@ async function update_release_drafts(): Promise<void> {
 }
 
 async function create_release_draft(release: releaseT): Promise<void> {
-    const workflow_filename = 'releasetest.yml';
+    const workflow_filename = 'release.yml';
     const branch_to_run_on = 'main';
     try {
         if (!PA_TOKEN) {
@@ -304,13 +304,17 @@ async function setup(): Promise<void> {
     pa_token_button_el.addEventListener('click', async () => {
         const token = pa_token_input_el.value;
         if (token.length !== 40) {
-            return alert(`personal access token is invalid. token length should be 40. got: ${token.length}`);
+            return alert(`Personal access token is invalid. Token length should be 40. got: ${token.length}`);
         }
         if (/[^a-f0-9]/.test(token)) {
-            return alert(`personal access token is invalid. token should only contain hexadecimal characters [a-f0-9]. got: ${token}`);
+            return alert(`Personal access token is invalid. Token should only contain hexadecimal characters [a-f0-9].`);
         }
         PA_TOKEN = token;
-        await update_release_drafts();
+        try {
+            await update_release_drafts();
+        } catch (err) {
+            return alert(err);
+        }
         pa_token_section_el.classList.add('hidden');
         create_release_section_el.classList.remove('hidden');
         publish_release_section_el.classList.remove('hidden');
