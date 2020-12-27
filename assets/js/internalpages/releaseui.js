@@ -228,7 +228,13 @@ function update_release_drafts() {
             const tag_header_publish_button = document.createElement('button');
             tag_header_publish_button.textContent = 'Publish';
             tag_header_publish_button.classList.add('btn', 'btn-primary');
-            tag_header_publish_button.addEventListener('click', () => publish_releases(owner_repo_ids));
+            if (drafts.some(draft => draft.release.name.startsWith('[WIP] '))) {
+                tag_header_publish_button.setAttribute('disabled', 'true');
+                tag_header_h3.textContent += ' [Work In Progress]';
+            }
+            else {
+                tag_header_publish_button.addEventListener('click', () => publish_releases(owner_repo_ids));
+            }
             tag_header.appendChild(tag_header_publish_button);
             const tag_header_delete_button = document.createElement('button');
             tag_header_delete_button.textContent = 'Delete';
