@@ -58,7 +58,7 @@ jobs:
           docker pull quay.io/konveyor/move2kube-builder:latest || true
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build image
-        run: GO_VERSION=${{ steps.info.outputs.go_version }} make cbuild
+        run: GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
       - name: push temporary image to quay
         run: |
           docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:${{ github.run_id }}
@@ -205,14 +205,12 @@ jobs:
           docker pull quay.io/konveyor/move2kube:${{ github.run_id }}
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build container image
-        run: GO_VERSION=${{ steps.info.outputs.go_version }} make cbuild
+        run: VERSION='${{ github.event.inputs.tag }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
       - if: always()
         name: delete temporary image from quay
         run: skopeo delete docker://quay.io/konveyor/move2kube:${{ github.run_id }}
       - name: push image to quay
-        run: |
-          docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:${{ github.event.inputs.tag }}
-          docker push quay.io/konveyor/move2kube:${{ github.event.inputs.tag }}
+        run: VERSION='${{ github.event.inputs.tag }}' make cpush
       - name: success slack notification
         uses: rtCamp/action-slack-notify@v2
         env:
@@ -236,23 +234,26 @@ jobs:
     needs: [image_build]
     name: Trigger release in other repos
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        repo:
-          [
-            "konveyor/move2kube-api",
-            "konveyor/move2kube-ui",
-            "konveyor/move2kube-operator",
-            "konveyor/move2kube-tests",
-          ]
     steps:
-      - name: Repository Dispatch
-        uses: peter-evans/repository-dispatch@v1
+      - uses: actions/github-script@v3
         with:
-          token: ${{ secrets.MOVE2KUBE_PATOKEN }}
-          repository: ${{ matrix.repo }}
-          event-type: cli_tagged
-          client-payload: '{"tag": "${{ github.event.inputs.tag }}", "prev_tag": "${{ github.event.inputs.prev_tag }}", "commit_ref": "${{ github.event.inputs.commit_ref }}" }'
+          github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+          script: |
+            const create_release_workflow = 'release.yml';
+            const repos = [
+              "move2kube-api",
+              "move2kube-ui",
+              "move2kube-operator",
+              "move2kube-tests",
+            ];
+            const promises = repos.map(repo => github.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo,
+              workflow_id: create_release_workflow,
+              ref: context.ref,
+              inputs: context.payload.inputs,
+            }));
+            await Promise.all(promises);
 
   update_draft_title:
     needs: [create_release_draft, trigger_other_repos]

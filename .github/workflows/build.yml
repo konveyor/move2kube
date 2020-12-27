@@ -27,7 +27,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Build and test failed for move2kube main"
+          SLACK_MESSAGE: "Build and test failed for move2kube ${{ github.ref }}"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 
@@ -101,12 +101,18 @@ jobs:
       - name: push image to quay
         run: VERSION='${{ steps.image_tag.outputs.tag }}' make cpush
       - name: trigger move2kube-api build
-        uses: peter-evans/repository-dispatch@v1
+        uses: actions/github-script@v3
         with:
-          token: ${{ secrets.MOVE2KUBE_PATOKEN }}
-          repository: konveyor/move2kube-api
-          event-type: cli_push
-          client-payload: '{"branch": "${{ github.ref }}"}'
+          github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+          script: |
+            const other_repo = 'move2kube-api';
+            const build_workflow = 'build.yml';
+            await github.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: other_repo,
+              workflow_id: build_workflow,
+              ref: context.ref,
+            });
       - name: success slack notification
         uses: rtCamp/action-slack-notify@v2
         env:
