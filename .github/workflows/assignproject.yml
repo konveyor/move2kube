@@ -1,12 +1,14 @@
 name: Assign Project
+
 on:
   issues:
     types: [opened]
+
 jobs:
-  createCard:
+  create_card:
     runs-on: ubuntu-latest
     steps:
-      - name: Create project card
+      - name: create project card
         uses: peter-evans/create-or-update-project-card@v1
         with:
           token: ${{ secrets.MOVE2KUBE_PATOKEN }}

@@ -4,9 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag Name"
+        description: "Tag name"
         required: true
         default: "v0.1.0-rc.2"
+      sha:
+        description: "SHA of the commit to tag. Defaults to latest commit on branch this was invoked on."
+        required: false
 
 jobs:
   tag:
@@ -17,8 +20,9 @@ jobs:
         with:
           github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           script: |
-            github.git.createRef({
-              ...context.repo.owner,
-              ref: "refs/tags/${{ github.event.inputs.tag }}",
-              sha: context.sha
-            })
+            const sha = '${{ github.event.inputs.sha }}' || context.sha;
+            await github.git.createRef({
+              ...context.repo,
+              ref: 'refs/tags/${{ github.event.inputs.tag }}',
+              sha
+            });

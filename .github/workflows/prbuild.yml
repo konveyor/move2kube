@@ -7,7 +7,7 @@ on:
       - "release-*"
 
 jobs:
-  build:
+  build_and_test:
     name: Build and test
     runs-on: ubuntu-latest
     steps:
