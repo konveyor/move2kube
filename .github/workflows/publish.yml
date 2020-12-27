@@ -3,48 +3,29 @@ name: Publish Release Drafts
 on:
   workflow_dispatch:
     inputs:
-      tag:
-        description: Tag of the release drafts
+      owner_repo_ids:
+        description: |
+          owner_repo_ids: JSON array of { owner: string, repo: string, release_id: number } objects.
+          All the listed release drafts will be published.
         required: true
-        default: v0.1.0-rc.2
 
 jobs:
   publish:
     name: Publish release drafts
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        repo:
-          [
-            "move2kube",
-            "move2kube-api",
-            "move2kube-ui",
-            "move2kube-operator",
-            "move2kube-tests",
-          ]
     steps:
-      - id: get_release_draft_id
-        uses: actions/github-script@v3
+      - uses: actions/github-script@v3
         with:
           github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           script: |
-            const owner = "konveyor";
-            const repo = "${{ matrix.repo }}";
-            const tag = "${{ github.event.inputs.tag }}";
-            const response = await github.repos.listReleases({ owner, repo });
-            for (const release of response.data) {
-              core.debug(release.tag_name);
-              if (release.tag_name === tag) {
-                core.info(`Found a release with the tag ${tag} and ID ${release.id}`);
-                core.setOutput("id", release.id);
-                return;
-              }
-            }
-            return core.setFailed(`Failed to find a release with the tag ${tag}`);
-      - name: publish
-        uses: StuYarrow/publish-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MOVE2KUBE_PATOKEN }}
-        with:
-          repo: ${{ matrix.repo }}
-          id: ${{ steps.get_release_draft_id.outputs.id }}
+            const update_release_info_workflow = 'releaseinfo.yml';
+            const owner_repo_ids = JSON.parse('${{ github.event.inputs.owner_repo_ids }}');
+
+            const promises = owner_repo_ids.map(owner_repo_id => github.repos.updateRelease({...owner_repo_id, draft: false}));
+            await Promise.all(promises);
+
+            await github.actions.createWorkflowDispatch({
+                ...context.repo,
+                workflow_id: update_release_info_workflow,
+                ref: context.ref,
+            });
