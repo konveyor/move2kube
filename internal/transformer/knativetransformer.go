@@ -17,6 +17,7 @@ limitations under the License.
 package transform
 
 import (
+	"os"
 	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
@@ -77,11 +78,16 @@ func (kt *KnativeTransformer) WriteObjects(outpath string) error {
 }
 
 func (kt *KnativeTransformer) writeDeployScript(proj string, outpath string) {
-	err := common.WriteTemplateToFile(templates.Deploy_sh, struct {
+	scriptspath := filepath.Join(outpath, common.ScriptsDir)
+	err := os.MkdirAll(scriptspath, common.DefaultDirectoryPermission)
+	if err != nil {
+		log.Errorf("Unable to create directory %s : %s", scriptspath, err)
+	}
+	err = common.WriteTemplateToFile(templates.Deploy_sh, struct {
 		Project string
 	}{
 		Project: proj,
-	}, filepath.Join(outpath, "deploy.sh"), common.DefaultExecutablePermission)
+	}, filepath.Join(scriptspath, "deploy.sh"), common.DefaultExecutablePermission)
 	if err != nil {
 		log.Errorf("Unable to write deploy script : %s", err)
 	}

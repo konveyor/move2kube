@@ -33,6 +33,8 @@ const (
 	TempDirPrefix string = types.AppNameShort + "-"
 	// AssetsDir defines the dir of the assets temp directory
 	AssetsDir string = types.AppNameShort + "assets"
+	// ScriptsDir defines the dir where output scripts are placed
+	ScriptsDir string = "scripts"
 	// VolumePrefix defines the prefix to be used for volumes
 	VolumePrefix string = "vol"
 	// DefaultStorageClassName defines the default storage class to be used

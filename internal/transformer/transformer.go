@@ -64,6 +64,11 @@ func writeContainers(containers []irtypes.Container, outpath, rootDir, registryU
 	if err != nil {
 		log.Errorf("Unable to create directory %s : %s", containerspath, err)
 	}
+	scriptspath := path.Join(outpath, common.ScriptsDir)
+	err = os.MkdirAll(scriptspath, common.DefaultDirectoryPermission)
+	if err != nil {
+		log.Errorf("Unable to create directory %s : %s", scriptspath, err)
+	}
 	log.Debugf("Total number of containers : %d", len(containers))
 	buildscripts := []string{}
 	dockerimages := []string{}
@@ -117,7 +122,7 @@ func writeContainers(containers []irtypes.Container, outpath, rootDir, registryU
 		}
 		log.Debugf("buildscripts %s", buildscripts)
 		log.Debugf("buildScriptMap %s", buildScriptMap)
-		writepath := filepath.Join(outpath, "buildimages.sh")
+		writepath := filepath.Join(scriptspath, "buildimages.sh")
 		err := common.WriteTemplateToFile(templates.Buildimages_sh, buildScriptMap, writepath, common.DefaultExecutablePermission)
 		if err != nil {
 			log.Errorf("Unable to create script to build images : %s", err)
@@ -128,7 +133,7 @@ func writeContainers(containers []irtypes.Container, outpath, rootDir, registryU
 			log.Errorf("Failed to make the root directory path %q relative to the output directory %q Error %q", rootDir, outpath, err)
 			relRootDir = rootDir
 		}
-		writepath = filepath.Join(outpath, "copysources.sh")
+		writepath = filepath.Join(scriptspath, "copysources.sh")
 		err = common.WriteTemplateToFile(templates.CopySources_sh, struct {
 			RelRootDir string
 			Dst        string
@@ -141,7 +146,7 @@ func writeContainers(containers []irtypes.Container, outpath, rootDir, registryU
 		}
 	}
 	if len(dockerimages) > 0 {
-		writepath := filepath.Join(outpath, "pushimages.sh")
+		writepath := filepath.Join(scriptspath, "pushimages.sh")
 		err := common.WriteTemplateToFile(templates.Pushimages_sh, struct {
 			Images            []string
 			RegistryURL       string

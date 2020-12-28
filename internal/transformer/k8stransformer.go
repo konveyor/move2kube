@@ -208,11 +208,16 @@ func (kt *K8sTransformer) generateHelmMetadata(dirName string, values outputtype
 		log.Debugf("Wrote Helm values to file: %s", outputPath)
 	}
 
+	scriptspath := filepath.Join(filepath.Dir(dirName), common.ScriptsDir)
+	err = os.MkdirAll(scriptspath, common.DefaultDirectoryPermission)
+	if err != nil {
+		log.Errorf("Unable to create directory %s : %s", scriptspath, err)
+	}
 	err = common.WriteTemplateToFile(templates.Helminstall_sh, struct {
 		Project string
 	}{
 		Project: filepath.Base(dirName),
-	}, filepath.Join(filepath.Dir(dirName), "helminstall.sh"), common.DefaultExecutablePermission)
+	}, filepath.Join(scriptspath, "helminstall.sh"), common.DefaultExecutablePermission)
 	return err
 }
 
@@ -249,8 +254,13 @@ func (kt *K8sTransformer) createOperator(projectname string, basepath string) er
 }
 
 func (kt *K8sTransformer) writeDeployScript(proj string, outpath string) {
-	deployScriptPath := filepath.Join(outpath, "deploy.sh")
-	err := common.WriteTemplateToFile(templates.Deploy_sh, struct {
+	scriptspath := filepath.Join(outpath, common.ScriptsDir)
+	err := os.MkdirAll(scriptspath, common.DefaultDirectoryPermission)
+	if err != nil {
+		log.Errorf("Unable to create directory %s : %s", scriptspath, err)
+	}
+	deployScriptPath := filepath.Join(scriptspath, "deploy.sh")
+	err = common.WriteTemplateToFile(templates.Deploy_sh, struct {
 		Project string
 	}{
 		Project: proj,
