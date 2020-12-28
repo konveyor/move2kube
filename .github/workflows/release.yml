@@ -242,7 +242,6 @@ jobs:
             const create_release_workflow = 'release.yml';
             const repos = [
               "move2kube-api",
-              "move2kube-ui",
               "move2kube-operator",
               "move2kube-tests",
             ];

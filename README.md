@@ -19,9 +19,9 @@ Command line :
 
 UI :
 
-* `git clone git@github.com:konveyor/move2kube-ui.git`
-* `cd move2kube-ui` and run `docker-compose up`
-* The UI will now be accessible in `http://localhost:8080`.
+* Change directory to an empty directory using say, `mkdir -p workspace && cd workspace`
+* Run `docker run -p 8080:8080 -v $PWD:/workspace -v /var/run/docker.sock:/var/run/docker.sock -it quay.io/konveyor/move2kube-aio:latest`
+* Access the UI in `http://localhost:8080/`.
 
 ## Usage
 
