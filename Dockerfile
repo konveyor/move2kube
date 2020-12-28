@@ -49,8 +49,8 @@ COPY --from=build_base /bin/operator-sdk /bin/operator-sdk
 
 ARG APPNAME=move2kube
 COPY --from=build_base /bin/${APPNAME} /bin/${APPNAME}
-VOLUME ["/wksps"]
+VOLUME ["/workspace"]
 #"/var/run/docker.sock" needs to be mounted for CNB containerization to be used.
 # Start app
-WORKDIR /wksps
+WORKDIR /workspace
 CMD [${APPNAME}]
