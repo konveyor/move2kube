@@ -15,15 +15,19 @@
 # Builder image
 FROM registry.fedoraproject.org/fedora:latest AS build_base
 WORKDIR /temp
-RUN dnf install -y git make
+RUN dnf install -y git make findutils \
+    && dnf clean all \
+    && rm -rf /var/cache/yum
 ENV GOPATH=/go
 RUN mkdir -p $GOPATH/src $GOPATH/bin && chmod -R 777 $GOPATH
 ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 
 # Download Go.
 ARG GO_VERSION=1.15
-RUN curl -o go.tgz "https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz"
-RUN tar -xzf go.tgz && mv go /usr/local/
+RUN curl -o go.tgz "https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz" \
+    && tar -xzf go.tgz \
+    && mv go /usr/local/ \
+    && rm go.tgz
 
 # Copy only go.mod, go.sum and download packages to allow better caching.
 ENV WORKDIR=${GOPATH}/src/move2kube
@@ -31,9 +35,6 @@ WORKDIR ${WORKDIR}
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
-
-# Install utils
-RUN dnf install -y findutils
 
 # Build
 ARG VERSION=latest
@@ -44,10 +45,13 @@ RUN cp bin/move2kube /bin/move2kube
 
 ### Run image ###
 FROM registry.fedoraproject.org/fedora:latest
-RUN curl -o /usr/bin/operator-sdk -LJO 'https://github.com/operator-framework/operator-sdk/releases/download/v1.3.0/operator-sdk_linux_amd64' && chmod +x /usr/bin/operator-sdk
+RUN curl -o /usr/local/bin/operator-sdk -LJO 'https://github.com/operator-framework/operator-sdk/releases/download/v1.3.0/operator-sdk_linux_amd64' \
+    && chmod +x /usr/local/bin/operator-sdk
 
 # Install utils
-RUN dnf install -y findutils podman
+RUN dnf install -y findutils podman \
+    && dnf clean all \
+    && rm -rf /var/cache/yum
 
 COPY --from=build_base /bin/move2kube /bin/move2kube
 VOLUME ["/workspace"]
