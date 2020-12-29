@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 # Builder image
-FROM registry.access.redhat.com/ubi8/ubi:latest AS build_base
+FROM registry.fedoraproject.org/fedora:latest AS build_base
 WORKDIR /temp
 RUN dnf install -y git make
 ENV GOPATH=/go
@@ -26,31 +26,32 @@ RUN curl -o go.tgz "https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz"
 RUN tar -xzf go.tgz && mv go /usr/local/
 
 # Copy only go.mod, go.sum and download packages to allow better caching.
-ARG APPNAME=move2kube
-ENV WORKDIR=${GOPATH}/src/${APPNAME}
+ENV WORKDIR=${GOPATH}/src/move2kube
 WORKDIR ${WORKDIR}
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
-# Install depedencies. We throw away everything except operator-sdk in the final image.
-COPY scripts/installdeps.sh scripts/installdeps.sh
-RUN cd / && bash ${WORKDIR}/scripts/installdeps.sh -y && source ~/.bash_profile && cd -
+# Install utils
+RUN dnf install -y findutils
 
 # Build
 ARG VERSION=latest
 COPY . .
 RUN make build
-RUN cp bin/${APPNAME} /bin/${APPNAME}
+RUN cp bin/move2kube /bin/move2kube
 
-# Run image
-FROM registry.access.redhat.com/ubi8/ubi:latest
-COPY --from=build_base /bin/operator-sdk /bin/operator-sdk
 
-ARG APPNAME=move2kube
-COPY --from=build_base /bin/${APPNAME} /bin/${APPNAME}
+### Run image ###
+FROM registry.fedoraproject.org/fedora:latest
+RUN curl -o /usr/bin/operator-sdk -LJO 'https://github.com/operator-framework/operator-sdk/releases/download/v1.3.0/operator-sdk_linux_amd64' && chmod +x /usr/bin/operator-sdk
+
+# Install utils
+RUN dnf install -y findutils podman
+
+COPY --from=build_base /bin/move2kube /bin/move2kube
 VOLUME ["/workspace"]
 #"/var/run/docker.sock" needs to be mounted for CNB containerization to be used.
 # Start app
 WORKDIR /workspace
-CMD [${APPNAME}]
+CMD move2kube
