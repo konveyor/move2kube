@@ -150,7 +150,7 @@ fi
 
 if [ "${HAS_OPERATOR_SDK}" != 'true' ] || [ "$OPERATOR_SDK_V1" != 'true' ]; then
     echo 'Installing operator-sdk...'
-    curl -o operator-sdk -LJO 'https://github.com/operator-framework/operator-sdk/releases/download/v1.0.0/operator-sdk-v1.0.0-x86_64-'"$OPERATORSDKPLATFORM" && mv operator-sdk "$MOVE2KUBE_DEP_INSTALL_PATH"
+    curl -o $MOVE2KUBE_DEP_INSTALL_PATH/operator-sdk -LJO 'https://github.com/operator-framework/operator-sdk/releases/download/v1.3.0/operator-sdk_'"$OPERATORSDKPLATFORM"'_amd64'
     chmod +x "$MOVE2KUBE_DEP_INSTALL_PATH"/operator-sdk
     echo 'Done.'
 fi
