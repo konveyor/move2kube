@@ -55,7 +55,7 @@ jobs:
           repo: move2kube-tests
           token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           event_type: cli_build
-          client_payload: '{"tag": "${{ github.run_id }}"}'
+          client_payload: '{"tag": "${{ github.run_id }}", "commit_ref": "${{ github.ref }}"}'
           wait_time: 5
           max_time: 1200
       - if: failure()
@@ -67,7 +67,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Tests on move2kube-tests failed for move2kube main"
+          SLACK_MESSAGE: "Tests on move2kube-tests failed for move2kube ${{ github.ref }}"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 

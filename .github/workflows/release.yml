@@ -11,7 +11,7 @@ on:
         description: "previous tag: Tag from which to start calculating the changelog"
         required: false
       commit_ref:
-        description: "commit ref: The branch, tag or SHA of the commit to use for the release."
+        description: "commit ref: The branch, tag or SHA of the commit to use for the release"
         required: false
         default: main
 
@@ -38,7 +38,7 @@ jobs:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_COLOR: "#BD3232"
           SLACK_ICON: https://github.com/actions.png?size=48
-          SLACK_MESSAGE: "Build and test failed for move2kube on tag ${{ github.event.inputs.tag }}"
+          SLACK_MESSAGE: "Build and test failed for move2kube on branch ${{ github.event.inputs.commit_ref }}"
           SLACK_TITLE: Failed
           SLACK_USERNAME: GitHubActions
 
@@ -57,12 +57,10 @@ jobs:
           docker pull quay.io/konveyor/move2kube:latest || true
           docker pull quay.io/konveyor/move2kube-builder:latest || true
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
-      - name: build image
-        run: GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
+      - name: build temporary image
+        run: VERSION='${{ github.run_id }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
       - name: push temporary image to quay
-        run: |
-          docker tag quay.io/konveyor/move2kube:latest quay.io/konveyor/move2kube:${{ github.run_id }}
-          docker push quay.io/konveyor/move2kube:${{ github.run_id }}
+        run: VERSION='${{ github.run_id }}'  make cpush
       - name: run tests in move2kube-tests
         uses: felixp8/dispatch-and-wait@v0.1.0
         with:
@@ -70,7 +68,7 @@ jobs:
           repo: move2kube-tests
           token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           event_type: cli_build
-          client_payload: '{"tag": "${{ github.run_id }}"}'
+          client_payload: '{"tag": "${{ github.run_id }}", "commit_ref": "${{ github.event.inputs.commit_ref }}"}'
           wait_time: 5
           max_time: 1200
       - if: failure()
@@ -118,6 +116,7 @@ jobs:
               return core.setFailed(`The tag is not a valid semantic version. tag: ${tag}`);
             }
             const branch_name = `release-${major_minor[1]}`;
+            core.info(`New beta.0 release. Creating new branch for ${branch_name}`);
             github.git.createRef({
               ...context.repo,
               ref: `refs/heads/${branch_name}`,
@@ -158,24 +157,24 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ steps.info.outputs.go_version }}
-      - run: make dist
+      - run: VERSION='${{ github.event.inputs.tag }}' make dist
       - name: upload release assets
         uses: HarikrishnanBalagopal/upload-release-action@v3
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.event.inputs.tag }}
           file: _dist/output/*
           file_glob: true
           overwrite: true
       - if: ${{ steps.semver_parser.outputs.prerelease == '' }}
         name: build and release the plugin if it is not a prerelease
-        run: make dist-kubectl-translate
+        run: VERSION='${{ github.event.inputs.tag }}' make dist-kubectl-translate
       - if: ${{ steps.semver_parser.outputs.prerelease == '' }}
         name: upload plugin release assets
         uses: HarikrishnanBalagopal/upload-release-action@v3
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.event.inputs.tag }}
           file: _dist/output/*
           file_glob: true
           overwrite: true
