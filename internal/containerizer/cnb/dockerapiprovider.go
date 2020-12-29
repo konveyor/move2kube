@@ -34,8 +34,6 @@ import (
 	"github.com/spf13/cast"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/konveyor/move2kube/internal/common"
 )
 
 type dockerAPIProvider struct {
@@ -43,7 +41,7 @@ type dockerAPIProvider struct {
 
 var (
 	isSockAccessible      = "unknown"
-	availableDockerImages = []string{}
+	availableDockerImages = make(map[string]bool)
 )
 
 func (r *dockerAPIProvider) getAllBuildpacks(builders []string) (map[string][]string, error) { //[Containerization target option value] buildpacks
@@ -88,16 +86,17 @@ func (r *dockerAPIProvider) isBuilderAvailable(builder string) bool {
 	if !r.isSockAccessible() {
 		return false
 	}
-	if common.IsStringPresent(availableDockerImages, builder) {
-		return true
+	if status, ok := availableDockerImages[builder]; ok {
+		return status
 	}
 	log.Debugf("Pulling image %s", builder)
 	err := r.pullImage(builder)
 	if err != nil {
 		log.Warnf("Error while pulling builder %s : %s", builder, err)
+		availableDockerImages[builder] = false
 		return false
 	}
-	availableDockerImages = append(availableDockerImages, builder)
+	availableDockerImages[builder] = true
 	return true
 }
 

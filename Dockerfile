@@ -53,6 +53,7 @@ RUN dnf install -y findutils podman \
     && dnf clean all \
     && rm -rf /var/cache/yum
 
+COPY containerconfig/* /etc/containers/
 COPY --from=build_base /bin/move2kube /bin/move2kube
 VOLUME ["/workspace"]
 #"/var/run/docker.sock" needs to be mounted for CNB containerization to be used.

@@ -39,7 +39,8 @@ func TestIsBuilderAvailable(t *testing.T) {
 	t.Run("normal use case where we get result from cache", func(t *testing.T) {
 		provider := dockerAPIProvider{}
 		builder := "cloudfoundry/cnb:cflinuxfs3"
-		want := []string{builder}
+		want := make(map[string]bool)
+		want[builder] = true
 
 		// Test
 		if !provider.isBuilderAvailable(builder) {
