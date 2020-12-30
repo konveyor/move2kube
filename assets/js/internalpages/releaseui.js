@@ -30,7 +30,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const semver = __importStar(require("semver"));
 const rest_1 = require("@octokit/rest");
-const release_info_url = 'https://raw.githubusercontent.com/konveyor/move2kube/feat/releaseui/_data/releaseinfo.json';
+const release_info_url = 'https://raw.githubusercontent.com/konveyor/move2kube/gh-pages/_data/releaseinfo.json';
 const owner = 'konveyor';
 const repo = 'move2kube';
 const owner_repos = [
