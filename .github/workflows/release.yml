@@ -101,7 +101,23 @@ jobs:
           script: |
             const tag = '${{ github.event.inputs.tag }}';
             const sha = '${{ steps.get_sha.outputs.sha }}';
-            // create the tag
+
+            let tag_exists = false;
+            try {
+              const resp = await github.git.getRef({...context.repo, ref: `tags/${tag}`});
+              tag_exists = true;
+              core.info(`the tag ${tag} already exists on ${resp.data.object.type} ${resp.data.object.sha}`);
+            } catch(err) {
+              if(err.status !== 404){
+                throw err;
+              }
+            }
+            if(tag_exists) {
+              core.info(`deleting the tag ${tag}`);
+              const resp = await github.git.deleteRef({...context.repo, ref: `tags/${tag}`});
+            }
+
+            core.info(`creating the tag ${tag} on the commit ${sha}`);
             github.git.createRef({
               ...context.repo,
               ref: `refs/tags/${tag}`,
@@ -273,4 +289,4 @@ jobs:
               return core.setFailed(`Expected the draft name to begin with [WIP]. Found: ${draft.name}`);
             }
             const new_name = draft.name.replace(/^\[WIP\] /, '');
-            await github.repos.updateRelease({...context.repo, release_id: draft.id, name: new_name});
+            await github.repos.updateRelease({...context.repo, release_id: draft.id, name: new_name, tag_name: draft.tag_name});
