@@ -245,27 +245,31 @@ function get_major_minor_patch(v) {
 function get_next_alpha_release(data) {
     // the commit to use for the release is always the top commit on main/master
     if (data.next_next.prerelease !== null) {
-        return { tag: "v" + semver.inc(data.next_next.prerelease, "prerelease"), prev_tag: 'XXXX', commit_ref: 'main' };
+        return { tag: "v" + semver.inc(data.next_next.prerelease, "prerelease"), prev_tag: data.next_next.prerelease, commit_ref: 'main' };
     }
     if (data.next.prerelease !== null) {
         if (semver.prerelease(data.next.prerelease)[0] === "alpha") {
-            return { tag: "v" + semver.inc(data.next.prerelease, "prerelease"), prev_tag: 'XXXX', commit_ref: 'main' };
+            return { tag: "v" + semver.inc(data.next.prerelease, "prerelease"), prev_tag: data.next.prerelease, commit_ref: 'main' };
         }
         else {
-            return { tag: "v" + semver.inc(get_major_minor_patch(data.next.prerelease), "minor") + "-alpha.0", prev_tag: 'XXXX', commit_ref: 'main' };
+            return {
+                tag: "v" + semver.inc(get_major_minor_patch(data.next.prerelease), "minor") + "-alpha.0",
+                prev_tag: "v" + get_major_minor_patch(data.next.prerelease) + "-beta.0",
+                commit_ref: 'main',
+            };
         }
     }
-    return { tag: "v" + semver.inc(data.current.release, "minor") + "-alpha.0", prev_tag: 'XXXX', commit_ref: 'main' };
+    return { tag: "v" + semver.inc(data.current.release, "minor") + "-alpha.0", prev_tag: data.current.release + "-beta.0", commit_ref: 'main' };
 }
 function get_next_beta_release(data) {
     if (data.next.prerelease !== null) {
         if (semver.prerelease(data.next.prerelease)[0] === "alpha") {
-            return { tag: "v" + get_major_minor_patch(data.next.prerelease) + "-beta.0", prev_tag: 'XXXX', commit_ref: 'main' };
+            return { tag: "v" + get_major_minor_patch(data.next.prerelease) + "-beta.0", prev_tag: data.current.release + "-beta.0", commit_ref: 'main' };
         }
         else if (semver.prerelease(data.next.prerelease)[0] === "beta") {
             const obj = semver.parse(data.next.prerelease);
             const branch_name = `release-${obj.major}.${obj.minor}`;
-            return { tag: "v" + semver.inc(data.next.prerelease, "prerelease"), prev_tag: 'XXXX', commit_ref: branch_name };
+            return { tag: "v" + semver.inc(data.next.prerelease, "prerelease"), prev_tag: data.next.prerelease, commit_ref: branch_name };
         }
         else {
             return { error: `cannot do beta release without releasing v${get_major_minor_patch(data.next.prerelease)} first`, tag: '', prev_tag: '', commit_ref: '' };
@@ -277,9 +281,9 @@ function get_next_patch_rc_release(data) {
     const obj = semver.parse(data.current.release);
     const branch_name = `release-${obj.major}.${obj.minor}`;
     if (semver.gt(data.current.prerelease, data.current.release)) {
-        return { tag: "v" + semver.inc(data.current.prerelease, "prerelease"), prev_tag: 'XXXX', commit_ref: branch_name };
+        return { tag: "v" + semver.inc(data.current.prerelease, "prerelease"), prev_tag: data.current.prerelease, commit_ref: branch_name };
     }
-    return { tag: "v" + semver.inc(data.current.release, "patch") + "-rc.0", prev_tag: 'XXXX', commit_ref: branch_name };
+    return { tag: "v" + semver.inc(data.current.release, "patch") + "-rc.0", prev_tag: data.current.release, commit_ref: branch_name };
 }
 function get_next_non_patch_rc_release(data) {
     if (data.next.prerelease === null) {
@@ -288,10 +292,10 @@ function get_next_non_patch_rc_release(data) {
     const obj = semver.parse(data.next.prerelease);
     const branch_name = `release-${obj.major}.${obj.minor}`;
     if (semver.prerelease(data.next.prerelease)[0] === "rc") {
-        return { tag: "v" + semver.inc(data.next.prerelease, "prerelease"), prev_tag: 'XXXX', commit_ref: branch_name };
+        return { tag: "v" + semver.inc(data.next.prerelease, "prerelease"), prev_tag: data.next.prerelease, commit_ref: branch_name };
     }
     else if (semver.prerelease(data.next.prerelease)[0] === "beta") {
-        return { tag: "v" + get_major_minor_patch(data.next.prerelease) + "-rc.0", prev_tag: 'XXXX', commit_ref: branch_name };
+        return { tag: "v" + get_major_minor_patch(data.next.prerelease) + "-rc.0", prev_tag: data.current.release + "-beta.0", commit_ref: branch_name };
     }
     return { error: "cannot go from alpha to rc. release beta first.", tag: '', prev_tag: '', commit_ref: '' };
 }
@@ -299,7 +303,7 @@ function get_next_patch_release(data) {
     if (semver.gt(data.current.prerelease, data.current.release)) {
         const obj = semver.parse(data.current.release);
         const branch_name = `release-${obj.major}.${obj.minor}`;
-        return { tag: "v" + get_major_minor_patch(data.current.prerelease), prev_tag: 'XXXX', commit_ref: branch_name };
+        return { tag: "v" + get_major_minor_patch(data.current.prerelease), prev_tag: data.current.release, commit_ref: branch_name };
     }
     return { error: "cannot do patch release. do a rc release first.", tag: '', prev_tag: '', commit_ref: '' };
 }
@@ -310,7 +314,7 @@ function get_next_non_patch_release(data) {
     if (semver.prerelease(data.next.prerelease)[0] === "rc") {
         const obj = semver.parse(data.next.prerelease);
         const branch_name = `release-${obj.major}.${obj.minor}`;
-        return { tag: get_major_minor_patch(data.next.prerelease), prev_tag: 'XXXX', commit_ref: branch_name };
+        return { tag: get_major_minor_patch(data.next.prerelease), prev_tag: data.current.release + "-beta.0", commit_ref: branch_name };
     }
     else if (semver.prerelease(data.next.prerelease)[0] === "beta") {
         return { error: "cannot go from beta to release. do a rc release first.", tag: '', prev_tag: '', commit_ref: '' };

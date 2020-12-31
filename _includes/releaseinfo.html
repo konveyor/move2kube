@@ -13,17 +13,7 @@
                     <a href="{{ site.data.releaseinfo.current.release_url }}">{{ site.data.releaseinfo.current.release }}</a>
                 {% endif %}
             </td>
-            <td>
-                {% if site.data.releaseinfo.current.prerelease_url == null %}
-                    {% if site.data.releaseinfo.current.prerelease == null %}
-                        None
-                    {% else %}
-                        {{ site.data.releaseinfo.current.prerelease }}
-                    {% endif %}
-                {% else %}
-                    <a href="{{ site.data.releaseinfo.current.prerelease_url }}">{{ site.data.releaseinfo.current.prerelease }}</a>
-                {% endif %}
-            </td>
+            <td id="release-table-cell"></td>
         </tr>
         <tr>
             <th>Next version</th>
@@ -55,3 +45,17 @@
         </tr>
     </tbody>
 </table>
+
+<script>
+    (function (){
+        if('{{ site.data.releaseinfo.current.prerelease }}'.startsWith('{{ site.data.releaseinfo.current.release }}')){
+            return; /*prerelease is older than the release, so don't display it*/
+        }
+        const elem = document.querySelector('#release-table-cell');
+        if('{{ site.data.releaseinfo.current.prerelease_url }}') {
+            elem.innerHTML = '<a href="{{ site.data.releaseinfo.current.prerelease_url }}">{{ site.data.releaseinfo.current.prerelease }}</a>';
+        } else {
+            elem.textContent = '{{ site.data.releaseinfo.current.prerelease }}';
+        }
+    })();
+</script>
