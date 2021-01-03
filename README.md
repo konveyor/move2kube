@@ -11,13 +11,24 @@ Move2Kube is a command-line tool that accelerates the process of re-platforming 
 
 ![Overview](./imgs/overview.jpg)
 
-## Install
+## Installation
 
-Command line :
+### Using install script
 
-* `bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)`
+```
+bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
+```
 
-UI :
+### Using Homebrew
+
+```
+brew tap konveyor/move2kube
+brew install move2kube
+```
+
+## UI
+
+We also provide a UI version of Move2Kube
 
 * Change directory to an empty directory using say, `mkdir -p workspace && cd workspace`
 * Run `docker run -p 8080:8080 -v $PWD:/workspace -v /var/run/docker.sock:/var/run/docker.sock -it quay.io/konveyor/move2kube-aio:latest`
