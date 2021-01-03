@@ -13,7 +13,14 @@ nav_order: 1
    $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
    ```
 
-## Other alternate ways of installing Move2Kube:
+## Alternate ways of installing Move2Kube:
+
+**Homebrew**
+
+```
+brew tap konveyor/move2kube
+brew install move2kube
+```
 
 **Go**
 
