@@ -24,6 +24,7 @@
 [[ $VERIFY_CHECKSUM ]] || VERIFY_CHECKSUM='true'
 [[ $MOVE2KUBE_INSTALL_DIR ]] || MOVE2KUBE_INSTALL_DIR='/usr/local/bin'
 
+HAS_JQ="$(type jq &>/dev/null && echo true || echo false)"
 HAS_CURL="$(type curl &>/dev/null && echo true || echo false)"
 HAS_WGET="$(type wget &>/dev/null && echo true || echo false)"
 HAS_OPENSSL="$(type openssl &>/dev/null && echo true || echo false)"
@@ -78,12 +79,18 @@ verifySupported() {
 
 # getLatestVersion gets the latest release version.
 getLatestVersion() {
-    # Get tag from release URL
-    local latest_release_url='https://github.com/konveyor/move2kube/releases'
+    # Get tag from releaseinfo.json
+    local json_data=''
+    local release_info_url='https://raw.githubusercontent.com/konveyor/move2kube/gh-pages/_data/releaseinfo.json'
     if [ "${HAS_CURL}" == "true" ]; then
-        TAG="$(curl -Ls "$latest_release_url" | grep 'href="/konveyor/move2kube/releases/tag/v' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/' | rev | cut -d '/' -f1 | rev)"
+        json_data="$(curl -Ls "$release_info_url")"
     elif [ "${HAS_WGET}" == "true" ]; then
-        TAG="$(wget -qO - "$latest_release_url" | grep 'href="/konveyor/move2kube/releases/tag/v' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/' | rev | cut -d '/' -f1 | rev)"
+        json_data="$(wget -qO - "$release_info_url")"
+    fi
+    if [ "${HAS_JQ}" == "true" ]; then
+        TAG="$(printf '%s\n' "$json_data" | jq -r .current.release)"
+    else
+        TAG="$(printf '%s\n' "$json_data" | grep 'release' | head -n 1 | sed -E 's/.*(v[0-9]+\.[0-9]+\.[0-9]+)",$/\1/')"
     fi
 }
 
