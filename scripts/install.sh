@@ -18,6 +18,23 @@
 # binary builds, as well whether or not necessary tools are present.
 
 [[ $DEBUG ]] || DEBUG='false'
+
+print_usage() {
+    echo "Invalid args: $*"
+    echo 'Usage: install.sh [-y]'
+    echo 'Use sudo when running in -y quiet mode.'
+}
+
+QUIET=false
+if [ "$#" -gt 0 ]; then
+    if [ "$#" -gt 1 ] || [ "$1" != '-y' ]; then
+        print_usage "$@"
+        exit 1
+    fi
+    echo 'Installing without prompting. Script should be run with sudo in order to install to /usr/local/bin'
+    QUIET=true
+fi
+
 [[ $BINARY_NAME ]] || BINARY_NAME='move2kube'
 [[ $TAG ]] || TAG='v0.1.0-alpha.1'
 [[ $USE_SUDO ]] || USE_SUDO='true'
@@ -31,24 +48,73 @@ HAS_OPENSSL="$(type openssl &>/dev/null && echo true || echo false)"
 HAS_SHA256SUM="$(type sha256sum &>/dev/null && echo true || echo false)"
 HAS_MOVE2KUBE="$(type "$BINARY_NAME" &>/dev/null && echo true || echo false)"
 
+download() {
+    if [ "$#" -ne 2 ]; then
+        echo 'download needs exactly 2 args: the url to download and the output path'
+        echo "actual args: $*"
+        exit 1
+    fi
+    echo "Downloading $1"
+    if [ "$HAS_CURL" = 'true' ]; then
+        curl -sSL -o "$2" "$1"
+    else
+        wget -q -O "$2" "$1"
+    fi
+}
+
+# verifyChecksum verifies the SHA256 checksum of the binary package.
+verifyChecksum() {
+    if [ "$#" -ne 2 ]; then
+        echo 'verifyChecksum needs exactly 2 args: the path to the file and the path to the checksum file'
+        echo "actual args: $*"
+        exit 1
+    fi
+    echo 'Verifying checksum'
+    local expected_sum
+    expected_sum="$(awk '{print $1}' <"$2")"
+    local sum=''
+    if [ "$HAS_SHA256SUM" = 'true' ]; then
+        sum="$(sha256sum "$1" | awk '{print $1}')"
+    else
+        sum="$(openssl sha1 -sha256 "$1" | awk '{print $2}')"
+    fi
+    if [ "$sum" != "$expected_sum" ]; then
+        echo "SHA sum of $1 does not match. Aborting."
+        exit 1
+    fi
+}
+
+downloadAndVerifyChecksum() {
+    if [ "$#" -ne 2 ]; then
+        echo 'downloadAndVerifyChecksum needs exactly 2 args: the url to download and the output path'
+        echo "actual args: $*"
+        exit 1
+    fi
+    download "$1" "$2"
+    local checksum_url="$1"'.sha256sum'
+    local checksum_path="$2"'.sha256sum'
+    download "$checksum_url" "$checksum_path"
+    verifyChecksum "$2" "$checksum_path"
+    rm "$checksum_path"
+}
+
 initArch() {
     ARCH="$(uname -m)"
     case $ARCH in
-    armv5*) ARCH="armv5" ;;
-    armv6*) ARCH="armv6" ;;
-    armv7*) ARCH="arm" ;;
-    aarch64) ARCH="arm64" ;;
-    x86) ARCH="386" ;;
-    x86_64) ARCH="amd64" ;;
-    i686) ARCH="386" ;;
-    i386) ARCH="386" ;;
+    armv5*) ARCH='armv5' ;;
+    armv6*) ARCH='armv6' ;;
+    armv7*) ARCH='arm' ;;
+    aarch64) ARCH='arm64' ;;
+    x86) ARCH='386' ;;
+    x86_64) ARCH='amd64' ;;
+    i686) ARCH='386' ;;
+    i386) ARCH='386' ;;
     esac
 }
 
 # initOS discovers the operating system for this system.
 initOS() {
     OS="$(uname | tr '[:upper:]' '[:lower:]')"
-
     case "$OS" in
     # Minimalist GNU for Windows
     mingw*) OS='windows' ;;
@@ -58,21 +124,19 @@ initOS() {
 # verifySupported checks that the os/arch combination is supported for
 # binary builds, as well whether or not necessary tools are present.
 verifySupported() {
-    local supported="darwin-amd64\nlinux-amd64"
-    if ! echo "${supported}" | grep -q "${OS}-${ARCH}"; then
+    local supported='darwin-amd64\nlinux-amd64'
+    if ! echo "$supported" | grep -q "${OS}-${ARCH}"; then
         echo "No prebuilt binary for ${OS}-${ARCH}."
         echo "To build from source, go to https://github.com/konveyor/move2kube"
         exit 1
     fi
-
-    if [ "${HAS_CURL}" != "true" ] && [ "${HAS_WGET}" != "true" ]; then
-        echo "Either curl or wget is required"
+    if [ "$HAS_CURL" != 'true' ] && [ "$HAS_WGET" != 'true' ]; then
+        echo 'Either curl or wget is required'
         exit 1
     fi
-
-    if [ "${VERIFY_CHECKSUM}" == "true" ] && [ "${HAS_OPENSSL}" != "true" ] && [ "${HAS_SHA256SUM}" != "true" ]; then
-        echo "In order to verify checksum, sha256sum or openssl must first be installed."
-        echo "Please install sha256sum or openssl or set VERIFY_CHECKSUM=false in your environment."
+    if [ "$VERIFY_CHECKSUM" = 'true' ] && [ "$HAS_OPENSSL" != 'true' ] && [ "$HAS_SHA256SUM" != 'true' ]; then
+        echo 'In order to verify checksum, sha256sum or openssl must first be installed.'
+        echo 'Please install sha256sum or openssl or set VERIFY_CHECKSUM=false in your environment.'
         exit 1
     fi
 }
@@ -82,12 +146,12 @@ getLatestVersion() {
     # Get tag from releaseinfo.json
     local json_data=''
     local release_info_url='https://raw.githubusercontent.com/konveyor/move2kube/gh-pages/_data/releaseinfo.json'
-    if [ "${HAS_CURL}" == "true" ]; then
+    if [ "$HAS_CURL" = 'true' ]; then
         json_data="$(curl -Ls "$release_info_url")"
-    elif [ "${HAS_WGET}" == "true" ]; then
+    elif [ "$HAS_WGET" = 'true' ]; then
         json_data="$(wget -qO - "$release_info_url")"
     fi
-    if [ "${HAS_JQ}" == "true" ]; then
+    if [ "$HAS_JQ" = 'true' ]; then
         TAG="$(printf '%s\n' "$json_data" | jq -r .current.release)"
     else
         TAG="$(printf '%s\n' "$json_data" | grep 'release' | head -n 1 | sed -E 's/.*(v[0-9]+\.[0-9]+\.[0-9]+)",$/\1/')"
@@ -97,14 +161,14 @@ getLatestVersion() {
 # checkMove2KubeInstalledVersion checks which version of move2kube is installed and
 # if it needs to be changed.
 checkMove2KubeInstalledVersion() {
-    if [ "${HAS_MOVE2KUBE}" == "true" ]; then
+    if [ "$HAS_MOVE2KUBE" = 'true' ]; then
         local version
-        version="$("${BINARY_NAME}" version)"
-        if [[ "$version" == "$TAG" ]]; then
-            echo "Move2Kube ${version} is already the latest"
+        version="$("$BINARY_NAME" version)"
+        if [ "$version" = "$TAG" ]; then
+            echo "Move2Kube $version is already the latest"
             return 0
         else
-            echo "Move2Kube ${TAG} is available. Changing from version ${version}."
+            echo "Move2Kube $TAG is available. Changing from version $version"
             return 1
         fi
     else
@@ -112,58 +176,21 @@ checkMove2KubeInstalledVersion() {
     fi
 }
 
-# downloadFile downloads the latest binary package and also the checksum
-# for that binary.
-downloadFile() {
+# downloadMove2Kube downloads the latest binary package and verifies the checksum.
+downloadMove2Kube() {
     MOVE2KUBE_DIST="move2kube-$TAG-$OS-$ARCH.tar.gz"
     DOWNLOAD_URL="https://github.com/konveyor/move2kube/releases/download/$TAG/$MOVE2KUBE_DIST"
-    CHECKSUM_URL="$DOWNLOAD_URL.sha256sum"
     MOVE2KUBE_TMP_ROOT="$(mktemp -dt move2kube-installer-XXXXXX)"
     MOVE2KUBE_TMP_FILE="$MOVE2KUBE_TMP_ROOT/$MOVE2KUBE_DIST"
-    MOVE2KUBE_SUM_FILE="$MOVE2KUBE_TMP_ROOT/$MOVE2KUBE_DIST.sha256sum"
-
-    echo "Downloading $DOWNLOAD_URL"
-    if [ "${HAS_CURL}" == "true" ]; then
-        curl -o "$MOVE2KUBE_SUM_FILE" -sSL "$CHECKSUM_URL"
-        curl -o "$MOVE2KUBE_TMP_FILE" -sSL "$DOWNLOAD_URL"
-    elif [ "${HAS_WGET}" == "true" ]; then
-        wget -q -O "$MOVE2KUBE_SUM_FILE" "$CHECKSUM_URL"
-        wget -q -O "$MOVE2KUBE_TMP_FILE" "$DOWNLOAD_URL"
-    fi
-}
-
-# verifyFile verifies the SHA256 checksum of the binary package
-# and the GPG signatures for both the package and checksum file
-# (depending on settings in environment).
-verifyFile() {
-    if [ "${VERIFY_CHECKSUM}" == "true" ]; then
-        verifyChecksum
-    fi
-}
-
-# verifyChecksum verifies the SHA256 checksum of the binary package.
-verifyChecksum() {
-    printf "Verifying checksum... "
-
-    local expected_sum
-    expected_sum="$(awk '{print $1}' <"${MOVE2KUBE_SUM_FILE}")"
-
-    local sum=0
-    if [ "$HAS_SHA256SUM" == "true" ]; then
-        sum="$(sha256sum "${MOVE2KUBE_TMP_FILE}" | awk '{print $1}')"
+    if [ "$VERIFY_CHECKSUM" = 'true' ]; then
+        downloadAndVerifyChecksum "$DOWNLOAD_URL" "$MOVE2KUBE_TMP_FILE"
     else
-        sum="$(openssl sha1 -sha256 "${MOVE2KUBE_TMP_FILE}" | awk '{print $2}')"
+        download "$DOWNLOAD_URL" "$MOVE2KUBE_TMP_FILE"
     fi
-
-    if [ "$sum" != "$expected_sum" ]; then
-        echo "SHA sum of ${MOVE2KUBE_TMP_FILE} does not match. Aborting."
-        exit 1
-    fi
-    echo "Done."
 }
 
-# installFile installs the move2kube binary.
-installFile() {
+# installMove2Kube installs the move2kube binary.
+installMove2Kube() {
     MOVE2KUBE_TMP="$MOVE2KUBE_TMP_ROOT/$BINARY_NAME"
     mkdir -p "$MOVE2KUBE_TMP"
     tar -xf "$MOVE2KUBE_TMP_FILE" -C "$MOVE2KUBE_TMP"
@@ -176,11 +203,9 @@ installFile() {
 # runs the given command as root (detects if we are root already)
 runAsRoot() {
     local CMD="$*"
-
     if [ "$EUID" != "0" ] && [ "$USE_SUDO" == "true" ]; then
         CMD="sudo $CMD"
     fi
-
     $CMD
 }
 
@@ -192,6 +217,54 @@ testVersion() {
         exit 1
     fi
     set -e
+}
+
+getc() {
+    local save_state
+    save_state=$(/bin/stty -g)
+    /bin/stty raw -echo
+    IFS= read -r -n 1 -d '' "$@"
+    /bin/stty "$save_state"
+}
+
+wait_for_user() {
+    local c
+    echo
+    echo "Press RETURN to continue or any other key to skip"
+    getc c
+    # we test for \r and \n because some stuff does \r instead
+    if ! [[ "$c" == $'\r' || "$c" == $'\n' ]]; then
+        return 1
+    fi
+    return 0
+}
+
+askBeforeInstallingKubectlPlugins() {
+    if [ "$QUIET" = 'true' ]; then
+        return 0
+    fi
+    echo 'Would you like to install move2kube as a kubectl plugin?'
+    echo 'This will install "move2kube" and "translate" plugins for kubectl.'
+    wait_for_user
+}
+
+# downloadAndInstallPlugin downloads the latest plugin and installs it.
+downloadAndInstallPlugin() {
+    local plugin_dist="kubectl-translate-$TAG-$OS-$ARCH.tar.gz"
+    local plugin_download_url="https://github.com/konveyor/move2kube/releases/download/$TAG/$plugin_dist"
+    local plugin_tmp_file="$MOVE2KUBE_TMP_ROOT/$plugin_dist"
+    if [ "$VERIFY_CHECKSUM" = 'true' ]; then
+        downloadAndVerifyChecksum "$plugin_download_url" "$plugin_tmp_file"
+    else
+        download "$plugin_download_url" "$plugin_tmp_file"
+    fi
+    echo 'Installing translate plugin for kubectl'
+    local plugin_tar_dir="$MOVE2KUBE_TMP_ROOT/plugin"
+    mkdir -p "$plugin_tar_dir"
+    tar -xzf "$plugin_tmp_file" -C "$plugin_tar_dir"
+    runAsRoot cp "$plugin_tar_dir/kubectl-translate/kubectl-translate" "$MOVE2KUBE_INSTALL_DIR/kubectl-translate"
+    echo 'Installing move2kube plugin for kubectl'
+    runAsRoot ln -s "$MOVE2KUBE_INSTALL_DIR/$BINARY_NAME" "$MOVE2KUBE_INSTALL_DIR/kubectl-$BINARY_NAME"
 }
 
 # cleanup temporary files.
@@ -219,11 +292,15 @@ main() {
     verifySupported
     getLatestVersion
     if ! checkMove2KubeInstalledVersion; then
-        downloadFile
-        verifyFile
-        installFile
+        downloadMove2Kube
+        installMove2Kube
     fi
     testVersion
+    if askBeforeInstallingKubectlPlugins; then
+        downloadAndInstallPlugin
+    else
+        echo 'Failed to get confirmation. Not installing kubectl plugins.'
+    fi
     echo 'Done!'
 }
 
