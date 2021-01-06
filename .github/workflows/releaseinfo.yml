@@ -14,9 +14,29 @@ jobs:
         with:
           ref: gh-pages
       - run: echo '${{ steps.info.outputs.release_info }}' > _data/releaseinfo.json
+      - id: get_asset_url
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+          script: |
+            const tag = '${{ github.event.inputs.tag }}';
+            const response = await github.repos.listReleases({ owner:context.repo.owner, repo:'move2kube-operator' });
+            const drafts = response.data.filter(release => release.draft && release.tag_name === tag);
+            if(drafts.length !== 1) {
+              return core.setFailed(`Expected to find exactly one draft release with the tag ${tag}. Found: ${drafts.length}`);
+            }
+            const draft = drafts[0];
+            const assets = draft.assets.filter(x => x.name === 'index.yaml');
+            if(assets.length !== 1) {
+              return console.error(`Expected to find exactly one asset with the name index.yaml . Found: ${assets.length}`);
+            }
+            const asset = assets[0];
+            core.setOutput('url', asset.url);
+      - run: |
+          curl -L -o index.yaml -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' -H 'Accept: application/octet-stream' ${{ steps.get_asset_url.outputs.url }}
       - uses: EndBug/add-and-commit@v6
         with:
-          add: _data/releaseinfo.json
+          add: '["_data/releaseinfo.json", "index.yaml"]'
           author_name: move2kube
           author_email: move2kube@gmail.com
           branch: gh-pages
