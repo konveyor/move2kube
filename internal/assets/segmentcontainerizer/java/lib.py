@@ -207,8 +207,8 @@ def get_app_attributes(captured_data, app_path, output_path, basename, app_name)
         server_data = list(output["server"].values())[0]
         if "httpEndpoint" in server_data:
             if "@httpsPort" in server_data["httpEndpoint"]:
-                final_output["port"] = server_data["httpEndpoint"]["@httpsPort"]
-
+                if server_data["httpEndpoint"]["@httpsPort"].isnumeric():
+                    final_output["port"] = server_data["httpEndpoint"]["@httpsPort"]
 
         #if "application" in server_data:
         #    if "@location" in server_data["application"]:
@@ -236,7 +236,7 @@ def get_segments( input_type, build_type, server_app, output):
             }
         sc+=1
 
-    if server_app  == "undefined":
+    if server_app  == "undefined" or server_app == "liberty":
         segments[str(sc)]={  "segment_id": "segments/dockerfile_liberty_runtime",
                 "app_name": output["app_attributes"]["app_name"],
                 "port": output["app_attributes"]["port"],
