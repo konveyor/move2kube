@@ -38,8 +38,7 @@ const (
 	segmentDetectScript string = types.AppNameShort + "detect.sh"
 )
 
-// DockerfileContainerizer implements Containerizer interface
-//type DockerfileContainerizer struct {
+// SegmentContainerizer implements Containerizer interface
 type SegmentContainerizer struct {
 	dfcontainerizers []string //Paths to directories containing containerizers
 }
