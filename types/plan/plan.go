@@ -208,7 +208,7 @@ type Service struct {
 	TranslationType               TranslationTypeValue                 `yaml:"translationType"`
 	ContainerBuildType            ContainerBuildTypeValue              `yaml:"containerBuildType"`
 	SourceTypes                   []SourceTypeValue                    `yaml:"sourceType"`
-	ContainerizationTargetOptions []string                             `yaml:"targetOptions,omitempty" m2kpath:"if:ContainerBuildType:in:NewDockerfile,ReuseDockerfile,S2I"`
+	ContainerizationTargetOptions []string                             `yaml:"targetOptions,omitempty" m2kpath:"if:ContainerBuildType:in:NewDockerfile,ReuseDockerfile,S2I,NewSegmentContainerizer"`
 	SourceArtifacts               map[SourceArtifactTypeValue][]string `yaml:"sourceArtifacts" m2kpath:"keys:Kubernetes,Knative,DockerCompose,CfManifest,CfRunningManifest,SourceCode,Dockerfile"` //[translationartifacttype][List of artifacts]
 	BuildArtifacts                map[BuildArtifactTypeValue][]string  `yaml:"buildArtifacts,omitempty" m2kpath:"normal"`                                                                          //[buildartifacttype][List of artifacts]
 	UpdateContainerBuildPipeline  bool                                 `yaml:"updateContainerBuildPipeline"`
