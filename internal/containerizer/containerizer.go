@@ -54,7 +54,7 @@ type ContainerizationOption struct {
 
 // InitContainerizers initializes the containerizers
 func (c *Containerizers) InitContainerizers(path string) {
-	c.containerizers = []Containerizer{new(DockerfileContainerizer), new(S2IContainerizer), new(CNBContainerizer), new(ReuseContainerizer)}
+	c.containerizers = []Containerizer{new(DockerfileContainerizer), new(SegmentContainerizer), new(S2IContainerizer), new(CNBContainerizer), new(ReuseContainerizer)}
 	for _, containerizer := range c.containerizers {
 		containerizer.Init(path)
 		containerizer.Init(common.AssetsPath)
