@@ -14,13 +14,29 @@ jobs:
     name: Publish release drafts
     runs-on: ubuntu-latest
     steps:
+      - id: get_tag
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner_repo_ids = JSON.parse('${{ github.event.inputs.owner_repo_ids }}');
+            const resp = await octokit.repos.getRelease(owner_repo_ids[0]);
+            core.setOutput('tag', resp.data.tag_name);
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ steps.get_tag.ouputs.tag }}
+      - id: get_sha
+        run: echo "::set-output name=sha::$(git rev-parse HEAD)"
+      - id: semver_parser
+        uses: booxmedialtd/ws-action-parse-semver@v1
+        with:
+          input_string: ${{ steps.get_tag.outputs.tag }}
       - uses: actions/github-script@v3
         with:
           github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           script: |
             const update_release_info_workflow = 'releaseinfo.yml';
             const owner_repo_ids = JSON.parse('${{ github.event.inputs.owner_repo_ids }}');
-
             const promises = owner_repo_ids.map(owner_repo_id => github.repos.updateRelease({...owner_repo_id, draft: false}));
             await Promise.all(promises);
 
@@ -29,3 +45,18 @@ jobs:
                 workflow_id: update_release_info_workflow,
                 ref: context.ref,
             });
+
+            // if it is a stable version then publish the homebrew formula
+            if('${{ steps.semver_parser.outputs.prerelease }}' === '') {
+              const tag = '${{ steps.get_tag.outputs.tag }}';
+              const tag_sha = '${{ steps.get_sha.outputs.sha }}';
+              const publish_formula_workflow = 'publish.yml';
+
+              await github.actions.createWorkflowDispatch({
+                  owner: context.repo.owner,
+                  repo: 'homebrew-move2kube',
+                  workflow_id: publish_formula_workflow,
+                  ref: 'main',
+                  inputs: {tag, tag_sha},
+              });
+            }
