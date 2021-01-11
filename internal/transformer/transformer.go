@@ -56,7 +56,7 @@ func GetTransformer(ir irtypes.IR) Transformer {
 }
 
 // writeContainers returns true if any scripts were written
-func writeContainers(containers []irtypes.Container, outpath, rootDir, registryURL, registryNamespace string) bool {
+func writeContainers(containers []irtypes.Container, outpath, rootDir, registryURL, registryNamespace string, addCopySources bool) bool {
 	containersdirectory := "containers"
 	containerspath := path.Join(outpath, containersdirectory)
 	log.Debugf("containerspath %s", containerspath)
@@ -127,22 +127,23 @@ func writeContainers(containers []irtypes.Container, outpath, rootDir, registryU
 		if err != nil {
 			log.Errorf("Unable to create script to build images : %s", err)
 		}
-
-		relRootDir, err := filepath.Rel(outpath, rootDir)
-		if err != nil {
-			log.Errorf("Failed to make the root directory path %q relative to the output directory %q Error %q", rootDir, outpath, err)
-			relRootDir = rootDir
-		}
-		writepath = filepath.Join(scriptspath, "copysources.sh")
-		err = common.WriteTemplateToFile(templates.CopySources_sh, struct {
-			RelRootDir string
-			Dst        string
-		}{
-			RelRootDir: relRootDir,
-			Dst:        containersdirectory,
-		}, writepath, common.DefaultExecutablePermission)
-		if err != nil {
-			log.Errorf("Unable to create script to build images : %s", err)
+		if addCopySources {
+			relRootDir, err := filepath.Rel(outpath, rootDir)
+			if err != nil {
+				log.Errorf("Failed to make the root directory path %q relative to the output directory %q Error %q", rootDir, outpath, err)
+				relRootDir = rootDir
+			}
+			writepath = filepath.Join(scriptspath, "copysources.sh")
+			err = common.WriteTemplateToFile(templates.CopySources_sh, struct {
+				RelRootDir string
+				Dst        string
+			}{
+				RelRootDir: relRootDir,
+				Dst:        containersdirectory,
+			}, writepath, common.DefaultExecutablePermission)
+			if err != nil {
+				log.Errorf("Unable to create script to build images : %s", err)
+			}
 		}
 	}
 	if len(dockerimages) > 0 {
