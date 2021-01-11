@@ -41,6 +41,7 @@ type KnativeTransformer struct {
 	TargetClusterSpec      collecttypes.ClusterMetadataSpec
 	Name                   string
 	IgnoreUnsupportedKinds bool
+	AddCopySources         bool
 }
 
 // Transform translates intermediate representation to destination objects
@@ -55,7 +56,7 @@ func (kt *KnativeTransformer) Transform(ir irtypes.IR) error {
 	kt.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 	kt.TransformedObjects = (&apiresourceset.KnativeAPIResourceSet{}).CreateAPIResources(ir)
 	kt.RootDir = ir.RootDir
-
+	kt.AddCopySources = ir.AddCopySources
 	log.Debugf("Total transformed objects : %d", len(kt.TransformedObjects))
 
 	return nil
@@ -63,7 +64,7 @@ func (kt *KnativeTransformer) Transform(ir irtypes.IR) error {
 
 // WriteObjects writes Transformed objects to filesystem
 func (kt *KnativeTransformer) WriteObjects(outpath string) error {
-	areNewImagesCreated := writeContainers(kt.Containers, outpath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace)
+	areNewImagesCreated := writeContainers(kt.Containers, outpath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace, kt.AddCopySources)
 
 	artifactspath := filepath.Join(outpath, kt.Name)
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))

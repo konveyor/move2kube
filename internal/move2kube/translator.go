@@ -98,7 +98,7 @@ func Translate(p plantypes.Plan, outpath string, qadisablecli bool) {
 		}
 	}
 
-	ir.AddCopySourcesWarning = qadisablecli
+	ir.AddCopySources = !qadisablecli
 	t := transform.GetTransformer(ir)
 	if err := t.Transform(ir); err != nil {
 		log.Fatalf("Error during translate. Error: %q", err)

@@ -51,8 +51,7 @@ type K8sTransformer struct {
 	Name                   string
 	IgnoreUnsupportedKinds bool
 	ExposedServicePaths    map[string]string
-	// TODO: fix copysources.sh for move2kube-ui and remove this
-	AddCopySourcesWarning bool
+	AddCopySources         bool
 }
 
 // NewK8sTransformer creates a new instance of K8sTransformer
@@ -77,7 +76,7 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 
 	kt.TransformedObjects = new(apiresourceset.K8sAPIResourceSet).CreateAPIResources(ir)
 	kt.RootDir = ir.RootDir
-	kt.AddCopySourcesWarning = ir.AddCopySourcesWarning
+	kt.AddCopySources = ir.AddCopySources
 
 	for _, service := range ir.Services {
 		if service.HasValidAnnotation(common.ExposeSelector) {
@@ -92,7 +91,7 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 
 // WriteObjects writes Transformed objects to filesystem
 func (kt *K8sTransformer) WriteObjects(outpath string) error {
-	areNewImagesCreated := writeContainers(kt.Containers, outpath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace)
+	areNewImagesCreated := writeContainers(kt.Containers, outpath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace, kt.AddCopySources)
 
 	artifactspath := filepath.Join(outpath, kt.Name)
 	if kt.Helm {
@@ -150,7 +149,7 @@ func (kt *K8sTransformer) WriteObjects(outpath string) error {
 	} else {
 		kt.writeDeployScript(kt.Name, outpath)
 	}
-	kt.writeReadMe(kt.Name, areNewImagesCreated, kt.Helm, kt.AddCopySourcesWarning, outpath)
+	kt.writeReadMe(kt.Name, areNewImagesCreated, kt.Helm, kt.AddCopySources, outpath)
 	return nil
 }
 
@@ -285,17 +284,17 @@ func (kt *K8sTransformer) writeDeployScript(proj string, outpath string) {
 
 }
 
-func (kt *K8sTransformer) writeReadMe(project string, areNewImages bool, isHelm bool, addCopySourcesWarning bool, outpath string) {
+func (kt *K8sTransformer) writeReadMe(project string, areNewImages bool, isHelm bool, addCopySources bool, outpath string) {
 	err := common.WriteTemplateToFile(templates.K8sReadme_md, struct {
-		Project               string
-		NewImages             bool
-		Helm                  bool
-		AddCopySourcesWarning bool
+		Project        string
+		NewImages      bool
+		Helm           bool
+		AddCopySources bool
 	}{
-		Project:               project,
-		NewImages:             areNewImages,
-		Helm:                  isHelm,
-		AddCopySourcesWarning: addCopySourcesWarning,
+		Project:        project,
+		NewImages:      areNewImages,
+		Helm:           isHelm,
+		AddCopySources: addCopySources,
 	}, filepath.Join(outpath, "Readme.md"), common.DefaultFilePermission)
 	if err != nil {
 		log.Errorf("Unable to write readme : %s", err)
