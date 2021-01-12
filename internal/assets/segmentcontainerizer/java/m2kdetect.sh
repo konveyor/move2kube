@@ -27,9 +27,29 @@ if [[ -d $1 ]]; then
 	content_folder=$1
 	input_type="directory"
 
+	# check if the folder contains a java project
+	# to the a java project, at least one .java file must exist
+	JAVA_FILES=(`find $content_folder -type f -name "*.java"`)
+
+	#printf '%s\n' "${JAVA_FILES[@]}"
+	#echo ${#JAVA_FILES[@]}
+	if [ ${#JAVA_FILES[@]} -eq 0 ]; then
+		#echo "no java files, exiting"
+		exit 1
+	fi
+
 elif [[ -f $1 ]]; then
     #echo "$1 is a file"
 	input_type="file"
+
+	# check if file is ear/war/jar
+	file_extension="${basename##*.}"
+	arr=('war' 'jar' 'ear')
+	if [[ " ${arr[*]} " != *"$file_extension"* ]];
+	then
+		#echo "not jar/war/ear file. exiting"
+		exit 1
+	fi
 
 	#echo "Extracting file contents to "$extracted_content_path
 	rm -rf $extracted_content_path
@@ -41,12 +61,10 @@ elif [[ -f $1 ]]; then
 	until [ "$FILES_TO_PROCESS" == "" ] ; do
 		for myFile in $FILES_TO_PROCESS ; do
 			mkdir ${myFile}-contents
-			#echo "Unpacking ${myFile} to ${myFile}-contents"
 			unzip -d ${myFile}-contents ${myFile}
 			rm $myFile
 		done
 		FILES_TO_PROCESS=`find . -type f \( -name "*.ear" -or -name "*.war" -or -name "*.jar" \)`
-		#echo "recursing to process files: $FILES_TO_PROCESS"
 	done
   
     # setting content folder variable
@@ -56,8 +74,6 @@ else
 fi
 
 cd $root_path
-#pwd
-
 #echo "Searching for build automation files"
 find $content_folder -type f -name "*.gradle" > $gradle_build_automation_files
 find $content_folder -type f -name "pom.xml" > $maven_build_automation_files
