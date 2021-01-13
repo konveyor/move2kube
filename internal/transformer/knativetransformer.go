@@ -74,7 +74,7 @@ func (kt *KnativeTransformer) WriteObjects(outpath string) error {
 		log.Errorf("Error occurred while writing transformed objects %s", err)
 	}
 	kt.writeDeployScript(kt.Name, outpath)
-	kt.writeReadeMe(kt.Name, areNewImagesCreated, outpath)
+	kt.writeReadeMe(kt.Name, areNewImagesCreated, kt.AddCopySources, outpath)
 	return nil
 }
 
@@ -94,13 +94,15 @@ func (kt *KnativeTransformer) writeDeployScript(proj string, outpath string) {
 	}
 }
 
-func (kt *KnativeTransformer) writeReadeMe(project string, areNewImages bool, outpath string) {
+func (kt *KnativeTransformer) writeReadeMe(project string, areNewImages bool, addCopySources bool, outpath string) {
 	err := common.WriteTemplateToFile(templates.KnativeReadme_md, struct {
-		Project   string
-		NewImages bool
+		Project        string
+		NewImages      bool
+		AddCopySources bool
 	}{
-		Project:   project,
-		NewImages: areNewImages,
+		Project:        project,
+		NewImages:      areNewImages,
+		AddCopySources: addCopySources,
 	}, filepath.Join(outpath, "Readme.md"), common.DefaultFilePermission)
 	if err != nil {
 		log.Errorf("Unable to write Readme : %s", err)

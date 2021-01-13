@@ -17,8 +17,9 @@ Next Steps
 {{- end }}
 * Build your images using "./scripts/buildimages.sh"
 * Push images to registry "./scripts/pushimages.sh <REGISTRY_URL> <REGISTRY_NAMESPACE>"
-{{end -}}
-{{- if .Helm }}* Your helm chart is at {{ .Project }}, you can install it using "./scripts/helminstall.sh" or you can use the operator.
-{{else -}}
+{{- end}}
+{{- if .Helm }}
+* Your helm chart is at {{ .Project }}, you can install it using "./scripts/helminstall.sh" or you can use the operator.
+{{- else }}
 * Use "deploy.sh" to deploy your artifacts into a kubernetes cluster.
-{{ end }}
+{{- end }}
