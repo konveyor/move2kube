@@ -95,18 +95,25 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) GetServiceOptions(inputPath string, 
 			log.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
 			continue
 		}
-		obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
+		docs, err := common.SplitYAML(data)
 		if err != nil {
-			log.Debugf("Failed to decode the file at path %q as a k8s file. Error: %q", filePath, err)
+			log.Errorf("Failed to split the file at path %q into YAML documents. Error: %q", filePath, err)
 			continue
 		}
-		name, _, err := new(apiresource.Deployment).GetNameAndPodSpec(obj)
-		if err != nil {
-			continue
+		for _, doc := range docs {
+			// filter to get only valid k8s Deployments
+			obj, _, err := codecs.UniversalDeserializer().Decode(doc, nil, nil)
+			if err != nil {
+				continue
+			}
+			name, _, err := new(apiresource.Deployment).GetNameAndPodSpec(obj)
+			if err != nil {
+				continue
+			}
+			service := newK8sService(name)
+			service.SourceArtifacts[plantypes.K8sFileArtifactType] = []string{filePath}
+			services = append(services, service)
 		}
-		service := newK8sService(name)
-		service.SourceArtifacts[plantypes.K8sFileArtifactType] = []string{filePath}
-		services = append(services, service)
 	}
 	return services, nil
 }
@@ -121,32 +128,42 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) Translate(services []plantypes.Servi
 			log.Warnf("No k8s artifacts found in service %s", service.ServiceName)
 			continue
 		}
-		irService := irtypes.NewServiceFromPlanService(service)
 		filePath := service.SourceArtifacts[plantypes.K8sFileArtifactType][0] // TODO: what about the other k8s files?
 		data, err := ioutil.ReadFile(filePath)
 		if err != nil {
 			log.Errorf("Unable to read the k8s file at path %q Error: %q", filePath, err)
 			continue
 		}
-		obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
+		docs, err := common.SplitYAML(data)
 		if err != nil {
-			log.Errorf("Failed to decode the k8s file at path %q Error: %q", filePath, err)
+			log.Errorf("Failed to split the k8s file at path %q into YAML documents. Error: %q", filePath, err)
 			continue
 		}
-		_, podSpec, err := new(apiresource.Deployment).GetNameAndPodSpec(obj)
-		if err != nil {
-			log.Errorf("Failed to get the pod specification for the k8s file at path %q Error: %q", filePath, err)
-			continue
-		}
-		irService.PodSpec = podSpec
-		for _, container := range podSpec.Containers {
-			for _, port := range container.Ports {
-				podPort := irtypes.Port{Name: port.Name, Number: port.ContainerPort}
-				servicePort := podPort
-				irService.AddPortForwarding(servicePort, podPort)
+		for i, doc := range docs {
+			obj, _, err := codecs.UniversalDeserializer().Decode(doc, nil, nil)
+			if err != nil {
+				log.Errorf("Failed to decode document %d of file at path %q as a k8s resource. Error: %q", i, filePath, err)
+				continue
 			}
+			name, podSpec, err := new(apiresource.Deployment).GetNameAndPodSpec(obj)
+			if err != nil {
+				continue
+			}
+			if name != service.ServiceName {
+				continue
+			}
+			irService := irtypes.NewServiceFromPlanService(service)
+			irService.PodSpec = podSpec
+			for _, container := range podSpec.Containers {
+				for _, port := range container.Ports {
+					podPort := irtypes.Port{Name: port.Name, Number: port.ContainerPort}
+					servicePort := podPort
+					irService.AddPortForwarding(servicePort, podPort)
+				}
+			}
+			ir.Services[service.ServiceName] = irService
+			break
 		}
-		ir.Services[service.ServiceName] = irService
 	}
 	return ir, nil
 }

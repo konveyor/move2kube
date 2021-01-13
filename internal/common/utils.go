@@ -39,7 +39,7 @@ import (
 	"github.com/konveyor/move2kube/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/xrash/smetrics"
-	yaml "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -715,4 +715,26 @@ func GetGitRepoName(path string) (repo string, root string) {
 		log.Warnf("Unable to get root of repo : %s", err)
 	}
 	return name, w.Filesystem.Root()
+}
+
+// SplitYAML splits a file into multiple YAML documents
+func SplitYAML(rawYAML []byte) ([][]byte, error) {
+	dec := yaml.NewDecoder(bytes.NewReader(rawYAML))
+	var res [][]byte
+	for {
+		var value interface{}
+		err := dec.Decode(&value)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		valueBytes, err := yaml.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, valueBytes)
+	}
+	return res, nil
 }
