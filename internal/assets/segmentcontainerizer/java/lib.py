@@ -222,6 +222,8 @@ def get_app_attributes(captured_data, app_path, output_path, basename, app_name)
 
 def get_segments( input_type, build_type, server_app, output):
 
+    
+    """
     segments = {}
     sc = 0
     if build_type == "maven":
@@ -242,6 +244,45 @@ def get_segments( input_type, build_type, server_app, output):
                 "port": output["app_attributes"]["port"],
             }
         sc+=1
+    """    
+
+    
+    """
+    segments = dict()
+    segments["type"] =  "segments"
+    segments["segments"] = [] 
+
+    sc = 0
+    if build_type == "maven":
+
+        segments["segments"].append(
+             {  "order": str(sc), 
+                "segment_id": "segments/dockerfile_maven_build",
+                "app_name": output["app_attributes"]["app_name"],
+            })
+        sc+=1
+        
+    elif build_type  == "gradle":
+
+        segments["segments"].append(
+             {  "order": str(sc), 
+                "segment_id": "segments/dockerfile_gradle_build",
+                "app_name": output["app_attributes"]["app_name"],
+            })
+        sc+=1
+
+    if server_app  == "undefined" or server_app == "liberty":
+
+        segments["segments"].append(
+             {  "order": str(sc), 
+                "segment_id": "segments/dockerfile_liberty_runtime",
+                "app_name": output["app_attributes"]["app_name"],
+                "port": output["app_attributes"]["port"],
+            })
+        sc+=1
+    """
+    
+    segments = {"port": 8080, "app_name": "app"}
 
     return segments
 
