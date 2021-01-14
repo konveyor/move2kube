@@ -247,7 +247,7 @@ def get_segments( input_type, build_type, server_app, output):
     """    
 
     
-    """
+    
     segments = dict()
     segments["type"] =  "segments"
     segments["segments"] = [] 
@@ -280,9 +280,9 @@ def get_segments( input_type, build_type, server_app, output):
                 "port": output["app_attributes"]["port"],
             })
         sc+=1
-    """
     
-    segments = {"port": 8080, "app_name": "app"}
+    
+    #segments = {"port": 8080, "app_name": "app"}
 
     return segments
 
