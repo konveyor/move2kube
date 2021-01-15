@@ -46,12 +46,19 @@ func (*K8sFilesLoader) UpdatePlan(inputPath string, plan *plantypes.Plan) error 
 			log.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
 			continue
 		}
-		_, _, err = codecs.UniversalDeserializer().Decode(data, nil, nil)
+		docs, err := common.SplitYAML(data)
 		if err != nil {
-			log.Debugf("Failed to decode the file at path %q as a k8s file. Error: %q", filePath, err)
+			log.Debugf("Failed to split the file at path %q into YAML documents. Error: %q", filePath, err)
 			continue
 		}
-		plan.Spec.Inputs.K8sFiles = append(plan.Spec.Inputs.K8sFiles, filePath)
+		for _, doc := range docs {
+			_, _, err = codecs.UniversalDeserializer().Decode(doc, nil, nil)
+			if err != nil {
+				continue
+			}
+			plan.Spec.Inputs.K8sFiles = append(plan.Spec.Inputs.K8sFiles, filePath)
+			break
+		}
 	}
 	return nil
 }
@@ -65,12 +72,19 @@ func (*K8sFilesLoader) LoadToIR(plan plantypes.Plan, ir *irtypes.IR) error {
 			log.Errorf("Failed to read the k8s file at path %q Error: %q", filePath, err)
 			continue
 		}
-		obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
+		docs, err := common.SplitYAML(data)
 		if err != nil {
-			log.Errorf("Failed to decode the file at path %q as a k8s file. Error: %q", filePath, err)
+			log.Debugf("Failed to split the file at path %q into YAML documents. Error: %q", filePath, err)
 			continue
 		}
-		ir.CachedObjects = append(ir.CachedObjects, obj)
+		for i, doc := range docs {
+			obj, _, err := codecs.UniversalDeserializer().Decode(doc, nil, nil)
+			if err != nil {
+				log.Errorf("Failed to decode the YAML document %d in file at path %q as a k8s resource. Error: %q", i, filePath, err)
+				continue
+			}
+			ir.CachedObjects = append(ir.CachedObjects, obj)
+		}
 	}
 	return nil
 }
