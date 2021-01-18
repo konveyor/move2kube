@@ -84,16 +84,6 @@ func (*SegmentContainerizer) detect(scriptDir string, directory string) (string,
 	return string(outputBytes), err
 }
 
-// Define the structs
-
-//type SegmentsSpec struct {
-//	//file string `json:"-"`
-//	//Problems []Problem `yaml:"solutions"`
-//
-//	type_    string   `json:"type"`
-//	segments []string `json:"segments"`
-//}
-
 // GetContainer returns the container for a service
 func (d *SegmentContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	// TODO: Fix exposed ports too
@@ -105,7 +95,7 @@ func (d *SegmentContainerizer) GetContainer(plan plantypes.Plan, service plantyp
 	containerizerDir := service.ContainerizationTargetOptions[0]
 	sourceCodeDir := service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0] // TODO: what about the other source artifacts?
 
-	//　1. execute detect to obtain the json response from the .sh file
+	//　1. Execute detect to obtain the json response from the .sh file
 	output, err := d.detect(containerizerDir, sourceCodeDir)
 	if err != nil {
 		log.Errorf("Detect using Dockerfile containerizer at path %q on the source code at path %q failed. Error: %q", containerizerDir, sourceCodeDir, err)
@@ -113,7 +103,7 @@ func (d *SegmentContainerizer) GetContainer(plan plantypes.Plan, service plantyp
 	}
 	log.Debugf("The Dockerfile containerizer at path %q produced the following output: %q", containerizerDir, output)
 
-	// 2. parse json output
+	// 2. Parse json output
 	if output != "" {
 		m := map[string]interface{}{}
 		if err := json.Unmarshal([]byte(output), &m); err != nil {
@@ -121,93 +111,62 @@ func (d *SegmentContainerizer) GetContainer(plan plantypes.Plan, service plantyp
 			return container, err
 		}
 
+		// Final multiline string containing the generated Dockerfile will be stored here
 		dockerfileContents := ""
+		// Filled segments will be stored here
+		var segmentSlice = []string{}
 
-		// 2.1 if the key `type` is present, it means the json comes from  segmentcontainerizer
-		if val, ok := m["type"]; ok {
-			//segment-based
-			fmt.Println("type", val)
+		// 2.1 Obtain segmentRecords slice for both cases (segment-based, df)
+		var segmentRecords []map[string]interface{}
 
-			// here lets store the filled segments
-			var segmentSlice = []string{}
-
-			if segmentRecords, ok := m["segments"].([]interface{}); ok {
-				for _, segmentRecord := range segmentRecords {
-					fmt.Println(segmentRecord)
-
-					if rec, ok := segmentRecord.(map[string]interface{}); ok {
-						for key, val := range rec {
-							fmt.Println(key, val)
-
-							if key == "segment_id" {
-								// 4. get the path to the segment and read it as a template
-								strPath := fmt.Sprint(val)
-								dockerfileSegmentTemplatePath := filepath.Join(containerizerDir, strPath)
-								dockerfileSegmentTemplateBytes, err := ioutil.ReadFile(dockerfileSegmentTemplatePath)
-								if err != nil {
-									log.Errorf("Unable to read the Dockerfile segment template at path %q Error: %q", dockerfileSegmentTemplatePath, err)
-									//return container, err
-								}
-
-								dockerfileSegmentTemplate := string(dockerfileSegmentTemplateBytes)
-								dockerfileSegmentContents := dockerfileSegmentTemplate
-
-								// 5. fill the template with the corresponding data
-								dockerfileSegmentContents, err = common.GetStringFromTemplate(dockerfileSegmentTemplate, rec)
-								if err != nil {
-									log.Warnf("Template conversion failed : %s", err)
-								}
-
-								segmentSlice = append(segmentSlice, dockerfileSegmentContents)
-							}
+		if _, ok := m["type"]; ok {
+			// segment-based
+			if _, segmentsFound := m["segments"]; segmentsFound {
+				if segments, ok := m["segments"].([]interface{}); ok {
+					for _, segment := range segments {
+						if rec, ok := segment.(map[string]interface{}); ok {
+							segmentRecords = append(segmentRecords, rec)
 						}
-
-					} else {
-						fmt.Printf("record not a map[string]interface{}: %v\n", rec)
 					}
-
-				} // for range segmentRecords
-			} // if segmentRecords
-
-			//  6. visualized merged segments with filled data
-			dockerfileContents := strings.Join(segmentSlice, "\n")
-			log.Debugf("dockerfileContents: ")
-			log.Debugf(dockerfileContents)
-
-			fmt.Println("test")
-
+				}
+			}
 		} else {
-			fmt.Println("its dockerfile ")
-
-			dockerfileTemplatePath := filepath.Join(containerizerDir, "Dockerfile")
-			dockerfileTemplateBytes, err := ioutil.ReadFile(dockerfileTemplatePath)
-			if err != nil {
-				log.Errorf("Unable to read the Dockerfile template at path %q Error: %q", dockerfileTemplatePath, err)
-				return container, err
-			}
-			dockerfileTemplate := string(dockerfileTemplateBytes)
-			//sourceCodeDir := service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0] // TODO: what about the other source artifacts?
-
-			m := map[string]interface{}{}
-			if err := json.Unmarshal([]byte(output), &m); err != nil {
-				log.Errorf("Unable to unmarshal the output of the detect script at path %q Output: %q Error: %q", containerizerDir, output, err)
-				return container, err
-			}
-
-			//if value, ok := m[containerizerJSONPort]; ok {
-			//	portToExpose := int(value.(float64)) // Type assert to float64 because json numbers are floats.
-			//	container.AddExposedPort(portToExpose)
-			//}
-
-			dockerfileContents, err = common.GetStringFromTemplate(dockerfileTemplate, m)
-			if err != nil {
-				log.Warnf("Template conversion failed : %s", err)
-			}
-
+			// Add the fixed segment id associated to the full Dockerfile and append to segmentRecords
+			m["segment_id"] = "Dockerfile"
+			segmentRecords = append(segmentRecords, m)
 		}
 
-		// 7. add stuff to the container object
+		// 2.2 Iterate over segmentRecords slice
+		for _, segmentRecord := range segmentRecords {
+			for key, val := range segmentRecord {
+				if key == "segment_id" {
+					// Get the path to the segment and read it as a template
+					strPath := fmt.Sprint(val)
+					dockerfileSegmentTemplatePath := filepath.Join(containerizerDir, strPath, "Dockerfile")
+					dockerfileSegmentTemplateBytes, err := ioutil.ReadFile(dockerfileSegmentTemplatePath)
+					if err != nil {
+						log.Errorf("Unable to read the Dockerfile segment template at path %q Error: %q", dockerfileSegmentTemplatePath, err)
+						//return container, err
+					}
+					dockerfileSegmentTemplate := string(dockerfileSegmentTemplateBytes)
+					dockerfileSegmentContents := dockerfileSegmentTemplate
 
+					// Fill the segment template with the corresponding data
+					dockerfileSegmentContents, err = common.GetStringFromTemplate(dockerfileSegmentTemplate, segmentRecord)
+					if err != nil {
+						log.Warnf("Template conversion failed : %s", err)
+					}
+
+					// Append filled segment template to segmentSlice
+					segmentSlice = append(segmentSlice, dockerfileSegmentContents)
+				}
+			}
+		}
+
+		// 3. Merge the filled segments into dockerfileContents
+		dockerfileContents = strings.Join(segmentSlice, "\n")
+
+		// 4. Add result to the container object
 		relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, sourceCodeDir)
 		if err != nil {
 			log.Errorf("Failed to make the source code directory %q relative to the root directory %q Error: %q", sourceCodeDir, plan.Spec.Inputs.RootDir, err)
@@ -217,7 +176,7 @@ func (d *SegmentContainerizer) GetContainer(plan plantypes.Plan, service plantyp
 		dockerfilePath := filepath.Join(relOutputPath, dockerfileName)
 		container.AddFile(dockerfilePath, dockerfileContents)
 
-		// 8 . copied from dockercontainerizer
+		// 5. copied from dockercontainerizer
 
 		// Create the docker build script.
 		dockerBuildScriptContents, err := common.GetStringFromTemplate(scripts.Dockerbuild_sh, struct {
@@ -266,8 +225,8 @@ func (d *SegmentContainerizer) GetContainer(plan plantypes.Plan, service plantyp
 		//fmt.Println("up to here")
 
 	} else {
+		log.Warnf("Output variableis empty")
 
-		fmt.Println("output variable is empty")
 	}
 
 	return container, nil
