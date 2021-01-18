@@ -78,8 +78,6 @@ const (
 )
 
 const (
-	// SegmentContainerBuildTypeValue defines the containerization type as segment based dockerfile
-	//SegmentContainerBuildTypeValue ContainerBuildTypeValue = "NewSegmentContainerizer"
 	// DockerFileContainerBuildTypeValue defines the containerization type as docker file
 	DockerFileContainerBuildTypeValue ContainerBuildTypeValue = "NewDockerfile"
 	// ReuseDockerFileContainerBuildTypeValue defines the containerization type as reuse of dockerfile
@@ -208,7 +206,7 @@ type Service struct {
 	TranslationType               TranslationTypeValue                 `yaml:"translationType"`
 	ContainerBuildType            ContainerBuildTypeValue              `yaml:"containerBuildType"`
 	SourceTypes                   []SourceTypeValue                    `yaml:"sourceType"`
-	ContainerizationTargetOptions []string                             `yaml:"targetOptions,omitempty" m2kpath:"if:ContainerBuildType:in:NewDockerfile,ReuseDockerfile,S2I,NewSegmentContainerizer"`
+	ContainerizationTargetOptions []string                             `yaml:"targetOptions,omitempty" m2kpath:"if:ContainerBuildType:in:NewDockerfile,ReuseDockerfile,S2I"`
 	SourceArtifacts               map[SourceArtifactTypeValue][]string `yaml:"sourceArtifacts" m2kpath:"keys:Kubernetes,Knative,DockerCompose,CfManifest,CfRunningManifest,SourceCode,Dockerfile"` //[translationartifacttype][List of artifacts]
 	BuildArtifacts                map[BuildArtifactTypeValue][]string  `yaml:"buildArtifacts,omitempty" m2kpath:"normal"`                                                                          //[buildartifacttype][List of artifacts]
 	UpdateContainerBuildPipeline  bool                                 `yaml:"updateContainerBuildPipeline"`
