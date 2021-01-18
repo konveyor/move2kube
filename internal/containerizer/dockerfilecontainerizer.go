@@ -158,7 +158,11 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 
 					// Append filled segment template to segmentSlice
 					segmentSlice = append(segmentSlice, dockerfileSegmentContents)
+				} else if key == "port" {
+					portToExpose := int(val.(float64)) // Type assert to float64 because json numbers are floats.
+					container.AddExposedPort(portToExpose)
 				}
+
 			}
 		}
 
