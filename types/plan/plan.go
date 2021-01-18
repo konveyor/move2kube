@@ -79,7 +79,7 @@ const (
 
 const (
 	// SegmentContainerBuildTypeValue defines the containerization type as segment based dockerfile
-	SegmentContainerBuildTypeValue ContainerBuildTypeValue = "NewSegmentContainerizer"
+	//SegmentContainerBuildTypeValue ContainerBuildTypeValue = "NewSegmentContainerizer"
 	// DockerFileContainerBuildTypeValue defines the containerization type as docker file
 	DockerFileContainerBuildTypeValue ContainerBuildTypeValue = "NewDockerfile"
 	// ReuseDockerFileContainerBuildTypeValue defines the containerization type as reuse of dockerfile

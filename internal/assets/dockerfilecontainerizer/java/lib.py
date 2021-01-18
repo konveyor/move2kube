@@ -232,7 +232,7 @@ def get_segments( input_type, build_type, server_app, output):
 
         segments["segments"].append(
              {  "order": str(sc), 
-                "segment_id": "segments/dockerfile_maven_build",
+                "segment_id": "segments/dockerfile_maven_build/Dockerfile",
                 "app_name": output["app_attributes"]["app_name"],
             })
         sc+=1
@@ -241,7 +241,7 @@ def get_segments( input_type, build_type, server_app, output):
 
         segments["segments"].append(
              {  "order": str(sc), 
-                "segment_id": "segments/dockerfile_gradle_build",
+                "segment_id": "segments/dockerfile_gradle_build/Dockerfile",
                 "app_name": output["app_attributes"]["app_name"],
             })
         sc+=1
@@ -250,14 +250,11 @@ def get_segments( input_type, build_type, server_app, output):
 
         segments["segments"].append(
              {  "order": str(sc), 
-                "segment_id": "segments/dockerfile_liberty_runtime",
+                "segment_id": "segments/dockerfile_liberty_runtime/Dockerfile",
                 "app_name": output["app_attributes"]["app_name"],
                 "port": output["app_attributes"]["port"],
             })
         sc+=1
-    
-    
-    #segments = {"port": 8080, "app_name": "app"}
 
     return segments
 
