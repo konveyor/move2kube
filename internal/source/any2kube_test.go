@@ -26,6 +26,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/containerizer"
 	"github.com/konveyor/move2kube/internal/source"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -41,6 +42,7 @@ func TestGetServiceOptions(t *testing.T) {
 		translator := source.Any2KubeTranslator{}
 		plan := plantypes.NewPlan()
 		want := []plantypes.Service{}
+		containerizer.InitContainerizers(inputpath, nil)
 
 		// Test
 		services, err := translator.GetServiceOptions(inputpath, plan)
@@ -58,6 +60,7 @@ func TestGetServiceOptions(t *testing.T) {
 		translator := source.Any2KubeTranslator{}
 		plan := plantypes.NewPlan()
 		want := []plantypes.Service{}
+		containerizer.InitContainerizers(inputpath, nil)
 
 		// Test
 		services, err := translator.GetServiceOptions(inputpath, plan)
@@ -83,6 +86,7 @@ func TestGetServiceOptions(t *testing.T) {
 		translator := source.Any2KubeTranslator{}
 		plan := plantypes.NewPlan()
 		want := []plantypes.Service{}
+		containerizer.InitContainerizers(inputpath, nil)
 
 		// Test
 		services, err := translator.GetServiceOptions(inputpath, plan)
@@ -102,6 +106,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatalf("Failed to make the input path %q absolute. Error: %q", relInputPath, err)
 		}
 		translator := source.Any2KubeTranslator{}
+		containerizer.InitContainerizers(inputPath, nil)
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
@@ -138,6 +143,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatalf("Failed to make the input path %q absolute. Error: %q", relInputPath, err)
 		}
 		translator := source.Any2KubeTranslator{}
+		containerizer.InitContainerizers(inputPath, nil)
 
 		// services
 		svc1 := plantypes.NewService("svc1", "Any2Kube")
@@ -184,6 +190,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatalf("Failed to make the input path %q absolute. Error: %q", relInputPath, err)
 		}
 		translator := source.Any2KubeTranslator{}
+		containerizer.InitContainerizers(inputPath, nil)
 
 		// services
 		svc1 := plantypes.NewService("svc1", "Any2Kube")
@@ -221,6 +228,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatalf("Failed to make the input path %q absolute. Error: %q", relInputPath, err)
 		}
 		translator := source.Any2KubeTranslator{}
+		containerizer.InitContainerizers(inputPath, nil)
 
 		plan := plantypes.NewPlan()
 		plan.Name = "nodejs-app"
@@ -257,6 +265,7 @@ func TestGetServiceOptions(t *testing.T) {
 			t.Fatalf("Failed to make the input path %q absolute. Error: %q", relInputPath, err)
 		}
 		translator := source.Any2KubeTranslator{}
+		containerizer.InitContainerizers(inputPath, nil)
 
 		plan := plantypes.NewPlan()
 		plan.Name = "java-maven-app"
@@ -320,6 +329,7 @@ func TestGetServiceOptions(t *testing.T) {
 		translator := source.Any2KubeTranslator{}
 		plan := plantypes.NewPlan()
 		want := []plantypes.Service{}
+		containerizer.InitContainerizers(inputpath, nil)
 
 		// Test
 		services, err := translator.GetServiceOptions(inputpath, plan)
@@ -400,6 +410,7 @@ func TestTranslate(t *testing.T) {
 		services := []plantypes.Service{}
 		plan := plantypes.NewPlan()
 		want := irtypes.NewIR(plan)
+		containerizer.InitContainerizers(plan.Spec.Inputs.RootDir, nil)
 
 		// Test
 		ir, err := translator.Translate(services, plan)
@@ -422,6 +433,7 @@ func TestTranslate(t *testing.T) {
 			t.Fatalf("Failed to read the testdata at path %q Error: %q", testdataservices, err)
 		}
 		plan := plantypes.NewPlan()
+		containerizer.InitContainerizers(plan.Spec.Inputs.RootDir, nil)
 
 		// Output
 		testdatapath := "testdata/datafortestingtranslate/expectedirfornodejsapp.yaml"

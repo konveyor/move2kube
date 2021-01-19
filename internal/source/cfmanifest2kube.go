@@ -51,8 +51,6 @@ func (*CfManifestTranslator) GetTranslatorType() plantypes.TranslationTypeValue 
 // GetServiceOptions - output a plan based on the input directory contents
 func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
 	services := []plantypes.Service{}
-	allContainerizers := new(containerizer.Containerizers)
-	allContainerizers.InitContainerizers(inputPath)
 
 	filePaths, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
 	if err != nil {
@@ -131,7 +129,7 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 				continue
 			}
 			containerizationoptionsfound := false
-			for _, cop := range allContainerizers.GetContainerizationOptions(plan, fullbuilddirectory) {
+			for _, cop := range containerizer.GetContainerizationOptions(plan, fullbuilddirectory) {
 				service := cfManifestTranslator.newService(applicationName)
 				service.ContainerBuildType = cop.ContainerizationType
 				service.ContainerizationTargetOptions = cop.TargetOptions
@@ -215,7 +213,7 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 					} else {
 						containerizationoptionsfound := false
 						//TODO: Think whether we should include this for only runtime manifest file
-						for _, cop := range allContainerizers.GetContainerizationOptions(plan, fullbuilddirectory) {
+						for _, cop := range containerizer.GetContainerizationOptions(plan, fullbuilddirectory) {
 							service := cfManifestTranslator.newService(applicationName)
 							service.ContainerBuildType = cop.ContainerizationType
 							service.ContainerizationTargetOptions = cop.TargetOptions
@@ -270,8 +268,6 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 // Translate translates servies to IR
 func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes.Service, plan plantypes.Plan) (irtypes.IR, error) {
 	ir := irtypes.NewIR(plan)
-	containerizers := new(containerizer.Containerizers)
-	containerizers.InitContainerizers(plan.Spec.Inputs.RootDir)
 	for _, service := range services {
 		if service.TranslationType != cfManifestTranslator.GetTranslatorType() {
 			continue
@@ -295,7 +291,7 @@ func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes
 				continue
 			}
 			log.Debugf("Using cf manifest file at path %s to translate service %s", path, service.ServiceName)
-			container, err := containerizers.GetContainer(plan, service)
+			container, err := containerizer.GetContainer(plan, service)
 			if err != nil {
 				log.Errorf("Failed to containerize service %s in cf manifest file at path %s Error: %q", service.ServiceName, path, err)
 				continue
@@ -359,7 +355,7 @@ func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes
 			ir.Services[service.ServiceName] = serviceConfig
 		} else {
 			log.Debugf("No cf manifest file found for service %s", service.ServiceName)
-			container, err := containerizers.GetContainer(plan, service)
+			container, err := containerizer.GetContainer(plan, service)
 			if err != nil {
 				log.Errorf("Failed to containerize service %s using cfmanifest translator. Error: %q", service.ServiceName, err)
 				continue

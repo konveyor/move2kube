@@ -95,7 +95,7 @@ func (cache *Cache) AddProblemSolutionToCache(p Problem) bool {
 	added := false
 	for i, cp := range cache.Spec.Problems {
 		if cp.matches(p) {
-			log.Warnf("A solution already exists in cache for [%s], rewriting", p.Desc)
+			log.Debugf("A solution already exists in cache for [%s], rewriting", p.Desc)
 			cache.Spec.Problems[i] = p
 			added = true
 			break

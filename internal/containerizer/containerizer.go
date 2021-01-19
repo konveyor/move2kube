@@ -31,6 +31,11 @@ const (
 	containerizerJSONImageName = "image_name"
 )
 
+var (
+	containerizers []Containerizer
+	initialized    = make(map[string]bool)
+)
+
 //go:generate go run github.com/konveyor/move2kube/internal/common/generator scripts
 
 // Containerizer interface defines interface for containerizing applications
@@ -41,11 +46,6 @@ type Containerizer interface {
 	GetContainerBuildStrategy() plantypes.ContainerBuildTypeValue
 }
 
-// Containerizers keep track of all initialized containerizers
-type Containerizers struct {
-	containerizers []Containerizer
-}
-
 // ContainerizationOption defines the containerization option for a path
 type ContainerizationOption struct {
 	ContainerizationType plantypes.ContainerBuildTypeValue
@@ -53,18 +53,43 @@ type ContainerizationOption struct {
 }
 
 // InitContainerizers initializes the containerizers
-func (c *Containerizers) InitContainerizers(path string) {
-	c.containerizers = []Containerizer{new(DockerfileContainerizer), new(S2IContainerizer), new(CNBContainerizer), new(ReuseContainerizer)}
-	for _, containerizer := range c.containerizers {
-		containerizer.Init(path)
-		containerizer.Init(common.AssetsPath)
+func InitContainerizers(path string, containerizerTypes []string) {
+	resetContainerizers()
+	for _, containerizer := range getAllContainerizers() {
+		cbs := (string)(containerizer.GetContainerBuildStrategy())
+		if (containerizerTypes == nil || common.IsStringPresent(containerizerTypes, cbs)) && !initialized[cbs] {
+			containerizer.Init(path)
+			containerizer.Init(common.AssetsPath)
+			containerizers = append(containerizers, containerizer)
+			initialized[cbs] = true
+		}
 	}
 }
 
+// resetContainerizers deinitializes the containerizers - Used for ensure tests work
+func resetContainerizers() {
+	containerizers = []Containerizer{}
+	initialized = make(map[string]bool)
+}
+
+// getAllContainerizers gets the all containerizers uninitialized
+func getAllContainerizers() []Containerizer {
+	return []Containerizer{new(DockerfileContainerizer), new(S2IContainerizer), new(CNBContainerizer), new(ReuseContainerizer)}
+}
+
+// GetAllContainerBuildStrategies returns all translator types
+func GetAllContainerBuildStrategies() []string {
+	cbs := []string{}
+	for _, c := range getAllContainerizers() {
+		cbs = append(cbs, (string)(c.GetContainerBuildStrategy()))
+	}
+	return cbs
+}
+
 // GetContainerizationOptions returns ContainerizerOptions for given sourcepath
-func (c *Containerizers) GetContainerizationOptions(plan plantypes.Plan, sourcepath string) []ContainerizationOption {
+func GetContainerizationOptions(plan plantypes.Plan, sourcepath string) []ContainerizationOption {
 	cops := []ContainerizationOption{}
-	for _, containerizer := range c.containerizers {
+	for _, containerizer := range containerizers {
 		if targetoptions := containerizer.GetTargetOptions(plan, sourcepath); len(targetoptions) != 0 {
 			cops = append(cops, ContainerizationOption{
 				ContainerizationType: containerizer.GetContainerBuildStrategy(),
@@ -76,8 +101,8 @@ func (c *Containerizers) GetContainerizationOptions(plan plantypes.Plan, sourcep
 }
 
 // GetContainer get the container for a service
-func (c *Containerizers) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
-	for _, containerizer := range c.containerizers {
+func GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
+	for _, containerizer := range containerizers {
 		if containerizer.GetContainerBuildStrategy() != service.ContainerBuildType {
 			continue
 		}

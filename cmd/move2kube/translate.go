@@ -102,11 +102,11 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 			log.Fatalf("Error while accessing plan file at path %s Error: %q", planfile, err)
 		}
 		cmdcommon.CheckSourcePath(srcpath)
-		log.Debugf("Creating a new plan.")
-		p = move2kube.CreatePlan(srcpath, name)
-		outpath = filepath.Join(outpath, p.Name)
+		outpath = filepath.Join(outpath, name)
 		cmdcommon.CheckOutputPath(outpath)
 		cmdcommon.CreateOutputDirectoryAndCacheFile(outpath)
+		log.Debugf("Creating a new plan.")
+		p = move2kube.CreatePlan(srcpath, name, true)
 		p = move2kube.CuratePlan(p)
 	} else {
 		log.Infof("Detected a plan file at path %s. Will translate using this plan.", planfile)

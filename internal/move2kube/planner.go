@@ -18,6 +18,7 @@ package move2kube
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/containerizer"
 	"github.com/konveyor/move2kube/internal/metadata"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	"github.com/konveyor/move2kube/internal/source"
@@ -27,12 +28,31 @@ import (
 )
 
 //CreatePlan creates the plan from all planners
-func CreatePlan(inputPath string, prjName string) plantypes.Plan {
+func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Plan {
 	p := plantypes.NewPlan()
 	p.Name = prjName
 	p.Spec.Inputs.RootDir = inputPath
 
-	translationPlanners := source.GetSourceLoaders()
+	translationPlanners := source.GetTranslators()
+	if interactive {
+		translationTypes := selectTranslators(source.GetAllTranslatorTypes())
+		translationPlanners := []source.Translator{}
+		for _, tp := range translationPlanners {
+			tpn := (string)(tp.GetTranslatorType())
+			if common.IsStringPresent(translationTypes, tpn) {
+				translationPlanners = append(translationPlanners, tp)
+			}
+		}
+		if common.IsStringPresent(translationTypes, string(plantypes.Any2KubeTranslation)) || common.IsStringPresent(translationTypes, string(plantypes.CfManifest2KubeTranslation)) {
+			containerizer.InitContainerizers(p.Spec.Inputs.RootDir, selectContainerizationTypes(containerizer.GetAllContainerBuildStrategies()))
+		}
+	} else {
+		containerizer.InitContainerizers(p.Spec.Inputs.RootDir, nil)
+	}
+	if len(translationPlanners) == 0 {
+		log.Fatal("No translation type selected. Aborting.")
+	}
+
 	log.Infoln("Planning Translation")
 	for _, l := range translationPlanners {
 		log.Infof("[%T] Planning translation", l)
@@ -81,18 +101,8 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 		}
 	}
 	translationTypes = common.UniqueStrings(translationTypes)
-	problem, err := qatypes.NewMultiSelectProblem("Select all translation types that you are interested in:", []string{"Services that don't support any of the translation types you are interested in will be ignored."}, translationTypes, translationTypes)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	selectedTranslationTypes, err := problem.GetSliceAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+	selectedTranslationTypes := selectTranslators(translationTypes)
+
 	planServices := map[string][]plantypes.Service{}
 	for serviceName, services := range p.Spec.Inputs.Services {
 		for _, service := range services {
@@ -101,6 +111,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 			}
 		}
 	}
+
 	p.Spec.Inputs.Services = planServices
 	if len(p.Spec.Inputs.Services) == 0 {
 		log.Fatalf("Failed to find any services that support the selected translation types. Aborting.")
@@ -111,7 +122,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	for sn := range p.Spec.Inputs.Services {
 		servicenames = append(servicenames, sn)
 	}
-	problem, err = qatypes.NewMultiSelectProblem("Select all services that are needed:", []string{"The services unselected here will be ignored."}, servicenames, servicenames)
+	problem, err := qatypes.NewMultiSelectProblem("Select all services that are needed:", []string{"The services unselected here will be ignored."}, servicenames, servicenames)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -138,21 +149,13 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 			}
 		}
 	}
-	problem, err = qatypes.NewMultiSelectProblem("Select all containerization modes that is of interest:", []string{"Services that don't support any of the containerization techniques you are interested in will be ignored."}, conTypes, conTypes)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	selectedConTypes, err := problem.GetSliceAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+
+	selectedConTypes := selectContainerizationTypes(conTypes)
+
 	if len(selectedConTypes) == 0 {
 		log.Fatalf("No containerization technique was selected; Terminating.")
 	}
+
 	services := map[string][]plantypes.Service{}
 	for sn, s := range p.Spec.Inputs.Services {
 		sConTypes := []string{}
@@ -273,4 +276,39 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	p.Spec.Outputs.Kubernetes.TargetCluster.Path = ""
 
 	return p
+}
+
+func selectTranslators(translationTypes []string) (selectedTranslationTypes []string) {
+	problem, err := qatypes.NewMultiSelectProblem("Select all translation types that you are interested in:", []string{"Services that don't support any of the translation types you are interested in will be ignored."}, translationTypes, translationTypes)
+	if err != nil {
+		log.Fatalf("Unable to create problem : %s", err)
+	}
+	problem, err = qaengine.FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer : %s", err)
+	}
+	selectedTranslationTypes, err = problem.GetSliceAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer : %s", err)
+	}
+	return selectedTranslationTypes
+}
+
+func selectContainerizationTypes(containerizationTypes []string) (selectedConTypes []string) {
+	problem, err := qatypes.NewMultiSelectProblem("Select all containerization modes that is of interest:", []string{"Services that don't support any of the containerization techniques you are interested in will be ignored."}, containerizationTypes, containerizationTypes)
+	if err != nil {
+		log.Fatalf("Unable to create problem : %s", err)
+	}
+	problem, err = qaengine.FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer : %s", err)
+	}
+	selectedConTypes, err = problem.GetSliceAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer : %s", err)
+	}
+	if len(selectedConTypes) == 0 {
+		log.Fatalf("No containerization technique was selected; Terminating.")
+	}
+	return selectedConTypes
 }
