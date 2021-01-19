@@ -38,6 +38,11 @@ type CICDAPIResourceSet struct {
 	ExtraFiles map[string]string // file path: file contents
 }
 
+// GetScheme returns K8s scheme
+func (*CICDAPIResourceSet) GetScheme() *runtime.Scheme {
+	return new(K8sAPIResourceSet).GetScheme()
+}
+
 // NewCICDAPIResourceSet creates a new CICDAPIResourceSet
 func NewCICDAPIResourceSet() *CICDAPIResourceSet {
 	return &CICDAPIResourceSet{ExtraFiles: map[string]string{}}
@@ -167,10 +172,16 @@ func (cicdSet *CICDAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.Enh
 	return ir
 }
 
-func (*CICDAPIResourceSet) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
+func (cicdSet *CICDAPIResourceSet) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
 	return []apiresource.APIResource{
-		apiresource.APIResource{IAPIResource: &apiresource.BuildConfig{}},
-		apiresource.APIResource{IAPIResource: &apiresource.Storage{}},
+		{
+			Scheme:       cicdSet.GetScheme(),
+			IAPIResource: &apiresource.BuildConfig{},
+		},
+		{
+			Scheme:       cicdSet.GetScheme(),
+			IAPIResource: &apiresource.Storage{},
+		},
 	}
 }
 

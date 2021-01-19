@@ -60,6 +60,11 @@ const (
 type TektonAPIResourceSet struct {
 }
 
+// GetScheme returns K8s scheme
+func (*TektonAPIResourceSet) GetScheme() *runtime.Scheme {
+	return new(K8sAPIResourceSet).GetScheme()
+}
+
 // CreateAPIResources converts IR to runtime objects
 func (tekSet *TektonAPIResourceSet) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
 	ir := tekSet.setupEnhancedIR(oldir)
@@ -208,22 +213,49 @@ func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.En
 	return ir
 }
 
-func (*TektonAPIResourceSet) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
+func (tekSet *TektonAPIResourceSet) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
 	return []apiresource.APIResource{
-		apiresource.APIResource{IAPIResource: &apiresource.Service{}},
-		apiresource.APIResource{IAPIResource: &apiresource.ServiceAccount{}},
-		apiresource.APIResource{IAPIResource: &apiresource.RoleBinding{}},
-		apiresource.APIResource{IAPIResource: &apiresource.Role{}},
-		apiresource.APIResource{IAPIResource: &apiresource.Storage{}},
+		{
+			Scheme:       tekSet.GetScheme(),
+			IAPIResource: &apiresource.Service{},
+		},
+		{
+			Scheme:       tekSet.GetScheme(),
+			IAPIResource: &apiresource.ServiceAccount{},
+		},
+		{
+			Scheme:       tekSet.GetScheme(),
+			IAPIResource: &apiresource.RoleBinding{},
+		},
+		{
+			Scheme:       tekSet.GetScheme(),
+			IAPIResource: &apiresource.Role{},
+		},
+		{
+			Scheme:       tekSet.GetScheme(),
+			IAPIResource: &apiresource.Storage{},
+		},
 	}
 }
 
-func (*TektonAPIResourceSet) getTektonAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
+func (tekSet *TektonAPIResourceSet) getTektonAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
 	return []apiresource.APIResource{
-		apiresource.APIResource{IAPIResource: &apiresource.EventListener{}},
-		apiresource.APIResource{IAPIResource: &apiresource.TriggerBinding{}},
-		apiresource.APIResource{IAPIResource: &apiresource.TriggerTemplate{}},
-		apiresource.APIResource{IAPIResource: &apiresource.Pipeline{}},
+		{
+			Scheme:       tekSet.GetScheme(),
+			IAPIResource: &apiresource.EventListener{},
+		},
+		{
+			Scheme:       tekSet.GetScheme(),
+			IAPIResource: &apiresource.TriggerBinding{},
+		},
+		{
+			Scheme:       tekSet.GetScheme(),
+			IAPIResource: &apiresource.TriggerTemplate{},
+		},
+		{
+			Scheme:       tekSet.GetScheme(),
+			IAPIResource: &apiresource.Pipeline{},
+		},
 	}
 }
 

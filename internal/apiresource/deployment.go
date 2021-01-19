@@ -53,7 +53,7 @@ const (
 
 // Deployment handles all objects like a Deployment
 type Deployment struct {
-	ClusterSpec collecttypes.ClusterMetadataSpec
+	Cluster collecttypes.ClusterMetadataSpec
 }
 
 // GetSupportedKinds returns kinds supported by the deployment
@@ -433,7 +433,7 @@ func (d *Deployment) convertVolumesKindsByPolicy(podspec corev1.PodSpec) corev1.
 
 	volumes := []v1.Volume{}
 	for _, v := range podspec.Volumes {
-		volumes = append(volumes, convertVolumeBySupportedKind(v, d.ClusterSpec))
+		volumes = append(volumes, convertVolumeBySupportedKind(v, d.Cluster))
 	}
 	podspec.Volumes = volumes
 

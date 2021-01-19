@@ -67,13 +67,28 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) CreateAPIResources(oldir irtypes.IR)
 	return targetObjs
 }
 
-func (*K8sAPIResourceSet) getAPIResources(ir irtypes.EnhancedIR) []apiresource.APIResource {
+func (k8sAPIResourceSet *K8sAPIResourceSet) getAPIResources(ir irtypes.EnhancedIR) []apiresource.APIResource {
 	return []apiresource.APIResource{
-		{IAPIResource: &apiresource.Deployment{ClusterSpec: ir.TargetClusterSpec}},
-		{IAPIResource: &apiresource.Storage{Cluster: ir.TargetClusterSpec}},
-		{IAPIResource: &apiresource.Service{Cluster: ir.TargetClusterSpec}},
-		{IAPIResource: &apiresource.ImageStream{Cluster: ir.TargetClusterSpec}},
-		{IAPIResource: &apiresource.NetworkPolicy{Cluster: ir.TargetClusterSpec}},
+		{
+			Scheme:       k8sAPIResourceSet.GetScheme(),
+			IAPIResource: &apiresource.Deployment{Cluster: ir.TargetClusterSpec},
+		},
+		{
+			Scheme:       k8sAPIResourceSet.GetScheme(),
+			IAPIResource: &apiresource.Storage{Cluster: ir.TargetClusterSpec},
+		},
+		{
+			Scheme:       k8sAPIResourceSet.GetScheme(),
+			IAPIResource: &apiresource.Service{Cluster: ir.TargetClusterSpec},
+		},
+		{
+			Scheme:       k8sAPIResourceSet.GetScheme(),
+			IAPIResource: &apiresource.ImageStream{Cluster: ir.TargetClusterSpec},
+		},
+		{
+			Scheme:       k8sAPIResourceSet.GetScheme(),
+			IAPIResource: &apiresource.NetworkPolicy{Cluster: ir.TargetClusterSpec},
+		},
 	}
 }
 
