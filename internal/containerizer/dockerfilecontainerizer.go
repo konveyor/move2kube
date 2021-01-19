@@ -129,6 +129,7 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 					}
 				}
 			}
+
 		} else {
 			// Add the fixed segment id associated to the full Dockerfile and append to segmentRecords
 			m["segment_id"] = "Dockerfile"
@@ -137,33 +138,36 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 
 		// 2.2 Iterate over segmentRecords slice
 		for _, segmentRecord := range segmentRecords {
-			for key, val := range segmentRecord {
-				if key == "segment_id" {
-					// Get the path to the segment and read it as a template
-					strPath := fmt.Sprint(val)
-					dockerfileSegmentTemplatePath := filepath.Join(containerizerDir, strPath)
-					dockerfileSegmentTemplateBytes, err := ioutil.ReadFile(dockerfileSegmentTemplatePath)
-					if err != nil {
-						log.Errorf("Unable to read the Dockerfile segment template at path %q Error: %q", dockerfileSegmentTemplatePath, err)
-						//return container, err
-					}
-					dockerfileSegmentTemplate := string(dockerfileSegmentTemplateBytes)
-					dockerfileSegmentContents := dockerfileSegmentTemplate
 
-					// Fill the segment template with the corresponding data
-					dockerfileSegmentContents, err = common.GetStringFromTemplate(dockerfileSegmentTemplate, segmentRecord)
-					if err != nil {
-						log.Warnf("Template conversion failed : %s", err)
-					}
+			// is "segment_id" present ?
+			if val, ok := segmentRecord["segment_id"]; ok {
+				// Get the path to the segment and read it as a template
+				strPath := fmt.Sprint(val)
+				dockerfileSegmentTemplatePath := filepath.Join(containerizerDir, strPath)
+				dockerfileSegmentTemplateBytes, err := ioutil.ReadFile(dockerfileSegmentTemplatePath)
+				if err != nil {
+					log.Errorf("Unable to read the Dockerfile segment template at path %q Error: %q", dockerfileSegmentTemplatePath, err)
+					//return container, err
+				}
+				dockerfileSegmentTemplate := string(dockerfileSegmentTemplateBytes)
+				dockerfileSegmentContents := dockerfileSegmentTemplate
 
-					// Append filled segment template to segmentSlice
-					segmentSlice = append(segmentSlice, dockerfileSegmentContents)
-				} else if key == "port" {
-					portToExpose := int(val.(float64)) // Type assert to float64 because json numbers are floats.
-					container.AddExposedPort(portToExpose)
+				// Fill the segment template with the corresponding data
+				dockerfileSegmentContents, err = common.GetStringFromTemplate(dockerfileSegmentTemplate, segmentRecord)
+				if err != nil {
+					log.Warnf("Template conversion failed : %s", err)
 				}
 
+				// Append filled segment template to segmentSlice
+				segmentSlice = append(segmentSlice, dockerfileSegmentContents)
 			}
+
+			// is "port" present ?
+			if val, ok := segmentRecord["port"]; ok {
+				portToExpose := int(val.(float64)) // Type assert to float64 because json numbers are floats.
+				container.AddExposedPort(portToExpose)
+			}
+
 		}
 
 		// 3. Merge the filled segments into dockerfileContents
@@ -228,7 +232,7 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 		//fmt.Println("up to here")
 
 	} else {
-		log.Warnf("Output variableis empty")
+		log.Warnf("Output variable is empty")
 
 	}
 
