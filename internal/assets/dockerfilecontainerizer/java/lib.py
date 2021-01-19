@@ -25,9 +25,9 @@ from pprint import pprint
 
 
 default_values ={
-    "tomcat": { "port": "8080", "path": "" },
-    "jboss": {"port": "8080", "path": "" }, 
-    "liberty": {"port": "8090", "port_https": "9443", "path": "" }
+    "tomcat":  {"port": 8080, "path": "" },
+    "jboss":   {"port": 8080, "path": "" }, 
+    "liberty": {"port": 8090, "port_https": 9443, "path": "" }
 }
 
 def load_captured_data(output_path):
@@ -236,12 +236,18 @@ def get_app_attributes(captured_data, app_path, output_path, basename, app_name)
 
 def get_segments( input_type, build_type, server_app, output):
     
-    
     segments = dict()
     segments["type"] =  "segments"
     segments["segments"] = [] 
-
     sc = 0
+
+    # add license segment 
+    segments["segments"].append(
+             {  "order": str(sc), 
+                "segment_id": "segments/dockerfile_license/Dockerfile"
+            })
+    sc+=1
+
     if build_type == "maven":
 
         segments["segments"].append(
