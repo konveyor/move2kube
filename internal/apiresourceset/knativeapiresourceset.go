@@ -57,8 +57,13 @@ func (knativeAPIResourceSet *KnativeAPIResourceSet) CreateAPIResources(oldir irt
 	return targetObjs
 }
 
-func (*KnativeAPIResourceSet) getAPIResources(ir irtypes.EnhancedIR) []apiresource.APIResource {
-	apiresources := []apiresource.APIResource{{IAPIResource: &apiresource.KnativeService{Cluster: ir.TargetClusterSpec}}}
+func (knativeAPIResourceSet *KnativeAPIResourceSet) getAPIResources(ir irtypes.EnhancedIR) []apiresource.APIResource {
+	apiresources := []apiresource.APIResource{
+		{
+			Scheme:       knativeAPIResourceSet.GetScheme(),
+			IAPIResource: &apiresource.KnativeService{Cluster: ir.TargetClusterSpec},
+		},
+	}
 	return apiresources
 }
 

@@ -17,6 +17,8 @@ limitations under the License.
 package apiresource
 
 import (
+	"encoding/json"
+	"fmt"
 	"reflect"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -26,6 +28,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 )
 
 const (
@@ -44,6 +48,7 @@ type IAPIResource interface {
 type APIResource struct {
 	IAPIResource
 	cluster    collecttypes.ClusterMetadataSpec
+	Scheme     *runtime.Scheme
 	cachedobjs []runtime.Object
 }
 
@@ -147,8 +152,11 @@ func (o *APIResource) merge(obj1, obj2 runtime.Object) (runtime.Object, bool) {
 	if !o.isSameResource(obj1, obj2) {
 		return nil, false
 	}
-	reflect.ValueOf(obj2).MethodByName("DeepCopyInto").Call([]reflect.Value{reflect.ValueOf(obj1)})
-	return obj1, true
+	obj3, err := o.deepMerge(obj1, obj2)
+	if err != nil {
+		return obj3, false
+	}
+	return obj3, true
 }
 
 func (o *APIResource) getObjectID(obj runtime.Object) string {
@@ -175,4 +183,31 @@ func getPodLabels(name string, networks []string) map[string]string {
 	labels := getServiceLabels(name)
 	networklabels := getNetworkPolicyLabels(networks)
 	return common.MergeStringMaps(labels, networklabels)
+}
+
+func (o *APIResource) deepMerge(x, y runtime.Object) (runtime.Object, error) {
+	xJSON, err := json.Marshal(x)
+	if err != nil {
+		log.Errorf("Merge failed. Failed to marshal the first object %v to json. Error: %q", x, err)
+		return nil, err
+	}
+	yJSON, err := json.Marshal(y)
+	if err != nil {
+		log.Errorf("Merge failed. Failed to marshal the second object %v to json. Error: %q", y, err)
+		return nil, err
+	}
+	mergedJSON, err := strategicpatch.StrategicMergePatch(xJSON, yJSON, x) // need to provide in reverse for proper ordering
+	if err != nil {
+		log.Errorf("Failed to merge the objects \n%s\n and \n%s\n Error: %q", xJSON, yJSON, err)
+		return nil, err
+	}
+	codecs := serializer.NewCodecFactory(o.Scheme)
+	obj, newGVK, err := codecs.UniversalDeserializer().Decode(mergedJSON, nil, nil)
+	oldGVK := common.GetGVK(x)
+	if newGVK == nil || *newGVK != oldGVK {
+		err := fmt.Errorf("The group version kind after merging is different from before merging. original: %v new: %v", oldGVK, newGVK)
+		log.Error(err)
+		return obj, err
+	}
+	return obj, err
 }
