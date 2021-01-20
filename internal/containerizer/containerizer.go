@@ -33,7 +33,6 @@ const (
 
 var (
 	containerizers []Containerizer
-	initialized    = make(map[string]bool)
 )
 
 //go:generate go run github.com/konveyor/move2kube/internal/common/generator scripts
@@ -57,11 +56,10 @@ func InitContainerizers(path string, containerizerTypes []string) {
 	resetContainerizers()
 	for _, containerizer := range getAllContainerizers() {
 		cbs := (string)(containerizer.GetContainerBuildStrategy())
-		if (containerizerTypes == nil || common.IsStringPresent(containerizerTypes, cbs)) && !initialized[cbs] {
+		if containerizerTypes == nil || common.IsStringPresent(containerizerTypes, cbs) {
 			containerizer.Init(path)
 			containerizer.Init(common.AssetsPath)
 			containerizers = append(containerizers, containerizer)
-			initialized[cbs] = true
 		}
 	}
 }
@@ -69,7 +67,6 @@ func InitContainerizers(path string, containerizerTypes []string) {
 // resetContainerizers deinitializes the containerizers - Used for ensure tests work
 func resetContainerizers() {
 	containerizers = []Containerizer{}
-	initialized = make(map[string]bool)
 }
 
 // getAllContainerizers gets the all containerizers uninitialized

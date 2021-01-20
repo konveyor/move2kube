@@ -33,14 +33,14 @@ func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Pl
 	p.Name = prjName
 	p.Spec.Inputs.RootDir = inputPath
 
-	translationPlanners := source.GetTranslators()
+	selectedTranslationPlanners := source.GetTranslators()
 	if interactive {
 		translationTypes := selectTranslators(source.GetAllTranslatorTypes())
-		translationPlanners := []source.Translator{}
-		for _, tp := range translationPlanners {
+		selectedTranslationPlanners = []source.Translator{}
+		for _, tp := range source.GetTranslators() {
 			tpn := (string)(tp.GetTranslatorType())
 			if common.IsStringPresent(translationTypes, tpn) {
-				translationPlanners = append(translationPlanners, tp)
+				selectedTranslationPlanners = append(selectedTranslationPlanners, tp)
 			}
 		}
 		if common.IsStringPresent(translationTypes, string(plantypes.Any2KubeTranslation)) || common.IsStringPresent(translationTypes, string(plantypes.CfManifest2KubeTranslation)) {
@@ -49,12 +49,12 @@ func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Pl
 	} else {
 		containerizer.InitContainerizers(p.Spec.Inputs.RootDir, nil)
 	}
-	if len(translationPlanners) == 0 {
+	if len(selectedTranslationPlanners) == 0 {
 		log.Fatal("No translation type selected. Aborting.")
 	}
 
 	log.Infoln("Planning Translation")
-	for _, l := range translationPlanners {
+	for _, l := range selectedTranslationPlanners {
 		log.Infof("[%T] Planning translation", l)
 		services, err := l.GetServiceOptions(inputPath, p)
 		if err != nil {
@@ -153,7 +153,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	selectedConTypes := selectContainerizationTypes(conTypes)
 
 	if len(selectedConTypes) == 0 {
-		log.Fatalf("No containerization technique was selected; Terminating.")
+		log.Errorf("No containerization technique was selected; It could mean some services will get ignored.")
 	}
 
 	services := map[string][]plantypes.Service{}
@@ -306,9 +306,6 @@ func selectContainerizationTypes(containerizationTypes []string) (selectedConTyp
 	selectedConTypes, err = problem.GetSliceAnswer()
 	if err != nil {
 		log.Fatalf("Unable to get answer : %s", err)
-	}
-	if len(selectedConTypes) == 0 {
-		log.Fatalf("No containerization technique was selected; Terminating.")
 	}
 	return selectedConTypes
 }

@@ -36,7 +36,7 @@ import (
 func Translate(p plantypes.Plan, outpath string, qadisablecli bool) {
 	conTypes := []string{}
 	for _, s := range p.Spec.Inputs.Services {
-		if !common.IsStringPresent(conTypes, string(s[0].ContainerBuildType)) {
+		if len(s) > 0 && !common.IsStringPresent(conTypes, string(s[0].ContainerBuildType)) {
 			conTypes = append(conTypes, string(s[0].ContainerBuildType))
 		}
 	}
