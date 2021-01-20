@@ -71,10 +71,10 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 
 	// Plan
 	cmdcommon.CheckSourcePath(srcpath)
-	plan := move2kube.CreatePlan(srcpath, name)
-	outpath = filepath.Join(outpath, plan.Name)
+	outpath = filepath.Join(outpath, name)
 	cmdcommon.CheckOutputPath(outpath)
 	cmdcommon.CreateOutputDirectoryAndCacheFile(outpath)
+	plan := move2kube.CreatePlan(srcpath, name, true)
 	plan = move2kube.CuratePlan(plan)
 
 	// Translate

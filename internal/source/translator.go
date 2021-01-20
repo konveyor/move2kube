@@ -23,7 +23,7 @@ import (
 	plantypes "github.com/konveyor/move2kube/types/plan"
 )
 
-// Translator interface defines loader that translates files and converts it to ir representation
+// Translator interface defines translator that translates files and converts it to ir representation
 type Translator interface {
 	GetTranslatorType() plantypes.TranslationTypeValue
 	GetServiceOptions(inputPath string, p plantypes.Plan) ([]plantypes.Service, error)
@@ -31,16 +31,24 @@ type Translator interface {
 	newService(serviceName string) plantypes.Service
 }
 
-// GetSourceLoaders returns loader for given format
-func GetSourceLoaders() []Translator {
+// GetTranslators returns translator for given format
+func GetTranslators() []Translator {
 	var l = []Translator{new(DockerfileTranslator), new(ComposeTranslator), new(CfManifestTranslator), new(KnativeTranslator), new(KubeTranslator), new(Any2KubeTranslator)} //Any2Kube should be the last option
-	// new(ImagesTranslator)}
 	return l
+}
+
+// GetAllTranslatorTypes returns all translator types
+func GetAllTranslatorTypes() []string {
+	translationTypes := []string{}
+	for _, tp := range GetTranslators() {
+		translationTypes = append(translationTypes, (string)(tp.GetTranslatorType()))
+	}
+	return translationTypes
 }
 
 // Translate loads all sources
 func Translate(p plantypes.Plan) (irtypes.IR, error) {
-	ts := GetSourceLoaders()
+	ts := GetTranslators()
 	ir := irtypes.NewIR(p)
 	log.Infoln("Begin Translation")
 	for _, l := range ts {

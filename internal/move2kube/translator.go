@@ -19,6 +19,8 @@ package move2kube
 import (
 	"os"
 
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/containerizer"
 	customize "github.com/konveyor/move2kube/internal/customizer"
 	"github.com/konveyor/move2kube/internal/metadata"
 	optimize "github.com/konveyor/move2kube/internal/optimizer"
@@ -32,6 +34,13 @@ import (
 
 // Translate translates the artifacts and writes output
 func Translate(p plantypes.Plan, outpath string, qadisablecli bool) {
+	conTypes := []string{}
+	for _, s := range p.Spec.Inputs.Services {
+		if len(s) > 0 && !common.IsStringPresent(conTypes, string(s[0].ContainerBuildType)) {
+			conTypes = append(conTypes, string(s[0].ContainerBuildType))
+		}
+	}
+	containerizer.InitContainerizers(p.Spec.Inputs.RootDir, conTypes)
 	sourceir, err := source.Translate(p)
 	if err != nil {
 		log.Fatalf("Failed to translate the plan to intermediate representation. Error: %q", err)
