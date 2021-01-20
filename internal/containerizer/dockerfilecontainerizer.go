@@ -103,137 +103,141 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 	log.Debugf("The Dockerfile containerizer at path %q produced the following output: %q", containerizerDir, output)
 
 	// 2. Parse json output
-	if output != "" {
-		m := map[string]interface{}{}
-		if err := json.Unmarshal([]byte(output), &m); err != nil {
-			log.Errorf("Unable to unmarshal the output of the detect script at path %q Output: %q Error: %q", containerizerDir, output, err)
-			return container, err
-		}
+	if output == "" {
+		log.Warnf("Output variable is empty")
+		return container, nil
+	}
 
-		// Final multiline string containing the generated Dockerfile will be stored here
-		dockerfileContents := ""
-		// Filled segments will be stored here
-		var segmentSlice = []string{}
+	m := map[string]interface{}{}
+	if err := json.Unmarshal([]byte(output), &m); err != nil {
+		log.Errorf("Unable to unmarshal the output of the detect script at path %q Output: %q Error: %q", containerizerDir, output, err)
+		return container, err
+	}
 
-		// 2.1 Obtain segmentRecords slice for both cases (segment-based, df)
-		var segmentRecords []map[string]interface{}
+	// Final multiline string containing the generated Dockerfile will be stored here
+	dockerfileContents := ""
+	// Filled segments will be stored here
+	segmentSlice := []string{}
 
-		if _, ok := m["type"]; ok {
-			// segment-based
-			if _, segmentsFound := m["segments"]; segmentsFound {
-				if segments, ok := m["segments"].([]interface{}); ok {
-					for _, segment := range segments {
-						if rec, ok := segment.(map[string]interface{}); ok {
-							segmentRecords = append(segmentRecords, rec)
-						}
+	// 2.1 Obtain segmentRecords slice for both cases (segment-based, df)
+	segmentRecords := []map[string]interface{}{}
+
+	if _, ok := m["type"]; ok {
+		// segment-based
+		if _, segmentsFound := m["segments"]; segmentsFound {
+			if segments, ok := m["segments"].([]interface{}); ok {
+				for _, segment := range segments {
+					if rec, ok := segment.(map[string]interface{}); ok {
+						segmentRecords = append(segmentRecords, rec)
 					}
 				}
 			}
-
-		} else {
-			// Add the fixed segment id associated to the full Dockerfile and append to segmentRecords
-			m["segment_id"] = "Dockerfile"
-			segmentRecords = append(segmentRecords, m)
 		}
-
-		// 2.2 Iterate over segmentRecords slice
-		for _, segmentRecord := range segmentRecords {
-
-			// is "segment_id" present ?
-			if val, ok := segmentRecord["segment_id"]; ok {
-				// Get the path to the segment and read it as a template
-				strPath := fmt.Sprint(val)
-				dockerfileSegmentTemplatePath := filepath.Join(containerizerDir, strPath)
-				dockerfileSegmentTemplateBytes, err := ioutil.ReadFile(dockerfileSegmentTemplatePath)
-				if err != nil {
-					log.Errorf("Unable to read the Dockerfile segment template at path %q Error: %q", dockerfileSegmentTemplatePath, err)
-					//return container, err
-				}
-				dockerfileSegmentTemplate := string(dockerfileSegmentTemplateBytes)
-				dockerfileSegmentContents := dockerfileSegmentTemplate
-
-				// Fill the segment template with the corresponding data
-				dockerfileSegmentContents, err = common.GetStringFromTemplate(dockerfileSegmentTemplate, segmentRecord)
-				if err != nil {
-					log.Warnf("Template conversion failed : %s", err)
-				}
-
-				// Append filled segment template to segmentSlice
-				segmentSlice = append(segmentSlice, dockerfileSegmentContents)
-			}
-
-			// is "port" present ?
-			if val, ok := segmentRecord["port"]; ok {
-				portToExpose := int(val.(float64)) // Type assert to float64 because json numbers are floats.
-				container.AddExposedPort(portToExpose)
-			}
-
-		}
-
-		// 3. Merge the filled segments into dockerfileContents
-		dockerfileContents = strings.Join(segmentSlice, "\n")
-
-		// 4. Add result to the container object
-		relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, sourceCodeDir)
-		if err != nil {
-			log.Errorf("Failed to make the source code directory %q relative to the root directory %q Error: %q", sourceCodeDir, plan.Spec.Inputs.RootDir, err)
-			return container, err
-		}
-		dockerfileName := "Dockerfile." + service.ServiceName
-		dockerfilePath := filepath.Join(relOutputPath, dockerfileName)
-		container.AddFile(dockerfilePath, dockerfileContents)
-
-		// 5. copied from dockercontainerizer
-
-		// Create the docker build script.
-		dockerBuildScriptContents, err := common.GetStringFromTemplate(scripts.Dockerbuild_sh, struct {
-			Dockerfilename string
-			ImageName      string
-			Context        string
-		}{
-			Dockerfilename: dockerfileName,
-			ImageName:      service.Image,
-			Context:        ".",
-		})
-		if err != nil {
-			log.Errorf("Unable to translate Dockerfile template %s to string Error: %q", scripts.Dockerbuild_sh, err)
-		} else {
-			dockerBuildScriptPath := filepath.Join(relOutputPath, service.ServiceName+"-docker-build.sh")
-			container.AddFile(dockerBuildScriptPath, dockerBuildScriptContents)
-			container.RepoInfo.TargetPath = dockerfilePath
-		}
-
-		// Add any other files that are in the containerizer directory.
-		err = filepath.Walk(containerizerDir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				log.Warnf("Skipping path %s due to error. Error: %q", path, err)
-				return nil
-			}
-			// Skip directories
-			if info.IsDir() {
-				return nil
-			}
-			filename := filepath.Base(path)
-			if filename == "Dockerfile" || filename == dockerfileDetectScript {
-				return nil
-			}
-			contentBytes, err := ioutil.ReadFile(path)
-			if err != nil {
-				log.Fatalf("Failed to read the file at path %q Error: %q", path, err)
-			}
-			//TODO: Should we allow subdirectories?
-			container.AddFile(filepath.Join(relOutputPath, filename), string(contentBytes))
-			return nil
-		})
-		if err != nil {
-			log.Warnf("Error in walking through files at path %q Error: %q", containerizerDir, err)
-		}
-
-		//fmt.Println("up to here")
 
 	} else {
-		log.Warnf("Output variable is empty")
+		// Add the fixed segment id associated to the full Dockerfile and append to segmentRecords
+		m["segment_id"] = "Dockerfile"
+		segmentRecords = append(segmentRecords, m)
+	}
 
+	// 2.2 Iterate over segmentRecords slice
+	for _, segmentRecord := range segmentRecords {
+
+		// is "segment_id" present ?
+		if val, ok := segmentRecord["segment_id"]; ok {
+
+			strPath, ok := val.(string)
+
+			if !ok {
+				log.Warnf("Segment id is not a valid string: %v", val)
+				continue
+			}
+
+			// Get the path to the segment and read it as a template
+			dockerfileSegmentTemplatePath := filepath.Join(containerizerDir, strPath)
+			dockerfileSegmentTemplateBytes, err := ioutil.ReadFile(dockerfileSegmentTemplatePath)
+			if err != nil {
+				log.Errorf("Unable to read the Dockerfile segment template at path %q Error: %q", dockerfileSegmentTemplatePath, err)
+				//return container, err
+			}
+			dockerfileSegmentTemplate := string(dockerfileSegmentTemplateBytes)
+			dockerfileSegmentContents := dockerfileSegmentTemplate
+
+			// Fill the segment template with the corresponding data
+			dockerfileSegmentContents, err = common.GetStringFromTemplate(dockerfileSegmentTemplate, segmentRecord)
+			if err != nil {
+				log.Warnf("Template conversion failed : %s", err)
+			}
+
+			// Append filled segment template to segmentSlice
+			segmentSlice = append(segmentSlice, dockerfileSegmentContents)
+		}
+
+		// is "port" present ?
+		if val, ok := segmentRecord["port"]; ok {
+			portToExpose := int(val.(float64)) // Type assert to float64 because json numbers are floats.
+			container.AddExposedPort(portToExpose)
+		}
+
+	}
+
+	// 3. Merge the filled segments into dockerfileContents
+	dockerfileContents = strings.Join(segmentSlice, "\n")
+
+	// 4. Add result to the container object
+	relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, sourceCodeDir)
+	if err != nil {
+		log.Errorf("Failed to make the source code directory %q relative to the root directory %q Error: %q", sourceCodeDir, plan.Spec.Inputs.RootDir, err)
+		return container, err
+	}
+	dockerfileName := "Dockerfile." + service.ServiceName
+	dockerfilePath := filepath.Join(relOutputPath, dockerfileName)
+	container.AddFile(dockerfilePath, dockerfileContents)
+
+	// 5. copied from dockercontainerizer
+	// Create the docker build script.
+	dockerBuildScriptContents, err := common.GetStringFromTemplate(scripts.Dockerbuild_sh, struct {
+		Dockerfilename string
+		ImageName      string
+		Context        string
+	}{
+		Dockerfilename: dockerfileName,
+		ImageName:      service.Image,
+		Context:        ".",
+	})
+	if err != nil {
+		log.Errorf("Unable to translate Dockerfile template %s to string Error: %q", scripts.Dockerbuild_sh, err)
+	} else {
+		dockerBuildScriptPath := filepath.Join(relOutputPath, service.ServiceName+"-docker-build.sh")
+		container.AddFile(dockerBuildScriptPath, dockerBuildScriptContents)
+		container.RepoInfo.TargetPath = dockerfilePath
+	}
+
+	// Add any other files that are in the containerizer directory.
+	err = filepath.Walk(containerizerDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Warnf("Skipping path %s due to error. Error: %q", path, err)
+			return nil
+		}
+
+		filename := filepath.Base(path)
+		if filename == "Dockerfile" || filename == dockerfileDetectScript || strings.HasPrefix(filename, "_") {
+			if info.IsDir() {
+
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		contentBytes, err := ioutil.ReadFile(path)
+		if err != nil {
+			log.Fatalf("Failed to read the file at path %q Error: %q", path, err)
+		}
+		//TODO: Should we allow subdirectories?
+		container.AddFile(filepath.Join(relOutputPath, filename), string(contentBytes))
+		return nil
+	})
+	if err != nil {
+		log.Warnf("Error in walking through files at path %q Error: %q", containerizerDir, err)
 	}
 
 	return container, nil
