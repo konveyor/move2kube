@@ -72,7 +72,7 @@ func planHandler(flags planFlags) {
 		planfile = filepath.Join(planfile, common.DefaultPlanFile)
 	}
 
-	p := move2kube.CreatePlan(srcpath, name)
+	p := move2kube.CreatePlan(srcpath, name, false)
 	if err = plantypes.WritePlan(planfile, p); err != nil {
 		log.Errorf("Unable to write plan file (%s) : %s", planfile, err)
 		return

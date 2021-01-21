@@ -27,7 +27,7 @@ type optimizer interface {
 	optimize(sourceir irtypes.IR) (irtypes.IR, error)
 }
 
-// getOptimizers returns loader for given format
+// getOptimizers returns optimizers
 func getOptimizers() []optimizer {
 	var l = []optimizer{new(normalizeCharacterOptimizer), new(ingressOptimizer), new(replicaOptimizer), new(imagePullPolicyOptimizer), new(portMergeOptimizer)}
 	return l

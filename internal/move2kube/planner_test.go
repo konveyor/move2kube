@@ -24,6 +24,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/containerizer"
 	"github.com/konveyor/move2kube/internal/move2kube"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
@@ -55,9 +56,10 @@ func TestCreatePlan(t *testing.T) {
 		if err := want.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
+		containerizer.InitContainerizers(inputPath, nil)
 
 		// Test
-		p := move2kube.CreatePlan(inputPath, prjName)
+		p := move2kube.CreatePlan(inputPath, prjName, false)
 		if !cmp.Equal(p, want) {
 			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
 		}
@@ -88,9 +90,10 @@ func TestCreatePlan(t *testing.T) {
 		if err := want.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
+		containerizer.InitContainerizers(inputPath, nil)
 
 		// Test
-		p := move2kube.CreatePlan(inputPath, prjName)
+		p := move2kube.CreatePlan(inputPath, prjName, false)
 		if !cmp.Equal(p, want) {
 			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
 		}
@@ -113,9 +116,10 @@ func TestCreatePlan(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Cannot read the plan at path %q Error: %q", testDataPlanPath, err)
 		}
+		containerizer.InitContainerizers(inputPath, nil)
 
 		// Test
-		actual := move2kube.CreatePlan(inputPath, prjName)
+		actual := move2kube.CreatePlan(inputPath, prjName, false)
 		for _, services := range actual.Spec.Inputs.Services {
 			for i := range services {
 				services[i].RepoInfo = plantypes.RepoInfo{}

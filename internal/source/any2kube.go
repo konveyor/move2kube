@@ -42,8 +42,6 @@ func (*Any2KubeTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
 // GetServiceOptions - output a plan based on the input directory contents
 func (any2KubeTranslator *Any2KubeTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
 	services := []plantypes.Service{}
-	containerizers := new(containerizer.Containerizers)
-	containerizers.InitContainerizers(inputPath)
 	preContainerizedSourcePaths := []string{}
 	for _, existingServices := range plan.Spec.Inputs.Services {
 		for _, existingService := range existingServices {
@@ -72,7 +70,7 @@ func (any2KubeTranslator *Any2KubeTranslator) GetServiceOptions(inputPath string
 			}
 			return nil
 		}
-		containerizationOptions := containerizers.GetContainerizationOptions(plan, path)
+		containerizationOptions := containerizer.GetContainerizationOptions(plan, path)
 		if len(containerizationOptions) == 0 {
 			log.Debugf("No known containerization approach is supported for directory %q", path)
 			if common.IsStringPresent(ignoreContents, path) {
@@ -107,14 +105,12 @@ func (any2KubeTranslator *Any2KubeTranslator) GetServiceOptions(inputPath string
 // Translate translates artifacts to IR
 func (any2KubeTranslator *Any2KubeTranslator) Translate(services []plantypes.Service, plan plantypes.Plan) (irtypes.IR, error) {
 	ir := irtypes.NewIR(plan)
-	containerizers := new(containerizer.Containerizers)
-	containerizers.InitContainerizers(plan.Spec.Inputs.RootDir)
 	for _, service := range services {
 		if service.TranslationType != any2KubeTranslator.GetTranslatorType() {
 			continue
 		}
 		log.Debugf("Translating %s", service.ServiceName)
-		container, err := containerizers.GetContainer(plan, service)
+		container, err := containerizer.GetContainer(plan, service)
 		if err != nil {
 			log.Errorf("Unable to translate service %s Error: %q", service.ServiceName, err)
 			continue
