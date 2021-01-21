@@ -17,7 +17,7 @@ limitations under the License.
 package collection
 
 import (
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types"
 )
 

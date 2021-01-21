@@ -26,13 +26,12 @@ import (
 	dockercliconfigfile "github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/config/types"
 	dockerclitypes "github.com/docker/cli/cli/config/types"
-	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
+	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const otherRegistry = "Other"
