@@ -243,36 +243,40 @@ def get_segments( input_type, build_type, server_app, output):
 
     # add license segment 
     segments["segments"].append(
-             {  "order": str(sc), 
-                "segment_id": "_segments/dockerfile_license/Dockerfile"
+             {  
+                "segment_id": "segments/dockerfile_license/Dockerfile",
+                "files_to_copy" : ["test_file.txt", "test_folder" ]
             })
     sc+=1
 
     if build_type == "maven":
 
         segments["segments"].append(
-             {  "order": str(sc), 
-                "segment_id": "_segments/dockerfile_maven_build/Dockerfile",
+             {  
+                "segment_id": "segments/dockerfile_maven_build/Dockerfile",
                 "app_name": output["app_attributes"]["app_name"],
+                #"files_to_copy" : []
             })
         sc+=1
         
     elif build_type  == "gradle":
 
         segments["segments"].append(
-             {  "order": str(sc), 
-                "segment_id": "_segments/dockerfile_gradle_build/Dockerfile",
+             {  
+                "segment_id": "segments/dockerfile_gradle_build/Dockerfile",
                 "app_name": output["app_attributes"]["app_name"],
+                #"files_to_copy" : []
             })
         sc+=1
 
     if server_app  == "undefined" or server_app == "liberty":
 
         segments["segments"].append(
-             {  "order": str(sc), 
-                "segment_id": "_segments/dockerfile_liberty_runtime/Dockerfile",
+             {  
+                "segment_id": "segments/dockerfile_liberty_runtime/Dockerfile",
                 "app_name": output["app_attributes"]["app_name"],
                 "port": output["app_attributes"]["port"],
+                #"files_to_copy" : []
             })
         sc+=1
 

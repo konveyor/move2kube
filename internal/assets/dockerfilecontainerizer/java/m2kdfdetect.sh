@@ -108,4 +108,4 @@ fi
 
 # calling python 
 abspath=$(realpath $content_folder)
-python3 _scripts/lib.py --app_path $(echo $abspath) --output_path $(echo $output_path) --basename $(echo $basename) --input_type $(echo $input_type)
+python3 scripts/lib.py --app_path $(echo $abspath) --output_path $(echo $output_path) --basename $(echo $basename) --input_type $(echo $input_type)

@@ -94,6 +94,12 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 	containerizerDir := service.ContainerizationTargetOptions[0]
 	sourceCodeDir := service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0] // TODO: what about the other source artifacts?
 
+	relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, sourceCodeDir)
+	if err != nil {
+		log.Errorf("Failed to make the source code directory %q relative to the root directory %q Error: %q", sourceCodeDir, plan.Spec.Inputs.RootDir, err)
+		return container, err
+	}
+
 	//　1. Execute detect to obtain the json response from the .sh file
 	output, err := d.detect(containerizerDir, sourceCodeDir)
 	if err != nil {
@@ -179,23 +185,98 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 			container.AddExposedPort(portToExpose)
 		}
 
+		// is "files_to_copy" present ?
+		if pathsToCopySlice, ok := segmentRecord["files_to_copy"]; ok {
+
+			log.Debugf("listing files to copy:")
+
+			// Iterate over the paths
+			for _, pathToCopy := range pathsToCopySlice.([]interface{}) {
+
+				// Check if path is a valid string
+				pathToCopyStr, ok := pathToCopy.(string)
+				if !ok {
+					log.Warnf("pathToCopy is not a valid string: %v", pathToCopy)
+					continue
+				}
+				// Generate the absolute path
+				pathToCopyStr = filepath.Join(containerizerDir, pathToCopyStr)
+
+				log.Debugf(pathToCopyStr)
+
+				// Get path info to determine if it is file/dir
+				fileInfo, err := os.Stat(pathToCopyStr)
+				if err != nil {
+					log.Warnf("Cannot determine if the path is a file or folder: %v", pathToCopy)
+					continue
+				}
+
+				filename := filepath.Base(pathToCopyStr)
+
+				if fileInfo.IsDir() {
+					log.Debugf("it is a directory")
+
+					err = filepath.Walk(pathToCopyStr, func(path string, info os.FileInfo, err error) error {
+						if err != nil {
+							log.Warnf("Skipping path %s due to error. Error: %q", path, err)
+							return nil
+						}
+
+						if info.IsDir() {
+							return nil
+						}
+						// At this point it means we have a file
+						log.Debugf(path)
+
+						filename := filepath.Base(path)
+
+						if filename == "Dockerfile" || filename == dockerfileDetectScript {
+							return nil
+						}
+
+						// Obtain the relative path of the file wrt the containerizerDir
+						relFilePath, err := filepath.Rel(containerizerDir, path)
+						if err != nil {
+							log.Fatalf("Failed to obtain relative path to file")
+						}
+						log.Debugf(relFilePath)
+
+						// Get file contents
+						contentBytes, err := ioutil.ReadFile(path)
+						if err != nil {
+							log.Fatalf("Failed to read the file at path %q Error: %q", path, err)
+						}
+
+						// Add file contents and relative path to the container object
+						container.AddFile(filepath.Join(relOutputPath, relFilePath), string(contentBytes))
+						return nil
+					})
+					if err != nil {
+						log.Warnf("Error in walking through files at path %q Error: %q", containerizerDir, err)
+					}
+
+				} else {
+					log.Debugf("it is a file")
+					// Get content and add it to the container object
+					contentBytes, err := ioutil.ReadFile(pathToCopyStr)
+					if err != nil {
+						log.Fatalf("Failed to read the file at path %q Error: %q", pathToCopy, err)
+					}
+					container.AddFile(filepath.Join(relOutputPath, filename), string(contentBytes))
+				}
+			}
+		}
 	}
 
 	// 3. Merge the filled segments into dockerfileContents
 	dockerfileContents = strings.Join(segmentSlice, "\n")
 
 	// 4. Add result to the container object
-	relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, sourceCodeDir)
-	if err != nil {
-		log.Errorf("Failed to make the source code directory %q relative to the root directory %q Error: %q", sourceCodeDir, plan.Spec.Inputs.RootDir, err)
-		return container, err
-	}
 	dockerfileName := "Dockerfile." + service.ServiceName
 	dockerfilePath := filepath.Join(relOutputPath, dockerfileName)
 	container.AddFile(dockerfilePath, dockerfileContents)
 
-	// 5. copied from dockercontainerizer
-	// Create the docker build script.
+	// 5. Create the docker build script.
 	dockerBuildScriptContents, err := common.GetStringFromTemplate(scripts.Dockerbuild_sh, struct {
 		Dockerfilename string
 		ImageName      string
@@ -211,33 +292,6 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 		dockerBuildScriptPath := filepath.Join(relOutputPath, service.ServiceName+"-docker-build.sh")
 		container.AddFile(dockerBuildScriptPath, dockerBuildScriptContents)
 		container.RepoInfo.TargetPath = dockerfilePath
-	}
-
-	// Add any other files that are in the containerizer directory.
-	err = filepath.Walk(containerizerDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			log.Warnf("Skipping path %s due to error. Error: %q", path, err)
-			return nil
-		}
-
-		filename := filepath.Base(path)
-		if filename == "Dockerfile" || filename == dockerfileDetectScript || strings.HasPrefix(filename, "_") {
-			if info.IsDir() {
-
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		contentBytes, err := ioutil.ReadFile(path)
-		if err != nil {
-			log.Fatalf("Failed to read the file at path %q Error: %q", path, err)
-		}
-		//TODO: Should we allow subdirectories?
-		container.AddFile(filepath.Join(relOutputPath, filename), string(contentBytes))
-		return nil
-	})
-	if err != nil {
-		log.Warnf("Error in walking through files at path %q Error: %q", containerizerDir, err)
 	}
 
 	return container, nil
