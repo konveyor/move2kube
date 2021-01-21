@@ -148,9 +148,9 @@ func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.En
 	ir.Roles = append(ir.Roles, irtypes.Role{
 		Name: tektonTriggersAdminRoleName,
 		PolicyRules: []irtypes.PolicyRule{
-			irtypes.PolicyRule{APIGroups: []string{triggersv1alpha1.SchemeGroupVersion.Group}, Resources: []string{"eventlisteners", "triggerbindings", "triggertemplates"}, Verbs: []string{"get"}},
-			irtypes.PolicyRule{APIGroups: []string{v1beta1.SchemeGroupVersion.Group}, Resources: []string{"pipelineruns"}, Verbs: []string{"create"}},
-			irtypes.PolicyRule{APIGroups: []string{""}, Resources: []string{"configmaps"}, Verbs: []string{"get", "list", "watch"}},
+			{APIGroups: []string{triggersv1alpha1.SchemeGroupVersion.Group}, Resources: []string{"eventlisteners", "triggerbindings", "triggertemplates"}, Verbs: []string{"get"}},
+			{APIGroups: []string{v1beta1.SchemeGroupVersion.Group}, Resources: []string{"pipelineruns"}, Verbs: []string{"create"}},
+			{APIGroups: []string{""}, Resources: []string{"configmaps"}, Verbs: []string{"get", "list", "watch"}},
 		},
 	})
 
@@ -273,7 +273,7 @@ func (*TektonAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes
 		} else {
 			problemDesc := fmt.Sprintf("Unable to find the public key for the domain %s from known_hosts, please enter it. If don't know the public key, just leave this empty and you will be able to add it later: ", gitRepoDomain)
 			hint := "Ex : " + sshkeys.DomainToPublicKeys["github.com"][0]
-			problem, err := qatypes.NewInputProblem(problemDesc, []string{hint}, knownHostsPlaceholder)
+			problem, err := qatypes.NewInputProblem(common.ConfigRepoLoadPubDomainsKey+common.Delim+gitRepoDomain+common.Delim+"pubkey", problemDesc, []string{hint}, knownHostsPlaceholder)
 			if err != nil {
 				log.Fatalf("Unable to create problem. Error: %q", err)
 			}

@@ -46,11 +46,13 @@ const (
 	// DefaultFilePermission defines the default permission used when a non-executable file is created
 	DefaultFilePermission os.FileMode = 0644
 	// DefaultRegistryURL points to the default registry url that will be used
-	DefaultRegistryURL string = "docker.io"
+	DefaultRegistryURL string = "quay.io"
 	// ImagePullSecretPrefix is the prefix that will be prepended to pull secret name
 	ImagePullSecretPrefix string = "imagepullsecret"
 	// QACacheFile defines the location of the QA cache file
 	QACacheFile string = types.AppNameShort + "qacache.yaml"
+	// ConfigFile defines the location of the config file
+	ConfigFile string = types.AppNameShort + "config.yaml"
 	// DefaultClusterType defines the default cluster type chosen by plan
 	DefaultClusterType string = "Kubernetes"
 	// IgnoreFilename is the name of the file containing the ignore rules and exceptions
@@ -61,6 +63,81 @@ const (
 	AnnotationLabelValue string = "true"
 	// DefaultServicePort is the default port that will be added to a service.
 	DefaultServicePort = 8080
+)
+
+const (
+	// Delim is the delimiter used to separate key segments
+	Delim = "."
+	// Special is the special case indicator of the multi-select problems
+	Special = "[]"
+
+	//Configuration keys
+
+	d = Delim // for readability
+	// BaseKey is the prefix for every key
+	BaseKey = types.AppName
+	//ConfigServicesKey represents Services Key
+	ConfigServicesKey = BaseKey + d + "services"
+	//ConfigStoragesKey represents Storages Key
+	ConfigStoragesKey = BaseKey + d + "storages"
+	//ConfigSourcesKey represents Sources Key
+	ConfigSourcesKey = BaseKey + d + "sources"
+	//ConfigTargetKey represents Target Key
+	ConfigTargetKey = BaseKey + d + "target"
+	//ConfigRepoKey represents Repo Key
+	ConfigRepoKey = BaseKey + d + "repo"
+	//ConfigContainerizationKeySegment represents Containerization Key segment
+	ConfigContainerizationKeySegment = BaseKey + d + "containerization"
+	//ConfigRepoKeysKey represents Repo Key
+	ConfigRepoKeysKey = ConfigRepoKey + d + "keys"
+	//ConfigRepoPubKey represents allow load of public key of repos Key
+	ConfigRepoPubKey = ConfigRepoKeysKey + d + "pub"
+	//ConfigRepoLoadPubDomainsKey represents allow load of public key per domain of repos Key
+	ConfigRepoLoadPubDomainsKey = ConfigRepoPubKey + d + "domain"
+	//ConfigRepoLoadPubKey represents allow load of public key of repos Key
+	ConfigRepoLoadPubKey = ConfigRepoPubKey + d + "load"
+	//ConfigRepoPrivKey represents allow load of private key of repos Key
+	ConfigRepoPrivKey = ConfigRepoKeysKey + d + "priv"
+	//ConfigRepoLoadPrivKey represents allow load of private key of repos Key
+	ConfigRepoLoadPrivKey = ConfigRepoKeysKey + d + "load"
+	//ConfigRepoKeyPathsKey represents paths of keyfiles
+	ConfigRepoKeyPathsKey = ConfigRepoKeysKey + d + "paths"
+	//ConfigSourceTypesKey represents source type Key
+	ConfigSourceTypesKey = ConfigSourcesKey + d + "types"
+	//ConfigIngressKey represents Ingress Key
+	ConfigIngressKey = ConfigTargetKey + d + "ingress"
+	//ConfigIngressHostKey represents Ingress host Key
+	ConfigIngressHostKey = ConfigIngressKey + d + "host"
+	//ConfigIngressTLSKey represents ingress tls Key
+	ConfigIngressTLSKey = ConfigIngressKey + d + "tls"
+	//ConfigTargetArtifacttTypeKey represents target artifact type key
+	ConfigTargetArtifacttTypeKey = ConfigTargetKey + d + "artifacttype"
+	//ConfigTargetClusterTypeKey represents target cluster type key
+	ConfigTargetClusterTypeKey = ConfigTargetKey + d + "clustertype"
+	//ConfigImageRegistryKey represents image registry Key
+	ConfigImageRegistryKey = ConfigTargetKey + d + "imageregistry"
+	//ConfigImageRegistryURLKey represents image registry url Key
+	ConfigImageRegistryURLKey = ConfigImageRegistryKey + d + "url"
+	//ConfigImageRegistryNamespaceKey represents image registry namespace Key
+	ConfigImageRegistryNamespaceKey = ConfigImageRegistryKey + d + "namespace"
+	//ConfigImageRegistryLoginTypeKey represents image registry login type Key
+	ConfigImageRegistryLoginTypeKey = ConfigImageRegistryKey + d + "logintype"
+	//ConfigImageRegistryPullSecretKey represents image registry pull secret Key
+	ConfigImageRegistryPullSecretKey = ConfigImageRegistryKey + d + "pullsecret"
+	//ConfigImageRegistryUserNameKey represents image registry login Username Key
+	ConfigImageRegistryUserNameKey = ConfigImageRegistryKey + d + "username"
+	//ConfigImageRegistryPasswordKey represents image registry login Password Key
+	ConfigImageRegistryPasswordKey = ConfigImageRegistryKey + d + "password"
+	//ConfigStoragesPVCForHostPathKey represents key for PVC for Host Path
+	ConfigStoragesPVCForHostPathKey = ConfigStoragesKey + d + "pvcforhostpath"
+	//ConfigStoragesPerClaimStorageClassKey represents key for having different storage class for claim
+	ConfigStoragesPerClaimStorageClassKey = ConfigStoragesKey + d + "perclaimstorageclass"
+	//ConfigServicesNamesKey represents Storages Key
+	ConfigServicesNamesKey = ConfigServicesKey + d + Special + d + "enable"
+	//ConfigContainerizationTypesKey represents source type Key
+	ConfigContainerizationTypesKey = ConfigContainerizationKeySegment + d + "types"
+	//ConfigServicesExposeKey represents Services Expose Key
+	ConfigServicesExposeKey = ConfigServicesKey + d + Special + d + "expose"
 )
 
 var (

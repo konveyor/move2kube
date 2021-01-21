@@ -73,6 +73,7 @@ func GetAllContainerBuildStrategies() []string {
 	for _, c := range getAllContainerizers() {
 		cbs = append(cbs, string(c.GetContainerBuildStrategy()))
 	}
+	cbs = append(cbs, string((new(ReuseDockerfileContainerizer)).GetContainerBuildStrategy()), string((new(ManualContainerizer)).GetContainerBuildStrategy()))
 	return cbs
 }
 

@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
@@ -45,15 +44,15 @@ const (
 	ConfirmSolutionFormType SolutionFormType = "Confirm"
 )
 
-var (
-	lastAssignedProblemID   = 0             // keep track of IDs
-	problemIDIncrementMutex = &sync.Mutex{} // manage incrementing of problem ids atomically
+const (
+	// OtherAnswer - Use as one of the answers, when there is a option to enter the answer in Select Question Type
+	OtherAnswer = "Other (specify custom option)"
 )
 
 // Problem defines the QA problem
 type Problem struct {
-	ID       int          `yaml:"-" json:"id"`
-	Desc     string       `yaml:"description" json:"description"`
+	ID       string       `yaml:"id,omitempty" json:"id,omitempty"`
+	Desc     string       `yaml:"description,omitempty" json:"description,omitempty"`
 	Context  []string     `yaml:"context,omitempty" json:"context,omitempty"`
 	Solution SolutionForm `yaml:"solution" json:"solution,omitempty"`
 	Resolved bool         `yaml:"resolved,omitempty" json:"resolved,omitempty"`
@@ -61,45 +60,65 @@ type Problem struct {
 
 // SolutionForm defines the solution
 type SolutionForm struct {
-	Type    SolutionFormType `yaml:"type" json:"type"`
+	Type    SolutionFormType `yaml:"type,omitempty" json:"type,omitempty"`
 	Default []string         `yaml:"default,omitempty" json:"default,omitempty"`
 	Options []string         `yaml:"options,omitempty" json:"options,omitempty"`
 	Answer  []string         `yaml:"answer" json:"answer"`
 }
 
 // SetAnswer sets the answer
-func (p *Problem) SetAnswer(answer []string) error {
-	if p.Solution.Type != MultiSelectSolutionFormType && len(answer) == 0 {
+func (p *Problem) SetAnswer(ans []string) error {
+	if p.Solution.Type != MultiSelectSolutionFormType && len(ans) == 0 {
 		return fmt.Errorf("The answer slice is empty")
 	}
-	if p.Solution.Type != MultiSelectSolutionFormType && len(answer) > 1 {
+	if p.Solution.Type != MultiSelectSolutionFormType && len(ans) > 1 {
 		return fmt.Errorf("The question type is not multiselect, but there are multiple answers")
 	}
-	if p.Solution.Type == SelectSolutionFormType || p.Solution.Type == MultiSelectSolutionFormType {
-		success := true
+	if p.Solution.Type == SelectSolutionFormType {
 		p.Solution.Answer = []string{}
-		for _, a := range answer {
+		if len(ans) != 1 {
+			return fmt.Errorf("Incorrect number of answers")
+		}
+		if !common.IsStringPresent(p.Solution.Options, ans[0]) && !common.IsStringPresent(p.Solution.Options, OtherAnswer) {
+			return fmt.Errorf("No matching value in options for %s", ans[0])
+		}
+		p.Solution.Answer = ans
+		p.Resolved = true
+		return nil
+	}
+	if p.Solution.Type == MultiSelectSolutionFormType {
+		p.Solution.Answer = []string{}
+		for _, a := range ans {
 			if !common.IsStringPresent(p.Solution.Options, a) {
-				log.Warnf("No matching value in options for %s. Ignoring.", a)
-				success = false
+				log.Debugf("No matching value in options for %s. Ignoring.", a)
 				continue
 			}
 			p.Solution.Answer = append(p.Solution.Answer, a)
 		}
-		if !success {
-			return fmt.Errorf("Unknown options selected")
-		}
+		log.Debugf("Answering multiselect question %s with %v", p.ID, p.Solution.Answer)
 		p.Resolved = true
 		return nil
 	}
 	if p.Solution.Type == ConfirmSolutionFormType {
-		_, err := cast.ToBoolE(answer[0])
-		if err != nil {
-			log.Warnf("Error while parsing answer for confirm question type : %s", err)
-			return err
+		if len(ans) == 1 {
+			_, err := cast.ToBoolE(ans[0])
+			if err != nil {
+				log.Warnf("Error while parsing answer for confirm question type : %s", err)
+				return err
+			}
+		} else {
+			msg := "No answer for confirm question type"
+			log.Errorln(msg)
+			return fmt.Errorf(msg)
 		}
 	}
-	p.Solution.Answer = []string{answer[0]}
+	if len(ans) == 1 {
+		p.Solution.Answer = []string{ans[0]}
+	} else {
+		msg := "No answer for question"
+		log.Errorln(msg)
+		return fmt.Errorf(msg)
+	}
 	p.Resolved = true
 	return nil
 }
@@ -169,7 +188,7 @@ func (p *Problem) matchString(str1 string, str2 string) bool {
 	return r
 }
 
-func newProblem(t SolutionFormType, desc string, context []string, def []string, opts []string) (p Problem, err error) {
+func newProblem(probid string, t SolutionFormType, desc string, context []string, def []string, opts []string) (p Problem, err error) {
 	resolved := false
 	answer := []string{}
 	if desc == "" {
@@ -243,7 +262,7 @@ func newProblem(t SolutionFormType, desc string, context []string, def []string,
 		}
 	}
 	return Problem{
-		ID:       getProblemID(),
+		ID:       probid,
 		Desc:     desc,
 		Context:  context,
 		Solution: SolutionForm{Type: t, Default: def, Options: opts, Answer: answer},
@@ -251,41 +270,32 @@ func newProblem(t SolutionFormType, desc string, context []string, def []string,
 	}, nil
 }
 
-// getProblemID returns a new problem id
-func getProblemID() int {
-	problemIDIncrementMutex.Lock()
-	lastAssignedProblemID++
-	currID := lastAssignedProblemID
-	problemIDIncrementMutex.Unlock()
-	return currID
-}
-
 // NewSelectProblem creates a new instance of select problem
-func NewSelectProblem(desc string, context []string, def string, opts []string) (p Problem, err error) {
-	return newProblem(SelectSolutionFormType, desc, context, []string{def}, opts)
+func NewSelectProblem(probid, desc string, context []string, def string, opts []string) (p Problem, err error) {
+	return newProblem(probid, SelectSolutionFormType, desc, context, []string{def}, opts)
 }
 
 // NewMultiSelectProblem creates a new instance of multiselect problem
-func NewMultiSelectProblem(desc string, context []string, def []string, opts []string) (p Problem, err error) {
-	return newProblem(MultiSelectSolutionFormType, desc, context, def, opts)
+func NewMultiSelectProblem(probid, desc string, context []string, def []string, opts []string) (p Problem, err error) {
+	return newProblem(probid, MultiSelectSolutionFormType, desc, context, def, opts)
 }
 
 // NewConfirmProblem creates a new instance of confirm problem
-func NewConfirmProblem(desc string, context []string, def bool) (p Problem, err error) {
-	return newProblem(ConfirmSolutionFormType, desc, context, []string{cast.ToString(def)}, []string{})
+func NewConfirmProblem(probid, desc string, context []string, def bool) (p Problem, err error) {
+	return newProblem(probid, ConfirmSolutionFormType, desc, context, []string{cast.ToString(def)}, []string{})
 }
 
 // NewInputProblem creates a new instance of input problem
-func NewInputProblem(desc string, context []string, def string) (p Problem, err error) {
-	return newProblem(InputSolutionFormType, desc, context, []string{def}, []string{})
+func NewInputProblem(probid, desc string, context []string, def string) (p Problem, err error) {
+	return newProblem(probid, InputSolutionFormType, desc, context, []string{def}, []string{})
 }
 
 // NewMultilineInputProblem creates a new instance of multiline input problem
-func NewMultilineInputProblem(desc string, context []string, def string) (p Problem, err error) {
-	return newProblem(MultilineSolutionFormType, desc, context, []string{def}, []string{})
+func NewMultilineInputProblem(probid, desc string, context []string, def string) (p Problem, err error) {
+	return newProblem(probid, MultilineSolutionFormType, desc, context, []string{def}, []string{})
 }
 
 // NewPasswordProblem creates a new instance of password problem
-func NewPasswordProblem(desc string, context []string) (p Problem, err error) {
-	return newProblem(PasswordSolutionFormType, desc, context, []string{}, []string{})
+func NewPasswordProblem(probid, desc string, context []string) (p Problem, err error) {
+	return newProblem(probid, PasswordSolutionFormType, desc, context, []string{}, []string{})
 }

@@ -154,7 +154,7 @@ func (c *ComposeTranslator) Translate(services []plantypes.Service, plan plantyp
 
 	for _, service := range services {
 		if service.TranslationType != c.GetTranslatorType() {
-			log.Debugf("Expected service to have compose2kube translation type. Got %s . Skipping.", service.TranslationType)
+			log.Debugf("Expected service to have %s translation type. Got %s . Skipping.", c.GetTranslatorType(), service.TranslationType)
 			continue
 		}
 		for _, path := range service.SourceArtifacts[plantypes.ComposeFileArtifactType] {

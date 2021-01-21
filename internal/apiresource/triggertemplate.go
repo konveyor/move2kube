@@ -76,7 +76,7 @@ func (*TriggerTemplate) createNewResource(tt tekton.TriggerTemplate, ir irtypes.
 		PipelineRef:        &v1beta1.PipelineRef{Name: tt.PipelineName},
 		ServiceAccountName: tt.ServiceAccountName,
 		Workspaces: []v1beta1.WorkspaceBinding{
-			v1beta1.WorkspaceBinding{
+			{
 				Name: tt.WorkspaceName,
 				VolumeClaimTemplate: &corev1.PersistentVolumeClaim{
 					Spec: corev1.PersistentVolumeClaimSpec{
@@ -88,7 +88,7 @@ func (*TriggerTemplate) createNewResource(tt tekton.TriggerTemplate, ir irtypes.
 			},
 		},
 		Params: []v1beta1.Param{
-			v1beta1.Param{Name: "image-registry-url", Value: v1beta1.ArrayOrString{Type: "string", StringVal: registryURL + "/" + registryNamespace}},
+			{Name: "image-registry-url", Value: v1beta1.ArrayOrString{Type: "string", StringVal: registryURL + "/" + registryNamespace}},
 		},
 	}
 
@@ -102,7 +102,7 @@ func (*TriggerTemplate) createNewResource(tt tekton.TriggerTemplate, ir irtypes.
 
 	triggerTemplate.Spec = triggersv1alpha1.TriggerTemplateSpec{
 		ResourceTemplates: []triggersv1alpha1.TriggerResourceTemplate{
-			triggersv1alpha1.TriggerResourceTemplate{
+			{
 				RawExtension: runtime.RawExtension{Object: pipelineRun},
 			},
 		},

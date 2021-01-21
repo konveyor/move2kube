@@ -94,9 +94,10 @@ func (*portMergeOptimizer) askQuestion(service irtypes.Service, portToContainerI
 	for eligiblePort := range portToContainerIdx {
 		eligiblePorts = append(eligiblePorts, cast.ToString(eligiblePort))
 	}
+	key := common.ConfigServicesKey + common.Delim + service.Name + common.Delim + "ports"
 	message := fmt.Sprintf("Service %s has no ports. Please select the ports that should be added to it:", service.Name)
 	hint := []string{"If this is a headless service deselect all the ports."}
-	problem, err := qatypes.NewMultiSelectProblem(message, hint, eligiblePorts, eligiblePorts)
+	problem, err := qatypes.NewMultiSelectProblem(key, message, hint, eligiblePorts, eligiblePorts)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}

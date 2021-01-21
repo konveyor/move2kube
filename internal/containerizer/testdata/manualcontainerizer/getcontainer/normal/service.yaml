@@ -1,6 +1,6 @@
 serviceName: dockerfile
 image: dockerfile:latest
-translationType: Any2Kube
+translationType: Containerize
 containerBuildType: Manual
 sourceType:
   - Directory

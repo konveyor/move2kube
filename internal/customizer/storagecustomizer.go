@@ -137,7 +137,7 @@ func (ic storageCustomizer) shouldHostPathBeRetained(hostPath string) bool {
 	// 	return true
 	// }
 
-	problem, err := qatypes.NewConfirmProblem(fmt.Sprintf("Do you want to create PVC for host path [%s]?:", hostPath), []string{"Use PVC for persistent storage wherever applicable"}, false)
+	problem, err := qatypes.NewConfirmProblem(common.ConfigStoragesPVCForHostPathKey, fmt.Sprintf("Do you want to create PVC for host path [%s]?:", hostPath), []string{"Use PVC for persistent storage wherever applicable"}, false)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -157,7 +157,7 @@ func (ic storageCustomizer) shouldConfigureSeparately(claims []string) bool {
 	context[0] = "Storage classes have to be configured for below claims:"
 	context[1] = fmt.Sprintf("%+v", claims)
 
-	problem, err := qatypes.NewConfirmProblem("Do you want to configure different storage classes for each claim?", context, false)
+	problem, err := qatypes.NewConfirmProblem(common.ConfigStoragesPerClaimStorageClassKey, "Do you want to configure different storage classes for each claim?", context, false)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -174,14 +174,22 @@ func (ic storageCustomizer) shouldConfigureSeparately(claims []string) bool {
 
 func (ic storageCustomizer) selectStorageClass(storageClasses []string, claimName string, services []string) string {
 	var desc string
+	var err error
+	var problem qatypes.Problem
+	hint := "If you have a custom cluster, you can use collect to get storage classes from it."
+	ConfigStorageClassKeySegment := "storageclass"
 	if claimName == alloption {
 		desc = "Which storage class to use for all persistent volume claims?"
+		problem, err = qatypes.NewSelectProblem(common.ConfigStoragesKey+common.Delim+ConfigStorageClassKeySegment, desc, []string{hint}, storageClasses[0], storageClasses)
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
+		}
 	} else {
 		desc = fmt.Sprintf("Which storage class to use for persistent volume claim [%s] used by %+v", claimName, services)
-	}
-	problem, err := qatypes.NewSelectProblem(desc, []string{"If you have a custom cluster, you can use collect to get storage classes from it."}, storageClasses[0], storageClasses)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
+		problem, err = qatypes.NewSelectProblem(common.ConfigStoragesKey+common.Delim+claimName+common.Delim+ConfigStorageClassKeySegment, desc, []string{hint}, storageClasses[0], storageClasses)
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
+		}
 	}
 	problem, err = qaengine.FetchAnswer(problem)
 	if err != nil {

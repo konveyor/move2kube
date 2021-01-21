@@ -19,6 +19,7 @@ require (
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/google/go-cmp v0.5.4
 	github.com/gorilla/mux v1.8.0
+	github.com/mikefarah/yq/v4 v4.4.1
 	github.com/moby/buildkit v0.7.2
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20200728170252-4d89ac9fbff6
@@ -35,7 +36,8 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	github.com/xrash/smetrics v0.0.0-20200730060457-89a2a8a1fb0b
 	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.19.4
 	k8s.io/apimachinery v0.19.4
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible

@@ -30,12 +30,6 @@ import (
 	"github.com/spf13/cast"
 )
 
-const (
-	problemsURLPrefix        = "/problems"
-	currentProblemURLPrefix  = problemsURLPrefix + "/current"
-	currentSolutionURLPrefix = currentProblemURLPrefix + "/solution"
-)
-
 // HTTPRESTEngine handles qa using HTTP REST services
 type HTTPRESTEngine struct {
 	port           int
@@ -44,11 +38,17 @@ type HTTPRESTEngine struct {
 	answerChan     chan qatypes.Problem
 }
 
+const (
+	problemsURLPrefix        = "/problems"
+	currentProblemURLPrefix  = problemsURLPrefix + "/current"
+	currentSolutionURLPrefix = currentProblemURLPrefix + "/solution"
+)
+
 // NewHTTPRESTEngine creates a new instance of Http REST engine
 func NewHTTPRESTEngine(qaport int) Engine {
 	e := new(HTTPRESTEngine)
 	e.port = qaport
-	e.currentProblem = qatypes.Problem{ID: 0, Resolved: true}
+	e.currentProblem = qatypes.Problem{ID: "", Resolved: true}
 	e.problemChan = make(chan qatypes.Problem)
 	e.answerChan = make(chan qatypes.Problem)
 	return e
@@ -87,11 +87,11 @@ func (h *HTTPRESTEngine) StartEngine() error {
 
 // FetchAnswer fetches the answer using a REST service
 func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
-	if prob.ID == 0 {
+	if prob.ID == "" {
 		prob.Resolved = true
 	}
 	if !prob.Resolved {
-		log.Debugf("Passing problem to HTTP REST QA Engine ID: %d, desc: %s", prob.ID, prob.Desc)
+		log.Debugf("Passing problem to HTTP REST QA Engine ID: %s, desc: %s", prob.ID, prob.Desc)
 		h.problemChan <- prob
 		prob = <-h.answerChan
 		if !prob.Resolved {
@@ -105,11 +105,11 @@ func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem,
 func (h *HTTPRESTEngine) problemHandler(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Looking for a problem fron HTTP REST service")
 	// if currently problem is resolved
-	if h.currentProblem.Resolved || h.currentProblem.ID == 0 {
+	if h.currentProblem.Resolved || h.currentProblem.ID == "" {
 		// Pick the next problem off the channel
 		h.currentProblem = <-h.problemChan
 	}
-	log.Debugf("QA Engine serves problem id: %d, desc: %s", h.currentProblem.ID, h.currentProblem.Desc)
+	log.Debugf("QA Engine serves problem id: %s, desc: %s", h.currentProblem.ID, h.currentProblem.Desc)
 	// Send the problem to the request.
 	_ = json.NewEncoder(w).Encode(h.currentProblem)
 }
@@ -124,18 +124,23 @@ func (h *HTTPRESTEngine) solutionHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "errstr", http.StatusInternalServerError)
 		log.Errorf(errstr)
 	}
-	var sol []string
-	err = json.Unmarshal(body, &sol)
+	var prob qatypes.Problem
+	err = json.Unmarshal(body, &prob)
 	if err != nil {
 		errstr := fmt.Sprintf("Error in un-marshalling solution in QA engine: %s", err)
 		http.Error(w, errstr, http.StatusInternalServerError)
 		log.Errorf(errstr)
 	}
-	log.Debugf("QA Engine receives solution: %s", sol)
-	err = h.currentProblem.SetAnswer(sol)
+	log.Debugf("QA Engine receives solution: %+v", prob)
+	if h.currentProblem.ID != prob.ID {
+		errstr := fmt.Sprintf("Unsuitable answer : %s", err)
+		http.Error(w, errstr, http.StatusNotAcceptable)
+		log.Errorf(errstr)
+	}
+	err = h.currentProblem.SetAnswer(prob.Solution.Answer)
 	if err != nil {
 		errstr := fmt.Sprintf("Unsuitable answer : %s", err)
-		http.Error(w, errstr, http.StatusInternalServerError)
+		http.Error(w, errstr, http.StatusNotAcceptable)
 		log.Errorf(errstr)
 	} else {
 		h.answerChan <- h.currentProblem

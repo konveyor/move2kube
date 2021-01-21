@@ -18,3 +18,12 @@ limitations under the License.
 Package qaengine contains the types used for the question answering part of the CLI.
 */
 package qaengine
+
+// Store helps store answers
+type Store interface {
+	Load() error
+	GetSolution(Problem) (Problem, error)
+
+	Write() error
+	AddSolution(p Problem) error
+}

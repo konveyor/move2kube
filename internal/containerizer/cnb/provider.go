@@ -26,9 +26,13 @@ const (
 	orderLabel string = "io.buildpacks.buildpack.order"
 )
 
-var cnbwarnnotsupported = false
-var cnbwarnlongwait = true
-var cnbproviders = []provider{&dockerAPIProvider{}, &containerRuntimeProvider{}, &packProvider{}, &runcProvider{}}
+var (
+	cnbwarnnotsupported = false
+	cnbwarnlongwait     = true
+	cnbproviders        = []provider{&dockerAPIProvider{}, &containerRuntimeProvider{}, &packProvider{}, &runcProvider{}}
+	cnbprovider         provider
+	providerschecked    = false
+)
 
 type order []orderEntry
 
@@ -67,10 +71,20 @@ func GetAllBuildpacks(builders []string) (buildpacks map[string][]string) {
 // IsBuilderSupported returns if a builder supports a path
 func IsBuilderSupported(path string, builder string) (valid bool) {
 	logCNBLongWait()
-	for _, cp := range cnbproviders {
-		valid, err := cp.isBuilderSupported(path, builder)
+	if !providerschecked {
+		for _, cp := range cnbproviders {
+			valid, err := cp.isBuilderSupported(path, builder)
+			if err == nil {
+				cnbprovider = cp
+				providerschecked = true
+				return valid // if one of the builders reports no support the other builders will as well.
+			}
+		}
+		providerschecked = true
+	} else if cnbprovider != nil {
+		valid, err := cnbprovider.isBuilderSupported(path, builder)
 		if err == nil {
-			return valid // if one of the builders reports no support the other builders will as well.
+			return valid
 		}
 	}
 	logCNBNotSupported()

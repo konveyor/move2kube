@@ -26,6 +26,7 @@ import (
 	"os/user"
 	"path/filepath"
 
+	"github.com/konveyor/move2kube/internal/common"
 	commonknownhosts "github.com/konveyor/move2kube/internal/common/knownhosts"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
@@ -36,9 +37,9 @@ import (
 var (
 	// DomainToPublicKeys maps domains to public keys gathered with known-hosts/get-public-keys.sh
 	DomainToPublicKeys = map[string][]string{
-		"github.com":    []string{"github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ=="},
-		"gitlab.com":    []string{"gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf", "gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9", "gitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY="},
-		"bitbucket.org": []string{"bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw=="},
+		"github.com":    {"github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ=="},
+		"gitlab.com":    {"gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf", "gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9", "gitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY="},
+		"bitbucket.org": {"bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAubiN81eDcafrgMeLzaFPsw2kNvEcqTKl/VqLat/MaB33pZy0y3rJZtnqwR2qOOvbwKZYKiEO1O6VqNEBxKvJJelCq0dTXWT5pbO2gDXC6h6QDXCaHo6pOHGPUy+YBaGQRGuSusMEASYiWunYN0vCAI8QaXnWMXNMdFP3jHAJH0eDsoiGnLPBlBp4TNm6rYI74nMzgz3B9IikW4WVK+dc8KZJZWYjAuORU3jc1c/NPskD2ASinf8v3xnfXeukU0sJ5N6m5E8VLjObPEO+mN2t/FZTMZLiFqPWc/ALSqnMnnhwrNi2rbfg/rd/IpL8Le3pSBne8+seeFVBoGqzHM9yXw=="},
 	}
 	privateKeyDir                    = ""
 	firstTimeLoadingKnownHostsOfUser = true
@@ -67,7 +68,7 @@ func LoadKnownHostsOfCurrentUser() {
 Move2Kube has public keys for github.com, gitlab.com, and bitbucket.org by default.
 If any of the repos use ssh authentication we will need public keys in order to verify.
 Do you want to load the public keys from your [%s]?:`
-	problem, err := qatypes.NewConfirmProblem(fmt.Sprintf(message, knownHostsPath), []string{"No, I will add them later if necessary."}, false)
+	problem, err := qatypes.NewConfirmProblem(common.ConfigRepoLoadPubKey, fmt.Sprintf(message, knownHostsPath), []string{"No, I will add them later if necessary."}, false)
 	if err != nil {
 		log.Fatalf("Unable to create problem. Error: %q", err)
 	}
@@ -116,7 +117,7 @@ func loadSSHKeysOfCurrentUser() {
 	message := `The CI/CD pipeline needs access to the git repos in order to clone, build and push.
 If any of the repos require ssh keys you will need to provide them.
 Do you want to load the private ssh keys from [%s]?:`
-	problem, err := qatypes.NewConfirmProblem(fmt.Sprintf(message, privateKeyDir), []string{"No, I will add them later if necessary."}, false)
+	problem, err := qatypes.NewConfirmProblem(common.ConfigRepoLoadPrivKey, fmt.Sprintf(message, privateKeyDir), []string{"No, I will add them later if necessary."}, false)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -147,7 +148,7 @@ Do you want to load the private ssh keys from [%s]?:`
 	for _, finfo := range finfos {
 		filenames = append(filenames, finfo.Name())
 	}
-	problem, err = qatypes.NewMultiSelectProblem(fmt.Sprintf("These are the files we found in %q . Which keys should we consider?", privateKeyDir), []string{"Select all the keys that give acess to git repos."}, filenames, filenames)
+	problem, err = qatypes.NewMultiSelectProblem(common.ConfigRepoKeyPathsKey, fmt.Sprintf("These are the files we found in %q . Which keys should we consider?", privateKeyDir), []string{"Select all the keys that give access to git repos."}, filenames, filenames)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -200,7 +201,7 @@ func loadSSHKey(filename string) (string, error) {
 			return "", err
 		}
 
-		problem, err := qatypes.NewPasswordProblem(fmt.Sprintf("Enter the password to decrypt the private key %q : ", filename), []string{"Password:"})
+		problem, err := qatypes.NewPasswordProblem(common.ConfigRepoPrivKey+common.Delim+filename+common.Delim+"password", fmt.Sprintf("Enter the password to decrypt the private key %q : ", filename), []string{"Password:"})
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -242,8 +243,9 @@ func GetSSHKey(domain string) (string, bool) {
 	for _, filename := range privateKeysToConsider {
 		filenames = append(filenames, filename)
 	}
-	filenames = append(filenames, "NONE")
-	problem, err := qatypes.NewSelectProblem(fmt.Sprintf("Select the key to use to for the git domain %s :", domain), []string{"If none of the keys are correct, select None."}, "NONE", filenames)
+	noAnswer := "none of the above"
+	filenames = append(filenames, noAnswer)
+	problem, err := qatypes.NewSelectProblem(common.ConfigRepoKeysKey+common.Delim+domain+common.Delim+"key", fmt.Sprintf("Select the key to use for the git domain %s :", domain), []string{fmt.Sprintf("If none of the keys are correct, select %s", noAnswer)}, noAnswer, filenames)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -255,7 +257,7 @@ func GetSSHKey(domain string) (string, bool) {
 	if err != nil {
 		log.Fatalf("Unable to get answer : %s", err)
 	}
-	if filename == "NONE" {
+	if filename == noAnswer {
 		log.Debugf("No key selected for domain %s", domain)
 		return "", false
 	}

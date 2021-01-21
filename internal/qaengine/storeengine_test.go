@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/konveyor/move2kube/internal/common"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 )
@@ -28,22 +29,23 @@ func TestCacheEngine(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
 	qaTestPath := "testdata/qaenginetest.yaml"
-	tmpTestPath := "/tmp/qatest.yaml"
+	// tmpTestPath := "/tmp/qatest.yaml"
 
-	t.Run("Test NewInputProblem", func(t *testing.T) {
+	t.Run("input type problem", func(t *testing.T) {
 
 		engines = []Engine{}
-		e := NewCacheEngine(qaTestPath)
+		e := NewStoreEngineFromCache(qaTestPath)
 		AddEngine(e)
-		SetWriteCache(tmpTestPath)
+		// SetWriteConfig(tmpTestPath)
 
+		key := common.BaseKey + common.Delim + "input"
 		desc := "Enter the container registry username : "
 		context := []string{"Enter username for container registry login"}
 		def := ""
 
 		want := "testuser"
 
-		problem, err := qatypes.NewInputProblem(desc, context, def)
+		problem, err := qatypes.NewInputProblem(key, desc, context, def)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -65,20 +67,21 @@ func TestCacheEngine(t *testing.T) {
 
 	})
 
-	t.Run("Test NewSelectProblem", func(t *testing.T) {
+	t.Run("select type problem", func(t *testing.T) {
 
 		engines = []Engine{}
-		e := NewCacheEngine(qaTestPath)
+		e := NewStoreEngineFromCache(qaTestPath)
 		AddEngine(e)
-		SetWriteCache(tmpTestPath)
+		// SetWriteConfig(tmpTestPath)
 
+		key := common.BaseKey + common.Delim + "select"
 		desc := "What type of container registry login do you want to use?"
 		context := []string{"Docker login from config mode, will use the default config from your local machine."}
 		def := "No authentication"
 		opts := []string{"Use existing pull secret", "No authentication", "UserName/Password"}
 		want := "UserName/Password"
 
-		problem, err := qatypes.NewSelectProblem(desc, context, def, opts)
+		problem, err := qatypes.NewSelectProblem(key, desc, context, def, opts)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -100,20 +103,22 @@ func TestCacheEngine(t *testing.T) {
 
 	})
 
-	t.Run("Test NewMultilineInputProblem", func(t *testing.T) {
+	t.Run("multi-line input type problem", func(t *testing.T) {
 
 		engines = []Engine{}
-		e := NewCacheEngine(qaTestPath)
+		e := NewStoreEngineFromCache(qaTestPath)
 		AddEngine(e)
-		SetWriteCache(tmpTestPath)
+		// SetWriteConfig(tmpTestPath)
 
+		key := common.BaseKey + common.Delim + "multline"
 		desc := "Multiline input problem test description : "
 		context := []string{"Multiline input problem test context."}
 		cachedAnswer := `line1 
 line2 
 line3 
 `
-		problem, err := qatypes.NewMultilineInputProblem(desc, context, "")
+
+		problem, err := qatypes.NewMultilineInputProblem(key, desc, context, "")
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -135,19 +140,20 @@ line3
 
 	})
 
-	t.Run("Test NewConfirmProblem", func(t *testing.T) {
+	t.Run("confirm type problem", func(t *testing.T) {
 
 		engines = []Engine{}
-		e := NewCacheEngine(qaTestPath)
+		e := NewStoreEngineFromCache(qaTestPath)
 		AddEngine(e)
-		SetWriteCache(tmpTestPath)
+		// SetWriteConfig(tmpTestPath)
 
+		key := common.BaseKey + common.Delim + "confirm"
 		desc := "Confirm problem test description : "
 		context := []string{"Confirm input problem test context."}
 		def := true
 		want := true
 
-		problem, err := qatypes.NewConfirmProblem(desc, context, def)
+		problem, err := qatypes.NewConfirmProblem(key, desc, context, def)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -169,19 +175,20 @@ line3
 
 	})
 
-	t.Run("Test NewMultiSelectProblem", func(t *testing.T) {
+	t.Run("multi-select type problem", func(t *testing.T) {
 
 		engines = []Engine{}
-		e := NewCacheEngine(qaTestPath)
+		e := NewStoreEngineFromCache(qaTestPath)
 		AddEngine(e)
-		SetWriteCache(tmpTestPath)
+		// SetWriteConfig(tmpTestPath)
 
+		key := common.BaseKey + common.Delim + "multiselect"
 		desc := "MultiSelect input problem test description : "
 		context := []string{"MultiSelect input problem test context"}
 		def := []string{"Option A", "Option C"}
 		opts := []string{"Option A", "Option B", "Option C", "Option D"}
 
-		problem, err := qatypes.NewMultiSelectProblem(desc, context, def, opts)
+		problem, err := qatypes.NewMultiSelectProblem(key, desc, context, def, opts)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}

@@ -34,8 +34,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const otherRegistry = "Other"
-
 // registryCustomizer customizes image registry related configurations
 type registryCustomizer struct {
 }
@@ -44,7 +42,7 @@ type registryCustomizer struct {
 func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 
 	usedRegistries := []string{}
-	registryList := []string{otherRegistry}
+	registryList := []string{qatypes.OtherAnswer}
 	newimages := []string{}
 
 	for _, container := range ir.Containers {
@@ -98,25 +96,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 		if defreg == "" {
 			defreg = common.DefaultRegistryURL
 		}
-		problem, err := qatypes.NewSelectProblem("Select the registry where your images are hosted:", []string{"You can always change it later by changing the yamls."}, defreg, registryList)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-		problem, err = qaengine.FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-		reg, err := problem.GetStringAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-		if reg != otherRegistry {
-			ir.Kubernetes.RegistryURL = reg
-		}
-	}
-
-	if ir.Kubernetes.RegistryURL == "" && len(newimages) != 0 {
-		problem, err := qatypes.NewInputProblem("Enter the name of the registry : ", []string{"Ex : " + common.DefaultRegistryURL}, common.DefaultRegistryURL)
+		problem, err := qatypes.NewSelectProblem(common.ConfigImageRegistryURLKey, "Enter the name of the image registry : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -136,7 +116,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 	}
 
 	if ir.Kubernetes.RegistryNamespace == "" && len(newimages) != 0 {
-		problem, err := qatypes.NewInputProblem("Enter the namespace where the new images are pushed : ", []string{"Ex : " + ir.Name}, ir.Name)
+		problem, err := qatypes.NewInputProblem(common.ConfigImageRegistryNamespaceKey, "Enter the namespace where the new images are pushed : ", []string{"Ex : " + ir.Name}, ir.Name)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -174,7 +154,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 			authOptions = append(authOptions, dockerConfigLogin)
 		}
 
-		problem, err := qatypes.NewSelectProblem(fmt.Sprintf("[%s] What type of container registry login do you want to use?", registry), []string{"Docker login from config mode, will use the default config from your local machine."}, noAuthLogin, authOptions)
+		problem, err := qatypes.NewSelectProblem(common.ConfigImageRegistryLoginTypeKey, fmt.Sprintf("[%s] What type of container registry login do you want to use?", registry), []string{"Docker login from config mode, will use the default config from your local machine."}, noAuthLogin, authOptions)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -189,7 +169,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 		if auth == noAuthLogin {
 			dauth.Auth = ""
 		} else if auth == useExistingPullSecret {
-			problem, err := qatypes.NewInputProblem(fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "")
+			problem, err := qatypes.NewInputProblem(common.ConfigImageRegistryPullSecretKey, fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "")
 			if err != nil {
 				log.Fatalf("Unable to create problem : %s", err)
 			}
@@ -203,7 +183,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 			}
 			imagePullSecrets[registry] = ps
 		} else if auth != dockerConfigLogin {
-			problem, err := qatypes.NewInputProblem(fmt.Sprintf("[%s] Enter the container registry username : ", registry), []string{"Enter username for container registry login"}, "iamapikey")
+			problem, err := qatypes.NewInputProblem(common.ConfigImageRegistryUserNameKey, fmt.Sprintf("[%s] Enter the container registry username : ", registry), []string{"Enter username for container registry login"}, "iamapikey")
 			if err != nil {
 				log.Fatalf("Unable to create problem : %s", err)
 			}
@@ -216,7 +196,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 				log.Fatalf("Unable to get answer : %s", err)
 			}
 			dauth.Username = un
-			problem, err = qatypes.NewPasswordProblem(fmt.Sprintf("[%s] Enter the container registry password : ", registry), []string{"Enter password for container registry login."})
+			problem, err = qatypes.NewPasswordProblem(common.ConfigImageRegistryPasswordKey, fmt.Sprintf("[%s] Enter the container registry password : ", registry), []string{"Enter password for container registry login."})
 			if err != nil {
 				log.Fatalf("Unable to create problem : %s", err)
 			}

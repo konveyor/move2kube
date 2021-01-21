@@ -31,12 +31,11 @@ type CliEngine struct {
 
 // NewCliEngine creates a new instance of cli engine
 func NewCliEngine() Engine {
-	ce := new(CliEngine)
-	return ce
+	return new(CliEngine)
 }
 
 // StartEngine starts the cli engine
-func (c *CliEngine) StartEngine() error {
+func (*CliEngine) StartEngine() error {
 	return nil
 }
 
@@ -61,7 +60,7 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (answer qatypes.Problem, e
 	return prob, fmt.Errorf("Unknown type found : %s", prob.Solution.Type)
 }
 
-func (c *CliEngine) fetchSelectAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
+func (*CliEngine) fetchSelectAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
 	var ans, d string
 	if len(prob.Solution.Default) > 0 {
 		d = prob.Solution.Default[0]
@@ -69,7 +68,7 @@ func (c *CliEngine) fetchSelectAnswer(prob qatypes.Problem) (answer qatypes.Prob
 		d = prob.Solution.Options[0]
 	}
 	prompt := &survey.Select{
-		Message: fmt.Sprintf("%d. %s \nHints: \n %s\n", prob.ID, prob.Desc, prob.Context),
+		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
 		Options: prob.Solution.Options,
 		Default: d,
 	}
@@ -78,14 +77,15 @@ func (c *CliEngine) fetchSelectAnswer(prob qatypes.Problem) (answer qatypes.Prob
 		log.Fatalf("Error while asking a question : %s", err)
 		return prob, err
 	}
+
 	err = prob.SetAnswer([]string{ans})
 	return prob, err
 }
 
-func (c *CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
+func (*CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
 	ans := []string{}
 	prompt := &survey.MultiSelect{
-		Message: fmt.Sprintf("%d. %s \nHints: \n %s\n", prob.ID, prob.Desc, prob.Context),
+		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
 		Options: prob.Solution.Options,
 		Default: prob.Solution.Default,
 	}
@@ -100,7 +100,7 @@ func (c *CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (answer qatypes
 	return prob, err
 }
 
-func (c *CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
+func (*CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
 	var ans, d bool
 	if len(prob.Solution.Default) > 0 {
 		d, err = cast.ToBoolE(prob.Solution.Default[0])
@@ -109,7 +109,7 @@ func (c *CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (answer qatypes.Pro
 		}
 	}
 	prompt := &survey.Confirm{
-		Message: fmt.Sprintf("%d. %s \nHints: \n %s\n", prob.ID, prob.Desc, prob.Context),
+		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
 		Default: d,
 	}
 	err = survey.AskOne(prompt, &ans)
@@ -121,14 +121,14 @@ func (c *CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (answer qatypes.Pro
 	return prob, err
 }
 
-func (c *CliEngine) fetchInputAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
+func (*CliEngine) fetchInputAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
 	var ans string
 	d := ""
 	if len(prob.Solution.Default) > 0 {
 		d = prob.Solution.Default[0]
 	}
 	prompt := &survey.Input{
-		Message: fmt.Sprintf("%d. %s \nHints: \n %s\n", prob.ID, prob.Desc, prob.Context),
+		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
 		Default: d,
 	}
 	err = survey.AskOne(prompt, &ans)
@@ -140,14 +140,14 @@ func (c *CliEngine) fetchInputAnswer(prob qatypes.Problem) (answer qatypes.Probl
 	return prob, err
 }
 
-func (c *CliEngine) fetchMultilineAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
+func (*CliEngine) fetchMultilineAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
 	var ans string
 	d := ""
 	if len(prob.Solution.Default) > 0 {
 		d = prob.Solution.Default[0]
 	}
 	prompt := &survey.Multiline{
-		Message: fmt.Sprintf("%d. %s \nHints: \n %s\n", prob.ID, prob.Desc, prob.Context),
+		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
 		Default: d,
 	}
 	err = survey.AskOne(prompt, &ans)
@@ -159,10 +159,10 @@ func (c *CliEngine) fetchMultilineAnswer(prob qatypes.Problem) (answer qatypes.P
 	return prob, err
 }
 
-func (c *CliEngine) fetchPasswordAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
+func (*CliEngine) fetchPasswordAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
 	var ans string
 	prompt := &survey.Password{
-		Message: fmt.Sprintf("%d. %s \nHints: \n %s\n", prob.ID, prob.Desc, prob.Context),
+		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
 	}
 	err = survey.AskOne(prompt, &ans)
 	if err != nil {
