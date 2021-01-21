@@ -266,7 +266,6 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 				}
 			}
 		}
-	}
 
 	// 3. Merge the filled segments into dockerfileContents
 	dockerfileContents = strings.Join(segmentSlice, "\n")
