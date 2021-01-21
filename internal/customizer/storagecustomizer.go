@@ -19,14 +19,12 @@ package customizer
 import (
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
-
-	corev1 "k8s.io/api/core/v1"
-
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
+	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 )
 
 //storageCustomizer customizes storage

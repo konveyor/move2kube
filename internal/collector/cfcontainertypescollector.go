@@ -24,15 +24,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	sourcetypes "github.com/konveyor/move2kube/internal/collector/sourcetypes"
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	containerize "github.com/konveyor/move2kube/internal/containerizer"
 	source "github.com/konveyor/move2kube/internal/source"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	"github.com/konveyor/move2kube/types/plan"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	log "github.com/sirupsen/logrus"
 )
 
 // CFContainerTypesCollector collects buildpacks supported by the instance

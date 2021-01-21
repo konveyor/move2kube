@@ -41,7 +41,7 @@ type dockerAPIProvider struct {
 
 var (
 	isSockAccessible      = "unknown"
-	availableDockerImages = make(map[string]bool)
+	availableDockerImages = map[string]bool{}
 )
 
 func (r *dockerAPIProvider) getAllBuildpacks(builders []string) (map[string][]string, error) { //[Containerization target option value] buildpacks

@@ -30,7 +30,7 @@ type containerRuntimeProvider struct {
 
 var (
 	containerRuntime  = ""
-	availableBuilders = make(map[string]bool)
+	availableBuilders = map[string]bool{}
 )
 
 func (r *containerRuntimeProvider) getAllBuildpacks(builders []string) (map[string][]string, error) { //[Containerization target option value] buildpacks

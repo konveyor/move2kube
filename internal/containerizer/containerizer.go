@@ -19,30 +19,20 @@ package containerizer
 import (
 	"fmt"
 
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	containerizerJSONPort      = "port"
-	containerizerJSONBuilder   = "builder"
-	containerizerJSONImageName = "image_name"
-)
-
-var (
-	containerizers []Containerizer
-)
-
 //go:generate go run github.com/konveyor/move2kube/internal/common/generator scripts
 
-// Containerizer interface defines interface for containerizing applications
+// Containerizer can be used to containerize applications given path to the source code
 type Containerizer interface {
 	Init(path string)
 	GetTargetOptions(plan plantypes.Plan, path string) []string
-	GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error)
 	GetContainerBuildStrategy() plantypes.ContainerBuildTypeValue
+	GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error)
 }
 
 // ContainerizationOption defines the containerization option for a path
@@ -51,22 +41,25 @@ type ContainerizationOption struct {
 	TargetOptions        []string
 }
 
+const (
+	containerizerJSONPort      = "port"
+	containerizerJSONBuilder   = "builder"
+	containerizerJSONImageName = "image_name"
+)
+
+var containerizers []Containerizer
+
 // InitContainerizers initializes the containerizers
 func InitContainerizers(path string, containerizerTypes []string) {
-	resetContainerizers()
+	containerizers = []Containerizer{}
 	for _, containerizer := range getAllContainerizers() {
-		cbs := (string)(containerizer.GetContainerBuildStrategy())
+		cbs := string(containerizer.GetContainerBuildStrategy())
 		if containerizerTypes == nil || common.IsStringPresent(containerizerTypes, cbs) {
 			containerizer.Init(path)
 			containerizer.Init(common.AssetsPath)
 			containerizers = append(containerizers, containerizer)
 		}
 	}
-}
-
-// resetContainerizers deinitializes the containerizers - Used for ensure tests work
-func resetContainerizers() {
-	containerizers = []Containerizer{}
 }
 
 // getAllContainerizers gets the all containerizers uninitialized
@@ -78,7 +71,7 @@ func getAllContainerizers() []Containerizer {
 func GetAllContainerBuildStrategies() []string {
 	cbs := []string{}
 	for _, c := range getAllContainerizers() {
-		cbs = append(cbs, (string)(c.GetContainerBuildStrategy()))
+		cbs = append(cbs, string(c.GetContainerBuildStrategy()))
 	}
 	return cbs
 }
@@ -87,10 +80,10 @@ func GetAllContainerBuildStrategies() []string {
 func GetContainerizationOptions(plan plantypes.Plan, sourcepath string) []ContainerizationOption {
 	cops := []ContainerizationOption{}
 	for _, containerizer := range containerizers {
-		if targetoptions := containerizer.GetTargetOptions(plan, sourcepath); len(targetoptions) != 0 {
+		if targetOptions := containerizer.GetTargetOptions(plan, sourcepath); len(targetOptions) != 0 {
 			cops = append(cops, ContainerizationOption{
 				ContainerizationType: containerizer.GetContainerBuildStrategy(),
-				TargetOptions:        targetoptions,
+				TargetOptions:        targetOptions,
 			})
 		}
 	}
@@ -107,7 +100,7 @@ func GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Conta
 		container, err := containerizer.GetContainer(plan, service)
 		if err != nil {
 			log.Errorf("Error during containerization : %s", err)
-			return irtypes.Container{}, err
+			return container, err
 		}
 		return container, nil
 	}

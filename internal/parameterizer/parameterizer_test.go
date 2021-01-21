@@ -19,11 +19,9 @@ package parameterize_test
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
-
 	"github.com/google/go-cmp/cmp"
-
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/konveyor/move2kube/internal/common"
 	parameterize "github.com/konveyor/move2kube/internal/parameterizer"
 	"github.com/konveyor/move2kube/internal/types"
 	irtypes "github.com/konveyor/move2kube/internal/types"

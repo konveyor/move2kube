@@ -22,11 +22,10 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
-
 	sourcetypes "github.com/konveyor/move2kube/internal/collector/sourcetypes"
-	common "github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
+	log "github.com/sirupsen/logrus"
 )
 
 // CfAppsCollector collects cf runtime applications
