@@ -229,7 +229,8 @@ def get_app_attributes(captured_data, app_path, output_path, basename, app_name)
         #        to_inject["app_name"]
 
     if path is None:
-        final_output["app_name"] = basename+"/"
+        #final_output["app_name"] = basename+"/"
+        final_output["app_name"] = basename
 
     return final_output
 
