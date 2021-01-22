@@ -33,14 +33,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	dockerfileDetectScript string = types.AppNameShort + "dfdetect.sh"
-)
-
 // DockerfileContainerizer implements Containerizer interface
 type DockerfileContainerizer struct {
 	dfcontainerizers []string //Paths to directories containing containerizers
 }
+
+const (
+	dockerfileDetectScript string = types.AppNameShort + "dfdetect.sh"
+)
 
 // GetContainerBuildStrategy returns the ContaierBuildStrategy
 func (*DockerfileContainerizer) GetContainerBuildStrategy() plantypes.ContainerBuildTypeValue {
@@ -109,11 +109,6 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 	log.Debugf("The Dockerfile containerizer at path %q produced the following output: %q", containerizerDir, output)
 
 	// 2. Parse json output
-	if output == "" {
-		log.Warnf("Output variable is empty")
-		return container, nil
-	}
-
 	m := map[string]interface{}{}
 	if err := json.Unmarshal([]byte(output), &m); err != nil {
 		log.Errorf("Unable to unmarshal the output of the detect script at path %q Output: %q Error: %q", containerizerDir, output, err)
@@ -172,7 +167,8 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 			// Fill the segment template with the corresponding data
 			dockerfileSegmentContents, err = common.GetStringFromTemplate(dockerfileSegmentTemplate, segmentRecord)
 			if err != nil {
-				log.Warnf("Template conversion failed : %s", err)
+				log.Warnf("Skipping segment %s due to error while filling template. Error: %s", dockerfileSegmentTemplatePath, err)
+				continue
 			}
 
 			// Append filled segment template to segmentSlice
@@ -191,32 +187,24 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 			log.Debugf("listing files to copy:")
 
 			// Iterate over the paths
-			for _, pathToCopy := range pathsToCopySlice.([]interface{}) {
+			for _, relPathToCopy := range pathsToCopySlice.([]string) {
 
-				// Check if path is a valid string
-				pathToCopyStr, ok := pathToCopy.(string)
-				if !ok {
-					log.Warnf("pathToCopy is not a valid string: %v", pathToCopy)
-					continue
-				}
 				// Generate the absolute path
-				pathToCopyStr = filepath.Join(containerizerDir, pathToCopyStr)
+				pathToCopy := filepath.Join(containerizerDir, relPathToCopy)
 
-				log.Debugf(pathToCopyStr)
+				log.Debugf("copying file/folder at path %s", pathToCopy)
 
 				// Get path info to determine if it is file/dir
-				fileInfo, err := os.Stat(pathToCopyStr)
+				fileInfo, err := os.Stat(pathToCopy)
 				if err != nil {
-					log.Warnf("Cannot determine if the path is a file or folder: %v", pathToCopy)
+					log.Warnf("Cannot determine if the path %s is a file or folder. Error: %q", pathToCopy, err)
 					continue
 				}
 
-				filename := filepath.Base(pathToCopyStr)
-
 				if fileInfo.IsDir() {
-					log.Debugf("it is a directory")
+					log.Debugf("The path %s is a directory", pathToCopy)
 
-					err = filepath.Walk(pathToCopyStr, func(path string, info os.FileInfo, err error) error {
+					err := filepath.Walk(pathToCopy, func(path string, info os.FileInfo, err error) error {
 						if err != nil {
 							log.Warnf("Skipping path %s due to error. Error: %q", path, err)
 							return nil
@@ -226,25 +214,21 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 							return nil
 						}
 						// At this point it means we have a file
-						log.Debugf(path)
-
-						filename := filepath.Base(path)
-
-						if filename == "Dockerfile" || filename == dockerfileDetectScript {
-							return nil
-						}
+						log.Debugf("copying the file %s", path)
 
 						// Obtain the relative path of the file wrt the containerizerDir
 						relFilePath, err := filepath.Rel(containerizerDir, path)
 						if err != nil {
-							log.Fatalf("Failed to obtain relative path to file")
+							log.Warnf("Failed to make the path %s relative to the containerizer directory %s Error: %q", path, containerizerDir, err)
+							return nil
 						}
-						log.Debugf(relFilePath)
+						log.Debugf("relative file path is %s", relFilePath)
 
 						// Get file contents
 						contentBytes, err := ioutil.ReadFile(path)
 						if err != nil {
-							log.Fatalf("Failed to read the file at path %q Error: %q", path, err)
+							log.Warnf("Failed to read the file at path %s Error: %q", path, err)
+							return nil
 						}
 
 						// Add file contents and relative path to the container object
@@ -253,16 +237,18 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 					})
 					if err != nil {
 						log.Warnf("Error in walking through files at path %q Error: %q", containerizerDir, err)
+						continue
 					}
 
 				} else {
-					log.Debugf("it is a file")
+					log.Debugf("The path %s is a file", pathToCopy)
 					// Get content and add it to the container object
-					contentBytes, err := ioutil.ReadFile(pathToCopyStr)
+					contentBytes, err := ioutil.ReadFile(pathToCopy)
 					if err != nil {
-						log.Fatalf("Failed to read the file at path %q Error: %q", pathToCopy, err)
+						log.Warnf("Failed to read the file at path %s Error: %q", pathToCopy, err)
+						continue
 					}
-					container.AddFile(filepath.Join(relOutputPath, filename), string(contentBytes))
+					container.AddFile(filepath.Join(relOutputPath, relPathToCopy), string(contentBytes))
 				}
 			}
 		}
@@ -286,12 +272,13 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 		Context:        ".",
 	})
 	if err != nil {
-		log.Errorf("Unable to translate Dockerfile template %s to string Error: %q", scripts.Dockerbuild_sh, err)
-	} else {
-		dockerBuildScriptPath := filepath.Join(relOutputPath, service.ServiceName+"-docker-build.sh")
-		container.AddFile(dockerBuildScriptPath, dockerBuildScriptContents)
-		container.RepoInfo.TargetPath = dockerfilePath
+		log.Errorf("Failed to fill the docker build script template %s Error: %q", scripts.Dockerbuild_sh, err)
+		return container, err
 	}
+
+	dockerBuildScriptPath := filepath.Join(relOutputPath, service.ServiceName+"-docker-build.sh")
+	container.AddFile(dockerBuildScriptPath, dockerBuildScriptContents)
+	container.RepoInfo.TargetPath = dockerfilePath
 
 	return container, nil
 }
