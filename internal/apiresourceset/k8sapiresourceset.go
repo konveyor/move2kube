@@ -295,6 +295,7 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 	objvk := obj.GetObjectKind().GroupVersionKind()
 	objgv := objvk.GroupVersion()
 	kind := objvk.Kind
+	fixFn := fixFuncs[kind]
 	versions := clusterSpec.GetSupportedVersions(kind)
 	if versions == nil || len(versions) == 0 {
 		return nil, fmt.Errorf("Kind %s unsupported in target cluster : %+v", kind, obj.GetObjectKind())
@@ -308,17 +309,19 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 			log.Errorf("Unable to parse group version %s : %s", v, err)
 			continue
 		}
-		if objgv == groupversion {
-			scheme.Default(obj)
-			return obj, nil
+		if fixFn == nil {
+			if objgv == groupversion {
+				scheme.Default(obj)
+				return obj, nil
+			}
+			//Change to supported version
+			newobj, err := scheme.ConvertToVersion(obj, groupversion)
+			if err == nil {
+				scheme.Default(newobj)
+				return newobj, nil
+			}
+			log.Debugf("Unable to do direct translation : %s", err)
 		}
-		//Change to supported version
-		newobj, err := scheme.ConvertToVersion(obj, groupversion)
-		if err == nil {
-			scheme.Default(newobj)
-			return newobj, nil
-		}
-		log.Debugf("Unable to do direct translation : %s", err)
 		akt := liasonscheme.AllKnownTypes()
 		uvcreated := false
 		for kt := range akt {
@@ -335,6 +338,14 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 					continue
 				}
 				uvcreated = true
+				if fixFn != nil {
+					fuvobj, err := fixFn(uvobj)
+					if err != nil {
+						log.Errorf("Error while executing fix function : %s", err)
+					} else {
+						uvobj = fuvobj
+					}
+				}
 				obj = uvobj
 				log.Debugf("Converted %s obj to %s", objgv, kt)
 				break

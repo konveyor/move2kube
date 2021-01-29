@@ -34,7 +34,8 @@ import (
 
 const (
 	serviceKind = "Service"
-	ingressKind = "Ingress"
+	// IngressKind defines Ingress Kind
+	IngressKind = "Ingress"
 	routeKind   = "Route"
 )
 
@@ -45,7 +46,7 @@ type Service struct {
 
 // GetSupportedKinds returns supported kinds
 func (d *Service) GetSupportedKinds() []string {
-	return []string{serviceKind, ingressKind, routeKind}
+	return []string{serviceKind, IngressKind, routeKind}
 }
 
 // CreateNewResources converts IR to runtime objects
@@ -63,7 +64,7 @@ func (d *Service) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 					objs = append(objs, routeObj)
 				}
 				exposeobjectcreated = true
-			} else if common.IsStringPresent(supportedKinds, ingressKind) {
+			} else if common.IsStringPresent(supportedKinds, IngressKind) {
 				//Create Ingress
 				// obj := d.createIngress(service)
 				// objs = append(objs, obj)
@@ -116,7 +117,7 @@ func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 			}
 			return []runtime.Object{obj}, true
 		}
-	} else if common.IsStringPresent(supportedKinds, ingressKind) {
+	} else if common.IsStringPresent(supportedKinds, IngressKind) {
 		if route, ok := obj.(*okdroutev1.Route); ok {
 			return d.routeToIngress(*route, ir), true
 		}
@@ -239,7 +240,7 @@ func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.EnhancedIR) 
 
 	ingress := networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       ingressKind,
+			Kind:       IngressKind,
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: route.ObjectMeta,
@@ -313,7 +314,7 @@ func (d *Service) serviceToIngress(service v1.Service, ir irtypes.EnhancedIR) []
 	}
 	ingress := networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       ingressKind,
+			Kind:       IngressKind,
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: service.ObjectMeta,
@@ -505,7 +506,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR) *networkingv1.Ingress {
 	}
 	ingress := networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       ingressKind,
+			Kind:       IngressKind,
 			APIVersion: networkingv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
