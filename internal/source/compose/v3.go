@@ -35,8 +35,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // V3Loader loads a v3 compose file
@@ -149,7 +149,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 		}
 		name := common.NormalizeForServiceName(composeServiceConfig.Name)
 		serviceConfig := irtypes.NewServiceWithName(name)
-		serviceContainer := corev1.Container{}
+		serviceContainer := core.Container{}
 
 		serviceContainer.Image = composeServiceConfig.Image
 		if serviceContainer.Image == "" {
@@ -188,12 +188,12 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 		}
 		if composeServiceConfig.Pid != "" {
 			if composeServiceConfig.Pid == "host" {
-				serviceConfig.HostPID = true
+				serviceConfig.SecurityContext.HostPID = true
 			} else {
 				log.Warnf("Ignoring PID key for service \"%v\". Invalid value \"%v\".", name, composeServiceConfig.Pid)
 			}
 		}
-		securityContext := &corev1.SecurityContext{}
+		securityContext := &core.SecurityContext{}
 		if composeServiceConfig.Privileged {
 			securityContext.Privileged = &composeServiceConfig.Privileged
 		}
@@ -205,27 +205,27 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 				securityContext.RunAsUser = &uid
 			}
 		}
-		capsAdd := []corev1.Capability{}
-		capsDrop := []corev1.Capability{}
+		capsAdd := []core.Capability{}
+		capsDrop := []core.Capability{}
 		for _, capAdd := range composeServiceConfig.CapAdd {
-			capsAdd = append(capsAdd, corev1.Capability(capAdd))
+			capsAdd = append(capsAdd, core.Capability(capAdd))
 		}
 		for _, capDrop := range composeServiceConfig.CapDrop {
-			capsDrop = append(capsDrop, corev1.Capability(capDrop))
+			capsDrop = append(capsDrop, core.Capability(capDrop))
 		}
 		//set capabilities if it is not empty
 		if len(capsAdd) > 0 || len(capsDrop) > 0 {
-			securityContext.Capabilities = &corev1.Capabilities{
+			securityContext.Capabilities = &core.Capabilities{
 				Add:  capsAdd,
 				Drop: capsDrop,
 			}
 		}
 		// update template only if securityContext is not empty
-		if *securityContext != (corev1.SecurityContext{}) {
+		if *securityContext != (core.SecurityContext{}) {
 			serviceContainer.SecurityContext = securityContext
 		}
-		podSecurityContext := &corev1.PodSecurityContext{}
-		if !cmp.Equal(*podSecurityContext, corev1.PodSecurityContext{}) {
+		podSecurityContext := &core.PodSecurityContext{}
+		if !cmp.Equal(*podSecurityContext, core.PodSecurityContext{}) {
 			serviceConfig.SecurityContext = podSecurityContext
 		}
 
@@ -237,10 +237,10 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 
 		if (composeServiceConfig.Deploy.Resources != types.Resources{}) {
 			if composeServiceConfig.Deploy.Resources.Limits != nil {
-				resourceLimit := corev1.ResourceList{}
+				resourceLimit := core.ResourceList{}
 				memLimit := libcomposeyaml.MemStringorInt(composeServiceConfig.Deploy.Resources.Limits.MemoryBytes)
 				if memLimit != 0 {
-					resourceLimit[corev1.ResourceMemory] = *resource.NewQuantity(int64(memLimit), "RandomStringForFormat")
+					resourceLimit[core.ResourceMemory] = *resource.NewQuantity(int64(memLimit), "RandomStringForFormat")
 				}
 				if composeServiceConfig.Deploy.Resources.Limits.NanoCPUs != "" {
 					cpuLimit, err := cast.ToFloat64E(composeServiceConfig.Deploy.Resources.Limits.NanoCPUs)
@@ -249,16 +249,16 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 					}
 					CPULimit := int64(cpuLimit * 1000)
 					if CPULimit != 0 {
-						resourceLimit[corev1.ResourceCPU] = *resource.NewMilliQuantity(CPULimit, resource.DecimalSI)
+						resourceLimit[core.ResourceCPU] = *resource.NewMilliQuantity(CPULimit, resource.DecimalSI)
 					}
 				}
 				serviceContainer.Resources.Limits = resourceLimit
 			}
 			if composeServiceConfig.Deploy.Resources.Reservations != nil {
-				resourceRequests := corev1.ResourceList{}
+				resourceRequests := core.ResourceList{}
 				MemReservation := libcomposeyaml.MemStringorInt(composeServiceConfig.Deploy.Resources.Reservations.MemoryBytes)
 				if MemReservation != 0 {
-					resourceRequests[corev1.ResourceMemory] = *resource.NewQuantity(int64(MemReservation), "RandomStringForFormat")
+					resourceRequests[core.ResourceMemory] = *resource.NewQuantity(int64(MemReservation), "RandomStringForFormat")
 				}
 				if composeServiceConfig.Deploy.Resources.Reservations.NanoCPUs != "" {
 					cpuReservation, err := cast.ToFloat64E(composeServiceConfig.Deploy.Resources.Reservations.NanoCPUs)
@@ -267,7 +267,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 					}
 					CPUReservation := int64(cpuReservation * 1000)
 					if CPUReservation != 0 {
-						resourceRequests[corev1.ResourceCPU] = *resource.NewMilliQuantity(CPUReservation, resource.DecimalSI)
+						resourceRequests[core.ResourceCPU] = *resource.NewMilliQuantity(CPUReservation, resource.DecimalSI)
 					}
 				}
 				serviceContainer.Resources.Requests = resourceRequests
@@ -289,7 +289,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 		}
 		if restart == "unless-stopped" {
 			log.Warnf("Restart policy 'unless-stopped' in service %s is not supported, convert it to 'always'", name)
-			serviceConfig.RestartPolicy = corev1.RestartPolicyAlways
+			serviceConfig.RestartPolicy = core.RestartPolicyAlways
 		}
 		// replicas:
 		if composeServiceConfig.Deploy.Replicas != nil {
@@ -320,10 +320,10 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 				src = tokens[len(tokens)-1]
 			}
 
-			vSrc := corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
+			vSrc := core.VolumeSource{
+				Secret: &core.SecretVolumeSource{
 					SecretName: secret.Source,
-					Items: []corev1.KeyToPath{{
+					Items: []core.KeyToPath{{
 						Key:  secret.Source,
 						Path: src,
 					}},
@@ -335,12 +335,12 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 				vSrc.Secret.DefaultMode = &mode
 			}
 
-			serviceConfig.AddVolume(corev1.Volume{
+			serviceConfig.AddVolume(core.Volume{
 				Name:         secret.Source,
 				VolumeSource: vSrc,
 			})
 
-			serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, corev1.VolumeMount{
+			serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
 				Name:      secret.Source,
 				MountPath: target,
 			})
@@ -351,14 +351,14 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 			if target == "" {
 				target = "/" + c.Source
 			}
-			vSrc := corev1.ConfigMapVolumeSource{}
+			vSrc := core.ConfigMapVolumeSource{}
 			vSrc.Name = common.MakeFileNameCompliant(c.Source)
 			if o, ok := composeObject.Configs[c.Source]; ok {
 				if o.External.External {
 					log.Errorf("Config metadata %s has an external source", c.Source)
 				} else {
 					srcBaseName := filepath.Base(o.File)
-					vSrc.Items = []corev1.KeyToPath{{Key: srcBaseName, Path: filepath.Base(target)}}
+					vSrc.Items = []core.KeyToPath{{Key: srcBaseName, Path: filepath.Base(target)}}
 					if c.Mode != nil {
 						signedMode := int32(*c.Mode)
 						vSrc.DefaultMode = &signedMode
@@ -367,13 +367,13 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 			} else {
 				log.Errorf("Unable to find configmap object for %s", vSrc.Name)
 			}
-			serviceConfig.AddVolume(corev1.Volume{
+			serviceConfig.AddVolume(core.Volume{
 				Name:         vSrc.Name,
-				VolumeSource: corev1.VolumeSource{ConfigMap: &vSrc},
+				VolumeSource: core.VolumeSource{ConfigMap: &vSrc},
 			})
 
 			serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts,
-				corev1.VolumeMount{
+				core.VolumeMount{
 					Name:      vSrc.Name,
 					MountPath: target,
 					SubPath:   filepath.Base(target),
@@ -392,27 +392,27 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 				// Generate a hash Id for the given source file path to be mounted.
 				hashID := getHash([]byte(hPath))
 				volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
-				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, corev1.VolumeMount{
+				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
 					Name:      volumeName,
 					MountPath: vol.Target,
 				})
 
-				serviceConfig.AddVolume(corev1.Volume{
+				serviceConfig.AddVolume(core.Volume{
 					Name: volumeName,
-					VolumeSource: corev1.VolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{Path: vol.Source},
+					VolumeSource: core.VolumeSource{
+						HostPath: &core.HostPathVolumeSource{Path: vol.Source},
 					},
 				})
 			} else {
-				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, corev1.VolumeMount{
+				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
 					Name:      vol.Source,
 					MountPath: vol.Target,
 				})
 
-				serviceConfig.AddVolume(corev1.Volume{
+				serviceConfig.AddVolume(core.Volume{
 					Name: vol.Source,
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					VolumeSource: core.VolumeSource{
+						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
 							ClaimName: vol.Source,
 						},
 					},
@@ -422,7 +422,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 			}
 		}
 
-		serviceConfig.Containers = []corev1.Container{serviceContainer}
+		serviceConfig.Containers = []core.Container{serviceContainer}
 		ir.Services[name] = serviceConfig
 	}
 
@@ -489,16 +489,16 @@ func (c *V3Loader) getConfigStorages(configs map[string]types.ConfigObjConfig) [
 	return Storages
 }
 
-func (*V3Loader) getPorts(ports []types.ServicePortConfig, expose []string) []corev1.ContainerPort {
-	containerPorts := []corev1.ContainerPort{}
+func (*V3Loader) getPorts(ports []types.ServicePortConfig, expose []string) []core.ContainerPort {
+	containerPorts := []core.ContainerPort{}
 	exist := map[string]bool{}
 	for _, port := range ports {
-		proto := corev1.ProtocolTCP
-		if strings.EqualFold(string(corev1.ProtocolUDP), port.Protocol) {
-			proto = corev1.ProtocolUDP
+		proto := core.ProtocolTCP
+		if strings.EqualFold(string(core.ProtocolUDP), port.Protocol) {
+			proto = core.ProtocolUDP
 		}
 		// Add the port to the k8s pod.
-		containerPorts = append(containerPorts, corev1.ContainerPort{
+		containerPorts = append(containerPorts, core.ContainerPort{
 			ContainerPort: int32(port.Target),
 			Protocol:      proto,
 		})
@@ -506,17 +506,17 @@ func (*V3Loader) getPorts(ports []types.ServicePortConfig, expose []string) []co
 	}
 	for _, port := range expose {
 		portValue := port
-		protocol := corev1.ProtocolTCP
+		protocol := core.ProtocolTCP
 		if strings.Contains(portValue, "/") {
 			splits := strings.Split(port, "/")
 			portValue = splits[0]
-			protocol = corev1.Protocol(strings.ToUpper(splits[1]))
+			protocol = core.Protocol(strings.ToUpper(splits[1]))
 		}
 		if exist[portValue] {
 			continue
 		}
 		// Add the port to the k8s pod.
-		containerPorts = append(containerPorts, corev1.ContainerPort{
+		containerPorts = append(containerPorts, core.ContainerPort{
 			ContainerPort: cast.ToInt32(portValue),
 			Protocol:      protocol,
 		})
@@ -571,12 +571,12 @@ func (c *V3Loader) getNetworks(composeServiceConfig types.ServiceConfig, compose
 	return networks
 }
 
-func (c *V3Loader) getHealthCheck(composeHealthCheck types.HealthCheckConfig) (corev1.Probe, error) {
-	probe := corev1.Probe{}
+func (c *V3Loader) getHealthCheck(composeHealthCheck types.HealthCheckConfig) (core.Probe, error) {
+	probe := core.Probe{}
 
 	if len(composeHealthCheck.Test) > 1 {
-		probe.Handler = corev1.Handler{
-			Exec: &corev1.ExecAction{
+		probe.Handler = core.Handler{
+			Exec: &core.ExecAction{
 				// docker/cli adds "CMD-SHELL" to the struct, hence we remove the first element of composeHealthCheck.Test
 				Command: composeHealthCheck.Test[1:],
 			},
@@ -612,13 +612,13 @@ func (c *V3Loader) getHealthCheck(composeHealthCheck types.HealthCheckConfig) (c
 	return probe, nil
 }
 
-func (c *V3Loader) getEnvs(composeServiceConfig types.ServiceConfig) (envs []corev1.EnvVar) {
+func (c *V3Loader) getEnvs(composeServiceConfig types.ServiceConfig) (envs []core.EnvVar) {
 	for name, value := range composeServiceConfig.Environment {
-		var env corev1.EnvVar
+		var env core.EnvVar
 		if value != nil {
-			env = corev1.EnvVar{Name: name, Value: *value}
+			env = core.EnvVar{Name: name, Value: *value}
 		} else {
-			env = corev1.EnvVar{Name: name, Value: "unknown"}
+			env = core.EnvVar{Name: name, Value: "unknown"}
 		}
 		envs = append(envs, env)
 	}

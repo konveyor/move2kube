@@ -20,9 +20,9 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	log "github.com/sirupsen/logrus"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	rbac "k8s.io/kubernetes/pkg/apis/rbac"
 )
 
 const (
@@ -52,16 +52,16 @@ func (r *Role) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string
 	return objs
 }
 
-func (*Role) createNewResource(irrole irtypes.Role) *rbacv1.Role {
-	role := new(rbacv1.Role)
+func (*Role) createNewResource(irrole irtypes.Role) *rbac.Role {
+	role := new(rbac.Role)
 	role.TypeMeta = metav1.TypeMeta{
 		Kind:       roleKind,
-		APIVersion: rbacv1.SchemeGroupVersion.String(),
+		APIVersion: rbac.SchemeGroupVersion.String(),
 	}
 	role.ObjectMeta = metav1.ObjectMeta{Name: irrole.Name}
-	rules := []rbacv1.PolicyRule{}
+	rules := []rbac.PolicyRule{}
 	for _, policyRule := range irrole.PolicyRules {
-		rules = append(rules, rbacv1.PolicyRule{APIGroups: policyRule.APIGroups, Resources: policyRule.Resources, Verbs: policyRule.Verbs})
+		rules = append(rules, rbac.PolicyRule{APIGroups: policyRule.APIGroups, Resources: policyRule.Resources, Verbs: policyRule.Verbs})
 	}
 	role.Rules = rules
 	return role

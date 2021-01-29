@@ -31,7 +31,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // registryCustomizer customizes image registry related configurations
@@ -256,7 +256,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 						}
 					}
 					if !found {
-						service.ImagePullSecrets = append(service.ImagePullSecrets, corev1.LocalObjectReference{Name: ps})
+						service.ImagePullSecrets = append(service.ImagePullSecrets, core.LocalObjectReference{Name: ps})
 					}
 				}
 			}

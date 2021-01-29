@@ -18,7 +18,7 @@ package optimize
 
 import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	v1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // imagePullPolicyOptimizer sets the pull policy to be always
@@ -28,7 +28,7 @@ type imagePullPolicyOptimizer struct {
 func (ep imagePullPolicyOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	for k, scObj := range ir.Services {
 		for i := range scObj.Containers {
-			scObj.Containers[i].ImagePullPolicy = v1.PullAlways
+			scObj.Containers[i].ImagePullPolicy = core.PullAlways
 		}
 		ir.Services[k] = scObj
 	}

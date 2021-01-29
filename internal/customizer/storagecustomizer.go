@@ -24,7 +24,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 //storageCustomizer customizes storage
@@ -98,8 +98,8 @@ func (ic *storageCustomizer) convertHostPathToPVC() {
 					log.Debugf("Detected host path [%+v]", v)
 					if !ic.shouldHostPathBeRetained(v.HostPath.Path) {
 						hostPathsVisited[v.HostPath.Path] = v.Name
-						v.VolumeSource = corev1.VolumeSource{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						v.VolumeSource = core.VolumeSource{
+							PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
 								ClaimName: v.Name,
 							}}
 						service.Volumes[vi] = v
@@ -107,11 +107,11 @@ func (ic *storageCustomizer) convertHostPathToPVC() {
 						storageObj := irtypes.Storage{
 							StorageType: irtypes.PVCKind,
 							Name:        v.Name,
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: core.PersistentVolumeClaimSpec{
 								VolumeName: v.Name,
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										corev1.ResourceStorage: common.DefaultPVCSize,
+								Resources: core.ResourceRequirements{
+									Requests: core.ResourceList{
+										core.ResourceStorage: common.DefaultPVCSize,
 									},
 								},
 							}}
@@ -120,8 +120,8 @@ func (ic *storageCustomizer) convertHostPathToPVC() {
 						log.Debugf("Host path [%s] is retained", v.HostPath.Path)
 					}
 				} else {
-					v.VolumeSource = corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					v.VolumeSource = core.VolumeSource{
+						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
 							ClaimName: name,
 						}}
 					service.Volumes[vi] = v

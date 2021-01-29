@@ -28,7 +28,7 @@ import (
 	"github.com/konveyor/move2kube/types/output"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestParameterizer(t *testing.T) {
@@ -172,7 +172,7 @@ func getIRWithServicesAndWithoutContainers() types.IR {
 }
 
 func getIRWithServicesAndContainers() types.IR {
-	c1 := corev1.Container{Name: "container-1"}
+	c1 := core.Container{Name: "container-1"}
 	svcname1 := "svcname1"
 	svc1 := types.Service{Name: svcname1, Replicas: 2}
 	svc1.Containers = append(svc1.Containers, c1)
@@ -189,11 +189,11 @@ func getIRWithStoragePVCKind() types.IR {
 	storage1 := irtypes.Storage{
 		StorageType: irtypes.PVCKind,
 		Name:        "storage-1",
-		PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+		PersistentVolumeClaimSpec: core.PersistentVolumeClaimSpec{
 			VolumeName: "storage-1",
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: common.DefaultPVCSize,
+			Resources: core.ResourceRequirements{
+				Requests: core.ResourceList{
+					core.ResourceStorage: common.DefaultPVCSize,
 				},
 			},
 			StorageClassName: &storage1cn,
@@ -214,11 +214,11 @@ func getIRWithStorageNotPVCKind() types.IR {
 	storage1 := irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        "storage-1",
-		PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+		PersistentVolumeClaimSpec: core.PersistentVolumeClaimSpec{
 			VolumeName: "storage-1",
-			Resources: corev1.ResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: common.DefaultPVCSize,
+			Resources: core.ResourceRequirements{
+				Requests: core.ResourceList{
+					core.ResourceStorage: common.DefaultPVCSize,
 				},
 			},
 			StorageClassName: &storage1cn,

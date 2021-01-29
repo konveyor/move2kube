@@ -20,7 +20,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 //PortMergeOptimizer implements Optimizer interface
@@ -31,8 +31,8 @@ type portMergeOptimizer struct {
 func (opt *portMergeOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	for serviceName, service := range ir.Services {
 		serviceHasNoPorts := true
-		for _, coreV1Container := range service.Containers {
-			if len(coreV1Container.Ports) > 0 {
+		for _, coreContainer := range service.Containers {
+			if len(coreContainer.Ports) > 0 {
 				serviceHasNoPorts = false
 				break
 			}
@@ -56,15 +56,15 @@ func (opt *portMergeOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 
 func (*portMergeOptimizer) gatherPorts(ir irtypes.IR, service irtypes.Service) map[int]int {
 	portToContainerIdx := map[int]int{}
-	for coreV1ContainerIdx, coreV1Container := range service.Containers {
-		if irContainer, ok := ir.GetContainer(coreV1Container.Image); ok {
+	for coreContainerIdx, coreContainer := range service.Containers {
+		if irContainer, ok := ir.GetContainer(coreContainer.Image); ok {
 			for _, exposedPort := range irContainer.ExposedPorts {
-				if oldCoreV1ContainerIdx, ok := portToContainerIdx[exposedPort]; ok {
+				if oldcoreContainerIdx, ok := portToContainerIdx[exposedPort]; ok {
 					log.Debugf("The port %d is eligible to be exposed by both container %s and container %s of service %s",
-						exposedPort, service.Containers[oldCoreV1ContainerIdx].Name, coreV1Container.Name, service.Name)
+						exposedPort, service.Containers[oldcoreContainerIdx].Name, coreContainer.Name, service.Name)
 					continue
 				}
-				portToContainerIdx[exposedPort] = coreV1ContainerIdx
+				portToContainerIdx[exposedPort] = coreContainerIdx
 			}
 		}
 	}
@@ -80,9 +80,9 @@ func (*portMergeOptimizer) gatherPorts(ir irtypes.IR, service irtypes.Service) m
 }
 
 func (*portMergeOptimizer) exposePorts(service *irtypes.Service, portToContainerIdx map[int]int) {
-	for port, coreV1ContainerIdx := range portToContainerIdx {
+	for port, coreContainerIdx := range portToContainerIdx {
 		// Add the port to the k8s pod.
-		service.Containers[coreV1ContainerIdx].Ports = append(service.Containers[coreV1ContainerIdx].Ports, corev1.ContainerPort{ContainerPort: int32(port)})
+		service.Containers[coreContainerIdx].Ports = append(service.Containers[coreContainerIdx].Ports, core.ContainerPort{ContainerPort: int32(port)})
 		// Forward the port on the k8s service to the k8s pod.
 		podPort := irtypes.Port{Number: int32(port)}
 		servicePort := podPort

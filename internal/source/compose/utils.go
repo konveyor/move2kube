@@ -24,7 +24,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -91,22 +91,22 @@ func checkForDockerfile(path string) bool {
 	return true
 }
 
-func makeVolumesFromTmpFS(serviceName string, tfsList []string) ([]corev1.VolumeMount, []corev1.Volume) {
-	vmList := []corev1.VolumeMount{}
-	vList := []corev1.Volume{}
+func makeVolumesFromTmpFS(serviceName string, tfsList []string) ([]core.VolumeMount, []core.Volume) {
+	vmList := []core.VolumeMount{}
+	vList := []core.Volume{}
 
 	for index, tfsObj := range tfsList {
 		volumeName := fmt.Sprintf("%s-%s-%d", serviceName, tmpFsPath, index)
 
-		vmList = append(vmList, corev1.VolumeMount{
+		vmList = append(vmList, core.VolumeMount{
 			Name:      volumeName,
 			MountPath: strings.Split(tfsObj, ":")[0],
 		})
 
-		vList = append(vList, corev1.Volume{
+		vList = append(vList, core.Volume{
 			Name: volumeName,
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{Medium: corev1.StorageMediumMemory},
+			VolumeSource: core.VolumeSource{
+				EmptyDir: &core.EmptyDirVolumeSource{Medium: core.StorageMediumMemory},
 			},
 		})
 	}

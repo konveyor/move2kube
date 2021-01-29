@@ -32,8 +32,8 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	giturls "github.com/whilp/git-urls"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -132,9 +132,9 @@ func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.En
 			BackendServiceName: gitEventListenerServiceName,
 			OnlyIngress:        true,
 			ServiceRelPath:     "/" + gitEventListenerServiceName, // this has to be an absolute path otherwise k8s will complain
-			PodSpec: corev1.PodSpec{
-				Containers: []corev1.Container{{
-					Ports: []corev1.ContainerPort{{ContainerPort: int32(8080)}},
+			PodSpec: core.PodSpec{
+				Containers: []core.Container{{
+					Ports: []core.ContainerPort{{ContainerPort: int32(8080)}},
 				}},
 			},
 		},
@@ -168,10 +168,10 @@ func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.En
 	imageRegistrySecret := irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        registrySecretName,
-		SecretType:  corev1.SecretTypeDockerConfigJson,
+		SecretType:  core.SecretTypeDockerConfigJSON,
 		// TODO: not sure if this annotation is specific to docker hub
 		Annotations: map[string]string{"tekton.dev/docker-0": registryURL},
-		StringData:  map[string]string{corev1.DockerConfigJsonKey: dockerConfigJSON},
+		Content:     map[string][]byte{core.DockerConfigJSONKey: []byte(dockerConfigJSON)},
 	}
 
 	secrets := []irtypes.Storage{imageRegistrySecret}
@@ -296,11 +296,11 @@ func (*TektonAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes
 	return irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        name,
-		SecretType:  corev1.SecretTypeSSHAuth,
+		SecretType:  core.SecretTypeSSHAuth,
 		Annotations: map[string]string{"tekton.dev/git-0": gitRepoDomain},
-		StringData: map[string]string{
-			corev1.SSHAuthPrivateKey: gitPrivateKey,
-			"known_hosts":            knownHosts,
+		Content: map[string][]byte{
+			core.SSHAuthPrivateKey: []byte(gitPrivateKey),
+			"known_hosts":          []byte(knownHosts),
 		},
 	}
 }

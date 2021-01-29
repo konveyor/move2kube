@@ -19,9 +19,9 @@ package apiresource
 import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/kubernetes/pkg/apis/core"
 	knativev1 "knative.dev/serving/pkg/apis/serving/v1"
 )
 
@@ -41,7 +41,7 @@ func (d *KnativeService) CreateNewResources(ir irtypes.EnhancedIR, supportedKind
 
 	for _, service := range ir.Services {
 		podSpec := service.PodSpec
-		podSpec.RestartPolicy = v1.RestartPolicyAlways
+		podSpec.RestartPolicy = core.RestartPolicyAlways
 		knativeservice := &knativev1.Service{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       knativeServiceKind,
@@ -56,7 +56,7 @@ func (d *KnativeService) CreateNewResources(ir irtypes.EnhancedIR, supportedKind
 				ConfigurationSpec: knativev1.ConfigurationSpec{
 					Template: knativev1.RevisionTemplateSpec{
 						Spec: knativev1.RevisionSpec{
-							PodSpec: podSpec,
+							PodSpec: convertToV1PodSpec(&podSpec),
 						},
 					},
 				},

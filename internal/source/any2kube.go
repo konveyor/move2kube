@@ -27,7 +27,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // Any2KubeTranslator implements Translator interface for loading any source folder that can be containerized
@@ -116,13 +116,13 @@ func (any2KubeTranslator *Any2KubeTranslator) Translate(services []plantypes.Ser
 			continue
 		}
 		ir.AddContainer(container)
-		serviceContainer := corev1.Container{Name: service.ServiceName}
+		serviceContainer := core.Container{Name: service.ServiceName}
 		serviceContainer.Image = service.Image
 		irService := irtypes.NewServiceFromPlanService(service)
-		serviceContainerPorts := []corev1.ContainerPort{}
+		serviceContainerPorts := []core.ContainerPort{}
 		for _, port := range container.ExposedPorts {
 			// Add the port to the k8s pod.
-			serviceContainerPort := corev1.ContainerPort{ContainerPort: int32(port)}
+			serviceContainerPort := core.ContainerPort{ContainerPort: int32(port)}
 			serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
 			// Forward the port on the k8s service to the k8s pod.
 			podPort := irtypes.Port{Number: int32(port)}
@@ -130,7 +130,7 @@ func (any2KubeTranslator *Any2KubeTranslator) Translate(services []plantypes.Ser
 			irService.AddPortForwarding(servicePort, podPort)
 		}
 		serviceContainer.Ports = serviceContainerPorts
-		irService.Containers = []corev1.Container{serviceContainer}
+		irService.Containers = []core.Container{serviceContainer}
 		ir.Services[service.ServiceName] = irService
 	}
 	return ir, nil

@@ -20,10 +20,10 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // ServiceAccount handles all objects like a service account.
@@ -49,15 +49,15 @@ func (sa *ServiceAccount) CreateNewResources(ir irtypes.EnhancedIR, supportedKin
 	return objs
 }
 
-func (*ServiceAccount) createNewResource(irserviceaccount irtypes.ServiceAccount) *corev1.ServiceAccount {
-	serviceAccount := new(corev1.ServiceAccount)
+func (*ServiceAccount) createNewResource(irserviceaccount irtypes.ServiceAccount) *core.ServiceAccount {
+	serviceAccount := new(core.ServiceAccount)
 	serviceAccount.TypeMeta = metav1.TypeMeta{
 		Kind:       rbacv1.ServiceAccountKind,
-		APIVersion: corev1.SchemeGroupVersion.String(),
+		APIVersion: core.SchemeGroupVersion.String(),
 	}
 	serviceAccount.ObjectMeta = metav1.ObjectMeta{Name: irserviceaccount.Name}
 	for _, secretName := range irserviceaccount.SecretNames {
-		serviceAccount.Secrets = append(serviceAccount.Secrets, corev1.ObjectReference{Name: secretName})
+		serviceAccount.Secrets = append(serviceAccount.Secrets, core.ObjectReference{Name: secretName})
 	}
 	return serviceAccount
 }

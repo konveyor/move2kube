@@ -24,7 +24,7 @@ import (
 	"github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestPortMergeOptimizer(t *testing.T) {
@@ -96,11 +96,11 @@ func TestPortMergeOptimizer(t *testing.T) {
 
 	t.Run("IR containing Containers and Service containing containers with image name", func(t *testing.T) {
 		// Setup
-		c1 := corev1.Container{
+		c1 := core.Container{
 			Name: "container-1",
 		}
 		c1.Image = "image1"
-		c2 := corev1.Container{
+		c2 := core.Container{
 			Name: "container-2",
 		}
 		c2.Image = "image2"
@@ -139,11 +139,11 @@ func TestPortMergeOptimizer(t *testing.T) {
 
 	t.Run("IR containing Containers and Services containing containers with image url", func(t *testing.T) {
 		// Setup
-		c1 := corev1.Container{
+		c1 := core.Container{
 			Name: "container-1",
 		}
 		c1.Image = "registry.com/namespace/image1"
-		c2 := corev1.Container{
+		c2 := core.Container{
 			Name: "container-2",
 		}
 		c2.Image = "registry.com/namespace/image2"
@@ -184,11 +184,11 @@ func TestPortMergeOptimizer(t *testing.T) {
 
 	t.Run("IR containing Containers and Services containing containers with image name and image url", func(t *testing.T) {
 		// Setup
-		c1 := corev1.Container{
+		c1 := core.Container{
 			Name: "container-1",
 		}
 		c1.Image = "image1"
-		c2 := corev1.Container{
+		c2 := core.Container{
 			Name: "container-2",
 		}
 		c2.Image = "registry.com/namespace/image2"
@@ -229,11 +229,11 @@ func TestPortMergeOptimizer(t *testing.T) {
 }
 
 func getIRWithoutContainersAndServiceContainingContainersWithImage() types.IR {
-	c1 := corev1.Container{
+	c1 := core.Container{
 		Name: "container-1",
 	}
 	c1.Image = "image1"
-	c2 := corev1.Container{
+	c2 := core.Container{
 		Name: "container-2",
 	}
 	c2.Image = "image2"
@@ -252,10 +252,10 @@ func getIRWithoutContainersAndServiceContainingContainersWithImage() types.IR {
 }
 
 func getIRWithServicesAndContainersWithoutImage() types.IR {
-	c1 := corev1.Container{
+	c1 := core.Container{
 		Name: "container-1",
 	}
-	c2 := corev1.Container{
+	c2 := core.Container{
 		Name: "container-2",
 	}
 	svcname1 := "svcname1"
@@ -273,16 +273,16 @@ func getIRWithServicesAndContainersWithoutImage() types.IR {
 }
 
 func getExpectIRWithServiceContainingContainerPortsGivenImageName() types.IR {
-	c1 := corev1.Container{
+	c1 := core.Container{
 		Name: "container-1",
 	}
 	c1.Image = "image1"
-	c1.Ports = append(c1.Ports, corev1.ContainerPort{ContainerPort: 8088})
-	c2 := corev1.Container{
+	c1.Ports = append(c1.Ports, core.ContainerPort{ContainerPort: 8088})
+	c2 := core.Container{
 		Name: "container-2",
 	}
 	c2.Image = "image2"
-	c2.Ports = append(c2.Ports, corev1.ContainerPort{ContainerPort: 8000})
+	c2.Ports = append(c2.Ports, core.ContainerPort{ContainerPort: 8000})
 	svcname1 := "svcname1"
 	svcname2 := "svcname2"
 	svc1 := types.Service{Name: svcname1, Replicas: 2}
@@ -307,16 +307,16 @@ func getExpectIRWithServiceContainingContainerPortsGivenImageName() types.IR {
 }
 
 func getExpectIRWithServiceContainingContainerPortsGivenImageURL() types.IR {
-	c1 := corev1.Container{
+	c1 := core.Container{
 		Name: "container-1",
 	}
 	c1.Image = "registry.com/namespace/image1"
-	c1.Ports = append(c1.Ports, corev1.ContainerPort{ContainerPort: 8088})
-	c2 := corev1.Container{
+	c1.Ports = append(c1.Ports, core.ContainerPort{ContainerPort: 8088})
+	c2 := core.Container{
 		Name: "container-2",
 	}
 	c2.Image = "registry.com/namespace/image2"
-	c2.Ports = append(c2.Ports, corev1.ContainerPort{ContainerPort: 8000}, corev1.ContainerPort{ContainerPort: 8080})
+	c2.Ports = append(c2.Ports, core.ContainerPort{ContainerPort: 8000}, core.ContainerPort{ContainerPort: 8080})
 	svcname1 := "svcname1"
 	svcname2 := "svcname2"
 	svc1 := types.Service{Name: svcname1, Replicas: 2}
@@ -343,16 +343,16 @@ func getExpectIRWithServiceContainingContainerPortsGivenImageURL() types.IR {
 }
 
 func getExpectIRWithServiceContainingContainerPortsGivenImageNameAndURL() types.IR {
-	c1 := corev1.Container{
+	c1 := core.Container{
 		Name: "container-1",
 	}
 	c1.Image = "image1"
-	c1.Ports = append(c1.Ports, corev1.ContainerPort{ContainerPort: 8088})
-	c2 := corev1.Container{
+	c1.Ports = append(c1.Ports, core.ContainerPort{ContainerPort: 8088})
+	c2 := core.Container{
 		Name: "container-2",
 	}
 	c2.Image = "registry.com/namespace/image2"
-	c2.Ports = append(c2.Ports, corev1.ContainerPort{ContainerPort: 8000}, corev1.ContainerPort{ContainerPort: 8080})
+	c2.Ports = append(c2.Ports, core.ContainerPort{ContainerPort: 8000}, core.ContainerPort{ContainerPort: 8080})
 	svcname1 := "svcname1"
 	svcname2 := "svcname2"
 	svc1 := types.Service{Name: svcname1, Replicas: 2}
