@@ -309,11 +309,13 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 			continue
 		}
 		if objgv == groupversion {
+			scheme.Default(obj)
 			return obj, nil
 		}
 		//Change to supported version
 		newobj, err := scheme.ConvertToVersion(obj, groupversion)
 		if err == nil {
+			scheme.Default(newobj)
 			return newobj, nil
 		}
 		log.Debugf("Unable to do direct translation : %s", err)
@@ -347,6 +349,7 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 			log.Errorf("Error while transforming version : %s", err)
 			continue
 		}
+		scheme.Default(newobj)
 		return newobj, nil
 	}
 	return nil, fmt.Errorf("Unable to convert to a supported version : %+v", obj.GetObjectKind())
