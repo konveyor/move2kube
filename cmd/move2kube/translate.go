@@ -117,7 +117,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 			if len(p.Spec.Inputs.K8sFiles) == 0 {
 				log.Fatalf("Failed to find any services. Aborting.")
 			} else {
-				log.Debugf("Failed to find any services.")
+				log.Infof("No services found. Proceeding for kubernetes artifacts translation.")
 			}
 		}
 		if cmd.Flags().Changed(cmdcommon.NameFlag) {

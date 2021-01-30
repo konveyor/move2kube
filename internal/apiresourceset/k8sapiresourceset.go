@@ -19,7 +19,6 @@ package apiresourceset
 import (
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
@@ -301,12 +300,12 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 		return nil, fmt.Errorf("Kind %s unsupported in target cluster : %+v", kind, obj.GetObjectKind())
 	}
 	for _, v := range versions {
-		if kind == "Service" && strings.HasPrefix(v, knativev1.SchemeGroupVersion.Group) {
-			continue
-		}
 		groupversion, err := schema.ParseGroupVersion(v)
 		if err != nil {
 			log.Errorf("Unable to parse group version %s : %s", v, err)
+			continue
+		}
+		if kind == "Service" && groupversion.Group == knativev1.SchemeGroupVersion.Group {
 			continue
 		}
 		if fixFn == nil {

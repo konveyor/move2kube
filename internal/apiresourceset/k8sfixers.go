@@ -58,8 +58,10 @@ func fixIngress(obj runtime.Object) (runtime.Object, error) {
 	ptf := networking.PathTypePrefix
 	if i, ok := obj.(*networking.Ingress); ok {
 		for ri, r := range i.Spec.Rules {
-			for pi := range r.HTTP.Paths {
-				i.Spec.Rules[ri].HTTP.Paths[pi].PathType = &ptf
+			for pi, p := range r.HTTP.Paths {
+				if p.PathType == nil {
+					i.Spec.Rules[ri].HTTP.Paths[pi].PathType = &ptf
+				}
 			}
 		}
 		obj = i

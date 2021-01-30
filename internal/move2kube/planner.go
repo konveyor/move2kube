@@ -50,6 +50,10 @@ func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Pl
 		containerizer.InitContainerizers(p.Spec.Inputs.RootDir, nil)
 	}
 
+	if len(selectedTranslationPlanners) == 0 {
+		log.Debugf("No sources selected")
+	}
+
 	log.Infoln("Planning Translation")
 	for _, l := range selectedTranslationPlanners {
 		log.Infof("[%T] Planning translation", l)
@@ -86,6 +90,10 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 		cachepaths = append(cachepaths, p.Spec.Inputs.QACaches[i])
 	}
 	qaengine.AddCaches(cachepaths)
+
+	if len(p.Spec.Inputs.Services) == 0 {
+		log.Debugf("No services found")
+	}
 
 	// Identify translation types of interest
 	translationTypes := []string{}
@@ -153,7 +161,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	selectedConTypes := selectContainerizationTypes(conTypes)
 
 	if len(selectedConTypes) == 0 {
-		log.Debugf("No containerization technique was selected; It could mean some services will get ignored.")
+		log.Infof("No containerization technique was selected; It could mean some services will get ignored.")
 	}
 
 	services := map[string][]plantypes.Service{}
