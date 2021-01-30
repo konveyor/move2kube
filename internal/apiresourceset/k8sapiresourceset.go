@@ -297,9 +297,10 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 	fixFn := fixFuncs[kind]
 	versions := clusterSpec.GetSupportedVersions(kind)
 	if versions == nil || len(versions) == 0 {
-		return nil, fmt.Errorf("Kind %s unsupported in target cluster : %+v", kind, obj.GetObjectKind())
+		return obj, fmt.Errorf("Kind %s unsupported in target cluster : %+v", kind, obj.GetObjectKind())
 	}
 	for _, v := range versions {
+		var newobj runtime.Object
 		groupversion, err := schema.ParseGroupVersion(v)
 		if err != nil {
 			log.Errorf("Unable to parse group version %s : %s", v, err)
@@ -314,7 +315,7 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 				return obj, nil
 			}
 			//Change to supported version
-			newobj, err := scheme.ConvertToVersion(obj, groupversion)
+			newobj, err = scheme.ConvertToVersion(obj, groupversion)
 			if err == nil {
 				scheme.Default(newobj)
 				return newobj, nil
@@ -345,26 +346,36 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 						uvobj = fuvobj
 					}
 				}
-				obj = uvobj
+				newobj = uvobj
 				log.Debugf("Converted %s obj to %s", objgv, kt)
 				break
 			}
 		}
 		if !uvcreated {
 			log.Errorf("Unable to convert to unversioned object. Will try conversion as it is : %s", objgv)
-		}
-		if objgv == groupversion {
-			scheme.Default(obj)
-			return obj, nil
-		}
-		//Change to supported version
-		newobj, err = scheme.ConvertToVersion(obj, groupversion)
-		if err != nil {
-			log.Errorf("Error while transforming version : %s", err)
-			continue
+			if objgv == groupversion {
+				scheme.Default(obj)
+				return obj, nil
+			} else if fixFn != nil {
+				newobj, err = scheme.ConvertToVersion(obj, groupversion)
+				if err != nil {
+					log.Errorf("Error while transforming version : %s", err)
+					continue
+				}
+				scheme.Default(newobj)
+				return newobj, nil
+			}
+		} else {
+			//Change to supported version
+			newobj, err = scheme.ConvertToVersion(newobj, groupversion)
+			if err != nil {
+				log.Errorf("Error while transforming version : %s", err)
+				continue
+			}
 		}
 		scheme.Default(newobj)
 		return newobj, nil
 	}
+	scheme.Default(obj)
 	return obj, fmt.Errorf("Unable to convert to a supported version : %+v", obj.GetObjectKind())
 }
