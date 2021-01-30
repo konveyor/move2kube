@@ -41,8 +41,8 @@ const (
 	podKind string = "Pod"
 	// jobKind defines Job Kind
 	jobKind string = "Job"
-	// deploymentKind defines Deployment Kind
-	deploymentKind string = "Deployment"
+	// DeploymentKind defines Deployment Kind
+	DeploymentKind string = "Deployment"
 	// deploymentConfigKind defines DeploymentConfig Kind
 	deploymentConfigKind string = "DeploymentConfig"
 	// replicationControllerKind defines ReplicationController Kind
@@ -58,7 +58,7 @@ type Deployment struct {
 
 // GetSupportedKinds returns kinds supported by the deployment
 func (d *Deployment) GetSupportedKinds() []string {
-	return []string{podKind, jobKind, deploymentKind, deploymentConfigKind, replicationControllerKind}
+	return []string{podKind, jobKind, DeploymentKind, deploymentConfigKind, replicationControllerKind}
 }
 
 // CreateNewResources converts ir to runtime object
@@ -84,7 +84,7 @@ func (d *Deployment) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []
 			}
 		} else if common.IsStringPresent(supportedKinds, deploymentConfigKind) {
 			obj = d.createDeploymentConfig(service)
-		} else if common.IsStringPresent(supportedKinds, deploymentKind) {
+		} else if common.IsStringPresent(supportedKinds, DeploymentKind) {
 			obj = d.createDeployment(service)
 		} else if common.IsStringPresent(supportedKinds, replicationControllerKind) {
 			obj = d.createReplicationController(service)
@@ -131,7 +131,7 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 		}
 		return []runtime.Object{obj}, true
 	}
-	if common.IsStringPresent(supportedKinds, deploymentKind) {
+	if common.IsStringPresent(supportedKinds, DeploymentKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
 			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas)}, true
 		} else if d1, ok := obj.(*corev1.ReplicationController); ok {
@@ -335,7 +335,7 @@ func (d *Deployment) toDeployment(meta metav1.ObjectMeta, podspec corev1.PodSpec
 	podspec = d.convertVolumesKindsByPolicy(podspec)
 	dc := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       deploymentKind,
+			Kind:       DeploymentKind,
 			APIVersion: appsv1.SchemeGroupVersion.String(), //"apps/v1",
 		},
 		ObjectMeta: meta,

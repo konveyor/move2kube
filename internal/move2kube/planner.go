@@ -49,8 +49,9 @@ func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Pl
 	} else {
 		containerizer.InitContainerizers(p.Spec.Inputs.RootDir, nil)
 	}
+
 	if len(selectedTranslationPlanners) == 0 {
-		log.Fatal("No translation type selected. Aborting.")
+		log.Debugf("No sources selected")
 	}
 
 	log.Infoln("Planning Translation")
@@ -89,8 +90,9 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 		cachepaths = append(cachepaths, p.Spec.Inputs.QACaches[i])
 	}
 	qaengine.AddCaches(cachepaths)
+
 	if len(p.Spec.Inputs.Services) == 0 {
-		log.Fatalf("Failed to find any services. Aborting.")
+		log.Debugf("No services found")
 	}
 
 	// Identify translation types of interest
@@ -114,7 +116,11 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 
 	p.Spec.Inputs.Services = planServices
 	if len(p.Spec.Inputs.Services) == 0 {
-		log.Fatalf("Failed to find any services that support the selected translation types. Aborting.")
+		if len(p.Spec.Inputs.K8sFiles) == 0 {
+			log.Fatalf("Failed to find any services that support the selected translation types.")
+		} else {
+			log.Debugf("Failed to find any services that support the selected translation types.")
+		}
 	}
 
 	// Identify services of interest
@@ -122,23 +128,25 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	for sn := range p.Spec.Inputs.Services {
 		servicenames = append(servicenames, sn)
 	}
-	problem, err := qatypes.NewMultiSelectProblem("Select all services that are needed:", []string{"The services unselected here will be ignored."}, servicenames, servicenames)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
+	if len(servicenames) != 0 {
+		problem, err := qatypes.NewMultiSelectProblem("Select all services that are needed:", []string{"The services unselected here will be ignored."}, servicenames, servicenames)
+		if err != nil {
+			log.Fatalf("Unable to create problem : %s", err)
+		}
+		problem, err = qaengine.FetchAnswer(problem)
+		if err != nil {
+			log.Fatalf("Unable to fetch answer : %s", err)
+		}
+		selectedServices, err := problem.GetSliceAnswer()
+		if err != nil {
+			log.Fatalf("Unable to get answer : %s", err)
+		}
+		planServices = map[string][]plantypes.Service{}
+		for _, s := range selectedServices {
+			planServices[s] = p.Spec.Inputs.Services[s]
+		}
+		p.Spec.Inputs.Services = planServices
 	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	selectedServices, err := problem.GetSliceAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
-	planServices = map[string][]plantypes.Service{}
-	for _, s := range selectedServices {
-		planServices[s] = p.Spec.Inputs.Services[s]
-	}
-	p.Spec.Inputs.Services = planServices
 
 	// Identify containerization techniques of interest
 	conTypes := []string{}
@@ -153,7 +161,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	selectedConTypes := selectContainerizationTypes(conTypes)
 
 	if len(selectedConTypes) == 0 {
-		log.Errorf("No containerization technique was selected; It could mean some services will get ignored.")
+		log.Infof("No containerization technique was selected; It could mean some services will get ignored.")
 	}
 
 	services := map[string][]plantypes.Service{}
@@ -240,7 +248,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	artifactTypeList[0] = string(plantypes.Yamls)
 	artifactTypeList[1] = string(plantypes.Helm)
 	artifactTypeList[2] = string(plantypes.Knative)
-	problem, err = qatypes.NewSelectProblem("Choose the artifact type:", []string{"Yamls - Generate Kubernetes Yamls", "Helm - Generate Helm chart", "Knative - Create Knative artifacts"}, string(plantypes.Yamls), artifactTypeList)
+	problem, err := qatypes.NewSelectProblem("Choose the artifact type:", []string{"Yamls - Generate Kubernetes Yamls", "Helm - Generate Helm chart", "Knative - Create Knative artifacts"}, string(plantypes.Yamls), artifactTypeList)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -279,6 +287,9 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 }
 
 func selectTranslators(translationTypes []string) (selectedTranslationTypes []string) {
+	if len(translationTypes) == 0 {
+		return translationTypes
+	}
 	problem, err := qatypes.NewMultiSelectProblem("Select all translation types that you are interested in:", []string{"Services that don't support any of the translation types you are interested in will be ignored."}, translationTypes, translationTypes)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
@@ -295,6 +306,9 @@ func selectTranslators(translationTypes []string) (selectedTranslationTypes []st
 }
 
 func selectContainerizationTypes(containerizationTypes []string) (selectedConTypes []string) {
+	if len(containerizationTypes) == 0 {
+		return containerizationTypes
+	}
 	problem, err := qatypes.NewMultiSelectProblem("Select all containerization modes that is of interest:", []string{"Services that don't support any of the containerization techniques you are interested in will be ignored."}, containerizationTypes, containerizationTypes)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)

@@ -21,7 +21,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/konveyor/move2kube/internal/apiresourceset"
 	"github.com/konveyor/move2kube/internal/common"
@@ -32,8 +31,6 @@ import (
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	knativev1 "knative.dev/serving/pkg/apis/serving/v1"
 )
 
 const (
@@ -102,42 +99,20 @@ func (kt *K8sTransformer) WriteObjects(outpath string) error {
 	}
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))
 
-	scheme := (&apiresourceset.K8sAPIResourceSet{}).GetScheme()
+	k8sresourceset := &apiresourceset.K8sAPIResourceSet{}
 	objs := []runtime.Object{}
 	for _, obj := range kt.TransformedObjects {
-		kind := obj.GetObjectKind().GroupVersionKind().Kind
-		versions := kt.TargetClusterSpec.GetSupportedVersions(kind)
-		version := obj.GetObjectKind().GroupVersionKind().String()
-		if versions == nil {
+		newobj, err := k8sresourceset.ConvertToSupportedVersion(obj, kt.TargetClusterSpec)
+		if err != nil {
+			log.Warnf("Unable to translate object to a supported version : %s.", err)
 			if kt.IgnoreUnsupportedKinds {
-				log.Errorf("Kind %s unsupported in target cluster. Will ignore object. %+v", kind, obj.GetObjectKind())
+				log.Warnf("Ignoring object : %+v", obj.GetObjectKind())
 				continue
 			}
-		} else {
-			if kind == "Service" {
-				for _, v := range versions {
-					if !strings.HasPrefix(v, knativev1.SchemeGroupVersion.Group) {
-						version = v
-					}
-				}
-			} else {
-				version = versions[0]
-			}
+			log.Warnf("Writing obj in original version : %+v", obj.GetObjectKind())
+			newobj = obj
 		}
-		groupversion, err := schema.ParseGroupVersion(version)
-		if err != nil {
-			log.Errorf("Unable to parse group version %s : %s", version, err)
-			continue
-		}
-		//Change to supported version
-		newobj, err := scheme.ConvertToVersion(obj, schema.GroupVersion{Group: groupversion.Group, Version: groupversion.Version})
-		if err != nil {
-			log.Errorf("Error while transforming version : %s. Writing in original version.", err)
-			//continue
-		} else {
-			obj = newobj
-		}
-		objs = append(objs, obj)
+		objs = append(objs, newobj)
 	}
 
 	_, err := writeTransformedObjects(artifactspath, objs)
