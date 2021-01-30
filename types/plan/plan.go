@@ -57,9 +57,7 @@ const (
 	// Any2KubeTranslation translation type is used when source is of an unknown platform
 	Any2KubeTranslation TranslationTypeValue = "Containerize"
 	// Kube2KubeTranslation translation type is used when source is Kubernetes
-	Kube2KubeTranslation TranslationTypeValue = "Kubernetes"
-	// Knative2KubeTranslation translation type is used when source is Knative
-	Knative2KubeTranslation TranslationTypeValue = "Knative"
+	Kube2KubeTranslation TranslationTypeValue = "Kube2Kube"
 	// Dockerfile2KubeTranslation translation type is used when source is Knative
 	Dockerfile2KubeTranslation TranslationTypeValue = "Dockerfile"
 )

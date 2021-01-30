@@ -32,10 +32,13 @@ func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Pl
 	p := plantypes.NewPlan()
 	p.Name = prjName
 	p.Spec.Inputs.RootDir = inputPath
+	allowKube2Kube := true
 
 	selectedTranslationPlanners := source.GetTranslators()
 	if interactive {
-		translationTypes := selectTranslators(source.GetAllTranslatorTypes())
+		att := source.GetAllTranslatorTypes()
+		att = append(att, string(plantypes.Kube2KubeTranslation))
+		translationTypes := selectTranslators(att)
 		selectedTranslationPlanners = []source.Translator{}
 		for _, tp := range source.GetTranslators() {
 			tpn := (string)(tp.GetTranslatorType())
@@ -43,6 +46,10 @@ func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Pl
 				selectedTranslationPlanners = append(selectedTranslationPlanners, tp)
 			}
 		}
+		if !common.IsStringPresent(translationTypes, string(plantypes.Kube2KubeTranslation)) {
+			allowKube2Kube = false
+		}
+
 		if common.IsStringPresent(translationTypes, string(plantypes.Any2KubeTranslation)) || common.IsStringPresent(translationTypes, string(plantypes.CfManifest2KubeTranslation)) {
 			containerizer.InitContainerizers(p.Spec.Inputs.RootDir, selectContainerizationTypes(containerizer.GetAllContainerBuildStrategies()))
 		}
@@ -70,6 +77,11 @@ func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Pl
 	log.Infoln("Planning Metadata")
 	metadataPlanners := metadata.GetLoaders()
 	for _, l := range metadataPlanners {
+		if !allowKube2Kube {
+			if _, ok := l.(*metadata.K8sFilesLoader); ok {
+				continue
+			}
+		}
 		log.Infof("[%T] Planning metadata", l)
 		err := l.UpdatePlan(inputPath, &p)
 		if err != nil {
