@@ -353,6 +353,10 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 		if !uvcreated {
 			log.Errorf("Unable to convert to unversioned object. Will try conversion as it is : %s", objgv)
 		}
+		if objgv == groupversion {
+			scheme.Default(obj)
+			return obj, nil
+		}
 		//Change to supported version
 		newobj, err = scheme.ConvertToVersion(obj, groupversion)
 		if err != nil {
