@@ -366,5 +366,5 @@ func (k8sAPIResourceSet *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtim
 		scheme.Default(newobj)
 		return newobj, nil
 	}
-	return nil, fmt.Errorf("Unable to convert to a supported version : %+v", obj.GetObjectKind())
+	return obj, fmt.Errorf("Unable to convert to a supported version : %+v", obj.GetObjectKind())
 }

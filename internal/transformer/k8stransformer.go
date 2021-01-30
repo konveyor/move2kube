@@ -110,6 +110,7 @@ func (kt *K8sTransformer) WriteObjects(outpath string) error {
 				continue
 			}
 			log.Warnf("Writing obj in original version : %+v", obj.GetObjectKind())
+			newobj = obj
 		}
 		objs = append(objs, newobj)
 	}
