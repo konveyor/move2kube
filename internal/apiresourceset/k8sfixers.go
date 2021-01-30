@@ -41,32 +41,32 @@ func init() {
 }
 
 func fixDeployment(obj runtime.Object) (runtime.Object, error) {
-	if d, ok := obj.(*apps.Deployment); ok {
-		if d.Spec.Selector == nil {
-			d.Spec.Selector = &metav1.LabelSelector{
-				MatchLabels: d.Spec.Template.Labels,
-			}
-		}
-		obj = d
-	} else {
+	d, ok := obj.(*apps.Deployment)
+	if !ok {
 		return obj, fmt.Errorf("Non Matching type. Expected Deployment : Got %T", obj)
 	}
+	if d.Spec.Selector == nil {
+		d.Spec.Selector = &metav1.LabelSelector{
+			MatchLabels: d.Spec.Template.Labels,
+		}
+	}
+	obj = d
 	return obj, nil
 }
 
 func fixIngress(obj runtime.Object) (runtime.Object, error) {
 	ptf := networking.PathTypePrefix
-	if i, ok := obj.(*networking.Ingress); ok {
-		for ri, r := range i.Spec.Rules {
-			for pi, p := range r.HTTP.Paths {
-				if p.PathType == nil {
-					i.Spec.Rules[ri].HTTP.Paths[pi].PathType = &ptf
-				}
-			}
-		}
-		obj = i
-	} else {
+	i, ok := obj.(*networking.Ingress)
+	if !ok {
 		return obj, fmt.Errorf("Non Matching type. Expected Ingress : Got %T", obj)
 	}
+	for ri, r := range i.Spec.Rules {
+		for pi, p := range r.HTTP.Paths {
+			if p.PathType == nil {
+				i.Spec.Rules[ri].HTTP.Paths[pi].PathType = &ptf
+			}
+		}
+	}
+	obj = i
 	return obj, nil
 }
