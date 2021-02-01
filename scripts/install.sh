@@ -41,12 +41,12 @@ fi
 [[ $VERIFY_CHECKSUM ]] || VERIFY_CHECKSUM='true'
 [[ $MOVE2KUBE_INSTALL_DIR ]] || MOVE2KUBE_INSTALL_DIR='/usr/local/bin'
 
-HAS_JQ="$(type jq &>/dev/null && echo true || echo false)"
-HAS_CURL="$(type curl &>/dev/null && echo true || echo false)"
-HAS_WGET="$(type wget &>/dev/null && echo true || echo false)"
-HAS_OPENSSL="$(type openssl &>/dev/null && echo true || echo false)"
-HAS_SHA256SUM="$(type sha256sum &>/dev/null && echo true || echo false)"
-HAS_MOVE2KUBE="$(type "$BINARY_NAME" &>/dev/null && echo true || echo false)"
+HAS_JQ="$(command -v jq >/dev/null && echo true || echo false)"
+HAS_CURL="$(command -v curl >/dev/null && echo true || echo false)"
+HAS_WGET="$(command -v wget >/dev/null && echo true || echo false)"
+HAS_OPENSSL="$(command -v openssl >/dev/null && echo true || echo false)"
+HAS_SHA256SUM="$(command -v sha256sum >/dev/null && echo true || echo false)"
+HAS_MOVE2KUBE="$(command -v "$BINARY_NAME" >/dev/null && echo true || echo false)"
 
 download() {
     if [ "$#" -ne 2 ]; then
