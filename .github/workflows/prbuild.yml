@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ steps.info.outputs.go_version }}
+      - name: install upx to compress binaries
+        run: sudo apt-get install -y upx
       - run: make ci
       - run: make test-coverage
       - name: upload coverage

@@ -15,7 +15,7 @@
 # Builder image
 FROM registry.fedoraproject.org/fedora:latest AS build_base
 WORKDIR /temp
-RUN dnf install -y git make findutils \
+RUN dnf install -y git make findutils upx \
     && dnf clean all \
     && rm -rf /var/cache/yum
 ENV GOPATH=/go
