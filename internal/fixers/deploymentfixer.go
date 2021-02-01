@@ -14,33 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apiresourceset
+package fixers
 
 import (
 	"fmt"
 
+	"github.com/konveyor/move2kube/internal/apiresource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apps "k8s.io/kubernetes/pkg/apis/apps"
-	networking "k8s.io/kubernetes/pkg/apis/networking"
-
-	"github.com/konveyor/move2kube/internal/apiresource"
+	appsinstall "k8s.io/kubernetes/pkg/apis/apps/install"
 )
 
-type fixFunc func(obj runtime.Object) (runtime.Object, error)
-
-var (
-	fixFuncs map[string]fixFunc
-)
-
-func init() {
-	fixFuncs = map[string]fixFunc{
-		apiresource.DeploymentKind: fixDeployment,
-		apiresource.IngressKind:    fixIngress,
-	}
+type deploymentFixer struct {
 }
 
-func fixDeployment(obj runtime.Object) (runtime.Object, error) {
+func init() {
+	appsinstall.Install(scheme)
+}
+
+func (f deploymentFixer) getGroupVersionKind() schema.GroupVersionKind {
+	return apps.SchemeGroupVersion.WithKind(apiresource.DeploymentKind)
+}
+
+func (f deploymentFixer) fix(obj runtime.Object) (runtime.Object, error) {
 	d, ok := obj.(*apps.Deployment)
 	if !ok {
 		return obj, fmt.Errorf("Non Matching type. Expected Deployment : Got %T", obj)
@@ -51,22 +49,5 @@ func fixDeployment(obj runtime.Object) (runtime.Object, error) {
 		}
 	}
 	obj = d
-	return obj, nil
-}
-
-func fixIngress(obj runtime.Object) (runtime.Object, error) {
-	ptf := networking.PathTypePrefix
-	i, ok := obj.(*networking.Ingress)
-	if !ok {
-		return obj, fmt.Errorf("Non Matching type. Expected Ingress : Got %T", obj)
-	}
-	for ri, r := range i.Spec.Rules {
-		for pi, p := range r.HTTP.Paths {
-			if p.PathType == nil {
-				i.Spec.Rules[ri].HTTP.Paths[pi].PathType = &ptf
-			}
-		}
-	}
-	obj = i
 	return obj, nil
 }

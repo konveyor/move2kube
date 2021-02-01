@@ -33,7 +33,8 @@ import (
 )
 
 const (
-	serviceKind = "Service"
+	// ServiceKind defines Service Kind
+	ServiceKind = "Service"
 	// IngressKind defines Ingress Kind
 	IngressKind = "Ingress"
 	routeKind   = "Route"
@@ -46,7 +47,7 @@ type Service struct {
 
 // GetSupportedKinds returns supported kinds
 func (d *Service) GetSupportedKinds() []string {
-	return []string{serviceKind, IngressKind, routeKind}
+	return []string{ServiceKind, IngressKind, routeKind}
 }
 
 // CreateNewResources converts IR to runtime objects
@@ -78,7 +79,7 @@ func (d *Service) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 			}
 			continue
 		}
-		if !common.IsStringPresent(supportedKinds, serviceKind) {
+		if !common.IsStringPresent(supportedKinds, ServiceKind) {
 			log.Errorf("Could not find a valid resource type in cluster to create a Service")
 			continue
 		}
@@ -130,7 +131,7 @@ func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 			}
 			return []runtime.Object{obj}, true
 		}
-	} else if common.IsStringPresent(supportedKinds, serviceKind) {
+	} else if common.IsStringPresent(supportedKinds, ServiceKind) {
 		if route, ok := obj.(*okdroutev1.Route); ok {
 			return d.routeToService(*route), true
 		}
@@ -168,7 +169,7 @@ func (d *Service) ingressToRoute(ingress networking.Ingress) []runtime.Object {
 					Host: ingressspec.Host,
 					Path: path.Path,
 					To: okdroutev1.RouteTargetReference{
-						Kind:   serviceKind,
+						Kind:   ServiceKind,
 						Name:   path.Backend.Service.Name,
 						Weight: &weight,
 					},
@@ -214,7 +215,7 @@ func (d *Service) serviceToRoutes(service core.Service, ir irtypes.EnhancedIR) [
 				Host: ir.TargetClusterSpec.Host,
 				Path: path,
 				To: okdroutev1.RouteTargetReference{
-					Kind:   serviceKind,
+					Kind:   ServiceKind,
 					Name:   service.Name,
 					Weight: &weight,
 				},
@@ -336,7 +337,7 @@ func (d *Service) routeToService(route okdroutev1.Route) []runtime.Object {
 	// TODO: Think through how will the clusterip service that was originally there will behave when merged with this service?
 	svc := &core.Service{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       serviceKind,
+			Kind:       ServiceKind,
 			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: route.ObjectMeta,
@@ -364,7 +365,7 @@ func (d *Service) ingressToService(ingress networking.Ingress) []runtime.Object 
 		for _, path := range ingressspec.IngressRuleValue.HTTP.Paths {
 			svc := &core.Service{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       serviceKind,
+					Kind:       ServiceKind,
 					APIVersion: core.SchemeGroupVersion.String(),
 				},
 				ObjectMeta: ingress.ObjectMeta,
@@ -429,7 +430,7 @@ func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, pa
 			Host: ir.TargetClusterSpec.Host,
 			Path: path,
 			To: okdroutev1.RouteTargetReference{
-				Kind:   serviceKind,
+				Kind:   ServiceKind,
 				Name:   service.Name,
 				Weight: &weight,
 			},
@@ -530,7 +531,7 @@ func (d *Service) createService(service irtypes.Service, serviceType core.Servic
 	ports := d.getServicePorts(service)
 	svc := &core.Service{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       serviceKind,
+			Kind:       ServiceKind,
 			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
