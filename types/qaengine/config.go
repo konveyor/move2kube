@@ -137,18 +137,14 @@ func (c *Config) GetSolution(p Problem) (Problem, error) {
 	// Note that 'c' in 'a.b.c.d' does not have to be a valid option for the question.
 	// We take the mere existence of 'a.b.c.d' to indicate that the user wants to skip the question.
 	atleastOneKeyHasLastSegment := false
-	for _, k := range baseValueMap {
-		kStr, ok := k.(string)
-		if !ok {
-			return p, noAns
-		}
-		newK := baseKey + common.Delim + kStr + common.Delim + lastKeySegment
-		v, ok := get(newK, c.yamlMap)
+	for k := range baseValueMap {
+		newK := baseKey + common.Delim + k + common.Delim + lastKeySegment
+		lastKeySegmentValue, ok := get(newK, c.yamlMap)
 		if !ok {
 			continue
 		}
-		if _, ok := v.(bool); !ok {
-			log.Debugf("Found key %s in the config but the corresponding value is not a boolean. Actual value %v is of type %T", newK, v, v)
+		if _, ok := lastKeySegmentValue.(bool); !ok {
+			log.Debugf("Found key %s in the config but the corresponding value is not a boolean. Actual value %v is of type %T", newK, lastKeySegmentValue, lastKeySegmentValue)
 			return p, noAns
 		}
 		atleastOneKeyHasLastSegment = true
