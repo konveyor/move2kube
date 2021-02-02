@@ -9,7 +9,7 @@ spec:
       nodejs:
         - serviceName: nodejs
           image: nodejs:latest
-          translationType: Any2Kube
+          translationType: Containerize
           containerBuildType: CNB
           sourceType:
             - Directory

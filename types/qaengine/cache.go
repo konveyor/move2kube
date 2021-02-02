@@ -19,13 +19,12 @@ package qaengine
 import (
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types"
+	log "github.com/sirupsen/logrus"
 )
 
-// QACacheKind defines kind of cfcontainerizers
+// QACacheKind defines kind of QA Cache
 const QACacheKind types.Kind = "QACache"
 
 // Cache stores the answers for reuse
@@ -43,17 +42,14 @@ type CacheSpec struct {
 }
 
 // NewCache creates new cache instance
-func NewCache(file string) Cache {
-	c := Cache{
+func NewCache(file string) (cache *Cache) {
+	return &Cache{
 		TypeMeta: types.TypeMeta{
 			Kind:       string(QACacheKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
-		Spec: CacheSpec{
-			file: file,
-		},
+		Spec: CacheSpec{file: file},
 	}
-	return c
 }
 
 // Load loads and merges cache
@@ -80,21 +76,21 @@ func (cache *Cache) Write() error {
 	return err
 }
 
-// AddProblemSolutionToCache adds a problem to solution cache
-func (cache *Cache) AddProblemSolutionToCache(p Problem) bool {
-
+// AddSolution adds a problem to solution cache
+func (cache *Cache) AddSolution(p Problem) error {
 	if p.Solution.Type == PasswordSolutionFormType {
-		log.Debugf("Passwords are not added to the cache.")
-		return false
+		err := fmt.Errorf("Passwords are not added to the cache")
+		log.Debug(err)
+		return err
 	}
-
 	if !p.Resolved {
-		log.Warnf("Unresolved problem. Not going to be added to cache.")
-		return false
+		err := fmt.Errorf("Unresolved problem. Not going to be added to cache")
+		log.Warn(err)
+		return err
 	}
 	added := false
 	for i, cp := range cache.Spec.Problems {
-		if cp.matches(p) {
+		if cp.ID == p.ID {
 			log.Debugf("A solution already exists in cache for [%s], rewriting", p.Desc)
 			cache.Spec.Problems[i] = p
 			added = true
@@ -105,9 +101,10 @@ func (cache *Cache) AddProblemSolutionToCache(p Problem) bool {
 		cache.Spec.Problems = append(cache.Spec.Problems, p)
 	}
 	if err := cache.Write(); err != nil {
-		log.Errorf("Unable to persist cache : %s", err)
+		log.Errorf("Failed to write to the cache file. Error: %q", err)
+		return err
 	}
-	return true
+	return nil
 }
 
 // GetSolution reads a solution for the problem
@@ -117,7 +114,7 @@ func (cache *Cache) GetSolution(p Problem) (ans Problem, err error) {
 		return p, nil
 	}
 	for _, cp := range cache.Spec.Problems {
-		if cp.matches(p) && cp.Resolved {
+		if (cp.ID == p.ID || cp.matches(p)) && cp.Resolved {
 			err := p.SetAnswer(cp.Solution.Answer)
 			return p, err
 		}

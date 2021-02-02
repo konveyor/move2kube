@@ -1,7 +1,7 @@
 ---
 - serviceName: nodejs
   image: nodejs:latest
-  translationType: Any2Kube
+  translationType: Containerize
   containerBuildType: CNB
   sourceType:
     - Directory
@@ -18,7 +18,7 @@
   serviceRelPath: ""
 - serviceName: svc1
   image: svc1:latest
-  translationType: Compose2Kube
+  translationType: DockerCompose
   containerBuildType: NewDockerfile
   sourceType:
     - Directory

@@ -51,17 +51,17 @@ const PlanKind types.Kind = "Plan"
 
 const (
 	// Compose2KubeTranslation translation type is used when source is docker compose
-	Compose2KubeTranslation TranslationTypeValue = "Compose2Kube"
+	Compose2KubeTranslation TranslationTypeValue = "DockerCompose"
 	// CfManifest2KubeTranslation translation type is used when source is cloud foundry manifest
-	CfManifest2KubeTranslation TranslationTypeValue = "Cfmanifest2Kube"
+	CfManifest2KubeTranslation TranslationTypeValue = "CloudFoundry"
 	// Any2KubeTranslation translation type is used when source is of an unknown platform
-	Any2KubeTranslation TranslationTypeValue = "Any2Kube"
+	Any2KubeTranslation TranslationTypeValue = "Containerize"
 	// Kube2KubeTranslation translation type is used when source is Kubernetes
-	Kube2KubeTranslation TranslationTypeValue = "Kube2Kube"
+	Kube2KubeTranslation TranslationTypeValue = "Kubernetes"
 	// Knative2KubeTranslation translation type is used when source is Knative
-	Knative2KubeTranslation TranslationTypeValue = "Knative2Kube"
+	Knative2KubeTranslation TranslationTypeValue = "Knative"
 	// Dockerfile2KubeTranslation translation type is used when source is Knative
-	Dockerfile2KubeTranslation TranslationTypeValue = "Dockerfile2Kube"
+	Dockerfile2KubeTranslation TranslationTypeValue = "Dockerfile"
 )
 
 const (
@@ -185,7 +185,6 @@ func (output *KubernetesOutput) Merge(newoutput KubernetesOutput) {
 type Inputs struct {
 	RootDir             string                                   `yaml:"rootDir"`
 	K8sFiles            []string                                 `yaml:"kubernetesYamls,omitempty" m2kpath:"normal"`
-	QACaches            []string                                 `yaml:"qaCaches,omitempty" m2kpath:"normal"`
 	Services            map[string][]Service                     `yaml:"services"`                                       // [serviceName][Services]
 	TargetInfoArtifacts map[TargetInfoArtifactTypeValue][]string `yaml:"targetInfoArtifacts,omitempty" m2kpath:"normal"` //[targetinfoartifacttype][List of artifacts]
 }

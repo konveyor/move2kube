@@ -146,8 +146,8 @@ func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 }
 
 func (d *Service) ingressToRoute(ingress networkingv1.Ingress) []runtime.Object {
-	weight := int32(1)                                                           //Hard-coded to 1 to avoid Helm v3 errors
-	ingressArray := []okdroutev1.RouteIngress{okdroutev1.RouteIngress{Host: ""}} //Hard-coded to empty string to avoid Helm v3 errors
+	weight := int32(1)                                    //Hard-coded to 1 to avoid Helm v3 errors
+	ingressArray := []okdroutev1.RouteIngress{{Host: ""}} //Hard-coded to empty string to avoid Helm v3 errors
 
 	objs := []runtime.Object{}
 
@@ -413,8 +413,8 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR) [
 // Can't use https because of this https://github.com/openshift/origin/issues/2162
 // When service has multiple ports,the route needs a port name. Port number doesn't seem to work.
 func (d *Service) createRoute(service irtypes.Service, port v1.ServicePort, path string, ir irtypes.EnhancedIR) *okdroutev1.Route {
-	weight := int32(1)                                                           //Hard-coded to 1 to avoid Helm v3 errors
-	ingressArray := []okdroutev1.RouteIngress{okdroutev1.RouteIngress{Host: ""}} //Hard-coded to empty string to avoid Helm v3 errors
+	weight := int32(1)                                    //Hard-coded to 1 to avoid Helm v3 errors
+	ingressArray := []okdroutev1.RouteIngress{{Host: ""}} //Hard-coded to empty string to avoid Helm v3 errors
 
 	route := &okdroutev1.Route{
 		TypeMeta: metav1.TypeMeta{

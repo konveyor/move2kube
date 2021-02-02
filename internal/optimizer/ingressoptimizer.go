@@ -48,10 +48,7 @@ func (opt *ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 		}
 	}
 
-	problem, err := qatypes.NewMultiSelectProblem("Select all services that should be exposed:",
-		[]string{"Exposed services will be reachable from outside the cluster."},
-		exposedServiceNames,
-		serviceNames)
+	problem, err := qatypes.NewMultiSelectProblem(common.ConfigServicesExposeKey, "Select all services that should be exposed:", []string{"Exposed services will be reachable from outside the cluster."}, exposedServiceNames, serviceNames)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -70,6 +67,7 @@ func (opt *ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	}
 
 	for _, exposedServiceName := range exposedServiceNames {
+		key := common.ConfigServicesKey + common.Delim + exposedServiceName + common.Delim + "urlpath"
 		message := fmt.Sprintf("What URL/path should we expose the service %s on?", exposedServiceName)
 		hints := []string{"By default we expose the service on /<service name>:"}
 		exposedServiceRelPath := "/" + exposedServiceName
@@ -77,7 +75,7 @@ func (opt *ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 			hints = []string{"Since there's only one exposed service, the default path is /"}
 			exposedServiceRelPath = "/"
 		}
-		problem, err := qatypes.NewInputProblem(message, hints, exposedServiceRelPath)
+		problem, err := qatypes.NewInputProblem(key, message, hints, exposedServiceRelPath)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}

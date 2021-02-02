@@ -67,10 +67,10 @@ func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.Enhanc
 	}
 	pipeline.ObjectMeta = metav1.ObjectMeta{Name: irpipeline.Name}
 	pipeline.Spec.Params = []v1beta1.ParamSpec{
-		v1beta1.ParamSpec{Name: "image-registry-url", Description: "registry-domain/namespace where the output image should be pushed.", Type: v1beta1.ParamTypeString},
+		{Name: "image-registry-url", Description: "registry-domain/namespace where the output image should be pushed.", Type: v1beta1.ParamTypeString},
 	}
 	pipeline.Spec.Workspaces = []v1beta1.PipelineWorkspaceDeclaration{
-		v1beta1.PipelineWorkspaceDeclaration{Name: irpipeline.WorkspaceName, Description: "This workspace will receive the cloned git repo and be passed to the kaniko task for building the image."},
+		{Name: irpipeline.WorkspaceName, Description: "This workspace will receive the cloned git repo and be passed to the kaniko task for building the image."},
 	}
 	tasks := []v1beta1.PipelineTask{}
 	firstTask := true
@@ -98,12 +98,12 @@ func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.Enhanc
 				Name:    cloneTaskName,
 				TaskRef: &v1beta1.TaskRef{Name: "git-clone"},
 				Workspaces: []v1beta1.WorkspacePipelineTaskBinding{
-					v1beta1.WorkspacePipelineTaskBinding{Name: "output", Workspace: irpipeline.WorkspaceName},
+					{Name: "output", Workspace: irpipeline.WorkspaceName},
 				},
 				Params: []v1beta1.Param{
-					v1beta1.Param{Name: "url", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: gitRepoURL}},
-					v1beta1.Param{Name: "revision", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: branchName}},
-					v1beta1.Param{Name: "deleteExisting", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: "true"}},
+					{Name: "url", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: gitRepoURL}},
+					{Name: "revision", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: branchName}},
+					{Name: "deleteExisting", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: "true"}},
 				},
 			}
 			if !firstTask {
@@ -133,12 +133,12 @@ func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.Enhanc
 				Name:     buildPushTaskName,
 				TaskRef:  &v1beta1.TaskRef{Name: "kaniko"},
 				Workspaces: []v1beta1.WorkspacePipelineTaskBinding{
-					v1beta1.WorkspacePipelineTaskBinding{Name: "source", Workspace: irpipeline.WorkspaceName},
+					{Name: "source", Workspace: irpipeline.WorkspaceName},
 				},
 				Params: []v1beta1.Param{
-					v1beta1.Param{Name: "IMAGE", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: "$(params.image-registry-url)/" + imageName}},
-					v1beta1.Param{Name: "DOCKERFILE", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: dockerfilePath}},
-					v1beta1.Param{Name: "CONTEXT", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: contextPath}},
+					{Name: "IMAGE", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: "$(params.image-registry-url)/" + imageName}},
+					{Name: "DOCKERFILE", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: dockerfilePath}},
+					{Name: "CONTEXT", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: contextPath}},
 				},
 			}
 			tasks = append(tasks, cloneTask, buildPushTask)

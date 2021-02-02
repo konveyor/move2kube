@@ -29,57 +29,46 @@ import (
 	"github.com/spf13/viper"
 )
 
-type translateFlags struct {
-	outpath  string
-	srcpath  string
-	name     string
-	qaskip   bool
-	qacaches []string
-}
-
 var verbose bool
 
-func translateHandler(cmd *cobra.Command, flags translateFlags) {
+func translateHandler(cmd *cobra.Command, flags cmdcommon.TranslateFlags) {
 	// Setup
 	var err error
-	srcpath := flags.srcpath
-	outpath := flags.outpath
-	name := flags.name
-	qacaches := flags.qacaches
-	qaskip := flags.qaskip
 
 	// These are just the defaults used in the move2kube translate command
 	qadisablecli := false // kubectl-translate does not support REST based access.
 	ignoreEnv := false    // Since kubectl is always supposed to run in the local machine, it will always use environment related info
 	qaport := 0           // setting 0, since kubectl-translate does not support REST API based access this value never gets used
 
-	if srcpath, err = filepath.Abs(srcpath); err != nil {
-		log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
+	if flags.Srcpath, err = filepath.Abs(flags.Srcpath); err != nil {
+		log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.Srcpath, err)
 	}
-	if outpath, err = filepath.Abs(outpath); err != nil {
-		log.Fatalf("Failed to make the output directory path %q absolute. Error: %q", outpath, err)
+	if flags.Outpath, err = filepath.Abs(flags.Outpath); err != nil {
+		log.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.Outpath, err)
 	}
 
 	// Global settings
 	common.IgnoreEnvironment = ignoreEnv
-	qaengine.StartEngine(qaskip, qaport, qadisablecli)
-	cachepaths := []string{}
-	for i := len(qacaches) - 1; i >= 0; i-- {
-		cachepaths = append(cachepaths, qacaches[i])
+	cmdcommon.CheckSourcePath(flags.Srcpath)
+	flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
+	cmdcommon.CheckOutputPath(flags.Outpath)
+	if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
+		log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 	}
-	qaengine.AddCaches(cachepaths)
+	qaengine.StartEngine(flags.Qaskip, qaport, qadisablecli)
+	qaengine.SetupConfigFile(flags.Outpath, flags.Setconfigs, flags.Configs, flags.PreSets)
+	qaengine.SetupCacheFile(flags.Outpath, flags.Qacaches)
+	if err := qaengine.WriteStoresToDisk(); err != nil {
+		log.Warnf("Failed to write the stores to disk. Error: %q", err)
+	}
 
 	// Plan
-	cmdcommon.CheckSourcePath(srcpath)
-	outpath = filepath.Join(outpath, name)
-	cmdcommon.CheckOutputPath(outpath)
-	cmdcommon.CreateOutputDirectoryAndCacheFile(outpath)
-	plan := move2kube.CreatePlan(srcpath, name, true)
+	plan := move2kube.CreatePlan(flags.Srcpath, flags.Name, true)
 	plan = move2kube.CuratePlan(plan)
 
 	// Translate
-	move2kube.Translate(plan, outpath, qadisablecli)
-	log.Infof("Translated target artifacts can be found at [%s].", outpath)
+	move2kube.Translate(plan, flags.Outpath, qadisablecli)
+	log.Infof("Translated target artifacts can be found at [%s].", flags.Outpath)
 }
 
 func main() {
@@ -91,7 +80,7 @@ func main() {
 	}
 	viper.AutomaticEnv()
 
-	flags := translateFlags{}
+	flags := cmdcommon.TranslateFlags{}
 	translateCmd := &cobra.Command{
 		Use:   "kubectl translate [ -o <output directory> ] [ -n <project name> ] [ -q <list of qacache files> ] -s <source directory>",
 		Short: "Translate creates all the resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.",
@@ -114,11 +103,14 @@ For more documentation and support for this plugin and Move2Kube, visit https://
 	translateCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
 
 	// Basic options
-	translateCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", ".", "Specify source directory to translate. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
-	translateCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
-	translateCmd.Flags().StringVarP(&flags.name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	translateCmd.Flags().StringSliceVarP(&flags.qacaches, cmdcommon.QACacheFlag, "q", []string{}, "Specify qa cache file locations")
-	translateCmd.Flags().BoolVar(&flags.qaskip, cmdcommon.QASkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
+	translateCmd.Flags().StringVarP(&flags.Srcpath, cmdcommon.SourceFlag, "s", ".", "Specify source directory to translate. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
+	translateCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
+	translateCmd.Flags().StringVarP(&flags.Name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
+	translateCmd.Flags().StringSliceVarP(&flags.Qacaches, cmdcommon.QACacheFlag, "q", []string{}, "Specify qa cache file locations")
+	translateCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
+	translateCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
+	translateCmd.Flags().StringSliceVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
+	translateCmd.Flags().BoolVar(&flags.Qaskip, cmdcommon.QASkipFlag, false, "Enable/disable the default answers to questions posed in QA sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 
 	must(translateCmd.MarkFlagRequired(cmdcommon.SourceFlag))
 

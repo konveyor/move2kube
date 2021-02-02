@@ -9,7 +9,7 @@ spec:
       java-maven:
         - serviceName: java-maven
           image: java-maven:latest
-          translationType: Any2Kube
+          translationType: Containerize
           containerBuildType: CNB
           sourceType:
             - Directory

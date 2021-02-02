@@ -61,9 +61,9 @@ func (el *EventListener) createNewResource(ireventlistener tekton.EventListener)
 	eventListener.Spec = triggersv1alpha1.EventListenerSpec{
 		ServiceAccountName: ireventlistener.ServiceAccountName,
 		Triggers: []triggersv1alpha1.EventListenerTrigger{
-			triggersv1alpha1.EventListenerTrigger{
+			{
 				Bindings: []*triggersv1alpha1.EventListenerBinding{
-					&triggersv1alpha1.EventListenerBinding{Ref: ireventlistener.TriggerBindingName},
+					{Ref: ireventlistener.TriggerBindingName},
 				},
 				Template: &triggersv1alpha1.EventListenerTemplate{Name: ireventlistener.TriggerTemplateName},
 			},

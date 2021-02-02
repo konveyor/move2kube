@@ -34,7 +34,8 @@ func TestDefaultEngine(t *testing.T) {
 		e := NewDefaultEngine()
 		AddEngine(e)
 
-		problem, err := qatypes.NewInputProblem("Enter the name of the registry : ",
+		key := common.BaseKey + common.Delim + "input"
+		problem, err := qatypes.NewInputProblem(key, "Enter the name of the registry : ",
 			[]string{"Ex : " + common.DefaultRegistryURL},
 			common.DefaultRegistryURL)
 		if err != nil {
@@ -64,12 +65,13 @@ func TestDefaultEngine(t *testing.T) {
 		e := NewDefaultEngine()
 		AddEngine(e)
 
+		key := common.BaseKey + common.Delim + "select"
 		desc := "Test description"
 		context := []string{"Test context"}
 		def := "Option B"
 		opts := []string{"Option A", "Option B", "Option C"}
 
-		problem, err := qatypes.NewSelectProblem(desc, context, def, opts)
+		problem, err := qatypes.NewSelectProblem(key, desc, context, def, opts)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -97,12 +99,13 @@ func TestDefaultEngine(t *testing.T) {
 		e := NewDefaultEngine()
 		AddEngine(e)
 
+		key := common.BaseKey + common.Delim + "multiselect"
 		desc := "Test description"
 		context := []string{"Test context"}
 		def := []string{"Option A", "Option C"}
 		opts := []string{"Option A", "Option B", "Option C", "Option D"}
 
-		problem, err := qatypes.NewMultiSelectProblem(desc, context, def, opts)
+		problem, err := qatypes.NewMultiSelectProblem(key, desc, context, def, opts)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -130,11 +133,12 @@ func TestDefaultEngine(t *testing.T) {
 		e := NewDefaultEngine()
 		AddEngine(e)
 
+		key := common.BaseKey + common.Delim + "confirm"
 		desc := "Test description"
 		context := []string{"Test context"}
 		def := true
 
-		problem, err := qatypes.NewConfirmProblem(desc, context, def)
+		problem, err := qatypes.NewConfirmProblem(key, desc, context, def)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -162,13 +166,14 @@ func TestDefaultEngine(t *testing.T) {
 		e := NewDefaultEngine()
 		AddEngine(e)
 
+		key := common.BaseKey + common.Delim + "multiline"
 		desc := "Test description"
 		context := []string{"Test context"}
 		def := `line1
 		line2
 		line3`
 
-		problem, err := qatypes.NewMultilineInputProblem(desc, context, def)
+		problem, err := qatypes.NewMultilineInputProblem(key, desc, context, def)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}

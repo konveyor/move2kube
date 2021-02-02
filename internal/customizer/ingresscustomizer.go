@@ -19,6 +19,7 @@ package customizer
 import (
 	log "github.com/sirupsen/logrus"
 
+	common "github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
@@ -51,9 +52,7 @@ func (ic *ingressCustomizer) customize(ir *irtypes.IR) error {
 func (ic ingressCustomizer) configureHostAndTLS(name string) (string, string) {
 	defaultSubDomain := name + ".com"
 
-	problem, err := qatypes.NewInputProblem("Provide the ingress host domain",
-		[]string{"Ingress host domain is part of service URL"},
-		defaultSubDomain)
+	problem, err := qatypes.NewInputProblem(common.ConfigIngressHostKey, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaultSubDomain)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
@@ -69,7 +68,7 @@ func (ic ingressCustomizer) configureHostAndTLS(name string) (string, string) {
 	host = name + "." + host
 
 	defaultSecret := ""
-	problem, err = qatypes.NewInputProblem("Provide the TLS secret for ingress", []string{"Enter TLS secret name"}, defaultSecret)
+	problem, err = qatypes.NewInputProblem(common.ConfigIngressTLSKey, "Provide the TLS secret for ingress", []string{"Enter TLS secret name"}, defaultSecret)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}

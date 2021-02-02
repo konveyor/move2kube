@@ -29,6 +29,6 @@ type Loader interface {
 
 // GetLoaders returns planner for given format
 func GetLoaders() []Loader {
-	var planners = []Loader{new(ClusterMDLoader), new(K8sFilesLoader), new(QACacheLoader)}
+	var planners = []Loader{new(ClusterMDLoader), new(K8sFilesLoader)}
 	return planners
 }

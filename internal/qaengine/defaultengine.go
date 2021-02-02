@@ -26,17 +26,16 @@ type DefaultEngine struct {
 
 // NewDefaultEngine creates a new instance of default engine
 func NewDefaultEngine() *DefaultEngine {
-	ce := new(DefaultEngine)
-	return ce
+	return new(DefaultEngine)
 }
 
 // StartEngine starts the default qa engine
-func (c *DefaultEngine) StartEngine() error {
+func (*DefaultEngine) StartEngine() error {
 	return nil
 }
 
 // FetchAnswer fetches the default answers
-func (c *DefaultEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
-	err = prob.SetAnswer(prob.Solution.Default)
+func (*DefaultEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
+	err := prob.SetAnswer(prob.Solution.Default)
 	return prob, err
 }

@@ -20,24 +20,22 @@ import (
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 )
 
-// CacheEngine handles cache
-type CacheEngine struct {
-	cache qatypes.Cache
+// StoreEngine handles cache
+type StoreEngine struct {
+	store qatypes.Store
 }
 
-// NewCacheEngine creates a new cache instance
-func NewCacheEngine(cf string) *CacheEngine {
-	ce := new(CacheEngine)
-	ce.cache = qatypes.NewCache(cf)
-	return ce
+// StartEngine loads the config from the store
+func (se *StoreEngine) StartEngine() error {
+	return se.store.Load()
 }
 
-// StartEngine starts the cache engine
-func (c *CacheEngine) StartEngine() error {
-	return c.cache.Load()
+// FetchAnswer fetches the answer from the store
+func (se *StoreEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
+	return se.store.GetSolution(prob)
 }
 
-// FetchAnswer fetches the answer using cache
-func (c *CacheEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
-	return c.cache.GetSolution(prob)
+// NewStoreEngineFromCache creates a new cache instance
+func NewStoreEngineFromCache(cacheFile string) *StoreEngine {
+	return &StoreEngine{store: qatypes.NewCache(cacheFile)}
 }

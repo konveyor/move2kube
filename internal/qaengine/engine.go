@@ -17,7 +17,7 @@ limitations under the License.
 package qaengine
 
 import (
-	"os"
+	"fmt"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -32,92 +32,136 @@ type Engine interface {
 }
 
 var (
-	engines    []Engine
-	writeCache qatypes.Cache
+	engines     []Engine
+	writeStores []qatypes.Store
 )
 
 // StartEngine starts the QA Engines
 func StartEngine(qaskip bool, qaport int, qadisablecli bool) {
-
 	var e Engine
-
 	if qaskip {
 		e = NewDefaultEngine()
-
 	} else if !qadisablecli {
 		e = NewCliEngine()
-
 	} else {
 		e = NewHTTPRESTEngine(qaport)
 	}
-
 	AddEngine(e)
 }
 
-// AddEngine appends  an engine to the engines slice
+// AddEngine appends an engine to the engines slice
 func AddEngine(e Engine) {
-
-	err := e.StartEngine()
-	if err != nil {
+	if err := e.StartEngine(); err != nil {
 		log.Errorf("Ignoring engine %T due to error : %s", e, err)
 	} else {
 		engines = append(engines, e)
 	}
 }
 
-// AddCaches adds cache responders
+// AddEngineHighestPriority adds an engine to the list and sets it at highest priority
+func AddEngineHighestPriority(e Engine) error {
+	if err := e.StartEngine(); err != nil {
+		return fmt.Errorf("Failed to start the engine: %T\n%v\nError: %s", e, e, err)
+	}
+	engines = append([]Engine{e}, engines...)
+	return nil
+}
+
+// AddCaches adds cache responders.
+// Later cache files override earlier cache files.
+// [base.yaml, project.yaml, service.yaml]
 func AddCaches(cacheFiles []string) {
-	cengines := []Engine{}
+	common.ReverseInPlace(cacheFiles)
 	for _, cacheFile := range cacheFiles {
-		e := NewCacheEngine(cacheFile)
-		err := e.StartEngine()
-		if err != nil {
+		e := NewStoreEngineFromCache(cacheFile)
+		if err := AddEngineHighestPriority(e); err != nil {
 			log.Errorf("Ignoring engine %T due to error : %s", e, err)
-		} else {
-			cengines = append(cengines, e)
+			continue
 		}
 	}
-	engines = append(cengines, engines...)
+}
+
+// SetupCacheFile adds cache responders
+func SetupCacheFile(outputPath string, cacheFiles []string) {
+	writeCachePath := filepath.Join(outputPath, common.QACacheFile)
+	cache := qatypes.NewCache(writeCachePath)
+	cache.Write()
+	writeStores = append(writeStores, cache)
+	cacheFiles = append(cacheFiles, writeCachePath)
+	AddCaches(cacheFiles)
+}
+
+// SetupConfigFile adds config responders - should be called only once
+func SetupConfigFile(outputPath string, configStrings, configFiles, presets []string) {
+	presetPaths := []string{}
+	for _, preset := range presets {
+		presetPath := filepath.Join(common.AssetsPath, "configs", preset+".yaml")
+		presetPaths = append(presetPaths, presetPath)
+	}
+	configFiles = append(presetPaths, configFiles...)
+	writeConfig := qatypes.NewConfig(filepath.Join(outputPath, common.ConfigFile), configStrings, configFiles)
+	writeStores = append(writeStores, writeConfig)
+	e := &StoreEngine{store: writeConfig}
+	if err := AddEngineHighestPriority(e); err != nil {
+		log.Errorf("Ignoring engine %T due to error : %s", e, err)
+	}
 }
 
 // FetchAnswer fetches the answer for the question
 func FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
+	log.Debugf("Fetching answer for problem:\n%v\n", prob)
 	for _, e := range engines {
 		ans, err = e.FetchAnswer(prob)
 		if err != nil {
 			log.Debugf("Error while fetching answer using engine %+v Error: %q", e, err)
-		} else if ans.Resolved {
+			continue
+		}
+		if ans.Resolved {
+			prob = changeSelectToInputForOther(prob)
 			break
 		}
 	}
-	if !ans.Resolved {
-		for {
-			ans, err = engines[len(engines)-1].FetchAnswer(prob)
-			if err != nil {
-				log.Fatalf("Unable to get answer to %s : %s", ans.Desc, err)
-			}
-			if ans.Resolved {
-				break
-			}
+	lastEngine := engines[len(engines)-1]
+	for !ans.Resolved {
+		ans, err = lastEngine.FetchAnswer(prob)
+		if err != nil {
+			log.Errorf("Unable to get answer to %s Error: %q", ans.Desc, err)
+		}
+		if ans.Resolved {
+			prob = changeSelectToInputForOther(prob)
 		}
 	}
 	if err == nil && ans.Resolved {
-		writeCache.AddProblemSolutionToCache(ans)
-	} else if err != nil {
-		log.Errorf("Unable to fetch answer : %s", err)
+		for _, writeStore := range writeStores {
+			writeStore.AddSolution(ans)
+		}
 	}
 	return ans, err
 }
 
-// SetWriteCache sets the write cache
-func SetWriteCache(cacheFile string) error {
-	dirpath := filepath.Dir(cacheFile)
-	if err := os.MkdirAll(dirpath, common.DefaultDirectoryPermission); err != nil {
-		// Create the qacache directory if it is missing
-		log.Errorf("Failed to create the qacache directory at path %q. Error: %q", dirpath, err)
-		return err
+// WriteStoresToDisk forces all the stores to write their contents out to disk
+func WriteStoresToDisk() error {
+	var err error
+	for _, writeStore := range writeStores {
+		cerr := writeStore.Write()
+		if cerr != nil {
+			if err == nil {
+				err = cerr
+			} else {
+				err = fmt.Errorf("%s : %s", err, cerr)
+			}
+		}
 	}
+	return err
+}
 
-	writeCache = qatypes.NewCache(cacheFile)
-	return writeCache.Write()
+func changeSelectToInputForOther(prob qatypes.Problem) qatypes.Problem {
+	if prob.Solution.Type == qatypes.SelectSolutionFormType && len(prob.Solution.Answer) > 0 && prob.Solution.Answer[0] == qatypes.OtherAnswer {
+		prob.Solution.Type = qatypes.InputSolutionFormType
+		prob.ID = prob.ID + common.Delim + string(qatypes.InputSolutionFormType)
+		prob.Desc = string(qatypes.InputSolutionFormType) + " " + prob.Desc
+		prob.Solution.Answer = []string{}
+		prob.Resolved = false
+	}
+	return prob
 }

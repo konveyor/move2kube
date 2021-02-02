@@ -60,7 +60,7 @@ func (*RoleBinding) createNewResource(irrolebinding irtypes.RoleBinding) *rbacv1
 	}
 	roleBinding.ObjectMeta = metav1.ObjectMeta{Name: irrolebinding.Name}
 	roleBinding.Subjects = []rbacv1.Subject{
-		rbacv1.Subject{Kind: rbacv1.ServiceAccountKind, Name: irrolebinding.ServiceAccountName},
+		{Kind: rbacv1.ServiceAccountKind, Name: irrolebinding.ServiceAccountName},
 	}
 	roleBinding.RoleRef = rbacv1.RoleRef{APIGroup: rbacv1.SchemeGroupVersion.Group, Kind: roleKind, Name: irrolebinding.RoleName}
 

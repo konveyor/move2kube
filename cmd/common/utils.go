@@ -18,10 +18,7 @@ package common
 
 import (
 	"os"
-	"path/filepath"
 
-	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/qaengine"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,7 +37,37 @@ const (
 	IgnoreEnvFlag = "ignoreenv"
 	// QASkipFlag is the name of the flag that let's you skip all the question answers
 	QASkipFlag = "qaskip"
+	// ConfigFlag is the name of the flag that contains list of config files
+	ConfigFlag = "config"
+	// SetConfigFlag is the name of the flag that contains list of key-value configs
+	SetConfigFlag = "setconfig"
+	// PreSetFlag is the name of the flag that contains list of preset configurations to use
+	PreSetFlag = "preset"
 )
+
+//TranslateFlags to store values from command line paramters
+type TranslateFlags struct {
+	//IgnoreEnv tells us whether to use data collected from the local machine
+	IgnoreEnv bool
+	//Planfile is contains the path to the plan file
+	Planfile string
+	//Outpath contains path to the output folder
+	Outpath string
+	//SourceFlag contains path to the source folder
+	Srcpath string
+	//Name contains the project name
+	Name string
+	//Qacaches contains list of qacache files
+	Qacaches []string
+	//Configs contains list of config files
+	Configs []string
+	//Configs contains list of key-value configs
+	Setconfigs []string
+	//Qaskip let's you skip all the question answers
+	Qaskip bool
+	//PreSets contains list of preset configurations
+	PreSets []string
+}
 
 // CheckSourcePath checks if the source path is an existing directory.
 func CheckSourcePath(srcpath string) {
@@ -70,16 +97,4 @@ func CheckOutputPath(outpath string) {
 		log.Fatalf("Output path %s is a file. Expected a directory. Exiting", outpath)
 	}
 	log.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
-}
-
-// CreateOutputDirectoryAndCacheFile creates the output directory and qacache file
-func CreateOutputDirectoryAndCacheFile(outpath string) {
-	if err := os.MkdirAll(outpath, common.DefaultDirectoryPermission); err != nil {
-		log.Fatalf("Failed to create the output directory at path %s Error: %q", outpath, err)
-	}
-	cacheFilePath := filepath.Join(outpath, common.QACacheFile)
-	log.Debugf("Creating the cache file at path %s", cacheFilePath)
-	if err := qaengine.SetWriteCache(cacheFilePath); err != nil {
-		log.Warnf("Unable to write the cache file to path %q Error: %q", cacheFilePath, err)
-	}
 }

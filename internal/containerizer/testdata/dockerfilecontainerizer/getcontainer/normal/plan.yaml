@@ -9,7 +9,7 @@ spec:
       dockerfile:
         - serviceName: dockerfile
           image: dockerfile:latest
-          translationType: Any2Kube
+          translationType: Containerize
           containerBuildType: NewDockerfile
           sourceType:
             - Directory

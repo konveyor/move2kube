@@ -750,3 +750,11 @@ func GetGVK(obj runtime.Object) schema.GroupVersionKind {
 	}
 	return typeMeta.GroupVersionKind()
 }
+
+// ReverseInPlace reverses a slice of strings in place.
+func ReverseInPlace(xs []string) {
+	for i := 0; i < len(xs)/2; i++ {
+		j := len(xs) - i - 1
+		xs[i], xs[j] = xs[j], xs[i]
+	}
+}
