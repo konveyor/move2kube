@@ -41,6 +41,7 @@ type Config struct {
 	configFiles   []string
 	configStrings []string
 	yamlMap       mapT
+	writeYamlMap  mapT
 	OutputPath    string
 }
 
@@ -69,6 +70,7 @@ func (c *Config) Load() (err error) {
 		yamlDatas = append(yamlDatas, yamlData)
 	}
 	c.yamlMap, err = mergeYAMLDatasIntoMap(yamlDatas)
+	c.writeYamlMap = mapT{}
 	return err
 }
 
@@ -175,7 +177,7 @@ func (c *Config) GetSolution(p Problem) (Problem, error) {
 
 // Write writes the config to disk
 func (c *Config) Write() error {
-	return common.WriteYaml(c.OutputPath, c.yamlMap)
+	return common.WriteYaml(c.OutputPath, c.writeYamlMap)
 }
 
 // AddSolution adds a problem to the config
@@ -198,6 +200,7 @@ func (c *Config) AddSolution(p Problem) error {
 			return fmt.Errorf("Cannot add the problem\n%v\nto the config because it is not a multi-select problem but it has more than one answer", p)
 		}
 		set(p.ID, p.Solution.Answer[0], c.yamlMap)
+		set(p.ID, p.Solution.Answer[0], c.writeYamlMap)
 		err := c.Write()
 		if err != nil {
 			log.Errorf("Failed to write to the config file. Error: %q", err)
@@ -211,6 +214,7 @@ func (c *Config) AddSolution(p Problem) error {
 	if idx < 0 {
 		// normal case key1 = [val1, val2, val3, ...]
 		set(key, p.Solution.Answer, c.yamlMap)
+		set(key, p.Solution.Answer, c.writeYamlMap)
 		return nil
 	}
 
@@ -223,6 +227,7 @@ func (c *Config) AddSolution(p Problem) error {
 		isOptionSelected := common.IsStringPresent(p.Solution.Answer, option)
 		newKey := baseKey + common.Delim + option + common.Delim + lastKeySegment
 		set(newKey, isOptionSelected, c.yamlMap)
+		set(newKey, isOptionSelected, c.writeYamlMap)
 	}
 	err := c.Write()
 	if err != nil {
