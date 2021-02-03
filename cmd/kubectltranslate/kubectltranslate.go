@@ -51,7 +51,7 @@ func translateHandler(cmd *cobra.Command, flags cmdcommon.TranslateFlags) {
 	common.IgnoreEnvironment = ignoreEnv
 	cmdcommon.CheckSourcePath(flags.Srcpath)
 	flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
-	cmdcommon.CheckOutputPath(flags.Outpath)
+	cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
 	if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
 		log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 	}
@@ -111,6 +111,7 @@ For more documentation and support for this plugin and Move2Kube, visit https://
 	translateCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
 	translateCmd.Flags().StringSliceVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
 	translateCmd.Flags().BoolVar(&flags.Qaskip, cmdcommon.QASkipFlag, false, "Enable/disable the default answers to questions posed in QA sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
+	translateCmd.Flags().BoolVarP(&flags.Overwrite, cmdcommon.OverwriteFlag, "", false, "Overwrite the output directory if it exists. By default we don't overwrite.")
 
 	must(translateCmd.MarkFlagRequired(cmdcommon.SourceFlag))
 

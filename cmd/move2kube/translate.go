@@ -80,8 +80,9 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 
 		// Global settings
+		cmdcommon.CheckSourcePath(flags.Srcpath)
 		flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
-		cmdcommon.CheckOutputPath(flags.Outpath)
+		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
 			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
@@ -93,7 +94,6 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 		// Global settings
 
-		cmdcommon.CheckSourcePath(flags.Srcpath)
 		log.Debugf("Creating a new plan.")
 		p = move2kube.CreatePlan(flags.Srcpath, flags.Name, true)
 		p = move2kube.CuratePlan(p)
@@ -119,8 +119,9 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 
 		// Global settings
+		cmdcommon.CheckSourcePath(p.Spec.Inputs.RootDir)
 		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
-		cmdcommon.CheckOutputPath(flags.Outpath)
+		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
 			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
@@ -132,9 +133,6 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 		// Global settings
 
-		cmdcommon.CheckSourcePath(p.Spec.Inputs.RootDir)
-		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
-		cmdcommon.CheckOutputPath(flags.Outpath)
 		if flags.curate {
 			p = move2kube.CuratePlan(p)
 		}
@@ -164,6 +162,7 @@ func getTranslateCommand() *cobra.Command {
 	// Basic options
 	translateCmd.Flags().StringVarP(&flags.Planfile, cmdcommon.PlanFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	translateCmd.Flags().BoolVarP(&flags.curate, curateFlag, "c", false, "Specify whether to curate the plan with a q/a.")
+	translateCmd.Flags().BoolVarP(&flags.Overwrite, cmdcommon.OverwriteFlag, "", false, "Overwrite the output directory if it exists. By default we don't overwrite.")
 	translateCmd.Flags().StringVarP(&flags.Srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory to translate. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
 	translateCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	translateCmd.Flags().StringVarP(&flags.Name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
