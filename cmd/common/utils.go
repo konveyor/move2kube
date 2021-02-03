@@ -90,7 +90,7 @@ func CheckSourcePath(srcpath string) {
 	if err != nil {
 		log.Fatalf("Failed to get the current working directory. Error: %q", err)
 	}
-	if internalcommon.IsParent(srcpath, pwd) {
+	if internalcommon.IsParent(pwd, srcpath) {
 		log.Fatalf("The given source directory %s is a parent of the current working directory.", srcpath)
 	}
 }
@@ -115,7 +115,7 @@ func CheckOutputPath(outpath string, overwrite bool) {
 	if err != nil {
 		log.Fatalf("Failed to get the current working directory. Error: %q", err)
 	}
-	if internalcommon.IsParent(outpath, pwd) {
+	if internalcommon.IsParent(pwd, outpath) {
 		log.Fatalf("The given output directory %s is a parent of the current working directory.", outpath)
 	}
 	log.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
