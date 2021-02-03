@@ -33,7 +33,7 @@ type Translator interface {
 
 // GetTranslators returns translator for given format
 func GetTranslators() []Translator {
-	var l = []Translator{new(DockerfileTranslator), new(ComposeTranslator), new(CfManifestTranslator), new(KnativeTranslator), new(KubeTranslator), new(Any2KubeTranslator)} //Any2Kube should be the last option
+	var l = []Translator{new(DockerfileTranslator), new(ComposeTranslator), new(CfManifestTranslator), new(Any2KubeTranslator)} //Any2Kube should be the last option
 	return l
 }
 

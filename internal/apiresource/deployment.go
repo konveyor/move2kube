@@ -17,7 +17,6 @@ limitations under the License.
 package apiresource
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -164,26 +163,6 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 		return []runtime.Object{obj}, true
 	}
 	return nil, false
-}
-
-// GetNameAndPodSpec returns the name and podspec used by the deployment
-func (d *Deployment) GetNameAndPodSpec(obj runtime.Object) (name string, podSpec v1.PodSpec, err error) {
-	switch d1 := obj.(type) {
-	case *okdappsv1.DeploymentConfig:
-		return d1.Name, d1.Spec.Template.Spec, nil
-	case *appsv1.Deployment:
-		return d1.Name, d1.Spec.Template.Spec, nil
-	case *corev1.ReplicationController:
-		return d1.Name, d1.Spec.Template.Spec, nil
-	case *corev1.Pod:
-		return d1.Name, d1.Spec, nil
-	case *batchv1.Job:
-		return d1.Name, d1.Spec.Template.Spec, nil
-	case *appsv1.DaemonSet:
-		return d1.Name, d1.Spec.Template.Spec, nil
-	default:
-		return "", v1.PodSpec{}, fmt.Errorf("Incompatible object type")
-	}
 }
 
 // Create section
