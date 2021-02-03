@@ -39,6 +39,9 @@ func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Pl
 		att := source.GetAllTranslatorTypes()
 		att = append(att, string(plantypes.Kube2KubeTranslation))
 		translationTypes := selectTranslators(att)
+		if len(translationTypes) == 0 {
+			log.Fatalf("No source was selected. Terminating.")
+		}
 		selectedTranslationPlanners = []source.Translator{}
 		for _, tp := range source.GetTranslators() {
 			tpn := (string)(tp.GetTranslatorType())

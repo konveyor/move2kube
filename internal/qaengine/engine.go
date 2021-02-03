@@ -110,6 +110,10 @@ func SetupConfigFile(outputPath string, configStrings, configFiles, presets []st
 // FetchAnswer fetches the answer for the question
 func FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
 	log.Debugf("Fetching answer for problem:\n%v\n", prob)
+	if prob.Resolved {
+		log.Debugf("Problem already solved.")
+		return prob, nil
+	}
 	for _, e := range engines {
 		ans, err = e.FetchAnswer(prob)
 		if err != nil {
