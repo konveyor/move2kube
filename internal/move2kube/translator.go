@@ -17,8 +17,6 @@ limitations under the License.
 package move2kube
 
 import (
-	"os"
-
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer"
 	customize "github.com/konveyor/move2kube/internal/customizer"
@@ -69,11 +67,6 @@ func Translate(p plantypes.Plan, outpath string, qadisablecli bool) {
 		optimizedir = sourceir
 	}
 	log.Debugf("Total services optimized : %d", len(optimizedir.Services))
-
-	if err := os.RemoveAll(outpath); err != nil {
-		log.Errorf("Failed to remove the existing file/directory at the output path %q Error: %q", outpath, err)
-		log.Errorf("Anything in the output path will get overwritten.")
-	}
 
 	dct := transform.ComposeTransformer{}
 	if err := dct.Transform(optimizedir); err != nil {

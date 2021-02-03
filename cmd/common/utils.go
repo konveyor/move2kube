@@ -35,7 +35,7 @@ const (
 	PlanFlag = "plan"
 	// IgnoreEnvFlag is the name of the flag that tells us whether to use data collected from the local machine
 	IgnoreEnvFlag = "ignoreenv"
-	// QASkipFlag is the name of the flag that let's you skip all the question answers
+	// QASkipFlag is the name of the flag that lets you skip all the question answers
 	QASkipFlag = "qaskip"
 	// ConfigFlag is the name of the flag that contains list of config files
 	ConfigFlag = "config"
@@ -43,6 +43,8 @@ const (
 	SetConfigFlag = "setconfig"
 	// PreSetFlag is the name of the flag that contains list of preset configurations to use
 	PreSetFlag = "preset"
+	// OverwriteFlag is the name of the flag that lets you overwrite the output directory if it exists
+	OverwriteFlag = "overwrite"
 )
 
 //TranslateFlags to store values from command line paramters
@@ -63,8 +65,10 @@ type TranslateFlags struct {
 	Configs []string
 	//Configs contains list of key-value configs
 	Setconfigs []string
-	//Qaskip let's you skip all the question answers
+	//Qaskip lets you skip all the question answers
 	Qaskip bool
+	// Overwrite lets you overwrite the output directory if it exists
+	Overwrite bool
 	//PreSets contains list of preset configurations
 	PreSets []string
 }
@@ -84,7 +88,7 @@ func CheckSourcePath(srcpath string) {
 }
 
 // CheckOutputPath checks if the output path is already in use.
-func CheckOutputPath(outpath string) {
+func CheckOutputPath(outpath string, overwrite bool) {
 	fi, err := os.Stat(outpath)
 	if os.IsNotExist(err) {
 		log.Debugf("Translated artifacts will be written to %s", outpath)
@@ -92,6 +96,9 @@ func CheckOutputPath(outpath string) {
 	}
 	if err != nil {
 		log.Fatalf("Error while accessing output directory at path %s Error: %q . Exiting", outpath, err)
+	}
+	if !overwrite {
+		log.Fatalf("Output directory %s exists. Exiting", outpath)
 	}
 	if !fi.IsDir() {
 		log.Fatalf("Output path %s is a file. Expected a directory. Exiting", outpath)
