@@ -19,6 +19,7 @@ package common
 import (
 	"os"
 
+	internalcommon "github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -85,6 +86,13 @@ func CheckSourcePath(srcpath string) {
 	if !fi.IsDir() {
 		log.Fatalf("The given source path %s is a file. Expected a directory. Exiting.", srcpath)
 	}
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Failed to get the current working directory. Error: %q", err)
+	}
+	if internalcommon.IsParent(srcpath, pwd) {
+		log.Fatalf("The given source directory %s is a parent of the current working directory.", srcpath)
+	}
 }
 
 // CheckOutputPath checks if the output path is already in use.
@@ -102,6 +110,13 @@ func CheckOutputPath(outpath string, overwrite bool) {
 	}
 	if !fi.IsDir() {
 		log.Fatalf("Output path %s is a file. Expected a directory. Exiting", outpath)
+	}
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Failed to get the current working directory. Error: %q", err)
+	}
+	if internalcommon.IsParent(outpath, pwd) {
+		log.Fatalf("The given output directory %s is a parent of the current working directory.", outpath)
 	}
 	log.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
 }

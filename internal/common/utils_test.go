@@ -847,3 +847,30 @@ func TestUniqueStrings(t *testing.T) {
 		})
 	}
 }
+
+func TestIsParent(t *testing.T) {
+	tts := []struct {
+		desc   string
+		child  string
+		parent string
+		answer bool
+	}{
+		{"parent is root", "/a/b/c/d", "/", true},
+		{"parent is top level dir", "/a/b/c/d", "/a", true},
+		{"paths have extra slashes", "/a/b/c/////d//", "//////a////b/c/////", true},
+		{"child path has extra slashes", "/a/b/c/////d//", "/a/b/c", true},
+		{"normal use case", "/a/b/c/d", "/a/b/c", true},
+		{"paths are the same", "/a/b/c", "/a/b/c", true},
+		{"not parent 1", "/b/c", "/a/b/c", false},
+		{"not parent 2", "/c", "/a/b/c", false},
+		{"reverse child and parent 1", "/a", "/a/b/c", false},
+		{"reverse child and parent 2", "/a/b", "/a/b/c", false},
+	}
+	for _, tt := range tts {
+		t.Run(tt.desc, func(t *testing.T) {
+			if common.IsParent(tt.child, tt.parent) != tt.answer {
+				t.Fatalf("Failed on test case: %+v", tt)
+			}
+		})
+	}
+}
