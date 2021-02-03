@@ -77,7 +77,7 @@ ifeq ($(HAS_UPX),true)
 	@echo 'upx detected. compressing binary...'
 	upx $(BINDIR)/$(BINNAME)
 else
-	@echo 'In order to compress the produced binaries please install upx:'
+	@echo 'For smaller binaries, please install upx:'
 	@echo 'MacOS: brew install upx'
 	@echo 'Linux: sudo apt-get install upx'
 endif
@@ -158,7 +158,7 @@ ifeq ($(HAS_UPX),true)
 	@echo 'upx detected. compressing binary...'
 	upx $(shell find . -type f -name '$(BINNAME)')
 else
-	@echo 'In order to compress the produced binaries please install upx:'
+	@echo 'For smaller binaries, please install upx:'
 	@echo 'MacOS: brew install upx'
 	@echo 'Linux: sudo apt-get install upx'
 endif
@@ -172,7 +172,7 @@ ifeq ($(HAS_UPX),true)
 	@echo 'upx detected. compressing binary...'
 	upx $(shell find . -type f -name '$(PLUGIN_BINNAME)')
 else
-	@echo 'In order to compress the produced binaries please install upx:'
+	@echo 'For smaller binaries, please install upx:'
 	@echo 'MacOS: brew install upx'
 	@echo 'Linux: sudo apt-get install upx'
 endif
