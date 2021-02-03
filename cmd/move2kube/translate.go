@@ -61,17 +61,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 
 	// Global settings
 	common.IgnoreEnvironment = flags.IgnoreEnv
-	flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
-	cmdcommon.CheckOutputPath(flags.Outpath)
-	if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
-		log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
-	}
-	qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
-	qaengine.SetupConfigFile(flags.Outpath, flags.Setconfigs, flags.Configs, flags.PreSets)
-	qaengine.SetupCacheFile(flags.Outpath, flags.Qacaches)
-	if err := qaengine.WriteStoresToDisk(); err != nil {
-		log.Warnf("Failed to write the stores to disk. Error: %q", err)
-	}
+	// Global settings
 
 	// Parameter cleaning and curate plan
 	var p plan.Plan
@@ -88,6 +78,21 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		if !cmd.Flags().Changed(cmdcommon.SourceFlag) {
 			log.Fatalf("Invalid usage. Must specify either path to a plan file or path to directory containing source code.")
 		}
+
+		// Global settings
+		flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
+		cmdcommon.CheckOutputPath(flags.Outpath)
+		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
+			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
+		}
+		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
+		qaengine.SetupConfigFile(flags.Outpath, flags.Setconfigs, flags.Configs, flags.PreSets)
+		qaengine.SetupCacheFile(flags.Outpath, flags.Qacaches)
+		if err := qaengine.WriteStoresToDisk(); err != nil {
+			log.Warnf("Failed to write the stores to disk. Error: %q", err)
+		}
+		// Global settings
+
 		cmdcommon.CheckSourcePath(flags.Srcpath)
 		log.Debugf("Creating a new plan.")
 		p = move2kube.CreatePlan(flags.Srcpath, flags.Name, true)
@@ -112,6 +117,21 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 				log.Fatalf("Failed to set the root directory to %q Error: %q", flags.Srcpath, err)
 			}
 		}
+
+		// Global settings
+		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
+		cmdcommon.CheckOutputPath(flags.Outpath)
+		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
+			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
+		}
+		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
+		qaengine.SetupConfigFile(flags.Outpath, flags.Setconfigs, flags.Configs, flags.PreSets)
+		qaengine.SetupCacheFile(flags.Outpath, flags.Qacaches)
+		if err := qaengine.WriteStoresToDisk(); err != nil {
+			log.Warnf("Failed to write the stores to disk. Error: %q", err)
+		}
+		// Global settings
+
 		cmdcommon.CheckSourcePath(p.Spec.Inputs.RootDir)
 		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
 		cmdcommon.CheckOutputPath(flags.Outpath)
