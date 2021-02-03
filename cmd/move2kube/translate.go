@@ -83,6 +83,9 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		cmdcommon.CheckSourcePath(flags.Srcpath)
 		flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
 		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
+		if flags.Srcpath == flags.Outpath || common.IsParent(flags.Outpath, flags.Srcpath) {
+			log.Fatalf("The source path %s and output path %s overlap.", flags.Srcpath, flags.Outpath)
+		}
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
 			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
@@ -122,6 +125,9 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		cmdcommon.CheckSourcePath(p.Spec.Inputs.RootDir)
 		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
 		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
+		if p.Spec.Inputs.RootDir == flags.Outpath || common.IsParent(flags.Outpath, p.Spec.Inputs.RootDir) {
+			log.Fatalf("The source path %s and output path %s overlap.", p.Spec.Inputs.RootDir, flags.Outpath)
+		}
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
 			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}

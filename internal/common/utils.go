@@ -758,3 +758,31 @@ func ReverseInPlace(xs []string) {
 		xs[i], xs[j] = xs[j], xs[i]
 	}
 }
+
+// IsParent can be used to check if a path is one of the parent directories of another path.
+// Also returns true if the paths are the same.
+func IsParent(child, parent string) bool {
+	var err error
+	child, err = filepath.Abs(child)
+	if err != nil {
+		log.Fatalf("Failed to make the path %s absolute. Error: %s", child, err)
+	}
+	parent, err = filepath.Abs(parent)
+	if err != nil {
+		log.Fatalf("Failed to make the path %s absolute. Error: %s", parent, err)
+	}
+	if parent == "/" {
+		return true
+	}
+	childParts := strings.Split(child, string(os.PathSeparator))
+	parentParts := strings.Split(parent, string(os.PathSeparator))
+	if len(parentParts) > len(childParts) {
+		return false
+	}
+	for i, parentPart := range parentParts {
+		if childParts[i] != parentPart {
+			return false
+		}
+	}
+	return true
+}
