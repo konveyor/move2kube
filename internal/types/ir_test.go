@@ -26,7 +26,7 @@ import (
 	"github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestAddVolume(t *testing.T) {
@@ -35,10 +35,10 @@ func TestAddVolume(t *testing.T) {
 	t.Run("add a volume to an empty service", func(t *testing.T) {
 		// Setup
 		name1 := "name1"
-		v := corev1.Volume{Name: name1}
+		v := core.Volume{Name: name1}
 		s := types.Service{}
 		want := types.Service{}
-		want.Volumes = []corev1.Volume{v}
+		want.Volumes = []core.Volume{v}
 
 		// Test
 		s.AddVolume(v)
@@ -50,11 +50,11 @@ func TestAddVolume(t *testing.T) {
 	t.Run("add a new volume with same name to a filled service", func(t *testing.T) {
 		// Setup
 		name1 := "name1"
-		v := corev1.Volume{Name: name1}
+		v := core.Volume{Name: name1}
 		s := types.Service{}
-		s.Volumes = []corev1.Volume{v}
+		s.Volumes = []core.Volume{v}
 		want := types.Service{}
-		want.Volumes = []corev1.Volume{v}
+		want.Volumes = []core.Volume{v}
 
 		// Test
 		s.AddVolume(v)

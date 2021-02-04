@@ -71,6 +71,7 @@ func (*TriggerTemplate) createNewResource(tt tekton.TriggerTemplate, ir irtypes.
 		Kind:       pipelineRunKind,
 		APIVersion: v1beta1.SchemeGroupVersion.String(),
 	}
+
 	pipelineRun.ObjectMeta = metav1.ObjectMeta{Name: tt.PipelineRunName}
 	pipelineRun.Spec = v1beta1.PipelineRunSpec{
 		PipelineRef:        &v1beta1.PipelineRef{Name: tt.PipelineName},

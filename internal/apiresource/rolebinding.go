@@ -20,9 +20,9 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	log "github.com/sirupsen/logrus"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	rbac "k8s.io/kubernetes/pkg/apis/rbac"
 )
 
 const (
@@ -52,17 +52,17 @@ func (rb *RoleBinding) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds 
 	return objs
 }
 
-func (*RoleBinding) createNewResource(irrolebinding irtypes.RoleBinding) *rbacv1.RoleBinding {
-	roleBinding := new(rbacv1.RoleBinding)
+func (*RoleBinding) createNewResource(irrolebinding irtypes.RoleBinding) *rbac.RoleBinding {
+	roleBinding := new(rbac.RoleBinding)
 	roleBinding.TypeMeta = metav1.TypeMeta{
 		Kind:       roleBindingKind,
-		APIVersion: rbacv1.SchemeGroupVersion.String(),
+		APIVersion: rbac.SchemeGroupVersion.String(),
 	}
 	roleBinding.ObjectMeta = metav1.ObjectMeta{Name: irrolebinding.Name}
-	roleBinding.Subjects = []rbacv1.Subject{
-		{Kind: rbacv1.ServiceAccountKind, Name: irrolebinding.ServiceAccountName},
+	roleBinding.Subjects = []rbac.Subject{
+		{Kind: rbac.ServiceAccountKind, Name: irrolebinding.ServiceAccountName},
 	}
-	roleBinding.RoleRef = rbacv1.RoleRef{APIGroup: rbacv1.SchemeGroupVersion.Group, Kind: roleKind, Name: irrolebinding.RoleName}
+	roleBinding.RoleRef = rbac.RoleRef{APIGroup: rbac.SchemeGroupVersion.Group, Kind: roleKind, Name: irrolebinding.RoleName}
 
 	return roleBinding
 }

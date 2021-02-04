@@ -22,9 +22,9 @@ import (
 	"github.com/konveyor/move2kube/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	networking "k8s.io/kubernetes/pkg/apis/networking"
 )
 
 const (
@@ -68,7 +68,7 @@ func (d *NetworkPolicy) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds
 // ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
 func (d *NetworkPolicy) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	if common.IsStringPresent(supportedKinds, networkPolicyKind) {
-		if _, ok := obj.(*networkingv1.NetworkPolicy); ok {
+		if _, ok := obj.(*networking.NetworkPolicy); ok {
 			return []runtime.Object{obj}, true
 		}
 	}
@@ -76,22 +76,22 @@ func (d *NetworkPolicy) ConvertToClusterSupportedKinds(obj runtime.Object, suppo
 }
 
 // CreateNetworkPolicy initializes Network policy
-func (d *NetworkPolicy) createNetworkPolicy(networkName string) (*networkingv1.NetworkPolicy, error) {
+func (d *NetworkPolicy) createNetworkPolicy(networkName string) (*networking.NetworkPolicy, error) {
 
-	np := &networkingv1.NetworkPolicy{
+	np := &networking.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       networkPolicyKind,
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
+			APIVersion: networking.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: networkName,
 		},
-		Spec: networkingv1.NetworkPolicySpec{
+		Spec: networking.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{networkSelector + "/" + networkName: common.AnnotationLabelValue},
 			},
-			Ingress: []networkingv1.NetworkPolicyIngressRule{{
-				From: []networkingv1.NetworkPolicyPeer{{
+			Ingress: []networking.NetworkPolicyIngressRule{{
+				From: []networking.NetworkPolicyPeer{{
 					PodSelector: &metav1.LabelSelector{
 						MatchLabels: getNetworkPolicyLabels([]string{networkName}),
 					},

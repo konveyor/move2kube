@@ -24,10 +24,10 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 func TestGetSupportedKinds(t *testing.T) {
@@ -150,7 +150,7 @@ func TestCreateNewResources(t *testing.T) {
 		supKinds := []string{"NetworkPolicy"}
 
 		testDataPath := "testdata/networkpolicy/create-new-resources.yaml"
-		wantNetPols := []networkingv1.NetworkPolicy{}
+		wantNetPols := []networking.NetworkPolicy{}
 		if err := common.ReadYaml(testDataPath, &wantNetPols); err != nil {
 			t.Fatal("Failed to read the test data. Error:", err)
 		}
@@ -187,7 +187,7 @@ func TestConvertToClusterSupportedKinds(t *testing.T) {
 		oldir := irtypes.IR{}
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		netPolicy := apiresource.NetworkPolicy{}
-		obj := &networkingv1.NetworkPolicy{}
+		obj := &networking.NetworkPolicy{}
 		otherObjs := []runtime.Object{}
 		supKinds := []string{}
 		// Test
@@ -244,16 +244,16 @@ func TestConvertToClusterSupportedKinds(t *testing.T) {
 	})
 }
 
-func helperCreateNetworkPolicy(name string) *networkingv1.NetworkPolicy {
-	return &networkingv1.NetworkPolicy{
+func helperCreateNetworkPolicy(name string) *networking.NetworkPolicy {
+	return &networking.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NetworkPolicy",
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
+			APIVersion: networking.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: networkingv1.NetworkPolicySpec{
+		Spec: networking.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"foo": "bar"},
 			},
@@ -261,16 +261,16 @@ func helperCreateNetworkPolicy(name string) *networkingv1.NetworkPolicy {
 	}
 }
 
-func helperCreateSecret(name string, secretData map[string][]byte) *corev1.Secret {
-	return &corev1.Secret{
+func helperCreateSecret(name string, secretData map[string][]byte) *core.Secret {
+	return &core.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
-			APIVersion: corev1.SchemeGroupVersion.String(),
+			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Type: corev1.SecretTypeOpaque,
+		Type: core.SecretTypeOpaque,
 		Data: secretData,
 	}
 }

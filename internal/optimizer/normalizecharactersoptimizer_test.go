@@ -17,12 +17,13 @@ limitations under the License.
 package optimize
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	"testing"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestStripQuotation(t *testing.T) {
@@ -134,17 +135,17 @@ func TestOptimize(t *testing.T) {
 
 	t.Run("An IR containing services and containers and some of the environment variables are invalid", func(t *testing.T) {
 		// Setup
-		c1 := corev1.Container{
+		c1 := core.Container{
 			Name: "container-1",
-			Env: []corev1.EnvVar{
+			Env: []core.EnvVar{
 				{Name: "NAME\t", Value: "git-resource"},
 				{Name: "NO_PROXY", Value: "'no-proxy.git.com'"},
 				{Name: "VALID_VARIABLE", Value: "valid-variable"},
 			},
 		}
-		c2 := corev1.Container{
+		c2 := core.Container{
 			Name: "container-2",
-			Env: []corev1.EnvVar{
+			Env: []core.EnvVar{
 				{Name: "\nNAME", Value: "git-resource2"},
 				{Name: " PROXY", Value: "  proxy.git.com "},
 			},
@@ -175,16 +176,16 @@ func TestOptimize(t *testing.T) {
 
 	t.Run("IR containing services and containers and some of the environment variables are invalid but their names contain the string affinity", func(t *testing.T) {
 		// Setup
-		c1 := corev1.Container{
+		c1 := core.Container{
 			Name: "container-1",
-			Env: []corev1.EnvVar{
+			Env: []core.EnvVar{
 				{Name: "NAME\t", Value: "git-resource"},
 				{Name: "affinity", Value: "with-pod-affinity "},
 			},
 		}
-		c2 := corev1.Container{
+		c2 := core.Container{
 			Name: "container-2",
-			Env: []corev1.EnvVar{
+			Env: []core.EnvVar{
 				{Name: "\nNAME", Value: "git-resource2"},
 				{Name: " PROXY", Value: "  proxy.git.com "},
 			},
@@ -215,16 +216,16 @@ func TestOptimize(t *testing.T) {
 }
 
 func getIRWithServicesAndContainersWithValidEnv() types.IR {
-	c1 := corev1.Container{
+	c1 := core.Container{
 		Name: "container-1",
-		Env: []corev1.EnvVar{
+		Env: []core.EnvVar{
 			{Name: "NAME", Value: "git-resource"},
 			{Name: "NO_PROXY", Value: "no-proxy.git.com"},
 		},
 	}
-	c2 := corev1.Container{
+	c2 := core.Container{
 		Name: "container-2",
-		Env: []corev1.EnvVar{
+		Env: []core.EnvVar{
 			{Name: "NAME", Value: "git-resource2"},
 			{Name: "PROXY", Value: "proxy.git.com"},
 		},
@@ -244,10 +245,10 @@ func getIRWithServicesAndContainersWithValidEnv() types.IR {
 }
 
 func getIRWithServicesAndContainersWithoutEnv() types.IR {
-	c1 := corev1.Container{
+	c1 := core.Container{
 		Name: "container-1",
 	}
-	c2 := corev1.Container{
+	c2 := core.Container{
 		Name: "container-2",
 	}
 	svcname1 := "svcname1"
@@ -265,17 +266,17 @@ func getIRWithServicesAndContainersWithoutEnv() types.IR {
 }
 
 func getExpectedIR() types.IR {
-	c1 := corev1.Container{
+	c1 := core.Container{
 		Name: "container-1",
-		Env: []corev1.EnvVar{
+		Env: []core.EnvVar{
 			{Name: "NAME", Value: "git-resource"},
 			{Name: "NO_PROXY", Value: "no-proxy.git.com"},
 			{Name: "VALID_VARIABLE", Value: "valid-variable"},
 		},
 	}
-	c2 := corev1.Container{
+	c2 := core.Container{
 		Name: "container-2",
-		Env: []corev1.EnvVar{
+		Env: []core.EnvVar{
 			{Name: "NAME", Value: "git-resource2"},
 			{Name: "PROXY", Value: "proxy.git.com"},
 		},
@@ -294,15 +295,15 @@ func getExpectedIR() types.IR {
 }
 
 func getExpectedIRWithAffinityInContainer() types.IR {
-	c1 := corev1.Container{
+	c1 := core.Container{
 		Name: "container-1",
-		Env: []corev1.EnvVar{
+		Env: []core.EnvVar{
 			{Name: "NAME", Value: "git-resource"},
 		},
 	}
-	c2 := corev1.Container{
+	c2 := core.Container{
 		Name: "container-2",
-		Env: []corev1.EnvVar{
+		Env: []core.EnvVar{
 			{Name: "NAME", Value: "git-resource2"},
 			{Name: "PROXY", Value: "proxy.git.com"},
 		},

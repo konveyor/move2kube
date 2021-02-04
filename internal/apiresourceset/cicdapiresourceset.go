@@ -29,8 +29,8 @@ import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	log "github.com/sirupsen/logrus"
 	giturls "github.com/whilp/git-urls"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // CICDAPIResourceSet is the set of CI/CD resources we generate.
@@ -115,7 +115,7 @@ func (cicdSet *CICDAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.Enh
 				WebhookSecretName: webhookSecretName,
 			})
 
-			webHookURL := cicdSet.getWebHookURL(buildConfigName, webhookSecret.StringData["WebHookSecretKey"], "generic")
+			webHookURL := cicdSet.getWebHookURL(buildConfigName, string(webhookSecret.Content["WebHookSecretKey"]), "generic")
 			gitRepoToWebHookURLs[gitDomain] = append(gitRepoToWebHookURLs[gitDomain], webHookURL)
 		} else {
 			gitRepoURL, err := giturls.Parse(irContainer.RepoInfo.GitRepoURL)
@@ -152,7 +152,7 @@ func (cicdSet *CICDAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.Enh
 				WebhookSecretName: webhookSecretName,
 			})
 
-			webHookURL := cicdSet.getWebHookURL(buildConfigName, webhookSecret.StringData["WebHookSecretKey"], cicdSet.getWebHookType(gitDomain))
+			webHookURL := cicdSet.getWebHookURL(buildConfigName, string(webhookSecret.Content["WebHookSecretKey"]), cicdSet.getWebHookType(gitDomain))
 			gitRepoToWebHookURLs[irContainer.RepoInfo.GitRepoURL] = append(gitRepoToWebHookURLs[irContainer.RepoInfo.GitRepoURL], webHookURL)
 		}
 	}
@@ -195,8 +195,8 @@ func (*CICDAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes.S
 	return irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        name,
-		SecretType:  corev1.SecretTypeSSHAuth,
-		StringData:  map[string]string{corev1.SSHAuthPrivateKey: gitPrivateKey},
+		SecretType:  core.SecretTypeSSHAuth,
+		Content:     map[string][]byte{core.SSHAuthPrivateKey: []byte(gitPrivateKey)},
 	}
 }
 
@@ -204,7 +204,7 @@ func (cicdSet *CICDAPIResourceSet) createWebHookSecret(name string) irtypes.Stor
 	return irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        name,
-		StringData:  map[string]string{"WebHookSecretKey": cicdSet.generateWebHookSecretKey()},
+		Content:     map[string][]byte{"WebHookSecretKey": []byte(cicdSet.generateWebHookSecretKey())},
 	}
 }
 

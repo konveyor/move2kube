@@ -29,7 +29,7 @@ import (
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	dockerparser "github.com/moby/buildkit/frontend/dockerfile/parser"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // DockerfileTranslator implements Translator interface for using preexisting dockerfiles
@@ -90,16 +90,16 @@ func (dockerfileTranslator *DockerfileTranslator) Translate(services []plantypes
 		ir.AddContainer(irContainer)
 
 		irService := irtypes.NewServiceFromPlanService(service)
-		container := corev1.Container{Name: service.ServiceName, Image: service.Image}
+		container := core.Container{Name: service.ServiceName, Image: service.Image}
 		for _, port := range irContainer.ExposedPorts {
 			// Add the port to the k8s pod.
-			container.Ports = append(container.Ports, corev1.ContainerPort{ContainerPort: int32(port)})
+			container.Ports = append(container.Ports, core.ContainerPort{ContainerPort: int32(port)})
 			// Forward the port on the k8s service to the k8s pod.
 			podPort := irtypes.Port{Number: int32(port)}
 			servicePort := podPort
 			irService.AddPortForwarding(servicePort, podPort)
 		}
-		irService.Containers = []corev1.Container{container}
+		irService.Containers = []core.Container{container}
 		ir.Services[service.ServiceName] = irService
 	}
 	return ir, nil
