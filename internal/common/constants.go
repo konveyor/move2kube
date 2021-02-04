@@ -70,6 +70,8 @@ const (
 	Delim = "."
 	// Special is the special case indicator of the multi-select problems
 	Special = "[]"
+	// MatchAll is used to set the default for a set of keys. Example: move2kube.services.*.ports=[8080]
+	MatchAll = "*"
 
 	//Configuration keys
 

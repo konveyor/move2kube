@@ -82,6 +82,9 @@ func (c *Config) GetSolution(p Problem) (Problem, error) {
 	}
 	key := p.ID
 	value, ok := get(key, c.yamlMap)
+	if !ok {
+		value, ok = getWithDefaults(key, c.yamlMap)
+	}
 	if ok {
 		// key exists
 		if p.Solution.Type != MultiSelectSolutionFormType {
@@ -121,7 +124,7 @@ func (c *Config) GetSolution(p Problem) (Problem, error) {
 	if p.Solution.Type != MultiSelectSolutionFormType || idx < 0 {
 		return p, noAns
 	}
-	baseKey, lastKeySegment := key[:idx-1], key[idx+len(common.Special)+1:]
+	baseKey, lastKeySegment := key[:idx-len(common.Delim)], key[idx+len(common.Special)+len(common.Delim):]
 	if baseKey == "" {
 		return p, noAns
 	}
@@ -215,7 +218,7 @@ func (c *Config) AddSolution(p Problem) error {
 	}
 
 	// special case
-	baseKey, lastKeySegment := key[:idx-1], key[idx+len(common.Special)+1:]
+	baseKey, lastKeySegment := key[:idx-len(common.Delim)], key[idx+len(common.Special)+len(common.Delim):]
 	if baseKey == "" {
 		return fmt.Errorf("Failed to add the problem\n%+v\nto the config. The base key is empty", p)
 	}
@@ -328,6 +331,29 @@ func get(key string, config mapT) (value interface{}, ok bool) {
 		if !ok {
 			// partial match
 			return value, false
+		}
+		valueMap, ok := value.(mapT)
+		if ok {
+			config = valueMap
+			continue
+		}
+		// value is an array or a scalar
+		return value, true
+	}
+	// value is a map
+	return value, true
+}
+
+func getWithDefaults(key string, config mapT) (value interface{}, ok bool) {
+	subKeys := strings.Split(key, common.Delim)
+	for _, subKey := range subKeys {
+		value, ok = config[subKey]
+		if !ok {
+			value, ok = config[common.MatchAll]
+			if !ok {
+				// partial match
+				return value, false
+			}
 		}
 		valueMap, ok := value.(mapT)
 		if ok {
