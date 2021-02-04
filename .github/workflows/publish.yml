@@ -20,7 +20,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const owner_repo_ids = JSON.parse('${{ github.event.inputs.owner_repo_ids }}');
-            const resp = await octokit.repos.getRelease(owner_repo_ids[0]);
+            const resp = await github.repos.getRelease(owner_repo_ids[0]);
             core.setOutput('tag', resp.data.tag_name);
       - uses: actions/checkout@v2
         with:
@@ -41,9 +41,9 @@ jobs:
             await Promise.all(promises);
 
             await github.actions.createWorkflowDispatch({
-                ...context.repo,
-                workflow_id: update_release_info_workflow,
-                ref: context.ref,
+              ...context.repo,
+              workflow_id: update_release_info_workflow,
+              ref: context.ref,
             });
 
             // if it is a stable version then publish the homebrew formula
@@ -53,10 +53,10 @@ jobs:
               const publish_formula_workflow = 'publish.yml';
 
               await github.actions.createWorkflowDispatch({
-                  owner: context.repo.owner,
-                  repo: 'homebrew-move2kube',
-                  workflow_id: publish_formula_workflow,
-                  ref: 'main',
-                  inputs: {tag, tag_sha},
+                owner: context.repo.owner,
+                repo: 'homebrew-move2kube',
+                workflow_id: publish_formula_workflow,
+                ref: 'main',
+                inputs: {tag, tag_sha},
               });
             }
