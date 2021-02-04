@@ -115,13 +115,50 @@ func (c *Config) GetSolution(p Problem) (Problem, error) {
 		return p, err
 	}
 
-	// key doesn't exist, try special case for multi-select problem
 	noAns := fmt.Errorf("no answer found")
+
+	// key doesn't exist, try special case for match all selector
+	if strings.Contains(key, common.MatchAll) {
+		if strings.Count(key, common.MatchAll) > 1 {
+			return p, fmt.Errorf("The key %s contains more than one %s match all selector", key, common.MatchAll)
+		}
+		if p.Solution.Type == MultiSelectSolutionFormType {
+			return p, fmt.Errorf("The %s match all selector is not supported for multi-select type problems", common.MatchAll)
+		}
+		idx := strings.LastIndex(key, common.MatchAll)
+		baseKey, lastKeySegment := key[:idx-len(common.Delim)], key[idx+len(common.MatchAll)+len(common.Delim):]
+		val, ok := get(baseKey, c.yamlMap)
+		if !ok {
+			return p, noAns
+		}
+		valMap, ok := val.(mapT)
+		if !ok {
+			return p, noAns
+		}
+		for k := range valMap {
+			newK := baseKey + common.Delim + k + common.Delim + lastKeySegment
+			defVal, ok := get(newK, c.yamlMap)
+			if !ok {
+				continue
+			}
+			// value should be a scalar, convert it to string
+			defValStr, err := cast.ToStringE(defVal)
+			if err != nil {
+				log.Errorf("Failed to cast value %v of type %T to string. Error: %q", defVal, defVal, err)
+				return p, err
+			}
+			err = p.SetAnswer([]string{defValStr})
+			return p, err
+		}
+		return p, noAns
+	}
+
+	// key doesn't exist, try special case for multi-select problem
 	idx := strings.LastIndex(key, common.Special)
 	if p.Solution.Type != MultiSelectSolutionFormType || idx < 0 {
 		return p, noAns
 	}
-	baseKey, lastKeySegment := key[:idx-1], key[idx+len(common.Special)+1:]
+	baseKey, lastKeySegment := key[:idx-len(common.Delim)], key[idx+len(common.Special)+len(common.Delim):]
 	if baseKey == "" {
 		return p, noAns
 	}
@@ -215,7 +252,7 @@ func (c *Config) AddSolution(p Problem) error {
 	}
 
 	// special case
-	baseKey, lastKeySegment := key[:idx-1], key[idx+len(common.Special)+1:]
+	baseKey, lastKeySegment := key[:idx-len(common.Delim)], key[idx+len(common.Special)+len(common.Delim):]
 	if baseKey == "" {
 		return fmt.Errorf("Failed to add the problem\n%+v\nto the config. The base key is empty", p)
 	}
