@@ -28,6 +28,7 @@ import (
 // Engine defines interface for qa engines
 type Engine interface {
 	StartEngine() error
+	IsInteractiveEngine() bool
 	FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error)
 }
 
@@ -107,16 +108,6 @@ func SetupConfigFile(outputPath string, configStrings, configFiles, presets []st
 	}
 }
 
-func isInteractiveEngine(e Engine) bool {
-	if _, ok := e.(*CliEngine); ok {
-		return true
-	}
-	if _, ok := e.(*HTTPRESTEngine); ok {
-		return true
-	}
-	return false
-}
-
 // FetchAnswer fetches the answer for the question
 func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	var err error
@@ -139,7 +130,7 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	if err != nil || !prob.Resolved {
 		// loop using interactive engine until we get an answer
 		lastEngine := engines[len(engines)-1]
-		if !isInteractiveEngine(lastEngine) {
+		if !lastEngine.IsInteractiveEngine() {
 			return prob, fmt.Errorf("Failed to fetch the answer for problem\n%+v\nError: %q", prob, err)
 		}
 		for err != nil || !prob.Resolved {
