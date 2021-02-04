@@ -46,6 +46,8 @@ const (
 	PreSetFlag = "preset"
 	// OverwriteFlag is the name of the flag that lets you overwrite the output directory if it exists
 	OverwriteFlag = "overwrite"
+	// ConfigStringsDelimiter is used to separate config strings
+	ConfigStringsDelimiter = ":"
 )
 
 //TranslateFlags to store values from command line paramters
@@ -65,7 +67,7 @@ type TranslateFlags struct {
 	//Configs contains list of config files
 	Configs []string
 	//Configs contains list of key-value configs
-	Setconfigs []string
+	Setconfigs string
 	//Qaskip lets you skip all the question answers
 	Qaskip bool
 	// Overwrite lets you overwrite the output directory if it exists

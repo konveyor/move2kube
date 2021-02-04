@@ -111,7 +111,7 @@ func SetupConfigFile(outputPath string, configStrings, configFiles, presets []st
 // FetchAnswer fetches the answer for the question
 func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	var err error
-	log.Debugf("Fetching answer for problem:\n%v\n", prob)
+	log.Debugf("Fetching answer for problem:\n%v", prob)
 	if prob.Resolved {
 		log.Debugf("Problem already solved.")
 		return prob, nil
@@ -119,7 +119,7 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	for _, e := range engines {
 		prob, err = e.FetchAnswer(prob)
 		if err != nil {
-			log.Debugf("Error while fetching answer using engine %+v Error: %q", e, err)
+			log.Debugf("Error while fetching answer using engine %T Error: %q", e, err)
 			continue
 		}
 		if prob.Resolved {
