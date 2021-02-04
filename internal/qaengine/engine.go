@@ -169,7 +169,6 @@ func WriteStoresToDisk() error {
 func changeSelectToInputForOther(prob qatypes.Problem) qatypes.Problem {
 	if prob.Solution.Type == qatypes.SelectSolutionFormType && len(prob.Solution.Answer) > 0 && prob.Solution.Answer[0] == qatypes.OtherAnswer {
 		prob.Solution.Type = qatypes.InputSolutionFormType
-		prob.ID = prob.ID + common.Delim + string(qatypes.InputSolutionFormType)
 		prob.Desc = string(qatypes.InputSolutionFormType) + " " + prob.Desc
 		prob.Solution.Answer = []string{}
 		prob.Resolved = false
