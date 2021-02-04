@@ -85,6 +85,11 @@ func (h *HTTPRESTEngine) StartEngine() error {
 	return nil
 }
 
+// IsInteractiveEngine returns true if the engine interacts with the user
+func (*HTTPRESTEngine) IsInteractiveEngine() bool {
+	return true
+}
+
 // FetchAnswer fetches the answer using a REST service
 func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
 	if prob.ID == "" {

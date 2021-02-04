@@ -28,6 +28,7 @@ import (
 // Engine defines interface for qa engines
 type Engine interface {
 	StartEngine() error
+	IsInteractiveEngine() bool
 	FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error)
 }
 
@@ -108,39 +109,45 @@ func SetupConfigFile(outputPath string, configStrings, configFiles, presets []st
 }
 
 // FetchAnswer fetches the answer for the question
-func FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
+func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
+	var err error
 	log.Debugf("Fetching answer for problem:\n%v\n", prob)
 	if prob.Resolved {
 		log.Debugf("Problem already solved.")
 		return prob, nil
 	}
 	for _, e := range engines {
-		ans, err = e.FetchAnswer(prob)
+		prob, err = e.FetchAnswer(prob)
 		if err != nil {
 			log.Debugf("Error while fetching answer using engine %+v Error: %q", e, err)
 			continue
 		}
-		if ans.Resolved {
+		if prob.Resolved {
 			prob = changeSelectToInputForOther(prob)
 			break
 		}
 	}
-	lastEngine := engines[len(engines)-1]
-	for !ans.Resolved {
-		ans, err = lastEngine.FetchAnswer(prob)
-		if err != nil {
-			log.Errorf("Unable to get answer to %s Error: %q", ans.Desc, err)
+	if err != nil || !prob.Resolved {
+		// loop using interactive engine until we get an answer
+		lastEngine := engines[len(engines)-1]
+		if !lastEngine.IsInteractiveEngine() {
+			return prob, fmt.Errorf("Failed to fetch the answer for problem\n%+v\nError: %q", prob, err)
 		}
-		if ans.Resolved {
-			prob = changeSelectToInputForOther(prob)
+		for err != nil || !prob.Resolved {
+			prob, err = lastEngine.FetchAnswer(prob)
+			if err != nil {
+				log.Errorf("Unable to get answer to %s Error: %q", prob.Desc, err)
+				continue
+			}
+			if prob.Resolved {
+				prob = changeSelectToInputForOther(prob)
+			}
 		}
 	}
-	if err == nil && ans.Resolved {
-		for _, writeStore := range writeStores {
-			writeStore.AddSolution(ans)
-		}
+	for _, writeStore := range writeStores {
+		writeStore.AddSolution(prob)
 	}
-	return ans, err
+	return prob, err
 }
 
 // WriteStoresToDisk forces all the stores to write their contents out to disk
@@ -162,7 +169,6 @@ func WriteStoresToDisk() error {
 func changeSelectToInputForOther(prob qatypes.Problem) qatypes.Problem {
 	if prob.Solution.Type == qatypes.SelectSolutionFormType && len(prob.Solution.Answer) > 0 && prob.Solution.Answer[0] == qatypes.OtherAnswer {
 		prob.Solution.Type = qatypes.InputSolutionFormType
-		prob.ID = prob.ID + common.Delim + string(qatypes.InputSolutionFormType)
 		prob.Desc = string(qatypes.InputSolutionFormType) + " " + prob.Desc
 		prob.Solution.Answer = []string{}
 		prob.Resolved = false

@@ -34,6 +34,11 @@ func (*DefaultEngine) StartEngine() error {
 	return nil
 }
 
+// IsInteractiveEngine returns true if the engine interacts with the user
+func (*DefaultEngine) IsInteractiveEngine() bool {
+	return false
+}
+
 // FetchAnswer fetches the default answers
 func (*DefaultEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	err := prob.SetAnswer(prob.Solution.Default)

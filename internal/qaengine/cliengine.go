@@ -39,6 +39,11 @@ func (*CliEngine) StartEngine() error {
 	return nil
 }
 
+// IsInteractiveEngine returns true if the engine interacts with the user
+func (*CliEngine) IsInteractiveEngine() bool {
+	return true
+}
+
 // FetchAnswer fetches the answer using cli
 func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
 	switch prob.Solution.Type {

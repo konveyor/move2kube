@@ -35,6 +35,11 @@ func (se *StoreEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, e
 	return se.store.GetSolution(prob)
 }
 
+// IsInteractiveEngine returns true if the engine interacts with the user
+func (*StoreEngine) IsInteractiveEngine() bool {
+	return false
+}
+
 // NewStoreEngineFromCache creates a new cache instance
 func NewStoreEngineFromCache(cacheFile string) *StoreEngine {
 	return &StoreEngine{store: qatypes.NewCache(cacheFile)}
