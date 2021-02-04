@@ -83,7 +83,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		cmdcommon.CheckSourcePath(flags.Srcpath)
 		flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
 		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
-		if flags.Srcpath == flags.Outpath || common.IsParent(flags.Outpath, flags.Srcpath) {
+		if flags.Srcpath == flags.Outpath || common.IsParent(flags.Outpath, flags.Srcpath) || common.IsParent(flags.Srcpath, flags.Outpath) {
 			log.Fatalf("The source path %s and output path %s overlap.", flags.Srcpath, flags.Outpath)
 		}
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
@@ -125,7 +125,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		cmdcommon.CheckSourcePath(p.Spec.Inputs.RootDir)
 		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
 		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
-		if p.Spec.Inputs.RootDir == flags.Outpath || common.IsParent(flags.Outpath, p.Spec.Inputs.RootDir) {
+		if p.Spec.Inputs.RootDir == flags.Outpath || common.IsParent(flags.Outpath, p.Spec.Inputs.RootDir) || common.IsParent(p.Spec.Inputs.RootDir, flags.Outpath) {
 			log.Fatalf("The source path %s and output path %s overlap.", p.Spec.Inputs.RootDir, flags.Outpath)
 		}
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {

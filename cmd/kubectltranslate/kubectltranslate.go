@@ -52,7 +52,7 @@ func translateHandler(cmd *cobra.Command, flags cmdcommon.TranslateFlags) {
 	cmdcommon.CheckSourcePath(flags.Srcpath)
 	flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
 	cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
-	if flags.Srcpath == flags.Outpath || common.IsParent(flags.Outpath, flags.Srcpath) {
+	if flags.Srcpath == flags.Outpath || common.IsParent(flags.Outpath, flags.Srcpath) || common.IsParent(flags.Srcpath, flags.Outpath) {
 		log.Fatalf("The source path %s and output path %s overlap.", flags.Srcpath, flags.Outpath)
 	}
 	if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
