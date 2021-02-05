@@ -189,7 +189,8 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 		}
 		selectedSConType := sConTypes[0]
 		if len(sConTypes) > 1 {
-			problem, err := qatypes.NewSelectProblem(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+"containerization"+common.Delim+"type", "Select containerization technique for service "+serviceName+":", []string{"Choose the containerization technique of interest."}, selectedSConType, sConTypes)
+			qaKey := common.ConfigServicesKey + common.Delim + `"` + serviceName + `"` + common.Delim + "containerization" + common.Delim + "type"
+			problem, err := qatypes.NewSelectProblem(qaKey, "Select containerization technique for service "+serviceName+":", []string{"Choose the containerization technique of interest."}, selectedSConType, sConTypes)
 			if err != nil {
 				log.Fatalf("Unable to create problem : %s", err)
 			}
@@ -239,7 +240,8 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 					options = append(options, relOptionPath)
 				}
 			}
-			problem, err := qatypes.NewSelectProblem(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+"containerization"+common.Delim+"target", "Select containerization target for service "+serviceName+":", []string{"Choose the target that should be used for containerization."}, options[0], options)
+			qaKey := common.ConfigServicesKey + common.Delim + `"` + serviceName + `"` + common.Delim + "containerization" + common.Delim + "target"
+			problem, err := qatypes.NewSelectProblem(qaKey, "Select containerization target for service "+serviceName+":", []string{"Choose the target that should be used for containerization."}, options[0], options)
 			if err != nil {
 				log.Fatalf("Unable to create problem : %s", err)
 			}

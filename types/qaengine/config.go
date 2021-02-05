@@ -49,6 +49,7 @@ type Config struct {
 
 // Load loads and merges config files and strings
 func (c *Config) Load() (err error) {
+	log.Debugf("Config.Load")
 	yamlDatas := []string{}
 	// config files specified later override earlier config files
 	for _, configFile := range c.configFiles {
@@ -61,12 +62,22 @@ func (c *Config) Load() (err error) {
 	}
 	// config strings override config files
 	// config strings specified later override earlier config strings
-	for _, configString := range c.configStrings {
+	for i, configString := range c.configStrings {
+		if len(configString) == 0 {
+			log.Errorf("The %dth config string is empty", i)
+			continue
+		}
+		if !strings.HasPrefix(configString, common.Delim) {
+			// given move2kube.services change to .move2kube.services for yq parser.
+			configString = common.Delim + configString
+		}
+		log.Debugf("config store load configString: [%s]", configString)
 		yamlData, err := generateYAMLFromExpression(configString)
 		if err != nil {
 			log.Errorf("Unable to parse the config string %s Error: %q", configString, err)
 			continue
 		}
+		log.Debugf("after parsing the yamlData is:\n%s", yamlData)
 		yamlDatas = append(yamlDatas, yamlData)
 	}
 	c.yamlMap, err = mergeYAMLDatasIntoMap(yamlDatas)
@@ -74,57 +85,65 @@ func (c *Config) Load() (err error) {
 	return err
 }
 
-// GetSolution reads a solution from the config
-func (c *Config) GetSolution(p Problem) (Problem, error) {
-	if p.Resolved {
-		log.Warnf("Problem already solved.")
-		return p, nil
-	}
-	key := p.ID
-	value, ok := get(key, c.yamlMap)
-	if !ok {
-		value, ok = getWithDefaults(key, c.yamlMap)
-	}
-	if ok {
-		// key exists
-		if p.Solution.Type != MultiSelectSolutionFormType {
-			// value should be a scalar, convert it to string
-			valueStr, err := cast.ToStringE(value)
-			if err != nil {
-				log.Errorf("Failed to cast value %v of type %T to string. Error: %q", value, value, err)
-				return p, err
-			}
-			err = p.SetAnswer([]string{valueStr})
+func (c *Config) convertAnswer(p Problem, value interface{}) (Problem, error) {
+	if p.Solution.Type != MultiSelectSolutionFormType {
+		// value should be a scalar, convert it to string
+		valueStr, err := cast.ToStringE(value)
+		if err != nil {
+			log.Errorf("Failed to cast value %v of type %T to string. Error: %q", value, value, err)
 			return p, err
 		}
-		// value should be an array, convert it to []string
-		valueV := reflect.ValueOf(value)
-		if !valueV.IsValid() || valueV.IsZero() || valueV.Kind() != reflect.Slice {
-			err := fmt.Errorf("Expected to find an array. Actual value %v is of type %T", value, value)
-			log.Error(err)
-			return p, err
-		}
-		valueStrs := []string{}
-		for i := 0; i < valueV.Len(); i++ {
-			v := valueV.Index(i).Interface()
-			valueStr, err := cast.ToStringE(v)
-			if err != nil {
-				log.Errorf("Failed to cast value %v of type %T to string. Error: %q", v, v, err)
-				return p, err
-			}
-			valueStrs = append(valueStrs, valueStr)
-		}
-		err := p.SetAnswer(valueStrs)
+		err = p.SetAnswer([]string{valueStr})
 		return p, err
 	}
-
-	// key doesn't exist, try special case for multi-select problem
-	noAns := fmt.Errorf("no answer found")
-	idx := strings.LastIndex(key, common.Special)
-	if p.Solution.Type != MultiSelectSolutionFormType || idx < 0 {
-		return p, noAns
+	// value should be an array, convert it to []string
+	valueV := reflect.ValueOf(value)
+	if !valueV.IsValid() || valueV.IsZero() || valueV.Kind() != reflect.Slice {
+		err := fmt.Errorf("Expected to find an array. Actual value %v is of type %T", value, value)
+		log.Error(err)
+		return p, err
 	}
-	baseKey, lastKeySegment := key[:idx-len(common.Delim)], key[idx+len(common.Special)+len(common.Delim):]
+	valueStrs := []string{}
+	for i := 0; i < valueV.Len(); i++ {
+		v := valueV.Index(i).Interface()
+		valueStr, err := cast.ToStringE(v)
+		if err != nil {
+			log.Errorf("Failed to cast value %v of type %T to string. Error: %q", v, v, err)
+			return p, err
+		}
+		valueStrs = append(valueStrs, valueStr)
+	}
+	err := p.SetAnswer(valueStrs)
+	return p, err
+}
+
+func (c *Config) normalGetSolution(p Problem) (Problem, error) {
+	key := p.ID
+	value, ok := get(key, c.yamlMap)
+	if ok {
+		return c.convertAnswer(p, value)
+	}
+	// starting from 2nd last subkey replace with match all selector *
+	// Example: Given a.b.c.d.e this matches a.b.c.*.e, then a.b.*.d.e, then a.*.c.d.e
+	subKeys := getSubKeys(key)
+	for idx := len(subKeys) - 2; idx > 0; idx-- {
+		baseKey := strings.Join(subKeys[:idx], common.Delim)
+		lastKeySegment := strings.Join(subKeys[idx+1:], common.Delim)
+		newKey := baseKey + common.Delim + common.MatchAll + common.Delim + lastKeySegment
+		v, ok := get(newKey, c.yamlMap)
+		if ok {
+			return c.convertAnswer(p, v)
+		}
+	}
+	return p, fmt.Errorf("no answer found in the config for the problem:%+v", p)
+}
+
+func (c *Config) specialGetSolution(p Problem) (Problem, error) {
+	noAns := fmt.Errorf("no answer found in the config for the problem:%+v", p)
+	key := p.ID
+	idx := strings.LastIndex(key, common.Special)
+	baseKey := key[:idx-len(common.Delim)]
+	lastKeySegment := key[idx+len(common.Special)+len(common.Delim):]
 	if baseKey == "" {
 		return p, noAns
 	}
@@ -156,6 +175,7 @@ func (c *Config) GetSolution(p Problem) (Problem, error) {
 	if !atleastOneKeyHasLastSegment {
 		return p, noAns
 	}
+	// found at least one key, so we will try to answer using the defaults
 	selectedOptions := []string{}
 	for _, option := range p.Solution.Options {
 		isOptionSelected := true
@@ -174,13 +194,26 @@ func (c *Config) GetSolution(p Problem) (Problem, error) {
 	return p, err
 }
 
+// GetSolution reads a solution from the config
+func (c *Config) GetSolution(p Problem) (Problem, error) {
+	if strings.Contains(p.ID, common.Special) {
+		if p.Solution.Type != MultiSelectSolutionFormType {
+			return p, fmt.Errorf("cannot use the %s selector with non multi select problems:%+v", common.Special, p)
+		}
+		return c.specialGetSolution(p)
+	}
+	return c.normalGetSolution(p)
+}
+
 // Write writes the config to disk
 func (c *Config) Write() error {
+	log.Debugf("Config.Write write the file out")
 	return common.WriteYaml(c.OutputPath, c.writeYamlMap)
 }
 
 // AddSolution adds a problem to the config
 func (c *Config) AddSolution(p Problem) error {
+	log.Debugf("Config.AddSolution the problem is:\n%+v", p)
 	if p.Solution.Type == PasswordSolutionFormType {
 		err := fmt.Errorf("Passwords will not be added to the config")
 		log.Debug(err)
@@ -237,6 +270,7 @@ func (c *Config) AddSolution(p Problem) error {
 
 // NewConfig creates a new config instance given config strings and paths to config files
 func NewConfig(outputPath string, configStrings, configFiles []string) (config *Config) {
+	log.Debug("NewConfig create a new config")
 	return &Config{
 		configFiles:   configFiles,
 		configStrings: configStrings,
@@ -257,6 +291,7 @@ func getPrinterAndEvaluator(buffer *bytes.Buffer) (yqlib.Printer, yqlib.StreamEv
 }
 
 func generateYAMLFromExpression(expr string) (string, error) {
+	log.Debugf("generateYAMLFromExpression parsing the string [%s]", expr)
 	logging.SetBackend(new(nullLogBackend))
 	b := bytes.Buffer{}
 	printer, evaluator := getPrinterAndEvaluator(&b)
@@ -325,7 +360,7 @@ func mergeYAMLDatasIntoMap(yamlDatas []string) (mapT, error) {
 }
 
 func get(key string, config mapT) (value interface{}, ok bool) {
-	subKeys := strings.Split(key, common.Delim)
+	subKeys := getSubKeys(key)
 	for _, subKey := range subKeys {
 		value, ok = config[subKey]
 		if !ok {
@@ -344,31 +379,8 @@ func get(key string, config mapT) (value interface{}, ok bool) {
 	return value, true
 }
 
-func getWithDefaults(key string, config mapT) (value interface{}, ok bool) {
-	subKeys := strings.Split(key, common.Delim)
-	for _, subKey := range subKeys {
-		value, ok = config[subKey]
-		if !ok {
-			value, ok = config[common.MatchAll]
-			if !ok {
-				// partial match
-				return value, false
-			}
-		}
-		valueMap, ok := value.(mapT)
-		if ok {
-			config = valueMap
-			continue
-		}
-		// value is an array or a scalar
-		return value, true
-	}
-	// value is a map
-	return value, true
-}
-
 func set(key string, newValue interface{}, config mapT) {
-	subKeys := strings.Split(key, common.Delim)
+	subKeys := getSubKeys(key)
 	if len(subKeys) == 1 {
 		config[key] = newValue
 	}
@@ -397,4 +409,13 @@ func set(key string, newValue interface{}, config mapT) {
 	}
 	lastSubKey := subKeys[lastIdx]
 	config[lastSubKey] = newValue
+}
+
+func getSubKeys(key string) []string {
+	unStrippedSubKeys := common.SplitOnDotExpectInsideQuotes(key) // assuming delimiter is dot
+	subKeys := []string{}
+	for _, unStrippedSubKey := range unStrippedSubKeys {
+		subKeys = append(subKeys, common.StripQuotes(unStrippedSubKey))
+	}
+	return subKeys
 }

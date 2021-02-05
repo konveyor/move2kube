@@ -186,7 +186,8 @@ func (ic storageCustomizer) selectStorageClass(storageClasses []string, claimNam
 		}
 	} else {
 		desc = fmt.Sprintf("Which storage class to use for persistent volume claim [%s] used by %+v", claimName, services)
-		problem, err = qatypes.NewSelectProblem(common.ConfigStoragesKey+common.Delim+claimName+common.Delim+ConfigStorageClassKeySegment, desc, []string{hint}, storageClasses[0], storageClasses)
+		qaKey := common.ConfigStoragesKey + common.Delim + `"` + claimName + `"` + common.Delim + ConfigStorageClassKeySegment
+		problem, err = qatypes.NewSelectProblem(qaKey, desc, []string{hint}, storageClasses[0], storageClasses)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}

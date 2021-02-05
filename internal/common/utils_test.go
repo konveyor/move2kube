@@ -874,3 +874,53 @@ func TestIsParent(t *testing.T) {
 		})
 	}
 }
+
+func TestSplitOnDotExpectInsideQuotes(t *testing.T) {
+	tts := []struct {
+		desc   string
+		str    string
+		answer []string
+	}{
+		{
+			"key with single quotes, double quotes and spaces",
+			`move2kube.repo."https://git.git hub.com/foo".'filename1'.foo bar.enable`,
+			[]string{
+				`move2kube`,
+				`repo`,
+				`"https://git.git hub.com/foo"`,
+				`'filename1'`,
+				`foo bar`,
+				`enable`,
+			}},
+	}
+	for _, tt := range tts {
+		t.Run(tt.desc, func(t *testing.T) {
+			parts := common.SplitOnDotExpectInsideQuotes(tt.str)
+			if !cmp.Equal(parts, tt.answer) {
+				t.Fatalf("Failed to split the string %s properly. Difference:\n%s", tt.str, cmp.Diff(tt.answer, parts))
+			}
+		})
+	}
+}
+
+func TestStripQuotes(t *testing.T) {
+	tts := []struct {
+		desc   string
+		str    string
+		answer string
+	}{
+		{"single quoted string", `'github.com'`, `github.com`},
+		{"double quoted string", `"github.com"`, `github.com`},
+		{"double quotes inside single quoted string", `'"github.com"'`, `"github.com"`},
+		{"single quotes inside double quoted string", `"'github.com'"`, `'github.com'`},
+		{"double quoted string with spaces", `"https://git.git hub.com/foo"`, `https://git.git hub.com/foo`},
+	}
+	for _, tt := range tts {
+		t.Run(tt.desc, func(t *testing.T) {
+			stripped := common.StripQuotes(tt.str)
+			if stripped != tt.answer {
+				t.Fatalf("Failed to strip the string %s properly. Expected: %s Actual: %s", tt.str, tt.answer, stripped)
+			}
+		})
+	}
+}

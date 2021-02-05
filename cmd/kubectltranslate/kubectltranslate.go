@@ -112,9 +112,9 @@ For more documentation and support for this plugin and Move2Kube, visit https://
 	translateCmd.Flags().StringSliceVarP(&flags.Qacaches, cmdcommon.QACacheFlag, "q", []string{}, "Specify qa cache file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
-	translateCmd.Flags().StringSliceVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
 	translateCmd.Flags().BoolVar(&flags.Qaskip, cmdcommon.QASkipFlag, false, "Enable/disable the default answers to questions posed in QA sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 	translateCmd.Flags().BoolVarP(&flags.Overwrite, cmdcommon.OverwriteFlag, "", false, "Overwrite the output directory if it exists. By default we don't overwrite.")
+	translateCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
 
 	must(translateCmd.MarkFlagRequired(cmdcommon.SourceFlag))
 

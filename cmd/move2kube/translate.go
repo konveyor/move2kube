@@ -168,14 +168,14 @@ func getTranslateCommand() *cobra.Command {
 	// Basic options
 	translateCmd.Flags().StringVarP(&flags.Planfile, cmdcommon.PlanFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	translateCmd.Flags().BoolVarP(&flags.curate, curateFlag, "c", false, "Specify whether to curate the plan with a q/a.")
-	translateCmd.Flags().BoolVarP(&flags.Overwrite, cmdcommon.OverwriteFlag, "", false, "Overwrite the output directory if it exists. By default we don't overwrite.")
+	translateCmd.Flags().BoolVar(&flags.Overwrite, cmdcommon.OverwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
 	translateCmd.Flags().StringVarP(&flags.Srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory to translate. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
 	translateCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	translateCmd.Flags().StringVarP(&flags.Name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	translateCmd.Flags().StringSliceVarP(&flags.Qacaches, cmdcommon.QACacheFlag, "q", []string{}, "Specify qa cache file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
-	translateCmd.Flags().StringSliceVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
+	translateCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
 
 	// Advanced options
 	translateCmd.Flags().BoolVar(&flags.IgnoreEnv, cmdcommon.IgnoreEnvFlag, false, "Ignore data from local machine.")
