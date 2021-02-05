@@ -19,7 +19,6 @@ package main
 import (
 	"os"
 	"path/filepath"
-	"strings"
 
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
@@ -50,10 +49,6 @@ func translateHandler(cmd *cobra.Command, flags cmdcommon.TranslateFlags) {
 
 	// Global settings
 	common.IgnoreEnvironment = ignoreEnv
-	configStrings := []string{}
-	if flags.Setconfigs != "" {
-		configStrings = strings.Split(flags.Setconfigs, cmdcommon.ConfigStringsDelimiter)
-	}
 	cmdcommon.CheckSourcePath(flags.Srcpath)
 	flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
 	cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
@@ -64,7 +59,7 @@ func translateHandler(cmd *cobra.Command, flags cmdcommon.TranslateFlags) {
 		log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 	}
 	qaengine.StartEngine(flags.Qaskip, qaport, qadisablecli)
-	qaengine.SetupConfigFile(flags.Outpath, configStrings, flags.Configs, flags.PreSets)
+	qaengine.SetupConfigFile(flags.Outpath, flags.Setconfigs, flags.Configs, flags.PreSets)
 	qaengine.SetupCacheFile(flags.Outpath, flags.Qacaches)
 	if err := qaengine.WriteStoresToDisk(); err != nil {
 		log.Warnf("Failed to write the stores to disk. Error: %q", err)
@@ -119,7 +114,7 @@ For more documentation and support for this plugin and Move2Kube, visit https://
 	translateCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
 	translateCmd.Flags().BoolVar(&flags.Qaskip, cmdcommon.QASkipFlag, false, "Enable/disable the default answers to questions posed in QA sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 	translateCmd.Flags().BoolVarP(&flags.Overwrite, cmdcommon.OverwriteFlag, "", false, "Overwrite the output directory if it exists. By default we don't overwrite.")
-	translateCmd.Flags().StringVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", "", "Specify config key-value pairs")
+	translateCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
 
 	must(translateCmd.MarkFlagRequired(cmdcommon.SourceFlag))
 

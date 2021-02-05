@@ -19,7 +19,6 @@ package main
 import (
 	"os"
 	"path/filepath"
-	"strings"
 
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
@@ -62,10 +61,6 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 
 	// Global settings
 	common.IgnoreEnvironment = flags.IgnoreEnv
-	configStrings := []string{}
-	if flags.Setconfigs != "" {
-		configStrings = strings.Split(flags.Setconfigs, cmdcommon.ConfigStringsDelimiter)
-	}
 	// Global settings
 
 	// Parameter cleaning and curate plan
@@ -95,7 +90,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
 		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
-		qaengine.SetupConfigFile(flags.Outpath, configStrings, flags.Configs, flags.PreSets)
+		qaengine.SetupConfigFile(flags.Outpath, flags.Setconfigs, flags.Configs, flags.PreSets)
 		qaengine.SetupCacheFile(flags.Outpath, flags.Qacaches)
 		if err := qaengine.WriteStoresToDisk(); err != nil {
 			log.Warnf("Failed to write the stores to disk. Error: %q", err)
@@ -137,7 +132,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
 		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
-		qaengine.SetupConfigFile(flags.Outpath, configStrings, flags.Configs, flags.PreSets)
+		qaengine.SetupConfigFile(flags.Outpath, flags.Setconfigs, flags.Configs, flags.PreSets)
 		qaengine.SetupCacheFile(flags.Outpath, flags.Qacaches)
 		if err := qaengine.WriteStoresToDisk(); err != nil {
 			log.Warnf("Failed to write the stores to disk. Error: %q", err)
@@ -180,7 +175,7 @@ func getTranslateCommand() *cobra.Command {
 	translateCmd.Flags().StringSliceVarP(&flags.Qacaches, cmdcommon.QACacheFlag, "q", []string{}, "Specify qa cache file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
-	translateCmd.Flags().StringVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", "", "Specify config key-value pairs")
+	translateCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
 
 	// Advanced options
 	translateCmd.Flags().BoolVar(&flags.IgnoreEnv, cmdcommon.IgnoreEnvFlag, false, "Ignore data from local machine.")
