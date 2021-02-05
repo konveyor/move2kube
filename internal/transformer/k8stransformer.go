@@ -22,8 +22,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/internal/apiresourceset"
+	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/k8sschema"
 	"github.com/konveyor/move2kube/internal/transformer/templates"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -69,9 +70,10 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 	kt.Values = ir.Values
 	kt.Containers = ir.Containers
 	kt.TargetClusterSpec = ir.TargetClusterSpec
+	kt.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 	kt.Helm = (ir.Kubernetes.ArtifactType == plantypes.Helm)
 
-	kt.TransformedObjects = new(apiresourceset.K8sAPIResourceSet).CreateAPIResources(ir)
+	kt.TransformedObjects = kt.createAPIResources(ir)
 	kt.RootDir = ir.RootDir
 	kt.AddCopySources = ir.AddCopySources
 
@@ -86,6 +88,42 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 	return nil
 }
 
+// CreateAPIResources converts IR to runtime objects
+func (kt *K8sTransformer) createAPIResources(oldir irtypes.IR) []runtime.Object {
+	ir := irtypes.NewEnhancedIRFromIR(oldir)
+	targetObjs := []runtime.Object{}
+	ignoredObjs := ir.CachedObjects
+	for _, apiResource := range kt.getAPIResources(ir) {
+		apiResource.SetClusterContext(ir.TargetClusterSpec)
+		resourceIgnoredObjs := apiResource.LoadResources(ir.CachedObjects, ir)
+		ignoredObjs = k8sschema.Intersection(ignoredObjs, resourceIgnoredObjs)
+		resourceObjs := apiResource.GetUpdatedResources(ir)
+		targetObjs = append(targetObjs, resourceObjs...)
+	}
+	targetObjs = append(targetObjs, ignoredObjs...)
+	return targetObjs
+}
+
+func (kt *K8sTransformer) getAPIResources(ir irtypes.EnhancedIR) []apiresource.APIResource {
+	return []apiresource.APIResource{
+		{
+			IAPIResource: &apiresource.Deployment{Cluster: ir.TargetClusterSpec},
+		},
+		{
+			IAPIResource: &apiresource.Storage{Cluster: ir.TargetClusterSpec},
+		},
+		{
+			IAPIResource: &apiresource.Service{Cluster: ir.TargetClusterSpec},
+		},
+		{
+			IAPIResource: &apiresource.ImageStream{Cluster: ir.TargetClusterSpec},
+		},
+		{
+			IAPIResource: &apiresource.NetworkPolicy{Cluster: ir.TargetClusterSpec},
+		},
+	}
+}
+
 // WriteObjects writes Transformed objects to filesystem
 func (kt *K8sTransformer) WriteObjects(outpath string) error {
 	areNewImagesCreated := writeContainers(kt.Containers, outpath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace, kt.AddCopySources)
@@ -98,24 +136,7 @@ func (kt *K8sTransformer) WriteObjects(outpath string) error {
 		artifactspath = filepath.Join(artifactspath, helmTemplatesRelPath)
 	}
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))
-
-	k8sresourceset := &apiresourceset.K8sAPIResourceSet{}
-	objs := []runtime.Object{}
-	for _, obj := range kt.TransformedObjects {
-		newobj, err := k8sresourceset.ConvertToSupportedVersion(obj, kt.TargetClusterSpec)
-		if err != nil {
-			log.Warnf("Unable to translate object to a supported version : %s.", err)
-			if kt.IgnoreUnsupportedKinds {
-				log.Warnf("Ignoring object : %+v", obj.GetObjectKind())
-				continue
-			}
-			log.Warnf("Writing obj in original version : %+v", obj.GetObjectKind())
-			newobj = obj
-		}
-		objs = append(objs, newobj)
-	}
-
-	_, err := writeTransformedObjects(artifactspath, objs)
+	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds)
 	if err != nil {
 		log.Errorf("Error occurred while writing transformed objects %s", err)
 	}

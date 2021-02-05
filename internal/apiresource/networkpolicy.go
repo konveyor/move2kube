@@ -37,13 +37,13 @@ type NetworkPolicy struct {
 	Cluster collecttypes.ClusterMetadataSpec
 }
 
-// GetSupportedKinds returns all kinds supported by the class
-func (d *NetworkPolicy) GetSupportedKinds() []string {
+// getSupportedKinds returns all kinds supported by the class
+func (d *NetworkPolicy) getSupportedKinds() []string {
 	return []string{networkPolicyKind}
 }
 
-// CreateNewResources converts ir to runtime objects
-func (d *NetworkPolicy) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources converts ir to runtime objects
+func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if !common.IsStringPresent(supportedKinds, networkPolicyKind) {
 		log.Errorf("Could not find a valid resource type in cluster to create a NetworkPolicy")
@@ -65,8 +65,8 @@ func (d *NetworkPolicy) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds
 	return objs
 }
 
-// ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *NetworkPolicy) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+// convertToClusterSupportedKinds converts kinds to cluster supported kinds
+func (d *NetworkPolicy) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	if common.IsStringPresent(supportedKinds, networkPolicyKind) {
 		if _, ok := obj.(*networking.NetworkPolicy); ok {
 			return []runtime.Object{obj}, true

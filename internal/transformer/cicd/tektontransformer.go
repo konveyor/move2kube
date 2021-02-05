@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apiresourceset
+package cicd
 
 import (
 	"fmt"
@@ -55,17 +55,12 @@ const (
 	baseTektonTriggersAdminRoleBindingName = "tekton-triggers-admin"
 )
 
-// TektonAPIResourceSet is the set of tekton based CI/CD resources we generate.
-type TektonAPIResourceSet struct {
-}
-
-// GetScheme returns K8s scheme
-func (*TektonAPIResourceSet) GetScheme() *runtime.Scheme {
-	return new(K8sAPIResourceSet).GetScheme()
+// TektonTransformer is the set of tekton based CI/CD resources we generate.
+type TektonTransformer struct {
 }
 
 // CreateAPIResources converts IR to runtime objects
-func (tekSet *TektonAPIResourceSet) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
+func (tekSet *TektonTransformer) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
 	ir := tekSet.setupEnhancedIR(oldir)
 	targetobjs := []runtime.Object{}
 	for _, a := range tekSet.getAPIResources(ir) {
@@ -73,14 +68,42 @@ func (tekSet *TektonAPIResourceSet) CreateAPIResources(oldir irtypes.IR) []runti
 		objs := a.GetUpdatedResources(ir)
 		targetobjs = append(targetobjs, objs...)
 	}
-	for _, a := range tekSet.getTektonAPIResources(ir) {
-		objs := a.CreateNewResources(ir, []string{})
-		targetobjs = append(targetobjs, objs...)
-	}
 	return targetobjs
 }
 
-func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
+func (tekSet *TektonTransformer) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
+	return []apiresource.APIResource{
+		{
+			IAPIResource: &apiresource.Service{},
+		},
+		{
+			IAPIResource: &apiresource.ServiceAccount{},
+		},
+		{
+			IAPIResource: &apiresource.RoleBinding{},
+		},
+		{
+			IAPIResource: &apiresource.Role{},
+		},
+		{
+			IAPIResource: &apiresource.Storage{},
+		},
+		{
+			IAPIResource: &apiresource.EventListener{},
+		},
+		{
+			IAPIResource: &apiresource.TriggerBinding{},
+		},
+		{
+			IAPIResource: &apiresource.TriggerTemplate{},
+		},
+		{
+			IAPIResource: &apiresource.Pipeline{},
+		},
+	}
+}
+
+func (tekSet *TektonTransformer) setupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.
@@ -212,53 +235,7 @@ func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.En
 	return ir
 }
 
-func (tekSet *TektonAPIResourceSet) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
-	return []apiresource.APIResource{
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.Service{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.ServiceAccount{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.RoleBinding{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.Role{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.Storage{},
-		},
-	}
-}
-
-func (tekSet *TektonAPIResourceSet) getTektonAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
-	return []apiresource.APIResource{
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.EventListener{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.TriggerBinding{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.TriggerTemplate{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.Pipeline{},
-		},
-	}
-}
-
-func (*TektonAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes.Storage {
+func (*TektonTransformer) createGitSecret(name, gitRepoDomain string) irtypes.Storage {
 	gitPrivateKey := gitPrivateKeyPlaceholder
 	knownHosts := knownHostsPlaceholder
 	if gitRepoDomain == "" {

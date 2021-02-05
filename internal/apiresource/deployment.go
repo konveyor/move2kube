@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/k8sschema"
 	internaltypes "github.com/konveyor/move2kube/internal/types"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -40,8 +41,6 @@ const (
 	podKind string = "Pod"
 	// jobKind defines Job Kind
 	jobKind string = "Job"
-	// DeploymentKind defines Deployment Kind
-	DeploymentKind string = "Deployment"
 	// deploymentConfigKind defines DeploymentConfig Kind
 	deploymentConfigKind string = "DeploymentConfig"
 	// replicationControllerKind defines ReplicationController Kind
@@ -55,13 +54,13 @@ type Deployment struct {
 	Cluster collecttypes.ClusterMetadataSpec
 }
 
-// GetSupportedKinds returns kinds supported by the deployment
-func (d *Deployment) GetSupportedKinds() []string {
-	return []string{podKind, jobKind, DeploymentKind, deploymentConfigKind, replicationControllerKind}
+// getSupportedKinds returns kinds supported by the deployment
+func (d *Deployment) getSupportedKinds() []string {
+	return []string{podKind, jobKind, common.DeploymentKind, deploymentConfigKind, replicationControllerKind}
 }
 
-// CreateNewResources converts ir to runtime object
-func (d *Deployment) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources converts ir to runtime object
+func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	for _, service := range ir.Services {
 		var obj runtime.Object
@@ -83,7 +82,7 @@ func (d *Deployment) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []
 			}
 		} else if common.IsStringPresent(supportedKinds, deploymentConfigKind) {
 			obj = d.createDeploymentConfig(service)
-		} else if common.IsStringPresent(supportedKinds, DeploymentKind) {
+		} else if common.IsStringPresent(supportedKinds, common.DeploymentKind) {
 			obj = d.createDeployment(service)
 		} else if common.IsStringPresent(supportedKinds, replicationControllerKind) {
 			obj = d.createReplicationController(service)
@@ -99,8 +98,8 @@ func (d *Deployment) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []
 	return objs
 }
 
-// ConvertToClusterSupportedKinds converts objects to kind supported by the cluster
-func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+// convertToClusterSupportedKinds converts objects to kind supported by the cluster
+func (d *Deployment) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	if d1, ok := obj.(*apps.DaemonSet); ok {
 		if common.IsStringPresent(supportedKinds, daemonSetKind) {
 			return []runtime.Object{d1}, true
@@ -130,9 +129,9 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 		}
 		return []runtime.Object{obj}, true
 	}
-	if common.IsStringPresent(supportedKinds, DeploymentKind) {
+	if common.IsStringPresent(supportedKinds, common.DeploymentKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
-			return []runtime.Object{d.toDeployment(d1.ObjectMeta, convertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas)}, true
+			return []runtime.Object{d.toDeployment(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas)}, true
 		} else if d1, ok := obj.(*core.ReplicationController); ok {
 			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas)}, true
 		} else if d1, ok := obj.(*core.Pod); ok {
@@ -143,7 +142,7 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 	}
 	if common.IsStringPresent(supportedKinds, replicationControllerKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
-			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, convertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas)}, true
+			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas)}, true
 		} else if d1, ok := obj.(*apps.Deployment); ok {
 			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas)}, true
 		} else if d1, ok := obj.(*core.Pod); ok {
@@ -154,7 +153,7 @@ func (d *Deployment) ConvertToClusterSupportedKinds(obj runtime.Object, supporte
 	}
 	if common.IsStringPresent(supportedKinds, podKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
-			return []runtime.Object{d.toPod(d1.ObjectMeta, convertToPodSpec(&d1.Spec.Template.Spec), core.RestartPolicyAlways)}, true
+			return []runtime.Object{d.toPod(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), core.RestartPolicyAlways)}, true
 		} else if d1, ok := obj.(*apps.Deployment); ok {
 			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyAlways)}, true
 		} else if d1, ok := obj.(*core.ReplicationController); ok {
@@ -302,7 +301,7 @@ func (d *Deployment) toDeploymentConfig(meta metav1.ObjectMeta, podspec core.Pod
 			Selector: getServiceLabels(meta.Name),
 			Template: &corev1.PodTemplateSpec{
 				ObjectMeta: meta,
-				Spec:       convertToV1PodSpec(&podspec), // obj.Spec.Template.Spec,
+				Spec:       k8sschema.ConvertToV1PodSpec(&podspec), // obj.Spec.Template.Spec,
 			},
 			Triggers: triggerPolicies,
 		},
@@ -314,7 +313,7 @@ func (d *Deployment) toDeployment(meta metav1.ObjectMeta, podspec core.PodSpec, 
 	podspec = d.convertVolumesKindsByPolicy(podspec)
 	dc := &apps.Deployment{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       DeploymentKind,
+			Kind:       common.DeploymentKind,
 			APIVersion: apps.SchemeGroupVersion.String(), //"apps/v1",
 		},
 		ObjectMeta: meta,

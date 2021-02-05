@@ -30,13 +30,13 @@ import (
 type ServiceAccount struct {
 }
 
-// GetSupportedKinds returns the kinds that this type supports.
-func (*ServiceAccount) GetSupportedKinds() []string {
+// getSupportedKinds returns the kinds that this type supports.
+func (*ServiceAccount) getSupportedKinds() []string {
 	return []string{rbacv1.ServiceAccountKind}
 }
 
-// CreateNewResources creates the runtime objects from the intermediate representation.
-func (sa *ServiceAccount) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources creates the runtime objects from the intermediate representation.
+func (sa *ServiceAccount) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if common.IsStringPresent(supportedKinds, rbacv1.ServiceAccountKind) {
 		irresources := ir.ServiceAccounts
@@ -62,9 +62,9 @@ func (*ServiceAccount) createNewResource(irserviceaccount irtypes.ServiceAccount
 	return serviceAccount
 }
 
-// ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (sa *ServiceAccount) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	supKinds := sa.GetSupportedKinds()
+// convertToClusterSupportedKinds converts the object to supported types if possible.
+func (sa *ServiceAccount) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	supKinds := sa.getSupportedKinds()
 	for _, supKind := range supKinds {
 		if common.IsStringPresent(supportedKinds, supKind) {
 			return []runtime.Object{obj}, true

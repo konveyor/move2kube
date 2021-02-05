@@ -28,21 +28,10 @@ import (
 	"github.com/konveyor/move2kube/types/plan"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
-
-	coreinstall "k8s.io/kubernetes/pkg/apis/core/install"
 )
-
-var (
-	scheme = runtime.NewScheme()
-)
-
-func init() {
-	coreinstall.Install(scheme)
-}
 
 // IR is the intermediate representation filled by source translators
 type IR struct {
@@ -205,28 +194,6 @@ func (service *Service) AddPortForwarding(servicePort Port, podPort Port) error 
 	}
 	newForwarding := ServiceToPodPortForwarding{ServicePort: servicePort, PodPort: podPort}
 	service.ServiceToPodPortForwardings = append(service.ServiceToPodPortForwardings, newForwarding)
-	return nil
-}
-
-// GetV1PodSpec returns v1 podspec instead of unversioned podspec.
-func (service *Service) GetV1PodSpec() corev1.PodSpec {
-	vPodSpec := corev1.PodSpec{}
-	err := scheme.Convert(&service.PodSpec, &vPodSpec, nil)
-	if err != nil {
-		log.Errorf("Unable to convert PodSpec to versioned PodSpec : %s", err)
-	}
-	return vPodSpec
-}
-
-// SetV1PodSpec sets versioned PodSpec to service.
-func (service *Service) SetV1PodSpec(spec corev1.PodSpec) error {
-	uvPodSpec := core.PodSpec{}
-	err := scheme.Convert(&spec, &uvPodSpec, nil)
-	if err != nil {
-		log.Errorf("Unable to convert versioned PodSpec to unversioned PodSpec : %s", err)
-		return err
-	}
-	service.PodSpec = uvPodSpec
 	return nil
 }
 

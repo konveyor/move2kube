@@ -33,11 +33,7 @@ import (
 )
 
 const (
-	// ServiceKind defines Service Kind
-	ServiceKind = "Service"
-	// IngressKind defines Ingress Kind
-	IngressKind = "Ingress"
-	routeKind   = "Route"
+	routeKind = "Route"
 )
 
 // Service handles all objects related to a service
@@ -45,13 +41,13 @@ type Service struct {
 	Cluster collecttypes.ClusterMetadataSpec
 }
 
-// GetSupportedKinds returns supported kinds
-func (d *Service) GetSupportedKinds() []string {
-	return []string{ServiceKind, IngressKind, routeKind}
+// getSupportedKinds returns supported kinds
+func (d *Service) getSupportedKinds() []string {
+	return []string{common.ServiceKind, common.IngressKind, routeKind}
 }
 
-// CreateNewResources converts IR to runtime objects
-func (d *Service) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources converts IR to runtime objects
+func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	ingressEnabled := false
 	for _, service := range ir.Services {
@@ -65,7 +61,7 @@ func (d *Service) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 					objs = append(objs, routeObj)
 				}
 				exposeobjectcreated = true
-			} else if common.IsStringPresent(supportedKinds, IngressKind) {
+			} else if common.IsStringPresent(supportedKinds, common.IngressKind) {
 				//Create Ingress
 				// obj := d.createIngress(service)
 				// objs = append(objs, obj)
@@ -79,7 +75,7 @@ func (d *Service) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 			}
 			continue
 		}
-		if !common.IsStringPresent(supportedKinds, ServiceKind) {
+		if !common.IsStringPresent(supportedKinds, common.ServiceKind) {
 			log.Errorf("Could not find a valid resource type in cluster to create a Service")
 			continue
 		}
@@ -103,8 +99,8 @@ func (d *Service) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 	return objs
 }
 
-// ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.EnhancedIR) ([]runtime.Object, bool) {
+// convertToClusterSupportedKinds converts kinds to cluster supported kinds
+func (d *Service) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	if common.IsStringPresent(supportedKinds, routeKind) {
 		if _, ok := obj.(*okdroutev1.Route); ok {
 			return []runtime.Object{obj}, true
@@ -118,7 +114,7 @@ func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 			}
 			return []runtime.Object{obj}, true
 		}
-	} else if common.IsStringPresent(supportedKinds, IngressKind) {
+	} else if common.IsStringPresent(supportedKinds, common.IngressKind) {
 		if route, ok := obj.(*okdroutev1.Route); ok {
 			return d.routeToIngress(*route, ir), true
 		}
@@ -131,7 +127,7 @@ func (d *Service) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKi
 			}
 			return []runtime.Object{obj}, true
 		}
-	} else if common.IsStringPresent(supportedKinds, ServiceKind) {
+	} else if common.IsStringPresent(supportedKinds, common.ServiceKind) {
 		if route, ok := obj.(*okdroutev1.Route); ok {
 			return d.routeToService(*route), true
 		}
@@ -169,7 +165,7 @@ func (d *Service) ingressToRoute(ingress networking.Ingress) []runtime.Object {
 					Host: ingressspec.Host,
 					Path: path.Path,
 					To: okdroutev1.RouteTargetReference{
-						Kind:   ServiceKind,
+						Kind:   common.ServiceKind,
 						Name:   path.Backend.Service.Name,
 						Weight: &weight,
 					},
@@ -215,7 +211,7 @@ func (d *Service) serviceToRoutes(service core.Service, ir irtypes.EnhancedIR) [
 				Host: ir.TargetClusterSpec.Host,
 				Path: path,
 				To: okdroutev1.RouteTargetReference{
-					Kind:   ServiceKind,
+					Kind:   common.ServiceKind,
 					Name:   service.Name,
 					Weight: &weight,
 				},
@@ -241,7 +237,7 @@ func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.EnhancedIR) 
 
 	ingress := networking.Ingress{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       IngressKind,
+			Kind:       common.IngressKind,
 			APIVersion: networking.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: route.ObjectMeta,
@@ -315,7 +311,7 @@ func (d *Service) serviceToIngress(service core.Service, ir irtypes.EnhancedIR) 
 	}
 	ingress := networking.Ingress{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       IngressKind,
+			Kind:       common.IngressKind,
 			APIVersion: networking.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: service.ObjectMeta,
@@ -337,7 +333,7 @@ func (d *Service) routeToService(route okdroutev1.Route) []runtime.Object {
 	// TODO: Think through how will the clusterip service that was originally there will behave when merged with this service?
 	svc := &core.Service{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       ServiceKind,
+			Kind:       common.ServiceKind,
 			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: route.ObjectMeta,
@@ -365,7 +361,7 @@ func (d *Service) ingressToService(ingress networking.Ingress) []runtime.Object 
 		for _, path := range ingressspec.IngressRuleValue.HTTP.Paths {
 			svc := &core.Service{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       ServiceKind,
+					Kind:       common.ServiceKind,
 					APIVersion: core.SchemeGroupVersion.String(),
 				},
 				ObjectMeta: ingress.ObjectMeta,
@@ -430,7 +426,7 @@ func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, pa
 			Host: ir.TargetClusterSpec.Host,
 			Path: path,
 			To: okdroutev1.RouteTargetReference{
-				Kind:   ServiceKind,
+				Kind:   common.ServiceKind,
 				Name:   service.Name,
 				Weight: &weight,
 			},
@@ -507,7 +503,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR) *networking.Ingress {
 	}
 	ingress := networking.Ingress{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       IngressKind,
+			Kind:       common.IngressKind,
 			APIVersion: networking.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -531,7 +527,7 @@ func (d *Service) createService(service irtypes.Service, serviceType core.Servic
 	ports := d.getServicePorts(service)
 	svc := &core.Service{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       ServiceKind,
+			Kind:       common.ServiceKind,
 			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{

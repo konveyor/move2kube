@@ -33,13 +33,13 @@ const (
 type RoleBinding struct {
 }
 
-// GetSupportedKinds returns the kinds that this type supports.
-func (*RoleBinding) GetSupportedKinds() []string {
+// getSupportedKinds returns the kinds that this type supports.
+func (*RoleBinding) getSupportedKinds() []string {
 	return []string{roleBindingKind}
 }
 
-// CreateNewResources creates the runtime objects from the intermediate representation.
-func (rb *RoleBinding) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources creates the runtime objects from the intermediate representation.
+func (rb *RoleBinding) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if common.IsStringPresent(supportedKinds, roleBindingKind) {
 		irresources := ir.RoleBindings
@@ -67,13 +67,7 @@ func (*RoleBinding) createNewResource(irrolebinding irtypes.RoleBinding) *rbac.R
 	return roleBinding
 }
 
-// ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (rb *RoleBinding) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	supKinds := rb.GetSupportedKinds()
-	for _, supKind := range supKinds {
-		if common.IsStringPresent(supportedKinds, supKind) {
-			return []runtime.Object{obj}, true
-		}
-	}
-	return nil, false
+// convertToClusterSupportedKinds converts the object to supported types if possible.
+func (rb *RoleBinding) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	return []runtime.Object{obj}, true
 }

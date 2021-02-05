@@ -27,8 +27,8 @@ import (
 	"strings"
 
 	semver "github.com/Masterminds/semver/v3"
-	"github.com/konveyor/move2kube/internal/apiresourceset"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/k8sschema"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -552,7 +552,7 @@ func (c *ClusterCollector) collectUsingCLI() (map[string][]string, error) {
 }
 
 func (c *ClusterCollector) getPreferredGVUsingCLI(kind string, availableGroupList []schema.GroupVersion) []string {
-	scheme := (&apiresourceset.K8sAPIResourceSet{}).GetScheme()
+	scheme := k8sschema.GetSchema()
 	var gvList []string
 	for _, gvObj := range availableGroupList {
 		prioritizedGVList := scheme.PrioritizedVersionsForGroup(gvObj.Group)

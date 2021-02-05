@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/internal/types/tekton"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -42,13 +41,13 @@ const (
 type Pipeline struct {
 }
 
-// GetSupportedKinds returns the kinds that this type supports.
-func (*Pipeline) GetSupportedKinds() []string {
+// getSupportedKinds returns the kinds that this type supports.
+func (*Pipeline) getSupportedKinds() []string {
 	return []string{pipelineKind}
 }
 
-// CreateNewResources creates the runtime objects from the intermediate representation.
-func (p *Pipeline) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources creates the runtime objects from the intermediate representation.
+func (p *Pipeline) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
 	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
@@ -158,13 +157,7 @@ func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.Enhanc
 	return pipeline
 }
 
-// ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (p *Pipeline) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	supKinds := p.GetSupportedKinds()
-	for _, supKind := range supKinds {
-		if common.IsStringPresent(supportedKinds, supKind) {
-			return []runtime.Object{obj}, true
-		}
-	}
-	return nil, false
+// convertToClusterSupportedKinds converts the object to supported types if possible.
+func (p *Pipeline) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	return []runtime.Object{obj}, true
 }

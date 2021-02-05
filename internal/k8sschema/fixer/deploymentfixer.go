@@ -14,28 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fixers
+package fixer
 
 import (
 	"fmt"
 
-	"github.com/konveyor/move2kube/internal/apiresource"
+	"github.com/konveyor/move2kube/internal/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apps "k8s.io/kubernetes/pkg/apis/apps"
-	appsinstall "k8s.io/kubernetes/pkg/apis/apps/install"
 )
 
 type deploymentFixer struct {
 }
 
-func init() {
-	appsinstall.Install(scheme)
-}
-
 func (f deploymentFixer) getGroupVersionKind() schema.GroupVersionKind {
-	return apps.SchemeGroupVersion.WithKind(apiresource.DeploymentKind)
+	return apps.SchemeGroupVersion.WithKind(common.DeploymentKind)
 }
 
 func (f deploymentFixer) fix(obj runtime.Object) (runtime.Object, error) {

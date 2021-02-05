@@ -14,17 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apiresourceset
+package k8sschema
 
 import (
-	"fmt"
-
-	"github.com/konveyor/move2kube/internal/apiresource"
-	"github.com/konveyor/move2kube/internal/fixers"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	admissionregistration "k8s.io/kubernetes/pkg/apis/admissionregistration"
 	apps "k8s.io/kubernetes/pkg/apis/apps"
@@ -68,11 +61,9 @@ import (
 	settingsinstall "k8s.io/kubernetes/pkg/apis/settings/install"
 	storageinstall "k8s.io/kubernetes/pkg/apis/storage/install"
 
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 	okdapi "github.com/openshift/api"
 	tektonscheme "github.com/tektoncd/pipeline/pkg/client/clientset/versioned/scheme"
 	k8sapischeme "k8s.io/client-go/kubernetes/scheme"
-	knativev1 "knative.dev/serving/pkg/apis/serving/v1"
 )
 
 var (
@@ -130,134 +121,13 @@ func init() {
 	must(storage.AddToScheme(liasonscheme))
 }
 
-// K8sAPIResourceSet for handling K8s related resources
-type K8sAPIResourceSet struct {
+// GetSchema returns the scheme
+func GetSchema() *runtime.Scheme {
+	return scheme
 }
 
 func must(err error) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-// GetScheme returns K8s scheme
-func (k *K8sAPIResourceSet) GetScheme() *runtime.Scheme {
-	return scheme
-}
-
-// CreateAPIResources converts IR to runtime objects
-func (k *K8sAPIResourceSet) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
-	ir := irtypes.NewEnhancedIRFromIR(oldir)
-	targetObjs := []runtime.Object{}
-	ignoredObjs := ir.CachedObjects
-	for _, apiResource := range k.getAPIResources(ir) {
-		apiResource.SetClusterContext(ir.TargetClusterSpec)
-		resourceIgnoredObjs := apiResource.LoadResources(ir.CachedObjects, ir)
-		ignoredObjs = intersection(ignoredObjs, resourceIgnoredObjs)
-		resourceObjs := apiResource.GetUpdatedResources(ir)
-		targetObjs = append(targetObjs, resourceObjs...)
-	}
-	targetObjs = append(targetObjs, ignoredObjs...)
-	return targetObjs
-}
-
-func (k *K8sAPIResourceSet) getAPIResources(ir irtypes.EnhancedIR) []apiresource.APIResource {
-	return []apiresource.APIResource{
-		{
-			Scheme:       k.GetScheme(),
-			IAPIResource: &apiresource.Deployment{Cluster: ir.TargetClusterSpec},
-		},
-		{
-			Scheme:       k.GetScheme(),
-			IAPIResource: &apiresource.Storage{Cluster: ir.TargetClusterSpec},
-		},
-		{
-			Scheme:       k.GetScheme(),
-			IAPIResource: &apiresource.Service{Cluster: ir.TargetClusterSpec},
-		},
-		{
-			Scheme:       k.GetScheme(),
-			IAPIResource: &apiresource.ImageStream{Cluster: ir.TargetClusterSpec},
-		},
-		{
-			Scheme:       k.GetScheme(),
-			IAPIResource: &apiresource.NetworkPolicy{Cluster: ir.TargetClusterSpec},
-		},
-	}
-}
-
-// ConvertToSupportedVersion converts obj to a supported Version
-func (k *K8sAPIResourceSet) ConvertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) (newobj runtime.Object, err error) {
-	objvk := obj.GetObjectKind().GroupVersionKind()
-	objgv := objvk.GroupVersion()
-	kind := objvk.Kind
-	log.Debugf("Converting %s to supported version", kind)
-	versions := clusterSpec.GetSupportedVersions(kind)
-	if versions == nil || len(versions) == 0 {
-		return nil, fmt.Errorf("Kind %s unsupported in target cluster : %+v", kind, obj.GetObjectKind())
-	}
-	log.Debugf("Supported Versions : %+v", versions)
-	if kind == apiresource.ServiceKind && objgv.Group == knativev1.SchemeGroupVersion.Group {
-		return obj, nil
-	}
-	log.Debugf("Running fixers for %s", kind)
-	obj = fixers.Fix(obj)
-	for _, v := range versions {
-		if kind == apiresource.ServiceKind && v == knativev1.SchemeGroupVersion.Group {
-			continue
-		}
-		gv, err := schema.ParseGroupVersion(v)
-		if err != nil {
-			log.Errorf("Unable to parse group version %s : %s", v, err)
-			continue
-		}
-		newobj, err := k.convertToVersion(obj, gv)
-		if err != nil {
-			log.Errorf("Unable to convert : %s", err)
-			continue
-		}
-		scheme.Default(newobj)
-		return newobj, err
-	}
-	scheme.Default(obj)
-	return obj, fmt.Errorf("Unable to convert to a supported version : %+v", obj.GetObjectKind())
-}
-
-func (k *K8sAPIResourceSet) convertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runtime.Object, err error) {
-	objvk := obj.GetObjectKind().GroupVersionKind()
-	objgv := objvk.GroupVersion()
-	kind := objvk.Kind
-	newobj, err = k.checkAndConvertToVersion(obj, dgv)
-	if err == nil {
-		return newobj, nil
-	}
-	log.Debugf("Unable to do direct translation : %s", err)
-	akt := liasonscheme.AllKnownTypes()
-	for kt := range akt {
-		if kind != kt.Kind {
-			continue
-		}
-		log.Debugf("Attempting conversion of %s obj to %s", objgv, kt)
-		uvobj, err := k.checkAndConvertToVersion(obj, kt.GroupVersion())
-		if err != nil {
-			log.Errorf("Unable to convert to unversioned object : %s", err)
-			continue
-		}
-		log.Debugf("Converted %s obj to %s", objgv, kt)
-		newobj, err = k.checkAndConvertToVersion(uvobj, dgv)
-		if err == nil {
-			return newobj, nil
-		}
-		log.Errorf("Unable to convert through unversioned object : %s", kt)
-	}
-	err = fmt.Errorf("Unable to do convert %s to %s", objgv, dgv)
-	log.Errorf("%s", err)
-	return obj, err
-}
-
-func (k *K8sAPIResourceSet) checkAndConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runtime.Object, err error) {
-	if obj.GetObjectKind().GroupVersionKind().GroupVersion() == dgv {
-		return obj, nil
-	}
-	return scheme.ConvertToVersion(obj, dgv)
 }

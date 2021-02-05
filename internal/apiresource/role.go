@@ -33,13 +33,13 @@ const (
 type Role struct {
 }
 
-// GetSupportedKinds returns the kinds that this type supports.
-func (*Role) GetSupportedKinds() []string {
+// getSupportedKinds returns the kinds that this type supports.
+func (*Role) getSupportedKinds() []string {
 	return []string{roleKind}
 }
 
-// CreateNewResources creates the runtime objects from the intermediate representation.
-func (r *Role) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources creates the runtime objects from the intermediate representation.
+func (r *Role) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if common.IsStringPresent(supportedKinds, roleKind) {
 		irresources := ir.Roles
@@ -67,13 +67,7 @@ func (*Role) createNewResource(irrole irtypes.Role) *rbac.Role {
 	return role
 }
 
-// ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (r *Role) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	supKinds := r.GetSupportedKinds()
-	for _, supKind := range supKinds {
-		if common.IsStringPresent(supportedKinds, supKind) {
-			return []runtime.Object{obj}, true
-		}
-	}
-	return nil, false
+// convertToClusterSupportedKinds converts the object to supported types if possible.
+func (r *Role) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	return []runtime.Object{obj}, true
 }

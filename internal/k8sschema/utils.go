@@ -14,14 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apiresourceset
+package k8sschema
 
 import (
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func intersection(objs1 []runtime.Object, objs2 []runtime.Object) []runtime.Object {
+// Intersection finds overlapping objects between the two arrays
+func Intersection(objs1 []runtime.Object, objs2 []runtime.Object) []runtime.Object {
 	objs := []runtime.Object{}
 	for _, obj1 := range objs1 {
 		found := false

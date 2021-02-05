@@ -20,8 +20,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/internal/apiresourceset"
+	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/k8sschema"
 	"github.com/konveyor/move2kube/internal/transformer/templates"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -52,12 +53,37 @@ func (kt *KnativeTransformer) Transform(ir irtypes.IR) error {
 	kt.Containers = ir.Containers
 	kt.TargetClusterSpec = ir.TargetClusterSpec
 	kt.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
-	kt.TransformedObjects = (&apiresourceset.KnativeAPIResourceSet{}).CreateAPIResources(ir)
+	kt.TransformedObjects = kt.createAPIResources(ir)
 	kt.RootDir = ir.RootDir
 	kt.AddCopySources = ir.AddCopySources
 	log.Debugf("Total transformed objects : %d", len(kt.TransformedObjects))
 
 	return nil
+}
+
+// CreateAPIResources converts ir object to runtime objects
+func (kt *KnativeTransformer) createAPIResources(oldir irtypes.IR) []runtime.Object {
+	ir := irtypes.NewEnhancedIRFromIR(oldir)
+	targetObjs := []runtime.Object{}
+	ignoredObjs := ir.CachedObjects
+	for _, apiResource := range kt.getAPIResources(ir) {
+		apiResource.SetClusterContext(ir.TargetClusterSpec)
+		resourceIgnoredObjs := apiResource.LoadResources(ir.CachedObjects, ir)
+		ignoredObjs = k8sschema.Intersection(ignoredObjs, resourceIgnoredObjs)
+		resourceObjs := apiResource.GetUpdatedResources(ir)
+		targetObjs = append(targetObjs, resourceObjs...)
+	}
+	targetObjs = append(targetObjs, ignoredObjs...)
+	return targetObjs
+}
+
+func (kt *KnativeTransformer) getAPIResources(ir irtypes.EnhancedIR) []apiresource.APIResource {
+	apiresources := []apiresource.APIResource{
+		{
+			IAPIResource: &apiresource.KnativeService{Cluster: ir.TargetClusterSpec},
+		},
+	}
+	return apiresources
 }
 
 // WriteObjects writes Transformed objects to filesystem
@@ -67,7 +93,7 @@ func (kt *KnativeTransformer) WriteObjects(outpath string) error {
 	artifactspath := filepath.Join(outpath, kt.Name)
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))
 
-	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects)
+	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds)
 	if err != nil {
 		log.Errorf("Error occurred while writing transformed objects %s", err)
 	}

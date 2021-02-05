@@ -22,6 +22,7 @@ import (
 	"reflect"
 
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/k8sschema"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -38,17 +39,16 @@ const (
 
 // IAPIResource defines the interface to be defined for a new api resource
 type IAPIResource interface {
-	GetSupportedKinds() []string
-	CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object
+	getSupportedKinds() []string
+	createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object
 	// Return nil if not supported
-	ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, enhancedIR irtypes.EnhancedIR) ([]runtime.Object, bool)
+	convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, enhancedIR irtypes.EnhancedIR) ([]runtime.Object, bool)
 }
 
 // APIResource defines functions that are reusable across the api resources
 type APIResource struct {
 	IAPIResource
 	cluster    collecttypes.ClusterMetadataSpec
-	Scheme     *runtime.Scheme
 	cachedobjs []runtime.Object
 }
 
@@ -74,10 +74,10 @@ func (o *APIResource) LoadResources(objs []runtime.Object, ir irtypes.EnhancedIR
 
 // GetUpdatedResources converts IR to a runtime object
 func (o *APIResource) GetUpdatedResources(ir irtypes.EnhancedIR) []runtime.Object {
-	objs := o.CreateNewResources(ir, o.getClusterSupportedKinds())
+	objs := o.createNewResources(ir, o.getClusterSupportedKinds())
 	for _, obj := range objs {
 		if !o.loadResource(obj, objs, ir) {
-			log.Errorf("Object created seems to be of an incompatible type : %+v", obj)
+			log.Errorf("Object created seems to be of an incompatible type : %+v [Supported Types: %+v]", obj.GetObjectKind(), o.getSupportedKinds())
 		}
 	}
 	return o.cachedobjs
@@ -85,7 +85,7 @@ func (o *APIResource) GetUpdatedResources(ir irtypes.EnhancedIR) []runtime.Objec
 
 func (o *APIResource) isSupportedKind(obj runtime.Object) bool {
 	kind := obj.GetObjectKind().GroupVersionKind().Kind
-	return common.IsStringPresent(o.GetSupportedKinds(), kind)
+	return common.IsStringPresent(o.getSupportedKinds(), kind)
 }
 
 // loadResource returns false if it could not handle the resource.
@@ -93,13 +93,13 @@ func (o *APIResource) loadResource(obj runtime.Object, otherobjs []runtime.Objec
 	if !o.isSupportedKind(obj) {
 		return false
 	}
-	supportedobjs, ok := o.ConvertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(), otherobjs, ir)
+	supportedobjs, ok := o.convertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(), otherobjs, ir)
 	if !ok {
 		return false
 	}
 	if o.cachedobjs == nil {
 		// TODO: might need to merge supportedobjs with itself here if they are not all unique.
-		// Alternatively assume ConvertToClusterSupportedKinds always gives unique resources.
+		// Alternatively assume convertToClusterSupportedKinds always gives unique resources.
 		o.cachedobjs = supportedobjs
 		return true
 	}
@@ -169,7 +169,7 @@ func (o *APIResource) getObjectID(obj runtime.Object) string {
 }
 
 func (o *APIResource) getClusterSupportedKinds() []string {
-	kinds := o.IAPIResource.GetSupportedKinds()
+	kinds := o.IAPIResource.getSupportedKinds()
 	supportedKinds := []string{}
 	for _, kind := range kinds {
 		if o.cluster.GetSupportedVersions(kind) != nil {
@@ -201,7 +201,7 @@ func (o *APIResource) deepMerge(x, y runtime.Object) (runtime.Object, error) {
 		log.Errorf("Failed to merge the objects \n%s\n and \n%s\n Error: %q", xJSON, yJSON, err)
 		return nil, err
 	}
-	codecs := serializer.NewCodecFactory(o.Scheme)
+	codecs := serializer.NewCodecFactory(k8sschema.GetSchema())
 	obj, newGVK, err := codecs.UniversalDeserializer().Decode(mergedJSON, nil, nil)
 	oldGVK := common.GetGVK(x)
 	if newGVK == nil || *newGVK != oldGVK {

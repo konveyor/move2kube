@@ -31,13 +31,13 @@ type Storage struct {
 	Cluster collecttypes.ClusterMetadataSpec
 }
 
-// GetSupportedKinds returns cluster supported kinds
-func (s *Storage) GetSupportedKinds() []string {
+// getSupportedKinds returns cluster supported kinds
+func (s *Storage) getSupportedKinds() []string {
 	return []string{string(irtypes.PVCKind), string(irtypes.ConfigMapKind), string(irtypes.SecretKind)}
 }
 
-// CreateNewResources converts IR objects to runtime objects
-func (s *Storage) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources converts IR objects to runtime objects
+func (s *Storage) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 
 	for _, stObj := range ir.Storages {
@@ -69,8 +69,8 @@ func (s *Storage) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 	return objs
 }
 
-// ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (s *Storage) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+// convertToClusterSupportedKinds converts kinds to cluster supported kinds
+func (s *Storage) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	if cfgMap, ok := obj.(*core.ConfigMap); ok {
 		if !common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) && common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) {
 			return []runtime.Object{convertCfgMapToSecret(*cfgMap)}, true

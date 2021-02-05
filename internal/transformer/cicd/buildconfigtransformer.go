@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apiresourceset
+package cicd
 
 import (
 	"crypto/rand"
@@ -33,19 +33,14 @@ import (
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
-// CICDAPIResourceSet is the set of CI/CD resources we generate.
-type CICDAPIResourceSet struct {
+// BuildconfigTransformer is the set of CI/CD resources we generate.
+type BuildconfigTransformer struct {
 	ExtraFiles map[string]string // file path: file contents
 }
 
-// GetScheme returns K8s scheme
-func (*CICDAPIResourceSet) GetScheme() *runtime.Scheme {
-	return new(K8sAPIResourceSet).GetScheme()
-}
-
-// NewCICDAPIResourceSet creates a new CICDAPIResourceSet
-func NewCICDAPIResourceSet() *CICDAPIResourceSet {
-	return &CICDAPIResourceSet{ExtraFiles: map[string]string{}}
+// NewBuildconfigTransformer creates a new CICDAPIResourceSet
+func NewBuildconfigTransformer() *BuildconfigTransformer {
+	return &BuildconfigTransformer{ExtraFiles: map[string]string{}}
 }
 
 const (
@@ -54,17 +49,28 @@ const (
 )
 
 // CreateAPIResources converts IR to runtime objects
-func (cicdSet *CICDAPIResourceSet) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
+func (cicdSet *BuildconfigTransformer) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
 	ir := cicdSet.setupEnhancedIR(oldir)
 	targetobjs := []runtime.Object{}
 	for _, a := range cicdSet.getAPIResources(ir) {
-		objs := a.CreateNewResources(ir, []string{string(irtypes.SecretKind)})
+		objs := a.GetUpdatedResources(ir)
 		targetobjs = append(targetobjs, objs...)
 	}
 	return targetobjs
 }
 
-func (cicdSet *CICDAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
+func (cicdSet *BuildconfigTransformer) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
+	return []apiresource.APIResource{
+		{
+			IAPIResource: &apiresource.BuildConfig{},
+		},
+		{
+			IAPIResource: &apiresource.Storage{},
+		},
+	}
+}
+
+func (cicdSet *BuildconfigTransformer) setupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.
@@ -172,20 +178,7 @@ func (cicdSet *CICDAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.Enh
 	return ir
 }
 
-func (cicdSet *CICDAPIResourceSet) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
-	return []apiresource.APIResource{
-		{
-			Scheme:       cicdSet.GetScheme(),
-			IAPIResource: &apiresource.BuildConfig{},
-		},
-		{
-			Scheme:       cicdSet.GetScheme(),
-			IAPIResource: &apiresource.Storage{},
-		},
-	}
-}
-
-func (*CICDAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes.Storage {
+func (*BuildconfigTransformer) createGitSecret(name, gitRepoDomain string) irtypes.Storage {
 	gitPrivateKey := gitPrivateKeyPlaceholder
 	if gitRepoDomain != "" {
 		if key, ok := sshkeys.GetSSHKey(gitRepoDomain); ok {
@@ -200,7 +193,7 @@ func (*CICDAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes.S
 	}
 }
 
-func (cicdSet *CICDAPIResourceSet) createWebHookSecret(name string) irtypes.Storage {
+func (cicdSet *BuildconfigTransformer) createWebHookSecret(name string) irtypes.Storage {
 	return irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        name,
@@ -208,7 +201,7 @@ func (cicdSet *CICDAPIResourceSet) createWebHookSecret(name string) irtypes.Stor
 	}
 }
 
-func (*CICDAPIResourceSet) generateWebHookSecretKey() string {
+func (*BuildconfigTransformer) generateWebHookSecretKey() string {
 	randomBytes := make([]byte, 8)
 	if _, err := rand.Read(randomBytes); err != nil {
 		log.Warnf("Failed to read random bytes to generate web hook secret key. Error: %q", err)
@@ -216,7 +209,7 @@ func (*CICDAPIResourceSet) generateWebHookSecretKey() string {
 	return hex.EncodeToString(randomBytes)
 }
 
-func (*CICDAPIResourceSet) getWebHookType(gitDomain string) string {
+func (*BuildconfigTransformer) getWebHookType(gitDomain string) string {
 	switch true {
 	case strings.Contains(gitDomain, "github"):
 		return "github"
@@ -229,6 +222,6 @@ func (*CICDAPIResourceSet) getWebHookType(gitDomain string) string {
 	}
 }
 
-func (*CICDAPIResourceSet) getWebHookURL(buildConfigName, webHookSecretKey, webHookType string) string {
+func (*BuildconfigTransformer) getWebHookURL(buildConfigName, webHookSecretKey, webHookType string) string {
 	return "$HOST_AND_PORT/apis/build.openshift.io/v1/namespaces/$NAMESPACE/buildconfigs/" + buildConfigName + "/webhooks/" + webHookSecretKey + "/" + webHookType
 }

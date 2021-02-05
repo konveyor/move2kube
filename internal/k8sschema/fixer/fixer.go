@@ -14,16 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fixers
+package fixer
 
 import (
+	"github.com/konveyor/move2kube/internal/k8sschema"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-)
-
-var (
-	scheme *runtime.Scheme = runtime.NewScheme()
 )
 
 // fixer can be used to fix K8s resources
@@ -42,7 +39,7 @@ func Fix(obj runtime.Object) runtime.Object {
 		fgvk := fixer.getGroupVersionKind()
 		if fgvk.Kind == obj.GetObjectKind().GroupVersionKind().Kind {
 			log.Debugf("Running fixer %T", fixer)
-			newobj, err := convertToVersion(obj, fgvk.GroupVersion())
+			newobj, err := k8sschema.ConvertToVersion(obj, fgvk.GroupVersion())
 			if err != nil {
 				log.Errorf("Unable to convert to %s for fixer %T", fgvk, fixer)
 				continue
@@ -57,11 +54,4 @@ func Fix(obj runtime.Object) runtime.Object {
 		}
 	}
 	return obj
-}
-
-func convertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runtime.Object, err error) {
-	if obj.GetObjectKind().GroupVersionKind().GroupVersion() == dgv {
-		return obj, nil
-	}
-	return scheme.ConvertToVersion(obj, dgv)
 }

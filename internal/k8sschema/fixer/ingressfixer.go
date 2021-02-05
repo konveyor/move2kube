@@ -14,27 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fixers
+package fixer
 
 import (
 	"fmt"
 
-	"github.com/konveyor/move2kube/internal/apiresource"
+	"github.com/konveyor/move2kube/internal/common"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
-	networkinginstall "k8s.io/kubernetes/pkg/apis/networking/install"
 )
-
-func init() {
-	networkinginstall.Install(scheme)
-}
 
 type ingressFixer struct {
 }
 
 func (f ingressFixer) getGroupVersionKind() schema.GroupVersionKind {
-	return networking.SchemeGroupVersion.WithKind(apiresource.IngressKind)
+	return networking.SchemeGroupVersion.WithKind(common.IngressKind)
 }
 
 func (f ingressFixer) fix(obj runtime.Object) (runtime.Object, error) {

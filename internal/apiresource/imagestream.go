@@ -41,13 +41,13 @@ type ImageStream struct {
 	Cluster collecttypes.ClusterMetadataSpec
 }
 
-// GetSupportedKinds returns kinds supported by ImageStream
-func (*ImageStream) GetSupportedKinds() []string {
+// getSupportedKinds returns kinds supported by ImageStream
+func (*ImageStream) getSupportedKinds() []string {
 	return []string{imageStreamKind}
 }
 
-// CreateNewResources converts IR to runtime objects
-func (imageStream *ImageStream) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources converts IR to runtime objects
+func (imageStream *ImageStream) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if !common.IsStringPresent(supportedKinds, imageStreamKind) {
 		log.Debugf("Could not find a valid resource type in cluster to create an ImageStream")
@@ -95,12 +95,7 @@ func (*ImageStream) createImageStream(name, tag string, irContainer irtypes.Cont
 	return imageStream
 }
 
-// ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (*ImageStream) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	if common.IsStringPresent(supportedKinds, imageStreamKind) {
-		if _, ok := obj.(*okdimagev1.ImageStream); ok {
-			return []runtime.Object{obj}, true
-		}
-	}
-	return nil, false
+// convertToClusterSupportedKinds converts kinds to cluster supported kinds
+func (*ImageStream) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	return []runtime.Object{obj}, true
 }
