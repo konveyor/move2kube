@@ -125,7 +125,7 @@ func (c *Config) normalGetSolution(p Problem) (Problem, error) {
 	}
 	// starting from 2nd last subkey replace with match all selector *
 	// Example: Given a.b.c.d.e this matches a.b.c.*.e, then a.b.*.d.e, then a.*.c.d.e
-	subKeys := common.SplitOnDotExpectInsideQuotes(key) // assuming delimiter is dot
+	subKeys := getSubKeys(key)
 	for idx := len(subKeys) - 2; idx > 0; idx-- {
 		baseKey := strings.Join(subKeys[:idx], common.Delim)
 		lastKeySegment := strings.Join(subKeys[idx+1:], common.Delim)
@@ -360,7 +360,7 @@ func mergeYAMLDatasIntoMap(yamlDatas []string) (mapT, error) {
 }
 
 func get(key string, config mapT) (value interface{}, ok bool) {
-	subKeys := common.SplitOnDotExpectInsideQuotes(key) // assuming delimiter is dot
+	subKeys := getSubKeys(key)
 	for _, subKey := range subKeys {
 		value, ok = config[subKey]
 		if !ok {
@@ -380,7 +380,7 @@ func get(key string, config mapT) (value interface{}, ok bool) {
 }
 
 func set(key string, newValue interface{}, config mapT) {
-	subKeys := common.SplitOnDotExpectInsideQuotes(key) // assuming delimiter is dot
+	subKeys := getSubKeys(key)
 	if len(subKeys) == 1 {
 		config[key] = newValue
 	}
@@ -409,4 +409,13 @@ func set(key string, newValue interface{}, config mapT) {
 	}
 	lastSubKey := subKeys[lastIdx]
 	config[lastSubKey] = newValue
+}
+
+func getSubKeys(key string) []string {
+	unStrippedSubKeys := common.SplitOnDotExpectInsideQuotes(key) // assuming delimiter is dot
+	subKeys := []string{}
+	for _, unStrippedSubKey := range unStrippedSubKeys {
+		subKeys = append(subKeys, common.StripQuotes(unStrippedSubKey))
+	}
+	return subKeys
 }

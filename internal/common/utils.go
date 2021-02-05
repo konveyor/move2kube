@@ -792,3 +792,17 @@ func IsParent(child, parent string) bool {
 func SplitOnDotExpectInsideQuotes(s string) []string {
 	return regexp.MustCompile(`[^."']+|"[^"]*"|'[^']*'`).FindAllString(s, -1)
 }
+
+// StripQuotes strips a single layer of double or single quotes from the left and right ends
+// Example: "github.com" -> github.com
+// Example: 'github.com' -> github.com
+// Example: "'github.com'" -> 'github.com'
+func StripQuotes(s string) string {
+	if strings.HasPrefix(s, `"`) && strings.HasSuffix(s, `"`) {
+		return strings.TrimSuffix(strings.TrimPrefix(s, `"`), `"`)
+	}
+	if strings.HasPrefix(s, `'`) && strings.HasSuffix(s, `'`) {
+		return strings.TrimSuffix(strings.TrimPrefix(s, `'`), `'`)
+	}
+	return s
+}
