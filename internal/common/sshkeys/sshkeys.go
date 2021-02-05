@@ -201,7 +201,10 @@ func loadSSHKey(filename string) (string, error) {
 			return "", err
 		}
 
-		problem, err := qatypes.NewPasswordProblem(common.ConfigRepoPrivKey+common.Delim+filename+common.Delim+"password", fmt.Sprintf("Enter the password to decrypt the private key %q : ", filename), []string{"Password:"})
+		qaKey := common.ConfigRepoPrivKey + common.Delim + `"` + filename + `"` + common.Delim + "password"
+		desc := fmt.Sprintf("Enter the password to decrypt the private key %q : ", filename)
+		hints := []string{"Password:"}
+		problem, err := qatypes.NewPasswordProblem(qaKey, desc, hints)
 		if err != nil {
 			log.Fatalf("Unable to create problem : %s", err)
 		}
@@ -245,7 +248,10 @@ func GetSSHKey(domain string) (string, bool) {
 	}
 	noAnswer := "none of the above"
 	filenames = append(filenames, noAnswer)
-	problem, err := qatypes.NewSelectProblem(common.ConfigRepoKeysKey+common.Delim+domain+common.Delim+"key", fmt.Sprintf("Select the key to use for the git domain %s :", domain), []string{fmt.Sprintf("If none of the keys are correct, select %s", noAnswer)}, noAnswer, filenames)
+	qaKey := common.ConfigRepoKeysKey + common.Delim + `"` + domain + `"` + common.Delim + "key"
+	desc := fmt.Sprintf("Select the key to use for the git domain %s :", domain)
+	hints := []string{fmt.Sprintf("If none of the keys are correct, select %s", noAnswer)}
+	problem, err := qatypes.NewSelectProblem(qaKey, desc, hints, noAnswer, filenames)
 	if err != nil {
 		log.Fatalf("Unable to create problem : %s", err)
 	}
