@@ -67,7 +67,7 @@ func (opt *ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 	}
 
 	for _, exposedServiceName := range exposedServiceNames {
-		key := common.ConfigServicesKey + common.Delim + exposedServiceName + common.Delim + "urlpath"
+		key := common.ConfigServicesKey + common.Delim + `"` + exposedServiceName + `"` + common.Delim + "urlpath"
 		message := fmt.Sprintf("What URL/path should we expose the service %s on?", exposedServiceName)
 		hints := []string{"By default we expose the service on /<service name>:"}
 		exposedServiceRelPath := "/" + exposedServiceName

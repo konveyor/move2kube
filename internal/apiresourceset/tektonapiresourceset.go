@@ -272,8 +272,10 @@ func (*TektonAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes
 			knownHosts = pubKeyLine
 		} else {
 			problemDesc := fmt.Sprintf("Unable to find the public key for the domain %s from known_hosts, please enter it. If don't know the public key, just leave this empty and you will be able to add it later: ", gitRepoDomain)
-			hint := "Ex : " + sshkeys.DomainToPublicKeys["github.com"][0]
-			problem, err := qatypes.NewInputProblem(common.ConfigRepoLoadPubDomainsKey+common.Delim+gitRepoDomain+common.Delim+"pubkey", problemDesc, []string{hint}, knownHostsPlaceholder)
+			hints := []string{"Ex : " + sshkeys.DomainToPublicKeys["github.com"][0]}
+			qaKey := common.ConfigRepoLoadPubDomainsKey + common.Delim + `"` + gitRepoDomain + `"` + common.Delim + "pubkey"
+
+			problem, err := qatypes.NewInputProblem(qaKey, problemDesc, hints, knownHostsPlaceholder)
 			if err != nil {
 				log.Fatalf("Unable to create problem. Error: %q", err)
 			}
