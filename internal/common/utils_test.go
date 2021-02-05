@@ -874,3 +874,31 @@ func TestIsParent(t *testing.T) {
 		})
 	}
 }
+
+func TestSplitOnDotExpectInsideQuotes(t *testing.T) {
+	tts := []struct {
+		desc   string
+		str    string
+		answer []string
+	}{
+		{
+			"parent is root",
+			`move2kube.repo."https://git.git hub.com/foo".'filename1'.foo bar.enable`,
+			[]string{
+				`move2kube`,
+				`repo`,
+				`"https://git.git hub.com/foo"`,
+				`'filename1'`,
+				`foo bar`,
+				`enable`,
+			}},
+	}
+	for _, tt := range tts {
+		t.Run(tt.desc, func(t *testing.T) {
+			parts := common.SplitOnDotExpectInsideQuotes(tt.str)
+			if !cmp.Equal(parts, tt.answer) {
+				t.Fatalf("Failed to get the correct paths. Difference:\n%s", cmp.Diff(tt.answer, parts))
+			}
+		})
+	}
+}

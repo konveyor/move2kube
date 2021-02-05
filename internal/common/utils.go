@@ -786,3 +786,9 @@ func IsParent(child, parent string) bool {
 	}
 	return true
 }
+
+// SplitOnDotExpectInsideQuotes splits a string on dot.
+// Stuff inside double or single quotes will not be split.
+func SplitOnDotExpectInsideQuotes(s string) []string {
+	return regexp.MustCompile(`[^."']+|"[^"]*"|'[^']*'`).FindAllString(s, -1)
+}
