@@ -21,7 +21,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -115,21 +114,7 @@ func TestDefaultEngine(t *testing.T) {
 		line2
 		line3`
 
-		problem, err := qatypes.NewMultilineInputProblem(key, desc, context, def)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetStringAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		answer := FetchMultilineAnswer(key, desc, context, def)
 		if answer != def {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, def)

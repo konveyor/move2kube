@@ -262,3 +262,20 @@ func FetchPasswordAnswer(probid, desc string, context []string) string {
 	}
 	return answer
 }
+
+// FetchMultilineAnswer asks a multi-line type question and gets a string as the answer
+func FetchMultilineAnswer(probid, desc string, context []string, def string) string {
+	problem, err := qatypes.NewMultilineInputProblem(probid, desc, context, def)
+	if err != nil {
+		log.Fatalf("Unable to create problem. Error: %q", err)
+	}
+	problem, err = FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer. Error: %q", err)
+	}
+	answer, err := problem.GetStringAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer. Error: %q", err)
+	}
+	return answer
+}
