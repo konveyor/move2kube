@@ -28,30 +28,14 @@ import (
 func TestDefaultEngine(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
-	t.Run("Test NewInputProblem", func(t *testing.T) {
+	t.Run("input type problem", func(t *testing.T) {
 
 		engines = []Engine{}
 		e := NewDefaultEngine()
 		AddEngine(e)
 
 		key := common.BaseKey + common.Delim + "input"
-		problem, err := qatypes.NewInputProblem(key, "Enter the name of the registry : ",
-			[]string{"Ex : " + common.DefaultRegistryURL},
-			common.DefaultRegistryURL)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetStringAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		answer := FetchStringAnswer(key, "Enter the name of the registry : ", []string{"Ex : " + common.DefaultRegistryURL}, common.DefaultRegistryURL)
 		if answer != common.DefaultRegistryURL {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, common.DefaultRegistryURL)
@@ -59,7 +43,7 @@ func TestDefaultEngine(t *testing.T) {
 
 	})
 
-	t.Run("Test NewSelectProblem", func(t *testing.T) {
+	t.Run("select type problem", func(t *testing.T) {
 
 		engines = []Engine{}
 		e := NewDefaultEngine()
@@ -71,21 +55,7 @@ func TestDefaultEngine(t *testing.T) {
 		def := "Option B"
 		opts := []string{"Option A", "Option B", "Option C"}
 
-		problem, err := qatypes.NewSelectProblem(key, desc, context, def, opts)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetStringAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		answer := FetchSelectAnswer(key, desc, context, def, opts)
 		if answer != def {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, def)
@@ -93,7 +63,7 @@ func TestDefaultEngine(t *testing.T) {
 
 	})
 
-	t.Run("Test NewMultiSelectProblem", func(t *testing.T) {
+	t.Run("multi-select type problem", func(t *testing.T) {
 
 		engines = []Engine{}
 		e := NewDefaultEngine()
@@ -105,21 +75,7 @@ func TestDefaultEngine(t *testing.T) {
 		def := []string{"Option A", "Option C"}
 		opts := []string{"Option A", "Option B", "Option C", "Option D"}
 
-		problem, err := qatypes.NewMultiSelectProblem(key, desc, context, def, opts)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetSliceAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		answer := FetchMultiSelectAnswer(key, desc, context, def, opts)
 		if !cmp.Equal(answer, def) {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, def)
@@ -127,7 +83,7 @@ func TestDefaultEngine(t *testing.T) {
 
 	})
 
-	t.Run("Test NewConfirmProblem", func(t *testing.T) {
+	t.Run("confirm type problem", func(t *testing.T) {
 
 		engines = []Engine{}
 		e := NewDefaultEngine()
@@ -138,21 +94,7 @@ func TestDefaultEngine(t *testing.T) {
 		context := []string{"Test context"}
 		def := true
 
-		problem, err := qatypes.NewConfirmProblem(key, desc, context, def)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetBoolAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		answer := FetchBoolAnswer(key, desc, context, def)
 		if answer != def {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %v, expected answer: %v ",
 				answer, def)
@@ -160,7 +102,7 @@ func TestDefaultEngine(t *testing.T) {
 
 	})
 
-	t.Run("Test NewMultilineInputProblem", func(t *testing.T) {
+	t.Run("multi-line type problem", func(t *testing.T) {
 
 		engines = []Engine{}
 		e := NewDefaultEngine()

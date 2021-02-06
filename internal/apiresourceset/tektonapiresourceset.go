@@ -27,7 +27,6 @@ import (
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/internal/types/tekton"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
@@ -274,20 +273,7 @@ func (*TektonAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes
 			problemDesc := fmt.Sprintf("Unable to find the public key for the domain %s from known_hosts, please enter it. If don't know the public key, just leave this empty and you will be able to add it later: ", gitRepoDomain)
 			hints := []string{"Ex : " + sshkeys.DomainToPublicKeys["github.com"][0]}
 			qaKey := common.ConfigRepoLoadPubDomainsKey + common.Delim + `"` + gitRepoDomain + `"` + common.Delim + "pubkey"
-
-			problem, err := qatypes.NewInputProblem(qaKey, problemDesc, hints, knownHostsPlaceholder)
-			if err != nil {
-				log.Fatalf("Unable to create problem. Error: %q", err)
-			}
-			problem, err = qaengine.FetchAnswer(problem)
-			if err != nil {
-				log.Fatalf("Unable to fetch answer. Error: %q", err)
-			}
-			newline, err := problem.GetStringAnswer()
-			if err != nil {
-				log.Fatalf("Unable to get answer. Error: %q", err)
-			}
-			knownHosts = newline
+			knownHosts = qaengine.FetchStringAnswer(qaKey, problemDesc, hints, knownHostsPlaceholder)
 		}
 
 		if key, ok := sshkeys.GetSSHKey(gitRepoDomain); ok {

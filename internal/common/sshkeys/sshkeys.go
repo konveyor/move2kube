@@ -29,7 +29,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	commonknownhosts "github.com/konveyor/move2kube/internal/common/knownhosts"
 	"github.com/konveyor/move2kube/internal/qaengine"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
@@ -68,18 +67,7 @@ func LoadKnownHostsOfCurrentUser() {
 Move2Kube has public keys for github.com, gitlab.com, and bitbucket.org by default.
 If any of the repos use ssh authentication we will need public keys in order to verify.
 Do you want to load the public keys from your [%s]?:`
-	problem, err := qatypes.NewConfirmProblem(common.ConfigRepoLoadPubKey, fmt.Sprintf(message, knownHostsPath), []string{"No, I will add them later if necessary."}, false)
-	if err != nil {
-		log.Fatalf("Unable to create problem. Error: %q", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer. Error: %q", err)
-	}
-	ans, err := problem.GetBoolAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer. Error: %q", err)
-	}
+	ans := qaengine.FetchBoolAnswer(common.ConfigRepoLoadPubKey, fmt.Sprintf(message, knownHostsPath), []string{"No, I will add them later if necessary."}, false)
 	if !ans {
 		log.Debug("Don't read public keys from known_hosts. They will be added later if necessary.")
 		return
@@ -117,18 +105,7 @@ func loadSSHKeysOfCurrentUser() {
 	message := `The CI/CD pipeline needs access to the git repos in order to clone, build and push.
 If any of the repos require ssh keys you will need to provide them.
 Do you want to load the private ssh keys from [%s]?:`
-	problem, err := qatypes.NewConfirmProblem(common.ConfigRepoLoadPrivKey, fmt.Sprintf(message, privateKeyDir), []string{"No, I will add them later if necessary."}, false)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	ans, err := problem.GetBoolAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+	ans := qaengine.FetchBoolAnswer(common.ConfigRepoLoadPrivKey, fmt.Sprintf(message, privateKeyDir), []string{"No, I will add them later if necessary."}, false)
 	if !ans {
 		log.Debug("Don't read private keys. They will be added later if necessary.")
 		return
@@ -148,18 +125,7 @@ Do you want to load the private ssh keys from [%s]?:`
 	for _, finfo := range finfos {
 		filenames = append(filenames, finfo.Name())
 	}
-	problem, err = qatypes.NewMultiSelectProblem(common.ConfigRepoKeyPathsKey, fmt.Sprintf("These are the files we found in %q . Which keys should we consider?", privateKeyDir), []string{"Select all the keys that give access to git repos."}, filenames, filenames)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	filenames, err = problem.GetSliceAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+	filenames = qaengine.FetchMultiSelectAnswer(common.ConfigRepoKeyPathsKey, fmt.Sprintf("These are the files we found in %q . Which keys should we consider?", privateKeyDir), []string{"Select all the keys that give access to git repos."}, filenames, filenames)
 	if len(filenames) == 0 {
 		log.Info("All key files ignored.")
 		return
@@ -204,19 +170,7 @@ func loadSSHKey(filename string) (string, error) {
 		qaKey := common.ConfigRepoPrivKey + common.Delim + `"` + filename + `"` + common.Delim + "password"
 		desc := fmt.Sprintf("Enter the password to decrypt the private key %q : ", filename)
 		hints := []string{"Password:"}
-		problem, err := qatypes.NewPasswordProblem(qaKey, desc, hints)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-		problem, err = qaengine.FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-		password, err := problem.GetStringAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		password := qaengine.FetchPasswordAnswer(qaKey, desc, hints)
 		key, err = ssh.ParseRawPrivateKeyWithPassphrase(fileBytes, []byte(password))
 		if err != nil {
 			log.Errorf("Failed to parse the encrypted private key file at path %q Error %q", path, err)
@@ -251,18 +205,7 @@ func GetSSHKey(domain string) (string, bool) {
 	qaKey := common.ConfigRepoKeysKey + common.Delim + `"` + domain + `"` + common.Delim + "key"
 	desc := fmt.Sprintf("Select the key to use for the git domain %s :", domain)
 	hints := []string{fmt.Sprintf("If none of the keys are correct, select %s", noAnswer)}
-	problem, err := qatypes.NewSelectProblem(qaKey, desc, hints, noAnswer, filenames)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	filename, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+	filename := qaengine.FetchSelectAnswer(qaKey, desc, hints, noAnswer, filenames)
 	if filename == noAnswer {
 		log.Debugf("No key selected for domain %s", domain)
 		return "", false

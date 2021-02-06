@@ -175,3 +175,90 @@ func changeSelectToInputForOther(prob qatypes.Problem) qatypes.Problem {
 	}
 	return prob
 }
+
+// Convenience functions
+
+// FetchStringAnswer asks a input type question and gets a string as the answer
+func FetchStringAnswer(probid, desc string, context []string, def string) string {
+	problem, err := qatypes.NewInputProblem(probid, desc, context, def)
+	if err != nil {
+		log.Fatalf("Unable to create problem. Error: %q", err)
+	}
+	problem, err = FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer. Error: %q", err)
+	}
+	answer, err := problem.GetStringAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer. Error: %q", err)
+	}
+	return answer
+}
+
+// FetchBoolAnswer asks a confirm type question and gets a boolean as the answer
+func FetchBoolAnswer(probid, desc string, context []string, def bool) bool {
+	problem, err := qatypes.NewConfirmProblem(probid, desc, context, def)
+	if err != nil {
+		log.Fatalf("Unable to create problem. Error: %q", err)
+	}
+	problem, err = FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer. Error: %q", err)
+	}
+	answer, err := problem.GetBoolAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer. Error: %q", err)
+	}
+	return answer
+}
+
+// FetchSelectAnswer asks a select type question and gets a string as the answer
+func FetchSelectAnswer(probid, desc string, context []string, def string, options []string) string {
+	problem, err := qatypes.NewSelectProblem(probid, desc, context, def, options)
+	if err != nil {
+		log.Fatalf("Unable to create problem. Error: %q", err)
+	}
+	problem, err = FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer. Error: %q", err)
+	}
+	answer, err := problem.GetStringAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer. Error: %q", err)
+	}
+	return answer
+}
+
+// FetchMultiSelectAnswer asks a multi-select type question and gets a slice of strings as the answer
+func FetchMultiSelectAnswer(probid, desc string, context, def, options []string) []string {
+	problem, err := qatypes.NewMultiSelectProblem(probid, desc, context, def, options)
+	if err != nil {
+		log.Fatalf("Unable to create problem. Error: %q", err)
+	}
+	problem, err = FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer. Error: %q", err)
+	}
+	answer, err := problem.GetSliceAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer. Error: %q", err)
+	}
+	return answer
+}
+
+// FetchPasswordAnswer asks a password type question and gets a string as the answer
+func FetchPasswordAnswer(probid, desc string, context []string) string {
+	problem, err := qatypes.NewPasswordProblem(probid, desc, context)
+	if err != nil {
+		log.Fatalf("Unable to create problem. Error: %q", err)
+	}
+	problem, err = FetchAnswer(problem)
+	if err != nil {
+		log.Fatalf("Unable to fetch answer. Error: %q", err)
+	}
+	answer, err := problem.GetStringAnswer()
+	if err != nil {
+		log.Fatalf("Unable to get answer. Error: %q", err)
+	}
+	return answer
+}
