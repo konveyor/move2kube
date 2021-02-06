@@ -22,7 +22,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -137,18 +136,7 @@ func (ic storageCustomizer) shouldHostPathBeRetained(hostPath string) bool {
 	// 	return true
 	// }
 
-	problem, err := qatypes.NewConfirmProblem(common.ConfigStoragesPVCForHostPathKey, fmt.Sprintf("Do you want to create PVC for host path [%s]?:", hostPath), []string{"Use PVC for persistent storage wherever applicable"}, false)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	ans, err := problem.GetBoolAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+	ans := qaengine.FetchBoolAnswer(common.ConfigStoragesPVCForHostPathKey, fmt.Sprintf("Do you want to create PVC for host path [%s]?:", hostPath), []string{"Use PVC for persistent storage wherever applicable"}, false)
 	return !ans
 }
 
@@ -157,50 +145,20 @@ func (ic storageCustomizer) shouldConfigureSeparately(claims []string) bool {
 	context[0] = "Storage classes have to be configured for below claims:"
 	context[1] = fmt.Sprintf("%+v", claims)
 
-	problem, err := qatypes.NewConfirmProblem(common.ConfigStoragesPerClaimStorageClassKey, "Do you want to configure different storage classes for each claim?", context, false)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	ans, err := problem.GetBoolAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+	ans := qaengine.FetchBoolAnswer(common.ConfigStoragesPerClaimStorageClassKey, "Do you want to configure different storage classes for each claim?", context, false)
 	return ans
 }
 
 func (ic storageCustomizer) selectStorageClass(storageClasses []string, claimName string, services []string) string {
-	var desc string
-	var err error
-	var problem qatypes.Problem
 	hint := "If you have a custom cluster, you can use collect to get storage classes from it."
 	ConfigStorageClassKeySegment := "storageclass"
 	if claimName == alloption {
-		desc = "Which storage class to use for all persistent volume claims?"
-		problem, err = qatypes.NewSelectProblem(common.ConfigStoragesKey+common.Delim+ConfigStorageClassKeySegment, desc, []string{hint}, storageClasses[0], storageClasses)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-	} else {
-		desc = fmt.Sprintf("Which storage class to use for persistent volume claim [%s] used by %+v", claimName, services)
-		qaKey := common.ConfigStoragesKey + common.Delim + `"` + claimName + `"` + common.Delim + ConfigStorageClassKeySegment
-		problem, err = qatypes.NewSelectProblem(qaKey, desc, []string{hint}, storageClasses[0], storageClasses)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
+		desc := "Which storage class to use for all persistent volume claims?"
+		return qaengine.FetchSelectAnswer(common.ConfigStoragesKey+common.Delim+ConfigStorageClassKeySegment, desc, []string{hint}, storageClasses[0], storageClasses)
 	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	sc, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
-	return sc
+	desc := fmt.Sprintf("Which storage class to use for persistent volume claim [%s] used by %+v", claimName, services)
+	qaKey := common.ConfigStoragesKey + common.Delim + `"` + claimName + `"` + common.Delim + ConfigStorageClassKeySegment
+	return qaengine.FetchSelectAnswer(qaKey, desc, []string{hint}, storageClasses[0], storageClasses)
 }
 
 func (ic *storageCustomizer) getPVCs() map[string][]string {

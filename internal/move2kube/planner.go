@@ -23,7 +23,6 @@ import (
 	"github.com/konveyor/move2kube/internal/qaengine"
 	"github.com/konveyor/move2kube/internal/source"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -134,18 +133,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	for sn := range p.Spec.Inputs.Services {
 		servicenames = append(servicenames, sn)
 	}
-	problem, err := qatypes.NewMultiSelectProblem(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, servicenames, servicenames)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	selectedServices, err := problem.GetSliceAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, servicenames, servicenames)
 	planServices = map[string][]plantypes.Service{}
 	for _, s := range selectedServices {
 		planServices[s] = p.Spec.Inputs.Services[s]
@@ -190,18 +178,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 		selectedSConType := sConTypes[0]
 		if len(sConTypes) > 1 {
 			qaKey := common.ConfigServicesKey + common.Delim + `"` + serviceName + `"` + common.Delim + "containerization" + common.Delim + "type"
-			problem, err := qatypes.NewSelectProblem(qaKey, "Select containerization technique for service "+serviceName+":", []string{"Choose the containerization technique of interest."}, selectedSConType, sConTypes)
-			if err != nil {
-				log.Fatalf("Unable to create problem : %s", err)
-			}
-			problem, err = qaengine.FetchAnswer(problem)
-			if err != nil {
-				log.Fatalf("Unable to fetch answer : %s", err)
-			}
-			selectedSConType, err = problem.GetStringAnswer()
-			if err != nil {
-				log.Fatalf("Unable to get answer : %s", err)
-			}
+			selectedSConType = qaengine.FetchSelectAnswer(qaKey, "Select containerization technique for service "+serviceName+":", []string{"Choose the containerization technique of interest."}, selectedSConType, sConTypes)
 		}
 
 		for _, serviceOption := range serviceOptions {
@@ -241,18 +218,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 				}
 			}
 			qaKey := common.ConfigServicesKey + common.Delim + `"` + serviceName + `"` + common.Delim + "containerization" + common.Delim + "target"
-			problem, err := qatypes.NewSelectProblem(qaKey, "Select containerization target for service "+serviceName+":", []string{"Choose the target that should be used for containerization."}, options[0], options)
-			if err != nil {
-				log.Fatalf("Unable to create problem : %s", err)
-			}
-			problem, err = qaengine.FetchAnswer(problem)
-			if err != nil {
-				log.Fatalf("Unable to fetch answer : %s", err)
-			}
-			selectedSConMode, err := problem.GetStringAnswer()
-			if err != nil {
-				log.Fatalf("Unable to get answer : %s", err)
-			}
+			selectedSConMode := qaengine.FetchSelectAnswer(qaKey, "Select containerization target for service "+serviceName+":", []string{"Choose the target that should be used for containerization."}, options[0], options)
 			if requiresConversion {
 				absOptionPath, err := p.GetAbsolutePath(selectedSConMode)
 				if err != nil {
@@ -273,18 +239,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	artifactTypeList[0] = string(plantypes.Yamls)
 	artifactTypeList[1] = string(plantypes.Helm)
 	artifactTypeList[2] = string(plantypes.Knative)
-	problem, err = qatypes.NewSelectProblem(common.ConfigTargetArtifacttTypeKey, "Choose the artifact type:", []string{"Yamls - Generate Kubernetes Yamls", "Helm - Generate Helm chart", "Knative - Create Knative artifacts"}, string(plantypes.Yamls), artifactTypeList)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	artifactType, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+	artifactType := qaengine.FetchSelectAnswer(common.ConfigTargetArtifacttTypeKey, "Choose the artifact type:", []string{"Yamls - Generate Kubernetes Yamls", "Helm - Generate Helm chart", "Knative - Create Knative artifacts"}, string(plantypes.Yamls), artifactTypeList)
 	p.Spec.Outputs.Kubernetes.ArtifactType = plantypes.TargetArtifactTypeValue(artifactType)
 
 	// Choose cluster type to target
@@ -293,52 +248,17 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	for c := range clusters {
 		clusterTypeList = append(clusterTypeList, c)
 	}
-	problem, err = qatypes.NewSelectProblem(common.ConfigTargetClusterTypeKey, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, string(common.DefaultClusterType), clusterTypeList)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	clusterType, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+	clusterType := qaengine.FetchSelectAnswer(common.ConfigTargetClusterTypeKey, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, string(common.DefaultClusterType), clusterTypeList)
 	p.Spec.Outputs.Kubernetes.TargetCluster.Type = clusterType
 	p.Spec.Outputs.Kubernetes.TargetCluster.Path = ""
 
 	return p
 }
 
-func selectTranslators(translationTypes []string) (selectedTranslationTypes []string) {
-	problem, err := qatypes.NewMultiSelectProblem(common.ConfigSourceTypesKey, "Select all source types that you are interested in:", []string{"Services that don't support any of the source types you are interested in will be ignored."}, translationTypes, translationTypes)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	selectedTranslationTypes, err = problem.GetSliceAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
-	return selectedTranslationTypes
+func selectTranslators(translationTypes []string) []string {
+	return qaengine.FetchMultiSelectAnswer(common.ConfigSourceTypesKey, "Select all source types that you are interested in:", []string{"Services that don't support any of the source types you are interested in will be ignored."}, translationTypes, translationTypes)
 }
 
-func selectContainerizationTypes(containerizationTypes []string) (selectedConTypes []string) {
-	problem, err := qatypes.NewMultiSelectProblem(common.ConfigContainerizationTypesKey, "Select all containerization modes that is of interest:", []string{"Services that don't support any of the containerization techniques you are interested in will be ignored."}, containerizationTypes, containerizationTypes)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	selectedConTypes, err = problem.GetSliceAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
-	return selectedConTypes
+func selectContainerizationTypes(containerizationTypes []string) []string {
+	return qaengine.FetchMultiSelectAnswer(common.ConfigContainerizationTypesKey, "Select all containerization modes that is of interest:", []string{"Services that don't support any of the containerization techniques you are interested in will be ignored."}, containerizationTypes, containerizationTypes)
 }

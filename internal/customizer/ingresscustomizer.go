@@ -17,12 +17,9 @@ limitations under the License.
 package customizer
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	common "github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
 )
 
 //ingressCustomizer customizes ingress host
@@ -52,34 +49,11 @@ func (ic *ingressCustomizer) customize(ir *irtypes.IR) error {
 func (ic ingressCustomizer) configureHostAndTLS(name string) (string, string) {
 	defaultSubDomain := name + ".com"
 
-	problem, err := qatypes.NewInputProblem(common.ConfigIngressHostKey, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaultSubDomain)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	host, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
-
+	host := qaengine.FetchStringAnswer(common.ConfigIngressHostKey, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaultSubDomain)
 	host = name + "." + host
 
 	defaultSecret := ""
-	problem, err = qatypes.NewInputProblem(common.ConfigIngressTLSKey, "Provide the TLS secret for ingress", []string{"Enter TLS secret name"}, defaultSecret)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	secret, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
+	secret := qaengine.FetchStringAnswer(common.ConfigIngressTLSKey, "Provide the TLS secret for ingress", []string{"Enter TLS secret name"}, defaultSecret)
 
 	return host, secret
 }

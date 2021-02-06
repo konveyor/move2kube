@@ -21,7 +21,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,21 +44,7 @@ func TestCacheEngine(t *testing.T) {
 
 		want := "testuser"
 
-		problem, err := qatypes.NewInputProblem(key, desc, context, def)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetStringAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		answer := FetchStringAnswer(key, desc, context, def)
 		if answer != want {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, want)
@@ -81,21 +66,7 @@ func TestCacheEngine(t *testing.T) {
 		opts := []string{"Use existing pull secret", "No authentication", "UserName/Password"}
 		want := "UserName/Password"
 
-		problem, err := qatypes.NewSelectProblem(key, desc, context, def, opts)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetStringAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		answer := FetchSelectAnswer(key, desc, context, def, opts)
 		if answer != want {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, want)
@@ -118,21 +89,7 @@ line2
 line3 
 `
 
-		problem, err := qatypes.NewMultilineInputProblem(key, desc, context, "")
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetStringAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		answer := FetchMultilineAnswer(key, desc, context, "")
 		if answer != cachedAnswer {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, cachedAnswer)
@@ -153,21 +110,7 @@ line3
 		def := true
 		want := true
 
-		problem, err := qatypes.NewConfirmProblem(key, desc, context, def)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetBoolAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		answer := FetchBoolAnswer(key, desc, context, def)
 		if answer != want {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %v, expected answer: %v ",
 				answer, want)
@@ -188,21 +131,7 @@ line3
 		def := []string{"Option A", "Option C"}
 		opts := []string{"Option A", "Option B", "Option C", "Option D"}
 
-		problem, err := qatypes.NewMultiSelectProblem(key, desc, context, def, opts)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-
-		problem, err = FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-
-		answer, err := problem.GetSliceAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
-
+		answer := FetchMultiSelectAnswer(key, desc, context, def, opts)
 		if !cmp.Equal(answer, def) {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, def)

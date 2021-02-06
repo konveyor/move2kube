@@ -23,7 +23,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -48,19 +47,7 @@ func (opt *ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 		}
 	}
 
-	problem, err := qatypes.NewMultiSelectProblem(common.ConfigServicesExposeKey, "Select all services that should be exposed:", []string{"Exposed services will be reachable from outside the cluster."}, exposedServiceNames, serviceNames)
-	if err != nil {
-		log.Fatalf("Unable to create problem : %s", err)
-	}
-	problem, err = qaengine.FetchAnswer(problem)
-	if err != nil {
-		log.Fatalf("Unable to fetch answer : %s", err)
-	}
-	exposedServiceNames, err = problem.GetSliceAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer : %s", err)
-	}
-
+	exposedServiceNames = qaengine.FetchMultiSelectAnswer(common.ConfigServicesExposeKey, "Select all services that should be exposed:", []string{"Exposed services will be reachable from outside the cluster."}, exposedServiceNames, serviceNames)
 	if len(exposedServiceNames) == 0 {
 		log.Debugf("User deselected all services. Not exposing anything.")
 		return ir, nil
@@ -75,18 +62,7 @@ func (opt *ingressOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
 			hints = []string{"Since there's only one exposed service, the default path is /"}
 			exposedServiceRelPath = "/"
 		}
-		problem, err := qatypes.NewInputProblem(key, message, hints, exposedServiceRelPath)
-		if err != nil {
-			log.Fatalf("Unable to create problem : %s", err)
-		}
-		problem, err = qaengine.FetchAnswer(problem)
-		if err != nil {
-			log.Fatalf("Unable to fetch answer : %s", err)
-		}
-		exposedServiceRelPath, err = problem.GetStringAnswer()
-		if err != nil {
-			log.Fatalf("Unable to get answer : %s", err)
-		}
+		exposedServiceRelPath = qaengine.FetchStringAnswer(key, message, hints, exposedServiceRelPath)
 		log.Debugf("Exposing service %s on path %s", exposedServiceName, exposedServiceRelPath)
 
 		exposedServiceRelPath = opt.normalizeServiceRelPath(exposedServiceRelPath)
