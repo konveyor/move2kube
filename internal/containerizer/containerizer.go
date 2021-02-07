@@ -62,6 +62,22 @@ func InitContainerizers(path string, containerizerTypes []string) {
 	}
 }
 
+// ComesBefore returns true if x < y i.e. x comes before y
+func ComesBefore(x, y plantypes.ContainerBuildTypeValue) bool {
+	xidx := -1
+	yidx := -1
+	conts := getAllContainerizers()
+	for i, cont := range conts {
+		if cont.GetContainerBuildStrategy() == x {
+			xidx = i
+		}
+		if cont.GetContainerBuildStrategy() == y {
+			yidx = i
+		}
+	}
+	return xidx < yidx
+}
+
 // getAllContainerizers gets the all containerizers uninitialized
 func getAllContainerizers() []Containerizer {
 	return []Containerizer{new(DockerfileContainerizer), new(S2IContainerizer), new(CNBContainerizer), new(ReuseContainerizer)}
