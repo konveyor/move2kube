@@ -17,6 +17,8 @@ limitations under the License.
 package move2kube
 
 import (
+	"sort"
+
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer"
 	"github.com/konveyor/move2kube/internal/metadata"
@@ -75,6 +77,15 @@ func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Pl
 		}
 	}
 	log.Infoln("Translation planning done")
+
+	// sort the service options in order of priority
+	for serviceName, serviceOptions := range p.Spec.Inputs.Services {
+		log.Debugf("Before sorting options of service: %s service options:\n%v", serviceName, serviceOptions)
+		sort.Slice(serviceOptions, func(i, j int) bool {
+			return containerizer.ComesBefore(serviceOptions[i].ContainerBuildType, serviceOptions[j].ContainerBuildType)
+		})
+		log.Debugf("After sorting options of service: %s service options:\n%v", serviceName, serviceOptions)
+	}
 
 	log.Infoln("Planning Metadata")
 	metadataPlanners := metadata.GetLoaders()
