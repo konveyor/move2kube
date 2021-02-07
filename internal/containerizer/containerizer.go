@@ -66,12 +66,12 @@ func InitContainerizers(path string, containerizerTypes []string) {
 func ComesBefore(x, y plantypes.ContainerBuildTypeValue) bool {
 	xidx := -1
 	yidx := -1
-	conts := getAllContainerizers()
-	for i, cont := range conts {
-		if cont.GetContainerBuildStrategy() == x {
+	buildTypes := GetAllContainerBuildStrategies()
+	for i, buildType := range buildTypes {
+		if buildType == string(x) {
 			xidx = i
 		}
-		if cont.GetContainerBuildStrategy() == y {
+		if buildType == string(y) {
 			yidx = i
 		}
 	}
