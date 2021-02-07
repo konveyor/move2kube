@@ -6,13 +6,13 @@
         "prerelease_url": "https://github.com/konveyor/move2kube/releases/tag/v0.1.0-rc.1"
     },
     "next": {
-        "prerelease": null,
-        "prerelease_url": null
+        "prerelease": "v0.2.0-alpha.0",
+        "prerelease_url": "https://github.com/konveyor/move2kube/releases/tag/v0.2.0-alpha.0"
     },
     "next_next": {
         "prerelease": null,
         "prerelease_url": null
     },
-    "next_release_is_minor": false,
+    "next_release_is_minor": true,
     "next_next_release_is_minor": false
 }
