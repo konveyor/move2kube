@@ -19,14 +19,11 @@ jobs:
         with:
           github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           script: |
-            const tag = '${{ github.event.inputs.tag }}';
             const response = await github.repos.listReleases({ owner:context.repo.owner, repo:'move2kube-operator' });
-            const drafts = response.data.filter(release => release.draft && release.tag_name === tag);
-            if(drafts.length !== 1) {
-              return core.setFailed(`Expected to find exactly one draft release with the tag ${tag}. Found: ${drafts.length}`);
-            }
-            const draft = drafts[0];
-            const assets = draft.assets.filter(x => x.name === 'index.yaml');
+            const releases = response.data.slice();
+            releases.sort((x, y) => Date.parse(x.published_at) < Date.parse(y.published_at) ? 1 : -1); // sort in descending order
+            const latest_release = releases[0];
+            const assets = latest_release.assets.filter(x => x.name === 'index.yaml');
             if(assets.length !== 1) {
               return console.error(`Expected to find exactly one asset with the name index.yaml . Found: ${assets.length}`);
             }
