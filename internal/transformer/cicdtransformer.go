@@ -31,7 +31,7 @@ import (
 
 // CICDTransformer creates the necessary tekton artifacts needed for CI/CD.
 type CICDTransformer struct {
-	cachedObjs             []runtime.Object
+	transformedObjects     []runtime.Object
 	extraFiles             map[string]string // file path: file contents
 	TargetClusterSpec      collecttypes.ClusterMetadataSpec
 	IgnoreUnsupportedKinds bool
@@ -43,16 +43,16 @@ func (c *CICDTransformer) Transform(ir irtypes.IR) error {
 	c.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 	if ir.TargetClusterSpec.IsTektonInstalled() {
 		log.Infof("The target cluster has support for Tekton, generating Tekton pipeline for CI/CD")
-		c.cachedObjs = new(cicd.TektonTransformer).CreateAPIResources(ir)
 	} else if ir.TargetClusterSpec.IsBuildConfigSupported() {
 		log.Infof("The target cluster has support for BuildConfig, generating build configs for CI/CD")
-		buildconfigTransformer := cicd.NewBuildconfigTransformer()
-		c.cachedObjs = buildconfigTransformer.CreateAPIResources(ir)
-		c.extraFiles = buildconfigTransformer.ExtraFiles
+		b := new(cicd.BuildconfigTransformer)
+		c.transformedObjects = convertIRToObjects(b.SetupEnhancedIR(ir), b.GetAPIResources())
+		c.extraFiles = b.ExtraFiles
 	} else {
 		log.Infof("Neither Tekton nor BuildConfig was found on the target cluster. Defaulting to Tekton pipeline for CI/CD.")
-		c.cachedObjs = new(cicd.TektonTransformer).CreateAPIResources(ir)
 	}
+	t := new(cicd.TektonTransformer)
+	c.transformedObjects = convertIRToObjects(t.SetupEnhancedIR(ir), t.GetAPIResources())
 	return nil
 }
 
@@ -63,7 +63,7 @@ func (c *CICDTransformer) WriteObjects(outDirectory string) error {
 		log.Fatalf("Failed to create the CI/CD directory at path %q. Error: %q", cicdPath, err)
 		return err
 	}
-	if _, err := writeTransformedObjects(cicdPath, c.cachedObjs, c.TargetClusterSpec, false); err != nil {
+	if _, err := writeTransformedObjects(cicdPath, c.transformedObjects, c.TargetClusterSpec, false); err != nil {
 		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
 		return err
 	}

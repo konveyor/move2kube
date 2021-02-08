@@ -31,7 +31,6 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	giturls "github.com/whilp/git-urls"
-	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
@@ -59,51 +58,22 @@ const (
 type TektonTransformer struct {
 }
 
-// CreateAPIResources converts IR to runtime objects
-func (tekSet *TektonTransformer) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
-	ir := tekSet.setupEnhancedIR(oldir)
-	targetobjs := []runtime.Object{}
-	for _, a := range tekSet.getAPIResources(ir) {
-		a.SetClusterContext(ir.TargetClusterSpec)
-		objs := a.GetUpdatedResources(ir)
-		targetobjs = append(targetobjs, objs...)
-	}
-	return targetobjs
-}
-
-func (tekSet *TektonTransformer) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
-	return []apiresource.APIResource{
-		{
-			IAPIResource: &apiresource.Service{},
-		},
-		{
-			IAPIResource: &apiresource.ServiceAccount{},
-		},
-		{
-			IAPIResource: &apiresource.RoleBinding{},
-		},
-		{
-			IAPIResource: &apiresource.Role{},
-		},
-		{
-			IAPIResource: &apiresource.Storage{},
-		},
-		{
-			IAPIResource: &apiresource.EventListener{},
-		},
-		{
-			IAPIResource: &apiresource.TriggerBinding{},
-		},
-		{
-			IAPIResource: &apiresource.TriggerTemplate{},
-		},
-		{
-			IAPIResource: &apiresource.Pipeline{},
-		},
+// GetAPIResources returns api resources related to Tekton
+func (tekSet *TektonTransformer) GetAPIResources() []apiresource.IAPIResource {
+	return []apiresource.IAPIResource{&apiresource.Service{},
+		&apiresource.ServiceAccount{},
+		&apiresource.RoleBinding{},
+		&apiresource.Role{},
+		&apiresource.Storage{},
+		&apiresource.EventListener{},
+		&apiresource.TriggerBinding{},
+		&apiresource.TriggerTemplate{},
+		&apiresource.Pipeline{},
 	}
 }
 
-func (tekSet *TektonTransformer) setupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
+// SetupEnhancedIR returns EnhancedIR containing Tekton components
+func (tekSet *TektonTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.

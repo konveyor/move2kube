@@ -20,7 +20,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,7 +33,6 @@ const (
 
 // NetworkPolicy handles NetworkPolicy objects
 type NetworkPolicy struct {
-	Cluster collecttypes.ClusterMetadataSpec
 }
 
 // getSupportedKinds returns all kinds supported by the class
@@ -67,10 +65,8 @@ func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
 func (d *NetworkPolicy) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	if common.IsStringPresent(supportedKinds, networkPolicyKind) {
-		if _, ok := obj.(*networking.NetworkPolicy); ok {
-			return []runtime.Object{obj}, true
-		}
+	if obj.GetObjectKind().GroupVersionKind().Kind == networkPolicyKind {
+		return []runtime.Object{obj}, true
 	}
 	return nil, false
 }

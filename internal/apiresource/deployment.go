@@ -34,7 +34,7 @@ import (
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
-//TODO: Add support for replicaset, cronjob ad statefulset
+//TODO: Add support for replicaset, cronjob and statefulset
 
 const (
 	// podKind defines Pod Kind
@@ -51,7 +51,6 @@ const (
 
 // Deployment handles all objects like a Deployment
 type Deployment struct {
-	Cluster collecttypes.ClusterMetadataSpec
 }
 
 // getSupportedKinds returns kinds supported by the deployment
@@ -66,28 +65,28 @@ func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []
 		var obj runtime.Object
 		if service.Daemon {
 			if common.IsStringPresent(supportedKinds, daemonSetKind) {
-				obj = d.createDaemonSet(service)
+				obj = d.createDaemonSet(service, ir.TargetClusterSpec)
 			} else {
 				log.Errorf("Could not find a valid resource type in cluster to create a daemon set.")
 			}
 		} else if service.RestartPolicy == core.RestartPolicyNever || service.RestartPolicy == core.RestartPolicyOnFailure {
 			if common.IsStringPresent(supportedKinds, jobKind) {
-				obj = d.createJob(service)
+				obj = d.createJob(service, ir.TargetClusterSpec)
 			} else if common.IsStringPresent(supportedKinds, podKind) {
-				pod := d.createPod(service)
+				pod := d.createPod(service, ir.TargetClusterSpec)
 				pod.Spec.RestartPolicy = core.RestartPolicyOnFailure
 				obj = pod
 			} else {
 				log.Errorf("Could not find a valid resource type in cluster to create a job/pod.")
 			}
 		} else if common.IsStringPresent(supportedKinds, deploymentConfigKind) {
-			obj = d.createDeploymentConfig(service)
+			obj = d.createDeploymentConfig(service, ir.TargetClusterSpec)
 		} else if common.IsStringPresent(supportedKinds, common.DeploymentKind) {
-			obj = d.createDeployment(service)
+			obj = d.createDeployment(service, ir.TargetClusterSpec)
 		} else if common.IsStringPresent(supportedKinds, replicationControllerKind) {
-			obj = d.createReplicationController(service)
+			obj = d.createReplicationController(service, ir.TargetClusterSpec)
 		} else if common.IsStringPresent(supportedKinds, podKind) {
-			obj = d.createPod(service)
+			obj = d.createPod(service, ir.TargetClusterSpec)
 		} else {
 			log.Errorf("Could not find a valid resource type in cluster to create a deployment")
 		}
@@ -99,7 +98,7 @@ func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []
 }
 
 // convertToClusterSupportedKinds converts objects to kind supported by the cluster
-func (d *Deployment) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (d *Deployment) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.EnhancedIR) ([]runtime.Object, bool) {
 	if d1, ok := obj.(*apps.DaemonSet); ok {
 		if common.IsStringPresent(supportedKinds, daemonSetKind) {
 			return []runtime.Object{d1}, true
@@ -108,56 +107,56 @@ func (d *Deployment) convertToClusterSupportedKinds(obj runtime.Object, supporte
 	}
 	if d1, ok := obj.(*core.Pod); ok && (d1.Spec.RestartPolicy == core.RestartPolicyOnFailure || d1.Spec.RestartPolicy == core.RestartPolicyNever) {
 		if common.IsStringPresent(supportedKinds, jobKind) {
-			return []runtime.Object{d.podToJob(*d1)}, true
+			return []runtime.Object{d.podToJob(*d1, ir.TargetClusterSpec)}, true
 		}
 		return []runtime.Object{obj}, true
 	} else if d1, ok := obj.(*batch.Job); ok && !common.IsStringPresent(supportedKinds, jobKind) {
 		if !common.IsStringPresent(supportedKinds, jobKind) && common.IsStringPresent(supportedKinds, podKind) {
-			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyOnFailure)}, true
+			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyOnFailure, ir.TargetClusterSpec)}, true
 		}
 		log.Warnf("Both Job and Pod not supported. No other valid way to translate this object. : %+v", obj)
 		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, deploymentConfigKind) {
 		if d1, ok := obj.(*apps.Deployment); ok {
-			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas)}, true
+			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, ir.TargetClusterSpec)}, true
 		} else if d1, ok := obj.(*core.ReplicationController); ok {
-			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas)}, true
+			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, ir.TargetClusterSpec)}, true
 		} else if d1, ok := obj.(*core.Pod); ok {
 			var replicas int32 = 2
-			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec, replicas)}, true
+			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec, replicas, ir.TargetClusterSpec)}, true
 		}
 		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, common.DeploymentKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
-			return []runtime.Object{d.toDeployment(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas)}, true
+			return []runtime.Object{d.toDeployment(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas, ir.TargetClusterSpec)}, true
 		} else if d1, ok := obj.(*core.ReplicationController); ok {
-			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas)}, true
+			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, ir.TargetClusterSpec)}, true
 		} else if d1, ok := obj.(*core.Pod); ok {
 			var replicas int32 = 2
-			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec, replicas)}, true
+			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec, replicas, ir.TargetClusterSpec)}, true
 		}
 		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, replicationControllerKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
-			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas)}, true
+			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas, ir.TargetClusterSpec)}, true
 		} else if d1, ok := obj.(*apps.Deployment); ok {
-			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas)}, true
+			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, ir.TargetClusterSpec)}, true
 		} else if d1, ok := obj.(*core.Pod); ok {
 			var replicas int32 = 2
-			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec, replicas)}, true
+			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec, replicas, ir.TargetClusterSpec)}, true
 		}
 		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, podKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
-			return []runtime.Object{d.toPod(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), core.RestartPolicyAlways)}, true
+			return []runtime.Object{d.toPod(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), core.RestartPolicyAlways, ir.TargetClusterSpec)}, true
 		} else if d1, ok := obj.(*apps.Deployment); ok {
-			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyAlways)}, true
+			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyAlways, ir.TargetClusterSpec)}, true
 		} else if d1, ok := obj.(*core.ReplicationController); ok {
-			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyAlways)}, true
+			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyAlways, ir.TargetClusterSpec)}, true
 		}
 		return []runtime.Object{obj}, true
 	}
@@ -166,7 +165,7 @@ func (d *Deployment) convertToClusterSupportedKinds(obj runtime.Object, supporte
 
 // Create section
 
-func (d *Deployment) createDeployment(service irtypes.Service) *apps.Deployment {
+func (d *Deployment) createDeployment(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *apps.Deployment {
 
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
@@ -174,54 +173,54 @@ func (d *Deployment) createDeployment(service irtypes.Service) *apps.Deployment 
 		Annotations: getAnnotations(service),
 	}
 	podSpec := service.PodSpec
-	podSpec = d.convertVolumesKindsByPolicy(podSpec)
+	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
 	podSpec.RestartPolicy = core.RestartPolicyAlways
 	log.Debugf("Created deployment for %s", service.Name)
-	return d.toDeployment(meta, podSpec, int32(service.Replicas))
+	return d.toDeployment(meta, podSpec, int32(service.Replicas), cluster)
 }
 
-func (d *Deployment) createDeploymentConfig(service irtypes.Service) *okdappsv1.DeploymentConfig {
+func (d *Deployment) createDeploymentConfig(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *okdappsv1.DeploymentConfig {
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
 		Labels:      getPodLabels(service.Name, service.Networks),
 		Annotations: getAnnotations(service),
 	}
 	podSpec := service.PodSpec
-	podSpec = d.convertVolumesKindsByPolicy(podSpec)
+	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
 	podSpec.RestartPolicy = core.RestartPolicyAlways
 	log.Debugf("Created DeploymentConfig for %s", service.Name)
-	return d.toDeploymentConfig(meta, podSpec, int32(service.Replicas))
+	return d.toDeploymentConfig(meta, podSpec, int32(service.Replicas), cluster)
 }
 
 // createReplicationController initializes Kubernetes ReplicationController object
-func (d *Deployment) createReplicationController(service internaltypes.Service) *core.ReplicationController {
+func (d *Deployment) createReplicationController(service internaltypes.Service, cluster collecttypes.ClusterMetadataSpec) *core.ReplicationController {
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
 		Labels:      getPodLabels(service.Name, service.Networks),
 		Annotations: getAnnotations(service),
 	}
 	podSpec := service.PodSpec
-	podSpec = d.convertVolumesKindsByPolicy(podSpec)
+	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
 	podSpec.RestartPolicy = core.RestartPolicyAlways
 	log.Debugf("Created DeploymentConfig for %s", service.Name)
-	return d.toReplicationController(meta, podSpec, int32(service.Replicas))
+	return d.toReplicationController(meta, podSpec, int32(service.Replicas), cluster)
 }
 
-func (d *Deployment) createPod(service irtypes.Service) *core.Pod {
+func (d *Deployment) createPod(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *core.Pod {
 	podSpec := service.PodSpec
-	podSpec = d.convertVolumesKindsByPolicy(podSpec)
+	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
 	podSpec.RestartPolicy = core.RestartPolicyAlways
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
 		Labels:      getPodLabels(service.Name, service.Networks),
 		Annotations: getAnnotations(service),
 	}
-	return d.toPod(meta, podSpec, podSpec.RestartPolicy)
+	return d.toPod(meta, podSpec, podSpec.RestartPolicy, cluster)
 }
 
-func (d *Deployment) createDaemonSet(service irtypes.Service) *apps.DaemonSet {
+func (d *Deployment) createDaemonSet(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *apps.DaemonSet {
 	podSpec := service.PodSpec
-	podSpec = d.convertVolumesKindsByPolicy(podSpec)
+	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
 	podSpec.RestartPolicy = core.RestartPolicyAlways
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
@@ -244,9 +243,9 @@ func (d *Deployment) createDaemonSet(service irtypes.Service) *apps.DaemonSet {
 	return &pod
 }
 
-func (d *Deployment) createJob(service irtypes.Service) *batch.Job {
+func (d *Deployment) createJob(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *batch.Job {
 	podspec := service.PodSpec
-	podspec = d.convertVolumesKindsByPolicy(podspec)
+	podspec = d.convertVolumesKindsByPolicy(podspec, cluster)
 	podspec.RestartPolicy = core.RestartPolicyOnFailure
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
@@ -271,8 +270,8 @@ func (d *Deployment) createJob(service irtypes.Service) *batch.Job {
 
 // Conversions section
 
-func (d *Deployment) toDeploymentConfig(meta metav1.ObjectMeta, podspec core.PodSpec, replicas int32) *okdappsv1.DeploymentConfig {
-	podspec = d.convertVolumesKindsByPolicy(podspec)
+func (d *Deployment) toDeploymentConfig(meta metav1.ObjectMeta, podspec core.PodSpec, replicas int32, cluster collecttypes.ClusterMetadataSpec) *okdappsv1.DeploymentConfig {
+	podspec = d.convertVolumesKindsByPolicy(podspec, cluster)
 	triggerPolicies := []okdappsv1.DeploymentTriggerPolicy{{
 		Type: okdappsv1.DeploymentTriggerOnConfigChange,
 	}}
@@ -309,8 +308,8 @@ func (d *Deployment) toDeploymentConfig(meta metav1.ObjectMeta, podspec core.Pod
 	return &dc
 }
 
-func (d *Deployment) toDeployment(meta metav1.ObjectMeta, podspec core.PodSpec, replicas int32) *apps.Deployment {
-	podspec = d.convertVolumesKindsByPolicy(podspec)
+func (d *Deployment) toDeployment(meta metav1.ObjectMeta, podspec core.PodSpec, replicas int32, cluster collecttypes.ClusterMetadataSpec) *apps.Deployment {
+	podspec = d.convertVolumesKindsByPolicy(podspec, cluster)
 	dc := &apps.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       common.DeploymentKind,
@@ -332,8 +331,8 @@ func (d *Deployment) toDeployment(meta metav1.ObjectMeta, podspec core.PodSpec, 
 }
 
 // toReplicationController initializes Kubernetes ReplicationController object
-func (d *Deployment) toReplicationController(meta metav1.ObjectMeta, podspec core.PodSpec, replicas int32) *core.ReplicationController {
-	podspec = d.convertVolumesKindsByPolicy(podspec)
+func (d *Deployment) toReplicationController(meta metav1.ObjectMeta, podspec core.PodSpec, replicas int32, cluster collecttypes.ClusterMetadataSpec) *core.ReplicationController {
+	podspec = d.convertVolumesKindsByPolicy(podspec, cluster)
 	nReplicas := int32(replicas)
 	rc := &core.ReplicationController{
 		TypeMeta: metav1.TypeMeta{
@@ -353,9 +352,9 @@ func (d *Deployment) toReplicationController(meta metav1.ObjectMeta, podspec cor
 	return rc
 }
 
-func (d *Deployment) podToJob(obj core.Pod) *batch.Job {
+func (d *Deployment) podToJob(obj core.Pod, cluster collecttypes.ClusterMetadataSpec) *batch.Job {
 	podspec := obj.Spec
-	podspec = d.convertVolumesKindsByPolicy(podspec)
+	podspec = d.convertVolumesKindsByPolicy(podspec, cluster)
 	podspec.RestartPolicy = core.RestartPolicyOnFailure
 	pod := batch.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -373,8 +372,8 @@ func (d *Deployment) podToJob(obj core.Pod) *batch.Job {
 	return &pod
 }
 
-func (d *Deployment) toPod(meta metav1.ObjectMeta, podspec core.PodSpec, restartPolicy core.RestartPolicy) *core.Pod {
-	podspec = d.convertVolumesKindsByPolicy(podspec)
+func (d *Deployment) toPod(meta metav1.ObjectMeta, podspec core.PodSpec, restartPolicy core.RestartPolicy, cluster collecttypes.ClusterMetadataSpec) *core.Pod {
+	podspec = d.convertVolumesKindsByPolicy(podspec, cluster)
 	podspec.RestartPolicy = restartPolicy
 	pod := core.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -390,7 +389,7 @@ func (d *Deployment) toPod(meta metav1.ObjectMeta, podspec core.PodSpec, restart
 //Volumes and volume mounts of all containers are translated as follows:
 //1. Each container's volume mount list and corresponding volumes are translated
 //2. Unreferenced volumes are discarded
-func (d *Deployment) convertVolumesKindsByPolicy(podspec core.PodSpec) core.PodSpec {
+func (d *Deployment) convertVolumesKindsByPolicy(podspec core.PodSpec, cluster collecttypes.ClusterMetadataSpec) core.PodSpec {
 	if podspec.Volumes == nil || len(podspec.Volumes) == 0 {
 		return podspec
 	}
@@ -411,7 +410,7 @@ func (d *Deployment) convertVolumesKindsByPolicy(podspec core.PodSpec) core.PodS
 
 	volumes := []core.Volume{}
 	for _, v := range podspec.Volumes {
-		volumes = append(volumes, convertVolumeBySupportedKind(v, d.Cluster))
+		volumes = append(volumes, convertVolumeBySupportedKind(v, cluster))
 	}
 	podspec.Volumes = volumes
 

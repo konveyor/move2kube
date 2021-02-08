@@ -25,12 +25,13 @@ import (
 	"github.com/konveyor/move2kube/internal/k8sschema"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 )
 
 const (
@@ -48,39 +49,27 @@ type IAPIResource interface {
 // APIResource defines functions that are reusable across the api resources
 type APIResource struct {
 	IAPIResource
-	cluster    collecttypes.ClusterMetadataSpec
 	cachedobjs []runtime.Object
 }
 
-// SetClusterContext sets the cluster context
-func (o *APIResource) SetClusterContext(cluster collecttypes.ClusterMetadataSpec) {
-	o.cluster = cluster
-}
-
-// LoadResources loads the resources
-// Returns resources it could not handle
-func (o *APIResource) LoadResources(objs []runtime.Object, ir irtypes.EnhancedIR) []runtime.Object {
+// ConvertIRToObjects converts IR to a runtime objects
+func (o *APIResource) ConvertIRToObjects(ir irtypes.EnhancedIR) (newObjs, ignoredObjs []runtime.Object) {
 	ignoredResources := []runtime.Object{}
-	for _, obj := range objs {
+	for _, obj := range ir.CachedObjects {
 		if obj == nil {
 			continue
 		}
-		if !o.loadResource(obj, objs, ir) {
+		if !o.loadResource(obj, ir.CachedObjects, ir) {
 			ignoredResources = append(ignoredResources, obj)
 		}
 	}
-	return ignoredResources
-}
-
-// GetUpdatedResources converts IR to a runtime object
-func (o *APIResource) GetUpdatedResources(ir irtypes.EnhancedIR) []runtime.Object {
-	objs := o.createNewResources(ir, o.getClusterSupportedKinds())
+	objs := o.createNewResources(ir, o.getClusterSupportedKinds(ir.TargetClusterSpec))
 	for _, obj := range objs {
 		if !o.loadResource(obj, objs, ir) {
 			log.Errorf("Object created seems to be of an incompatible type : %+v [Supported Types: %+v]", obj.GetObjectKind(), o.getSupportedKinds())
 		}
 	}
-	return o.cachedobjs
+	return o.cachedobjs, ignoredResources
 }
 
 func (o *APIResource) isSupportedKind(obj runtime.Object) bool {
@@ -93,7 +82,7 @@ func (o *APIResource) loadResource(obj runtime.Object, otherobjs []runtime.Objec
 	if !o.isSupportedKind(obj) {
 		return false
 	}
-	supportedobjs, ok := o.convertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(), otherobjs, ir)
+	supportedobjs, ok := o.convertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(ir.TargetClusterSpec), otherobjs, ir)
 	if !ok {
 		return false
 	}
@@ -168,11 +157,11 @@ func (o *APIResource) getObjectID(obj runtime.Object) string {
 	return objMeta.GetNamespace() + objMeta.GetName()
 }
 
-func (o *APIResource) getClusterSupportedKinds() []string {
+func (o *APIResource) getClusterSupportedKinds(cluster collecttypes.ClusterMetadataSpec) []string {
 	kinds := o.IAPIResource.getSupportedKinds()
 	supportedKinds := []string{}
 	for _, kind := range kinds {
-		if o.cluster.GetSupportedVersions(kind) != nil {
+		if cluster.GetSupportedVersions(kind) != nil {
 			supportedKinds = append(supportedKinds, kind)
 		}
 	}

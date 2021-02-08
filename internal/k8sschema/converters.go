@@ -114,6 +114,7 @@ func convertToPreferredVersion(obj runtime.Object) (newobj runtime.Object, err e
 
 // ConvertToVersion converts objects to a version
 func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runtime.Object, err error) {
+	log.Debugf("Attempting to convert %s to %s", obj.GetObjectKind().GroupVersionKind(), dgv)
 	objvk := obj.GetObjectKind().GroupVersionKind()
 	objgv := objvk.GroupVersion()
 	kind := objvk.Kind
@@ -149,7 +150,15 @@ func checkAndConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newo
 	if obj.GetObjectKind().GroupVersionKind().GroupVersion() == dgv {
 		return obj, nil
 	}
-	return scheme.ConvertToVersion(obj, dgv)
+	newobj, err = scheme.ConvertToVersion(obj, dgv)
+	if err != nil {
+		return
+	}
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	gvk.Group = dgv.Group
+	gvk.Version = dgv.Version
+	newobj.GetObjectKind().SetGroupVersionKind(gvk)
+	return newobj, nil
 }
 
 func convertBetweenObjects(in interface{}, out interface{}) error {

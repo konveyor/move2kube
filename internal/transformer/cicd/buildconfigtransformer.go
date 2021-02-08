@@ -29,7 +29,6 @@ import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	log "github.com/sirupsen/logrus"
 	giturls "github.com/whilp/git-urls"
-	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
@@ -48,29 +47,13 @@ const (
 	baseWebHookSecretName = "web-hook"
 )
 
-// CreateAPIResources converts IR to runtime objects
-func (cicdSet *BuildconfigTransformer) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
-	ir := cicdSet.setupEnhancedIR(oldir)
-	targetobjs := []runtime.Object{}
-	for _, a := range cicdSet.getAPIResources(ir) {
-		objs := a.GetUpdatedResources(ir)
-		targetobjs = append(targetobjs, objs...)
-	}
-	return targetobjs
+// GetAPIResources returns api resources related to buildconfig
+func (cicdSet *BuildconfigTransformer) GetAPIResources() []apiresource.IAPIResource {
+	return []apiresource.IAPIResource{&apiresource.BuildConfig{}, &apiresource.Storage{}}
 }
 
-func (cicdSet *BuildconfigTransformer) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
-	return []apiresource.APIResource{
-		{
-			IAPIResource: &apiresource.BuildConfig{},
-		},
-		{
-			IAPIResource: &apiresource.Storage{},
-		},
-	}
-}
-
-func (cicdSet *BuildconfigTransformer) setupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
+// SetupEnhancedIR return enhanced IR used by BuildConfig
+func (cicdSet *BuildconfigTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.

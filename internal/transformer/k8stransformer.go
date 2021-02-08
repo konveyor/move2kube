@@ -24,7 +24,6 @@ import (
 
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/k8sschema"
 	"github.com/konveyor/move2kube/internal/transformer/templates"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -73,7 +72,7 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 	kt.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 	kt.Helm = (ir.Kubernetes.ArtifactType == plantypes.Helm)
 
-	kt.TransformedObjects = kt.createAPIResources(ir)
+	kt.TransformedObjects = convertIRToObjects(irtypes.NewEnhancedIRFromIR(ir), kt.getAPIResources())
 	kt.RootDir = ir.RootDir
 	kt.AddCopySources = ir.AddCopySources
 
@@ -88,40 +87,8 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 	return nil
 }
 
-// CreateAPIResources converts IR to runtime objects
-func (kt *K8sTransformer) createAPIResources(oldir irtypes.IR) []runtime.Object {
-	ir := irtypes.NewEnhancedIRFromIR(oldir)
-	targetObjs := []runtime.Object{}
-	ignoredObjs := ir.CachedObjects
-	for _, apiResource := range kt.getAPIResources(ir) {
-		apiResource.SetClusterContext(ir.TargetClusterSpec)
-		resourceIgnoredObjs := apiResource.LoadResources(ir.CachedObjects, ir)
-		ignoredObjs = k8sschema.Intersection(ignoredObjs, resourceIgnoredObjs)
-		resourceObjs := apiResource.GetUpdatedResources(ir)
-		targetObjs = append(targetObjs, resourceObjs...)
-	}
-	targetObjs = append(targetObjs, ignoredObjs...)
-	return targetObjs
-}
-
-func (kt *K8sTransformer) getAPIResources(ir irtypes.EnhancedIR) []apiresource.APIResource {
-	return []apiresource.APIResource{
-		{
-			IAPIResource: &apiresource.Deployment{Cluster: ir.TargetClusterSpec},
-		},
-		{
-			IAPIResource: &apiresource.Storage{Cluster: ir.TargetClusterSpec},
-		},
-		{
-			IAPIResource: &apiresource.Service{Cluster: ir.TargetClusterSpec},
-		},
-		{
-			IAPIResource: &apiresource.ImageStream{Cluster: ir.TargetClusterSpec},
-		},
-		{
-			IAPIResource: &apiresource.NetworkPolicy{Cluster: ir.TargetClusterSpec},
-		},
-	}
+func (kt *K8sTransformer) getAPIResources() []apiresource.IAPIResource {
+	return []apiresource.IAPIResource{&apiresource.Deployment{}, &apiresource.Storage{}, &apiresource.Service{}, &apiresource.ImageStream{}, &apiresource.NetworkPolicy{}}
 }
 
 // WriteObjects writes Transformed objects to filesystem

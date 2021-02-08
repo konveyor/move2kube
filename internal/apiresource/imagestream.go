@@ -21,7 +21,6 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 	okdimagev1 "github.com/openshift/api/image/v1"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +37,6 @@ const (
 
 // ImageStream handles all objects related to image stream
 type ImageStream struct {
-	Cluster collecttypes.ClusterMetadataSpec
 }
 
 // getSupportedKinds returns kinds supported by ImageStream

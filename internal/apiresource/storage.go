@@ -28,7 +28,6 @@ import (
 
 // Storage handles all storage objectss
 type Storage struct {
-	Cluster collecttypes.ClusterMetadataSpec
 }
 
 // getSupportedKinds returns cluster supported kinds

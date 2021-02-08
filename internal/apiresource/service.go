@@ -21,7 +21,6 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 	okdroutev1 "github.com/openshift/api/route/v1"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -38,7 +37,6 @@ const (
 
 // Service handles all objects related to a service
 type Service struct {
-	Cluster collecttypes.ClusterMetadataSpec
 }
 
 // getSupportedKinds returns supported kinds
