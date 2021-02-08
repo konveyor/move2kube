@@ -38,57 +38,24 @@ func (s *Storage) getSupportedKinds() []string {
 // createNewResources converts IR objects to runtime objects
 func (s *Storage) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
-
 	for _, stObj := range ir.Storages {
 		if stObj.StorageType == irtypes.ConfigMapKind {
-			if !common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) && common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) {
-				objs = append(objs, s.createSecret(stObj))
-			} else {
-				objs = append(objs, s.createConfigMap(stObj))
-			}
+			objs = append(objs, s.createConfigMap(stObj))
 		}
-
-		if stObj.StorageType == irtypes.SecretKind {
-			if !common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) && common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) {
-				objs = append(objs, s.createConfigMap(stObj))
-			} else {
-				objs = append(objs, s.createSecret(stObj))
-			}
-		}
-
-		if stObj.StorageType == irtypes.PullSecretKind {
+		if stObj.StorageType == irtypes.SecretKind || stObj.StorageType == irtypes.PullSecretKind {
 			objs = append(objs, s.createSecret(stObj))
 		}
-
 		if stObj.StorageType == irtypes.PVCKind {
 			objs = append(objs, s.createPVC(stObj))
 		}
 	}
-
 	return objs
 }
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
 func (s *Storage) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	if cfgMap, ok := obj.(*core.ConfigMap); ok {
-		if !common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) && common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) {
-			return []runtime.Object{convertCfgMapToSecret(*cfgMap)}, true
-		}
-		return []runtime.Object{cfgMap}, true
-	}
-
-	if secret, ok := obj.(*core.Secret); ok {
-		if !common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) && common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) {
-			return []runtime.Object{convertSecretToCfgMap(*secret)}, true
-		}
-		return []runtime.Object{secret}, true
-	}
-
-	if pvc, ok := obj.(*core.PersistentVolumeClaim); ok {
-		if !common.IsStringPresent(supportedKinds, string(irtypes.PVCKind)) {
-			log.Warnf("PVC not supported in target cluster. [%s]", pvc.Name)
-		}
-		return []runtime.Object{pvc}, true
+	if common.IsStringPresent(s.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
 	}
 	return nil, false
 }

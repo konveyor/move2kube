@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/k8sschema"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	okdroutev1 "github.com/openshift/api/route/v1"
 	log "github.com/sirupsen/logrus"
@@ -99,14 +100,15 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
 func (d *Service) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	lobj, _ := k8sschema.ConvertToLiasonScheme(obj)
 	if common.IsStringPresent(supportedKinds, routeKind) {
 		if _, ok := obj.(*okdroutev1.Route); ok {
 			return []runtime.Object{obj}, true
 		}
-		if ingress, ok := obj.(*networking.Ingress); ok {
+		if ingress, ok := lobj.(*networking.Ingress); ok {
 			return d.ingressToRoute(*ingress), true
 		}
-		if service, ok := obj.(*core.Service); ok {
+		if service, ok := lobj.(*core.Service); ok {
 			if service.Spec.Type == core.ServiceTypeLoadBalancer || service.Spec.Type == core.ServiceTypeNodePort {
 				return d.serviceToRoutes(*service, ir), true
 			}
@@ -116,26 +118,29 @@ func (d *Service) convertToClusterSupportedKinds(obj runtime.Object, supportedKi
 		if route, ok := obj.(*okdroutev1.Route); ok {
 			return d.routeToIngress(*route, ir), true
 		}
-		if _, ok := obj.(*networking.Ingress); ok {
+		if _, ok := lobj.(*networking.Ingress); ok {
 			return []runtime.Object{obj}, true
 		}
-		if service, ok := obj.(*core.Service); ok {
+		if service, ok := lobj.(*core.Service); ok {
 			if service.Spec.Type == core.ServiceTypeLoadBalancer || service.Spec.Type == core.ServiceTypeNodePort {
 				return d.serviceToIngress(*service, ir), true
 			}
 			return []runtime.Object{obj}, true
 		}
-	} else if common.IsStringPresent(supportedKinds, common.ServiceKind) {
+	} else {
 		if route, ok := obj.(*okdroutev1.Route); ok {
 			return d.routeToService(*route), true
 		}
-		if ingress, ok := obj.(*networking.Ingress); ok {
+		if ingress, ok := lobj.(*networking.Ingress); ok {
 			return d.ingressToService(*ingress), true
 		}
-		if _, ok := obj.(*core.Service); ok {
+		if _, ok := lobj.(*core.Service); ok {
 			//TODO: Check if the destination cluster supports loadbalancer or nodeport and change between them.
 			return []runtime.Object{obj}, true
 		}
+	}
+	if common.IsStringPresent(d.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
 	}
 	return nil, false
 }

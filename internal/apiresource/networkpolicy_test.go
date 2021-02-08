@@ -205,7 +205,7 @@ func TestConvertToClusterSupportedKinds(t *testing.T) {
 		supKinds := []string{}
 		// Test
 		_, ok := netPolicy.convertToClusterSupportedKinds(obj, supKinds, otherObjs, ir)
-		if ok {
+		if !ok {
 			t.Fatal("Should have failed since supported kinds is empty.")
 		}
 	})

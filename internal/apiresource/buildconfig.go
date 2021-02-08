@@ -182,7 +182,7 @@ func (*BuildConfig) getWebHookType(gitDomain string) okdbuildv1.BuildTriggerType
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
 func (bc *BuildConfig) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	if common.IsStringPresent(supportedKinds, obj.GetObjectKind().GroupVersionKind().Kind) {
+	if common.IsStringPresent(bc.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}
 	return nil, false

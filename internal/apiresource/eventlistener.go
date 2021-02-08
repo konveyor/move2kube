@@ -17,6 +17,7 @@ limitations under the License.
 package apiresource
 
 import (
+	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/internal/types/tekton"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
@@ -73,5 +74,8 @@ func (el *EventListener) createNewResource(ireventlistener tekton.EventListener)
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
 func (el *EventListener) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	return []runtime.Object{obj}, true
+	if common.IsStringPresent(el.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
+	}
+	return nil, false
 }

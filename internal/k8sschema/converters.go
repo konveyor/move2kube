@@ -146,6 +146,25 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 	return obj, err
 }
 
+// ConvertToLiasonScheme converts objects to liason type
+func ConvertToLiasonScheme(obj runtime.Object) (newobj runtime.Object, err error) {
+	kind := obj.GetObjectKind().GroupVersionKind().Kind
+	akt := liasonscheme.AllKnownTypes()
+	for kt := range akt {
+		if kind != kt.Kind {
+			continue
+		}
+		log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
+		uvobj, err := checkAndConvertToVersion(obj, kt.GroupVersion())
+		if err != nil {
+			log.Errorf("Unable to convert to unversioned object : %s", err)
+			continue
+		}
+		return uvobj, nil
+	}
+	return obj, fmt.Errorf("Unable to find liason version for kind %s", kind)
+}
+
 func checkAndConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runtime.Object, err error) {
 	if obj.GetObjectKind().GroupVersionKind().GroupVersion() == dgv {
 		return obj, nil

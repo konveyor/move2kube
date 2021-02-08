@@ -30,7 +30,6 @@ import (
 	core "k8s.io/kubernetes/pkg/apis/core"
 	discovery "k8s.io/kubernetes/pkg/apis/discovery"
 	events "k8s.io/kubernetes/pkg/apis/events"
-	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 	flowcontrol "k8s.io/kubernetes/pkg/apis/flowcontrol"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
 	node "k8s.io/kubernetes/pkg/apis/node"
@@ -110,7 +109,6 @@ func init() {
 	must(core.AddToScheme(liasonscheme))
 	must(discovery.AddToScheme(liasonscheme))
 	must(events.AddToScheme(liasonscheme))
-	must(extensions.AddToScheme(liasonscheme))
 	must(flowcontrol.AddToScheme(liasonscheme))
 	must(networking.AddToScheme(liasonscheme))
 	must(node.AddToScheme(liasonscheme))

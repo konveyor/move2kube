@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/internal/types/tekton"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -159,5 +160,8 @@ func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.Enhanc
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
 func (p *Pipeline) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	return []runtime.Object{obj}, true
+	if common.IsStringPresent(p.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
+	}
+	return nil, false
 }

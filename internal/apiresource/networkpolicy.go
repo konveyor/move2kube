@@ -65,7 +65,7 @@ func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
 func (d *NetworkPolicy) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	if obj.GetObjectKind().GroupVersionKind().Kind == networkPolicyKind {
+	if common.IsStringPresent(d.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}
 	return nil, false

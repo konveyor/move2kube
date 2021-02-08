@@ -94,6 +94,9 @@ func (*ImageStream) createImageStream(name, tag string, irContainer irtypes.Cont
 }
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (*ImageStream) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	return []runtime.Object{obj}, true
+func (imageStream *ImageStream) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	if common.IsStringPresent(imageStream.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
+	}
+	return nil, false
 }
