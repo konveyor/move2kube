@@ -14,24 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package optimize
+package common
 
-import (
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	core "k8s.io/kubernetes/pkg/apis/core"
+const (
+	// ServiceKind defines Service Kind
+	ServiceKind = "Service"
+	// DeploymentKind defines Deployment Kind
+	DeploymentKind = "Deployment"
+	// IngressKind defines Ingress Kind
+	IngressKind = "Ingress"
 )
-
-// imagePullPolicyOptimizer sets the pull policy to be always
-type imagePullPolicyOptimizer struct {
-}
-
-func (ep imagePullPolicyOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error) {
-	for k, scObj := range ir.Services {
-		for i := range scObj.Containers {
-			scObj.Containers[i].ImagePullPolicy = core.PullAlways
-		}
-		ir.Services[k] = scObj
-	}
-
-	return ir, nil
-}

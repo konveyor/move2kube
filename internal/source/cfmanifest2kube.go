@@ -34,7 +34,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
-	v1 "k8s.io/api/core/v1"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 //go:generate go run github.com/konveyor/move2kube/internal/common/generator data
@@ -299,10 +299,10 @@ func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes
 			ir.AddContainer(container)
 			application := applications[0]
 			serviceConfig := irtypes.NewServiceFromPlanService(service)
-			serviceContainer := v1.Container{Name: service.ServiceName}
+			serviceContainer := core.Container{Name: service.ServiceName}
 			serviceContainer.Image = service.Image
 			for varname, value := range application.EnvironmentVariables {
-				serviceContainer.Env = append(serviceContainer.Env, v1.EnvVar{Name: varname, Value: value})
+				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: value})
 			}
 			for _, variable := range variables {
 				ir.Values.GlobalVariables[variable] = variable
@@ -314,44 +314,44 @@ func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes
 				serviceConfig.Replicas = cfinstanceapp.Instances
 			}
 			for varname, value := range cfinstanceapp.Env {
-				serviceContainer.Env = append(serviceContainer.Env, v1.EnvVar{Name: varname, Value: value})
+				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: value})
 			}
 			if len(cfinstanceapp.Ports) > 0 {
 				for _, port := range cfinstanceapp.Ports {
 					// Add the port to the k8s pod.
-					serviceContainer.Ports = append(serviceContainer.Ports, v1.ContainerPort{ContainerPort: port})
+					serviceContainer.Ports = append(serviceContainer.Ports, core.ContainerPort{ContainerPort: port})
 					// Forward the port on the k8s service to the k8s pod.
 					podPort := irtypes.Port{Number: int32(port)}
 					servicePort := podPort
 					serviceConfig.AddPortForwarding(servicePort, podPort)
 				}
-				envvar := v1.EnvVar{Name: "PORT", Value: cast.ToString(cfinstanceapp.Ports[0])}
+				envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(cfinstanceapp.Ports[0])}
 				serviceContainer.Env = append(serviceContainer.Env, envvar)
 			} else {
 				if len(container.ExposedPorts) > 0 {
 					for _, port := range container.ExposedPorts {
 						// Add the port to the k8s pod.
-						serviceContainer.Ports = append(serviceContainer.Ports, v1.ContainerPort{ContainerPort: int32(port)})
+						serviceContainer.Ports = append(serviceContainer.Ports, core.ContainerPort{ContainerPort: int32(port)})
 						// Forward the port on the k8s service to the k8s pod.
 						podPort := irtypes.Port{Number: int32(port)}
 						servicePort := podPort
 						serviceConfig.AddPortForwarding(servicePort, podPort)
 					}
-					envvar := v1.EnvVar{Name: "PORT", Value: cast.ToString(container.ExposedPorts[0])}
+					envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(container.ExposedPorts[0])}
 					serviceContainer.Env = append(serviceContainer.Env, envvar)
 				} else {
 					port := common.DefaultServicePort
 					// Add the port to the k8s pod.
-					serviceContainer.Ports = []v1.ContainerPort{{ContainerPort: int32(port)}}
+					serviceContainer.Ports = []core.ContainerPort{{ContainerPort: int32(port)}}
 					// Forward the port on the k8s service to the k8s pod.
 					podPort := irtypes.Port{Number: int32(port)}
 					servicePort := podPort
 					serviceConfig.AddPortForwarding(servicePort, podPort)
-					envvar := v1.EnvVar{Name: "PORT", Value: cast.ToString(port)}
+					envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(port)}
 					serviceContainer.Env = append(serviceContainer.Env, envvar)
 				}
 			}
-			serviceConfig.Containers = []v1.Container{serviceContainer}
+			serviceConfig.Containers = []core.Container{serviceContainer}
 			ir.Services[service.ServiceName] = serviceConfig
 		} else {
 			log.Debugf("No cf manifest file found for service %s", service.ServiceName)
@@ -362,49 +362,49 @@ func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes
 			}
 			ir.AddContainer(container)
 			serviceConfig := irtypes.NewServiceFromPlanService(service)
-			serviceContainer := v1.Container{Name: service.ServiceName, Image: service.Image}
+			serviceContainer := core.Container{Name: service.ServiceName, Image: service.Image}
 			if cfinstanceapp.Instances != 0 {
 				serviceConfig.Replicas = cfinstanceapp.Instances
 			}
 			for varname, value := range cfinstanceapp.Env {
-				serviceContainer.Env = append(serviceContainer.Env, v1.EnvVar{Name: varname, Value: value})
+				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: value})
 			}
 			if len(cfinstanceapp.Ports) > 0 {
 				for _, port := range cfinstanceapp.Ports {
 					// Add the port to the k8s pod.
-					serviceContainer.Ports = append(serviceContainer.Ports, v1.ContainerPort{ContainerPort: port})
+					serviceContainer.Ports = append(serviceContainer.Ports, core.ContainerPort{ContainerPort: port})
 					// Forward the port on the k8s service to the k8s pod.
 					podPort := irtypes.Port{Number: port}
 					servicePort := podPort
 					serviceConfig.AddPortForwarding(servicePort, podPort)
 				}
-				envvar := v1.EnvVar{Name: "PORT", Value: cast.ToString(cfinstanceapp.Ports[0])}
+				envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(cfinstanceapp.Ports[0])}
 				serviceContainer.Env = append(serviceContainer.Env, envvar)
 			} else {
 				if len(container.ExposedPorts) > 0 {
 					for _, port := range container.ExposedPorts {
 						// Add the port to the k8s pod.
-						serviceContainer.Ports = append(serviceContainer.Ports, v1.ContainerPort{ContainerPort: int32(port)})
+						serviceContainer.Ports = append(serviceContainer.Ports, core.ContainerPort{ContainerPort: int32(port)})
 						// Forward the port on the k8s service to the k8s pod.
 						podPort := irtypes.Port{Number: int32(port)}
 						servicePort := podPort
 						serviceConfig.AddPortForwarding(servicePort, podPort)
 					}
-					envvar := v1.EnvVar{Name: "PORT", Value: cast.ToString(container.ExposedPorts[0])}
+					envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(container.ExposedPorts[0])}
 					serviceContainer.Env = append(serviceContainer.Env, envvar)
 				} else {
 					port := int32(common.DefaultServicePort)
 					// Add the port to the k8s pod.
-					serviceContainer.Ports = []v1.ContainerPort{{ContainerPort: port}}
+					serviceContainer.Ports = []core.ContainerPort{{ContainerPort: port}}
 					// Forward the port on the k8s service to the k8s pod.
 					podPort := irtypes.Port{Number: int32(port)}
 					servicePort := podPort
 					serviceConfig.AddPortForwarding(servicePort, podPort)
-					envvar := v1.EnvVar{Name: "PORT", Value: cast.ToString(port)}
+					envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(port)}
 					serviceContainer.Env = append(serviceContainer.Env, envvar)
 				}
 			}
-			serviceConfig.Containers = []v1.Container{serviceContainer}
+			serviceConfig.Containers = []core.Container{serviceContainer}
 			ir.Services[service.ServiceName] = serviceConfig
 		}
 	}

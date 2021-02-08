@@ -20,11 +20,10 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	networking "k8s.io/kubernetes/pkg/apis/networking"
 )
 
 const (
@@ -34,16 +33,15 @@ const (
 
 // NetworkPolicy handles NetworkPolicy objects
 type NetworkPolicy struct {
-	Cluster collecttypes.ClusterMetadataSpec
 }
 
-// GetSupportedKinds returns all kinds supported by the class
-func (d *NetworkPolicy) GetSupportedKinds() []string {
+// getSupportedKinds returns all kinds supported by the class
+func (d *NetworkPolicy) getSupportedKinds() []string {
 	return []string{networkPolicyKind}
 }
 
-// CreateNewResources converts ir to runtime objects
-func (d *NetworkPolicy) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources converts ir to runtime objects
+func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if !common.IsStringPresent(supportedKinds, networkPolicyKind) {
 		log.Errorf("Could not find a valid resource type in cluster to create a NetworkPolicy")
@@ -65,33 +63,31 @@ func (d *NetworkPolicy) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds
 	return objs
 }
 
-// ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *NetworkPolicy) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	if common.IsStringPresent(supportedKinds, networkPolicyKind) {
-		if _, ok := obj.(*networkingv1.NetworkPolicy); ok {
-			return []runtime.Object{obj}, true
-		}
+// convertToClusterSupportedKinds converts kinds to cluster supported kinds
+func (d *NetworkPolicy) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	if common.IsStringPresent(d.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
 	}
 	return nil, false
 }
 
 // CreateNetworkPolicy initializes Network policy
-func (d *NetworkPolicy) createNetworkPolicy(networkName string) (*networkingv1.NetworkPolicy, error) {
+func (d *NetworkPolicy) createNetworkPolicy(networkName string) (*networking.NetworkPolicy, error) {
 
-	np := &networkingv1.NetworkPolicy{
+	np := &networking.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       networkPolicyKind,
-			APIVersion: networkingv1.SchemeGroupVersion.String(),
+			APIVersion: networking.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: networkName,
 		},
-		Spec: networkingv1.NetworkPolicySpec{
+		Spec: networking.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{networkSelector + "/" + networkName: common.AnnotationLabelValue},
 			},
-			Ingress: []networkingv1.NetworkPolicyIngressRule{{
-				From: []networkingv1.NetworkPolicyPeer{{
+			Ingress: []networking.NetworkPolicyIngressRule{{
+				From: []networking.NetworkPolicyPeer{{
 					PodSelector: &metav1.LabelSelector{
 						MatchLabels: getNetworkPolicyLabels([]string{networkName}),
 					},

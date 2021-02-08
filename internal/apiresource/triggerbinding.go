@@ -29,13 +29,13 @@ import (
 type TriggerBinding struct {
 }
 
-// GetSupportedKinds returns the kinds that this type supports.
-func (*TriggerBinding) GetSupportedKinds() []string {
+// getSupportedKinds returns the kinds that this type supports.
+func (*TriggerBinding) getSupportedKinds() []string {
 	return []string{string(triggersv1alpha1.NamespacedTriggerBindingKind)}
 }
 
-// CreateNewResources creates the runtime objects from the intermediate representation.
-func (tb *TriggerBinding) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources creates the runtime objects from the intermediate representation.
+func (tb *TriggerBinding) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
 	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
@@ -46,7 +46,7 @@ func (tb *TriggerBinding) CreateNewResources(ir irtypes.EnhancedIR, supportedKin
 	return objs
 }
 
-// CreateNewResources creates the runtime objects from the intermediate representation.
+// createNewResources creates the runtime objects from the intermediate representation.
 func (*TriggerBinding) createNewResource(irtriggerbinding tekton.TriggerBinding) *triggersv1alpha1.TriggerBinding {
 	triggerBinding := new(triggersv1alpha1.TriggerBinding)
 	triggerBinding.TypeMeta = metav1.TypeMeta{
@@ -57,13 +57,10 @@ func (*TriggerBinding) createNewResource(irtriggerbinding tekton.TriggerBinding)
 	return triggerBinding
 }
 
-// ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (tb *TriggerBinding) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	supKinds := tb.GetSupportedKinds()
-	for _, supKind := range supKinds {
-		if common.IsStringPresent(supportedKinds, supKind) {
-			return []runtime.Object{obj}, true
-		}
+// convertToClusterSupportedKinds converts the object to supported types if possible.
+func (tb *TriggerBinding) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	if common.IsStringPresent(tb.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
 	}
 	return nil, false
 }

@@ -140,7 +140,7 @@ func TestDeepMerge(t *testing.T) {
 		},
 	}
 
-	apiResource := APIResource{Scheme: getK8sScheme()}
+	apiResource := APIResource{}
 	for _, tc := range tcs {
 		t.Run(tc.desc, func(t *testing.T) {
 			actual, err := apiResource.deepMerge(tc.x, tc.y)

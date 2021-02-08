@@ -17,10 +17,11 @@ limitations under the License.
 package optimize
 
 import (
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	corev1 "k8s.io/api/core/v1"
 	"regexp"
 	"strings"
+
+	irtypes "github.com/konveyor/move2kube/internal/types"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // normalizeCharacterOptimizer identifies non-allowed characters and replaces them
@@ -31,7 +32,7 @@ func (po normalizeCharacterOptimizer) optimize(ir irtypes.IR) (irtypes.IR, error
 	//TODO: Make this generic to ensure all fields have valid names
 	for i := range ir.Services {
 		for j := range ir.Services[i].Containers {
-			var tmpEnvArray []corev1.EnvVar
+			var tmpEnvArray []core.EnvVar
 			for _, env := range ir.Services[i].Containers[j].Env {
 				if !strings.Contains(env.Name, "affinity") {
 					env.Name = stripQuotation(strings.TrimSpace(env.Name))

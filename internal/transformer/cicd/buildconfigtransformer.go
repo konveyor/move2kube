@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apiresourceset
+package cicd
 
 import (
 	"crypto/rand"
@@ -29,23 +29,17 @@ import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	log "github.com/sirupsen/logrus"
 	giturls "github.com/whilp/git-urls"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
-// CICDAPIResourceSet is the set of CI/CD resources we generate.
-type CICDAPIResourceSet struct {
+// BuildconfigTransformer is the set of CI/CD resources we generate.
+type BuildconfigTransformer struct {
 	ExtraFiles map[string]string // file path: file contents
 }
 
-// GetScheme returns K8s scheme
-func (*CICDAPIResourceSet) GetScheme() *runtime.Scheme {
-	return new(K8sAPIResourceSet).GetScheme()
-}
-
-// NewCICDAPIResourceSet creates a new CICDAPIResourceSet
-func NewCICDAPIResourceSet() *CICDAPIResourceSet {
-	return &CICDAPIResourceSet{ExtraFiles: map[string]string{}}
+// NewBuildconfigTransformer creates a new CICDAPIResourceSet
+func NewBuildconfigTransformer() *BuildconfigTransformer {
+	return &BuildconfigTransformer{ExtraFiles: map[string]string{}}
 }
 
 const (
@@ -53,18 +47,13 @@ const (
 	baseWebHookSecretName = "web-hook"
 )
 
-// CreateAPIResources converts IR to runtime objects
-func (cicdSet *CICDAPIResourceSet) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
-	ir := cicdSet.setupEnhancedIR(oldir)
-	targetobjs := []runtime.Object{}
-	for _, a := range cicdSet.getAPIResources(ir) {
-		objs := a.CreateNewResources(ir, []string{string(irtypes.SecretKind)})
-		targetobjs = append(targetobjs, objs...)
-	}
-	return targetobjs
+// GetAPIResources returns api resources related to buildconfig
+func (cicdSet *BuildconfigTransformer) GetAPIResources() []apiresource.IAPIResource {
+	return []apiresource.IAPIResource{&apiresource.BuildConfig{}, &apiresource.Storage{}}
 }
 
-func (cicdSet *CICDAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
+// SetupEnhancedIR return enhanced IR used by BuildConfig
+func (cicdSet *BuildconfigTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.
@@ -115,7 +104,7 @@ func (cicdSet *CICDAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.Enh
 				WebhookSecretName: webhookSecretName,
 			})
 
-			webHookURL := cicdSet.getWebHookURL(buildConfigName, webhookSecret.StringData["WebHookSecretKey"], "generic")
+			webHookURL := cicdSet.getWebHookURL(buildConfigName, string(webhookSecret.Content["WebHookSecretKey"]), "generic")
 			gitRepoToWebHookURLs[gitDomain] = append(gitRepoToWebHookURLs[gitDomain], webHookURL)
 		} else {
 			gitRepoURL, err := giturls.Parse(irContainer.RepoInfo.GitRepoURL)
@@ -152,7 +141,7 @@ func (cicdSet *CICDAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.Enh
 				WebhookSecretName: webhookSecretName,
 			})
 
-			webHookURL := cicdSet.getWebHookURL(buildConfigName, webhookSecret.StringData["WebHookSecretKey"], cicdSet.getWebHookType(gitDomain))
+			webHookURL := cicdSet.getWebHookURL(buildConfigName, string(webhookSecret.Content["WebHookSecretKey"]), cicdSet.getWebHookType(gitDomain))
 			gitRepoToWebHookURLs[irContainer.RepoInfo.GitRepoURL] = append(gitRepoToWebHookURLs[irContainer.RepoInfo.GitRepoURL], webHookURL)
 		}
 	}
@@ -172,20 +161,7 @@ func (cicdSet *CICDAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.Enh
 	return ir
 }
 
-func (cicdSet *CICDAPIResourceSet) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
-	return []apiresource.APIResource{
-		{
-			Scheme:       cicdSet.GetScheme(),
-			IAPIResource: &apiresource.BuildConfig{},
-		},
-		{
-			Scheme:       cicdSet.GetScheme(),
-			IAPIResource: &apiresource.Storage{},
-		},
-	}
-}
-
-func (*CICDAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes.Storage {
+func (*BuildconfigTransformer) createGitSecret(name, gitRepoDomain string) irtypes.Storage {
 	gitPrivateKey := gitPrivateKeyPlaceholder
 	if gitRepoDomain != "" {
 		if key, ok := sshkeys.GetSSHKey(gitRepoDomain); ok {
@@ -195,20 +171,20 @@ func (*CICDAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes.S
 	return irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        name,
-		SecretType:  corev1.SecretTypeSSHAuth,
-		StringData:  map[string]string{corev1.SSHAuthPrivateKey: gitPrivateKey},
+		SecretType:  core.SecretTypeSSHAuth,
+		Content:     map[string][]byte{core.SSHAuthPrivateKey: []byte(gitPrivateKey)},
 	}
 }
 
-func (cicdSet *CICDAPIResourceSet) createWebHookSecret(name string) irtypes.Storage {
+func (cicdSet *BuildconfigTransformer) createWebHookSecret(name string) irtypes.Storage {
 	return irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        name,
-		StringData:  map[string]string{"WebHookSecretKey": cicdSet.generateWebHookSecretKey()},
+		Content:     map[string][]byte{"WebHookSecretKey": []byte(cicdSet.generateWebHookSecretKey())},
 	}
 }
 
-func (*CICDAPIResourceSet) generateWebHookSecretKey() string {
+func (*BuildconfigTransformer) generateWebHookSecretKey() string {
 	randomBytes := make([]byte, 8)
 	if _, err := rand.Read(randomBytes); err != nil {
 		log.Warnf("Failed to read random bytes to generate web hook secret key. Error: %q", err)
@@ -216,7 +192,7 @@ func (*CICDAPIResourceSet) generateWebHookSecretKey() string {
 	return hex.EncodeToString(randomBytes)
 }
 
-func (*CICDAPIResourceSet) getWebHookType(gitDomain string) string {
+func (*BuildconfigTransformer) getWebHookType(gitDomain string) string {
 	switch true {
 	case strings.Contains(gitDomain, "github"):
 		return "github"
@@ -229,6 +205,6 @@ func (*CICDAPIResourceSet) getWebHookType(gitDomain string) string {
 	}
 }
 
-func (*CICDAPIResourceSet) getWebHookURL(buildConfigName, webHookSecretKey, webHookType string) string {
+func (*BuildconfigTransformer) getWebHookURL(buildConfigName, webHookSecretKey, webHookType string) string {
 	return "$HOST_AND_PORT/apis/build.openshift.io/v1/namespaces/$NAMESPACE/buildconfigs/" + buildConfigName + "/webhooks/" + webHookSecretKey + "/" + webHookType
 }

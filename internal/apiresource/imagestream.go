@@ -21,7 +21,6 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 	okdimagev1 "github.com/openshift/api/image/v1"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -38,16 +37,15 @@ const (
 
 // ImageStream handles all objects related to image stream
 type ImageStream struct {
-	Cluster collecttypes.ClusterMetadataSpec
 }
 
-// GetSupportedKinds returns kinds supported by ImageStream
-func (*ImageStream) GetSupportedKinds() []string {
+// getSupportedKinds returns kinds supported by ImageStream
+func (*ImageStream) getSupportedKinds() []string {
 	return []string{imageStreamKind}
 }
 
-// CreateNewResources converts IR to runtime objects
-func (imageStream *ImageStream) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources converts IR to runtime objects
+func (imageStream *ImageStream) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if !common.IsStringPresent(supportedKinds, imageStreamKind) {
 		log.Debugf("Could not find a valid resource type in cluster to create an ImageStream")
@@ -95,12 +93,10 @@ func (*ImageStream) createImageStream(name, tag string, irContainer irtypes.Cont
 	return imageStream
 }
 
-// ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (*ImageStream) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	if common.IsStringPresent(supportedKinds, imageStreamKind) {
-		if _, ok := obj.(*okdimagev1.ImageStream); ok {
-			return []runtime.Object{obj}, true
-		}
+// convertToClusterSupportedKinds converts kinds to cluster supported kinds
+func (imageStream *ImageStream) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	if common.IsStringPresent(imageStream.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
 	}
 	return nil, false
 }

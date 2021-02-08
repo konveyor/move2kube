@@ -19,8 +19,8 @@ package metadata
 import (
 	"io/ioutil"
 
-	"github.com/konveyor/move2kube/internal/apiresourceset"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/k8sschema"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
@@ -33,7 +33,7 @@ type K8sFilesLoader struct {
 
 // UpdatePlan - output a plan based on the input directory contents
 func (*K8sFilesLoader) UpdatePlan(inputPath string, plan *plantypes.Plan) error {
-	codecs := serializer.NewCodecFactory(new(apiresourceset.K8sAPIResourceSet).GetScheme())
+	codecs := serializer.NewCodecFactory(k8sschema.GetSchema())
 
 	filePaths, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
 	if err != nil {
@@ -65,7 +65,7 @@ func (*K8sFilesLoader) UpdatePlan(inputPath string, plan *plantypes.Plan) error 
 
 // LoadToIR loads k8s files as cached objects
 func (*K8sFilesLoader) LoadToIR(plan plantypes.Plan, ir *irtypes.IR) error {
-	codecs := serializer.NewCodecFactory(new(apiresourceset.K8sAPIResourceSet).GetScheme())
+	codecs := serializer.NewCodecFactory(k8sschema.GetSchema())
 	for _, filePath := range plan.Spec.Inputs.K8sFiles {
 		data, err := ioutil.ReadFile(filePath)
 		if err != nil {

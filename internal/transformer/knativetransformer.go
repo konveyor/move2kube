@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/internal/apiresourceset"
+	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/transformer/templates"
 	irtypes "github.com/konveyor/move2kube/internal/types"
@@ -52,12 +52,16 @@ func (kt *KnativeTransformer) Transform(ir irtypes.IR) error {
 	kt.Containers = ir.Containers
 	kt.TargetClusterSpec = ir.TargetClusterSpec
 	kt.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
-	kt.TransformedObjects = (&apiresourceset.KnativeAPIResourceSet{}).CreateAPIResources(ir)
+	kt.TransformedObjects = convertIRToObjects(irtypes.NewEnhancedIRFromIR(ir), kt.getAPIResources())
 	kt.RootDir = ir.RootDir
 	kt.AddCopySources = ir.AddCopySources
 	log.Debugf("Total transformed objects : %d", len(kt.TransformedObjects))
 
 	return nil
+}
+
+func (kt *KnativeTransformer) getAPIResources() []apiresource.IAPIResource {
+	return []apiresource.IAPIResource{&apiresource.KnativeService{}}
 }
 
 // WriteObjects writes Transformed objects to filesystem
@@ -67,7 +71,7 @@ func (kt *KnativeTransformer) WriteObjects(outpath string) error {
 	artifactspath := filepath.Join(outpath, kt.Name)
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))
 
-	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects)
+	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds)
 	if err != nil {
 		log.Errorf("Error occurred while writing transformed objects %s", err)
 	}

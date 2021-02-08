@@ -21,49 +21,54 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/internal/apiresourceset"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/transformer/cicd"
 	irtypes "github.com/konveyor/move2kube/internal/types"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // CICDTransformer creates the necessary tekton artifacts needed for CI/CD.
 type CICDTransformer struct {
-	cachedObjs []runtime.Object
-	extraFiles map[string]string // file path: file contents
+	transformedObjects     []runtime.Object
+	extraFiles             map[string]string // file path: file contents
+	TargetClusterSpec      collecttypes.ClusterMetadataSpec
+	IgnoreUnsupportedKinds bool
 }
 
 // Transform creates tekton resources needed for CI/CD
-func (cicd *CICDTransformer) Transform(ir irtypes.IR) error {
+func (c *CICDTransformer) Transform(ir irtypes.IR) error {
+	c.TargetClusterSpec = ir.TargetClusterSpec
+	c.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 	if ir.TargetClusterSpec.IsTektonInstalled() {
 		log.Infof("The target cluster has support for Tekton, generating Tekton pipeline for CI/CD")
-		cicd.cachedObjs = new(apiresourceset.TektonAPIResourceSet).CreateAPIResources(ir)
 	} else if ir.TargetClusterSpec.IsBuildConfigSupported() {
 		log.Infof("The target cluster has support for BuildConfig, generating build configs for CI/CD")
-		cicdSet := apiresourceset.NewCICDAPIResourceSet()
-		cicd.cachedObjs = cicdSet.CreateAPIResources(ir)
-		cicd.extraFiles = cicdSet.ExtraFiles
+		b := new(cicd.BuildconfigTransformer)
+		c.transformedObjects = convertIRToObjects(b.SetupEnhancedIR(ir), b.GetAPIResources())
+		c.extraFiles = b.ExtraFiles
 	} else {
 		log.Infof("Neither Tekton nor BuildConfig was found on the target cluster. Defaulting to Tekton pipeline for CI/CD.")
-		cicd.cachedObjs = new(apiresourceset.TektonAPIResourceSet).CreateAPIResources(ir)
 	}
+	t := new(cicd.TektonTransformer)
+	c.transformedObjects = convertIRToObjects(t.SetupEnhancedIR(ir), t.GetAPIResources())
 	return nil
 }
 
 // WriteObjects writes the CI/CD artifacts to files
-func (cicd *CICDTransformer) WriteObjects(outDirectory string) error {
+func (c *CICDTransformer) WriteObjects(outDirectory string) error {
 	cicdPath := filepath.Join(outDirectory, "cicd")
 	if err := os.MkdirAll(cicdPath, common.DefaultDirectoryPermission); err != nil {
 		log.Fatalf("Failed to create the CI/CD directory at path %q. Error: %q", cicdPath, err)
 		return err
 	}
-	if _, err := writeTransformedObjects(cicdPath, cicd.cachedObjs); err != nil {
+	if _, err := writeTransformedObjects(cicdPath, c.transformedObjects, c.TargetClusterSpec, false); err != nil {
 		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
 		return err
 	}
-	if len(cicd.extraFiles) > 0 {
-		for relFilePath, fileContents := range cicd.extraFiles {
+	if len(c.extraFiles) > 0 {
+		for relFilePath, fileContents := range c.extraFiles {
 			filePath := filepath.Join(outDirectory, relFilePath)
 			filePerms := common.DefaultFilePermission
 			if filepath.Ext(relFilePath) == ".sh" {

@@ -21,80 +21,46 @@ import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // Storage handles all storage objectss
 type Storage struct {
-	Cluster collecttypes.ClusterMetadataSpec
 }
 
-// GetSupportedKinds returns cluster supported kinds
-func (s *Storage) GetSupportedKinds() []string {
+// getSupportedKinds returns cluster supported kinds
+func (s *Storage) getSupportedKinds() []string {
 	return []string{string(irtypes.PVCKind), string(irtypes.ConfigMapKind), string(irtypes.SecretKind)}
 }
 
-// CreateNewResources converts IR objects to runtime objects
-func (s *Storage) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources converts IR objects to runtime objects
+func (s *Storage) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
-
 	for _, stObj := range ir.Storages {
 		if stObj.StorageType == irtypes.ConfigMapKind {
-			if !common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) && common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) {
-				objs = append(objs, s.createSecret(stObj))
-			} else {
-				objs = append(objs, s.createConfigMap(stObj))
-			}
+			objs = append(objs, s.createConfigMap(stObj))
 		}
-
-		if stObj.StorageType == irtypes.SecretKind {
-			if !common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) && common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) {
-				objs = append(objs, s.createConfigMap(stObj))
-			} else {
-				objs = append(objs, s.createSecret(stObj))
-			}
-		}
-
-		if stObj.StorageType == irtypes.PullSecretKind {
+		if stObj.StorageType == irtypes.SecretKind || stObj.StorageType == irtypes.PullSecretKind {
 			objs = append(objs, s.createSecret(stObj))
 		}
-
 		if stObj.StorageType == irtypes.PVCKind {
 			objs = append(objs, s.createPVC(stObj))
 		}
 	}
-
 	return objs
 }
 
-// ConvertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (s *Storage) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	if cfgMap, ok := obj.(*corev1.ConfigMap); ok {
-		if !common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) && common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) {
-			return []runtime.Object{convertCfgMapToSecret(*cfgMap)}, true
-		}
-		return []runtime.Object{cfgMap}, true
-	}
-
-	if secret, ok := obj.(*corev1.Secret); ok {
-		if !common.IsStringPresent(supportedKinds, string(irtypes.SecretKind)) && common.IsStringPresent(supportedKinds, string(irtypes.ConfigMapKind)) {
-			return []runtime.Object{convertSecretToCfgMap(*secret)}, true
-		}
-		return []runtime.Object{secret}, true
-	}
-
-	if pvc, ok := obj.(*corev1.PersistentVolumeClaim); ok {
-		if !common.IsStringPresent(supportedKinds, string(irtypes.PVCKind)) {
-			log.Warnf("PVC not supported in target cluster. [%s]", pvc.Name)
-		}
-		return []runtime.Object{pvc}, true
+// convertToClusterSupportedKinds converts kinds to cluster supported kinds
+func (s *Storage) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	if common.IsStringPresent(s.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
 	}
 	return nil, false
 }
 
-func (s *Storage) createConfigMap(st irtypes.Storage) *corev1.ConfigMap {
+func (s *Storage) createConfigMap(st irtypes.Storage) *core.ConfigMap {
 	cmName := common.MakeFileNameCompliant(st.Name)
 
 	data := map[string]string{}
@@ -102,10 +68,10 @@ func (s *Storage) createConfigMap(st irtypes.Storage) *corev1.ConfigMap {
 		data[k] = string(v)
 	}
 
-	configMap := &corev1.ConfigMap{
+	configMap := &core.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(irtypes.ConfigMapKind),
-			APIVersion: corev1.SchemeGroupVersion.String(),
+			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: cmName,
@@ -115,35 +81,34 @@ func (s *Storage) createConfigMap(st irtypes.Storage) *corev1.ConfigMap {
 	return configMap
 }
 
-func (s *Storage) createSecret(st irtypes.Storage) *corev1.Secret {
+func (s *Storage) createSecret(st irtypes.Storage) *core.Secret {
 	secretName := common.MakeFileNameCompliant(st.Name) // TODO: probably remove this. Names should be manipulated at a higher level.
-	secType := corev1.SecretTypeOpaque
+	secType := core.SecretTypeOpaque
 	if st.SecretType != "" {
 		secType = st.SecretType
 	} else if st.StorageType == irtypes.PullSecretKind {
-		secType = corev1.SecretTypeDockerConfigJson
+		secType = core.SecretTypeDockerConfigJSON
 	}
-	secret := &corev1.Secret{
+	secret := &core.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(irtypes.SecretKind),
-			APIVersion: corev1.SchemeGroupVersion.String(),
+			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        secretName,
 			Annotations: st.Annotations,
 		},
-		Type:       secType,
-		StringData: st.StringData,
-		Data:       st.Content,
+		Type: secType,
+		Data: st.Content,
 	}
 	return secret
 }
 
-func (s *Storage) createPVC(st irtypes.Storage) *corev1.PersistentVolumeClaim {
-	pvc := &corev1.PersistentVolumeClaim{
+func (s *Storage) createPVC(st irtypes.Storage) *core.PersistentVolumeClaim {
+	pvc := &core.PersistentVolumeClaim{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(irtypes.PVCKind),
-			APIVersion: corev1.SchemeGroupVersion.String(),
+			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: st.Name,
@@ -155,33 +120,33 @@ func (s *Storage) createPVC(st irtypes.Storage) *corev1.PersistentVolumeClaim {
 	return pvc
 }
 
-func convertCfgMapToSecret(cfgMap corev1.ConfigMap) *corev1.Secret {
+func convertCfgMapToSecret(cfgMap core.ConfigMap) *core.Secret {
 
 	secretDataMap := stringMapToByteMap(cfgMap.Data)
 
-	s := &corev1.Secret{
+	s := &core.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(irtypes.SecretKind),
-			APIVersion: corev1.SchemeGroupVersion.String(),
+			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   cfgMap.Name,
 			Labels: cfgMap.Labels,
 		},
-		Type: corev1.SecretTypeOpaque,
+		Type: core.SecretTypeOpaque,
 		Data: secretDataMap,
 	}
 
 	return s
 }
 
-func convertSecretToCfgMap(s corev1.Secret) *corev1.ConfigMap {
+func convertSecretToCfgMap(s core.Secret) *core.ConfigMap {
 	cmDataMap := byteMapToStringMap(s.Data)
 
-	cm := &corev1.ConfigMap{
+	cm := &core.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(irtypes.ConfigMapKind),
-			APIVersion: corev1.SchemeGroupVersion.String(),
+			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   s.Name,
@@ -193,44 +158,44 @@ func convertSecretToCfgMap(s corev1.Secret) *corev1.ConfigMap {
 	return cm
 }
 
-func convertPVCVolumeToEmptyVolume(vPVC corev1.Volume) *corev1.Volume {
-	vEmptySrc := &corev1.VolumeSource{
-		EmptyDir: &corev1.EmptyDirVolumeSource{},
+func convertPVCVolumeToEmptyVolume(vPVC core.Volume) *core.Volume {
+	vEmptySrc := &core.VolumeSource{
+		EmptyDir: &core.EmptyDirVolumeSource{},
 	}
 
-	return &corev1.Volume{
+	return &core.Volume{
 		Name:         vPVC.Name,
 		VolumeSource: *vEmptySrc,
 	}
 }
 
-func convertCfgMapVolumeToSecretVolume(vCfgMap corev1.Volume) *corev1.Volume {
-	vSecretVolSrc := corev1.VolumeSource{
-		Secret: &corev1.SecretVolumeSource{
+func convertCfgMapVolumeToSecretVolume(vCfgMap core.Volume) *core.Volume {
+	vSecretVolSrc := core.VolumeSource{
+		Secret: &core.SecretVolumeSource{
 			SecretName:  vCfgMap.ConfigMap.Name,
 			Items:       vCfgMap.ConfigMap.Items,
 			DefaultMode: vCfgMap.ConfigMap.DefaultMode,
 		},
 	}
 
-	v := &corev1.Volume{
+	v := &core.Volume{
 		Name:         vCfgMap.Name,
 		VolumeSource: vSecretVolSrc,
 	}
 	return v
 }
 
-func convertSecretVolumeToCfgMapVolume(vs corev1.Volume) *corev1.Volume {
-	vSrc := &corev1.ConfigMapVolumeSource{}
+func convertSecretVolumeToCfgMapVolume(vs core.Volume) *core.Volume {
+	vSrc := &core.ConfigMapVolumeSource{}
 	vSrc.Name = vs.Secret.SecretName
 	vSrc.Items = vs.Secret.Items
 	vSrc.DefaultMode = vs.Secret.DefaultMode
 
-	vCMVolSrc := corev1.VolumeSource{
+	vCMVolSrc := core.VolumeSource{
 		ConfigMap: vSrc,
 	}
 
-	v := &corev1.Volume{
+	v := &core.Volume{
 		Name:         vs.Secret.SecretName,
 		VolumeSource: vCMVolSrc,
 	}
@@ -238,10 +203,10 @@ func convertSecretVolumeToCfgMapVolume(vs corev1.Volume) *corev1.Volume {
 	return v
 }
 
-func convertVolumeBySupportedKind(volume corev1.Volume, cluster collecttypes.ClusterMetadataSpec) (nvolume corev1.Volume) {
+func convertVolumeBySupportedKind(volume core.Volume, cluster collecttypes.ClusterMetadataSpec) (nvolume core.Volume) {
 
-	if volume == (corev1.Volume{}) {
-		return corev1.Volume{}
+	if volume == (core.Volume{}) {
+		return core.Volume{}
 	}
 
 	if volume.VolumeSource.ConfigMap != nil {
@@ -271,7 +236,7 @@ func convertVolumeBySupportedKind(volume corev1.Volume, cluster collecttypes.Clu
 	}
 	log.Warnf("Unsupported storage type (volume) detected")
 
-	return corev1.Volume{}
+	return core.Volume{}
 }
 
 func stringMapToByteMap(sm map[string]string) map[string][]byte {

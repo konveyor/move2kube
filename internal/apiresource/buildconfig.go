@@ -39,13 +39,13 @@ const (
 	buildConfigKind = "BuildConfig"
 )
 
-// GetSupportedKinds returns the kinds that this type supports.
-func (*BuildConfig) GetSupportedKinds() []string {
+// getSupportedKinds returns the kinds that this type supports.
+func (*BuildConfig) getSupportedKinds() []string {
 	return []string{buildConfigKind}
 }
 
-// CreateNewResources creates the runtime objects from the intermediate representation.
-func (bc *BuildConfig) CreateNewResources(ir irtypes.EnhancedIR, _ []string) []runtime.Object {
+// createNewResources creates the runtime objects from the intermediate representation.
+func (bc *BuildConfig) createNewResources(ir irtypes.EnhancedIR, _ []string) []runtime.Object {
 	objs := []runtime.Object{}
 	for _, irBuildConfig := range ir.BuildConfigs {
 		buildConfig := bc.createNewResource(irBuildConfig, ir)
@@ -180,13 +180,10 @@ func (*BuildConfig) getWebHookType(gitDomain string) okdbuildv1.BuildTriggerType
 	}
 }
 
-// ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (bc *BuildConfig) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	supKinds := bc.GetSupportedKinds()
-	for _, supKind := range supKinds {
-		if common.IsStringPresent(supportedKinds, supKind) {
-			return []runtime.Object{obj}, true
-		}
+// convertToClusterSupportedKinds converts the object to supported types if possible.
+func (bc *BuildConfig) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	if common.IsStringPresent(bc.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
 	}
 	return nil, false
 }

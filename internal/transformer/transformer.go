@@ -27,9 +27,13 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/k8sschema"
+	"github.com/konveyor/move2kube/internal/k8sschema/fixer"
 	"github.com/konveyor/move2kube/internal/transformer/templates"
 	irtypes "github.com/konveyor/move2kube/internal/types"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	"github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -53,6 +57,19 @@ func GetTransformer(ir irtypes.IR) Transformer {
 		return &KnativeTransformer{}
 	}
 	return NewK8sTransformer()
+}
+
+// ConvertIRToObjects converts IR to a runtime objects
+func convertIRToObjects(ir irtypes.EnhancedIR, apis []apiresource.IAPIResource) []runtime.Object {
+	targetObjs := []runtime.Object{}
+	ignoredObjs := ir.CachedObjects
+	for _, apiResource := range apis {
+		newObjs, ignoredResources := (&apiresource.APIResource{IAPIResource: apiResource}).ConvertIRToObjects(ir)
+		ignoredObjs = k8sschema.Intersection(ignoredObjs, ignoredResources)
+		targetObjs = append(targetObjs, newObjs...)
+	}
+	targetObjs = append(targetObjs, ignoredObjs...)
+	return targetObjs
 }
 
 // writeContainers returns true if any scripts were written
@@ -165,7 +182,7 @@ func writeContainers(containers []irtypes.Container, outpath, rootDir, registryU
 	return false
 }
 
-func writeTransformedObjects(path string, objs []runtime.Object) ([]string, error) {
+func writeTransformedObjects(path string, objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool) ([]string, error) {
 	fileswritten := []string{}
 	err := os.MkdirAll(path, common.DefaultDirectoryPermission)
 	if err != nil {
@@ -173,6 +190,12 @@ func writeTransformedObjects(path string, objs []runtime.Object) ([]string, erro
 		return nil, err
 	}
 	for _, obj := range objs {
+		fixedobj := fixer.Fix(obj)
+		obj, err = k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec, ignoreUnsupportedKinds)
+		if err != nil {
+			log.Warnf("Ignoring object : %s", err)
+			continue
+		}
 		//Encode object
 		j, err := json.Marshal(obj)
 		if err != nil {

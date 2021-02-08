@@ -28,9 +28,9 @@ import (
 	"github.com/konveyor/move2kube/types/plan"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/kubernetes/pkg/apis/core"
+	networking "k8s.io/kubernetes/pkg/apis/networking"
 )
 
 // IR is the intermediate representation filled by source translators
@@ -75,7 +75,7 @@ type BuildConfig struct {
 
 // Service defines structure of an IR service
 type Service struct {
-	corev1.PodSpec
+	core.PodSpec
 
 	Name                        string
 	BackendServiceName          string // Optional field when ingress name is not the same as backend service name
@@ -90,7 +90,7 @@ type Service struct {
 }
 
 // Port is a port number with an optional port name.
-type Port networkingv1.ServiceBackendPort
+type Port networking.ServiceBackendPort
 
 // ServiceToPodPortForwarding forwards a k8s service port to a k8s pod port
 type ServiceToPodPortForwarding struct {
@@ -115,13 +115,12 @@ type StorageKindType string
 
 // Storage defines structure of a storage
 type Storage struct {
-	Name                             string
-	Annotations                      map[string]string // Optional field to store arbitrary metadata
-	corev1.PersistentVolumeClaimSpec                   //This promotion contains the volumeName which is used by configmap, secrets and pvc.
-	StorageType                      StorageKindType   //Type of storage cfgmap, secret, pvc
-	SecretType                       corev1.SecretType // Optional field to store the type of secret data
-	Content                          map[string][]byte //Optional field meant to store content for cfgmap or secret
-	StringData                       map[string]string //Optional field to store string content for cfmap or secret
+	Name                           string
+	Annotations                    map[string]string // Optional field to store arbitrary metadata
+	core.PersistentVolumeClaimSpec                   //This promotion contains the volumeName which is used by configmap, secrets and pvc.
+	StorageType                    StorageKindType   //Type of storage cfgmap, secret, pvc
+	SecretType                     core.SecretType   // Optional field to store the type of secret data
+	Content                        map[string][]byte //Optional field meant to store content for cfgmap or secret
 }
 
 // ServiceAccount holds the details about the service account resource
@@ -199,7 +198,7 @@ func (service *Service) AddPortForwarding(servicePort Port, podPort Port) error 
 }
 
 // AddVolume adds a volume to a service
-func (service *Service) AddVolume(volume corev1.Volume) {
+func (service *Service) AddVolume(volume core.Volume) {
 	merged := false
 	for _, existingVolume := range service.Volumes {
 		if existingVolume.Name == volume.Name {

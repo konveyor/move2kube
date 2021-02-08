@@ -20,9 +20,9 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	log "github.com/sirupsen/logrus"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	rbac "k8s.io/kubernetes/pkg/apis/rbac"
 )
 
 const (
@@ -33,13 +33,13 @@ const (
 type RoleBinding struct {
 }
 
-// GetSupportedKinds returns the kinds that this type supports.
-func (*RoleBinding) GetSupportedKinds() []string {
+// getSupportedKinds returns the kinds that this type supports.
+func (*RoleBinding) getSupportedKinds() []string {
 	return []string{roleBindingKind}
 }
 
-// CreateNewResources creates the runtime objects from the intermediate representation.
-func (rb *RoleBinding) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+// createNewResources creates the runtime objects from the intermediate representation.
+func (rb *RoleBinding) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if common.IsStringPresent(supportedKinds, roleBindingKind) {
 		irresources := ir.RoleBindings
@@ -52,28 +52,25 @@ func (rb *RoleBinding) CreateNewResources(ir irtypes.EnhancedIR, supportedKinds 
 	return objs
 }
 
-func (*RoleBinding) createNewResource(irrolebinding irtypes.RoleBinding) *rbacv1.RoleBinding {
-	roleBinding := new(rbacv1.RoleBinding)
+func (*RoleBinding) createNewResource(irrolebinding irtypes.RoleBinding) *rbac.RoleBinding {
+	roleBinding := new(rbac.RoleBinding)
 	roleBinding.TypeMeta = metav1.TypeMeta{
 		Kind:       roleBindingKind,
-		APIVersion: rbacv1.SchemeGroupVersion.String(),
+		APIVersion: rbac.SchemeGroupVersion.String(),
 	}
 	roleBinding.ObjectMeta = metav1.ObjectMeta{Name: irrolebinding.Name}
-	roleBinding.Subjects = []rbacv1.Subject{
-		{Kind: rbacv1.ServiceAccountKind, Name: irrolebinding.ServiceAccountName},
+	roleBinding.Subjects = []rbac.Subject{
+		{Kind: rbac.ServiceAccountKind, Name: irrolebinding.ServiceAccountName},
 	}
-	roleBinding.RoleRef = rbacv1.RoleRef{APIGroup: rbacv1.SchemeGroupVersion.Group, Kind: roleKind, Name: irrolebinding.RoleName}
+	roleBinding.RoleRef = rbac.RoleRef{APIGroup: rbac.SchemeGroupVersion.Group, Kind: roleKind, Name: irrolebinding.RoleName}
 
 	return roleBinding
 }
 
-// ConvertToClusterSupportedKinds converts the object to supported types if possible.
-func (rb *RoleBinding) ConvertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
-	supKinds := rb.GetSupportedKinds()
-	for _, supKind := range supKinds {
-		if common.IsStringPresent(supportedKinds, supKind) {
-			return []runtime.Object{obj}, true
-		}
+// convertToClusterSupportedKinds converts the object to supported types if possible.
+func (rb *RoleBinding) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+	if common.IsStringPresent(rb.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+		return []runtime.Object{obj}, true
 	}
 	return nil, false
 }

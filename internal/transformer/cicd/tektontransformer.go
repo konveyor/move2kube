@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apiresourceset
+package cicd
 
 import (
 	"fmt"
@@ -31,8 +31,7 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	giturls "github.com/whilp/git-urls"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -55,32 +54,26 @@ const (
 	baseTektonTriggersAdminRoleBindingName = "tekton-triggers-admin"
 )
 
-// TektonAPIResourceSet is the set of tekton based CI/CD resources we generate.
-type TektonAPIResourceSet struct {
+// TektonTransformer is the set of tekton based CI/CD resources we generate.
+type TektonTransformer struct {
 }
 
-// GetScheme returns K8s scheme
-func (*TektonAPIResourceSet) GetScheme() *runtime.Scheme {
-	return new(K8sAPIResourceSet).GetScheme()
-}
-
-// CreateAPIResources converts IR to runtime objects
-func (tekSet *TektonAPIResourceSet) CreateAPIResources(oldir irtypes.IR) []runtime.Object {
-	ir := tekSet.setupEnhancedIR(oldir)
-	targetobjs := []runtime.Object{}
-	for _, a := range tekSet.getAPIResources(ir) {
-		a.SetClusterContext(ir.TargetClusterSpec)
-		objs := a.GetUpdatedResources(ir)
-		targetobjs = append(targetobjs, objs...)
+// GetAPIResources returns api resources related to Tekton
+func (tekSet *TektonTransformer) GetAPIResources() []apiresource.IAPIResource {
+	return []apiresource.IAPIResource{&apiresource.Service{},
+		&apiresource.ServiceAccount{},
+		&apiresource.RoleBinding{},
+		&apiresource.Role{},
+		&apiresource.Storage{},
+		&apiresource.EventListener{},
+		&apiresource.TriggerBinding{},
+		&apiresource.TriggerTemplate{},
+		&apiresource.Pipeline{},
 	}
-	for _, a := range tekSet.getTektonAPIResources(ir) {
-		objs := a.CreateNewResources(ir, []string{})
-		targetobjs = append(targetobjs, objs...)
-	}
-	return targetobjs
 }
 
-func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
+// SetupEnhancedIR returns EnhancedIR containing Tekton components
+func (tekSet *TektonTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.
@@ -131,9 +124,9 @@ func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.En
 			BackendServiceName: gitEventListenerServiceName,
 			OnlyIngress:        true,
 			ServiceRelPath:     "/" + gitEventListenerServiceName, // this has to be an absolute path otherwise k8s will complain
-			PodSpec: corev1.PodSpec{
-				Containers: []corev1.Container{{
-					Ports: []corev1.ContainerPort{{ContainerPort: int32(8080)}},
+			PodSpec: core.PodSpec{
+				Containers: []core.Container{{
+					Ports: []core.ContainerPort{{ContainerPort: int32(8080)}},
 				}},
 			},
 		},
@@ -167,10 +160,10 @@ func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.En
 	imageRegistrySecret := irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        registrySecretName,
-		SecretType:  corev1.SecretTypeDockerConfigJson,
+		SecretType:  core.SecretTypeDockerConfigJSON,
 		// TODO: not sure if this annotation is specific to docker hub
 		Annotations: map[string]string{"tekton.dev/docker-0": registryURL},
-		StringData:  map[string]string{corev1.DockerConfigJsonKey: dockerConfigJSON},
+		Content:     map[string][]byte{core.DockerConfigJSONKey: []byte(dockerConfigJSON)},
 	}
 
 	secrets := []irtypes.Storage{imageRegistrySecret}
@@ -212,53 +205,7 @@ func (tekSet *TektonAPIResourceSet) setupEnhancedIR(oldir irtypes.IR) irtypes.En
 	return ir
 }
 
-func (tekSet *TektonAPIResourceSet) getAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
-	return []apiresource.APIResource{
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.Service{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.ServiceAccount{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.RoleBinding{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.Role{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.Storage{},
-		},
-	}
-}
-
-func (tekSet *TektonAPIResourceSet) getTektonAPIResources(_ irtypes.EnhancedIR) []apiresource.APIResource {
-	return []apiresource.APIResource{
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.EventListener{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.TriggerBinding{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.TriggerTemplate{},
-		},
-		{
-			Scheme:       tekSet.GetScheme(),
-			IAPIResource: &apiresource.Pipeline{},
-		},
-	}
-}
-
-func (*TektonAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes.Storage {
+func (*TektonTransformer) createGitSecret(name, gitRepoDomain string) irtypes.Storage {
 	gitPrivateKey := gitPrivateKeyPlaceholder
 	knownHosts := knownHostsPlaceholder
 	if gitRepoDomain == "" {
@@ -284,11 +231,11 @@ func (*TektonAPIResourceSet) createGitSecret(name, gitRepoDomain string) irtypes
 	return irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        name,
-		SecretType:  corev1.SecretTypeSSHAuth,
+		SecretType:  core.SecretTypeSSHAuth,
 		Annotations: map[string]string{"tekton.dev/git-0": gitRepoDomain},
-		StringData: map[string]string{
-			corev1.SSHAuthPrivateKey: gitPrivateKey,
-			"known_hosts":            knownHosts,
+		Content: map[string][]byte{
+			core.SSHAuthPrivateKey: []byte(gitPrivateKey),
+			"known_hosts":          []byte(knownHosts),
 		},
 	}
 }

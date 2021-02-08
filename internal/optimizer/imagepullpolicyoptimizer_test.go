@@ -17,13 +17,13 @@ limitations under the License.
 package optimize
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	"testing"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestImagePullPolicyOptimizer(t *testing.T) {
@@ -63,10 +63,10 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 
 	t.Run("IR containing services and containers without image pull policy", func(t *testing.T) {
 		// Setup
-		c1 := corev1.Container{
+		c1 := core.Container{
 			Name: "container-1",
 		}
-		c2 := corev1.Container{
+		c2 := core.Container{
 			Name: "container-2",
 		}
 		svcname1 := "svcname1"
@@ -130,14 +130,14 @@ func getIRWithoutServices() types.IR {
 }
 
 func getIRWithImagePullPolicySetAsAlways() types.IR {
-	c1 := corev1.Container{
+	c1 := core.Container{
 		Name: "container-1",
 	}
-	c2 := corev1.Container{
+	c2 := core.Container{
 		Name: "container-2",
 	}
-	c1.ImagePullPolicy = v1.PullAlways
-	c2.ImagePullPolicy = v1.PullAlways
+	c1.ImagePullPolicy = core.PullAlways
+	c2.ImagePullPolicy = core.PullAlways
 	svcname1 := "svcname1"
 	svcname2 := "svcname2"
 	svc1 := types.Service{Name: svcname1, Replicas: 2}

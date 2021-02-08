@@ -35,9 +35,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // V1V2Loader loads a compoose file of versions 1 or 2
@@ -155,7 +154,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		if composeServiceConfig.DomainName != "" {
 			serviceConfig.Subdomain = composeServiceConfig.DomainName
 		}
-		serviceContainer := corev1.Container{}
+		serviceContainer := core.Container{}
 		serviceContainer.Image = composeServiceConfig.Image
 		if serviceContainer.Image == "" {
 			serviceContainer.Image = name + ":latest"
@@ -186,8 +185,8 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		serviceContainer.TTY = composeServiceConfig.Tty
 		serviceContainer.Ports = c.getPorts(composeServiceConfig.Ports, composeServiceConfig.Expose)
 		c.addPorts(composeServiceConfig.Ports, composeServiceConfig.Expose, &serviceConfig)
-		podSecurityContext := &corev1.PodSecurityContext{}
-		securityContext := &corev1.SecurityContext{}
+		podSecurityContext := &core.PodSecurityContext{}
+		securityContext := &core.SecurityContext{}
 		if composeServiceConfig.Privileged {
 			securityContext.Privileged = &composeServiceConfig.Privileged
 		}
@@ -200,24 +199,24 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 			}
 
 		}
-		capsAdd := []corev1.Capability{}
-		capsDrop := []corev1.Capability{}
+		capsAdd := []core.Capability{}
+		capsDrop := []core.Capability{}
 		for _, capAdd := range composeServiceConfig.CapAdd {
-			capsAdd = append(capsAdd, corev1.Capability(capAdd))
+			capsAdd = append(capsAdd, core.Capability(capAdd))
 		}
 		for _, capDrop := range composeServiceConfig.CapDrop {
-			capsDrop = append(capsDrop, corev1.Capability(capDrop))
+			capsDrop = append(capsDrop, core.Capability(capDrop))
 		}
 		if len(capsAdd) > 0 || len(capsDrop) > 0 {
-			securityContext.Capabilities = &corev1.Capabilities{
+			securityContext.Capabilities = &core.Capabilities{
 				Add:  capsAdd,
 				Drop: capsDrop,
 			}
 		}
-		if *securityContext != (corev1.SecurityContext{}) {
+		if *securityContext != (core.SecurityContext{}) {
 			serviceContainer.SecurityContext = securityContext
 		}
-		if !cmp.Equal(*podSecurityContext, corev1.PodSecurityContext{}) {
+		if !cmp.Equal(*podSecurityContext, core.PodSecurityContext{}) {
 			serviceConfig.SecurityContext = podSecurityContext
 		}
 		// group should be in gid format not group name
@@ -235,9 +234,9 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 			}
 		}
 		if composeServiceConfig.MemLimit != 0 {
-			resourceLimit := corev1.ResourceList{}
+			resourceLimit := core.ResourceList{}
 			if composeServiceConfig.MemLimit != 0 {
-				resourceLimit[corev1.ResourceMemory] = *resource.NewQuantity(int64(composeServiceConfig.MemLimit), "RandomStringForFormat")
+				resourceLimit[core.ResourceMemory] = *resource.NewQuantity(int64(composeServiceConfig.MemLimit), "RandomStringForFormat")
 			}
 			serviceContainer.Resources.Limits = resourceLimit
 		}
@@ -245,7 +244,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		restart := composeServiceConfig.Restart
 		if restart == "unless-stopped" {
 			log.Warnf("Restart policy 'unless-stopped' in service %s is not supported, convert it to 'always'", name)
-			serviceConfig.RestartPolicy = corev1.RestartPolicyAlways
+			serviceConfig.RestartPolicy = core.RestartPolicyAlways
 		}
 
 		if composeServiceConfig.Networks != nil && len(composeServiceConfig.Networks.Networks) > 0 {
@@ -279,66 +278,66 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 					// Generate a hash Id for the given source file path to be mounted.
 					hashID := getHash([]byte(hPath))
 					volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
-					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, corev1.VolumeMount{
+					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
 						Name:      volumeName,
 						ReadOnly:  vol.AccessMode == modeReadOnly,
 						MountPath: vol.Destination,
 					})
 
-					serviceConfig.AddVolume(corev1.Volume{
+					serviceConfig.AddVolume(core.Volume{
 						Name: volumeName,
-						VolumeSource: corev1.VolumeSource{
-							HostPath: &corev1.HostPathVolumeSource{Path: vol.Source},
+						VolumeSource: core.VolumeSource{
+							HostPath: &core.HostPathVolumeSource{Path: vol.Source},
 						},
 					})
 				} else {
-					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, corev1.VolumeMount{
+					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
 						Name:      vol.Source,
 						ReadOnly:  vol.AccessMode == modeReadOnly,
 						MountPath: vol.Destination,
 					})
 
-					serviceConfig.AddVolume(corev1.Volume{
+					serviceConfig.AddVolume(core.Volume{
 						Name: vol.Source,
-						VolumeSource: corev1.VolumeSource{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						VolumeSource: core.VolumeSource{
+							PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
 								ClaimName: vol.Source,
 								ReadOnly:  vol.AccessMode == modeReadOnly,
 							},
 						},
 					})
-					accessMode := corev1.ReadWriteMany
+					accessMode := core.ReadWriteMany
 					if vol.AccessMode == modeReadOnly {
-						accessMode = corev1.ReadOnlyMany
+						accessMode = core.ReadOnlyMany
 					}
 					storageObj := irtypes.Storage{StorageType: irtypes.PVCKind, Name: vol.Source, Content: nil}
-					storageObj.PersistentVolumeClaimSpec = corev1.PersistentVolumeClaimSpec{
-						AccessModes: []corev1.PersistentVolumeAccessMode{accessMode},
+					storageObj.PersistentVolumeClaimSpec = core.PersistentVolumeClaimSpec{
+						AccessModes: []core.PersistentVolumeAccessMode{accessMode},
 					}
 					ir.AddStorage(storageObj)
 				}
 			}
 		}
 
-		serviceConfig.Containers = []v1.Container{serviceContainer}
+		serviceConfig.Containers = []core.Container{serviceContainer}
 		ir.Services[name] = serviceConfig
 	}
 
 	return ir, nil
 }
 
-func (c *V1V2Loader) getEnvs(envars []string) []corev1.EnvVar {
-	envs := []corev1.EnvVar{}
+func (c *V1V2Loader) getEnvs(envars []string) []core.EnvVar {
+	envs := []core.EnvVar{}
 	for _, e := range envars {
 		m := regexp.MustCompile(`[=:]`)
 		locs := m.FindStringIndex(e)
 		if locs == nil || len(locs) < 1 {
-			envs = append(envs, corev1.EnvVar{
+			envs = append(envs, core.EnvVar{
 				Name:  e,
 				Value: "unknown",
 			})
 		} else {
-			envs = append(envs, corev1.EnvVar{
+			envs = append(envs, core.EnvVar{
 				Name:  e[:locs[0]],
 				Value: e[locs[0]+1:],
 			})
@@ -347,8 +346,8 @@ func (c *V1V2Loader) getEnvs(envars []string) []corev1.EnvVar {
 	return envs
 }
 
-func (c *V1V2Loader) getPorts(composePorts []string, expose []string) []corev1.ContainerPort {
-	ports := []corev1.ContainerPort{}
+func (c *V1V2Loader) getPorts(composePorts []string, expose []string) []core.ContainerPort {
+	ports := []core.ContainerPort{}
 	exist := map[int]bool{}
 	for _, port := range composePorts {
 		_, podPort, protocol, err := c.parseContainerPort(port)
@@ -356,7 +355,7 @@ func (c *V1V2Loader) getPorts(composePorts []string, expose []string) []corev1.C
 			continue
 		}
 		if !exist[podPort] {
-			ports = append(ports, corev1.ContainerPort{ContainerPort: int32(podPort), Protocol: protocol})
+			ports = append(ports, core.ContainerPort{ContainerPort: int32(podPort), Protocol: protocol})
 			exist[podPort] = true
 		}
 	}
@@ -366,7 +365,7 @@ func (c *V1V2Loader) getPorts(composePorts []string, expose []string) []corev1.C
 			continue
 		}
 		if !exist[podPort] {
-			ports = append(ports, corev1.ContainerPort{ContainerPort: int32(podPort), Protocol: protocol})
+			ports = append(ports, core.ContainerPort{ContainerPort: int32(podPort), Protocol: protocol})
 			exist[podPort] = true
 		}
 	}
@@ -403,13 +402,13 @@ func (c *V1V2Loader) addPorts(composePorts []string, expose []string, service *i
 	}
 }
 
-func (*V1V2Loader) parseContainerPort(value string) (servicePort int, podPort int, protocol corev1.Protocol, err error) {
-	protocol = corev1.ProtocolTCP
+func (*V1V2Loader) parseContainerPort(value string) (servicePort int, podPort int, protocol core.Protocol, err error) {
+	protocol = core.ProtocolTCP
 	if strings.Contains(value, "/") {
 		parts := strings.Split(value, "/")
 		value = parts[0]
-		if strings.EqualFold(string(corev1.ProtocolUDP), parts[1]) {
-			protocol = corev1.ProtocolUDP
+		if strings.EqualFold(string(core.ProtocolUDP), parts[1]) {
+			protocol = core.ProtocolUDP
 		}
 	}
 	if !strings.Contains(value, ":") {
