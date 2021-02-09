@@ -35,8 +35,8 @@ if [ "$#" -gt 0 ]; then
     QUIET=true
 fi
 
+[[ $TAG ]] || TAG='latest'
 [[ $BINARY_NAME ]] || BINARY_NAME='move2kube'
-[[ $TAG ]] || TAG='v0.1.0-alpha.1'
 [[ $USE_SUDO ]] || USE_SUDO='true'
 [[ $VERIFY_CHECKSUM ]] || VERIFY_CHECKSUM='true'
 [[ $MOVE2KUBE_INSTALL_DIR ]] || MOVE2KUBE_INSTALL_DIR='/usr/local/bin'
@@ -165,7 +165,7 @@ checkMove2KubeInstalledVersion() {
         local version
         version="$("$BINARY_NAME" version)"
         if [ "$version" = "$TAG" ]; then
-            echo "Move2Kube $version is already the latest"
+            echo "The desired Move2Kube version $version is already installed"
             return 0
         else
             echo "Move2Kube $TAG is available. Changing from version $version"
@@ -264,7 +264,7 @@ downloadAndInstallPlugin() {
     tar -xzf "$plugin_tmp_file" -C "$plugin_tar_dir"
     runAsRoot cp "$plugin_tar_dir/kubectl-translate/kubectl-translate" "$MOVE2KUBE_INSTALL_DIR/kubectl-translate"
     echo 'Installing move2kube plugin for kubectl'
-    runAsRoot ln -s "$MOVE2KUBE_INSTALL_DIR/$BINARY_NAME" "$MOVE2KUBE_INSTALL_DIR/kubectl-$BINARY_NAME"
+    runAsRoot ln -f -s "$MOVE2KUBE_INSTALL_DIR/$BINARY_NAME" "$MOVE2KUBE_INSTALL_DIR/kubectl-$BINARY_NAME"
 }
 
 # cleanup temporary files.
@@ -290,17 +290,19 @@ main() {
     initArch
     initOS
     verifySupported
-    getLatestVersion
+    if [ "$TAG" = 'latest' ]; then
+        getLatestVersion
+    fi
     if ! checkMove2KubeInstalledVersion; then
         downloadMove2Kube
         installMove2Kube
+        if askBeforeInstallingKubectlPlugins; then
+            downloadAndInstallPlugin
+        else
+            echo 'Failed to get confirmation. Not installing kubectl plugins.'
+        fi
     fi
     testVersion
-    if askBeforeInstallingKubectlPlugins; then
-        downloadAndInstallPlugin
-    else
-        echo 'Failed to get confirmation. Not installing kubectl plugins.'
-    fi
     echo 'Done!'
 }
 
