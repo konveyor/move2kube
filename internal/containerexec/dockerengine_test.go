@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cnb
+package containerexec
 
 import (
 	"testing"
@@ -27,38 +27,38 @@ func TestIsBuilderAvailable(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
 	t.Run("normal use case", func(t *testing.T) {
-		provider := dockerAPIProvider{}
-		builder := "cloudfoundry/cnb:cflinuxfs3"
+		provider := newDockerEngine()
+		image := "cloudfoundry/cnb:cflinuxfs3"
 
 		// Test
-		if !provider.isBuilderAvailable(builder) {
-			t.Fatalf("Failed to find the builder %q locally and/or pull it.", builder)
+		if !provider.pullImage(image) {
+			t.Fatalf("Failed to find the image %q locally and/or pull it.", image)
 		}
 	})
 
 	t.Run("normal use case where we get result from cache", func(t *testing.T) {
-		provider := dockerAPIProvider{}
-		builder := "cloudfoundry/cnb:cflinuxfs3"
+		provider := newDockerEngine()
+		image := "cloudfoundry/cnb:cflinuxfs3"
 		want := map[string]bool{}
-		want[builder] = true
+		want[image] = true
 
 		// Test
-		if !provider.isBuilderAvailable(builder) {
-			t.Fatalf("Failed to find the builder %q locally and/or pull it.", builder)
+		if !provider.pullImage(image) {
+			t.Fatalf("Failed to find the builder %q locally and/or pull it.", image)
 		}
-		if !cmp.Equal(availableDockerImages, want) {
-			t.Fatalf("Failed to add the builder %q to the list of available builders. Difference:\n%s", builder, cmp.Diff(want, availableDockerImages))
+		if !cmp.Equal(provider.availableImages, want) {
+			t.Fatalf("Failed to add the builder %q to the list of available builders. Difference:\n%s", image, cmp.Diff(want, provider.availableImages))
 		}
-		if !provider.isBuilderAvailable(builder) {
-			t.Fatalf("Failed to find the builder %q locally and/or pull it.", builder)
+		if !provider.pullImage(image) {
+			t.Fatalf("Failed to find the builder %q locally and/or pull it.", image)
 		}
 	})
 
 	t.Run("check for a non existent image", func(t *testing.T) {
-		provider := dockerAPIProvider{}
-		builder := "this/doesnotexist:foobar"
-		if provider.isBuilderAvailable(builder) {
-			t.Fatalf("Should not have succeeded. The builder image %q does not exist", builder)
+		provider := newDockerEngine()
+		image := "this/doesnotexist:foobar"
+		if provider.pullImage(image) {
+			t.Fatalf("Should not have succeeded. The builder image %q does not exist", image)
 		}
 	})
 }

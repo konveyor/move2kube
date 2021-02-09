@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cnb
+package containerexec
 
 import (
 	"archive/tar"
@@ -36,119 +36,46 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type dockerAPIProvider struct {
+type dockerEngine struct {
+	availableImages map[string]bool
 }
 
-var (
-	isSockAccessible      = "unknown"
-	availableDockerImages = map[string]bool{}
-)
-
-func (r *dockerAPIProvider) getAllBuildpacks(builders []string) (map[string][]string, error) { //[Containerization target option value] buildpacks
-	buildpacks := map[string][]string{}
-	if available := r.isSockAccessible(); !available {
-		return buildpacks, errors.New("Container runtime not supported in this instance")
+func newDockerEngine() *dockerEngine {
+	return &dockerEngine{
+		availableImages: map[string]bool{},
 	}
-	log.Debugf("Getting data of all builders %s", builders)
-	for _, builder := range builders {
-		inspectOutput, err := r.inspectImage(builder)
-		log.Debugf("Inspecting image %s", builder)
-		if err != nil {
-			log.Debugf("Unable to inspect image %s : %s, %+v", builder, err, inspectOutput)
-			continue
-		}
-		buildpacks[builder] = getBuildersFromLabel(inspectOutput.Config.Labels[orderLabel])
-	}
-
-	return buildpacks, nil
 }
 
-func (r *dockerAPIProvider) isSockAccessible() bool {
-	if isSockAccessible == "unknown" {
-		image := "hello-world"
-		err := r.pullImage(image)
-		if err != nil {
-			isSockAccessible = "false"
-			return false
-		}
-		_, _, err = r.runContainer(image, "", "", "")
-		if err != nil {
-			isSockAccessible = "false"
-			return false
-		}
-		isSockAccessible = "true"
-		return true
+func (e *dockerEngine) pullImage(image string) bool {
+	if a, ok := e.availableImages[image]; ok {
+		return a
 	}
-	return cast.ToBool(isSockAccessible)
-}
-
-func (r *dockerAPIProvider) isBuilderAvailable(builder string) bool {
-	if !r.isSockAccessible() {
-		return false
-	}
-	if status, ok := availableDockerImages[builder]; ok {
-		return status
-	}
-	log.Debugf("Pulling image %s", builder)
-	err := r.pullImage(builder)
-	if err != nil {
-		log.Warnf("Error while pulling builder %s : %s", builder, err)
-		availableDockerImages[builder] = false
-		return false
-	}
-	availableDockerImages[builder] = true
-	return true
-}
-
-func (r *dockerAPIProvider) isBuilderSupported(path string, builder string) (bool, error) {
-	if !r.isBuilderAvailable(builder) {
-		return false, fmt.Errorf("Builder image not available : %s", builder)
-	}
-	p, err := filepath.Abs(path)
-	if err != nil {
-		log.Warnf("Unable to resolve to absolute path : %s", err)
-	}
-	log.Debugf("Running detect on image %s", builder)
-	output, _, err := r.runContainer(builder, "/cnb/lifecycle/detector", p, "/workspace")
-	if err != nil {
-		log.Debugf("Detect failed %s : %s : %s", builder, err, output)
-		return false, nil
-	}
-	log.Debug(output)
-	return true, nil
-}
-
-func (r *dockerAPIProvider) pullImage(image string) error {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return err
+		log.Debugf("Unable to pull image %s : %s", image, err)
+		e.availableImages[image] = false
+		return false
 	}
 	out, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
 	if err != nil {
-		return err
+		log.Debugf("Unable to pull image %s : %s", image, err)
+		e.availableImages[image] = false
+		return false
 	}
 	if b, err := ioutil.ReadAll(out); err == nil {
 		log.Debug(cast.ToString(b))
 	}
-	return nil
+	e.availableImages[image] = true
+	return true
 }
 
-func (r *dockerAPIProvider) inspectImage(image string) (types.ImageInspect, error) {
-	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return types.ImageInspect{}, err
+// RunContainer executes a container
+func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error) {
+	if !e.pullImage(image) {
+		log.Debugf("Unable to pull image using docker : %s", image)
+		return "", false, fmt.Errorf("Unable to pull image")
 	}
-	inspectOutput, _, err := cli.ImageInspectWithRaw(ctx, image)
-	if err != nil {
-		return types.ImageInspect{}, err
-	}
-
-	return inspectOutput, nil
-}
-
-func (r *dockerAPIProvider) runContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -183,7 +110,7 @@ func (r *dockerAPIProvider) runContainer(image string, cmd string, volsrc string
 		log.Debugf("Container %s created with image %s with no volumes", resp.ID, image)
 		defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true})
 		if volsrc != "" && voldest != "" {
-			err = r.copyDir(ctx, cli, resp.ID, volsrc, voldest)
+			err = copyDir(ctx, cli, resp.ID, volsrc, voldest)
 			if err != nil {
 				log.Debugf("Container data copy failed for image %s with volume %s:%s : %s", image, volsrc, voldest, err)
 				return "", false, err
@@ -228,8 +155,23 @@ func (r *dockerAPIProvider) runContainer(image string, cmd string, volsrc string
 	return "", false, err
 }
 
-func (r *dockerAPIProvider) copyDir(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
-	reader := r.readDirAsTar(src, dst)
+// InspectImage returns inspect output for an image
+func (e *dockerEngine) InspectImage(image string) (types.ImageInspect, error) {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		return types.ImageInspect{}, err
+	}
+	inspectOutput, _, err := cli.ImageInspectWithRaw(ctx, image)
+	if err != nil {
+		return types.ImageInspect{}, err
+	}
+
+	return inspectOutput, nil
+}
+
+func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
+	reader := readDirAsTar(src, dst)
 	if reader == nil {
 		err := fmt.Errorf("Error during create tar archive from '%s'", src)
 		log.Error(err)
@@ -256,11 +198,11 @@ func (r *dockerAPIProvider) copyDir(ctx context.Context, cli *client.Client, con
 	return err
 }
 
-func (r *dockerAPIProvider) readDirAsTar(srcDir, basePath string) io.ReadCloser {
+func readDirAsTar(srcDir, basePath string) io.ReadCloser {
 	errChan := make(chan error)
 	pr, pw := io.Pipe()
 	go func() {
-		err := r.writeDirToTar(pw, srcDir, basePath)
+		err := writeDirToTar(pw, srcDir, basePath)
 		errChan <- err
 	}()
 	closed := false
@@ -281,7 +223,7 @@ func (r *dockerAPIProvider) readDirAsTar(srcDir, basePath string) io.ReadCloser 
 	})
 }
 
-func (r *dockerAPIProvider) writeDirToTar(w *io.PipeWriter, srcDir, basePath string) error {
+func writeDirToTar(w *io.PipeWriter, srcDir, basePath string) error {
 	defer w.Close()
 	tw := tar.NewWriter(w)
 	defer tw.Close()
