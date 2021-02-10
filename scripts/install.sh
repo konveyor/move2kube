@@ -35,7 +35,7 @@ if [ "$#" -gt 0 ]; then
     QUIET=true
 fi
 
-[[ $TAG ]] || TAG='latest'
+[[ $MOVE2KUBE_TAG ]] || MOVE2KUBE_TAG='latest'
 [[ $BINARY_NAME ]] || BINARY_NAME='move2kube'
 [[ $USE_SUDO ]] || USE_SUDO='true'
 [[ $VERIFY_CHECKSUM ]] || VERIFY_CHECKSUM='true'
@@ -152,9 +152,9 @@ getLatestVersion() {
         json_data="$(wget -qO - "$release_info_url")"
     fi
     if [ "$HAS_JQ" = 'true' ]; then
-        TAG="$(printf '%s\n' "$json_data" | jq -r .current.release)"
+        MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | jq -r .current.release)"
     else
-        TAG="$(printf '%s\n' "$json_data" | grep 'release' | head -n 1 | sed -E 's/.*(v[0-9]+\.[0-9]+\.[0-9]+)",$/\1/')"
+        MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | grep 'release' | head -n 1 | sed -E 's/.*(v[0-9]+\.[0-9]+\.[0-9]+)",$/\1/')"
     fi
 }
 
@@ -164,11 +164,11 @@ checkMove2KubeInstalledVersion() {
     if [ "$HAS_MOVE2KUBE" = 'true' ]; then
         local version
         version="$("$BINARY_NAME" version)"
-        if [ "$version" = "$TAG" ]; then
+        if [ "$version" = "$MOVE2KUBE_TAG" ]; then
             echo "The desired Move2Kube version $version is already installed"
             return 0
         else
-            echo "Move2Kube $TAG is available. Changing from version $version"
+            echo "Move2Kube $MOVE2KUBE_TAG is available. Changing from version $version"
             return 1
         fi
     else
@@ -178,8 +178,8 @@ checkMove2KubeInstalledVersion() {
 
 # downloadMove2Kube downloads the latest binary package and verifies the checksum.
 downloadMove2Kube() {
-    MOVE2KUBE_DIST="move2kube-$TAG-$OS-$ARCH.tar.gz"
-    DOWNLOAD_URL="https://github.com/konveyor/move2kube/releases/download/$TAG/$MOVE2KUBE_DIST"
+    MOVE2KUBE_DIST="move2kube-$MOVE2KUBE_TAG-$OS-$ARCH.tar.gz"
+    DOWNLOAD_URL="https://github.com/konveyor/move2kube/releases/download/$MOVE2KUBE_TAG/$MOVE2KUBE_DIST"
     MOVE2KUBE_TMP_ROOT="$(mktemp -dt move2kube-installer-XXXXXX)"
     MOVE2KUBE_TMP_FILE="$MOVE2KUBE_TMP_ROOT/$MOVE2KUBE_DIST"
     if [ "$VERIFY_CHECKSUM" = 'true' ]; then
@@ -250,8 +250,8 @@ askBeforeInstallingKubectlPlugins() {
 
 # downloadAndInstallPlugin downloads the latest plugin and installs it.
 downloadAndInstallPlugin() {
-    local plugin_dist="kubectl-translate-$TAG-$OS-$ARCH.tar.gz"
-    local plugin_download_url="https://github.com/konveyor/move2kube/releases/download/$TAG/$plugin_dist"
+    local plugin_dist="kubectl-translate-$MOVE2KUBE_TAG-$OS-$ARCH.tar.gz"
+    local plugin_download_url="https://github.com/konveyor/move2kube/releases/download/$MOVE2KUBE_TAG/$plugin_dist"
     local plugin_tmp_file="$MOVE2KUBE_TMP_ROOT/$plugin_dist"
     if [ "$VERIFY_CHECKSUM" = 'true' ]; then
         downloadAndVerifyChecksum "$plugin_download_url" "$plugin_tmp_file"
@@ -290,7 +290,7 @@ main() {
     initArch
     initOS
     verifySupported
-    if [ "$TAG" = 'latest' ]; then
+    if [ "$MOVE2KUBE_TAG" = 'latest' ]; then
         getLatestVersion
     fi
     if ! checkMove2KubeInstalledVersion; then
