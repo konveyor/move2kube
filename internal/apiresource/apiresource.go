@@ -175,6 +175,17 @@ func getPodLabels(name string, networks []string) map[string]string {
 }
 
 func (o *APIResource) deepMerge(x, y runtime.Object) (runtime.Object, error) {
+	xGVK := x.GetObjectKind().GroupVersionKind()
+	yGVK := y.GetObjectKind().GroupVersionKind()
+	if xGVK.Kind != yGVK.Kind {
+		log.Errorf("Attempting to merge to different kinds : %s & %s", xGVK.Kind, yGVK.Kind)
+	}
+	newx, err := k8sschema.ConvertToVersion(x, yGVK.GroupVersion())
+	if err != nil {
+		log.Errorf("Unable to convert version : %s. Will try to merge two different versions", err)
+	} else {
+		x = newx
+	}
 	xJSON, err := json.Marshal(x)
 	if err != nil {
 		log.Errorf("Merge failed. Failed to marshal the first object %v to json. Error: %q", x, err)
@@ -192,9 +203,9 @@ func (o *APIResource) deepMerge(x, y runtime.Object) (runtime.Object, error) {
 	}
 	codecs := serializer.NewCodecFactory(k8sschema.GetSchema())
 	obj, newGVK, err := codecs.UniversalDeserializer().Decode(mergedJSON, nil, nil)
-	oldGVK := common.GetGVK(x)
-	if newGVK == nil || *newGVK != oldGVK {
-		err := fmt.Errorf("The group version kind after merging is different from before merging. original: %v new: %v", oldGVK, newGVK)
+
+	if newGVK == nil || *newGVK != yGVK {
+		err := fmt.Errorf("The group version kind after merging is different from before merging. original: %v new: %v", yGVK, newGVK)
 		log.Error(err)
 		return obj, err
 	}
