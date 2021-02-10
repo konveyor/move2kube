@@ -35,9 +35,9 @@ if [ "$#" -gt 0 ]; then
     QUIET=true
 fi
 
-[[ $BINARY_NAME ]] || BINARY_NAME='move2kube'
-[[ $TAG ]] || TAG='v0.1.0-alpha.1'
 [[ $USE_SUDO ]] || USE_SUDO='true'
+[[ $BINARY_NAME ]] || BINARY_NAME='move2kube'
+[[ $MOVE2KUBE_TAG ]] || MOVE2KUBE_TAG='latest'
 [[ $VERIFY_CHECKSUM ]] || VERIFY_CHECKSUM='true'
 [[ $MOVE2KUBE_INSTALL_DIR ]] || MOVE2KUBE_INSTALL_DIR='/usr/local/bin'
 
@@ -152,9 +152,9 @@ getLatestVersion() {
         json_data="$(wget -qO - "$release_info_url")"
     fi
     if [ "$HAS_JQ" = 'true' ]; then
-        TAG="$(printf '%s\n' "$json_data" | jq -r .current.release)"
+        MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | jq -r .current.release)"
     else
-        TAG="$(printf '%s\n' "$json_data" | grep 'release' | head -n 1 | sed -E 's/.*(v[0-9]+\.[0-9]+\.[0-9]+)",$/\1/')"
+        MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | grep 'release' | head -n 1 | sed -E 's/.*(v[0-9]+\.[0-9]+\.[0-9]+)",$/\1/')"
     fi
 }
 
@@ -164,11 +164,11 @@ checkMove2KubeInstalledVersion() {
     if [ "$HAS_MOVE2KUBE" = 'true' ]; then
         local version
         version="$("$BINARY_NAME" version)"
-        if [ "$version" = "$TAG" ]; then
-            echo "Move2Kube $version is already the latest"
+        if [ "$version" = "$MOVE2KUBE_TAG" ]; then
+            echo "The desired Move2Kube version $version is already installed"
             return 0
         else
-            echo "Move2Kube $TAG is available. Changing from version $version"
+            echo "Move2Kube $MOVE2KUBE_TAG is available. Changing from version $version"
             return 1
         fi
     else
@@ -178,8 +178,8 @@ checkMove2KubeInstalledVersion() {
 
 # downloadMove2Kube downloads the latest binary package and verifies the checksum.
 downloadMove2Kube() {
-    MOVE2KUBE_DIST="move2kube-$TAG-$OS-$ARCH.tar.gz"
-    DOWNLOAD_URL="https://github.com/konveyor/move2kube/releases/download/$TAG/$MOVE2KUBE_DIST"
+    MOVE2KUBE_DIST="move2kube-$MOVE2KUBE_TAG-$OS-$ARCH.tar.gz"
+    DOWNLOAD_URL="https://github.com/konveyor/move2kube/releases/download/$MOVE2KUBE_TAG/$MOVE2KUBE_DIST"
     MOVE2KUBE_TMP_ROOT="$(mktemp -dt move2kube-installer-XXXXXX)"
     MOVE2KUBE_TMP_FILE="$MOVE2KUBE_TMP_ROOT/$MOVE2KUBE_DIST"
     if [ "$VERIFY_CHECKSUM" = 'true' ]; then
@@ -250,8 +250,8 @@ askBeforeInstallingKubectlPlugins() {
 
 # downloadAndInstallPlugin downloads the latest plugin and installs it.
 downloadAndInstallPlugin() {
-    local plugin_dist="kubectl-translate-$TAG-$OS-$ARCH.tar.gz"
-    local plugin_download_url="https://github.com/konveyor/move2kube/releases/download/$TAG/$plugin_dist"
+    local plugin_dist="kubectl-translate-$MOVE2KUBE_TAG-$OS-$ARCH.tar.gz"
+    local plugin_download_url="https://github.com/konveyor/move2kube/releases/download/$MOVE2KUBE_TAG/$plugin_dist"
     local plugin_tmp_file="$MOVE2KUBE_TMP_ROOT/$plugin_dist"
     if [ "$VERIFY_CHECKSUM" = 'true' ]; then
         downloadAndVerifyChecksum "$plugin_download_url" "$plugin_tmp_file"
@@ -264,7 +264,7 @@ downloadAndInstallPlugin() {
     tar -xzf "$plugin_tmp_file" -C "$plugin_tar_dir"
     runAsRoot cp "$plugin_tar_dir/kubectl-translate/kubectl-translate" "$MOVE2KUBE_INSTALL_DIR/kubectl-translate"
     echo 'Installing move2kube plugin for kubectl'
-    runAsRoot ln -s "$MOVE2KUBE_INSTALL_DIR/$BINARY_NAME" "$MOVE2KUBE_INSTALL_DIR/kubectl-$BINARY_NAME"
+    runAsRoot ln -f -s "$MOVE2KUBE_INSTALL_DIR/$BINARY_NAME" "$MOVE2KUBE_INSTALL_DIR/kubectl-$BINARY_NAME"
 }
 
 # cleanup temporary files.
@@ -290,17 +290,24 @@ main() {
     initArch
     initOS
     verifySupported
-    getLatestVersion
+    if [ "$MOVE2KUBE_TAG" = 'latest' ]; then
+        getLatestVersion
+    fi
     if ! checkMove2KubeInstalledVersion; then
         downloadMove2Kube
         installMove2Kube
+        if [[ "$MOVE2KUBE_TAG" = *-* ]]; then
+            echo "$MOVE2KUBE_TAG is a prerelease. Plugins are available only for stable releases."
+        else
+            echo "$MOVE2KUBE_TAG is a stable release."
+            if askBeforeInstallingKubectlPlugins; then
+                downloadAndInstallPlugin
+            else
+                echo 'Failed to get confirmation. Not installing kubectl plugins.'
+            fi
+        fi
     fi
     testVersion
-    if askBeforeInstallingKubectlPlugins; then
-        downloadAndInstallPlugin
-    else
-        echo 'Failed to get confirmation. Not installing kubectl plugins.'
-    fi
     echo 'Done!'
 }
 
