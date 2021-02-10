@@ -35,9 +35,9 @@ if [ "$#" -gt 0 ]; then
     QUIET=true
 fi
 
-[[ $MOVE2KUBE_TAG ]] || MOVE2KUBE_TAG='latest'
-[[ $BINARY_NAME ]] || BINARY_NAME='move2kube'
 [[ $USE_SUDO ]] || USE_SUDO='true'
+[[ $BINARY_NAME ]] || BINARY_NAME='move2kube'
+[[ $MOVE2KUBE_TAG ]] || MOVE2KUBE_TAG='latest'
 [[ $VERIFY_CHECKSUM ]] || VERIFY_CHECKSUM='true'
 [[ $MOVE2KUBE_INSTALL_DIR ]] || MOVE2KUBE_INSTALL_DIR='/usr/local/bin'
 
@@ -296,10 +296,15 @@ main() {
     if ! checkMove2KubeInstalledVersion; then
         downloadMove2Kube
         installMove2Kube
-        if askBeforeInstallingKubectlPlugins; then
-            downloadAndInstallPlugin
+        if [[ "$MOVE2KUBE_TAG" = *-* ]]; then
+            echo "$MOVE2KUBE_TAG is a prerelease. Plugins are available only for stable releases."
         else
-            echo 'Failed to get confirmation. Not installing kubectl plugins.'
+            echo "$MOVE2KUBE_TAG is a stable release."
+            if askBeforeInstallingKubectlPlugins; then
+                downloadAndInstallPlugin
+            else
+                echo 'Failed to get confirmation. Not installing kubectl plugins.'
+            fi
         fi
     fi
     testVersion
