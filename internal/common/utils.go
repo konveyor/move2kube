@@ -40,8 +40,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/xrash/smetrics"
 	"gopkg.in/yaml.v3"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -739,16 +737,6 @@ func SplitYAML(rawYAML []byte) ([][]byte, error) {
 		res = append(res, valueBytes)
 	}
 	return res, nil
-}
-
-// GetGVK returns the group version kind given a k8s resource object.
-func GetGVK(obj runtime.Object) schema.GroupVersionKind {
-	k8sObjValue := reflect.ValueOf(obj).Elem()
-	typeMeta, ok := k8sObjValue.FieldByName("TypeMeta").Interface().(metav1.TypeMeta)
-	if !ok {
-		log.Fatal("Failed to retrieve object type metadata")
-	}
-	return typeMeta.GroupVersionKind()
 }
 
 // ReverseInPlace reverses a slice of strings in place.
