@@ -9,7 +9,8 @@ on:
         default: v0.1.0-rc.2
       prev_tag:
         description: "previous tag: Tag from which to start calculating the changelog"
-        required: false
+        required: true
+        default: v0.1.0-beta.0
       commit_ref:
         description: "commit ref: The branch, tag or SHA of the commit to use for the release"
         required: false
@@ -154,23 +155,13 @@ jobs:
         uses: booxmedialtd/ws-action-parse-semver@v1
         with:
           input_string: ${{ github.event.inputs.tag }}
-      - uses: actions/setup-node@v1
-        with:
-          node-version: "12"
       - name: create release draft
-        shell: bash
-        run: |
-          npm install github-release-notes@v0.17.3 -g
-          options=()
-          if [[ '${{ steps.semver_parser.outputs.prerelease }}' ]] ; then
-            options+=( '--prerelease' )
-          fi
-          if [[ '${{ github.event.inputs.prev_tag }}' ]] ; then
-            options+=('--tags' '${{ github.event.inputs.tag }}..${{ github.event.inputs.prev_tag }}')
-          else
-            options+=('--tags' '${{ github.event.inputs.tag }}')
-          fi
-          gren release --draft "${options[@]}" --username=${{ github.repository_owner }} --repo=${{ github.event.repository.name }} --token=${{ secrets.GITHUB_TOKEN }}
+        uses: konveyor/create-release-draft@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.event.inputs.tag }}
+          prev_tag: ${{ github.event.inputs.prev_tag }}
+          config: .grenrc.js
       - id: info
         uses: konveyor/get-env-info@v1
       - uses: actions/setup-go@v2
