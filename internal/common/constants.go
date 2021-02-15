@@ -63,6 +63,8 @@ const (
 	AnnotationLabelValue string = "true"
 	// DefaultServicePort is the default port that will be added to a service.
 	DefaultServicePort = 8080
+	// TODOAnnotation is used to annotate with TODO tasks
+	TODOAnnotation string = types.GroupName + "/todo."
 )
 
 const (
