@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	cnbwarnlongwait = true
+	cnbwarnlongwait = false
 )
 
 // CNBContainerizer implements Containerizer interface
