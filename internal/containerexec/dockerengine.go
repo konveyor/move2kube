@@ -88,6 +88,9 @@ func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, vol
 	if cmd != "" {
 		contconfig.Cmd = []string{cmd}
 	}
+	if (volsrc == "" && voldest != "") || (volsrc != "" && voldest == "") {
+		log.Warnf("Either volume source (%s) or destination (%s) is empty. Ingoring volume mount.", volsrc, voldest)
+	}
 	hostconfig := &container.HostConfig{}
 	if volsrc != "" && voldest != "" {
 		hostconfig.Mounts = []mount.Mount{
