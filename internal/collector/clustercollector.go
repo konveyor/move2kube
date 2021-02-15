@@ -172,7 +172,7 @@ func (c *ClusterCollector) interpretError(cmdOutput string) string {
 }
 
 func (c ClusterCollector) getGlobalGroupOrder() []string {
-	return []string{`^.+\.openshift\.io$`, `^.+\.k8s\.io$`, `^apps$`, `^extensions$`}
+	return []string{`^.+\.k8s\.io$`, `^apps$`, `^policy$`, `^extensions$`, `^.+\.openshift\.io$`}
 }
 
 func (c *ClusterCollector) getAPI() (*cgdiscovery.DiscoveryClient, error) {
@@ -274,7 +274,7 @@ func (c *ClusterCollector) getKindsForGroups(api *cgdiscovery.DiscoveryClient) (
 	return mapKind, nil
 }
 
-func (c *ClusterCollector) sortGroupVersionByPreferrence(prefGVList []schema.GroupVersion, mapKind *map[string][]schema.GroupVersion) {
+func (c *ClusterCollector) sortGroupVersionByPreference(prefGVList []schema.GroupVersion, mapKind *map[string][]schema.GroupVersion) {
 	for kind, gvList := range *mapKind {
 		var gvOrderedList []schema.GroupVersion
 		unorderedList := []string{}
@@ -325,7 +325,7 @@ func (c *ClusterCollector) collectUsingAPI() (map[string][]string, error) {
 		return nil, fmt.Errorf(errStr)
 	}
 
-	c.sortGroupVersionByPreferrence(gvList, &mapKind)
+	c.sortGroupVersionByPreference(gvList, &mapKind)
 
 	APIKindVersionMap := map[string][]string{}
 

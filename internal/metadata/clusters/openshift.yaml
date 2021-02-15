@@ -40,13 +40,13 @@ spec:
     ClusterResourceQuota:
       - quota.openshift.io/v1
     ClusterRole:
-      - authorization.openshift.io/v1
       - rbac.authorization.k8s.io/v1
       - rbac.authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
     ClusterRoleBinding:
-      - authorization.openshift.io/v1
       - rbac.authorization.k8s.io/v1
       - rbac.authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
     ClusterServiceBroker:
       - servicecatalog.k8s.io/v1beta1
     ClusterServiceClass:
@@ -128,9 +128,9 @@ spec:
     LocalResourceAccessReview:
       - authorization.openshift.io/v1
     LocalSubjectAccessReview:
-      - authorization.openshift.io/v1
       - authorization.k8s.io/v1
       - authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
     MutatingWebhookConfiguration:
       - admissionregistration.k8s.io/v1beta1
     Namespace:
@@ -159,8 +159,8 @@ spec:
     PodDisruptionBudget:
       - policy/v1beta1
     PodSecurityPolicy:
-      - extensions/v1beta1
       - policy/v1beta1
+      - extensions/v1beta1
     PodSecurityPolicyReview:
       - security.openshift.io/v1
     PodSecurityPolicySelfSubjectReview:
@@ -194,24 +194,24 @@ spec:
     ResourceQuota:
       - v1
     Role:
-      - authorization.openshift.io/v1
       - rbac.authorization.k8s.io/v1
       - rbac.authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
     RoleBinding:
-      - authorization.openshift.io/v1
       - rbac.authorization.k8s.io/v1
       - rbac.authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
     RoleBindingRestriction:
       - authorization.openshift.io/v1
     Route:
       - route.openshift.io/v1
     Scale:
-      - apps.openshift.io/v1
       - apps/v1
       - apps/v1beta1
       - apps/v1beta2
       - extensions/v1beta1
       - v1
+      - apps.openshift.io/v1
     Secret:
       - v1
     SecretList:
@@ -223,9 +223,9 @@ spec:
       - authorization.k8s.io/v1
       - authorization.k8s.io/v1beta1
     SelfSubjectRulesReview:
-      - authorization.openshift.io/v1
       - authorization.k8s.io/v1
       - authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
     Service:
       - v1
     ServiceAccount:
@@ -250,9 +250,9 @@ spec:
       - storage.k8s.io/v1
       - storage.k8s.io/v1beta1
     SubjectAccessReview:
-      - authorization.openshift.io/v1
       - authorization.k8s.io/v1
       - authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
     SubjectRulesReview:
       - authorization.openshift.io/v1
     Template:
