@@ -15,7 +15,7 @@ spec:
         answer:
           - python
       resolved: true
-    - description: 'Select the registry where your images are hosted:'
+    - description: "Select the registry where your images are hosted:"
       context:
         - You can always change it later by changing the yamls.
       solution:
@@ -28,9 +28,9 @@ spec:
         answer:
           - docker.io
       resolved: true
-    - description: 'Enter the namespace where the new images are pushed : '
+    - description: "Enter the namespace where the new images should be pushed : "
       context:
-        - 'Ex : myproject'
+        - "Ex : myproject"
       solution:
         type: Input
         default:
@@ -38,7 +38,7 @@ spec:
         answer:
           - myproject
       resolved: true
-    - description: '[docker.io] What type of container registry login do you want to use?'
+    - description: "[docker.io] What type of container registry login do you want to use?"
       context:
         - Docker login from config mode, will use the default config from your local machine.
       solution:
@@ -52,4 +52,3 @@ spec:
         answer:
           - No authentication
       resolved: true
-...

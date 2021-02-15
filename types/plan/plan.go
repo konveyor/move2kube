@@ -119,15 +119,6 @@ const (
 	K8sClusterArtifactType TargetInfoArtifactTypeValue = "KubernetesCluster"
 )
 
-const (
-	// Helm defines helm artifact type
-	Helm TargetArtifactTypeValue = "Helm"
-	// Yamls defines K8s artifact type
-	Yamls TargetArtifactTypeValue = "Yamls"
-	// Knative defines Knative artifact type
-	Knative TargetArtifactTypeValue = "Knative"
-)
-
 // Plan defines the format of plan
 type Plan struct {
 	types.TypeMeta   `yaml:",inline"`
@@ -148,11 +139,10 @@ type Outputs struct {
 
 // KubernetesOutput defines the output format for kubernetes deployable artifacts
 type KubernetesOutput struct {
-	RegistryURL            string                  `yaml:"registryURL,omitempty"`
-	RegistryNamespace      string                  `yaml:"registryNamespace,omitempty"`
-	ArtifactType           TargetArtifactTypeValue `yaml:"artifactType"`
-	TargetCluster          TargetClusterType       `yaml:"targetCluster,omitempty"`
-	IgnoreUnsupportedKinds bool                    `yaml:"ignoreUnsupportedKinds,omitempty"`
+	RegistryURL            string            `yaml:"registryURL,omitempty"`
+	RegistryNamespace      string            `yaml:"registryNamespace,omitempty"`
+	TargetCluster          TargetClusterType `yaml:"targetCluster,omitempty"`
+	IgnoreUnsupportedKinds bool              `yaml:"ignoreUnsupportedKinds,omitempty"`
 }
 
 // TargetClusterType contains either the type of the target cluster or path to a file containing the target cluster metadata.
@@ -171,7 +161,6 @@ func (output *KubernetesOutput) Merge(newoutput KubernetesOutput) {
 		if newoutput.RegistryNamespace != "" {
 			output.RegistryNamespace = newoutput.RegistryNamespace
 		}
-		output.ArtifactType = newoutput.ArtifactType
 		output.IgnoreUnsupportedKinds = newoutput.IgnoreUnsupportedKinds
 		if newoutput.TargetCluster.Type != "" {
 			output.TargetCluster = newoutput.TargetCluster
@@ -412,7 +401,6 @@ func NewPlan() Plan {
 			},
 			Outputs: Outputs{
 				Kubernetes: KubernetesOutput{
-					ArtifactType:           Yamls,
 					TargetCluster:          TargetClusterType{Type: common.DefaultClusterType},
 					IgnoreUnsupportedKinds: false,
 				},

@@ -33,8 +33,12 @@ const (
 	TempDirPrefix string = types.AppNameShort + "-"
 	// AssetsDir defines the dir of the assets temp directory
 	AssetsDir string = types.AppNameShort + "assets"
-	// ScriptsDir defines the dir where output scripts are placed
+	// ScriptsDir defines the directory where the output scripts are placed
 	ScriptsDir string = "scripts"
+	// SourceDir defines the directory where the source files and folders are placed along with build scripts for each individual image
+	SourceDir string = "source"
+	// DeployDir defines the directory where the deployment artifacts are placed
+	DeployDir string = "deploy"
 	// VolumePrefix defines the prefix to be used for volumes
 	VolumePrefix string = "vol"
 	// DefaultStorageClassName defines the default storage class to be used
@@ -114,8 +118,6 @@ const (
 	ConfigIngressHostKey = ConfigIngressKey + d + "host"
 	//ConfigIngressTLSKey represents ingress tls Key
 	ConfigIngressTLSKey = ConfigIngressKey + d + "tls"
-	//ConfigTargetArtifacttTypeKey represents target artifact type key
-	ConfigTargetArtifacttTypeKey = ConfigTargetKey + d + "artifacttype"
 	//ConfigTargetClusterTypeKey represents target cluster type key
 	ConfigTargetClusterTypeKey = ConfigTargetKey + d + "clustertype"
 	//ConfigImageRegistryKey represents image registry Key

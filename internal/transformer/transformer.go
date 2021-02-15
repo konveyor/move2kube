@@ -17,12 +17,13 @@ limitations under the License.
 package transform
 
 import (
-	"bytes"
-	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
+	"strings"
 
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
@@ -31,14 +32,13 @@ import (
 	"github.com/konveyor/move2kube/internal/starlark"
 	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
 	"github.com/konveyor/move2kube/internal/starlark/runtransforms"
-	"github.com/konveyor/move2kube/internal/starlark/types"
+	startypes "github.com/konveyor/move2kube/internal/starlark/types"
 	"github.com/konveyor/move2kube/internal/transformer/templates"
 	"github.com/konveyor/move2kube/internal/transformer/transformations"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	"github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -48,16 +48,28 @@ import (
 type Transformer interface {
 	// Transform translates intermediate representation to destination objects
 	Transform(ir irtypes.IR) error
-	// WriteObjects writes Transformed objects to filesystem
-	WriteObjects(outDirectory string, TransformPaths []string) error
+	// WriteObjects writes Transformed objects to filesystem. Also does some final transformations on the generated yamls.
+	WriteObjects(outputDirectory string, transformPaths []string) error
 }
 
-// GetTransformer returns a transformer that is suitable for an IR
-func GetTransformer(ir irtypes.IR) Transformer {
-	if ir.Kubernetes.ArtifactType == plan.Knative {
-		return &KnativeTransformer{}
+// Transform transforms the IR into runtime.Objects and write all the deployments artifacts to files.
+func Transform(ir irtypes.IR, outputPath string, transformPaths []string) error {
+	transformers := GetTransformers()
+	for _, transformer := range transformers {
+		if err := transformer.Transform(ir); err != nil {
+			log.Errorf("Error during translate. Error: %q", err)
+			return err
+		} else if err := transformer.WriteObjects(outputPath, transformPaths); err != nil {
+			log.Errorf("Unable to write objects Error: %q", err)
+			return err
+		}
 	}
-	return NewK8sTransformer()
+	return nil
+}
+
+// GetTransformers returns all the transformers that can operate on the IR
+func GetTransformers() []Transformer {
+	return []Transformer{new(TektonTransformer), NewBuildconfigTransformer(), new(KnativeTransformer), NewK8sTransformer()}
 }
 
 // ConvertIRToObjects converts IR to a runtime objects
@@ -74,35 +86,33 @@ func convertIRToObjects(ir irtypes.EnhancedIR, apis []apiresource.IAPIResource) 
 }
 
 // writeContainers returns true if any scripts were written
-func writeContainers(containers []irtypes.Container, outpath, rootDir, registryURL, registryNamespace string, addCopySources bool) bool {
-	containersdirectory := "containers"
-	containerspath := path.Join(outpath, containersdirectory)
-	log.Debugf("containerspath %s", containerspath)
-	err := os.MkdirAll(containerspath, common.DefaultDirectoryPermission)
-	if err != nil {
-		log.Errorf("Unable to create directory %s : %s", containerspath, err)
+func writeContainers(containers []irtypes.Container, outputPath, rootDir, registryURL, registryNamespace string, addCopySources bool) bool {
+	containersDir := common.SourceDir
+	containersPath := path.Join(outputPath, containersDir)
+	log.Debugf("containersPath: %s", containersPath)
+	if err := os.MkdirAll(containersPath, common.DefaultDirectoryPermission); err != nil {
+		log.Errorf("Unable to create directory %s : %s", containersPath, err)
 	}
-	scriptspath := path.Join(outpath, common.ScriptsDir)
-	err = os.MkdirAll(scriptspath, common.DefaultDirectoryPermission)
-	if err != nil {
-		log.Errorf("Unable to create directory %s : %s", scriptspath, err)
+	scriptsPath := path.Join(outputPath, common.ScriptsDir)
+	if err := os.MkdirAll(scriptsPath, common.DefaultDirectoryPermission); err != nil {
+		log.Errorf("Unable to create directory %s : %s", scriptsPath, err)
 	}
 	log.Debugf("Total number of containers : %d", len(containers))
-	buildscripts := []string{}
-	dockerimages := []string{}
-	manualimages := []string{}
+	buildScripts := []string{}
+	dockerImages := []string{}
+	manualImages := []string{}
 	for _, container := range containers {
 		log.Debugf("Container : %t", container.New)
 		if !container.New {
 			continue
 		}
 		if len(container.NewFiles) == 0 {
-			manualimages = append(manualimages, container.ImageNames...)
+			manualImages = append(manualImages, container.ImageNames...)
 		}
 		log.Debugf("New Container : %s", container.ImageNames[0])
-		dockerimages = append(dockerimages, container.ImageNames...)
+		dockerImages = append(dockerImages, container.ImageNames...)
 		for relPath, filecontents := range container.NewFiles {
-			writepath := filepath.Join(containerspath, relPath)
+			writepath := filepath.Join(containersPath, relPath)
 			directory := filepath.Dir(writepath)
 			if err := os.MkdirAll(directory, common.DefaultDirectoryPermission); err != nil {
 				log.Errorf("Unable to create directory %s : %s", directory, err)
@@ -111,67 +121,66 @@ func writeContainers(containers []irtypes.Container, outpath, rootDir, registryU
 			fileperm := common.DefaultFilePermission
 			if filepath.Ext(writepath) == ".sh" {
 				fileperm = common.DefaultExecutablePermission
-				buildscripts = append(buildscripts, filepath.Join(containersdirectory, relPath))
+				buildScripts = append(buildScripts, filepath.Join(containersDir, relPath))
 			}
 			log.Debugf("Writing at %s", writepath)
-			err = ioutil.WriteFile(writepath, []byte(filecontents), fileperm)
-			if err != nil {
+			if err := ioutil.WriteFile(writepath, []byte(filecontents), fileperm); err != nil {
 				log.Warnf("Error writing file at %s : %s", writepath, err)
 			}
 		}
 	}
-	//Write build scripts
-	if len(manualimages) > 0 {
-		writepath := filepath.Join(outpath, "Manualimages.md")
+	// Write build scripts
+	if len(manualImages) > 0 {
+		writepath := filepath.Join(outputPath, "Manualimages.md")
 		err := common.WriteTemplateToFile(templates.Manualimages_md, struct {
 			Scripts []string
 		}{
-			Scripts: manualimages,
+			Scripts: manualImages,
 		}, writepath, common.DefaultFilePermission)
 		if err != nil {
 			log.Errorf("Unable to create manual image : %s", err)
 		}
 	}
-	if len(buildscripts) > 0 {
+	if len(buildScripts) > 0 {
 		buildScriptMap := map[string]string{}
-		for _, value := range buildscripts {
+		for _, value := range buildScripts {
 			buildScriptDir, buildScriptFile := filepath.Split(value)
 			buildScriptMap[buildScriptFile] = buildScriptDir
 		}
-		log.Debugf("buildscripts %s", buildscripts)
+		log.Debugf("buildscripts %s", buildScripts)
 		log.Debugf("buildScriptMap %s", buildScriptMap)
-		writepath := filepath.Join(scriptspath, "buildimages.sh")
+		writepath := filepath.Join(scriptsPath, "buildimages.sh")
 		err := common.WriteTemplateToFile(templates.Buildimages_sh, buildScriptMap, writepath, common.DefaultExecutablePermission)
 		if err != nil {
 			log.Errorf("Unable to create script to build images : %s", err)
 		}
 		if addCopySources {
-			relRootDir, err := filepath.Rel(outpath, rootDir)
+			relRootDir, err := filepath.Rel(outputPath, rootDir)
 			if err != nil {
-				log.Errorf("Failed to make the root directory path %q relative to the output directory %q Error %q", rootDir, outpath, err)
+				log.Errorf("Failed to make the root directory path %q relative to the output directory %q Error %q", rootDir, outputPath, err)
 				relRootDir = rootDir
 			}
-			writepath = filepath.Join(scriptspath, "copysources.sh")
+			writepath = filepath.Join(scriptsPath, "copysources.sh")
 			err = common.WriteTemplateToFile(templates.CopySources_sh, struct {
 				RelRootDir string
 				Dst        string
 			}{
 				RelRootDir: relRootDir,
-				Dst:        containersdirectory,
+				Dst:        containersDir,
 			}, writepath, common.DefaultExecutablePermission)
 			if err != nil {
 				log.Errorf("Unable to create script to build images : %s", err)
 			}
 		}
 	}
-	if len(dockerimages) > 0 {
-		writepath := filepath.Join(scriptspath, "pushimages.sh")
+	if len(dockerImages) > 0 {
+		writepath := filepath.Join(scriptsPath, "pushimages.sh")
 		err := common.WriteTemplateToFile(templates.Pushimages_sh, struct {
 			Images            []string
 			RegistryURL       string
 			RegistryNamespace string
 		}{
-			Images:            dockerimages,
+			Images:            dockerImages,
 			RegistryURL:       registryURL,
 			RegistryNamespace: registryNamespace,
 		}, writepath, common.DefaultExecutablePermission)
@@ -184,38 +193,18 @@ func writeContainers(containers []irtypes.Container, outpath, rootDir, registryU
 }
 
 func writeTransformedObjects(outputPath string, objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool, transformPaths []string) ([]string, error) {
-	k8sResources := []types.K8sResourceT{}
+	k8sResources := []startypes.K8sResourceT{}
 	for _, obj := range objs {
-		fixedobj := fixer.Fix(obj)
-		obj, err := k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec, ignoreUnsupportedKinds)
+		objYamlBytes, err := fixConvertAndMarshalObjToYaml(obj, clusterSpec, ignoreUnsupportedKinds)
 		if err != nil {
 			log.Warnf("Ignoring object : %s", err)
 			continue
 		}
-		// Encode object as yaml
-		j, err := json.Marshal(obj)
-		if err != nil {
-			log.Errorf("Error while Marshalling object : %s", err)
-			continue
-		}
-		var jsonObj interface{}
-		err = yaml.Unmarshal(j, &jsonObj)
-		if err != nil {
-			log.Errorf("Unable to unmarshal json : %s", err)
-			continue
-		}
-		var b bytes.Buffer
-		encoder := yaml.NewEncoder(&b)
-		encoder.SetIndent(2)
-		if err := encoder.Encode(jsonObj); err != nil {
-			log.Errorf("Error while Encoding object : %s", err)
-			continue
-		}
 		// Get k8s resources from yaml
-		k8sYaml := string(b.Bytes())
+		k8sYaml := string(objYamlBytes)
 		currK8sResources, err := gettransformdata.GetK8sResourcesFromYaml(k8sYaml)
 		if err != nil {
-			log.Errorf("Failed to decode the k8s resource from the marshalled yaml. Error: %q", err)
+			log.Errorf("Failed to decode the k8s resources from the marshalled yaml. Error: %q", err)
 			continue
 		}
 		k8sResources = append(k8sResources, currK8sResources...)
@@ -231,4 +220,25 @@ func writeTransformedObjects(outputPath string, objs []runtime.Object, clusterSp
 		log.Fatalf("Failed to apply the transformations. Error: %q", err)
 	}
 	return starlark.WriteResources(transformedK8sResources, outputPath)
+}
+
+func fixAndConvert(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool) (runtime.Object, error) {
+	fixedobj := fixer.Fix(obj)
+	return k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec, ignoreUnsupportedKinds)
+}
+
+func fixConvertAndMarshalObjToYaml(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool) ([]byte, error) {
+	obj, err := fixAndConvert(obj, clusterSpec, ignoreUnsupportedKinds)
+	if err != nil {
+		log.Warnf("Failed to convert the object:\n%+v\nto a supported version. Error: %q", obj, err)
+		return nil, err
+	}
+	return common.MarshalObjToYaml(obj)
+}
+
+func getFilename(obj runtime.Object) string {
+	val := reflect.ValueOf(obj).Elem()
+	typeMeta := val.FieldByName("TypeMeta").Interface().(metav1.TypeMeta)
+	objectMeta := val.FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
+	return fmt.Sprintf("%s-%s.yaml", objectMeta.Name, strings.ToLower(typeMeta.Kind))
 }

@@ -22,90 +22,67 @@ import (
 	customize "github.com/konveyor/move2kube/internal/customizer"
 	"github.com/konveyor/move2kube/internal/metadata"
 	optimize "github.com/konveyor/move2kube/internal/optimizer"
-	parameterize "github.com/konveyor/move2kube/internal/parameterizer"
 	"github.com/konveyor/move2kube/internal/source"
 	transform "github.com/konveyor/move2kube/internal/transformer"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-
 	log "github.com/sirupsen/logrus"
 )
 
 // Translate translates the artifacts and writes output
-func Translate(p plantypes.Plan, outpath string, qadisablecli bool, TransformPaths []string) {
-	conTypes := []string{}
-	for _, s := range p.Spec.Inputs.Services {
-		if len(s) > 0 && !common.IsStringPresent(conTypes, string(s[0].ContainerBuildType)) {
-			conTypes = append(conTypes, string(s[0].ContainerBuildType))
+func Translate(plan plantypes.Plan, outputPath string, qadisablecli bool, transformPaths []string) {
+	containerBuildTypes := []string{}
+	for _, services := range plan.Spec.Inputs.Services {
+		if len(services) > 0 && !common.IsStringPresent(containerBuildTypes, string(services[0].ContainerBuildType)) {
+			containerBuildTypes = append(containerBuildTypes, string(services[0].ContainerBuildType))
 		}
 	}
-	containerizer.InitContainerizers(p.Spec.Inputs.RootDir, conTypes)
-	sourceir, err := source.Translate(p)
+	containerizer.InitContainerizers(plan.Spec.Inputs.RootDir, containerBuildTypes)
+	sourceIR, err := source.Translate(plan)
 	if err != nil {
 		log.Fatalf("Failed to translate the plan to intermediate representation. Error: %q", err)
 	}
-	log.Debugf("Total storages loaded : %d", len(sourceir.Storages))
+	log.Debugf("Total storages loaded : %d", len(sourceIR.Storages))
 
 	log.Infoln("Begin Metadata loading")
-	metadataPlanners := metadata.GetLoaders()
-	for _, l := range metadataPlanners {
-		log.Debugf("[%T] Begin metadata loading", l)
-		err := l.LoadToIR(p, &sourceir)
+	metadataLoaders := metadata.GetLoaders()
+	for _, metadataLoader := range metadataLoaders {
+		log.Debugf("[%T] Begin metadata loading", metadataLoader)
+		err := metadataLoader.LoadToIR(plan, &sourceIR)
 		if err != nil {
-			log.Warnf("[%T] Failed : %s", l, err.Error())
+			log.Warnf("Metadata loader [%T] failed. Error: %q", metadataLoader, err)
 		} else {
-			log.Debugf("[%T] Done", l)
+			log.Debugf("[%T] Done", metadataLoader)
 		}
 	}
 	log.Infoln("Metadata loading done")
 
-	log.Debugf("Total services loaded : %d", len(sourceir.Services))
-	log.Debugf("Total containers loaded : %d", len(sourceir.Containers))
+	log.Debugf("Total services loaded : %d", len(sourceIR.Services))
+	log.Debugf("Total containers loaded : %d", len(sourceIR.Containers))
 
-	optimizedir, err := optimize.Optimize(sourceir)
+	optimizedIR, err := optimize.Optimize(sourceIR)
 	if err != nil {
-		log.Warnf("Failed to optimize the intermediate representation. Error: %q", err)
-		optimizedir = sourceir
+		log.Errorf("Error occurred while running the optimizers. Error: %q", err)
+		optimizedIR = sourceIR
 	}
-	log.Debugf("Total services optimized : %d", len(optimizedir.Services))
+	log.Debugf("Total services optimized : %d", len(optimizedIR.Services))
 
-	dct := transform.ComposeTransformer{}
-	if err := dct.Transform(optimizedir); err != nil {
-		log.Errorf("Error during translate docker compose file : %s", err)
-	} else if err = dct.WriteObjects(outpath, nil); err != nil {
-		log.Errorf("Unable to write docker compose objects : %s", err)
-	}
-
-	ir, _ := customize.Customize(optimizedir)
-	log.Debugf("Total storages customized : %d", len(optimizedir.Storages))
-	if p.Spec.Outputs.Kubernetes.ArtifactType == plantypes.Helm {
-		ir, err = parameterize.Parameterize(ir)
-		if err != nil {
-			log.Debugf("Failed to paramterize the IR. Error: %q", err)
-		}
+	composeTransformer := transform.ComposeTransformer{}
+	if err := composeTransformer.Transform(optimizedIR); err != nil {
+		log.Errorf("Error while translating docker compose file. Error: %q", err)
+	} else if err := composeTransformer.WriteObjects(outputPath, nil); err != nil {
+		log.Errorf("Unable to write docker compose objects. Error: %q", err)
 	}
 
-	anyNewContainers := false
-	for _, container := range ir.Containers {
-		if container.New {
-			anyNewContainers = true
-			break
-		}
+	customizedIR, err := customize.Customize(optimizedIR)
+	if err != nil {
+		log.Errorf("Error occurred while running the customizers. Error: %q", err)
+		customizedIR = optimizedIR
 	}
-	if anyNewContainers {
-		cicd := transform.CICDTransformer{}
-		if err := cicd.Transform(ir); err != nil {
-			log.Errorf("Error while genrationg CI/CD resource fomr the IR. Error: %q", err)
-		} else if err = cicd.WriteObjects(outpath, nil); err != nil {
-			log.Errorf("Unable to write the CI/CD artifacts to files. Error: %q", err)
-		}
-	}
+	log.Debugf("Total storages customized : %d", len(customizedIR.Storages))
 
-	ir.AddCopySources = !qadisablecli
-	t := transform.GetTransformer(ir)
-	if err := t.Transform(ir); err != nil {
-		log.Fatalf("Error during translate. Error: %q", err)
-	} else if err := t.WriteObjects(outpath, TransformPaths); err != nil {
-		log.Fatalf("Unable to write objects Error: %q", err)
+	customizedIR.AddCopySources = !qadisablecli
+	if err := transform.Transform(customizedIR, outputPath, transformPaths); err != nil {
+		log.Fatalf("Error occurred while running the customizers. Error: %q", err)
 	}
 
 	log.Info("Execution completed")

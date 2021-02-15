@@ -105,7 +105,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 	}
 
 	if ir.Kubernetes.RegistryNamespace == "" && len(newimages) != 0 {
-		ns := qaengine.FetchStringAnswer(common.ConfigImageRegistryNamespaceKey, "Enter the namespace where the new images are pushed : ", []string{"Ex : " + ir.Name}, ir.Name)
+		ns := qaengine.FetchStringAnswer(common.ConfigImageRegistryNamespaceKey, "Enter the namespace where the new images should be pushed : ", []string{"Ex : " + ir.Name}, ir.Name)
 		if ns != "" {
 			ir.Kubernetes.RegistryNamespace = ns
 		} else {

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #   Copyright IBM Corporation 2020
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,5 +13,5 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-kubectl apply -f {{ .Project }}
-cat NOTES.txt
+kubectl apply -f deploy/yamls/
+cat deploy/yamls/NOTES.txt

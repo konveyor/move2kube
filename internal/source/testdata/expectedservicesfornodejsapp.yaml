@@ -27,6 +27,5 @@ spec:
           serviceRelPath: /nodejs
   outputs:
     kubernetes:
-      artifactType: Yamls
       targetCluster:
         type: Kubernetes

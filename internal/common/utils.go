@@ -40,6 +40,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/xrash/smetrics"
 	"gopkg.in/yaml.v3"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -155,25 +157,30 @@ func GetImageNameAndTag(image string) (string, string) {
 	return imageName, tag
 }
 
-// WriteYaml writes an yaml to disk
-func WriteYaml(outputPath string, data interface{}) error {
+// ObjectToYamlBytes encodes an object to yaml
+func ObjectToYamlBytes(data interface{}) ([]byte, error) {
 	var b bytes.Buffer
 	encoder := yaml.NewEncoder(&b)
 	encoder.SetIndent(2)
 	if err := encoder.Encode(data); err != nil {
-		log.Error("Error while Encoding object")
-		return err
+		log.Errorf("Failed to encode the object to yaml. Error: %q", err)
+		return nil, err
 	}
 	if err := encoder.Close(); err != nil {
-		log.Error("Error while closing the encoder. Data not written to file", outputPath, "Error:", err)
-		return err
+		log.Errorf("Failed to close the yaml encoder. Error: %q", err)
+		return nil, err
 	}
-	err := ioutil.WriteFile(outputPath, b.Bytes(), DefaultFilePermission)
+	return b.Bytes(), nil
+}
+
+// WriteYaml writes encodes object as yaml and writes it to a file
+func WriteYaml(outputPath string, data interface{}) error {
+	yamlBytes, err := ObjectToYamlBytes(data)
 	if err != nil {
-		log.Errorf("Error writing yaml to file. error: %s,  outputPath %s", err, outputPath)
+		log.Errorf("Failed to encode the object as a yaml string. Error: %q", err)
 		return err
 	}
-	return nil
+	return ioutil.WriteFile(outputPath, yamlBytes, DefaultFilePermission)
 }
 
 // ReadYaml reads an yaml into an object
@@ -793,4 +800,52 @@ func StripQuotes(s string) string {
 		return strings.TrimSuffix(strings.TrimPrefix(s, `'`), `'`)
 	}
 	return s
+}
+
+// GetRuntimeObjectMetadata returns the metadata field from a k8s object.
+func GetRuntimeObjectMetadata(obj runtime.Object) metav1.ObjectMeta {
+	k8sObjValue := reflect.ValueOf(obj).Elem()
+	return k8sObjValue.FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
+}
+
+// IsSameRuntimeObject returns true if the 2 k8s resources are same.
+// 2 resources are the same if they have the same group, version, kind, namespace and name.
+// Also prints an error if the 2 objects have the same kind, namespace and name but different group versions.
+func IsSameRuntimeObject(obj1, obj2 runtime.Object) bool {
+	meta1 := GetRuntimeObjectMetadata(obj1)
+	meta2 := GetRuntimeObjectMetadata(obj2)
+	if meta1.GetName() != meta2.GetName() || meta1.GetNamespace() != meta2.GetNamespace() {
+		return false
+	}
+	gvk1 := obj1.GetObjectKind().GroupVersionKind()
+	gvk2 := obj2.GetObjectKind().GroupVersionKind()
+	if gvk1 != gvk2 {
+		if gvk1.Kind == gvk2.Kind {
+			log.Errorf("The 2 objects have the same kind, namespace and name but different group versions. Object1:\n%+v\nObject2:\n%+v", obj1, obj2)
+		}
+		return false
+	}
+	return true
+}
+
+// MarshalObjToYaml marshals an object to yaml
+func MarshalObjToYaml(obj runtime.Object) ([]byte, error) {
+	objJSONBytes, err := json.Marshal(obj)
+	if err != nil {
+		log.Errorf("Error while marshalling object %+v to json. Error: %q", obj, err)
+		return nil, err
+	}
+	var jsonObj interface{}
+	if err := yaml.Unmarshal(objJSONBytes, &jsonObj); err != nil {
+		log.Errorf("Unable to unmarshal the json as yaml:\n%s\nError: %q", objJSONBytes, err)
+		return nil, err
+	}
+	var b bytes.Buffer
+	encoder := yaml.NewEncoder(&b)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(jsonObj); err != nil {
+		log.Errorf("Error while encoding the json object:\n%s\nError: %q", jsonObj, err)
+		return nil, err
+	}
+	return b.Bytes(), nil
 }

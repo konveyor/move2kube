@@ -245,14 +245,6 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	}
 	p.Spec.Inputs.Services = services
 
-	// Choose output artifact type
-	artifactTypeList := make([]string, 3)
-	artifactTypeList[0] = string(plantypes.Yamls)
-	artifactTypeList[1] = string(plantypes.Helm)
-	artifactTypeList[2] = string(plantypes.Knative)
-	artifactType := qaengine.FetchSelectAnswer(common.ConfigTargetArtifacttTypeKey, "Choose the artifact type:", []string{"Yamls - Generate Kubernetes Yamls", "Helm - Generate Helm chart", "Knative - Create Knative artifacts"}, string(plantypes.Yamls), artifactTypeList)
-	p.Spec.Outputs.Kubernetes.ArtifactType = plantypes.TargetArtifactTypeValue(artifactType)
-
 	// Choose cluster type to target
 	clusters := new(metadata.ClusterMDLoader).GetClusters(p)
 	clusterTypeList := []string{}

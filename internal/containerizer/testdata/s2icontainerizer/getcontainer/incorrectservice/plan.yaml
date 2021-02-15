@@ -25,5 +25,4 @@ spec:
           updateDeployPipeline: true
   outputs:
     kubernetes:
-      artifactType: Yamls
       clusterType: Kubernetes

@@ -25,13 +25,12 @@ import (
 	"github.com/konveyor/move2kube/internal/k8sschema"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 )
 
 const (
@@ -148,7 +147,7 @@ func (o *APIResource) merge(obj1, obj2 runtime.Object) (runtime.Object, bool) {
 	return obj3, true
 }
 
-func (o *APIResource) getObjectID(obj runtime.Object) string {
+func (*APIResource) getObjectID(obj runtime.Object) string {
 	k8sObjValue := reflect.ValueOf(obj).Elem()
 	objMeta, ok := k8sObjValue.FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
 	if !ok {

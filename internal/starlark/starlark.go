@@ -27,7 +27,7 @@ import (
 	starcommon "github.com/konveyor/move2kube/internal/starlark/common"
 	"github.com/konveyor/move2kube/internal/starlark/types"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2" // TODO
+	"gopkg.in/yaml.v3"
 )
 
 // WriteResources writes out k8s resources to a given directory.

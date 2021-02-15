@@ -86,16 +86,15 @@ func (kt *ComposeTransformer) Transform(ir irtypes.IR) error {
 	return nil
 }
 
-// WriteObjects writes Transformed objects to filesystem
-func (kt *ComposeTransformer) WriteObjects(outpath string, transformPaths []string) error {
-	err := os.MkdirAll(outpath, common.DefaultDirectoryPermission)
-	if err != nil {
-		log.Errorf("Unable to create output directory %s : %s", outpath, err)
+// WriteObjects writes the compose file to deploy directory
+func (kt *ComposeTransformer) WriteObjects(outputPath string, transformPaths []string) error {
+	composePath := filepath.Join(outputPath, common.DeployDir, "compose")
+	if err := os.MkdirAll(composePath, common.DefaultDirectoryPermission); err != nil {
+		log.Errorf("Unable to create output directory %s : %s", outputPath, err)
 	}
-	artifactspath := filepath.Join(outpath, "docker-compose.yaml")
-	err = common.WriteYaml(artifactspath, kt.Compose)
-	if err != nil {
-		log.Errorf("Unable to write docker compose file %s : %s", artifactspath, err)
+	artifactsPath := filepath.Join(composePath, "docker-compose.yaml")
+	if err := common.WriteYaml(artifactsPath, kt.Compose); err != nil {
+		log.Errorf("Unable to write docker compose file %s : %s", artifactsPath, err)
 	}
 	return nil
 }
