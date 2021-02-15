@@ -45,7 +45,7 @@ func (c *CICDTransformer) Transform(ir irtypes.IR) error {
 		log.Infof("The target cluster has support for Tekton, generating Tekton pipeline for CI/CD")
 	} else if ir.TargetClusterSpec.IsBuildConfigSupported() {
 		log.Infof("The target cluster has support for BuildConfig, generating build configs for CI/CD")
-		b := new(cicd.BuildconfigTransformer)
+		b := cicd.NewBuildconfigTransformer()
 		c.transformedObjects = convertIRToObjects(b.SetupEnhancedIR(ir), b.GetAPIResources())
 		c.extraFiles = b.ExtraFiles
 	} else {
