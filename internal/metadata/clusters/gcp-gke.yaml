@@ -70,13 +70,11 @@ spec:
       - networking.k8s.io/v1
     Node:
       - v1
-      - v1
     PersistentVolume:
       - v1
     PersistentVolumeClaim:
       - v1
     Pod:
-      - v1
       - v1
     PodDisruptionBudget:
       - policy/v1beta1
