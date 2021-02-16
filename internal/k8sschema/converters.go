@@ -43,7 +43,7 @@ func ConvertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 		if obj.GetObjectKind().GroupVersionKind().Version == core.SchemeGroupVersion.Version {
 			newobj, err = convertToPreferredVersion(obj)
 			if err != nil {
-				log.Warnf("Unable to support to preferred version : %+v", obj.GetObjectKind())
+				log.Warnf("Unable to convert (%+v) to preferred version : %s", obj.GetObjectKind(), err)
 				newobj = obj
 			}
 		} else {
@@ -71,7 +71,7 @@ func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 	for _, v := range versions {
 		gv, err := schema.ParseGroupVersion(v)
 		if err != nil {
-			log.Errorf("Unable to parse group version %s : %s", v, err)
+			log.Debugf("Unable to parse group version %s : %s", v, err)
 			continue
 		}
 		if kind == common.ServiceKind && gv.Group == knativev1.SchemeGroupVersion.Group {
@@ -79,7 +79,7 @@ func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 		}
 		newobj, err := ConvertToVersion(obj, gv)
 		if err != nil {
-			log.Errorf("Unable to convert : %s", err)
+			log.Debugf("Unable to convert : %s", err)
 			continue
 		}
 		scheme.Default(newobj)
@@ -102,7 +102,7 @@ func convertToPreferredVersion(obj runtime.Object) (newobj runtime.Object, err e
 	for _, v := range versions {
 		newobj, err := ConvertToVersion(obj, v)
 		if err != nil {
-			log.Errorf("Unable to convert : %s", err)
+			log.Debugf("Unable to convert : %s", err)
 			continue
 		}
 		scheme.Default(newobj)
@@ -131,7 +131,7 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 		log.Debugf("Attempting conversion of %s obj to %s", objgv, kt)
 		uvobj, err := checkAndConvertToVersion(obj, kt.GroupVersion())
 		if err != nil {
-			log.Errorf("Unable to convert to unversioned object : %s", err)
+			log.Debugf("Unable to convert to unversioned object : %s", err)
 			continue
 		}
 		log.Debugf("Converted %s obj to %s", objgv, kt)
@@ -139,10 +139,10 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 		if err == nil {
 			return newobj, nil
 		}
-		log.Errorf("Unable to convert through unversioned object : %s", kt)
+		log.Debugf("Unable to convert through unversioned object : %s", kt)
 	}
 	err = fmt.Errorf("Unable to do convert %s to %s", objgv, dgv)
-	log.Errorf("%s", err)
+	log.Debugf("%s", err)
 	return obj, err
 }
 
@@ -157,7 +157,7 @@ func ConvertToLiasonScheme(obj runtime.Object) (newobj runtime.Object, err error
 		log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
 		uvobj, err := checkAndConvertToVersion(obj, kt.GroupVersion())
 		if err != nil {
-			log.Errorf("Unable to convert to unversioned object : %s", err)
+			log.Debugf("Unable to convert to unversioned object : %s", err)
 			continue
 		}
 		return uvobj, nil
@@ -183,7 +183,7 @@ func checkAndConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newo
 func convertBetweenObjects(in interface{}, out interface{}) error {
 	err := scheme.Convert(in, out, nil)
 	if err != nil {
-		log.Errorf("Unable to convert from %T to %T : %s", in, out, err)
+		log.Debugf("Unable to convert from %T to %T : %s", in, out, err)
 	}
 	return err
 }
