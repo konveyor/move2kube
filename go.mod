@@ -11,7 +11,6 @@ require (
 	github.com/charlievieth/fs v0.0.1 // indirect
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.0-20201128100250-4ba3e9fa0520 // indirect
-	github.com/containers/skopeo v1.2.0
 	github.com/cppforlife/go-patch v0.2.0 // indirect
 	github.com/docker/cli v20.10.0-rc1+incompatible
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
@@ -22,7 +21,6 @@ require (
 	github.com/mikefarah/yq/v4 v4.4.1
 	github.com/moby/buildkit v0.7.2
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
-	github.com/opencontainers/runtime-spec v1.0.3-0.20200728170252-4d89ac9fbff6
 	github.com/openshift/api v0.0.0-20200930075302-db52bc4ef99f // release-4.6
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
