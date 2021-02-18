@@ -18,9 +18,15 @@ require (
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/google/go-cmp v0.5.4
 	github.com/gorilla/mux v1.8.0
+	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/mikefarah/yq/v4 v4.4.1
 	github.com/moby/buildkit v0.7.2
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
+	github.com/onsi/ginkgo v1.14.1 // indirect
+	github.com/onsi/gomega v1.10.2 // indirect
+	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6 // indirect
+	github.com/opencontainers/runc v1.0.0-rc92 // indirect
 	github.com/openshift/api v0.0.0-20200930075302-db52bc4ef99f // release-4.6
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
@@ -32,6 +38,8 @@ require (
 	github.com/tektoncd/pipeline v0.18.1
 	github.com/tektoncd/triggers v0.10.0
 	github.com/whilp/git-urls v1.0.0
+	github.com/xeipuuv/gojsonpointer v0.0.0-20190809123943-df4f5c81cb3b // indirect
+	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20200730060457-89a2a8a1fb0b
 	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473

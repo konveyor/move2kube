@@ -278,7 +278,7 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 
 	dockerBuildScriptPath := filepath.Join(relOutputPath, service.ServiceName+"-docker-build.sh")
 	container.AddFile(dockerBuildScriptPath, dockerBuildScriptContents)
-	container.RepoInfo.TargetPath = dockerfilePath
+	container.RepoInfo.TargetPath = filepath.Join(container.RepoInfo.GitRepoDir, dockerfilePath)
 
 	return container, nil
 }
