@@ -19,6 +19,8 @@ package collection
 import (
 	"github.com/konveyor/move2kube/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CfContainerizersMetadataKind defines kind of cfcontainerizers
@@ -26,9 +28,9 @@ const CfContainerizersMetadataKind types.Kind = "CfContainerizers"
 
 // CfContainerizers is the file structure of cfcontainerizers
 type CfContainerizers struct {
-	types.TypeMeta   `yaml:",inline"`
-	types.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec             CfContainerizersSpec `yaml:"spec,omitempty"`
+	metav1.TypeMeta   `yaml:",inline"`
+	metav1.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec              CfContainerizersSpec `yaml:"spec,omitempty"`
 }
 
 // CfContainerizersSpec stores the data
@@ -46,7 +48,7 @@ type BuildpackContainerizer struct {
 // NewCfContainerizers creates new CfContainerizers instance
 func NewCfContainerizers() CfContainerizers {
 	return CfContainerizers{
-		TypeMeta: types.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       string(CfContainerizersMetadataKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},

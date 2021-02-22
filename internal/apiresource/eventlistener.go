@@ -65,7 +65,9 @@ func (el *EventListener) createNewResource(ireventlistener tekton.EventListener)
 				Bindings: []*triggersv1alpha1.EventListenerBinding{
 					{Ref: ireventlistener.TriggerBindingName},
 				},
-				Template: &triggersv1alpha1.EventListenerTemplate{Name: ireventlistener.TriggerTemplateName},
+				Template: &triggersv1alpha1.EventListenerTemplate{
+					Ref: &ireventlistener.TriggerTemplateName,
+				},
 			},
 		},
 	}

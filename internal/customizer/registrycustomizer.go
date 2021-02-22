@@ -24,7 +24,6 @@ import (
 
 	dockercliconfig "github.com/docker/cli/cli/config"
 	dockercliconfigfile "github.com/docker/cli/cli/config/configfile"
-	"github.com/docker/cli/cli/config/types"
 	dockerclitypes "github.com/docker/cli/cli/config/types"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
@@ -89,7 +88,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 		}
 	}
 
-	if ir.Kubernetes.RegistryURL == "" && len(newimages) != 0 {
+	if ir.RegistryURL == "" && len(newimages) != 0 {
 		if !common.IsStringPresent(registryList, common.DefaultRegistryURL) {
 			registryList = append(registryList, common.DefaultRegistryURL)
 		}
@@ -98,23 +97,23 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 		}
 		reg := qaengine.FetchSelectAnswer(common.ConfigImageRegistryURLKey, "Enter the name of the image registry : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList)
 		if reg != "" {
-			ir.Kubernetes.RegistryURL = reg
+			ir.RegistryURL = reg
 		} else {
-			ir.Kubernetes.RegistryURL = common.DefaultRegistryURL
+			ir.RegistryURL = common.DefaultRegistryURL
 		}
 	}
 
-	if ir.Kubernetes.RegistryNamespace == "" && len(newimages) != 0 {
+	if ir.RegistryNamespace == "" && len(newimages) != 0 {
 		ns := qaengine.FetchStringAnswer(common.ConfigImageRegistryNamespaceKey, "Enter the namespace where the new images should be pushed : ", []string{"Ex : " + ir.Name}, ir.Name)
 		if ns != "" {
-			ir.Kubernetes.RegistryNamespace = ns
+			ir.RegistryNamespace = ns
 		} else {
-			ir.Kubernetes.RegistryNamespace = ir.Name
+			ir.RegistryNamespace = ir.Name
 		}
 	}
 
-	if !common.IsStringPresent(usedRegistries, ir.Kubernetes.RegistryURL) {
-		usedRegistries = append(usedRegistries, ir.Kubernetes.RegistryURL)
+	if !common.IsStringPresent(usedRegistries, ir.RegistryURL) {
+		usedRegistries = append(usedRegistries, ir.RegistryURL)
 	}
 
 	imagePullSecrets := map[string]string{} // registryurl, pull secret
@@ -126,7 +125,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 		const userLogin = "UserName/Password"
 		const useExistingPullSecret = "Use existing pull secret"
 		authOptions := []string{useExistingPullSecret, noAuthLogin, userLogin}
-		if auth, ok := registryAuthList[ir.Kubernetes.RegistryURL]; ok {
+		if auth, ok := registryAuthList[ir.RegistryURL]; ok {
 			imagePullSecrets[registry] = common.ImagePullSecretPrefix + common.MakeFileNameCompliant(imagePullSecrets[registry])
 			dauth.Auth = auth
 			authOptions = append(authOptions, dockerConfigLogin)
@@ -143,9 +142,9 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 			dauth.Username = un
 			dauth.Password = qaengine.FetchPasswordAnswer(common.ConfigImageRegistryPasswordKey, fmt.Sprintf("[%s] Enter the container registry password : ", registry), []string{"Enter password for container registry login."})
 		}
-		if dauth != (types.AuthConfig{}) {
+		if dauth != (dockerclitypes.AuthConfig{}) {
 			dconfigfile := dockercliconfigfile.ConfigFile{
-				AuthConfigs: map[string]dockerclitypes.AuthConfig{ir.Kubernetes.RegistryURL: dauth},
+				AuthConfigs: map[string]dockerclitypes.AuthConfig{ir.RegistryURL: dauth},
 			}
 			dconfigbuffer := new(bytes.Buffer)
 			err := dconfigfile.SaveToWriter(dconfigbuffer)
@@ -163,16 +162,14 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 		}
 	}
 
-	ir.Values.RegistryNamespace = ir.Kubernetes.RegistryNamespace
-	ir.Values.RegistryURL = ir.Kubernetes.RegistryURL
-	for _, service := range ir.Services {
+	for si, service := range ir.Services {
 		for i, serviceContainer := range service.Containers {
 			if common.IsStringPresent(newimages, serviceContainer.Image) {
 				image, tag := common.GetImageNameAndTag(serviceContainer.Image)
-				if ir.Kubernetes.RegistryURL != "" && ir.Kubernetes.RegistryNamespace != "" {
-					serviceContainer.Image = ir.Kubernetes.RegistryURL + "/" + ir.Kubernetes.RegistryNamespace + "/" + image + ":" + tag
-				} else if ir.Kubernetes.RegistryNamespace != "" {
-					serviceContainer.Image = ir.Kubernetes.RegistryNamespace + "/" + image + ":" + tag
+				if ir.RegistryURL != "" && ir.RegistryNamespace != "" {
+					serviceContainer.Image = ir.RegistryURL + "/" + ir.RegistryNamespace + "/" + image + ":" + tag
+				} else if ir.RegistryNamespace != "" {
+					serviceContainer.Image = ir.RegistryNamespace + "/" + image + ":" + tag
 				} else {
 					serviceContainer.Image = image + ":" + tag
 				}
@@ -194,7 +191,7 @@ func (rc *registryCustomizer) customize(ir *irtypes.IR) error {
 				}
 			}
 		}
-		ir.Services[service.Name] = service
+		ir.Services[si] = service
 	}
 	return nil
 }

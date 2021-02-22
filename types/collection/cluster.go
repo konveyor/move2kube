@@ -19,6 +19,8 @@ package collection
 import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ClusterMetadataKind defines the kind of cluster metadata file
@@ -26,13 +28,14 @@ const ClusterMetadataKind types.Kind = "ClusterMetadata"
 
 // ClusterMetadata for collect output
 type ClusterMetadata struct {
-	types.TypeMeta   `yaml:",inline"`
-	types.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec             ClusterMetadataSpec `yaml:"spec,omitempty"`
+	metav1.TypeMeta   `yaml:",inline"`
+	metav1.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec              ClusterMetadataSpec `yaml:"spec,omitempty"`
 }
 
 // ClusterMetadataSpec stores the data
 type ClusterMetadataSpec struct {
+	Inbuilt           bool                `yaml:"-"`
 	StorageClasses    []string            `yaml:"storageClasses"`
 	APIKindVersionMap map[string][]string `yaml:"apiKindVersionMap"` //[kubernetes kind]["gv1", "gv2",...,"gvn"] prioritized group-version
 	Host              string              `yaml:"host,omitempty"`    // Optional field, either collected with move2kube collect or by asking the user.
@@ -126,11 +129,11 @@ func (c *ClusterMetadataSpec) IsBuildConfigSupported() bool {
 // NewClusterMetadata creates a new cluster metadata instance
 func NewClusterMetadata(contextName string) ClusterMetadata {
 	return ClusterMetadata{
-		TypeMeta: types.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       string(ClusterMetadataKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
-		ObjectMeta: types.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: contextName,
 		},
 		Spec: ClusterMetadataSpec{

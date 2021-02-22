@@ -45,7 +45,7 @@ func (ic *storageCustomizer) customize(ir *irtypes.IR) error {
 		return nil
 	}
 	if ic.ir.TargetClusterSpec.StorageClasses == nil || len(ic.ir.TargetClusterSpec.StorageClasses) == 0 {
-		s := "No storage classes available in the cluster"
+		s := "no storage classes available in the cluster"
 		log.Warnf(s)
 		return fmt.Errorf(s)
 	}
@@ -88,7 +88,7 @@ func (ic *storageCustomizer) customize(ir *irtypes.IR) error {
 
 func (ic *storageCustomizer) convertHostPathToPVC() {
 	hostPathsVisited := map[string]string{}
-	for _, service := range ic.ir.Services {
+	for si, service := range ic.ir.Services {
 		log.Debugf("Service %s has %d volumes", service.Name, len(service.Volumes))
 		for vi, v := range service.Volumes {
 			if v.HostPath != nil {
@@ -102,7 +102,7 @@ func (ic *storageCustomizer) convertHostPathToPVC() {
 								ClaimName: v.Name,
 							}}
 						service.Volumes[vi] = v
-						ic.ir.Services[service.Name] = service
+						ic.ir.Services[si] = service
 						storageObj := irtypes.Storage{
 							StorageType: irtypes.PVCKind,
 							Name:        v.Name,
@@ -124,7 +124,7 @@ func (ic *storageCustomizer) convertHostPathToPVC() {
 							ClaimName: name,
 						}}
 					service.Volumes[vi] = v
-					ic.ir.Services[service.Name] = service
+					ic.ir.Services[si] = service
 				}
 			}
 		}
@@ -166,10 +166,10 @@ func (ic *storageCustomizer) getPVCs() map[string][]string {
 	for _, s := range ic.ir.Storages {
 		if s.StorageType == irtypes.PVCKind {
 			svcList := []string{}
-			for svcName, svc := range ic.ir.Services {
+			for _, svc := range ic.ir.Services {
 				for _, v := range svc.Volumes {
 					if v.Name == s.Name {
-						svcList = append(svcList, svcName)
+						svcList = append(svcList, svc.Name)
 						break
 					}
 				}

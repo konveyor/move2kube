@@ -29,9 +29,7 @@ import (
 	"github.com/docker/libcompose/project"
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/containerizer"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	plantypes "github.com/konveyor/move2kube/types/plan"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -120,7 +118,7 @@ func ParseV2(path string) (*project.Project, error) {
 	err := proj.Parse()
 	log.SetLevel(originalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
 	if err != nil {
-		err := fmt.Errorf("Failed to load docker compose file at path %s Error: %q", path, err)
+		err := fmt.Errorf("failed to load docker compose file at path %s Error: %q", path, err)
 		log.Debug(err)
 		return nil, err
 	}
@@ -128,22 +126,21 @@ func ParseV2(path string) (*project.Project, error) {
 }
 
 // ConvertToIR loads a compose file to IR
-func (c *V1V2Loader) ConvertToIR(composefilepath string, plan plantypes.Plan, service plantypes.Service) (ir irtypes.IR, err error) {
+func (c *V1V2Loader) ConvertToIR(composefilepath string, serviceName string) (ir irtypes.IR, err error) {
 	proj, err := ParseV2(composefilepath)
 	if err != nil {
 		return irtypes.IR{}, err
 	}
-	return c.convertToIR(filepath.Dir(composefilepath), proj, plan, service)
+	return c.convertToIR(filepath.Dir(composefilepath), proj, serviceName)
 }
 
-func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project, plan plantypes.Plan, service plantypes.Service) (ir irtypes.IR, err error) {
-	serviceName := service.ServiceName
+func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project, serviceName string) (ir irtypes.IR, err error) {
 	ir = irtypes.IR{
 		Services: map[string]irtypes.Service{},
 	}
 
 	for name, composeServiceConfig := range composeObject.ServiceConfigs.All() {
-		if name != service.ServiceName {
+		if name != serviceName {
 			continue
 		}
 		serviceConfig := irtypes.NewServiceWithName(common.NormalizeForServiceName(name))
@@ -158,17 +155,6 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		serviceContainer.Image = composeServiceConfig.Image
 		if serviceContainer.Image == "" {
 			serviceContainer.Image = name + ":latest"
-		}
-		if composeServiceConfig.Build.Dockerfile != "" || composeServiceConfig.Build.Context != "" {
-			//TODO: Add support for args and labels
-			// filedir, name, serviceContainer.Image, composeServiceConfig.Build.Dockerfile, composeServiceConfig.Build.Context
-
-			con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
-			if err != nil {
-				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
-			} else {
-				ir.AddContainer(con)
-			}
 		}
 		serviceContainer.Name = strings.ToLower(composeServiceConfig.ContainerName)
 		if serviceContainer.Name != composeServiceConfig.ContainerName {
@@ -428,7 +414,7 @@ func (*V1V2Loader) parseContainerPort(value string) (servicePort int, podPort in
 		// "127.0.0.1:8001:8001"
 		servicePortStr, podPortStr = parts[1], parts[2]
 	} else if len(parts) > 3 {
-		err := fmt.Errorf("Failed to parse the port %s properly", value)
+		err := fmt.Errorf("failed to parse the port %s properly", value)
 		return servicePort, podPort, protocol, err
 	}
 	servicePort, err = cast.ToIntE(servicePortStr)

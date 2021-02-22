@@ -36,82 +36,76 @@ import (
 type DockerfileTranslator struct {
 }
 
-// GetTranslatorType returns translator type
-func (dockerfileTranslator *DockerfileTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
-	return plantypes.Dockerfile2KubeTranslation
-}
-
 // GetServiceOptions - output a plan based on the input directory contents
-func (dockerfileTranslator *DockerfileTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
-	services := []plantypes.Service{}
+func (dockerfileTranslator *DockerfileTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) (map[string]plantypes.Service, error) {
+	services := map[string]plantypes.Service{}
 	sdfs, err := getDockerfileServices(inputPath, plan.Name)
 	if err != nil {
 		log.Errorf("Unable to get Dockerfiles : %s", err)
 		return services, err
 	}
 	for sn, dfs := range sdfs {
-		ns := dockerfileTranslator.newService(sn)
-		ns.Image = sn + ":latest"
-		relpath := dfs[0].context
-		ns.AddBuildArtifact(plantypes.SourceDirectoryBuildArtifactType, relpath)
-		for _, df := range dfs {
-			p := df.path
-			ns.AddSourceArtifact(plantypes.DockerfileArtifactType, p)
-			ns.ContainerizationTargetOptions = append(ns.ContainerizationTargetOptions, p)
+		ns := plantypes.Service{
+			ContainerizationOptions: make([]plantypes.ContainerizationOption, len(dfs)),
+			SourceArtifacts:               make([]plantypes.SourceArtifact, len(dfs)),
 		}
-		if foundRepo, err := ns.GatherGitInfo(dfs[0].path, plan); foundRepo && err != nil {
-			log.Warnf("Error while parsing the git repo at path %q Error: %q", dfs[0].path, err)
+		for dfi, df := range dfs {
+			var repoInfo plantypes.RepoInfo
+			if gitURL, gitBranch, err := common.GatherGitInfo(dfs[0].path); err != nil {
+				log.Warnf("Error while parsing the git repo at path %q Error: %q", dfs[0].path, err)
+			} else {
+				repoInfo = plantypes.RepoInfo{
+					GitRepoURL:    gitURL,
+					GitRepoBranch: gitBranch,
+				}
+			}
+			ns.ContainerizationOptions[dfi] = plantypes.ContainerizationOption{
+				BuildType:   plantypes.DockerFileContainerBuildTypeValue,
+				ContextPath: df.context,
+				ID:          df.path,
+				RepoInfo:    repoInfo,
+			}
+			ns.SourceArtifacts[dfi] = plantypes.SourceArtifact{
+				Type:      plantypes.DockerfileArtifactType,
+				ID:        df.path,
+				Artifacts: []string{df.path},
+			}
 		}
-		services = append(services, ns)
+		services[sn] = ns
 	}
 	return services, nil
 }
 
 // Translate translates artifacts to IR
-func (dockerfileTranslator *DockerfileTranslator) Translate(services []plantypes.Service, plan plantypes.Plan) (irtypes.IR, error) {
+func (dockerfileTranslator *DockerfileTranslator) Translate(serviceName string, service plantypes.Service, plan plantypes.Plan) (irtypes.IR, error) {
 	ir := irtypes.NewIR(plan)
-	for _, service := range services {
-		if service.TranslationType != dockerfileTranslator.GetTranslatorType() {
-			log.Debugf("The service %s has translation type %s . Expected %s . Skipping.", service.ServiceName, service.TranslationType, dockerfileTranslator.GetTranslatorType())
-			continue
-		}
-		if len(service.ContainerizationTargetOptions) == 0 {
-			log.Debugf("The service %s has no containerization target options. Skipping.", service.ServiceName)
-			continue
-		}
-		log.Debugf("Translating %s", service.ServiceName)
-		irContainer, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
-		if err != nil {
-			log.Warnf("Unable to get reuse the Dockerfile for service %s even though build parameters are present. Error: %q", service.ServiceName, err)
-			continue
-		}
-		irContainer.RepoInfo = service.RepoInfo
-		irContainer.RepoInfo.TargetPath = service.ContainerizationTargetOptions[0]
-		ir.AddContainer(irContainer)
-
-		irService := irtypes.NewServiceFromPlanService(service)
-		container := core.Container{Name: service.ServiceName, Image: service.Image}
-		for _, port := range irContainer.ExposedPorts {
-			// Add the port to the k8s pod.
-			container.Ports = append(container.Ports, core.ContainerPort{ContainerPort: int32(port)})
-			// Forward the port on the k8s service to the k8s pod.
-			podPort := irtypes.Port{Number: int32(port)}
-			servicePort := podPort
-			irService.AddPortForwarding(servicePort, podPort)
-		}
-		irService.Containers = []core.Container{container}
-		ir.Services[service.ServiceName] = irService
+	if len(service.ContainerizationOptions) == 0 {
+		log.Debugf("The service %s has no containerization target options. Skipping.", serviceName)
+		continue
 	}
-	return ir, nil
-}
+	log.Debugf("Translating %s", serviceName)
+	irContainer, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
+	if err != nil {
+		log.Warnf("Unable to get reuse the Dockerfile for service %s even though build parameters are present. Error: %q", serviceName, err)
+		continue
+	}
+	irContainer.RepoInfo = service.RepoInfo
+	irContainer.RepoInfo.TargetPath = service.ContainerizationOptions[0]
+	ir.AddContainer(irContainer)
 
-func (dockerfileTranslator *DockerfileTranslator) newService(serviceName string) plantypes.Service {
-	service := plantypes.NewService(serviceName, dockerfileTranslator.GetTranslatorType())
-	service.ContainerBuildType = plantypes.ReuseDockerFileContainerBuildTypeValue
-	service.AddSourceType(plantypes.DirectorySourceTypeValue)
-	service.UpdateContainerBuildPipeline = true
-	service.UpdateDeployPipeline = true
-	return service
+	irService := irtypes.NewServiceFromPlanService(service)
+	container := core.Container{Name: serviceName, Image: service.Image}
+	for _, port := range irContainer.ExposedPorts {
+		// Add the port to the k8s pod.
+		container.Ports = append(container.Ports, core.ContainerPort{ContainerPort: int32(port)})
+		// Forward the port on the k8s service to the k8s pod.
+		podPort := irtypes.Port{Number: int32(port)}
+		servicePort := podPort
+		irService.AddPortForwarding(servicePort, podPort)
+	}
+	irService.Containers = []core.Container{container}
+	ir.Services[serviceName] = irService
+	return ir, nil
 }
 
 func isDockerFile(path string) (isDockerfile bool, err error) {

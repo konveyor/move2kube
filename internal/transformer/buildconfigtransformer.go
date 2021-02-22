@@ -42,7 +42,6 @@ type BuildconfigTransformer struct {
 	shouldRun                     bool
 	transformedBuildConfigObjects []runtime.Object
 	TargetClusterSpec             collecttypes.ClusterMetadataSpec
-	IgnoreUnsupportedKinds        bool
 	extraFiles                    map[string]string // file path: file contents
 }
 
@@ -73,7 +72,6 @@ func (bcTransformer *BuildconfigTransformer) Transform(ir irtypes.IR) error {
 		return nil
 	}
 	bcTransformer.TargetClusterSpec = ir.TargetClusterSpec
-	bcTransformer.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 	// BuildConfig (Openshift)
 	log.Infof("The target cluster has support for BuildConfig, also generating build configs for CI/CD")
 	bcTransformer.transformedBuildConfigObjects = convertIRToObjects(bcTransformer.SetupEnhancedIR(ir), bcTransformer.GetAPIResources())
@@ -88,7 +86,7 @@ func (bcTransformer *BuildconfigTransformer) WriteObjects(outputPath string, tra
 	cicdPath := filepath.Join(outputPath, common.DeployDir, "cicd")
 	// deploy/cicd/buildconfig/
 	bcPath := filepath.Join(cicdPath, "buildconfig")
-	if _, err := writeTransformedObjects(bcPath, bcTransformer.transformedBuildConfigObjects, bcTransformer.TargetClusterSpec, false, transformPaths); err != nil {
+	if _, err := writeTransformedObjects(bcPath, bcTransformer.transformedBuildConfigObjects, bcTransformer.TargetClusterSpec, transformPaths); err != nil {
 		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
 		return err
 	}

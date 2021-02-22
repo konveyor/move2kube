@@ -33,13 +33,12 @@ import (
 
 // KnativeTransformer implements Transformer interface
 type KnativeTransformer struct {
-	RootDir                string
-	TransformedObjects     []runtime.Object
-	Containers             []irtypes.Container
-	Values                 outputtypes.HelmValues
-	TargetClusterSpec      collecttypes.ClusterMetadataSpec
-	Name                   string
-	IgnoreUnsupportedKinds bool
+	RootDir            string
+	TransformedObjects []runtime.Object
+	Containers         []irtypes.Container
+	Values             outputtypes.HelmValues
+	TargetClusterSpec  collecttypes.ClusterMetadataSpec
+	Name               string
 }
 
 // Transform translates intermediate representation to destination objects
@@ -48,10 +47,8 @@ func (kt *KnativeTransformer) Transform(ir irtypes.IR) error {
 	log.Debugf("Total services to be transformed : %d", len(ir.Services))
 
 	kt.Name = ir.Name
-	kt.Values = ir.Values
 	kt.Containers = ir.Containers
 	kt.TargetClusterSpec = ir.TargetClusterSpec
-	kt.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 	kt.TransformedObjects = convertIRToObjects(irtypes.NewEnhancedIRFromIR(ir), kt.getAPIResources())
 	kt.RootDir = ir.RootDir
 	log.Debugf("Total transformed objects : %d", len(kt.TransformedObjects))
@@ -67,7 +64,7 @@ func (kt *KnativeTransformer) getAPIResources() []apiresource.IAPIResource {
 func (kt *KnativeTransformer) WriteObjects(outputPath string, transformPaths []string) error {
 	artifactspath := filepath.Join(outputPath, common.DeployDir, "knative")
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))
-	if _, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths); err != nil {
+	if _, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, transformPaths); err != nil {
 		log.Errorf("Error occurred while writing knative transformed objects. Error: %q", err)
 	}
 	kt.writeDeployScript(kt.Name, outputPath)

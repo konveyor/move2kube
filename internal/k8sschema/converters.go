@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	core "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 	knativev1 "knative.dev/serving/pkg/apis/serving/v1"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -32,17 +31,12 @@ import (
 )
 
 // ConvertToSupportedVersion converts obj to a supported Version
-func ConvertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool) (runtime.Object, error) {
+func ConvertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) (runtime.Object, error) {
 	newobj, err := convertToSupportedVersion(obj, clusterSpec)
 	if err != nil {
 		log.Debugf("Unable to translate object to a supported version : %s.", err)
-		if ignoreUnsupportedKinds {
-			log.Warnf("Ignoring object : %+v", obj.GetObjectKind())
-			return newobj, err
-		}
-		log.Debugf("Attempting to move to the preferred version")
 		if obj.GetObjectKind().GroupVersionKind().Version == core.SchemeGroupVersion.Version {
-			newobj, err = convertToPreferredVersion(obj)
+			newobj, err = ConvertToPreferredVersion(obj, clusterSpec)
 			if err != nil {
 				log.Warnf("Unable to convert (%+v) to preferred version : %s", obj.GetObjectKind(), err)
 				newobj = obj
@@ -62,8 +56,8 @@ func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 	kind := objgvk.Kind
 	log.Debugf("Converting %s to supported version", kind)
 	versions := clusterSpec.GetSupportedVersions(kind)
-	if versions == nil || len(versions) == 0 {
-		return nil, fmt.Errorf("Kind %s unsupported in target cluster : %+v", kind, obj.GetObjectKind())
+	if len(versions) == 0 {
+		return nil, fmt.Errorf("kind %s unsupported in target cluster : %+v", kind, obj.GetObjectKind())
 	}
 	log.Debugf("Supported Versions : %+v", versions)
 	if kind == common.ServiceKind && objgv.Group == knativev1.SchemeGroupVersion.Group {
@@ -87,30 +81,45 @@ func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 		return newobj, err
 	}
 	scheme.Default(obj)
-	return obj, fmt.Errorf("Unable to convert to a supported version : %+v", obj.GetObjectKind())
+	return obj, fmt.Errorf("unable to convert to a supported version : %+v", obj.GetObjectKind())
 }
 
 // ConvertToPreferredVersion converts obj to a preferred Version
-func convertToPreferredVersion(obj runtime.Object) (newobj runtime.Object, err error) {
+func ConvertToPreferredVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) (newobj runtime.Object, err error) {
 	objgvk := obj.GetObjectKind().GroupVersionKind()
 	objgv := objgvk.GroupVersion()
 	kind := objgvk.Kind
 	log.Debugf("Converting %s to preferred version", kind)
-	versions := scheme.PrioritizedVersionsForGroup(objgv.Group)
-	if kind == common.ServiceKind && objgv.Group == knativev1.SchemeGroupVersion.Group {
-		return obj, nil
-	}
-	for _, v := range versions {
-		newobj, err := ConvertToVersion(obj, v)
+	groups := []string{}
+	vs := clusterSpec.APIKindVersionMap[kind]
+	for _, v := range vs {
+		gv, err := schema.ParseGroupVersion(v)
 		if err != nil {
-			log.Debugf("Unable to convert : %s", err)
+			log.Debugf("Unable to parse group version %s : %s", v, err)
 			continue
 		}
-		scheme.Default(newobj)
-		return newobj, err
+		if !common.IsStringPresent(groups, gv.Group) {
+			groups = append(groups, gv.Group)
+		}
+	}
+	groups = append(groups, objgv.Group)
+	for _, g := range groups {
+		versions := scheme.PrioritizedVersionsForGroup(g)
+		if kind == common.ServiceKind && objgv.Group == knativev1.SchemeGroupVersion.Group {
+			return obj, nil
+		}
+		for _, v := range versions {
+			newobj, err := ConvertToVersion(obj, v)
+			if err != nil {
+				log.Debugf("Unable to convert : %s", err)
+				continue
+			}
+			scheme.Default(newobj)
+			return newobj, err
+		}
 	}
 	scheme.Default(obj)
-	return obj, fmt.Errorf("Unable to convert to a preferred version : %+v", obj.GetObjectKind())
+	return obj, fmt.Errorf("unable to convert to a preferred version : %+v", obj.GetObjectKind())
 }
 
 // ConvertToVersion converts objects to a version
@@ -124,38 +133,38 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 		return newobj, nil
 	}
 	log.Debugf("Unable to do direct translation : %s", err)
-	if objgv.Group == extensions.SchemeGroupVersion.Group {
-		log.Debugf("Attempting conversion of %s obj to %s", objgv, extensions.SchemeGroupVersion)
-		eobj, err := checkAndConvertToVersion(obj, extensions.SchemeGroupVersion)
-		if err != nil {
-			log.Debugf("Unable to convert to unversioned object : %s", err)
-		} else {
-			obj = eobj
-		}
-	}
 	akt := liasonscheme.AllKnownTypes()
 	for kt := range akt {
 		if kind != kt.Kind {
 			continue
 		}
-		if dgv.Group != extensions.SchemeGroupVersion.Group {
-			log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
-			iobj, err := checkAndConvertToVersion(obj, kt.GroupVersion())
+		kobj := obj
+		if objgv.Group != dgv.Group {
+			igv := schema.GroupVersion{Group: objgv.Group, Version: core.SchemeGroupVersion.Version}
+			log.Debugf("Attempting conversion of %s obj to %s", objgv, igv)
+			iobj, err := checkAndConvertToVersion(obj, igv)
 			if err != nil {
 				log.Debugf("Unable to convert to unversioned object : %s", err)
-				continue
 			} else {
-				obj = iobj
+				kobj = iobj
 			}
-			log.Debugf("Converted %s obj to %s", objgv, kt)
 		}
-		newobj, err = checkAndConvertToVersion(obj, dgv)
+		log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
+		iobj, err := checkAndConvertToVersion(kobj, kt.GroupVersion())
+		if err != nil {
+			log.Debugf("Unable to convert to unversioned object : %s", err)
+			continue
+		} else {
+			kobj = iobj
+		}
+		log.Debugf("Converted %s obj to %s", objgv, kt)
+		newobj, err = checkAndConvertToVersion(kobj, dgv)
 		if err == nil {
 			return newobj, nil
 		}
 		log.Debugf("Unable to convert through unversioned object : %s", kt)
 	}
-	err = fmt.Errorf("Unable to do convert %s to %s", objgv, dgv)
+	err = fmt.Errorf("unable to do convert %s to %s", objgv, dgv)
 	log.Debugf("%s", err)
 	return obj, err
 }
@@ -164,28 +173,30 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 func ConvertToLiasonScheme(obj runtime.Object) (newobj runtime.Object, err error) {
 	kind := obj.GetObjectKind().GroupVersionKind().Kind
 	akt := liasonscheme.AllKnownTypes()
-	if obj.GetObjectKind().GroupVersionKind().Group == extensions.SchemeGroupVersion.Group {
-		log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), extensions.SchemeGroupVersion)
-		eobj, err := checkAndConvertToVersion(obj, extensions.SchemeGroupVersion)
-		if err != nil {
-			log.Debugf("Unable to convert to unversioned object : %s", err)
-		} else {
-			obj = eobj
-		}
-	}
 	for kt := range akt {
 		if kind != kt.Kind {
 			continue
 		}
-		log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
-		uvobj, err := checkAndConvertToVersion(obj, kt.GroupVersion())
+		iobj := obj
+		if obj.GetObjectKind().GroupVersionKind().Group != kt.Group {
+			igv := schema.GroupVersion{Group: iobj.GetObjectKind().GroupVersionKind().Group, Version: core.SchemeGroupVersion.Version}
+			log.Debugf("Attempting conversion of %s obj to %s", iobj.GetObjectKind().GroupVersionKind(), igv)
+			eobj, err := checkAndConvertToVersion(iobj, igv)
+			if err != nil {
+				log.Debugf("Unable to convert to unversioned object : %s", err)
+			} else {
+				iobj = eobj
+			}
+		}
+		log.Debugf("Attempting conversion of %s obj to %s", iobj.GetObjectKind().GroupVersionKind(), kt)
+		iobj, err := checkAndConvertToVersion(iobj, kt.GroupVersion())
 		if err != nil {
 			log.Debugf("Unable to convert to unversioned object : %s", err)
 			continue
 		}
-		return uvobj, nil
+		return iobj, nil
 	}
-	return obj, fmt.Errorf("Unable to find liason version for kind %s", kind)
+	return obj, fmt.Errorf("unable to find liason version for kind %s", kind)
 }
 
 func checkAndConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runtime.Object, err error) {

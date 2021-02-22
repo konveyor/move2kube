@@ -22,6 +22,8 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types"
 	log "github.com/sirupsen/logrus"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // QACacheKind defines kind of QA Cache
@@ -29,9 +31,9 @@ const QACacheKind types.Kind = "QACache"
 
 // Cache stores the answers for reuse
 type Cache struct {
-	types.TypeMeta   `yaml:",inline"`
-	types.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec             CacheSpec `yaml:"spec,omitempty"`
+	metav1.TypeMeta   `yaml:",inline"`
+	metav1.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec              CacheSpec `yaml:"spec,omitempty"`
 }
 
 // CacheSpec stores the cache data
@@ -44,7 +46,7 @@ type CacheSpec struct {
 // NewCache creates new cache instance
 func NewCache(file string) (cache *Cache) {
 	return &Cache{
-		TypeMeta: types.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       string(QACacheKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},

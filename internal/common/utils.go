@@ -870,3 +870,40 @@ func ConvertInterfaceToSliceOfStrings(xI interface{}) ([]string, error) {
 	}
 	return vs, nil
 }
+
+// GatherGitInfo tries to find the git repo for the path if one exists.
+// It returns true of it found a git repo.
+func GatherGitInfo(path string) (repoURL string, repoBranch string, err error) {
+	if finfo, err := os.Stat(path); err != nil {
+		log.Errorf("Failed to stat the path %q Error %q", path, err)
+		return "", "", err
+	} else if !finfo.IsDir() {
+		pathDir := filepath.Dir(path)
+		log.Debugf("The path %q is not a directory. Using %q instead.", path, pathDir)
+		path = pathDir
+	}
+	preferredRemote := "upstream"
+	remoteNames, err := GetGitRemoteNames(path)
+	if err != nil || len(remoteNames) == 0 {
+		log.Debugf("No remotes found at path %q Error: %q", path, err)
+	} else {
+		if !IsStringPresent(remoteNames, preferredRemote) {
+			preferredRemote = "origin"
+			if !IsStringPresent(remoteNames, preferredRemote) {
+				preferredRemote = remoteNames[0]
+			}
+		}
+	}
+	remoteURLs, branch, _, err := GetGitRepoDetails(path, preferredRemote)
+	if err != nil {
+		log.Debugf("Failed to get the git repo at path %q Error: %q", path, err)
+		return "", "", err
+	}
+	repoBranch = branch
+	if len(remoteURLs) == 0 {
+		log.Debugf("The git repo at path %q has no remotes set.", path)
+	} else {
+		repoURL = remoteURLs[0]
+	}
+	return repoURL, repoBranch, nil
+}

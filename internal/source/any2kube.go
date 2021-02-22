@@ -24,7 +24,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer"
-	irtypes "github.com/konveyor/move2kube/internal/types"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -43,7 +43,7 @@ func (*Any2KubeTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
 func (any2KubeTranslator *Any2KubeTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
 	services := []plantypes.Service{}
 	preContainerizedSourcePaths := []string{}
-	for _, existingServices := range plan.Spec.Inputs.Services {
+	for _, existingServices := range plan.Spec.Services {
 		for _, existingService := range existingServices {
 			if len(existingService.SourceArtifacts[plantypes.SourceDirectoryArtifactType]) > 0 {
 				preContainerizedSourcePaths = append(preContainerizedSourcePaths, existingService.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0])
@@ -82,7 +82,7 @@ func (any2KubeTranslator *Any2KubeTranslator) GetServiceOptions(inputPath string
 			serviceName := filepath.Base(path)
 			service := any2KubeTranslator.newService(serviceName)
 			service.ContainerBuildType = containerizationOption.ContainerizationType
-			service.ContainerizationTargetOptions = containerizationOption.TargetOptions
+			service.ContainerizationOptions = containerizationOption.TargetOptions
 			if !common.IsStringPresent(service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType], path) {
 				service.SourceArtifacts[plantypes.SourceDirectoryArtifactType] = append(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType], path)
 				service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType] = append(service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType], path)
@@ -139,8 +139,6 @@ func (any2KubeTranslator *Any2KubeTranslator) Translate(services []plantypes.Ser
 func (any2KubeTranslator *Any2KubeTranslator) newService(serviceName string) plantypes.Service {
 	service := plantypes.NewService(serviceName, any2KubeTranslator.GetTranslatorType())
 	service.AddSourceType(plantypes.DirectorySourceTypeValue)
-	service.UpdateContainerBuildPipeline = true
-	service.UpdateDeployPipeline = true
 	return service
 }
 

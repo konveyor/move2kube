@@ -29,10 +29,14 @@ import (
 
 	"github.com/a8m/tree"
 	"github.com/a8m/tree/ostree"
+	"github.com/otiai10/copy"
+
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
 	"github.com/konveyor/move2kube/internal/k8sschema/fixer"
+	"github.com/konveyor/move2kube/internal/qaengine"
+	"github.com/konveyor/move2kube/internal/starlark"
 	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
 	"github.com/konveyor/move2kube/internal/starlark/runtransforms"
 	startypes "github.com/konveyor/move2kube/internal/starlark/types"
@@ -40,13 +44,18 @@ import (
 	"github.com/konveyor/move2kube/internal/transformer/transformations"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	"github.com/otiai10/copy"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 //go:generate go run  ../../scripts/generator/generator.go templates
+
+const (
+	containersDirectory      = "source"
+	newfilesMetadataFileName = "newfiles.txt"
+)
 
 // Transformer translates intermediate representation to destination artifacts
 type Transformer interface {
@@ -132,7 +141,7 @@ func writeContainers(containers []irtypes.Container, outputPath, rootDir, regist
 			}
 		}
 	}
-	// Write build scripts
+	//Write build scripts
 	if len(manualImages) > 0 {
 		writepath := filepath.Join(outputPath, "Manualimages.md")
 		err := common.WriteTemplateToFile(templates.Manualimages_md, struct {
@@ -205,21 +214,45 @@ func writeContainers(containers []irtypes.Container, outputPath, rootDir, regist
 	return false
 }
 
-func fixAndConvert(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool) (runtime.Object, error) {
-	fixedobj := fixer.Fix(obj)
-	return k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec, ignoreUnsupportedKinds)
-}
-
 // fixConvertAndTransformObjs runs fixers, converts to a supported version and runs transformations on the objects
-func fixConvertAndTransformObjs(objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool, transformPaths []string) ([]runtime.Object, error) {
+func fixConvertAndTransformObjs(outputPath string, objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, transformPaths []string) ([]string, error) {
+	k8sResources := []startypes.K8sResourceT{}
+
 	// Fix and convert
 	fixedAndConvertedObjs := []runtime.Object{}
+
+	keep := "keep"
+	options := []string{keep, "update"}
+	hints := []string{"keep - Maintains the versions for existing resources", "update - Update the versions of yamls"}
+	keeporupdate := qaengine.FetchSelectAnswer(common.ConfigTargetExistingVersionUpdate, "Do you want to update resource versions of k8s yamls?", hints, keep, options)
+
 	for _, obj := range objs {
-		fixedAndConvertedObj, err := fixAndConvert(obj, clusterSpec, ignoreUnsupportedKinds)
+		fixedAndConvertedObj, err := fixAndConvert(obj, clusterSpec)
+
+		obj = fixer.Fix(obj)
+		if obj.GetObjectKind().GroupVersionKind().Version != core.SchemeGroupVersion.Version && keeporupdate != keep {
+			if clusterSpec.Inbuilt {
+				cobj, err := k8sschema.ConvertToPreferredVersion(obj, clusterSpec)
+				if err != nil {
+					log.Warnf("Ignoring object : %s", err)
+				} else {
+					obj = cobj
+				}
+			} else {
+				cobj, err := k8sschema.ConvertToSupportedVersion(obj, clusterSpec)
+				if err != nil {
+					log.Warnf("Ignoring object : %s", err)
+				} else {
+					obj = cobj
+				}
+			}
+		}
+		objYamlBytes, err := common.MarshalObjToYaml(obj)
 		if err != nil {
 			log.Errorf("Failed to fix and convert the runtime.Object. Object:\n%+v\nError: %q", obj, err)
 			fixedAndConvertedObj = obj
 		}
+
 		fixedAndConvertedObjs = append(fixedAndConvertedObjs, fixedAndConvertedObj)
 	}
 	// Transform
@@ -227,6 +260,8 @@ func fixConvertAndTransformObjs(objs []runtime.Object, clusterSpec collecttypes.
 	k8sResources := []startypes.K8sResourceT{}
 	for _, fixedAndConvertedObj := range fixedAndConvertedObjs {
 		k8sResource, err := gettransformdata.GetK8sResourceFromObject(fixedAndConvertedObj)
+		currK8sResources, err := gettransformdata.GetK8sResourcesFromYaml(string(objYamlBytes))
+
 		if err != nil {
 			log.Errorf("Failed to convert the object into a K8sResourceT. Object:\n%+v\nError: %q", fixedAndConvertedObj, err)
 			return nil, err
@@ -245,6 +280,7 @@ func fixConvertAndTransformObjs(objs []runtime.Object, clusterSpec collecttypes.
 		log.Errorf("Failed to apply the transformations. Error: %q", err)
 		return nil, err
 	}
+
 	fixedConvertedAndTransformedObjs := []runtime.Object{}
 	for i, transformedK8sResource := range transformedK8sResources {
 		fixedConvertedAndTransformedObj, err := gettransformdata.GetObjectFromK8sResource(transformedK8sResource, fixedAndConvertedObjs[i])
@@ -259,7 +295,18 @@ func fixConvertAndTransformObjs(objs []runtime.Object, clusterSpec collecttypes.
 
 // writeObjects writes the runtime objects to yaml files
 func writeObjects(outputPath string, objs []runtime.Object) ([]string, error) {
-	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
+	return starlark.WriteResources(transformedK8sResources, outputPath)
+}
+
+func fixAndConvert(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) (runtime.Object, error) {
+	fixedobj := fixer.Fix(obj)
+	return k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec)
+}
+
+func fixConvertAndMarshalObjToYaml(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) ([]byte, error) {
+	obj, err := fixAndConvert(obj, clusterSpec)
+	if err != nil {
+
 		return nil, err
 	}
 	filesWritten := []string{}
@@ -286,8 +333,8 @@ func getFilename(obj runtime.Object) string {
 	return fmt.Sprintf("%s-%s.yaml", objectMeta.Name, strings.ToLower(typeMeta.Kind))
 }
 
-func writeTransformedObjects(outputPath string, objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool, transformPaths []string) ([]string, error) {
-	fixedConvertedAndTransformedObjs, err := fixConvertAndTransformObjs(objs, clusterSpec, ignoreUnsupportedKinds, transformPaths)
+func writeTransformedObjects(outputPath string, objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, transformPaths []string) ([]string, error) {
+	fixedConvertedAndTransformedObjs, err := fixConvertAndTransformObjs(objs, clusterSpec, transformPaths)
 	if err != nil {
 		log.Errorf("Failed to fix, convert and transform objects. Error: %q", err)
 		return nil, err

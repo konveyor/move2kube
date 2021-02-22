@@ -63,7 +63,7 @@ Checkout the [Getting started](https://move2kube.konveyor.io/docs/getting-starte
 
 ## Development environment setup
 
-1. Obtain a recent version of `golang`. Known to work with `1.15`.
+1. Obtain a recent version of `golang`. Known to work with `1.16`.
 1. Ensure `$GOPATH` is set. If it's not set:
    1. `mkdir ~/go`
    1. `export GOPATH=~/go`

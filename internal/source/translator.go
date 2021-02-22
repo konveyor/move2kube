@@ -19,16 +19,15 @@ package source
 import (
 	log "github.com/sirupsen/logrus"
 
+	"github.com/konveyor/move2kube/internal/containerizer"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 )
 
 // Translator interface defines translator that translates files and converts it to ir representation
 type Translator interface {
-	GetTranslatorType() plantypes.TranslationTypeValue
-	GetServiceOptions(inputPath string, p plantypes.Plan) ([]plantypes.Service, error)
-	Translate(services []plantypes.Service, p plantypes.Plan) (irtypes.IR, error)
-	newService(serviceName string) plantypes.Service
+	GetServiceOptions(p plantypes.Plan) (map[string]plantypes.Service, error)
+	Translate(serviceName string, plan plantypes.Plan) (irtypes.IR, error)
 }
 
 // GetTranslators returns translator for given format
@@ -37,44 +36,49 @@ func GetTranslators() []Translator {
 	return l
 }
 
-// GetAllTranslatorTypes returns all translator types
-func GetAllTranslatorTypes() []string {
-	translationTypes := []string{}
-	for _, tp := range GetTranslators() {
-		translationTypes = append(translationTypes, (string)(tp.GetTranslatorType()))
+// UpdateServiceOptions looks identify source artifacts and generation options
+func UpdateServiceOptions(p plantypes.Plan) {
+	log.Infoln("Planning Translation")
+	for _, l := range GetTranslators() {
+		log.Infof("[%T] Planning translation", l)
+		services, err := l.GetServiceOptions(p)
+		if err != nil {
+			log.Warnf("[%T] Failed : %s", l, err)
+		} else {
+			p.AddServicesToPlan(services)
+			log.Infof("[%T] Done", l)
+		}
 	}
-	return translationTypes
 }
 
 // Translate loads all sources
 func Translate(p plantypes.Plan) (irtypes.IR, error) {
-	ts := GetTranslators()
 	ir := irtypes.NewIR(p)
+	ts := GetTranslators()
 	log.Infoln("Begin Translation")
-	for _, l := range ts {
-		log.Infof("[%T] Begin translation", l)
-		validservices := []plantypes.Service{}
-		for _, services := range p.Spec.Inputs.Services {
-			//Choose the first service even if there are multiple options
-			service := services[0]
-			if service.TranslationType == l.GetTranslatorType() {
-				validservices = append(validservices, service)
+	for sn, s := range p.Spec.Services {
+		log.Debugf("Translating service %s", sn)
+		if _, ok := ir.Services[sn]; !ok {
+			ir.Services[sn] = irtypes.NewServiceWithName(sn)
+		}
+		log.Debugf("Loading containers")
+		for _, l := range ts {
+			log.Debugf("Using translator %T for service %s", l, sn)
+			currir, err := l.Translate(sn, p)
+			if err != nil {
+				log.Warnf("[%T] Failed : %s", l, err.Error())
+				continue
 			}
+			log.Infof("[%T] Done for service %s", l, sn)
+			ir.Merge(currir)
+			log.Debugf("Total Services after translation : %d", len(ir.Services))
+			log.Debugf("Total Containers after translation : %d", len(ir.Containers))
 		}
-		log.Debugf("Services to translate : %d", len(validservices))
-		currir, err := l.Translate(validservices, p)
-		log.Debugf("Services translated : %d", len(currir.Services))
-		log.Debugf("Containers translated : %d", len(currir.Containers))
-		if err != nil {
-			log.Warnf("[%T] Failed : %s", l, err.Error())
-			continue
+		if len(s.GenerationOptions) > 0 {
+			containerizer.GetContainer()
 		}
-		log.Infof("[%T] Done", l)
-		ir.Merge(currir)
-		log.Debugf("Total Services after translation : %d", len(ir.Services))
-		log.Debugf("Total Containers after translation : %d", len(ir.Containers))
+		log.Debugf("Translated service %s", sn)
 	}
 	log.Infoln("Translation done")
-
 	return ir, nil
 }

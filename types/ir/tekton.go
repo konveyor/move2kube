@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tekton
+package ir
 
-// Resources contains the resources for CI/CD
-type Resources struct {
+// TektonResources contains the resources for CI/CD
+type TektonResources struct {
 	EventListeners   []EventListener
 	TriggerBindings  []TriggerBinding
 	TriggerTemplates []TriggerTemplate

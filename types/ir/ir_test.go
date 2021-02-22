@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package types_test
+package ir_test
 
 import (
 	"reflect"
@@ -23,8 +23,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
+	types "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -189,15 +189,15 @@ func TestContainerMerge(t *testing.T) {
 		contents1 := "contents1"
 		c1 := types.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
-		c1.NewFiles[path1] = contents1
+		c1.NewFiles[path1] = []byte(contents1)
 		name2 := "name2"
 		new2 := true
 		c2 := types.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname3", "imgname4", "imgname5"}
-		c2.NewFiles[path1] = contents1
+		c2.NewFiles[path1] = []byte(contents1)
 		want := types.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3", "imgname4", "imgname5"}
-		want.NewFiles[path1] = contents1
+		want.NewFiles[path1] = []byte(contents1)
 
 		// Test
 		if !c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
@@ -216,16 +216,16 @@ func TestContainerMerge(t *testing.T) {
 		contents2 := "contents2"
 		c1 := types.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
-		c1.NewFiles[path1] = contents1
+		c1.NewFiles[path1] = []byte(contents1)
 		name2 := "name2"
 		new2 := true
 		c2 := types.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname3", "imgname4", "imgname5"}
-		c2.NewFiles[path2] = contents2
+		c2.NewFiles[path2] = []byte(contents2)
 		want := types.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3", "imgname4", "imgname5"}
-		want.NewFiles[path1] = contents1
-		want.NewFiles[path2] = contents2
+		want.NewFiles[path1] = []byte(contents1)
+		want.NewFiles[path2] = []byte(contents2)
 
 		// Test
 		if !c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
@@ -243,15 +243,15 @@ func TestContainerMerge(t *testing.T) {
 		contents2 := "contents2"
 		c1 := types.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
-		c1.NewFiles[path1] = contents1
+		c1.NewFiles[path1] = []byte(contents1)
 		name2 := "name2"
 		new2 := true
 		c2 := types.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname3", "imgname4", "imgname5"}
-		c2.NewFiles[path1] = contents2
+		c2.NewFiles[path1] = []byte(contents2)
 		want := types.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3", "imgname4", "imgname5"}
-		want.NewFiles[path1] = contents1
+		want.NewFiles[path1] = []byte(contents1)
 
 		// Test
 		if !c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
@@ -295,19 +295,19 @@ func TestContainerMerge(t *testing.T) {
 		c1 := types.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
 		c1.UserID = 1
-		c1.NewFiles[path1] = contents1
+		c1.NewFiles[path1] = []byte(contents1)
 
 		name2 := "name2"
 		new2 := true
 		c2 := types.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname3", "imgname4", "imgname5"}
 		c2.UserID = 2
-		c2.NewFiles[path2] = contents2
+		c2.NewFiles[path2] = []byte(contents2)
 
 		want := types.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3", "imgname4", "imgname5"}
 		want.UserID = 2
-		want.NewFiles[path2] = contents2
+		want.NewFiles[path2] = []byte(contents2)
 
 		// Test
 		if !c1.Merge(c2) || !reflect.DeepEqual(c1, want) {
@@ -328,10 +328,10 @@ func TestAddFile(t *testing.T) {
 		contents1 := "contents1"
 		c := types.NewContainer(buildType1, name1, new1)
 		want := types.NewContainer(buildType1, name1, new1)
-		want.NewFiles[path1] = contents1
+		want.NewFiles[path1] = []byte(contents1)
 
 		// Test
-		c.AddFile(path1, contents1)
+		c.AddFile(path1, []byte(contents1))
 		if !cmp.Equal(c, want) {
 			t.Fatalf("Failed to add the new script to the empty container properly. Difference:\n%s:", cmp.Diff(want, c))
 		}
@@ -345,12 +345,12 @@ func TestAddFile(t *testing.T) {
 		path1 := "path1/foo/bar"
 		contents1 := "contents1"
 		c := types.NewContainer(buildType1, name1, new1)
-		c.NewFiles[path1] = contents1
+		c.NewFiles[path1] = []byte(contents1)
 		want := types.NewContainer(buildType1, name1, new1)
-		want.NewFiles[path1] = contents1
+		want.NewFiles[path1] = []byte(contents1)
 
 		// Test
-		c.AddFile(path1, contents1)
+		c.AddFile(path1, []byte(contents1))
 		if !cmp.Equal(c, want) {
 			t.Fatalf("Adding the same script to the same path should not change the container. Difference:\n%s:", cmp.Diff(want, c))
 		}
@@ -365,12 +365,12 @@ func TestAddFile(t *testing.T) {
 		contents1 := "contents1"
 		contents2 := "contents2"
 		c := types.NewContainer(buildType1, name1, new1)
-		c.NewFiles[path1] = contents1
+		c.NewFiles[path1] = []byte(contents1)
 		want := types.NewContainer(buildType1, name1, new1)
-		want.NewFiles[path1] = contents1
+		want.NewFiles[path1] = []byte(contents1)
 
 		// Test
-		c.AddFile(path1, contents2)
+		c.AddFile(path1, []byte(contents2))
 		if !cmp.Equal(c, want) {
 			t.Fatalf("Adding a different script to the same path should not change the container. Difference:\n%s:", cmp.Diff(want, c))
 		}
@@ -501,8 +501,7 @@ func TestNewIR(t *testing.T) {
 	ir := types.NewIR(p)
 	if ir.Containers == nil ||
 		ir.Services == nil ||
-		ir.Storages == nil ||
-		ir.Values.GlobalVariables == nil {
+		ir.Storages == nil {
 		t.Fatal("Failed to initialize the maps inside IR properly. The IR returned by NewIR:", ir)
 	}
 }
@@ -791,7 +790,7 @@ func TestGetContainer(t *testing.T) {
 		p1 := plantypes.NewPlan()
 		ir := types.NewIR(p1)
 		ir.Containers = append(ir.Containers, c1)
-		ir.Kubernetes.RegistryURL = registry1
+		ir.RegistryURL = registry1
 
 		// Test
 		if _, ok := ir.GetContainer(imgurl1); !ok {

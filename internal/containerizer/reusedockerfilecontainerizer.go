@@ -41,13 +41,13 @@ func (d *ReuseDockerfileContainerizer) GetContainerBuildStrategy() plantypes.Con
 func (d *ReuseDockerfileContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
 
-	if len(service.ContainerizationTargetOptions) == 0 {
-		err := fmt.Errorf("failed to reuse the Dockerfile. The service %s doesn't have any containerization target options", service.ServiceName)
+	if len(service.ContainerizationOptions) == 0 {
+		err := fmt.Errorf("Failed to reuse the Dockerfile. The service %s doesn't have any containerization target options", service.ServiceName)
 		log.Debug(err)
 		return container, err
 	}
 
-	dockerfilePath := service.ContainerizationTargetOptions[0]
+	dockerfilePath := service.ContainerizationOptions[0]
 	if _, err := os.Stat(dockerfilePath); os.IsNotExist(err) { // TODO: What about other types of errors?
 		log.Errorf("Unable to find the Dockerfile at path %q Error: %q", dockerfilePath, err)
 		log.Errorf("Will assume the dockerfile will be copied and will proceed.") // TODO: is this correct? shouldn't we return here?

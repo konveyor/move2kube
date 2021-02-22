@@ -33,7 +33,7 @@ func (it imageNameParameterizer) parameterize(ir *irtypes.IR) error {
 	for _, container := range ir.Containers {
 		if container.New {
 			for _, img := range container.ImageNames {
-				newimages = append(newimages, ir.Kubernetes.RegistryURL+"/"+ir.Kubernetes.RegistryNamespace+"/"+img)
+				newimages = append(newimages, ir.RegistryURL+"/"+ir.RegistryNamespace+"/"+img)
 			}
 		}
 	}

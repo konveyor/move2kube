@@ -44,7 +44,6 @@ type TektonTransformer struct {
 	shouldRun                bool
 	transformedTektonObjects []runtime.Object
 	TargetClusterSpec        collecttypes.ClusterMetadataSpec
-	IgnoreUnsupportedKinds   bool
 	extraFiles               map[string]string // file path: file contents
 }
 
@@ -81,7 +80,6 @@ func (tekSet *TektonTransformer) Transform(ir irtypes.IR) error {
 		return nil
 	}
 	tekSet.TargetClusterSpec = ir.TargetClusterSpec
-	tekSet.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 	log.Infof("Generating Tekton pipeline for CI/CD")
 	enhancedIR := tekSet.SetupEnhancedIR(ir)
 	tektonResources := tekSet.GetAPIResources()
@@ -100,7 +98,7 @@ func (tekSet *TektonTransformer) WriteObjects(outputPath string, transformPaths 
 	cicdPath := filepath.Join(outputPath, common.DeployDir, "cicd")
 	// deploy/cicd/tekton/
 	tektonPath := filepath.Join(cicdPath, "tekton")
-	if _, err := writeTransformedObjects(tektonPath, tekSet.transformedTektonObjects, tekSet.TargetClusterSpec, false, transformPaths); err != nil {
+	if _, err := writeTransformedObjects(tektonPath, tekSet.transformedTektonObjects, tekSet.TargetClusterSpec, transformPaths); err != nil {
 		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
 		return err
 	}
@@ -185,19 +183,16 @@ func (tekSet *TektonTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes.Enhan
 		WorkspaceName: workspaceName,
 	}}
 	ir.TektonResources = res
-	ir.Services = map[string]irtypes.Service{
-		gitEventListenerServiceName: {
-			Name:               gitEventIngressName,
-			BackendServiceName: gitEventListenerServiceName,
-			OnlyIngress:        true,
-			ServiceRelPath:     "/" + gitEventListenerServiceName, // this has to be an absolute path otherwise k8s will complain
-			PodSpec: core.PodSpec{
-				Containers: []core.Container{{
-					Ports: []core.ContainerPort{{ContainerPort: int32(8080)}},
-				}},
-			},
-		},
-	}
+	ir.Services = []irtypes.Service{{
+		Name:               gitEventIngressName,
+		BackendServiceName: gitEventListenerServiceName,
+		OnlyIngress:        true,
+		ServiceRelPath:     "/" + gitEventListenerServiceName, // this has to be an absolute path otherwise k8s will complain
+		PodSpec: core.PodSpec{
+			Containers: []core.Container{{
+				Ports: []core.ContainerPort{{ContainerPort: int32(8080)}},
+			}}},
+	}}
 
 	ir.RoleBindings = append(ir.RoleBindings, irtypes.RoleBinding{
 		Name:               tektonTriggersAdminRoleBindingName,
@@ -215,8 +210,8 @@ func (tekSet *TektonTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes.Enhan
 
 	// TODO: this could also be common.DefaultRegistryURL
 	registryURL := registryURLPlaceholder
-	if ir.Kubernetes.RegistryURL != "" {
-		registryURL = ir.Kubernetes.RegistryURL
+	if ir.RegistryURL != "" {
+		registryURL = ir.RegistryURL
 		if registryURL == "docker.io" {
 			// There's some bug with kaniko that requires this
 			registryURL = "index.docker.io"

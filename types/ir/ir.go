@@ -14,40 +14,36 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package types
+package ir
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/deepcopy"
-	"github.com/konveyor/move2kube/internal/types/tekton"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	outputtypes "github.com/konveyor/move2kube/types/output"
-	"github.com/konveyor/move2kube/types/plan"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
 )
 
 // IR is the intermediate representation filled by source translators
 type IR struct {
-	RootDir    string
-	Name       string
-	Containers []Container // Images to be built
-	Services   map[string]Service
-	Storages   []Storage
+	RootDir       string
+	Name          string
+	Containers    []Container // Images to be built
+	Services      map[string]Service
+	Storages      []Storage
+	CachedObjects []runtime.Object
 
-	Kubernetes plan.KubernetesOutput
-
-	TargetClusterSpec collecttypes.ClusterMetadataSpec
-	CachedObjects     []runtime.Object
-
-	Values outputtypes.HelmValues
-
+	RegistryURL          string
+	RegistryNamespace    string
+	TargetClusterSpec    collecttypes.ClusterMetadataSpec
 	IngressTLSSecretName string
 }
 
@@ -58,12 +54,12 @@ type EnhancedIR struct {
 	RoleBindings    []RoleBinding
 	ServiceAccounts []ServiceAccount
 	BuildConfigs    []BuildConfig
-	TektonResources tekton.Resources
+	TektonResources TektonResources
 }
 
 // BuildConfig contains the resources needed to create a BuildConfig
 type BuildConfig struct {
-	RepoInfo          plantypes.RepoInfo
+	RepoInfo          RepoInfo
 	Name              string
 	ImageStreamName   string
 	ImageStreamTag    string
@@ -75,8 +71,8 @@ type BuildConfig struct {
 type Service struct {
 	core.PodSpec
 
-	Name                        string
-	BackendServiceName          string // Optional field when ingress name is not the same as backend service name
+	Name                        string `json:"name"`
+	BackendServiceName          string `json:"backendServiceName"` // Optional field when ingress name is not the same as backend service name
 	Annotations                 map[string]string
 	Labels                      map[string]string
 	ServiceToPodPortForwardings []ServiceToPodPortForwarding
@@ -85,6 +81,8 @@ type Service struct {
 	ServiceRelPath              string //Ingress fan-out path
 	OnlyIngress                 bool
 	Daemon                      bool //Gets converted to DaemonSet
+
+	Config interface{} `json:"config"`
 }
 
 // Port is a port number with an optional port name.
@@ -98,14 +96,22 @@ type ServiceToPodPortForwarding struct {
 
 // Container defines images that need to be built or reused.
 type Container struct {
-	ContainerBuildType plantypes.ContainerBuildTypeValue // Method to use to build the image or "Reuse" if reusing an existing image.
-	RepoInfo           plantypes.RepoInfo
-	ImageNames         []string
-	New                bool              // true if this is a new image that needs to be built
-	NewFiles           map[string]string //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
-	ExposedPorts       []int
-	UserID             int
-	AccessedDirs       []string
+	ContainerBuildType plantypes.ContainerBuildTypeValue `yaml:"-"`
+	Name               string                            `yaml:"-"`
+	ContextPath        string                            `yaml:"-"`
+	RepoInfo           RepoInfo                          `yaml:"-"`
+	ImageNames         []string                          `yaml:"-"`
+	New                bool                              `yaml:"-"` // true if this is a new image that needs to be built
+	NewFiles           map[string][]byte                 `yaml:"-"` //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
+	ExposedPorts       []int                             `yaml:"ports"`
+	UserID             int                               `yaml:"userID"`
+	AccessedDirs       []string                          `yaml:"accessedDirs"`
+}
+
+// RepoInfo contains information specific to creating the CI/CD pipeline.
+type RepoInfo struct {
+	GitRepoURL    string `yaml:"gitRepoURL"`
+	GitRepoBranch string `yaml:"gitRepoBranch"`
 }
 
 // StorageKindType defines storage type kind
@@ -165,13 +171,69 @@ func NewEnhancedIRFromIR(ir IR) EnhancedIR {
 	return EnhancedIR{IR: irCopy}
 }
 
+func (ir *IR) addService(service Service) {
+	if os, ok := ir.Services[service.Name]; !ok {
+		ir.Services[service.Name] = service
+	} else {
+		os.merge(service)
+		ir.Services[service.Name] = os
+	}
+}
+
+func (service *Service) merge(nService Service) {
+	if service.Name != nService.Name {
+		return
+	}
+	if service.BackendServiceName != nService.BackendServiceName && service.BackendServiceName != "" {
+		log.Errorf("BackendServiceNames (%s, %s) don't seem to match during merge for service : %s. Using %s", service.BackendServiceName, nService.BackendServiceName, service.Name, nService.BackendServiceName)
+	}
+	if nService.BackendServiceName != "" {
+		service.BackendServiceName = nService.BackendServiceName
+	}
+	podSpecJSON, err1 := json.Marshal(service.PodSpec)
+	if err1 != nil {
+		log.Errorf("Merge failed. Failed to marshal the first object %v to json. Error: %q", service.PodSpec, err1)
+	}
+	nPodSpecJSON, err2 := json.Marshal(nService.PodSpec)
+	if err2 != nil {
+		log.Errorf("Merge failed. Failed to marshal the second object %v to json. Error: %q", nService.PodSpec, err2)
+	}
+	if err1 != nil || err2 != nil {
+		podSpec := core.PodSpec{}
+		mergedJSON, err := strategicpatch.StrategicMergePatch(podSpecJSON, nPodSpecJSON, podSpec) // need to provide in reverse for proper ordering
+		if err != nil {
+			log.Errorf("Failed to merge the objects \n%s\n and \n%s\n Error: %q", podSpecJSON, nPodSpecJSON, err)
+		} else {
+			err := json.Unmarshal(mergedJSON, &podSpec)
+			if err != nil {
+				log.Errorf("Failed to unmarshall object (%+v): %q", podSpec, err)
+			} else {
+				service.PodSpec = podSpec
+			}
+		}
+	}
+	service.Annotations = common.MergeStringMaps(service.Annotations, nService.Annotations)
+	service.Labels = common.MergeStringMaps(service.Labels, nService.Labels)
+	if nService.Replicas != 0 {
+		service.Replicas = nService.Replicas
+	}
+	service.Networks = common.MergeStringSlices(service.Networks, nService.Networks)
+	if nService.ServiceRelPath != "" {
+		service.ServiceRelPath = nService.ServiceRelPath
+	}
+	service.OnlyIngress = service.OnlyIngress && nService.OnlyIngress
+	service.Daemon = service.Daemon && nService.Daemon
+	// TODO: Check if this needs a more intelligent merge
+	service.ServiceToPodPortForwardings = append(service.ServiceToPodPortForwardings, nService.ServiceToPodPortForwardings...)
+}
+
 // GetFullImageName returns the full image name including registry url and namespace
 func (ir *IR) GetFullImageName(imageName string) string {
-	if ir.Kubernetes.RegistryURL != "" && ir.Kubernetes.RegistryNamespace != "" {
-		return ir.Kubernetes.RegistryURL + "/" + ir.Kubernetes.RegistryNamespace + "/" + imageName
+	if ir.RegistryURL != "" && ir.RegistryNamespace != "" {
+		return ir.RegistryURL + "/" + ir.RegistryNamespace + "/" + imageName
 	}
-	if ir.Kubernetes.RegistryNamespace != "" {
-		return ir.Kubernetes.RegistryNamespace + "/" + imageName
+	if ir.RegistryNamespace != "" {
+		return ir.RegistryNamespace + "/" + imageName
 	}
 	return imageName
 }
@@ -180,12 +242,12 @@ func (ir *IR) GetFullImageName(imageName string) string {
 func (service *Service) AddPortForwarding(servicePort Port, podPort Port) error {
 	for _, forwarding := range service.ServiceToPodPortForwardings {
 		if servicePort.Name != "" && forwarding.ServicePort.Name == servicePort.Name {
-			err := fmt.Errorf("The port name %s on %s service is already in use. Not adding the new forwarding", servicePort.Name, service.Name)
+			err := fmt.Errorf("the port name %s on %s service is already in use. Not adding the new forwarding", servicePort.Name, service.Name)
 			log.Warn(err)
 			return err
 		}
 		if forwarding.ServicePort.Number == servicePort.Number {
-			err := fmt.Errorf("The port number %d on %s service is already in use. Not adding the new forwarding", servicePort.Number, service.Name)
+			err := fmt.Errorf("the port number %d on %s service is already in use. Not adding the new forwarding", servicePort.Number, service.Name)
 			log.Warn(err)
 			return err
 		}
@@ -222,7 +284,7 @@ func NewContainer(containerBuildType plantypes.ContainerBuildTypeValue, imagenam
 		ContainerBuildType: containerBuildType,
 		ImageNames:         []string{imagename},
 		New:                new,
-		NewFiles:           map[string]string{},
+		NewFiles:           map[string][]byte{},
 		ExposedPorts:       []int{},
 		UserID:             -1,
 		AccessedDirs:       []string{},
@@ -257,7 +319,7 @@ func (c *Container) Merge(newc Container) bool {
 			} else if c.New && newc.New {
 				for filepath, filecontents := range newc.NewFiles {
 					if contents, ok := c.NewFiles[filepath]; ok {
-						if contents != filecontents {
+						if string(contents) != string(filecontents) {
 							log.Errorf("Two build scripts found for image : %s in %s. Ignoring new script.", imagename, filepath)
 						}
 					} else {
@@ -283,9 +345,9 @@ func (c *Container) Merge(newc Container) bool {
 }
 
 // AddFile adds a file to a container
-func (c *Container) AddFile(path string, newcontents string) {
+func (c *Container) AddFile(path string, newcontents []byte) {
 	if contents, ok := c.NewFiles[path]; ok {
-		if contents != newcontents {
+		if string(contents) != string(newcontents) {
 			log.Errorf("Script already exists for image at %s. Ignoring new script.", path)
 		}
 	} else {
@@ -315,20 +377,18 @@ func (c *Container) AddAccessedDirs(dirname string) {
 }
 
 // NewIR creates a new IR
-func NewIR(p plan.Plan) IR {
+func NewIR(p plantypes.Plan) IR {
 	ir := IR{}
 	ir.Name = p.Name
-	ir.RootDir = p.Spec.Inputs.RootDir
-	ir.Kubernetes = p.Spec.Outputs.Kubernetes
+	ir.RootDir = p.Spec.RootDir
 	ir.Containers = []Container{}
-	ir.Services = map[string]Service{}
+	ir.Services = make(map[string]Service)
 	ir.Storages = []Storage{}
 	ir.TargetClusterSpec = collecttypes.ClusterMetadataSpec{
 		StorageClasses:    []string{},
 		APIKindVersionMap: map[string][]string{},
 		Host:              "",
 	}
-	ir.Values.GlobalVariables = map[string]string{}
 	return ir
 }
 
@@ -339,12 +399,8 @@ func (ir *IR) Merge(newir IR) {
 			ir.Name = newir.Name
 		}
 	}
-	ir.Kubernetes.Merge(newir.Kubernetes)
-	for scname, sc := range newir.Services {
-		if _, ok := ir.Services[scname]; ok {
-			log.Warnf("Two services of same service name %s. Using the new object.", scname)
-		}
-		ir.Services[scname] = sc
+	for _, sc := range newir.Services {
+		ir.addService(sc)
 	}
 	for _, newcontainer := range newir.Containers {
 		ir.AddContainer(newcontainer)
@@ -354,17 +410,11 @@ func (ir *IR) Merge(newir IR) {
 	}
 	ir.TargetClusterSpec.Merge(newir.TargetClusterSpec)
 	ir.CachedObjects = append(ir.CachedObjects, newir.CachedObjects...)
-	ir.Values.Merge(newir.Values)
 }
 
 // IsIngressTLSEnabled checks if TLS is enabled for the ingress.
 func (ir *IR) IsIngressTLSEnabled() bool {
 	return ir.IngressTLSSecretName != ""
-}
-
-// NewServiceFromPlanService initializes a service with just the plan object parameters.
-func NewServiceFromPlanService(service plantypes.Service) Service {
-	return Service{Name: service.ServiceName, ServiceRelPath: service.ServiceRelPath}
 }
 
 // NewServiceWithName initializes a service with just the name.
@@ -421,7 +471,7 @@ func (ir *IR) GetContainer(imagename string) (con Container, exists bool) {
 			return c, true
 		} else if c.New {
 			parts := strings.Split(imagename, "/")
-			if len(parts) > 2 && parts[0] == ir.Kubernetes.RegistryURL && common.IsStringPresent(c.ImageNames, parts[len(parts)-1]) {
+			if len(parts) > 2 && parts[0] == ir.RegistryURL && common.IsStringPresent(c.ImageNames, parts[len(parts)-1]) {
 				return c, true
 			}
 		}

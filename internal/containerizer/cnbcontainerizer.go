@@ -103,13 +103,18 @@ func (d *CNBContainerizer) GetContainerBuildStrategy() plantypes.ContainerBuildT
 func (d *CNBContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	// TODO: Fix exposed ports too
 	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
-	if service.ContainerBuildType != d.GetContainerBuildStrategy() {
-		return container, fmt.Errorf("service %s has container build type %s . Expected %s", service.ServiceName, service.ContainerBuildType, d.GetContainerBuildStrategy())
+	if len(service.ContainerizationOptions) == 0 {
+		err := fmt.Errorf("No Containerization target options found")
+		log.Errorf("%s", err)
+		return container, err
 	}
-	if len(service.ContainerizationTargetOptions) == 0 {
-		return container, fmt.Errorf("service %s has no containerization target options", service.ServiceName)
+	if service.ContainerizationOptions[0].ContainerBuildType != d.GetContainerBuildStrategy() {
+		return container, fmt.Errorf("Service %s has container build type %s . Expected %s", service.ServiceName, service.ContainerizationOptions[0].ContainerBuildType, d.GetContainerBuildStrategy())
 	}
-	builder := service.ContainerizationTargetOptions[0]
+	if len(service.ContainerizationOptions) == 0 {
+		return container, fmt.Errorf("Service %s has no containerization target options", service.ServiceName)
+	}
+	builder := service.ContainerizationOptions[0].ID
 	cnbbuilderstring, err := common.GetStringFromTemplate(scripts.CNBBuilder_sh, struct {
 		ImageName string
 		Builder   string

@@ -56,8 +56,8 @@ func (tt *TriggerTemplate) createNewResources(ir irtypes.EnhancedIR, supportedKi
 }
 
 func (*TriggerTemplate) createNewResource(tt tekton.TriggerTemplate, ir irtypes.EnhancedIR) *triggersv1alpha1.TriggerTemplate {
-	registryURL := ir.Kubernetes.RegistryURL
-	registryNamespace := ir.Kubernetes.RegistryNamespace
+	registryURL := ir.RegistryURL
+	registryNamespace := ir.RegistryNamespace
 	if registryURL == "" {
 		registryURL = common.DefaultRegistryURL
 	}

@@ -49,12 +49,9 @@ func (clusterMDLoader *ClusterMDLoader) UpdatePlan(inputPath string, plan *plant
 		plan.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType] = append(plan.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType], filePath)
 
 		// If we are targeting the default cluster type then change it to the custom cluster type the user provided.
-		if plan.Spec.Outputs.Kubernetes.TargetCluster.Type == common.DefaultClusterType {
-			plan.Spec.Outputs.Kubernetes.TargetCluster.Type = cm.Name
+		if plan.Spec.TargetCluster.Type == common.DefaultClusterType {
+			plan.Spec.TargetCluster.Type = cm.Name
 		}
-
-		//If there is a cluster-metadata available from collect, then set below flag to true
-		plan.Spec.Outputs.Kubernetes.IgnoreUnsupportedKinds = true
 	}
 	return nil
 }
@@ -62,13 +59,13 @@ func (clusterMDLoader *ClusterMDLoader) UpdatePlan(inputPath string, plan *plant
 // LoadToIR loads target cluster in IR
 func (clusterMDLoader *ClusterMDLoader) LoadToIR(plan plantypes.Plan, ir *irtypes.IR) error {
 	clusters := clusterMDLoader.GetClusters(plan)
-	target := plan.Spec.Outputs.Kubernetes.TargetCluster
+	target := plan.Spec.TargetCluster
 	if target.Type == "" && target.Path == "" {
 		log.Warnf("Neither type nor path is specified for the target cluster. Going with the default cluster type: %s", common.DefaultClusterType)
 		target.Type = common.DefaultClusterType
 	}
 	if target.Type != "" && target.Path != "" {
-		return fmt.Errorf("Only one of type or path should be specified for the target cluster. Target cluster: %v", target)
+		return fmt.Errorf("only one of type or path should be specified for the target cluster. Target cluster: %v", target)
 	}
 	key := target.Type
 	if target.Path != "" {
@@ -76,7 +73,7 @@ func (clusterMDLoader *ClusterMDLoader) LoadToIR(plan plantypes.Plan, ir *irtype
 	}
 	cm, ok := clusters[key]
 	if !ok {
-		return fmt.Errorf("The requested target cluster %v was not found", target)
+		return fmt.Errorf("the requested target cluster %v was not found", target)
 	}
 	ir.TargetClusterSpec = cm.Spec
 	return nil
@@ -97,6 +94,7 @@ func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[str
 			cm.Spec.StorageClasses = []string{common.DefaultStorageClassName}
 			log.Debugf("No storage class in the cluster %s, adding [default] storage class", name)
 		}
+		cm.Spec.Inbuilt = true
 		clusters[cm.Name] = cm
 	}
 
@@ -112,6 +110,7 @@ func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[str
 			cm.Spec.StorageClasses = []string{common.DefaultStorageClassName}
 			log.Debugf("No storage class in the cluster %s at path %q, adding [default] storage class", cm.Name, clusterMDPath)
 		}
+		cm.Spec.Inbuilt = false
 		clusters[cm.Name] = cm
 	}
 
@@ -125,7 +124,7 @@ func (*ClusterMDLoader) getClusterMetadata(path string) (collecttypes.ClusterMet
 		return cm, err
 	}
 	if cm.Kind != string(collecttypes.ClusterMetadataKind) {
-		err := fmt.Errorf("The file at path %q is not a valid cluster metadata. Expected kind: %s Actual kind: %s", path, collecttypes.ClusterMetadataKind, cm.Kind)
+		err := fmt.Errorf("the file at path %q is not a valid cluster metadata. Expected kind: %s Actual kind: %s", path, collecttypes.ClusterMetadataKind, cm.Kind)
 		log.Debug(err)
 		return cm, err
 	}

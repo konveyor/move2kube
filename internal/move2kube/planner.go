@@ -23,7 +23,6 @@ import (
 	"github.com/konveyor/move2kube/internal/containerizer"
 	"github.com/konveyor/move2kube/internal/metadata"
 	"github.com/konveyor/move2kube/internal/qaengine"
-	"github.com/konveyor/move2kube/internal/source"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,37 +31,12 @@ import (
 func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Plan {
 	p := plantypes.NewPlan()
 	p.Name = prjName
-	p.Spec.Inputs.RootDir = inputPath
-	allowKube2Kube := true
+	p.Spec.RootDir = inputPath
 
-	selectedTranslationPlanners := source.GetTranslators()
 	if interactive {
-		att := source.GetAllTranslatorTypes()
-		att = append(att, string(plantypes.Kube2KubeTranslation))
-		translationTypes := selectTranslators(att)
-		if len(translationTypes) == 0 {
-			log.Fatalf("No source was selected. Terminating.")
-		}
-		selectedTranslationPlanners = []source.Translator{}
-		for _, tp := range source.GetTranslators() {
-			tpn := (string)(tp.GetTranslatorType())
-			if common.IsStringPresent(translationTypes, tpn) {
-				selectedTranslationPlanners = append(selectedTranslationPlanners, tp)
-			}
-		}
-		if !common.IsStringPresent(translationTypes, string(plantypes.Kube2KubeTranslation)) {
-			allowKube2Kube = false
-		}
-
-		if common.IsStringPresent(translationTypes, string(plantypes.Any2KubeTranslation)) || common.IsStringPresent(translationTypes, string(plantypes.CfManifest2KubeTranslation)) {
-			containerizer.InitContainerizers(p.Spec.Inputs.RootDir, selectContainerizationTypes(containerizer.GetAllContainerBuildStrategies()))
-		}
+		containerizer.InitContainerizers(p.Spec.RootDir, selectContainerizationTypes(containerizer.GetAllContainerBuildStrategies()))
 	} else {
-		containerizer.InitContainerizers(p.Spec.Inputs.RootDir, nil)
-	}
-
-	if len(selectedTranslationPlanners) == 0 {
-		log.Debugf("No sources selected")
+		containerizer.InitContainerizers(p.Spec.RootDir, nil)
 	}
 
 	log.Infoln("Planning Translation")
@@ -72,17 +46,35 @@ func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Pl
 		if err != nil {
 			log.Warnf("[%T] Failed : %s", l, err)
 		} else {
-			p.AddServicesToPlan(services)
+			p.AddServicesToPlan(services, l.GetTranslatorType())
 			log.Infof("[%T] Done", l)
 		}
 	}
 	log.Infoln("Translation planning done")
 
+	// sort the containerization options in order of priority
+	for tt, serviceOptions := range p.Spec.Services {
+		for soi, so := range serviceOptions {
+			log.Debugf("Before sorting options of a service option: %s service options:\n%v", tt, so)
+			sort.Slice(so.ContainerizationTargetOptions, func(i, j int) bool {
+				return containerizer.ComesBefore(so.ContainerizationTargetOptions[i].ContainerBuildType, so.ContainerizationTargetOptions[j].ContainerBuildType)
+			})
+			p.Spec.Inputs.Services[tt][soi].ContainerizationTargetOptions = so.ContainerizationTargetOptions
+			log.Debugf("After sorting options of a service option: %s service options:\n%v", tt, so)
+		}
+	}
+
 	// sort the service options in order of priority
-	for serviceName, serviceOptions := range p.Spec.Inputs.Services {
+	for serviceName, serviceOptions := range p.Spec.Services {
 		log.Debugf("Before sorting options of service: %s service options:\n%v", serviceName, serviceOptions)
 		sort.Slice(serviceOptions, func(i, j int) bool {
-			return containerizer.ComesBefore(serviceOptions[i].ContainerBuildType, serviceOptions[j].ContainerBuildType)
+			if len(serviceOptions[j].ContainerizationTargetOptions) == 0 {
+				return true
+			}
+			if len(serviceOptions[i].ContainerizationTargetOptions) == 0 {
+				return false
+			}
+			return containerizer.ComesBefore(serviceOptions[i].ContainerizationTargetOptions[0].ContainerBuildType, serviceOptions[j].ContainerizationTargetOptions[0].ContainerBuildType)
 		})
 		log.Debugf("After sorting options of service: %s service options:\n%v", serviceName, serviceOptions)
 	}
@@ -115,19 +107,15 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 
 	// Identify translation types of interest
 	translationTypes := []string{}
-	for _, services := range p.Spec.Inputs.Services {
-		for _, service := range services {
-			translationTypes = append(translationTypes, string(service.TranslationType))
-		}
+	for tt := range p.Spec.Inputs.Services {
+		translationTypes = append(translationTypes, string(tt))
 	}
 	translationTypes = common.UniqueStrings(translationTypes)
 	selectedTranslationTypes := selectTranslators(translationTypes)
-	planServices := map[string][]plantypes.Service{}
-	for serviceName, services := range p.Spec.Inputs.Services {
-		for _, service := range services {
-			if common.IsStringPresent(selectedTranslationTypes, string(service.TranslationType)) {
-				planServices[serviceName] = append(planServices[serviceName], service)
-			}
+	planServices := map[plantypes.TranslationTypeValue][]plantypes.Service{}
+	for tt, services := range p.Spec.Inputs.Services {
+		if common.IsStringPresent(selectedTranslationTypes, string(tt)) {
+			planServices[tt] = services
 		}
 	}
 	p.Spec.Inputs.Services = planServices
@@ -141,8 +129,10 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 
 	// Identify services of interest
 	servicenames := []string{}
-	for sn := range p.Spec.Inputs.Services {
-		servicenames = append(servicenames, sn)
+	for _, svcs := range p.Spec.Inputs.Services {
+		for _, s := range svcs {
+			servicenames = append(servicenames, s.ServiceName)
+		}
 	}
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, servicenames, servicenames)
 	planServices = map[string][]plantypes.Service{}
@@ -162,7 +152,9 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	conTypes := []string{}
 	for _, serviceOptions := range p.Spec.Inputs.Services {
 		for _, serviceOption := range serviceOptions {
-			conTypes = append(conTypes, string(serviceOption.ContainerBuildType))
+			for _, cOption := range serviceOption.ContainerizationTargetOptions {
+				conTypes = append(conTypes, string(cOption.ContainerBuildType))
+			}
 		}
 	}
 	conTypes = common.UniqueStrings(conTypes)
@@ -175,11 +167,14 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	for serviceName, serviceOptions := range p.Spec.Inputs.Services {
 		sConTypes := []string{}
 		for _, serviceOption := range serviceOptions {
-			if common.IsStringPresent(selectedConTypes, string(serviceOption.ContainerBuildType)) {
-				sConTypes = append(sConTypes, string(serviceOption.ContainerBuildType))
+			if len(serviceOption.ContainerizationTargetOptions) == 0 {
+				log.Errorf("Ignoring service option for %s since no valid containerization section found", serviceOption.ServiceName)
+			}
+			if common.IsStringPresent(selectedConTypes, string(serviceOption.ContainerizationTargetOptions[0].ContainerBuildType)) {
+				sConTypes = append(sConTypes, string(serviceOption.ContainerizationTargetOptions[0].ContainerBuildType))
 			}
 		}
-		// TODO: service options should be have unique container build types already so we don't need to make sConTypes unique.
+		// TODO: service options should have unique container build types already so we don't need to make sConTypes unique.
 		// we need this because of a bug where different folders with the same name get detected as the same service.
 		sConTypes = common.UniqueStrings(sConTypes)
 		if len(sConTypes) == 0 {

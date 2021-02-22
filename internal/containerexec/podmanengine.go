@@ -72,7 +72,7 @@ func (e *podmanEngine) pullImage(image string) bool {
 func (e *podmanEngine) RunContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error) {
 	if !e.pullImage(image) {
 		log.Debugf("Unable to pull image using podman : %s", image)
-		return "", false, fmt.Errorf("Unable to pull image")
+		return "", false, fmt.Errorf("unable to pull image")
 	}
 	args := []string{"run", "--rm"}
 	if volsrc != "" && voldest != "" {

@@ -148,12 +148,12 @@ func recurse(value reflect.Value, ctx context) error {
 }
 
 func convertPathsDecode(plan *Plan) error {
-	rootDir, err := filepath.Abs(plan.Spec.Inputs.RootDir)
+	rootDir, err := filepath.Abs(plan.Spec.RootDir)
 	if err != nil {
-		log.Errorf("Failed to make the root directory path %q absolute. Error %q", plan.Spec.Inputs.RootDir, err)
+		log.Errorf("Failed to make the root directory path %q absolute. Error %q", plan.Spec.RootDir, err)
 		return err
 	}
-	plan.Spec.Inputs.RootDir = rootDir
+	plan.Spec.RootDir = rootDir
 
 	ctx := context{Convert: plan.GetAbsolutePath}
 	planV := reflect.ValueOf(plan).Elem()
@@ -172,12 +172,12 @@ func convertPathsEncode(plan *Plan) error {
 		log.Errorf("Failed to get the current working directory. Error %q", err)
 		return err
 	}
-	rootDir, err := filepath.Rel(pwd, plan.Spec.Inputs.RootDir)
+	rootDir, err := filepath.Rel(pwd, plan.Spec.RootDir)
 	if err != nil {
 		log.Errorf("Failed to make the root directory path %q relative to the current working directory %q Error %q", rootDir, pwd, err)
 		return err
 	}
-	plan.Spec.Inputs.RootDir = rootDir
+	plan.Spec.RootDir = rootDir
 	return nil
 }
 
@@ -232,7 +232,7 @@ func IsAssetsPath(path string) bool {
 // SetRootDir changes the root directory of the plan.
 // The `rootDir` must be an cleaned absolute path.
 func (plan *Plan) SetRootDir(rootDir string) error {
-	oldRootDir := plan.Spec.Inputs.RootDir
+	oldRootDir := plan.Spec.RootDir
 
 	convert := func(oldPath string) (string, error) {
 		if oldPath == "" || !filepath.IsAbs(oldPath) || IsAssetsPath(oldPath) {
@@ -252,7 +252,7 @@ func (plan *Plan) SetRootDir(rootDir string) error {
 		return err
 	}
 
-	plan.Spec.Inputs.RootDir = rootDir
+	plan.Spec.RootDir = rootDir
 	return nil
 }
 
@@ -268,7 +268,7 @@ func (plan *Plan) GetRelativePath(absPath string) (string, error) {
 	if IsAssetsPath(absPath) {
 		return filepath.Rel(common.TempPath, absPath)
 	}
-	return filepath.Rel(plan.Spec.Inputs.RootDir, absPath)
+	return filepath.Rel(plan.Spec.RootDir, absPath)
 }
 
 // GetAbsolutePath takes a path relative to the plan's root directory or
@@ -284,5 +284,5 @@ func (plan *Plan) GetAbsolutePath(relPath string) (string, error) {
 	if IsAssetsPath(relPath) {
 		return filepath.Join(common.TempPath, relPath), nil
 	}
-	return filepath.Join(plan.Spec.Inputs.RootDir, relPath), nil
+	return filepath.Join(plan.Spec.RootDir, relPath), nil
 }

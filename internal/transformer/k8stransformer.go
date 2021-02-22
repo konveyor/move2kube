@@ -50,8 +50,8 @@ type K8sTransformer struct {
 	Containers                      []irtypes.Container
 	Values                          outputtypes.HelmValues
 	TargetClusterSpec               collecttypes.ClusterMetadataSpec
+	Helm                            bool
 	Name                            string
-	IgnoreUnsupportedKinds          bool
 	ExposedServicePaths             map[string]string
 }
 
@@ -71,10 +71,8 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 	log.Debugf("Total services to be transformed : %d", len(ir.Services))
 
 	kt.Name = ir.Name
-	kt.Values = ir.Values
 	kt.Containers = ir.Containers
 	kt.TargetClusterSpec = ir.TargetClusterSpec
-	kt.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 
 	kt.TransformedObjects = convertIRToObjects(irtypes.NewEnhancedIRFromIR(ir), kt.getAPIResources())
 
@@ -83,7 +81,6 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 		log.Debugf("Failed to paramterize the IR. Error: %q", err)
 		parameterizedIR = ir
 	}
-	kt.Values = parameterizedIR.Values
 
 	kt.ParameterizedTransformedObjects = convertIRToObjects(irtypes.NewEnhancedIRFromIR(parameterizedIR), kt.getAPIResources())
 	if len(kt.TransformedObjects) != len(kt.ParameterizedTransformedObjects) {
@@ -157,7 +154,7 @@ func (kt *K8sTransformer) getAPIResources() []apiresource.IAPIResource {
 
 // WriteObjects writes the transformed objects to files.
 // The output folder structure is given below:
-// myproject/
+// <appname>/
 //   deploy/
 //     yamls/
 //     kustomize/
@@ -167,7 +164,7 @@ func (kt *K8sTransformer) getAPIResources() []apiresource.IAPIResource {
 //         staging/
 //         prod/
 //     helm/
-//       myproject/
+//       <appname>/
 //     operator/
 //     cicd/
 //       tekton/
@@ -182,16 +179,19 @@ func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []strin
 
 	// source/
 	areNewImagesCreated := writeContainers(kt.Containers, outputPath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace)
-
-	// deploy/helm/ and scripts/deployhelm.sh
+	// deploy/helm/<appname> and scripts/deployhelm.sh
 	helmPath := filepath.Join(deployPath, common.HelmDir, kt.Name)
 	if err := kt.generateHelmArtifacts(helmPath, outputPath, kt.Values, transformPaths); err != nil {
 		log.Debugf("Failed to generate helm metadata properly, continuing anyway. Error: %q", err)
 	}
-
+	// deploy/helm/<appname>/templates/
+	helmArtifactsPath := filepath.Join(deployPath, "helm", templatesDir)
+	if _, err := writeTransformedObjects(helmArtifactsPath, kt.ParameterizedTransformedObjects, kt.TargetClusterSpec, transformPaths); err != nil {
+		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
+	}
 	// deploy/yamls/
 	log.Debugf("Total %d services to be serialized.", len(kt.TransformedObjects))
-	fixedConvertedTransformedObjs, err := fixConvertAndTransformObjs(kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths)
+	fixedConvertedTransformedObjs, err := fixConvertAndTransformObjs(kt.TransformedObjects, kt.TargetClusterSpec, transformPaths)
 	if err != nil {
 		log.Errorf("Failed to fix, convert and transform the objects. Error: %q", err)
 	}
@@ -366,7 +366,7 @@ func (kt *K8sTransformer) generateKustomize(kustomizePath string, transformPaths
 	}
 	// deploy/kustomize/base/
 	kustomizeBaseDir := filepath.Join(kustomizePath, "base")
-	if _, err := writeTransformedObjects(kustomizeBaseDir, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths); err != nil {
+	if _, err := writeTransformedObjects(kustomizeBaseDir, kt.TransformedObjects, kt.TargetClusterSpec, transformPaths); err != nil {
 		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
 	}
 
@@ -376,11 +376,11 @@ func (kt *K8sTransformer) generateKustomize(kustomizePath string, transformPaths
 
 	for i, obj := range kt.TransformedObjects {
 		paramObj := kt.ParameterizedTransformedObjects[i]
-		fixedObj, err := fixAndConvert(obj, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds)
+		fixedObj, err := fixAndConvert(obj, kt.TargetClusterSpec)
 		if err != nil {
 			continue
 		}
-		fixedParamObj, err := fixAndConvert(paramObj, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds)
+		fixedParamObj, err := fixAndConvert(paramObj, kt.TargetClusterSpec)
 		if err != nil {
 			continue
 		}

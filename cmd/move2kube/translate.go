@@ -32,13 +32,11 @@ import (
 
 type translateFlags struct {
 	cmdcommon.TranslateFlags
-	curate       bool
 	qadisablecli bool
 	qaport       int
 }
 
 const (
-	curateFlag       = "curate"
 	qadisablecliFlag = "qadisablecli"
 	qaportFlag       = "qaport"
 )
@@ -105,8 +103,8 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		if p, err = plan.ReadPlan(flags.Planfile); err != nil {
 			log.Fatalf("Unable to read the plan at path %s Error: %q", flags.Planfile, err)
 		}
-		if len(p.Spec.Inputs.Services) == 0 {
-			if len(p.Spec.Inputs.K8sFiles) == 0 {
+		if len(p.Spec.Services) == 0 {
+			if len(p.Spec.K8sFiles) == 0 {
 				log.Fatalf("Failed to find any services. Aborting.")
 			} else {
 				log.Infof("No services found. Proceeding for kubernetes artifacts translation.")
@@ -122,11 +120,11 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 
 		// Global settings
-		cmdcommon.CheckSourcePath(p.Spec.Inputs.RootDir)
+		cmdcommon.CheckSourcePath(p.Spec.RootDir)
 		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
 		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
-		if p.Spec.Inputs.RootDir == flags.Outpath || common.IsParent(flags.Outpath, p.Spec.Inputs.RootDir) || common.IsParent(p.Spec.Inputs.RootDir, flags.Outpath) {
-			log.Fatalf("The source path %s and output path %s overlap.", p.Spec.Inputs.RootDir, flags.Outpath)
+		if p.Spec.RootDir == flags.Outpath || common.IsParent(flags.Outpath, p.Spec.RootDir) || common.IsParent(p.Spec.RootDir, flags.Outpath) {
+			log.Fatalf("The source path %s and output path %s overlap.", p.Spec.RootDir, flags.Outpath)
 		}
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
 			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
@@ -139,9 +137,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 		// Global settings
 
-		if flags.curate {
-			p = move2kube.CuratePlan(p)
-		}
+		p = move2kube.CuratePlan(p)
 	}
 
 	// Translate
@@ -171,7 +167,6 @@ func getTranslateCommand() *cobra.Command {
 
 	// Basic options
 	translateCmd.Flags().StringVarP(&flags.Planfile, cmdcommon.PlanFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
-	translateCmd.Flags().BoolVarP(&flags.curate, curateFlag, "c", false, "Specify whether to curate the plan with a q/a.")
 	translateCmd.Flags().BoolVar(&flags.Overwrite, cmdcommon.OverwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
 	translateCmd.Flags().StringVarP(&flags.Srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory to translate. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
 	translateCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", ".", "Path for output. Default will be directory with the project name.")

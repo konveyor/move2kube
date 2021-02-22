@@ -137,8 +137,7 @@ func TestUpdatePlan(t *testing.T) {
 		p := plantypes.NewPlan()
 		want := plantypes.NewPlan()
 		want.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType] = []string{"testdata/validfiles/test1.yaml", "testdata/validfiles/test2.yml"}
-		want.Spec.Outputs.Kubernetes.TargetCluster = plantypes.TargetClusterType{Type: "name1"}
-		want.Spec.Outputs.Kubernetes.IgnoreUnsupportedKinds = true
+		want.Spec.TargetCluster = plantypes.TargetClusterType{Type: "name1"}
 		loader := metadata.ClusterMDLoader{}
 		inputPath := "testdata/validfiles"
 

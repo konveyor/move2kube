@@ -35,6 +35,7 @@ var (
 
 // Fix fixes kubernetes objects
 func Fix(obj runtime.Object) runtime.Object {
+	objgv := obj.GetObjectKind().GroupVersionKind().GroupVersion()
 	for _, fixer := range fixers {
 		fgvk := fixer.getGroupVersionKind()
 		if fgvk.Kind == obj.GetObjectKind().GroupVersionKind().Kind {
@@ -44,10 +45,14 @@ func Fix(obj runtime.Object) runtime.Object {
 				log.Errorf("Unable to convert to %s for fixer %T", fgvk, fixer)
 				continue
 			}
-			obj = newobj
-			newobj, err = fixer.fix(obj)
+			newobj, err = fixer.fix(newobj)
 			if err != nil {
-				log.Errorf("Unable to fix %s using fixer %T", fgvk, fixer)
+				log.Errorf("Unable to fix %s using fixer %T : %s", fgvk, fixer, err)
+				continue
+			}
+			newobj, err = k8sschema.ConvertToVersion(newobj, objgv)
+			if err != nil {
+				log.Errorf("Unable to convert back %s : %s", fgvk, err)
 				continue
 			}
 			obj = newobj

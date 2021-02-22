@@ -29,9 +29,7 @@ import (
 	libcomposeyaml "github.com/docker/libcompose/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/containerizer"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	plantypes "github.com/konveyor/move2kube/types/plan"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -93,14 +91,14 @@ func removeNonExistentEnvFilesV3(path string, parsedComposeFile map[string]inter
 func ParseV3(path string) (*types.Config, error) {
 	fileData, err := ioutil.ReadFile(path)
 	if err != nil {
-		err := fmt.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		err := fmt.Errorf("unable to load Compose file at path %s Error: %q", path, err)
 		log.Debug(err)
 		return nil, err
 	}
 	// Parse the Compose File
 	parsedComposeFile, err := loader.ParseYAML(fileData)
 	if err != nil {
-		err := fmt.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		err := fmt.Errorf("unable to load Compose file at path %s Error: %q", path, err)
 		log.Debug(err)
 		return nil, err
 	}
@@ -113,7 +111,7 @@ func ParseV3(path string) (*types.Config, error) {
 	}
 	config, err := loader.Load(configDetails)
 	if err != nil {
-		err := fmt.Errorf("Unable to load Compose file at path %s Error: %q", path, err)
+		err := fmt.Errorf("unable to load Compose file at path %s Error: %q", path, err)
 		log.Debug(err)
 		return nil, err
 	}
@@ -121,7 +119,7 @@ func ParseV3(path string) (*types.Config, error) {
 }
 
 // ConvertToIR loads an v3 compose file into IR
-func (c *V3Loader) ConvertToIR(composefilepath string, plan plantypes.Plan, service plantypes.Service) (irtypes.IR, error) {
+func (c *V3Loader) ConvertToIR(composefilepath string, serviceName string) (irtypes.IR, error) {
 	log.Debugf("About to load configuration from docker compose file at path %s", composefilepath)
 	config, err := ParseV3(composefilepath)
 	if err != nil {
@@ -129,10 +127,10 @@ func (c *V3Loader) ConvertToIR(composefilepath string, plan plantypes.Plan, serv
 		return irtypes.IR{}, err
 	}
 	log.Debugf("About to start loading docker compose to intermediate rep")
-	return c.convertToIR(filepath.Dir(composefilepath), *config, plan, service)
+	return c.convertToIR(filepath.Dir(composefilepath), *config, serviceName)
 }
 
-func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan plantypes.Plan, service plantypes.Service) (irtypes.IR, error) {
+func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, serviceName string) (irtypes.IR, error) {
 	ir := irtypes.IR{
 		Services: map[string]irtypes.Service{},
 	}
@@ -144,7 +142,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 	ir.Storages = append(ir.Storages, c.getConfigStorages(composeObject.Configs)...)
 
 	for _, composeServiceConfig := range composeObject.Services {
-		if composeServiceConfig.Name != service.ServiceName {
+		if composeServiceConfig.Name != serviceName {
 			continue
 		}
 		name := common.NormalizeForServiceName(composeServiceConfig.Name)
@@ -154,17 +152,6 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, plan 
 		serviceContainer.Image = composeServiceConfig.Image
 		if serviceContainer.Image == "" {
 			serviceContainer.Image = name + ":latest"
-		}
-		if composeServiceConfig.Build.Dockerfile != "" || composeServiceConfig.Build.Context != "" {
-			//TODO: Add support for args and labels
-			// filedir, name, serviceContainer.Image, composeServiceConfig.Build.Dockerfile, composeServiceConfig.Build.Context
-
-			con, err := new(containerizer.ReuseDockerfileContainerizer).GetContainer(plan, service)
-			if err != nil {
-				log.Warnf("Unable to get containization script even though build parameters are present : %s", err)
-			} else {
-				ir.AddContainer(con)
-			}
 		}
 		serviceContainer.WorkingDir = composeServiceConfig.WorkingDir
 		serviceContainer.Command = composeServiceConfig.Entrypoint

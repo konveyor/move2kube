@@ -28,19 +28,15 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer/scripts"
 	irtypes "github.com/konveyor/move2kube/internal/types"
-	"github.com/konveyor/move2kube/types"
+	"github.com/konveyor/move2kube/types/containerizer"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 )
 
 // DockerfileContainerizer implements Containerizer interface
 type DockerfileContainerizer struct {
-	dfcontainerizers []string //Paths to directories containing containerizers
+	dfcontainerizers map[string]containerizer.DockerfileContainerizer
 }
-
-const (
-	dockerfileDetectScript string = types.AppNameShort + "dfdetect.sh"
-)
 
 // GetContainerBuildStrategy returns the ContaierBuildStrategy
 func (*DockerfileContainerizer) GetContainerBuildStrategy() plantypes.ContainerBuildTypeValue {
@@ -49,14 +45,40 @@ func (*DockerfileContainerizer) GetContainerBuildStrategy() plantypes.ContainerB
 
 // Init initializes docker file containerizer
 func (d *DockerfileContainerizer) Init(path string) {
-	files, err := common.GetFilesByName(path, []string{dockerfileDetectScript})
-	if err != nil {
-		log.Warnf("Unable to fetch files to recognize docker detect scripts : %s", err)
+	if d.dfcontainerizers == nil {
+		d.dfcontainerizers = map[string]containerizer.DockerfileContainerizer{}
 	}
-	for _, file := range files {
-		d.dfcontainerizers = append(d.dfcontainerizers, filepath.Dir(file))
+	filePaths, err := common.GetFilesByExt(path, []string{".yml", ".yaml"})
+	if err != nil {
+		log.Warnf("Unable to find dockerfile containerizers : %s", err)
+	}
+
+	for _, filePath := range filePaths {
+		c, err := d.readContainerizerMetadata(filePath)
+		if err != nil {
+			continue
+		}
+		c.Spec.FilePath = filePath
+		if oc, ok := d.dfcontainerizers[c.Name]; ok {
+			log.Errorf("Found duplicate containerizer for %s, ignoring %+v", c.Name, oc)
+		}
+		d.dfcontainerizers[c.Name] = c
 	}
 	log.Debugf("Detected Dockerfile containerization options : %v", d.dfcontainerizers)
+}
+
+func (d *DockerfileContainerizer) readContainerizerMetadata(path string) (containerizer.DockerfileContainerizer, error) {
+	cm := containerizer.DockerfileContainerizer{}
+	if err := common.ReadMove2KubeYaml(path, &cm); err != nil {
+		log.Debugf("Failed to read the containerizer metadata at path %q Error: %q", path, err)
+		return cm, err
+	}
+	if cm.Kind != string(containerizer.DockerfileContainerizerTypeKind) {
+		err := fmt.Errorf("The file at path %q is not a valid containerizer metadata. Expected kind: %s Actual kind: %s", path, containerizer.DockerfileContainerizerTypeKind, cm.Kind)
+		log.Debug(err)
+		return cm, err
+	}
+	return cm, nil
 }
 
 // GetTargetOptions returns the target options for a path
@@ -69,7 +91,7 @@ func (d *DockerfileContainerizer) GetTargetOptions(_ plantypes.Plan, path string
 			continue
 		}
 		log.Debugf("Output of Dockerfile containerizer detect script %s : %s", dfcontainerizer, output)
-		targetOptions = append(targetOptions, dfcontainerizer)
+		targetOptions = append(targetOptions, dfcontainerizer.Name)
 	}
 	return targetOptions
 }
@@ -87,12 +109,12 @@ func (*DockerfileContainerizer) detect(scriptDir string, directory string) (stri
 // GetContainer returns the container for a service
 func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	// TODO: Fix exposed ports too
-	if service.ContainerBuildType != d.GetContainerBuildStrategy() || len(service.ContainerizationTargetOptions) == 0 {
-		return irtypes.Container{}, fmt.Errorf("unsupported service type for containerization or insufficient information in service")
+	if service.ContainerBuildType != d.GetContainerBuildStrategy() || len(service.ContainerizationOptions) == 0 {
+		return irtypes.Container{}, fmt.Errorf("Unsupported service type for containerization or insufficient information in service")
 	}
 	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
 	container.RepoInfo = service.RepoInfo // TODO: instead of passing this in from plan phase, we should gather git info here itself.
-	containerizerDir := service.ContainerizationTargetOptions[0]
+	containerizerDir := service.ContainerizationOptions[0]
 	sourceCodeDir := service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0] // TODO: what about the other source artifacts?
 
 	relOutputPath, err := plan.GetRelativePath(sourceCodeDir)

@@ -24,7 +24,6 @@ import (
 
 //ingressCustomizer customizes ingress host
 type ingressCustomizer struct {
-	ir *irtypes.IR
 }
 
 //customize customizes the ingress host

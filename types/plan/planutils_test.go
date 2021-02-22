@@ -128,8 +128,8 @@ func TestSetRootDir(t *testing.T) {
 		if err := plan.SetRootDir(newRootDir); err != nil {
 			t.Fatalf("Failed to set the root directory properly. Error: %q", err)
 		}
-		if plan.Spec.Inputs.RootDir != newRootDir {
-			t.Fatalf("Failed to set the root directory properly. Expected: %s Actual: %s", newRootDir, plan.Spec.Inputs.RootDir)
+		if plan.Spec.RootDir != newRootDir {
+			t.Fatalf("Failed to set the root directory properly. Expected: %s Actual: %s", newRootDir, plan.Spec.RootDir)
 		}
 		if !cmp.Equal(plan, want) {
 			t.Fatalf("Failed to udpate the paths with the new root directory correctly. Difference:\n%s", cmp.Diff(want, plan))
@@ -172,8 +172,8 @@ func TestSetRootDir(t *testing.T) {
 		if err := plan.SetRootDir(newRootDir); err != nil {
 			t.Fatalf("Failed to set the root directory properly. Error: %q", err)
 		}
-		if plan.Spec.Inputs.RootDir != newRootDir {
-			t.Fatalf("Failed to set the root directory properly. Expected: %s Actual: %s", newRootDir, plan.Spec.Inputs.RootDir)
+		if plan.Spec.RootDir != newRootDir {
+			t.Fatalf("Failed to set the root directory properly. Expected: %s Actual: %s", newRootDir, plan.Spec.RootDir)
 		}
 		// Reset to the old root
 		if err := plan.SetRootDir(oldRootDir); err != nil {

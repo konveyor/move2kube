@@ -28,8 +28,8 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/containerizer"
 	"github.com/konveyor/move2kube/internal/source/data"
-	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -43,13 +43,8 @@ import (
 type CfManifestTranslator struct {
 }
 
-// GetTranslatorType returns the translator type
-func (*CfManifestTranslator) GetTranslatorType() plantypes.TranslationTypeValue {
-	return plantypes.CfManifest2KubeTranslation
-}
-
 // GetServiceOptions - output a plan based on the input directory contents
-func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) ([]plantypes.Service, error) {
+func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath string, plan plantypes.Plan) (map[string]plantypes.Service, error) {
 	services := []plantypes.Service{}
 
 	filePaths, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
@@ -116,23 +111,23 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 			}
 			appinstancefilepath, appinstance := getCfInstanceApp(cfInstanceApps, applicationName)
 			if application.DockerImage != "" || appinstance.DockerImage != "" {
-				service := cfManifestTranslator.newService(applicationName)
-				service.ContainerBuildType = plantypes.ReuseContainerBuildTypeValue
-				if application.DockerImage != "" {
-					service.Image = application.DockerImage
-				} else {
-					service.Image = appinstance.DockerImage
-				}
-				service.UpdateContainerBuildPipeline = false
+				service := plantypes.Service{}
+				service.GenerationOptions = []plantypes.GenerationOption{{
+					Mode: plantypes.GenerationModeContainer,
+					Name: string(plantypes.ReuseContainerBuildTypeValue),
+				}}
 				services = append(services, service)
 				appsCovered = append(appsCovered, applicationName)
 				continue
 			}
 			containerizationoptionsfound := false
 			for _, cop := range containerizer.GetContainerizationOptions(plan, fullbuilddirectory) {
-				service := cfManifestTranslator.newService(applicationName)
-				service.ContainerBuildType = cop.ContainerizationType
-				service.ContainerizationTargetOptions = cop.TargetOptions
+				service := plantypes.Service{}
+				service.GenerationOptions = []plantypes.GenerationOption{{
+					Mode: cop.ContainerizationType,
+					Name: string(plantypes.ReuseContainerBuildTypeValue),
+				}}
+				service.ContainerizationOptions = cop.TargetOptions
 				service.AddSourceArtifact(plantypes.CfManifestArtifactType, filePath)
 				if appinstance.Name != "" {
 					service.AddSourceArtifact(plantypes.CfRunningManifestArtifactType, appinstancefilepath)
@@ -166,7 +161,7 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 				}
 				service := cfManifestTranslator.newService(applicationName)
 				service.ContainerBuildType = containerizer.ContainerBuildType
-				service.ContainerizationTargetOptions = containerizer.ContainerizationTargetOptions
+				service.ContainerizationOptions = containerizer.ContainerizationTargetOptions
 				service.AddSourceArtifact(plantypes.CfManifestArtifactType, filePath)
 				if appinstance.Name != "" {
 					service.AddSourceArtifact(plantypes.CfRunningManifestArtifactType, appinstancefilepath)
@@ -208,7 +203,6 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 						if application.DockerImage != "" {
 							service.Image = application.DockerImage
 						}
-						service.UpdateContainerBuildPipeline = false
 						services = append(services, service)
 					} else {
 						containerizationoptionsfound := false
@@ -216,7 +210,7 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 						for _, cop := range containerizer.GetContainerizationOptions(plan, fullbuilddirectory) {
 							service := cfManifestTranslator.newService(applicationName)
 							service.ContainerBuildType = cop.ContainerizationType
-							service.ContainerizationTargetOptions = cop.TargetOptions
+							service.ContainerizationOptions = cop.TargetOptions
 							service.AddSourceArtifact(plantypes.CfRunningManifestArtifactType, appfilepath)
 							if !common.IsStringPresent(service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType], fullbuilddirectory) {
 								service.AddSourceArtifact(plantypes.SourceDirectoryArtifactType, fullbuilddirectory)
@@ -235,7 +229,7 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 							if isbuildpackmatched {
 								service := cfManifestTranslator.newService(applicationName)
 								service.ContainerBuildType = containerizer.ContainerBuildType
-								service.ContainerizationTargetOptions = containerizer.ContainerizationTargetOptions
+								service.ContainerizationOptions = containerizer.ContainerizationTargetOptions
 								service.AddSourceArtifact(plantypes.CfRunningManifestArtifactType, appfilepath)
 								if !common.IsStringPresent(service.BuildArtifacts[plantypes.SourceDirectoryBuildArtifactType], fullbuilddirectory) {
 									service.AddSourceArtifact(plantypes.SourceDirectoryArtifactType, fullbuilddirectory)
@@ -409,15 +403,6 @@ func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes
 		}
 	}
 	return ir, nil
-}
-
-func (cfManifestTranslator *CfManifestTranslator) newService(serviceName string) plantypes.Service {
-	service := plantypes.NewService(serviceName, cfManifestTranslator.GetTranslatorType())
-	service.AddSourceType(plantypes.DirectorySourceTypeValue)
-	service.AddSourceType(plantypes.CfManifestSourceTypeValue)
-	service.UpdateContainerBuildPipeline = true
-	service.UpdateDeployPipeline = true
-	return service
 }
 
 // ReadApplicationManifest reads an application manifest
