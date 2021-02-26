@@ -1,0 +1,23 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: javaspringapp
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: javaspringapp-selector
+    spec:
+      containers:
+        - image: "static question: [services.svc1.containers.[0].image]"
+          name: 'dynamic question: [services."javaspringapp".containers.[0].name]'
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi

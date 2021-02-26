@@ -57,13 +57,13 @@ func (c *CICDTransformer) Transform(ir irtypes.IR) error {
 }
 
 // WriteObjects writes the CI/CD artifacts to files
-func (c *CICDTransformer) WriteObjects(outDirectory string) error {
+func (c *CICDTransformer) WriteObjects(outDirectory string, transformPaths []string) error {
 	cicdPath := filepath.Join(outDirectory, "cicd")
 	if err := os.MkdirAll(cicdPath, common.DefaultDirectoryPermission); err != nil {
 		log.Fatalf("Failed to create the CI/CD directory at path %q. Error: %q", cicdPath, err)
 		return err
 	}
-	if _, err := writeTransformedObjects(cicdPath, c.transformedObjects, c.TargetClusterSpec, false); err != nil {
+	if _, err := writeTransformedObjects(cicdPath, c.transformedObjects, c.TargetClusterSpec, false, transformPaths); err != nil {
 		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
 		return err
 	}

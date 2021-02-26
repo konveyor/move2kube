@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "javaspringapp"
+spec:
+  # this replicas value is default
+  # modify it according to your case
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app: "javaspringapp-selector"
+    spec:
+      containers:
+        - name: javaspringapp
+          image: javaspringapp:latest
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi

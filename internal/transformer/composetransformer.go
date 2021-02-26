@@ -87,7 +87,7 @@ func (kt *ComposeTransformer) Transform(ir irtypes.IR) error {
 }
 
 // WriteObjects writes Transformed objects to filesystem
-func (kt *ComposeTransformer) WriteObjects(outpath string) error {
+func (kt *ComposeTransformer) WriteObjects(outpath string, transformPaths []string) error {
 	err := os.MkdirAll(outpath, common.DefaultDirectoryPermission)
 	if err != nil {
 		log.Errorf("Unable to create output directory %s : %s", outpath, err)

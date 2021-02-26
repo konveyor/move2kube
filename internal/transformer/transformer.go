@@ -19,25 +19,26 @@ package transform
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
-	"strings"
 
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
 	"github.com/konveyor/move2kube/internal/k8sschema/fixer"
+	"github.com/konveyor/move2kube/internal/starlark"
+	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
+	"github.com/konveyor/move2kube/internal/starlark/runtransforms"
+	"github.com/konveyor/move2kube/internal/starlark/types"
 	"github.com/konveyor/move2kube/internal/transformer/templates"
+	"github.com/konveyor/move2kube/internal/transformer/transformations"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	"github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -48,7 +49,7 @@ type Transformer interface {
 	// Transform translates intermediate representation to destination objects
 	Transform(ir irtypes.IR) error
 	// WriteObjects writes Transformed objects to filesystem
-	WriteObjects(outDirectory string) error
+	WriteObjects(outDirectory string, TransformPaths []string) error
 }
 
 // GetTransformer returns a transformer that is suitable for an IR
@@ -182,21 +183,16 @@ func writeContainers(containers []irtypes.Container, outpath, rootDir, registryU
 	return false
 }
 
-func writeTransformedObjects(path string, objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool) ([]string, error) {
-	fileswritten := []string{}
-	err := os.MkdirAll(path, common.DefaultDirectoryPermission)
-	if err != nil {
-		log.Errorf("Unable to create directory %s : %s", path, err)
-		return nil, err
-	}
+func writeTransformedObjects(outputPath string, objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool, transformPaths []string) ([]string, error) {
+	k8sResources := []types.K8sResourceT{}
 	for _, obj := range objs {
 		fixedobj := fixer.Fix(obj)
-		obj, err = k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec, ignoreUnsupportedKinds)
+		obj, err := k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec, ignoreUnsupportedKinds)
 		if err != nil {
 			log.Warnf("Ignoring object : %s", err)
 			continue
 		}
-		//Encode object
+		// Encode object as yaml
 		j, err := json.Marshal(obj)
 		if err != nil {
 			log.Errorf("Error while Marshalling object : %s", err)
@@ -215,19 +211,24 @@ func writeTransformedObjects(path string, objs []runtime.Object, clusterSpec col
 			log.Errorf("Error while Encoding object : %s", err)
 			continue
 		}
-		//Write to file
-		data := b.Bytes()
-		val := reflect.ValueOf(obj).Elem()
-		typeMeta := val.FieldByName("TypeMeta").Interface().(metav1.TypeMeta)
-		objectMeta := val.FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
-		file := fmt.Sprintf("%s-%s.yaml", objectMeta.Name, strings.ToLower(typeMeta.Kind))
-		file = filepath.Join(path, file)
-		if err := ioutil.WriteFile(file, data, common.DefaultFilePermission); err != nil {
-			log.Errorf("Failed to write %q Error: %q", typeMeta.Kind, err)
+		// Get k8s resources from yaml
+		k8sYaml := string(b.Bytes())
+		currK8sResources, err := gettransformdata.GetK8sResourcesFromYaml(k8sYaml)
+		if err != nil {
+			log.Errorf("Failed to decode the k8s resource from the marshalled yaml. Error: %q", err)
 			continue
 		}
-		fileswritten = append(fileswritten, file)
-		log.Debugf("%q created", file)
+		k8sResources = append(k8sResources, currK8sResources...)
 	}
-	return fileswritten, nil
+
+	// Run transformations on k8s resources
+	transforms, err := gettransformdata.GetTransformsFromPaths(transformPaths, transformations.AnswerFn, transformations.AskStaticQuestion, transformations.AskDynamicQuestion)
+	if err != nil {
+		log.Fatalf("Failed to get the transformations. Error: %q", err)
+	}
+	transformedK8sResources, err := runtransforms.ApplyTransforms(transforms, k8sResources)
+	if err != nil {
+		log.Fatalf("Failed to apply the transformations. Error: %q", err)
+	}
+	return starlark.WriteResources(transformedK8sResources, outputPath)
 }

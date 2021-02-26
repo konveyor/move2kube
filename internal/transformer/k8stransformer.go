@@ -92,7 +92,7 @@ func (kt *K8sTransformer) getAPIResources() []apiresource.IAPIResource {
 }
 
 // WriteObjects writes Transformed objects to filesystem
-func (kt *K8sTransformer) WriteObjects(outpath string) error {
+func (kt *K8sTransformer) WriteObjects(outpath string, transformPaths []string) error {
 	areNewImagesCreated := writeContainers(kt.Containers, outpath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace, kt.AddCopySources)
 
 	artifactspath := filepath.Join(outpath, kt.Name)
@@ -103,7 +103,7 @@ func (kt *K8sTransformer) WriteObjects(outpath string) error {
 		artifactspath = filepath.Join(artifactspath, helmTemplatesRelPath)
 	}
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))
-	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds)
+	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths)
 	if err != nil {
 		log.Errorf("Error occurred while writing transformed objects %s", err)
 	}
@@ -113,6 +113,7 @@ func (kt *K8sTransformer) WriteObjects(outpath string) error {
 		kt.writeDeployScript(kt.Name, outpath)
 	}
 	kt.writeReadMe(kt.Name, areNewImagesCreated, kt.Helm, kt.AddCopySources, outpath)
+
 	return nil
 }
 

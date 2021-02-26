@@ -70,7 +70,11 @@ func translateHandler(cmd *cobra.Command, flags cmdcommon.TranslateFlags) {
 	plan = move2kube.CuratePlan(plan)
 
 	// Translate
-	move2kube.Translate(plan, flags.Outpath, qadisablecli)
+	cleanTransformPaths, err := cmdcommon.NormalizePaths(flags.TransformPaths)
+	if err != nil {
+		log.Fatalf("Failed to clean the paths:\n%+v\nError: %q", flags.TransformPaths, err)
+	}
+	move2kube.Translate(plan, flags.Outpath, qadisablecli, cleanTransformPaths)
 	log.Infof("Translated target artifacts can be found at [%s].", flags.Outpath)
 }
 
@@ -115,6 +119,7 @@ For more documentation and support for this plugin and Move2Kube, visit https://
 	translateCmd.Flags().BoolVar(&flags.Qaskip, cmdcommon.QASkipFlag, false, "Enable/disable the default answers to questions posed in QA sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 	translateCmd.Flags().BoolVarP(&flags.Overwrite, cmdcommon.OverwriteFlag, "", false, "Overwrite the output directory if it exists. By default we don't overwrite.")
 	translateCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
+	translateCmd.Flags().StringSliceVarP(&flags.TransformPaths, cmdcommon.TransformsFlag, "t", []string{}, "Specify paths to transformation scripts to apply")
 
 	must(translateCmd.MarkFlagRequired(cmdcommon.SourceFlag))
 

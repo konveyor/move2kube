@@ -145,7 +145,11 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	}
 
 	// Translate
-	move2kube.Translate(p, flags.Outpath, flags.qadisablecli)
+	cleanTransformPaths, err := cmdcommon.NormalizePaths(flags.TransformPaths)
+	if err != nil {
+		log.Fatalf("Failed to clean the paths:\n%+v\nError: %q", flags.TransformPaths, err)
+	}
+	move2kube.Translate(p, flags.Outpath, flags.qadisablecli, cleanTransformPaths)
 	log.Infof("Translated target artifacts can be found at [%s].", flags.Outpath)
 }
 
@@ -176,6 +180,7 @@ func getTranslateCommand() *cobra.Command {
 	translateCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
 	translateCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
+	translateCmd.Flags().StringSliceVarP(&flags.TransformPaths, cmdcommon.TransformsFlag, "t", []string{}, "Specify paths to transformation scripts to apply")
 
 	// Advanced options
 	translateCmd.Flags().BoolVar(&flags.IgnoreEnv, cmdcommon.IgnoreEnvFlag, false, "Ignore data from local machine.")

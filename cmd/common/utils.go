@@ -17,7 +17,9 @@ limitations under the License.
 package common
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 
 	internalcommon "github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
@@ -46,6 +48,8 @@ const (
 	PreSetFlag = "preset"
 	// OverwriteFlag is the name of the flag that lets you overwrite the output directory if it exists
 	OverwriteFlag = "overwrite"
+	// TransformsFlag is the name of the flag that lets you specify a list of paths to transformations scripts
+	TransformsFlag = "transforms"
 )
 
 //TranslateFlags to store values from command line paramters
@@ -54,24 +58,26 @@ type TranslateFlags struct {
 	IgnoreEnv bool
 	//Planfile is contains the path to the plan file
 	Planfile string
-	//Outpath contains path to the output folder
+	//Outpath contains the path to the output folder
 	Outpath string
 	//SourceFlag contains path to the source folder
 	Srcpath string
 	//Name contains the project name
 	Name string
-	//Qacaches contains list of qacache files
+	//Qacaches contains a list of qacache files
 	Qacaches []string
-	//Configs contains list of config files
+	//Configs contains a list of config files
 	Configs []string
-	//Configs contains list of key-value configs
+	//Configs contains a list of key-value configs
 	Setconfigs []string
 	//Qaskip lets you skip all the question answers
 	Qaskip bool
 	// Overwrite lets you overwrite the output directory if it exists
 	Overwrite bool
-	//PreSets contains list of preset configurations
+	//PreSets contains a list of preset configurations
 	PreSets []string
+	// TransformPaths contains a list of paths to starlark transformation scripts
+	TransformPaths []string
 }
 
 // CheckSourcePath checks if the source path is an existing directory.
@@ -119,4 +125,17 @@ func CheckOutputPath(outpath string, overwrite bool) {
 		log.Fatalf("The given output directory %s is a parent of the current working directory.", outpath)
 	}
 	log.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
+}
+
+// NormalizePaths cleans the paths and makes them absolute
+func NormalizePaths(paths []string) ([]string, error) {
+	newPaths := []string{}
+	for _, path := range paths {
+		newPath, err := filepath.Abs(path)
+		if err != nil {
+			return newPaths, fmt.Errorf("Failed to make the path %s absolute. Error: %q", path, err)
+		}
+		newPaths = append(newPaths, newPath)
+	}
+	return newPaths, nil
 }
