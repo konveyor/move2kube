@@ -70,11 +70,11 @@ func translateHandler(cmd *cobra.Command, flags cmdcommon.TranslateFlags) {
 	plan = move2kube.CuratePlan(plan)
 
 	// Translate
-	cleanTransformPaths, err := cmdcommon.NormalizePaths(flags.TransformPaths)
+	normalizedTransformPaths, err := cmdcommon.NormalizePaths(flags.TransformPaths)
 	if err != nil {
 		log.Fatalf("Failed to clean the paths:\n%+v\nError: %q", flags.TransformPaths, err)
 	}
-	move2kube.Translate(plan, flags.Outpath, qadisablecli, cleanTransformPaths)
+	move2kube.Translate(plan, flags.Outpath, qadisablecli, normalizedTransformPaths)
 	log.Infof("Translated target artifacts can be found at [%s].", flags.Outpath)
 }
 
