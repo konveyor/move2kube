@@ -129,21 +129,25 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 		if kind != kt.Kind {
 			continue
 		}
-		oobj := obj
+		uvobj := obj
 		if objgv.Group == extensions.SchemeGroupVersion.Group {
 			log.Debugf("Attempting conversion of %s obj to %s", objgv, kt)
 			eobj, err := checkAndConvertToVersion(obj, extensions.SchemeGroupVersion)
 			if err != nil {
 				log.Debugf("Unable to convert to unversioned object : %s", err)
 			} else {
-				oobj = eobj
+				uvobj = eobj
 			}
 		}
-		log.Debugf("Attempting conversion of %s obj to %s", oobj.GetObjectKind().GroupVersionKind(), kt)
-		uvobj, err := checkAndConvertToVersion(oobj, kt.GroupVersion())
-		if err != nil {
-			log.Debugf("Unable to convert to unversioned object : %s", err)
-			continue
+		if dgv.Group != extensions.SchemeGroupVersion.Group {
+			log.Debugf("Attempting conversion of %s obj to %s", uvobj.GetObjectKind().GroupVersionKind(), kt)
+			iobj, err := checkAndConvertToVersion(uvobj, kt.GroupVersion())
+			if err != nil {
+				log.Debugf("Unable to convert to unversioned object : %s", err)
+				continue
+			} else {
+				uvobj = iobj
+			}
 		}
 		log.Debugf("Converted %s obj to %s", objgv, kt)
 		newobj, err = checkAndConvertToVersion(uvobj, dgv)
