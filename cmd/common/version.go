@@ -31,8 +31,8 @@ func GetVersionCommand() *cobra.Command {
 	long := false
 	versionCmd := &cobra.Command{
 		Use:   "version",
-		Short: "Print the client version information",
-		Long:  "Print the client version information",
+		Short: "Print the version information",
+		Long:  "Print the version information",
 		Run:   func(*cobra.Command, []string) { fmt.Println(move2kube.GetVersion(long)) },
 	}
 
