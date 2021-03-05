@@ -57,9 +57,9 @@ func ConvertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 
 // ConvertToSupportedVersion converts obj to a supported Version
 func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) (newobj runtime.Object, err error) {
-	objvk := obj.GetObjectKind().GroupVersionKind()
-	objgv := objvk.GroupVersion()
-	kind := objvk.Kind
+	objgvk := obj.GetObjectKind().GroupVersionKind()
+	objgv := objgvk.GroupVersion()
+	kind := objgvk.Kind
 	log.Debugf("Converting %s to supported version", kind)
 	versions := clusterSpec.GetSupportedVersions(kind)
 	if versions == nil || len(versions) == 0 {
@@ -92,9 +92,9 @@ func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 
 // ConvertToPreferredVersion converts obj to a preferred Version
 func convertToPreferredVersion(obj runtime.Object) (newobj runtime.Object, err error) {
-	objvk := obj.GetObjectKind().GroupVersionKind()
-	objgv := objvk.GroupVersion()
-	kind := objvk.Kind
+	objgvk := obj.GetObjectKind().GroupVersionKind()
+	objgv := objgvk.GroupVersion()
+	kind := objgvk.Kind
 	log.Debugf("Converting %s to preferred version", kind)
 	versions := scheme.PrioritizedVersionsForGroup(objgv.Group)
 	if kind == common.ServiceKind && objgv.Group == knativev1.SchemeGroupVersion.Group {
@@ -148,8 +148,8 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 			} else {
 				uvobj = iobj
 			}
+			log.Debugf("Converted %s obj to %s", objgv, kt)
 		}
-		log.Debugf("Converted %s obj to %s", objgv, kt)
 		newobj, err = checkAndConvertToVersion(uvobj, dgv)
 		if err == nil {
 			return newobj, nil
