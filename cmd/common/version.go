@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package common
 
 import (
 	"fmt"
@@ -24,7 +24,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func getVersionCommand() *cobra.Command {
+// GetVersionCommand returns the version
+func GetVersionCommand() *cobra.Command {
 	viper.AutomaticEnv()
 
 	long := false
