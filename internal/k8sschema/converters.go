@@ -124,33 +124,32 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 		return newobj, nil
 	}
 	log.Debugf("Unable to do direct translation : %s", err)
+	if objgv.Group == extensions.SchemeGroupVersion.Group {
+		log.Debugf("Attempting conversion of %s obj to %s", objgv, extensions.SchemeGroupVersion)
+		eobj, err := checkAndConvertToVersion(obj, extensions.SchemeGroupVersion)
+		if err != nil {
+			log.Debugf("Unable to convert to unversioned object : %s", err)
+		} else {
+			obj = eobj
+		}
+	}
 	akt := liasonscheme.AllKnownTypes()
 	for kt := range akt {
 		if kind != kt.Kind {
 			continue
 		}
-		uvobj := obj
-		if objgv.Group == extensions.SchemeGroupVersion.Group {
-			log.Debugf("Attempting conversion of %s obj to %s", objgv, kt)
-			eobj, err := checkAndConvertToVersion(obj, extensions.SchemeGroupVersion)
-			if err != nil {
-				log.Debugf("Unable to convert to unversioned object : %s", err)
-			} else {
-				uvobj = eobj
-			}
-		}
 		if dgv.Group != extensions.SchemeGroupVersion.Group {
-			log.Debugf("Attempting conversion of %s obj to %s", uvobj.GetObjectKind().GroupVersionKind(), kt)
-			iobj, err := checkAndConvertToVersion(uvobj, kt.GroupVersion())
+			log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
+			iobj, err := checkAndConvertToVersion(obj, kt.GroupVersion())
 			if err != nil {
 				log.Debugf("Unable to convert to unversioned object : %s", err)
 				continue
 			} else {
-				uvobj = iobj
+				obj = iobj
 			}
 			log.Debugf("Converted %s obj to %s", objgv, kt)
 		}
-		newobj, err = checkAndConvertToVersion(uvobj, dgv)
+		newobj, err = checkAndConvertToVersion(obj, dgv)
 		if err == nil {
 			return newobj, nil
 		}
@@ -165,22 +164,21 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 func ConvertToLiasonScheme(obj runtime.Object) (newobj runtime.Object, err error) {
 	kind := obj.GetObjectKind().GroupVersionKind().Kind
 	akt := liasonscheme.AllKnownTypes()
+	if obj.GetObjectKind().GroupVersionKind().Group == extensions.SchemeGroupVersion.Group {
+		log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), extensions.SchemeGroupVersion)
+		eobj, err := checkAndConvertToVersion(obj, extensions.SchemeGroupVersion)
+		if err != nil {
+			log.Debugf("Unable to convert to unversioned object : %s", err)
+		} else {
+			obj = eobj
+		}
+	}
 	for kt := range akt {
 		if kind != kt.Kind {
 			continue
 		}
-		oobj := obj
-		if obj.GetObjectKind().GroupVersionKind().Group == extensions.SchemeGroupVersion.Group {
-			log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
-			eobj, err := checkAndConvertToVersion(obj, extensions.SchemeGroupVersion)
-			if err != nil {
-				log.Debugf("Unable to convert to unversioned object : %s", err)
-			} else {
-				oobj = eobj
-			}
-		}
-		log.Debugf("Attempting conversion of %s obj to %s", oobj.GetObjectKind().GroupVersionKind(), kt)
-		uvobj, err := checkAndConvertToVersion(oobj, kt.GroupVersion())
+		log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
+		uvobj, err := checkAndConvertToVersion(obj, kt.GroupVersion())
 		if err != nil {
 			log.Debugf("Unable to convert to unversioned object : %s", err)
 			continue
