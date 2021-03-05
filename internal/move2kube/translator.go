@@ -31,7 +31,7 @@ import (
 )
 
 // Translate translates the artifacts and writes output
-func Translate(p plantypes.Plan, outpath string, qadisablecli bool) {
+func Translate(p plantypes.Plan, outpath string, qadisablecli bool, TransformPaths []string) {
 	conTypes := []string{}
 	for _, s := range p.Spec.Inputs.Services {
 		if len(s) > 0 && !common.IsStringPresent(conTypes, string(s[0].ContainerBuildType)) {
@@ -71,7 +71,7 @@ func Translate(p plantypes.Plan, outpath string, qadisablecli bool) {
 	dct := transform.ComposeTransformer{}
 	if err := dct.Transform(optimizedir); err != nil {
 		log.Errorf("Error during translate docker compose file : %s", err)
-	} else if err = dct.WriteObjects(outpath); err != nil {
+	} else if err = dct.WriteObjects(outpath, nil); err != nil {
 		log.Errorf("Unable to write docker compose objects : %s", err)
 	}
 
@@ -95,7 +95,7 @@ func Translate(p plantypes.Plan, outpath string, qadisablecli bool) {
 		cicd := transform.CICDTransformer{}
 		if err := cicd.Transform(ir); err != nil {
 			log.Errorf("Error while genrationg CI/CD resource fomr the IR. Error: %q", err)
-		} else if err = cicd.WriteObjects(outpath); err != nil {
+		} else if err = cicd.WriteObjects(outpath, nil); err != nil {
 			log.Errorf("Unable to write the CI/CD artifacts to files. Error: %q", err)
 		}
 	}
@@ -104,7 +104,7 @@ func Translate(p plantypes.Plan, outpath string, qadisablecli bool) {
 	t := transform.GetTransformer(ir)
 	if err := t.Transform(ir); err != nil {
 		log.Fatalf("Error during translate. Error: %q", err)
-	} else if err := t.WriteObjects(outpath); err != nil {
+	} else if err := t.WriteObjects(outpath, TransformPaths); err != nil {
 		log.Fatalf("Unable to write objects Error: %q", err)
 	}
 

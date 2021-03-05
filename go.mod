@@ -24,6 +24,7 @@ require (
 	github.com/openshift/api v0.0.0-20200930075302-db52bc4ef99f // release-4.6
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
+	github.com/qri-io/starlib v0.4.2
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.1
@@ -33,8 +34,10 @@ require (
 	github.com/tektoncd/triggers v0.10.0
 	github.com/whilp/git-urls v1.0.0
 	github.com/xrash/smetrics v0.0.0-20200730060457-89a2a8a1fb0b
+	go.starlark.net v0.0.0-20210223155950-e043a3d3c984
 	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
+	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.19.4
 	k8s.io/apimachinery v0.19.4

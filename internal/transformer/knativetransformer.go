@@ -65,13 +65,13 @@ func (kt *KnativeTransformer) getAPIResources() []apiresource.IAPIResource {
 }
 
 // WriteObjects writes Transformed objects to filesystem
-func (kt *KnativeTransformer) WriteObjects(outpath string) error {
+func (kt *KnativeTransformer) WriteObjects(outpath string, transformPaths []string) error {
 	areNewImagesCreated := writeContainers(kt.Containers, outpath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace, kt.AddCopySources)
 
 	artifactspath := filepath.Join(outpath, kt.Name)
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))
 
-	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds)
+	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths)
 	if err != nil {
 		log.Errorf("Error occurred while writing transformed objects %s", err)
 	}

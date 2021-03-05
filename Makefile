@@ -70,6 +70,7 @@ help: ## This help.
 
 .PHONY: build
 build: get $(BINDIR)/$(BINNAME) ## Build go code
+	@printf "\033[32m-------------------------------------\n BUILD SUCCESS\n-------------------------------------\033[0m\n"
 
 $(BINDIR)/$(BINNAME): $(SRC)
 	go build -tags excludecodegen,excludedist -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/${BINNAME}
@@ -107,6 +108,7 @@ deps:
 .PHONY: test
 test: ## Run tests
 	go test -run . $(PKG) -race
+	@printf "\033[32m-------------------------------------\n TESTS PASSED\n-------------------------------------\033[0m\n"
 
 ${GOTEST}:
 	${GOGET} github.com/rakyll/gotest
@@ -133,6 +135,7 @@ test-style: ${GOLANGCILINT} ${GOLINT}
 	${GOLANGCILINT} run --timeout 3m
 	${GOLINT} ${PKG}
 	scripts/licensecheck.sh
+	@printf "\033[32m-------------------------------------\n STYLE CHECK PASSED\n-------------------------------------\033[0m\n"
 
 # -- CI --
 
