@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/extensions"
 	knativev1 "knative.dev/serving/pkg/apis/serving/v1"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -128,8 +129,18 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 		if kind != kt.Kind {
 			continue
 		}
-		log.Debugf("Attempting conversion of %s obj to %s", objgv, kt)
-		uvobj, err := checkAndConvertToVersion(obj, kt.GroupVersion())
+		oobj := obj
+		if objgv.Group == extensions.SchemeGroupVersion.Group {
+			log.Debugf("Attempting conversion of %s obj to %s", objgv, kt)
+			eobj, err := checkAndConvertToVersion(obj, extensions.SchemeGroupVersion)
+			if err != nil {
+				log.Debugf("Unable to convert to unversioned object : %s", err)
+			} else {
+				oobj = eobj
+			}
+		}
+		log.Debugf("Attempting conversion of %s obj to %s", oobj.GetObjectKind().GroupVersionKind(), kt)
+		uvobj, err := checkAndConvertToVersion(oobj, kt.GroupVersion())
 		if err != nil {
 			log.Debugf("Unable to convert to unversioned object : %s", err)
 			continue
@@ -154,8 +165,18 @@ func ConvertToLiasonScheme(obj runtime.Object) (newobj runtime.Object, err error
 		if kind != kt.Kind {
 			continue
 		}
-		log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
-		uvobj, err := checkAndConvertToVersion(obj, kt.GroupVersion())
+		oobj := obj
+		if obj.GetObjectKind().GroupVersionKind().Group == extensions.SchemeGroupVersion.Group {
+			log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
+			eobj, err := checkAndConvertToVersion(obj, extensions.SchemeGroupVersion)
+			if err != nil {
+				log.Debugf("Unable to convert to unversioned object : %s", err)
+			} else {
+				oobj = eobj
+			}
+		}
+		log.Debugf("Attempting conversion of %s obj to %s", oobj.GetObjectKind().GroupVersionKind(), kt)
+		uvobj, err := checkAndConvertToVersion(oobj, kt.GroupVersion())
 		if err != nil {
 			log.Debugf("Unable to convert to unversioned object : %s", err)
 			continue
