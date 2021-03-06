@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package common
 
 import (
 	"fmt"
@@ -24,14 +24,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-func getVersionCommand() *cobra.Command {
+// GetVersionCommand returns the version
+func GetVersionCommand() *cobra.Command {
 	viper.AutomaticEnv()
 
 	long := false
 	versionCmd := &cobra.Command{
 		Use:   "version",
-		Short: "Print the client version information",
-		Long:  "Print the client version information",
+		Short: "Print the version information",
+		Long:  "Print the version information",
 		Run:   func(*cobra.Command, []string) { fmt.Println(move2kube.GetVersion(long)) },
 	}
 

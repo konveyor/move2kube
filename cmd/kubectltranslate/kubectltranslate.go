@@ -123,6 +123,8 @@ For more documentation and support for this plugin and Move2Kube, visit https://
 
 	must(translateCmd.MarkFlagRequired(cmdcommon.SourceFlag))
 
+	translateCmd.AddCommand(cmdcommon.GetVersionCommand())
+
 	// Run
 	assetsPath, tempPath, err := common.CreateAssetsData()
 	if err != nil {
