@@ -54,7 +54,7 @@ download() {
     fi
     echo "Downloading $1"
     if [ "$HAS_CURL" = 'true' ]; then
-        curl -sSL -o "$2" "$1"
+        curl -fsSL -o "$2" "$1"
     else
         wget -q -O "$2" "$1"
     fi
@@ -160,7 +160,7 @@ getLatestVersion() {
     local json_data=''
     local release_info_url='https://raw.githubusercontent.com/konveyor/move2kube/gh-pages/_data/releaseinfo.json'
     if [ "$HAS_CURL" = 'true' ]; then
-        json_data="$(curl -Ls "$release_info_url")"
+        json_data="$(curl -fsSL "$release_info_url")"
     elif [ "$HAS_WGET" = 'true' ]; then
         json_data="$(wget -qO - "$release_info_url")"
     fi
