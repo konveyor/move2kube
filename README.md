@@ -15,6 +15,7 @@ Move2Kube is a command-line tool that accelerates the process of re-platforming 
 
 ### Using install script
 
+To install the latest stable version:
 ```
 bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
 ```
