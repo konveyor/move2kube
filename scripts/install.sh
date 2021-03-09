@@ -14,9 +14,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# verifySupported checks that the os/arch combination is supported for
-# binary builds, as well whether or not necessary tools are present.
-
 [[ $DEBUG ]] || DEBUG='false'
 
 print_usage() {
@@ -38,6 +35,7 @@ fi
 [[ $USE_SUDO ]] || USE_SUDO='true'
 [[ $BINARY_NAME ]] || BINARY_NAME='move2kube'
 [[ $MOVE2KUBE_TAG ]] || MOVE2KUBE_TAG='latest'
+[[ $BLEEDING_EDGE ]] || BLEEDING_EDGE='false'
 [[ $VERIFY_CHECKSUM ]] || VERIFY_CHECKSUM='true'
 [[ $MOVE2KUBE_INSTALL_DIR ]] || MOVE2KUBE_INSTALL_DIR='/usr/local/bin'
 
@@ -139,6 +137,21 @@ verifySupported() {
         echo 'Please install sha256sum or openssl or set VERIFY_CHECKSUM=false in your environment.'
         exit 1
     fi
+    installDependencies
+}
+
+# installDependencies installs all the dependencies we need.
+installDependencies() {
+    JQ='jq'
+    if [ "$HAS_JQ" = 'false' ]; then
+        JQ="$(mktemp -d)/jq"
+        if [ "${OS}-${ARCH}" = 'darwin-amd64' ]; then
+            download 'https://github.com/stedolan/jq/releases/download/jq-1.6/jq-osx-amd64' "$JQ"
+        else
+            download 'https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64' "$JQ"
+        fi
+        chmod +x "$JQ"
+    fi
 }
 
 # getLatestVersion gets the latest release version.
@@ -151,11 +164,29 @@ getLatestVersion() {
     elif [ "$HAS_WGET" = 'true' ]; then
         json_data="$(wget -qO - "$release_info_url")"
     fi
-    if [ "$HAS_JQ" = 'true' ]; then
-        MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | jq -r .current.release)"
-    else
-        MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | grep 'release' | head -n 1 | sed -E 's/.*(v[0-9]+\.[0-9]+\.[0-9]+)",$/\1/')"
+    if [ "$BLEEDING_EDGE" != 'true' ]; then
+        echo 'installing the latest stable version'
+        MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | "$JQ" -r '.current.release')"
+        return
     fi
+    echo 'installing the bleeding edge version'
+    MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | "$JQ" -r '.next_next.prerelease')"
+    if [ "$MOVE2KUBE_TAG" != 'null' ]; then
+        return
+    fi
+    MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | "$JQ" -r '.next.prerelease')"
+    if [ "$MOVE2KUBE_TAG" != 'null' ]; then
+        return
+    fi
+    local current_prerelease
+    local current_release
+    current_prerelease="$(printf '%s\n' "$json_data" | "$JQ" -r '.current.prerelease')"
+    current_release="$(printf '%s\n' "$json_data" | "$JQ" -r '.current.release')"
+    if [[ "$current_prerelease" = "$current_release"* ]]; then
+        MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | "$JQ" -r '.current.release')"
+        return
+    fi
+    MOVE2KUBE_TAG="$(printf '%s\n' "$json_data" | "$JQ" -r '.current.prerelease')"
 }
 
 # checkMove2KubeInstalledVersion checks which version of move2kube is installed and
@@ -269,8 +300,12 @@ downloadAndInstallPlugin() {
 
 # cleanup temporary files.
 cleanup() {
+    echo 'cleaning up temporary files and directories...'
     if [[ -d "${MOVE2KUBE_TMP_ROOT:-}" ]]; then
         rm -rf "$MOVE2KUBE_TMP_ROOT"
+    fi
+    if [ "$JQ" != 'jq' ]; then
+        rm -rf "$(dirname "$JQ")"
     fi
 }
 
