@@ -24,10 +24,10 @@ With Move2Kube, generating the Kubernetes/OpenShift deployment artifacts for you
    $ bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
    ```
 
-1. Use [our sample docker-compose.yaml](https://raw.githubusercontent.com/konveyor/move2kube-demos/main/samples/docker-compose/docker-compose.yaml) file or your own
+1. Use our sample [docker-compose.yaml](https://raw.githubusercontent.com/konveyor/move2kube-demos/main/samples/docker-compose/single-service/docker-compose.yaml) file or your own
 
    ```console
-   $ wget -P samples/docker-compose/ https://raw.githubusercontent.com/konveyor/move2kube-demos/main/samples/docker-compose/docker-compose.yaml
+   $ wget -P samples/docker-compose/ https://raw.githubusercontent.com/konveyor/move2kube-demos/main/samples/docker-compose/single-service/docker-compose.yaml
 
    $ cd samples
 
