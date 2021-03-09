@@ -19,6 +19,16 @@ Move2Kube is a command-line tool that accelerates the process of re-platforming 
 bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
 ```
 
+To install a specific version (for example version `v0.2.0-alpha.3`):
+```
+MOVE2KUBE_TAG='v0.2.0-alpha.3' bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
+```
+
+To install the bleeding edge version:
+```
+BLEEDING_EDGE='true' bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
+```
+
 ### Using Homebrew
 
 ```
