@@ -23,4 +23,4 @@ RUN mvn package
 # Run App
 FROM registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift:latest
 EXPOSE {{ .port }}
-COPY --from=build_base /{{ .app_name }}/target/*.jar /deployments/
+COPY --from=build_base /{{ .app_name }}/target/* /deployments/
