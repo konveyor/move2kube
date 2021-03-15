@@ -75,7 +75,8 @@ func (d *DockerfileContainerizer) GetTargetOptions(_ plantypes.Plan, path string
 }
 
 func (*DockerfileContainerizer) detect(scriptDir string, directory string) (string, error) {
-	cmd := exec.Command("/bin/sh", dockerfileDetectScript, directory)
+	scriptPath := filepath.Join(scriptDir, dockerfileDetectScript)
+	cmd := exec.Command(scriptPath, directory)
 	cmd.Dir = scriptDir
 	cmd.Stderr = os.Stderr
 	log.Debugf("Executing detect script %s on %s : %s", scriptDir, directory, cmd)

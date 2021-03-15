@@ -75,7 +75,8 @@ func (d *S2IContainerizer) GetTargetOptions(_ plantypes.Plan, path string) []str
 }
 
 func (*S2IContainerizer) detect(scriptDir string, directory string) (string, error) {
-	cmd := exec.Command("/bin/sh", s2iDetectScript, directory)
+	scriptPath := filepath.Join(scriptDir, s2iDetectScript)
+	cmd := exec.Command(scriptPath, directory)
 	cmd.Dir = scriptDir
 	cmd.Stderr = os.Stderr
 	log.Debugf("Executing detect script %s on %s : %s", scriptDir, directory, cmd)
