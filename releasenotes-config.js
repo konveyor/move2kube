@@ -6,7 +6,7 @@ module.exports = {
     { title: "🐛 Bug Fixes", labels: ["bug", "fix", "revert"] },
     { title: "🧹 Maintenance", labels: ["docs", "style", "refactor", "test", "build", "ci", "chore"] },
   ],
-  header: `For more documentation and support please visit https://konveyor.io/move2kube/
+  header: `For more documentation and support please visit https://move2kube.konveyor.io/
 # Changelog`,
   line_template: x => `- ${x.title} [#${x.number}](${x.html_url})`,
 }

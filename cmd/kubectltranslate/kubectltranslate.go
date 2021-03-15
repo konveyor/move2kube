@@ -96,7 +96,7 @@ It supports translating from docker swarm/docker-compose, cloud foundry apps and
 Even if the app does not use any of the above, or even if it is not containerized it can still be translated.
 
 This plugin is a small feature of a more flexible CLI tool called Move2Kube https://github.com/konveyor/move2kube
-For more documentation and support for this plugin and Move2Kube, visit https://konveyor.io/move2kube
+For more documentation and support for this plugin and Move2Kube, visit https://move2kube.konveyor.io/
 `,
 		Run: func(cmd *cobra.Command, _ []string) {
 			if verbose {

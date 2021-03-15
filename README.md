@@ -55,7 +55,7 @@ We also provide a UI version of Move2Kube
 
 ![Usage](./imgs/usage.png)
 
-Checkout the [Getting started](https://konveyor.io/move2kube/docs/getting-started) guide and [Tutorials](https://konveyor.io/move2kube/docs/tutorial) for more information.
+Checkout the [Getting started](https://move2kube.konveyor.io/docs/getting-started) guide and [Tutorials](https://move2kube.konveyor.io/docs/tutorial) for more information.
 
 ## Prerequisites
 
@@ -107,4 +107,4 @@ Checkout the [Getting started](https://konveyor.io/move2kube/docs/getting-starte
 ## Discussion
 
 * Check out the [document guides](./docs) to extend Move2Kube.
-* For any questions reach out to us on any of the communication channels given on our website https://konveyor.io/move2kube/
+* For any questions reach out to us on any of the communication channels given on our website https://move2kube.konveyor.io/

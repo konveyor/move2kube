@@ -38,7 +38,7 @@ func main() {
 It supports translating from docker swarm/docker-compose, cloud foundry apps and even other non-containerized applications.
 Even if the app does not use any of the above, or even if it is not containerized it can still be translated.
 
-For more documentation and support, visit https://konveyor.io/move2kube
+For more documentation and support, visit https://move2kube.konveyor.io/
 `,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			if verbose {

@@ -165,7 +165,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.event.inputs.tag }}
           prev_tag: ${{ github.event.inputs.prev_tag }}
-          config: .grenrc.js
+          config: releasenotes-config.js
       - id: info
         uses: konveyor/get-env-info@v1
       - uses: actions/setup-go@v2
