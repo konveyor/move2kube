@@ -186,11 +186,9 @@ jobs:
           file: _dist/output/*
           file_glob: true
           overwrite: true
-      - if: ${{ steps.semver_parser.outputs.prerelease == '' }}
-        name: build and release the plugin if it is not a prerelease
+      - name: build and release the plugin
         run: VERSION='${{ github.event.inputs.tag }}' make dist-kubectl-translate
-      - if: ${{ steps.semver_parser.outputs.prerelease == '' }}
-        name: upload plugin release assets
+      - name: upload plugin release assets
         uses: HarikrishnanBalagopal/upload-release-action@v3
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
