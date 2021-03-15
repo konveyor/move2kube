@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #   Copyright IBM Corporation 2020
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +14,6 @@
 #   limitations under the License.
 
 # Takes as input the source folder and returns error if it is not fit
-BASE_DIR=$1
-
 if [ ! -f "$1/Pipfile" ]; then
    exit 1
 fi

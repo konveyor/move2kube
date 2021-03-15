@@ -42,13 +42,12 @@ func TestMakeConstants(t *testing.T) {
 			t.Fatalf("Failed to create the test directory at path %q. Error: %q", testdir, err)
 		}
 		fpath := filepath.Join(testdir, "constants.go")
-		testdatapath := "testdata/maptempemptyskiptimestamp.txt"
+		testdatapath := "testdata/maptempempty.txt"
 		testdatabytes, err := ioutil.ReadFile(testdatapath)
 		if err != nil {
 			t.Fatalf("Failed to read the testdata at path %q. Error: %q", testdatapath, err)
 		}
 		want := string(testdatabytes)
-		wantNumLines := 8 + 17 // 17 lines for license and spaces
 
 		// Test
 		if err := makeConstants(testdir, maptemp); err != nil {
@@ -59,12 +58,6 @@ func TestMakeConstants(t *testing.T) {
 			t.Fatal("Failed to create the constants.go file (or failed to read it after creation). Error:", err)
 		}
 		data := string(databytes)
-		lines := strings.Split(data, "\n")
-		if len(lines) != wantNumLines {
-			t.Fatal("Failed to generate the code properly. Expected number of lines:", wantNumLines, "Actual:", len(lines))
-		}
-		lines = append(lines[:2], lines[3:]...) // Skip the timestamp
-		data = strings.Join(lines, "\n")
 		if data != want {
 			t.Fatal("Failed to generate the code properly. Expected:", want, "Actual:", data)
 		}
@@ -78,13 +71,12 @@ func TestMakeConstants(t *testing.T) {
 			t.Fatalf("Failed to create the test directory at path %q. Error: %q", testdir, err)
 		}
 		fpath := filepath.Join(testdir, "constants.go")
-		testdatapath := "testdata/conststempemptyskiptimestamp.txt"
+		testdatapath := "testdata/conststempempty.txt"
 		testdatabytes, err := ioutil.ReadFile(testdatapath)
 		if err != nil {
 			t.Fatalf("Failed to read the testdata at path %q. Error: %q", testdatapath, err)
 		}
 		want := string(testdatabytes)
-		wantNumLines := 8 + 17 // 17 lines for license and spaces
 
 		// Test
 		if err := makeConstants(testdir, conststemp); err != nil {
@@ -95,12 +87,6 @@ func TestMakeConstants(t *testing.T) {
 			t.Fatal("Failed to create the constants.go file (or failed to read it after creation). Error:", err)
 		}
 		data := string(databytes)
-		lines := strings.Split(data, "\n")
-		if len(lines) != wantNumLines {
-			t.Fatal("Failed to generate the code properly. Expected number of lines:", wantNumLines, "Actual:", len(lines))
-		}
-		lines = append(lines[:2], lines[3:]...) // Skip the timestamp
-		data = strings.Join(lines, "\n")
 		if data != want {
 			t.Fatal("Failed to generate the code properly. Expected:", want, "Actual:", data)
 		}
@@ -114,13 +100,12 @@ func TestMakeConstants(t *testing.T) {
 		if err := os.Remove(fpath); err != nil && !os.IsNotExist(err) {
 			t.Fatalf("Failed to remove the file at path %q. Error: %q", fpath, err)
 		}
-		testdatapath := "testdata/maptempfilledskiptimestamp.txt"
+		testdatapath := "testdata/maptempfilled.txt"
 		testdatabytes, err := ioutil.ReadFile(testdatapath)
 		if err != nil {
 			t.Fatalf("Failed to read the testdata at path %q. Error: %q", testdatapath, err)
 		}
 		want := string(testdatabytes)
-		wantNumLines := 22 + 17 // 17 lines for license and spaces
 
 		// Test
 		if err := makeConstants(testdir, maptemp); err != nil {
@@ -132,12 +117,6 @@ func TestMakeConstants(t *testing.T) {
 			t.Fatal("Failed to create the constants.go file (or failed to read it after creation). Error:", err)
 		}
 		data := string(databytes)
-		lines := strings.Split(data, "\n")
-		if len(lines) != wantNumLines {
-			t.Fatal("Failed to generate the code properly. Expected number of lines:", wantNumLines, "Actual:", len(lines))
-		}
-		lines = append(lines[:2], lines[3:]...) // Skip the timestamp
-		data = strings.Join(lines, "\n")
 		if data != want {
 			t.Fatal("Failed to generate the code properly. Expected:", want, "Actual:", data)
 		}
@@ -151,13 +130,12 @@ func TestMakeConstants(t *testing.T) {
 		if err := os.Remove(fpath); err != nil && !os.IsNotExist(err) {
 			t.Fatalf("Failed to remove the file at path %q. Error: %q", fpath, err)
 		}
-		testdatapath := "testdata/conststempfilledskiptimestamp.txt"
+		testdatapath := "testdata/conststempfilled.txt"
 		testdatabytes, err := ioutil.ReadFile(testdatapath)
 		if err != nil {
 			t.Fatalf("Failed to read the testdata at path %q. Error: %q", testdatapath, err)
 		}
 		want := string(testdatabytes)
-		wantNumLines := 22 + 17 // 17 lines for license and spaces
 
 		// Test
 		if err := makeConstants(testdir, conststemp); err != nil {
@@ -169,12 +147,6 @@ func TestMakeConstants(t *testing.T) {
 			t.Fatal("Failed to create the constants.go file (or failed to read it after creation). Error:", err)
 		}
 		data := string(databytes)
-		lines := strings.Split(data, "\n")
-		if len(lines) != wantNumLines {
-			t.Fatal("Failed to generate the code properly. Expected number of lines:", wantNumLines, "Actual:", len(lines))
-		}
-		lines = append(lines[:2], lines[3:]...) // Skip the timestamp
-		data = strings.Join(lines, "\n")
 		if data != want {
 			t.Fatal("Failed to generate the code properly. Expected:", want, "Actual:", data)
 		}
@@ -218,13 +190,12 @@ func TestMakeTar(t *testing.T) {
 		if err := os.Remove(fpath); err != nil && !os.IsNotExist(err) {
 			t.Fatalf("Failed to remove the file at path %q. Error: %q", fpath, err)
 		}
-		testdatapath := "testdata/tartempfilledskiptimestampandtar.txt"
+		testdatapath := "testdata/tartempfilledandtar.txt"
 		testdatabytes, err := ioutil.ReadFile(testdatapath)
 		if err != nil {
 			t.Fatalf("Failed to read the testdata at path %q. Error: %q", testdatapath, err)
 		}
 		want := string(testdatabytes)
-		wantNumLines := 6 + 17 // 17 lines for license and spaces
 
 		// Test
 		if err := makeTar(testdir); err != nil {
@@ -237,10 +208,7 @@ func TestMakeTar(t *testing.T) {
 		}
 		data := string(databytes)
 		lines := strings.Split(data, "\n")
-		if len(lines) != wantNumLines {
-			t.Fatal("Failed to generate the code properly. Expected number of lines:", wantNumLines, "Actual:", len(lines))
-		}
-		lines = append(lines[:2], lines[3:len(lines)-1]...) // Skip the timestamp and the last line since the tar string also has a timestamp
+		lines = lines[:len(lines)-1] // Skip the last line since the tar string has a timestamp
 		data = strings.Join(lines, "\n")
 		if data != want {
 			t.Fatal("Failed to generate the code properly. Expected:", want, "Actual:", data)
