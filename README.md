@@ -9,7 +9,7 @@
 
 Move2Kube is a command-line tool that accelerates the process of re-platforming to Kubernetes/Openshift. It does so by analysing the environment and source artifacts, and asking guidance from the user when required.
 
-![Overview](./imgs/overview.jpg)
+<img src="./imgs/overview.png" style="max-width:100%;" alt="overview"/>
 
 ## Installation
 
