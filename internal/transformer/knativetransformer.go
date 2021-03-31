@@ -17,6 +17,7 @@ limitations under the License.
 package transform
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -61,52 +62,27 @@ func (kt *KnativeTransformer) Transform(ir irtypes.IR) error {
 }
 
 func (kt *KnativeTransformer) getAPIResources() []apiresource.IAPIResource {
-	return []apiresource.IAPIResource{&apiresource.KnativeService{}}
+	return []apiresource.IAPIResource{new(apiresource.KnativeService)}
 }
 
-// WriteObjects writes Transformed objects to filesystem
-func (kt *KnativeTransformer) WriteObjects(outpath string, transformPaths []string) error {
-	areNewImagesCreated := writeContainers(kt.Containers, outpath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace, kt.AddCopySources)
-
-	artifactspath := filepath.Join(outpath, kt.Name)
+// WriteObjects writes the transformed knative resources to files
+func (kt *KnativeTransformer) WriteObjects(outputPath string, transformPaths []string) error {
+	artifactspath := filepath.Join(outputPath, common.DeployDir, "knative")
 	log.Debugf("Total services to be serialized : %d", len(kt.TransformedObjects))
-
-	_, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths)
-	if err != nil {
-		log.Errorf("Error occurred while writing transformed objects %s", err)
+	if _, err := writeTransformedObjects(artifactspath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths); err != nil {
+		log.Errorf("Error occurred while writing knative transformed objects. Error: %q", err)
 	}
-	kt.writeDeployScript(kt.Name, outpath)
-	kt.writeReadeMe(kt.Name, areNewImagesCreated, kt.AddCopySources, outpath)
+	kt.writeDeployScript(kt.Name, outputPath)
 	return nil
 }
 
 func (kt *KnativeTransformer) writeDeployScript(proj string, outpath string) {
 	scriptspath := filepath.Join(outpath, common.ScriptsDir)
-	err := os.MkdirAll(scriptspath, common.DefaultDirectoryPermission)
-	if err != nil {
+	if err := os.MkdirAll(scriptspath, common.DefaultDirectoryPermission); err != nil {
 		log.Errorf("Unable to create directory %s : %s", scriptspath, err)
 	}
-	err = common.WriteTemplateToFile(templates.Deploy_sh, struct {
-		Project string
-	}{
-		Project: proj,
-	}, filepath.Join(scriptspath, "deploy.sh"), common.DefaultExecutablePermission)
-	if err != nil {
-		log.Errorf("Unable to write deploy script : %s", err)
-	}
-}
-
-func (kt *KnativeTransformer) writeReadeMe(project string, areNewImages bool, addCopySources bool, outpath string) {
-	err := common.WriteTemplateToFile(templates.KnativeReadme_md, struct {
-		Project        string
-		NewImages      bool
-		AddCopySources bool
-	}{
-		Project:        project,
-		NewImages:      areNewImages,
-		AddCopySources: addCopySources,
-	}, filepath.Join(outpath, "Readme.md"), common.DefaultFilePermission)
-	if err != nil {
-		log.Errorf("Unable to write Readme : %s", err)
+	deployKnativeScriptPath := filepath.Join(scriptspath, "deployknative.sh")
+	if err := ioutil.WriteFile(deployKnativeScriptPath, []byte(templates.DeployKnative_sh), common.DefaultExecutablePermission); err != nil {
+		log.Errorf("Failed to write the deploy script at path %s . Error: %q", deployKnativeScriptPath, err)
 	}
 }

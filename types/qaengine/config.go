@@ -72,7 +72,7 @@ func (c *Config) Load() (err error) {
 			configString = common.Delim + configString
 		}
 		log.Debugf("config store load configString: [%s]", configString)
-		yamlData, err := generateYAMLFromExpression(configString)
+		yamlData, err := GenerateYAMLFromExpression(configString)
 		if err != nil {
 			log.Errorf("Unable to parse the config string %s Error: %q", configString, err)
 			continue
@@ -80,7 +80,7 @@ func (c *Config) Load() (err error) {
 		log.Debugf("after parsing the yamlData is:\n%s", yamlData)
 		yamlDatas = append(yamlDatas, yamlData)
 	}
-	c.yamlMap, err = mergeYAMLDatasIntoMap(yamlDatas)
+	c.yamlMap, err = MergeYAMLDatasIntoMap(yamlDatas)
 	c.writeYamlMap = mapT{}
 	return err
 }
@@ -290,8 +290,12 @@ func getPrinterAndEvaluator(buffer *bytes.Buffer) (yqlib.Printer, yqlib.StreamEv
 	return printer, evaluator
 }
 
-func generateYAMLFromExpression(expr string) (string, error) {
-	log.Debugf("generateYAMLFromExpression parsing the string [%s]", expr)
+// GenerateYAMLFromExpression generates yaml string from yq syntax expression
+// Example: The expression .foo.bar="abc" gives:
+// foo:
+//   bar: abc
+func GenerateYAMLFromExpression(expr string) (string, error) {
+	log.Debugf("GenerateYAMLFromExpression parsing the string [%s]", expr)
 	logging.SetBackend(new(nullLogBackend))
 	b := bytes.Buffer{}
 	printer, evaluator := getPrinterAndEvaluator(&b)
@@ -334,9 +338,9 @@ func merge(baseI, overrideI interface{}) {
 	mergeRecursively(reflect.ValueOf(baseI), reflect.ValueOf(overrideI))
 }
 
-// mergeYAMLDatasIntoMap merges multiple yamls together into a map.
+// MergeYAMLDatasIntoMap merges multiple yamls together into a map.
 // Later yamls will override earlier yamls.
-func mergeYAMLDatasIntoMap(yamlDatas []string) (mapT, error) {
+func MergeYAMLDatasIntoMap(yamlDatas []string) (mapT, error) {
 	if len(yamlDatas) == 0 {
 		return mapT{}, nil
 	}

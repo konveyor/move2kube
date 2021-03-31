@@ -94,7 +94,7 @@ func (cfManifestTranslator *CfManifestTranslator) GetServiceOptions(inputPath st
 	appsCovered := []string{}
 
 	for _, filePath := range filePaths {
-		applications, _, err := ReadApplicationManifest(filePath, "", plantypes.Yamls)
+		applications, _, err := ReadApplicationManifest(filePath, "")
 		if err != nil {
 			log.Debugf("Failed to parse the manifest file at path %q Error: %q", filePath, err)
 			continue
@@ -285,7 +285,7 @@ func (cfManifestTranslator *CfManifestTranslator) Translate(services []plantypes
 
 		if paths, ok := service.SourceArtifacts[plantypes.CfManifestArtifactType]; ok {
 			path := paths[0] // TODO: what about the rest of the manifests?
-			applications, variables, err := ReadApplicationManifest(path, service.ServiceName, plan.Spec.Outputs.Kubernetes.ArtifactType)
+			applications, variables, err := ReadApplicationManifest(path, service.ServiceName)
 			if err != nil {
 				log.Debugf("Error while trying to parse manifest : %s", err)
 				continue
@@ -421,7 +421,7 @@ func (cfManifestTranslator *CfManifestTranslator) newService(serviceName string)
 }
 
 // ReadApplicationManifest reads an application manifest
-func ReadApplicationManifest(path string, serviceName string, artifactType plantypes.TargetArtifactTypeValue) ([]manifest.Application, []string, error) { // manifest, parameters
+func ReadApplicationManifest(path string, serviceName string) ([]manifest.Application, []string, error) { // manifest, parameters
 	trimmedvariables, err := getMissingVariables(path)
 	if err != nil {
 		log.Debugf("Unable to read as cf manifest %s : %s", path, err)
@@ -436,11 +436,7 @@ func ReadApplicationManifest(path string, serviceName string, artifactType plant
 	tpl := template.NewTemplate(rawManifest)
 	fileVars := template.StaticVariables{}
 	for _, variable := range trimmedvariables {
-		if artifactType == plantypes.Helm {
-			fileVars[variable] = "{{ index  .Values " + `"globalvariables" "` + variable + `"}}`
-		} else {
-			fileVars[variable] = "{{ $" + variable + " }}"
-		}
+		fileVars[variable] = "{{ index  .Values " + `"globalvariables" "` + variable + `"}}`
 	}
 	rawManifest, err = tpl.Evaluate(fileVars, nil, template.EvaluateOpts{ExpectAllKeys: true})
 	if err != nil {

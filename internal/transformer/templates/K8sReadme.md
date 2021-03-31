@@ -13,13 +13,11 @@ Next Steps
 ----------
 {{- if .NewImages }}
 {{- if .AddCopySources}}
-* Copy the source directory into the containers folder for packaging as containers using "./scripts/copysource.sh <SRC_DIR>"
+* Copy the source directory into the "./source/" folder for packaging as containers using "./scripts/copysources.sh <SRC_DIR>"
 {{- end }}
 * Build your images using "./scripts/buildimages.sh"
 * Push images to registry "./scripts/pushimages.sh <REGISTRY_URL> <REGISTRY_NAMESPACE>"
 {{- end}}
-{{- if .Helm }}
-* Your helm chart is at {{ .Project }}, you can install it using "./scripts/helminstall.sh" or you can use the operator.
-{{- else }}
-* Use "deploy.sh" to deploy your artifacts into a kubernetes cluster.
-{{- end }}
+* The k8s yamls are in "./deploy/yamls/". Use "./scripts/deploy.sh" to deploy them into a kubernetes cluster.
+* The helm chart is at "./deploy/helm/". Use "./scripts/deployhelm.sh" to install it.
+* The operator is at "./deploy/operator/".

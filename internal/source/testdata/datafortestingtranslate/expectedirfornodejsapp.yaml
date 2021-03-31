@@ -39,6 +39,5 @@ containers:
       - 8080
     userid: -1
 kubernetes:
-  artifactType: Yamls
   targetCluster:
     type: Kubernetes

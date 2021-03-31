@@ -34,11 +34,10 @@ func TestMerge(t *testing.T) {
 			t.Fatal("The output should not have changed. Expected:", want, "Actual:", out1)
 		}
 	})
-	t.Run("merge artifact type and ignore supported kinds from new k8s output into filled k8s output", func(t *testing.T) {
-		out1 := plan.KubernetesOutput{"111", "222", "333", plan.TargetClusterType{Type: "444"}, false}
-		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true}
+	t.Run("merge ignore supported kinds from new k8s output into filled k8s output", func(t *testing.T) {
+		out1 := plan.KubernetesOutput{"111", "222", plan.TargetClusterType{Type: "444"}, false}
+		out2 := plan.KubernetesOutput{IgnoreUnsupportedKinds: true}
 		want := out1
-		want.ArtifactType = "type1"
 		want.IgnoreUnsupportedKinds = true
 		out1.Merge(out2)
 		if out1 != want {
@@ -46,10 +45,9 @@ func TestMerge(t *testing.T) {
 		}
 	})
 	t.Run("merge registry url from new k8s output into filled k8s output", func(t *testing.T) {
-		out1 := plan.KubernetesOutput{"111", "222", "333", plan.TargetClusterType{Type: "444"}, false}
-		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true, RegistryURL: "url1"}
+		out1 := plan.KubernetesOutput{"111", "222", plan.TargetClusterType{Type: "444"}, false}
+		out2 := plan.KubernetesOutput{IgnoreUnsupportedKinds: true, RegistryURL: "url1"}
 		want := out1
-		want.ArtifactType = "type1"
 		want.IgnoreUnsupportedKinds = true
 		want.RegistryURL = "url1"
 		out1.Merge(out2)
@@ -58,10 +56,9 @@ func TestMerge(t *testing.T) {
 		}
 	})
 	t.Run("merge registry namespace from new k8s output into filled k8s output", func(t *testing.T) {
-		out1 := plan.KubernetesOutput{"111", "222", "333", plan.TargetClusterType{Type: "444"}, false}
-		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true, RegistryNamespace: "namespace1"}
+		out1 := plan.KubernetesOutput{"111", "222", plan.TargetClusterType{Type: "444"}, false}
+		out2 := plan.KubernetesOutput{IgnoreUnsupportedKinds: true, RegistryNamespace: "namespace1"}
 		want := out1
-		want.ArtifactType = "type1"
 		want.IgnoreUnsupportedKinds = true
 		want.RegistryNamespace = "namespace1"
 		out1.Merge(out2)
@@ -70,10 +67,9 @@ func TestMerge(t *testing.T) {
 		}
 	})
 	t.Run("merge image pull secret from new k8s output into filled k8s output", func(t *testing.T) {
-		out1 := plan.KubernetesOutput{"111", "222", "333", plan.TargetClusterType{Type: "444"}, false}
-		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true}
+		out1 := plan.KubernetesOutput{"111", "222", plan.TargetClusterType{Type: "444"}, false}
+		out2 := plan.KubernetesOutput{IgnoreUnsupportedKinds: true}
 		want := out1
-		want.ArtifactType = "type1"
 		want.IgnoreUnsupportedKinds = true
 		out1.Merge(out2)
 		if out1 != want {
@@ -81,10 +77,9 @@ func TestMerge(t *testing.T) {
 		}
 	})
 	t.Run("merge cluster type from new k8s output into filled k8s output", func(t *testing.T) {
-		out1 := plan.KubernetesOutput{"111", "222", "333", plan.TargetClusterType{Type: "444"}, false}
-		out2 := plan.KubernetesOutput{ArtifactType: "type1", IgnoreUnsupportedKinds: true, TargetCluster: plan.TargetClusterType{Type: "clus_type1"}}
+		out1 := plan.KubernetesOutput{"111", "222", plan.TargetClusterType{Type: "444"}, false}
+		out2 := plan.KubernetesOutput{IgnoreUnsupportedKinds: true, TargetCluster: plan.TargetClusterType{Type: "clus_type1"}}
 		want := out1
-		want.ArtifactType = "type1"
 		want.IgnoreUnsupportedKinds = true
 		want.TargetCluster = plan.TargetClusterType{Type: "clus_type1"}
 		out1.Merge(out2)

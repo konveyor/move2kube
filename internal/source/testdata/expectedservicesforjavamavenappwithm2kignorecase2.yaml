@@ -27,6 +27,5 @@ spec:
           serviceRelPath: /java-maven
   outputs:
     kubernetes:
-      artifactType: Yamls
       targetCluster:
         type: Kubernetes

@@ -30,7 +30,6 @@ import (
 	source "github.com/konveyor/move2kube/internal/source"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	"github.com/konveyor/move2kube/types/plan"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -194,7 +193,7 @@ func getAllUsedBuildpacks(directorypath string) ([]string, error) {
 		log.Warnf("Unable to fetch yaml files and recognize application manifest yamls : %s", err)
 	}
 	for _, fullpath := range files {
-		applications, _, err := source.ReadApplicationManifest(fullpath, "", plantypes.Yamls)
+		applications, _, err := source.ReadApplicationManifest(fullpath, "")
 		if err != nil {
 			log.Debugf("Error while trying to parse manifest : %s", err)
 			continue

@@ -14,10 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cicd
+package transform
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/apiresource"
@@ -27,12 +30,23 @@ import (
 	"github.com/konveyor/move2kube/internal/qaengine"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/internal/types/tekton"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	giturls "github.com/whilp/git-urls"
+	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
+
+// TektonTransformer is the set of tekton based CI/CD resources we generate.
+type TektonTransformer struct {
+	shouldRun                bool
+	transformedTektonObjects []runtime.Object
+	TargetClusterSpec        collecttypes.ClusterMetadataSpec
+	IgnoreUnsupportedKinds   bool
+	extraFiles               map[string]string // file path: file contents
+}
 
 const (
 	gitDomainPlaceholder                   = "<TODO: insert git repo domain>"
@@ -54,8 +68,61 @@ const (
 	baseTektonTriggersAdminRoleBindingName = "tekton-triggers-admin"
 )
 
-// TektonTransformer is the set of tekton based CI/CD resources we generate.
-type TektonTransformer struct {
+// Transform translates intermediate representation to destination objects
+func (tekSet *TektonTransformer) Transform(ir irtypes.IR) error {
+	tekSet.shouldRun = false
+	for _, container := range ir.Containers {
+		if container.New {
+			tekSet.shouldRun = true
+			break
+		}
+	}
+	if !tekSet.shouldRun {
+		return nil
+	}
+	tekSet.TargetClusterSpec = ir.TargetClusterSpec
+	tekSet.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
+	log.Infof("Generating Tekton pipeline for CI/CD")
+	enhancedIR := tekSet.SetupEnhancedIR(ir)
+	tektonResources := tekSet.GetAPIResources()
+	tekSet.transformedTektonObjects = convertIRToObjects(enhancedIR, tektonResources)
+	if !ir.TargetClusterSpec.IsTektonInstalled() {
+		log.Infof("Tekton was not found on the target cluster. Please install Tekton Pipelines for CI/CD (https://github.com/tektoncd/pipeline).")
+	}
+	return nil
+}
+
+// WriteObjects writes Transformed objects to filesystem. Also does some final transformations on the generated yamls.
+func (tekSet *TektonTransformer) WriteObjects(outputPath string, transformPaths []string) error {
+	if !tekSet.shouldRun {
+		return nil
+	}
+	cicdPath := filepath.Join(outputPath, common.DeployDir, "cicd")
+	// deploy/cicd/tekton/
+	tektonPath := filepath.Join(cicdPath, "tekton")
+	if _, err := writeTransformedObjects(tektonPath, tekSet.transformedTektonObjects, tekSet.TargetClusterSpec, false, transformPaths); err != nil {
+		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
+		return err
+	}
+	if len(tekSet.extraFiles) == 0 {
+		return nil
+	}
+	for relFilePath, fileContents := range tekSet.extraFiles {
+		filePath := filepath.Join(outputPath, relFilePath)
+		filePerms := common.DefaultFilePermission
+		if filepath.Ext(relFilePath) == ".sh" {
+			filePerms = common.DefaultExecutablePermission
+		}
+		parentPath := filepath.Dir(filePath)
+		if err := os.MkdirAll(parentPath, common.DefaultDirectoryPermission); err != nil {
+			log.Errorf("Unable to create directory at path %s Error: %q", parentPath, err)
+			continue
+		}
+		if err := ioutil.WriteFile(filePath, []byte(fileContents), filePerms); err != nil {
+			log.Errorf("Failed to write the contents %s to a file at path %s Error: %q", fileContents, filePath, err)
+		}
+	}
+	return nil
 }
 
 // GetAPIResources returns api resources related to Tekton

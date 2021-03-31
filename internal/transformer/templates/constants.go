@@ -20,7 +20,8 @@ package templates
 
 const (
 
-	Buildimages_sh = `#   Copyright IBM Corporation 2020
+	Buildimages_sh = `#!/usr/bin/env bash
+#   Copyright IBM Corporation 2020
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -49,7 +50,8 @@ keywords:
 sources:
 home:`
 
-	CopySources_sh = `#   Copyright IBM Corporation 2020
+	CopySources_sh = `#!/usr/bin/env bash
+#   Copyright IBM Corporation 2020
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -77,7 +79,8 @@ fi
 cp -r "$1"/* {{.Dst}}/
 `
 
-	DeployCICD_sh = `#   Copyright IBM Corporation 2020
+	DeployCICD_sh = `#!/usr/bin/env bash
+#   Copyright IBM Corporation 2020
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -91,7 +94,7 @@ cp -r "$1"/* {{.Dst}}/
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-kubectl apply -f cicd/
+kubectl apply -f deploy/cicd/tekton/
 {{ if .IsBuildConfig }}
 HOST_AND_PORT="$(kubectl config view --minify -o=jsonpath='{.clusters[0].cluster.server}')"
 NAMESPACE="$(kubectl config view --minify -o=jsonpath='{.contexts[0].context.namespace}')"
@@ -103,7 +106,8 @@ echo 'Please add the following web hooks to the corresponding git repositories:'
 {{end}}
 `
 
-	Deploy_sh = `#   Copyright IBM Corporation 2020
+	DeployHelm_sh = `#!/usr/bin/env bash
+#   Copyright IBM Corporation 2020
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -117,8 +121,66 @@ echo 'Please add the following web hooks to the corresponding git repositories:'
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-kubectl apply -f {{ .Project }}
+helm upgrade -i {{ .Project }} deploy/helm/
+`
+
+	DeployKnative_sh = `#!/usr/bin/env bash
+#   Copyright IBM Corporation 2020
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+kubectl apply -f deploy/knative/
 cat NOTES.txt
+`
+
+	DeployKustomize_sh = `#!/usr/bin/env bash
+#   Copyright IBM Corporation 2020
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+overlay="${1:-prod}"
+echo "Deploying the overlay ${overlay} using Kustomize..."
+kubectl apply -k deploy/kustomize/overlay/"${overlay}"
+cat deploy/kustomize/NOTES.txt
+`
+
+	Deploy_sh = `#!/usr/bin/env bash
+#   Copyright IBM Corporation 2020
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
+kubectl apply -f deploy/yamls/
+cat deploy/yamls/NOTES.txt
 `
 
 	HelmNotes_txt = `
@@ -129,22 +191,6 @@ Your services are exposed in ingress at {{ .Release.Name }}-{{ .Values.ingressho
 To learn more about the release, try:
   $ helm status {{ .Release.Name }}
   $ helm get all {{ .Release.Name }}`
-
-	Helminstall_sh = `#   Copyright IBM Corporation 2020
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
-
-helm upgrade -i {{ .Project }} {{ .Project }}`
 
 	K8sReadme_md = `Move2Kube
 ---------
@@ -161,37 +207,14 @@ Next Steps
 ----------
 {{- if .NewImages }}
 {{- if .AddCopySources}}
-* Copy the source directory into the containers folder for packaging as containers using "./scripts/copysource.sh <SRC_DIR>"
+* Copy the source directory into the "./source/" folder for packaging as containers using "./scripts/copysources.sh <SRC_DIR>"
 {{- end }}
 * Build your images using "./scripts/buildimages.sh"
 * Push images to registry "./scripts/pushimages.sh <REGISTRY_URL> <REGISTRY_NAMESPACE>"
 {{- end}}
-{{- if .Helm }}
-* Your helm chart is at {{ .Project }}, you can install it using "./scripts/helminstall.sh" or you can use the operator.
-{{- else }}
-* Use "deploy.sh" to deploy your artifacts into a kubernetes cluster.
-{{- end }}
-`
-
-	KnativeReadme_md = `Move2Kube
----------
-Congratulations! Move2Kube has generated the necessary build artifacts for moving all your application components to Knative. Using the artifacts in this directory you can deploy your application in a Knative instance
-
-Prerequisites
--------------
-* Docker
-* Kubectl
-
-Next Steps
-----------
-{{- if .NewImages }}
-{{- if .AddCopySources }}
-* Copy the source directory into the containers folder for packaging as containers using "./scripts/copysource.sh <SRC_DIR>"
-{{- end }}
-* Build your images using ./scripts/buildimages.sh
-* Push images to registry ./scripts/pushimages.sh
-{{- end }}
-* Use ./scripts/deploy.sh to deploy your artifacts into a knative.
+* The k8s yamls are in "./deploy/yamls/". Use "./scripts/deploy.sh" to deploy them into a kubernetes cluster.
+* The helm chart is at "./deploy/helm/". Use "./scripts/deployhelm.sh" to install it.
+* The operator is at "./deploy/operator/".
 `
 
 	Manualimages_md = `Manual containers
@@ -221,7 +244,8 @@ This app has no exposed services.
 {{end}}
 `
 
-	Pushimages_sh = `#   Copyright IBM Corporation 2020
+	Pushimages_sh = `#!/usr/bin/env bash
+#   Copyright IBM Corporation 2020
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -250,6 +274,7 @@ fi
 
 {{range $image := .Images}}docker tag {{$image}} ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{$image}}
 docker push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{$image}}
-{{end}}`
+{{end}}
+`
 
 )

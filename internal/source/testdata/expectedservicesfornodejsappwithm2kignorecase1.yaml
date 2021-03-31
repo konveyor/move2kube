@@ -27,6 +27,5 @@ spec:
           serviceRelPath: /includeme
   outputs:
     kubernetes:
-      artifactType: Yamls
       targetCluster:
         type: Kubernetes

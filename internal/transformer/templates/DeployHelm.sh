@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 #   Copyright IBM Corporation 2020
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,14 +13,4 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-find_files_without_string() {
-  find . \( -name '.git' -o -name 'node_modules' \) -prune -o -type f \( -name '*.go' -o -name '*.sh' \) -exec grep -Le "$1" {} +
-}
-
-filepaths=$(find_files_without_string 'Licensed under the Apache License, Version 2.0 (the "License")')
-
-if [[ $filepaths ]]; then
-  echo "The following files are missing the license:"
-  echo "$filepaths"
-  exit 1
-fi
+helm upgrade -i {{ .Project }} deploy/helm/

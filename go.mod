@@ -7,37 +7,36 @@ require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
 	github.com/AlecAivazis/survey/v2 v2.2.3
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/bmatcuk/doublestar v1.3.4 // indirect
-	github.com/charlievieth/fs v0.0.1 // indirect
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
-	github.com/cloudfoundry/bosh-utils v0.0.0-20210213100152-d3ba248ff042 // indirect
+	github.com/cloudfoundry/bosh-utils v0.0.0-20210327100132-d1d58eaab188 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
 	github.com/docker/cli v20.10.0-rc1+incompatible
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	github.com/docker/libcompose v0.4.1-0.20171025083809-57bd716502dc
 	github.com/go-git/go-git/v5 v5.2.0
+	github.com/gonvenience/ytbx v1.3.0
 	github.com/google/go-cmp v0.5.4
 	github.com/gorilla/mux v1.8.0
+	github.com/homeport/dyff v1.2.1
 	github.com/mikefarah/yq/v4 v4.4.1
 	github.com/moby/buildkit v0.7.2
-	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/openshift/api v0.0.0-20200930075302-db52bc4ef99f // release-4.6
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
 	github.com/qri-io/starlib v0.4.2
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cast v1.3.1
-	github.com/spf13/cobra v1.1.1
+	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.1
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/tektoncd/pipeline v0.18.1
 	github.com/tektoncd/triggers v0.10.0
 	github.com/whilp/git-urls v1.0.0
 	github.com/xrash/smetrics v0.0.0-20200730060457-89a2a8a1fb0b
 	go.starlark.net v0.0.0-20210223155950-e043a3d3c984
-	golang.org/x/crypto v0.0.0-20201124201722-c8d3bf9c5392
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.19.4
 	k8s.io/apimachinery v0.19.4

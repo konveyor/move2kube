@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #   Copyright IBM Corporation 2020
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +13,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-kubectl apply -f cicd/
+kubectl apply -f deploy/cicd/tekton/
 {{ if .IsBuildConfig }}
 HOST_AND_PORT="$(kubectl config view --minify -o=jsonpath='{.clusters[0].cluster.server}')"
 NAMESPACE="$(kubectl config view --minify -o=jsonpath='{.contexts[0].context.namespace}')"

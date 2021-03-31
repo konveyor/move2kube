@@ -14,12 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cicd
+package transform
 
 import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/apiresource"
@@ -27,19 +30,20 @@ import (
 	"github.com/konveyor/move2kube/internal/common/sshkeys"
 	"github.com/konveyor/move2kube/internal/transformer/templates"
 	irtypes "github.com/konveyor/move2kube/internal/types"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	log "github.com/sirupsen/logrus"
 	giturls "github.com/whilp/git-urls"
+	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // BuildconfigTransformer is the set of CI/CD resources we generate.
 type BuildconfigTransformer struct {
-	ExtraFiles map[string]string // file path: file contents
-}
-
-// NewBuildconfigTransformer creates a new CICDAPIResourceSet
-func NewBuildconfigTransformer() *BuildconfigTransformer {
-	return &BuildconfigTransformer{ExtraFiles: map[string]string{}}
+	shouldRun                     bool
+	transformedBuildConfigObjects []runtime.Object
+	TargetClusterSpec             collecttypes.ClusterMetadataSpec
+	IgnoreUnsupportedKinds        bool
+	extraFiles                    map[string]string // file path: file contents
 }
 
 const (
@@ -47,13 +51,75 @@ const (
 	baseWebHookSecretName = "web-hook"
 )
 
+// NewBuildconfigTransformer creates a new CICDAPIResourceSet
+func NewBuildconfigTransformer() *BuildconfigTransformer {
+	return &BuildconfigTransformer{extraFiles: map[string]string{}}
+}
+
+// Transform translates intermediate representation to destination objects
+func (bcTransformer *BuildconfigTransformer) Transform(ir irtypes.IR) error {
+	bcTransformer.shouldRun = false
+	if !ir.TargetClusterSpec.IsBuildConfigSupported() {
+		log.Debugf("BuildConfig was not found on the target cluster.")
+		return nil
+	}
+	for _, container := range ir.Containers {
+		if container.New {
+			bcTransformer.shouldRun = true
+			break
+		}
+	}
+	if !bcTransformer.shouldRun {
+		return nil
+	}
+	bcTransformer.TargetClusterSpec = ir.TargetClusterSpec
+	bcTransformer.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
+	// BuildConfig (Openshift)
+	log.Infof("The target cluster has support for BuildConfig, also generating build configs for CI/CD")
+	bcTransformer.transformedBuildConfigObjects = convertIRToObjects(bcTransformer.SetupEnhancedIR(ir), bcTransformer.GetAPIResources())
+	return nil
+}
+
+// WriteObjects writes Transformed objects to filesystem. Also does some final transformations on the generated yamls.
+func (bcTransformer *BuildconfigTransformer) WriteObjects(outputPath string, transformPaths []string) error {
+	if !bcTransformer.shouldRun {
+		return nil
+	}
+	cicdPath := filepath.Join(outputPath, common.DeployDir, "cicd")
+	// deploy/cicd/buildconfig/
+	bcPath := filepath.Join(cicdPath, "buildconfig")
+	if _, err := writeTransformedObjects(bcPath, bcTransformer.transformedBuildConfigObjects, bcTransformer.TargetClusterSpec, false, transformPaths); err != nil {
+		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
+		return err
+	}
+	if len(bcTransformer.extraFiles) == 0 {
+		return nil
+	}
+	for relFilePath, fileContents := range bcTransformer.extraFiles {
+		filePath := filepath.Join(outputPath, relFilePath)
+		filePerms := common.DefaultFilePermission
+		if filepath.Ext(relFilePath) == ".sh" {
+			filePerms = common.DefaultExecutablePermission
+		}
+		parentPath := filepath.Dir(filePath)
+		if err := os.MkdirAll(parentPath, common.DefaultDirectoryPermission); err != nil {
+			log.Errorf("Unable to create directory at path %s Error: %q", parentPath, err)
+			continue
+		}
+		if err := ioutil.WriteFile(filePath, []byte(fileContents), filePerms); err != nil {
+			log.Errorf("Failed to write the contents %s to a file at path %s Error: %q", fileContents, filePath, err)
+		}
+	}
+	return nil
+}
+
 // GetAPIResources returns api resources related to buildconfig
-func (cicdSet *BuildconfigTransformer) GetAPIResources() []apiresource.IAPIResource {
+func (*BuildconfigTransformer) GetAPIResources() []apiresource.IAPIResource {
 	return []apiresource.IAPIResource{&apiresource.BuildConfig{}, &apiresource.Storage{}}
 }
 
 // SetupEnhancedIR return enhanced IR used by BuildConfig
-func (cicdSet *BuildconfigTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
+func (bcTransformer *BuildconfigTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes.EnhancedIR {
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.
@@ -83,14 +149,14 @@ func (cicdSet *BuildconfigTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes
 			gitSecretName := fmt.Sprintf("%s-%s", gitSecretNamePrefix, gitDomain)
 			gitSecretName = common.MakeStringDNSSubdomainNameCompliant(gitSecretName)
 			if _, ok := secrets[gitDomain]; !ok {
-				secret := cicdSet.createGitSecret(gitSecretName, "")
+				secret := bcTransformer.createGitSecret(gitSecretName, "")
 				secrets[gitDomain] = secret
 				ir.Storages = append(ir.Storages, secret)
 			}
 
 			webhookSecretName := fmt.Sprintf("%s-%s", webHookSecretNamePrefix, imageName)
 			webhookSecretName = common.MakeStringDNSSubdomainNameCompliant(webhookSecretName)
-			webhookSecret := cicdSet.createWebHookSecret(webhookSecretName)
+			webhookSecret := bcTransformer.createWebHookSecret(webhookSecretName)
 			ir.Storages = append(ir.Storages, webhookSecret)
 
 			buildConfigName := fmt.Sprintf("%s-%s", buildConfigNamePrefix, imageName)
@@ -104,7 +170,7 @@ func (cicdSet *BuildconfigTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes
 				WebhookSecretName: webhookSecretName,
 			})
 
-			webHookURL := cicdSet.getWebHookURL(buildConfigName, string(webhookSecret.Content["WebHookSecretKey"]), "generic")
+			webHookURL := bcTransformer.getWebHookURL(buildConfigName, string(webhookSecret.Content["WebHookSecretKey"]), "generic")
 			gitRepoToWebHookURLs[gitDomain] = append(gitRepoToWebHookURLs[gitDomain], webHookURL)
 		} else {
 			gitRepoURL, err := giturls.Parse(irContainer.RepoInfo.GitRepoURL)
@@ -120,14 +186,14 @@ func (cicdSet *BuildconfigTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes
 			gitSecretName := fmt.Sprintf("%s-%s", gitSecretNamePrefix, strings.Replace(gitDomain, ".", "-", -1))
 			gitSecretName = common.MakeStringDNSSubdomainNameCompliant(gitSecretName)
 			if _, ok := secrets[gitDomain]; !ok {
-				secret := cicdSet.createGitSecret(gitSecretName, gitDomain)
+				secret := bcTransformer.createGitSecret(gitSecretName, gitDomain)
 				secrets[gitDomain] = secret
 				ir.Storages = append(ir.Storages, secret)
 			}
 
 			webhookSecretName := fmt.Sprintf("%s-%s", webHookSecretNamePrefix, imageName)
 			webhookSecretName = common.MakeStringDNSSubdomainNameCompliant(webhookSecretName)
-			webhookSecret := cicdSet.createWebHookSecret(webhookSecretName)
+			webhookSecret := bcTransformer.createWebHookSecret(webhookSecretName)
 			ir.Storages = append(ir.Storages, webhookSecret)
 
 			buildConfigName := fmt.Sprintf("%s-%s", buildConfigNamePrefix, imageName)
@@ -141,7 +207,7 @@ func (cicdSet *BuildconfigTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes
 				WebhookSecretName: webhookSecretName,
 			})
 
-			webHookURL := cicdSet.getWebHookURL(buildConfigName, string(webhookSecret.Content["WebHookSecretKey"]), cicdSet.getWebHookType(gitDomain))
+			webHookURL := bcTransformer.getWebHookURL(buildConfigName, string(webhookSecret.Content["WebHookSecretKey"]), bcTransformer.getWebHookType(gitDomain))
 			gitRepoToWebHookURLs[irContainer.RepoInfo.GitRepoURL] = append(gitRepoToWebHookURLs[irContainer.RepoInfo.GitRepoURL], webHookURL)
 		}
 	}
@@ -156,7 +222,7 @@ func (cicdSet *BuildconfigTransformer) SetupEnhancedIR(oldir irtypes.IR) irtypes
 	if err != nil {
 		log.Errorf("Failed to fill the template %s with the parameters %+v Error: %q", templates.DeployCICD_sh, templateParams, err)
 	} else {
-		cicdSet.ExtraFiles["deploy-cicd.sh"] = deployCICDScript
+		bcTransformer.extraFiles[filepath.Join(common.ScriptsDir, "deploy-cicd.sh")] = deployCICDScript
 	}
 	return ir
 }
@@ -176,11 +242,11 @@ func (*BuildconfigTransformer) createGitSecret(name, gitRepoDomain string) irtyp
 	}
 }
 
-func (cicdSet *BuildconfigTransformer) createWebHookSecret(name string) irtypes.Storage {
+func (bcTransformer *BuildconfigTransformer) createWebHookSecret(name string) irtypes.Storage {
 	return irtypes.Storage{
 		StorageType: irtypes.SecretKind,
 		Name:        name,
-		Content:     map[string][]byte{"WebHookSecretKey": []byte(cicdSet.generateWebHookSecretKey())},
+		Content:     map[string][]byte{"WebHookSecretKey": []byte(bcTransformer.generateWebHookSecretKey())},
 	}
 }
 
