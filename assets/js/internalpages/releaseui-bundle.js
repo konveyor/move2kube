@@ -508,9 +508,6 @@ function setup() {
             if (token.length !== 40) {
                 return alert(`Personal access token is invalid. Token length should be 40. got: ${token.length}`);
             }
-            if (/[^a-f0-9]/.test(token)) {
-                return alert(`Personal access token is invalid. Token should only contain hexadecimal characters [a-f0-9].`);
-            }
             PA_TOKEN = token;
             try {
                 yield update_release_drafts();
