@@ -54,7 +54,6 @@ type K8sTransformer struct {
 	Name                            string
 	IgnoreUnsupportedKinds          bool
 	ExposedServicePaths             map[string]string
-	AddCopySources                  bool
 }
 
 // NewK8sTransformer creates a new instance of K8sTransformer
@@ -97,7 +96,6 @@ func (kt *K8sTransformer) Transform(ir irtypes.IR) error {
 	kt.reorderParameterizedObjects()
 
 	kt.RootDir = ir.RootDir
-	kt.AddCopySources = ir.AddCopySources
 
 	for _, service := range ir.Services {
 		if service.HasValidAnnotation(common.ExposeSelector) {
@@ -183,7 +181,7 @@ func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []strin
 	}
 
 	// source/
-	areNewImagesCreated := writeContainers(kt.Containers, outputPath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace, kt.AddCopySources)
+	areNewImagesCreated := writeContainers(kt.Containers, outputPath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace)
 
 	// deploy/helm/ and scripts/deployhelm.sh
 	if err := kt.generateHelmMetadata(outputPath, kt.Values); err != nil {
@@ -215,7 +213,7 @@ func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []strin
 	}
 
 	// README.md
-	kt.writeReadMe(kt.Name, areNewImagesCreated, kt.AddCopySources, outputPath)
+	kt.writeReadMe(kt.Name, areNewImagesCreated, outputPath)
 
 	return nil
 }
@@ -373,15 +371,13 @@ func (kt *K8sTransformer) generateKustomize(kustomizePath string, transformPaths
 	return kustomize.GenerateKustomize(kustomizePath, filenames, fixedConvertedObjs, fixedConvertedParamObjs)
 }
 
-func (kt *K8sTransformer) writeReadMe(project string, areNewImages bool, addCopySources bool, outpath string) {
+func (kt *K8sTransformer) writeReadMe(project string, areNewImages bool, outpath string) {
 	err := common.WriteTemplateToFile(templates.K8sReadme_md, struct {
 		Project        string
 		NewImages      bool
-		AddCopySources bool
 	}{
 		Project:        project,
 		NewImages:      areNewImages,
-		AddCopySources: addCopySources,
 	}, filepath.Join(outpath, "README.md"), common.DefaultFilePermission)
 	if err != nil {
 		log.Errorf("Unable to write readme : %s", err)

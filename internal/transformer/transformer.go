@@ -37,6 +37,7 @@ import (
 	"github.com/konveyor/move2kube/internal/transformer/transformations"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
+	"github.com/otiai10/copy"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -86,7 +87,7 @@ func convertIRToObjects(ir irtypes.EnhancedIR, apis []apiresource.IAPIResource) 
 }
 
 // writeContainers returns true if any scripts were written
-func writeContainers(containers []irtypes.Container, outputPath, rootDir, registryURL, registryNamespace string, addCopySources bool) bool {
+func writeContainers(containers []irtypes.Container, outputPath, rootDir, registryURL, registryNamespace string) bool {
 	containersDir := common.SourceDir
 	containersPath := path.Join(outputPath, containersDir)
 	log.Debugf("containersPath: %s", containersPath)
@@ -150,27 +151,16 @@ func writeContainers(containers []irtypes.Container, outputPath, rootDir, regist
 		log.Debugf("buildscripts %s", buildScripts)
 		log.Debugf("buildScriptMap %s", buildScriptMap)
 		writepath := filepath.Join(scriptsPath, "buildimages.sh")
-		err := common.WriteTemplateToFile(templates.Buildimages_sh, buildScriptMap, writepath, common.DefaultExecutablePermission)
-		if err != nil {
+		if err := common.WriteTemplateToFile(templates.Buildimages_sh, buildScriptMap, writepath, common.DefaultExecutablePermission); err != nil {
 			log.Errorf("Unable to create script to build images : %s", err)
 		}
-		if addCopySources {
-			relRootDir, err := filepath.Rel(outputPath, rootDir)
-			if err != nil {
-				log.Errorf("Failed to make the root directory path %q relative to the output directory %q Error %q", rootDir, outputPath, err)
-				relRootDir = rootDir
-			}
-			writepath = filepath.Join(scriptsPath, "copysources.sh")
-			err = common.WriteTemplateToFile(templates.CopySources_sh, struct {
-				RelRootDir string
-				Dst        string
-			}{
-				RelRootDir: relRootDir,
-				Dst:        containersDir,
-			}, writepath, common.DefaultExecutablePermission)
-			if err != nil {
-				log.Errorf("Unable to create script to build images : %s", err)
-			}
+
+		// copy all the sources into source/
+		sourcePath := filepath.Join(outputPath, common.SourceDir)
+		if err := os.MkdirAll(sourcePath, common.DefaultDirectoryPermission); err != nil {
+			log.Errorf("Failed to create the source directory at path %s . Error: %q", sourcePath, err)
+		} else if err := copy.Copy(rootDir, sourcePath); err != nil {
+			log.Errorf("Failed to copy the sources over to the folder at path %s Error: %q", sourcePath, err)
 		}
 	}
 	if len(dockerImages) > 0 {

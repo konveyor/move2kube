@@ -12,9 +12,6 @@ Prerequisites
 Next Steps
 ----------
 {{- if .NewImages }}
-{{- if .AddCopySources}}
-* Copy the source directory into the "./source/" folder for packaging as containers using "./scripts/copysources.sh <SRC_DIR>"
-{{- end }}
 * Build your images using "./scripts/buildimages.sh"
 * Push images to registry "./scripts/pushimages.sh <REGISTRY_URL> <REGISTRY_NAMESPACE>"
 {{- end}}

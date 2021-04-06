@@ -50,35 +50,6 @@ keywords:
 sources:
 home:`
 
-	CopySources_sh = `#!/usr/bin/env bash
-#   Copyright IBM Corporation 2020
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-#
-#        http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
-
-print_usage() {
-    echo "Invalid args: $*"
-    echo 'Usage: ./scripts/copysources.sh path/to/sources/'
-    echo 'Example: ./scripts/copysources.sh {{ .RelRootDir }}'
-}
-
-if [ "$#" -ne 1 ]; then
-    print_usage "$@"
-    exit 1
-fi
-
-cp -r "$1"/* {{.Dst}}/
-`
-
 	DeployCICD_sh = `#!/usr/bin/env bash
 #   Copyright IBM Corporation 2020
 #
@@ -206,9 +177,6 @@ Prerequisites
 Next Steps
 ----------
 {{- if .NewImages }}
-{{- if .AddCopySources}}
-* Copy the source directory into the "./source/" folder for packaging as containers using "./scripts/copysources.sh <SRC_DIR>"
-{{- end }}
 * Build your images using "./scripts/buildimages.sh"
 * Push images to registry "./scripts/pushimages.sh <REGISTRY_URL> <REGISTRY_NAMESPACE>"
 {{- end}}

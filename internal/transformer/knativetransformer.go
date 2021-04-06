@@ -40,7 +40,6 @@ type KnativeTransformer struct {
 	TargetClusterSpec      collecttypes.ClusterMetadataSpec
 	Name                   string
 	IgnoreUnsupportedKinds bool
-	AddCopySources         bool
 }
 
 // Transform translates intermediate representation to destination objects
@@ -55,7 +54,6 @@ func (kt *KnativeTransformer) Transform(ir irtypes.IR) error {
 	kt.IgnoreUnsupportedKinds = ir.Kubernetes.IgnoreUnsupportedKinds
 	kt.TransformedObjects = convertIRToObjects(irtypes.NewEnhancedIRFromIR(ir), kt.getAPIResources())
 	kt.RootDir = ir.RootDir
-	kt.AddCopySources = ir.AddCopySources
 	log.Debugf("Total transformed objects : %d", len(kt.TransformedObjects))
 
 	return nil
