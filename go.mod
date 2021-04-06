@@ -7,6 +7,7 @@ require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
 	github.com/AlecAivazis/survey/v2 v2.2.3
 	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/a8m/tree v0.0.0-20210115125333-10a5fd5b637d
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.0-20210327100132-d1d58eaab188 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
