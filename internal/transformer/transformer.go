@@ -159,7 +159,7 @@ func writeContainers(containers []irtypes.Container, outputPath, rootDir, regist
 		log.Debugf("Visiting files in source/ . Found %d directories and %d files", numDir, numFiles)
 		sourceTree.Print(opts)
 		log.Debugf("%s", treeBytes.String())
-		newFiles := "source/\n" + strings.Join(strings.Split(treeBytes.String(), "\n")[1:], "\n") // remove the first line containing source directory path
+		newFiles := common.SourceDir + "/\n" + strings.Join(strings.Split(treeBytes.String(), "\n")[1:], "\n") // remove the first line containing source directory path
 		newFilesTextPath := filepath.Join(outputPath, "newfiles.txt")
 		if err := ioutil.WriteFile(newFilesTextPath, []byte(newFiles), common.DefaultFilePermission); err != nil {
 			log.Errorf("Faled to create a file at path %s . Error: %q", newFilesTextPath, err)
