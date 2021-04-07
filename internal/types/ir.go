@@ -49,8 +49,6 @@ type IR struct {
 	Values outputtypes.HelmValues
 
 	IngressTLSSecretName string
-
-	AddCopySources bool
 }
 
 // EnhancedIR is IR with extra data specific to API resource sets

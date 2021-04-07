@@ -80,7 +80,6 @@ func Translate(plan plantypes.Plan, outputPath string, qadisablecli bool, transf
 	}
 	log.Debugf("Total storages customized : %d", len(customizedIR.Storages))
 
-	customizedIR.AddCopySources = !qadisablecli
 	if err := transform.Transform(customizedIR, outputPath, transformPaths); err != nil {
 		log.Fatalf("Error occurred while running the customizers. Error: %q", err)
 	}

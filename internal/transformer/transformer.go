@@ -17,7 +17,9 @@ limitations under the License.
 package transform
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -25,6 +27,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/a8m/tree"
+	"github.com/a8m/tree/ostree"
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
@@ -37,6 +41,7 @@ import (
 	"github.com/konveyor/move2kube/internal/transformer/transformations"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
+	"github.com/otiai10/copy"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -86,12 +91,11 @@ func convertIRToObjects(ir irtypes.EnhancedIR, apis []apiresource.IAPIResource) 
 }
 
 // writeContainers returns true if any scripts were written
-func writeContainers(containers []irtypes.Container, outputPath, rootDir, registryURL, registryNamespace string, addCopySources bool) bool {
-	containersDir := common.SourceDir
-	containersPath := path.Join(outputPath, containersDir)
-	log.Debugf("containersPath: %s", containersPath)
-	if err := os.MkdirAll(containersPath, common.DefaultDirectoryPermission); err != nil {
-		log.Errorf("Unable to create directory %s : %s", containersPath, err)
+func writeContainers(containers []irtypes.Container, outputPath, rootDir, registryURL, registryNamespace string) bool {
+	sourcePath := filepath.Join(outputPath, common.SourceDir)
+	log.Debugf("containersPath: %s", sourcePath)
+	if err := os.MkdirAll(sourcePath, common.DefaultDirectoryPermission); err != nil {
+		log.Errorf("Unable to create directory %s : %s", sourcePath, err)
 	}
 	scriptsPath := path.Join(outputPath, common.ScriptsDir)
 	if err := os.MkdirAll(scriptsPath, common.DefaultDirectoryPermission); err != nil {
@@ -112,20 +116,20 @@ func writeContainers(containers []irtypes.Container, outputPath, rootDir, regist
 		log.Debugf("New Container : %s", container.ImageNames[0])
 		dockerImages = append(dockerImages, container.ImageNames...)
 		for relPath, filecontents := range container.NewFiles {
-			writepath := filepath.Join(containersPath, relPath)
-			directory := filepath.Dir(writepath)
+			writePath := filepath.Join(sourcePath, relPath)
+			directory := filepath.Dir(writePath)
 			if err := os.MkdirAll(directory, common.DefaultDirectoryPermission); err != nil {
 				log.Errorf("Unable to create directory %s : %s", directory, err)
 				continue
 			}
 			fileperm := common.DefaultFilePermission
-			if filepath.Ext(writepath) == ".sh" {
+			if filepath.Ext(writePath) == ".sh" {
 				fileperm = common.DefaultExecutablePermission
-				buildScripts = append(buildScripts, filepath.Join(containersDir, relPath))
+				buildScripts = append(buildScripts, filepath.Join(common.SourceDir, relPath))
 			}
-			log.Debugf("Writing at %s", writepath)
-			if err := ioutil.WriteFile(writepath, []byte(filecontents), fileperm); err != nil {
-				log.Warnf("Error writing file at %s : %s", writepath, err)
+			log.Debugf("Writing at %s", writePath)
+			if err := ioutil.WriteFile(writePath, []byte(filecontents), fileperm); err != nil {
+				log.Warnf("Error writing to file at path %s Error: %q", writePath, err)
 			}
 		}
 	}
@@ -141,6 +145,27 @@ func writeContainers(containers []irtypes.Container, outputPath, rootDir, regist
 			log.Errorf("Unable to create manual image : %s", err)
 		}
 	}
+
+	{
+		// write out the list of new files as a directory tree
+		treeBytes := bytes.Buffer{}
+		treeBufBytes := io.Writer(&treeBytes)
+		sourceTree := tree.New(sourcePath)
+		opts := &tree.Options{
+			Fs:      new(ostree.FS),
+			OutFile: treeBufBytes,
+		}
+		numDir, numFiles := sourceTree.Visit(opts)
+		log.Debugf("Visiting files in source/ . Found %d directories and %d files", numDir, numFiles)
+		sourceTree.Print(opts)
+		log.Debugf("%s", treeBytes.String())
+		newFiles := common.SourceDir + "/\n" + strings.Join(strings.Split(treeBytes.String(), "\n")[1:], "\n") // remove the first line containing source directory path
+		newFilesTextPath := filepath.Join(outputPath, "newfiles.txt")
+		if err := ioutil.WriteFile(newFilesTextPath, []byte(newFiles), common.DefaultFilePermission); err != nil {
+			log.Errorf("Faled to create a file at path %s . Error: %q", newFilesTextPath, err)
+		}
+	}
+
 	if len(buildScripts) > 0 {
 		buildScriptMap := map[string]string{}
 		for _, value := range buildScripts {
@@ -150,27 +175,16 @@ func writeContainers(containers []irtypes.Container, outputPath, rootDir, regist
 		log.Debugf("buildscripts %s", buildScripts)
 		log.Debugf("buildScriptMap %s", buildScriptMap)
 		writepath := filepath.Join(scriptsPath, "buildimages.sh")
-		err := common.WriteTemplateToFile(templates.Buildimages_sh, buildScriptMap, writepath, common.DefaultExecutablePermission)
-		if err != nil {
+		if err := common.WriteTemplateToFile(templates.Buildimages_sh, buildScriptMap, writepath, common.DefaultExecutablePermission); err != nil {
 			log.Errorf("Unable to create script to build images : %s", err)
 		}
-		if addCopySources {
-			relRootDir, err := filepath.Rel(outputPath, rootDir)
-			if err != nil {
-				log.Errorf("Failed to make the root directory path %q relative to the output directory %q Error %q", rootDir, outputPath, err)
-				relRootDir = rootDir
-			}
-			writepath = filepath.Join(scriptsPath, "copysources.sh")
-			err = common.WriteTemplateToFile(templates.CopySources_sh, struct {
-				RelRootDir string
-				Dst        string
-			}{
-				RelRootDir: relRootDir,
-				Dst:        containersDir,
-			}, writepath, common.DefaultExecutablePermission)
-			if err != nil {
-				log.Errorf("Unable to create script to build images : %s", err)
-			}
+
+		// copy all the sources into source/
+		sourcePath := filepath.Join(outputPath, common.SourceDir)
+		if err := os.MkdirAll(sourcePath, common.DefaultDirectoryPermission); err != nil {
+			log.Errorf("Failed to create the source directory at path %s . Error: %q", sourcePath, err)
+		} else if err := copy.Copy(rootDir, sourcePath); err != nil {
+			log.Errorf("Failed to copy the sources over to the folder at path %s Error: %q", sourcePath, err)
 		}
 	}
 	if len(dockerImages) > 0 {

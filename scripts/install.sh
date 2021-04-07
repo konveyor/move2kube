@@ -46,6 +46,19 @@ HAS_OPENSSL="$(command -v openssl >/dev/null && echo true || echo false)"
 HAS_SHA256SUM="$(command -v sha256sum >/dev/null && echo true || echo false)"
 HAS_MOVE2KUBE="$(command -v "$BINARY_NAME" >/dev/null && echo true || echo false)"
 
+isURLExist() {
+    if [ "$#" -ne 1 ]; then
+        echo 'isURLExist needs exactly 1 arg: the url to check'
+        echo "actual args: $*"
+        exit 1
+    fi
+    if [ "$HAS_CURL" = 'true' ]; then
+        curl -fsS --head "$1" >/dev/null 2>&1
+        return
+    fi
+    wget -q --spider "$1"
+}
+
 download() {
     if [ "$#" -ne 2 ]; then
         echo 'download needs exactly 2 args: the url to download and the output path'
@@ -244,7 +257,7 @@ runAsRoot() {
 testVersion() {
     set +e
     if ! command -v "$BINARY_NAME" >/dev/null; then
-        echo "$BINARY_NAME not found. Is $MOVE2KUBE_INSTALL_DIR on your "'$PATH?'
+        echo "$BINARY_NAME not found. Is $MOVE2KUBE_INSTALL_DIR on your PATH?"
         exit 1
     fi
     set -e
@@ -283,6 +296,10 @@ askBeforeInstallingKubectlPlugins() {
 downloadAndInstallPlugin() {
     local plugin_dist="kubectl-translate-$MOVE2KUBE_TAG-$OS-$ARCH.tar.gz"
     local plugin_download_url="https://github.com/konveyor/move2kube/releases/download/$MOVE2KUBE_TAG/$plugin_dist"
+    if ! isURLExist "$plugin_download_url"; then
+        echo 'Failed to find the plugins for this version. Skipping plugin installation.'
+        return 0
+    fi
     local plugin_tmp_file="$MOVE2KUBE_TMP_ROOT/$plugin_dist"
     if [ "$VERIFY_CHECKSUM" = 'true' ]; then
         downloadAndVerifyChecksum "$plugin_download_url" "$plugin_tmp_file"
@@ -331,15 +348,10 @@ main() {
     if ! checkMove2KubeInstalledVersion; then
         downloadMove2Kube
         installMove2Kube
-        if [[ "$MOVE2KUBE_TAG" = *-* ]]; then
-            echo "$MOVE2KUBE_TAG is a prerelease. Plugins are available only for stable releases."
+        if askBeforeInstallingKubectlPlugins; then
+            downloadAndInstallPlugin
         else
-            echo "$MOVE2KUBE_TAG is a stable release."
-            if askBeforeInstallingKubectlPlugins; then
-                downloadAndInstallPlugin
-            else
-                echo 'Failed to get confirmation. Not installing kubectl plugins.'
-            fi
+            echo 'Failed to get confirmation. Not installing kubectl plugins.'
         fi
     fi
     testVersion

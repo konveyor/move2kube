@@ -7,6 +7,7 @@ require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
 	github.com/AlecAivazis/survey/v2 v2.2.3
 	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/a8m/tree v0.0.0-20210115125333-10a5fd5b637d
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.0-20210327100132-d1d58eaab188 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
@@ -21,6 +22,7 @@ require (
 	github.com/mikefarah/yq/v4 v4.4.1
 	github.com/moby/buildkit v0.7.2
 	github.com/openshift/api v0.0.0-20200930075302-db52bc4ef99f // release-4.6
+	github.com/otiai10/copy v1.0.2
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
 	github.com/qri-io/starlib v0.4.2
