@@ -97,10 +97,10 @@ color_scheme: konveyor
 #  - url: https://kubernetes.slack.com/archives/CR85S82A2
 #    title: "&nbsp;&emsp;&emsp;Slack"
 
-# Google Analytics Tracking (optional)
-# e.g, UA-1234567-89
-ga_tracking: G-J08VDXBTDB
-ga_tracking_anonymize_ip: true # Use GDPR compliant Google Analytics settings (true/nil by default)
+# Google Tag Manager
+google:
+  tag_manager:
+    container_id: GTM-TKPDMS3
 
 plugins:
   - jekyll-seo-tag

@@ -37,6 +37,8 @@ GEM
       rouge (~> 3.0)
       safe_yaml (~> 1.0)
       terminal-table (~> 1.8)
+    jekyll-google-tag-manager (1.0.3)
+      jekyll (>= 3.3, < 5.0)
     jekyll-remote-theme (0.4.2)
       addressable (~> 2.0)
       jekyll (>= 3.5, < 5.0)
@@ -79,6 +81,7 @@ PLATFORMS
 
 DEPENDENCIES
   bundler (~> 2.1.4)
+  jekyll-google-tag-manager
   jekyll-remote-theme
   just-the-docs!
 
