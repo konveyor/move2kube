@@ -98,9 +98,7 @@ color_scheme: konveyor
 #    title: "&nbsp;&emsp;&emsp;Slack"
 
 # Google Tag Manager
-google:
-  tag_manager:
-    container_id: GTM-TKPDMS3
+gtm_container_id: GTM-TKPDMS3
 
 plugins:
   - jekyll-seo-tag
