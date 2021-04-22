@@ -18,6 +18,7 @@ package common
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -135,7 +136,31 @@ func NormalizePaths(paths []string) ([]string, error) {
 		if err != nil {
 			return newPaths, fmt.Errorf("Failed to make the path %s absolute. Error: %q", path, err)
 		}
-		newPaths = append(newPaths, newPath)
+		finfo, err:= os.Stat(newPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				log.Errorf("The path %s does not exist.", newPath)
+			} else {
+				log.Errorf("Failed to access the path %s . Error: %q", newPath, err)
+			}
+			continue
+		}
+		if !finfo.IsDir() {
+			newPaths = append(newPaths, newPath)
+			continue
+		}
+		err = filepath.Walk(newPath, func(path string, info fs.FileInfo, err error) error{
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() && filepath.Ext(path) == ".star" {
+				newPaths = append(newPaths, path)
+			}
+			return nil
+		})
+		if err != nil {
+			log.Warnf("Failed to walk through the files in the directory %s . Error: %q", newPath, err)
+		}
 	}
 	return newPaths, nil
 }

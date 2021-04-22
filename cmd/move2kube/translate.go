@@ -180,7 +180,7 @@ func getTranslateCommand() *cobra.Command {
 	translateCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
 	translateCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
-	translateCmd.Flags().StringSliceVarP(&flags.TransformPaths, cmdcommon.TransformsFlag, "t", []string{}, "Specify paths to transformation scripts to apply")
+	translateCmd.Flags().StringSliceVarP(&flags.TransformPaths, cmdcommon.TransformsFlag, "t", []string{}, "Specify paths to the transformation scripts to apply. Can be the path to a script or the path to a folder containing the scripts.")
 
 	// Advanced options
 	translateCmd.Flags().BoolVar(&flags.IgnoreEnv, cmdcommon.IgnoreEnvFlag, false, "Ignore data from local machine.")
