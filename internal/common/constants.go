@@ -39,6 +39,8 @@ const (
 	SourceDir string = "source"
 	// DeployDir defines the directory where the deployment artifacts are placed
 	DeployDir string = "deploy"
+	// HelmDir defines the directory where the helm charts are placed
+	HelmDir string = "helm-charts"
 	// VolumePrefix defines the prefix to be used for volumes
 	VolumePrefix string = "vol"
 	// DefaultStorageClassName defines the default storage class to be used

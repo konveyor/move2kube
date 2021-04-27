@@ -168,6 +168,7 @@ func (kt *K8sTransformer) getAPIResources() []apiresource.IAPIResource {
 //         staging/
 //         prod/
 //     helm/
+//       myproject/
 //     operator/
 //     cicd/
 //       tekton/
@@ -184,13 +185,8 @@ func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []strin
 	areNewImagesCreated := writeContainers(kt.Containers, outputPath, kt.RootDir, kt.Values.RegistryURL, kt.Values.RegistryNamespace)
 
 	// deploy/helm/ and scripts/deployhelm.sh
-	if err := kt.generateHelmMetadata(outputPath, kt.Values); err != nil {
+	if err := kt.generateHelmArtifacts(outputPath, kt.Values, transformPaths); err != nil {
 		log.Debugf("Failed to generate helm metadata properly, continuing anyway. Error: %q", err)
-	}
-	// deploy/helm/templates/
-	helmArtifactsPath := filepath.Join(deployPath, "helm", templatesDir)
-	if _, err := writeTransformedObjects(helmArtifactsPath, kt.ParameterizedTransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths); err != nil {
-		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
 	}
 
 	// deploy/yamls/
@@ -203,7 +199,7 @@ func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []strin
 	kt.writeDeployScript(kt.Name, outputPath)
 
 	// deploy/operator/
-	if err := kt.createOperator(kt.Name, filepath.Join(deployPath, "operator"), filepath.Join(deployPath, "helm")); err != nil {
+	if err := kt.createOperator(kt.Name, filepath.Join(deployPath, "operator"), filepath.Join(deployPath, common.HelmDir)); err != nil {
 		log.Errorf("Failed to generate the operator. Error: %q", err)
 	}
 
@@ -218,9 +214,9 @@ func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []strin
 	return nil
 }
 
-func (kt *K8sTransformer) generateHelmMetadata(outputPath string, values outputtypes.HelmValues) error {
+func (kt *K8sTransformer) generateHelmArtifacts(outputPath string, values outputtypes.HelmValues, transformPaths []string) error {
 	deployPath := filepath.Join(outputPath, common.DeployDir)
-	helmPath := filepath.Join(deployPath, "helm")
+	helmPath := filepath.Join(deployPath, common.HelmDir, kt.Name)
 
 	if err := os.MkdirAll(helmPath, common.DefaultDirectoryPermission); err != nil {
 		log.Errorf("Unable to create Helm directory at path %s Error: %q", helmPath, err)
@@ -230,11 +226,13 @@ func (kt *K8sTransformer) generateHelmMetadata(outputPath string, values outputt
 	readme := "This chart was created by Move2Kube\n"
 	if err := ioutil.WriteFile(filepath.Join(helmPath, "README.md"), []byte(readme), common.DefaultFilePermission); err != nil {
 		log.Errorf("Error while writing Readme : %s", err)
+		return err
 	}
 
 	// Chart.yaml
 	if err := common.WriteTemplateToFile(templates.Chart_tpl, struct{ Name string }{filepath.Base(helmPath)}, filepath.Join(helmPath, "Chart.yaml"), common.DefaultFilePermission); err != nil {
 		log.Errorf("Error while writing Chart.yaml : %s", err)
+		return err
 	}
 
 	// values.yaml
@@ -248,6 +246,7 @@ func (kt *K8sTransformer) generateHelmMetadata(outputPath string, values outputt
 	// templates/
 	if err := os.MkdirAll(filepath.Join(helmPath, templatesDir), common.DefaultDirectoryPermission); err != nil {
 		log.Errorf("Unable to create templates directory : %s", err)
+		return err
 	}
 
 	// templates/NOTES.txt
@@ -260,17 +259,32 @@ func (kt *K8sTransformer) generateHelmMetadata(outputPath string, values outputt
 	})
 	if err != nil {
 		log.Errorf("Failed to fill the NOTES.txt template %s with the service paths %v Error: %q", templates.NOTES_txt, kt.ExposedServicePaths, err)
+		return err
 	}
 	if err := ioutil.WriteFile(filepath.Join(helmPath, templatesDir, "NOTES.txt"), []byte(templates.HelmNotes_txt+notesStr), common.DefaultFilePermission); err != nil {
 		log.Errorf("Error while writing Helm NOTES.txt : %s", err)
+		return err
 	}
 
 	// scripts/deployhelm.sh
 	scriptsPath := filepath.Join(outputPath, common.ScriptsDir)
 	if err := os.MkdirAll(scriptsPath, common.DefaultDirectoryPermission); err != nil {
 		log.Errorf("Unable to create scripts directory at path %s Error: %q", scriptsPath, err)
+		return err
 	}
-	return common.WriteTemplateToFile(templates.DeployHelm_sh, struct{ Project string }{Project: kt.Name}, filepath.Join(scriptsPath, "deployhelm.sh"), common.DefaultExecutablePermission)
+	deployHelmScriptPath := filepath.Join(scriptsPath, "deployhelm.sh")
+	if err := common.WriteTemplateToFile(templates.DeployHelm_sh, struct{ Project string }{Project: kt.Name}, deployHelmScriptPath, common.DefaultExecutablePermission); err != nil {
+		log.Errorf("Unable to create deploy helm script at path %s Error: %q", deployHelmScriptPath, err)
+		return err
+	}
+
+	// templates/
+	helmArtifactsPath := filepath.Join(helmPath, templatesDir)
+	if _, err := writeTransformedObjects(helmArtifactsPath, kt.ParameterizedTransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths); err != nil {
+		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
+		return err
+	}
+	return nil
 }
 
 func (kt *K8sTransformer) createOperator(projectName string, operatorPath string, helmPath string) error {
@@ -373,11 +387,11 @@ func (kt *K8sTransformer) generateKustomize(kustomizePath string, transformPaths
 
 func (kt *K8sTransformer) writeReadMe(project string, areNewImages bool, outpath string) {
 	err := common.WriteTemplateToFile(templates.K8sReadme_md, struct {
-		Project        string
-		NewImages      bool
+		Project   string
+		NewImages bool
 	}{
-		Project:        project,
-		NewImages:      areNewImages,
+		Project:   project,
+		NewImages: areNewImages,
 	}, filepath.Join(outpath, "README.md"), common.DefaultFilePermission)
 	if err != nil {
 		log.Errorf("Unable to write readme : %s", err)
