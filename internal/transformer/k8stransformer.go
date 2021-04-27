@@ -199,7 +199,7 @@ func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []strin
 	kt.writeDeployScript(kt.Name, outputPath)
 
 	// deploy/operator/
-	if err := kt.createOperator(kt.Name, filepath.Join(deployPath, "operator"), filepath.Join(deployPath, "helm")); err != nil {
+	if err := kt.createOperator(kt.Name, filepath.Join(deployPath, "operator"), filepath.Join(deployPath, common.HelmDir)); err != nil {
 		log.Errorf("Failed to generate the operator. Error: %q", err)
 	}
 
@@ -216,7 +216,7 @@ func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []strin
 
 func (kt *K8sTransformer) generateHelmArtifacts(outputPath string, values outputtypes.HelmValues, transformPaths []string) error {
 	deployPath := filepath.Join(outputPath, common.DeployDir)
-	helmPath := filepath.Join(deployPath, "helm", kt.Name)
+	helmPath := filepath.Join(deployPath, common.HelmDir, kt.Name)
 
 	if err := os.MkdirAll(helmPath, common.DefaultDirectoryPermission); err != nil {
 		log.Errorf("Unable to create Helm directory at path %s Error: %q", helmPath, err)
