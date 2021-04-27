@@ -92,7 +92,7 @@ echo 'Please add the following web hooks to the corresponding git repositories:'
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-helm upgrade -i {{ .Project }} deploy/helm/
+helm upgrade -i {{ .Project }} deploy/helm-charts/{{ .Project }}
 `
 
 	DeployKnative_sh = `#!/usr/bin/env bash
