@@ -13,4 +13,4 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-helm upgrade -i {{ .Project }} deploy/helm/
+helm upgrade -i {{ .Project }} deploy/helm-charts/{{ .Project }}
