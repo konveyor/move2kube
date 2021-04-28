@@ -17,6 +17,7 @@ limitations under the License.
 package transform
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -31,12 +32,9 @@ import (
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	outputtypes "github.com/konveyor/move2kube/types/output"
+	templatev1 "github.com/openshift/api/template/v1"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
-)
-
-var (
-	tempDirForParam = ""
 )
 
 const (
@@ -191,10 +189,14 @@ func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []strin
 	}
 
 	// deploy/yamls/
-	k8sArtifactsPath := filepath.Join(deployPath, "yamls")
 	log.Debugf("Total %d services to be serialized.", len(kt.TransformedObjects))
-	if _, err := writeTransformedObjects(k8sArtifactsPath, kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths); err != nil {
-		log.Errorf("Error occurred while writing transformed objects. Error: %q", err)
+	fixedConvertedTransformedObjs, err := fixConvertAndTransformObjs(kt.TransformedObjects, kt.TargetClusterSpec, kt.IgnoreUnsupportedKinds, transformPaths)
+	if err != nil {
+		log.Errorf("Failed to fix, convert and transform the objects. Error: %q", err)
+	}
+	k8sArtifactsPath := filepath.Join(deployPath, "yamls")
+	if _, err := writeObjects(k8sArtifactsPath, fixedConvertedTransformedObjs); err != nil {
+		log.Errorf("Failed to write the transformed objects to the directory at path %s . Error: %q", k8sArtifactsPath, err)
 	}
 	// scripts/deploy.sh
 	kt.writeDeployScript(kt.Name, outputPath)
@@ -211,6 +213,12 @@ func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []strin
 
 	// README.md
 	kt.writeReadMe(kt.Name, areNewImagesCreated, outputPath)
+
+	// deploy/openshift-templates/
+	openshiftTemplatesPath := filepath.Join(deployPath, common.OCTemplatesDir)
+	if _, err := kt.generateOpenshiftTemplates(openshiftTemplatesPath, outputPath, fixedConvertedTransformedObjs); err != nil {
+		log.Errorf("Failed to write the openshift templates to the directory at path %s . Error: %q", openshiftTemplatesPath, err)
+	}
 
 	return nil
 }
@@ -394,4 +402,40 @@ func (kt *K8sTransformer) writeReadMe(project string, areNewImages bool, outpath
 	if err != nil {
 		log.Errorf("Unable to write readme : %s", err)
 	}
+}
+
+func (kt *K8sTransformer) generateOpenshiftTemplates(ocTemplatesPath, outputPath string, objs []runtime.Object) ([]string, error) {
+	// deploy/openshift-templates/
+	templ := new(templatev1.Template)
+	templ.TypeMeta.APIVersion = "template.openshift.io/v1"
+	templ.TypeMeta.Kind = "Template"
+	templ.ObjectMeta.Name = common.MakeStringDNSNameCompliant(kt.Name)
+	raws := []runtime.RawExtension{}
+	for _, obj := range objs {
+		raws = append(raws, runtime.RawExtension{Object: obj})
+	}
+	templ.Objects = raws
+	filesWritten, err := writeObjects(ocTemplatesPath, []runtime.Object{templ})
+	if err != nil {
+		log.Errorf("failed to write the openshift template objects. Error: %q", err)
+		return filesWritten, err
+	}
+	if len(filesWritten) == 0 {
+		return filesWritten, fmt.Errorf("no files written")
+	}
+
+	// scripts/deployoctemplates.sh
+	scriptsPath := filepath.Join(outputPath, common.ScriptsDir)
+	if err := os.MkdirAll(scriptsPath, common.DefaultDirectoryPermission); err != nil {
+		log.Errorf("unable to create scripts directory at path %s . Error: %q", scriptsPath, err)
+		return filesWritten, err
+	}
+	deployScriptPath := filepath.Join(scriptsPath, "deployoctemplates.sh")
+	filename := filepath.Base(filesWritten[0])
+	if err := common.WriteTemplateToFile(templates.DeployOCTemplates_sh, struct{ Filename string }{Filename: filename}, deployScriptPath, common.DefaultExecutablePermission); err != nil {
+		log.Errorf("unable to create deploy openshift templates script at path %s Error: %q", deployScriptPath, err)
+		return filesWritten, err
+	}
+	filesWritten = append(filesWritten, deployScriptPath)
+	return filesWritten, nil
 }

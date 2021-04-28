@@ -109,7 +109,7 @@ func UnTarString(tarstring string, path string) (err error) {
 			return err
 		}
 		if size != finfo.Size() {
-			return fmt.Errorf("Size mismatch: Wrote %d, Expected %d", size, finfo.Size())
+			return fmt.Errorf("size mismatch: Wrote %d, Expected %d", size, finfo.Size())
 		}
 	}
 	return nil

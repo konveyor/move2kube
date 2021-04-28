@@ -21,6 +21,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
+	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
 	"github.com/konveyor/move2kube/internal/starlark/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -202,4 +203,9 @@ func askQuestion(questionObj types.MapT) (interface{}, error) {
 		return qaengine.FetchMultiSelectAnswer(qakey, desc, hints, defaultAnswer, options), nil
 	}
 	return nil, fmt.Errorf("Unknown question type %s . Question object is: %+v", quesType, questionObj)
+}
+
+// GetTransformsFromPathsUsingDefaults returns starlark transforms using this package's QA handlers
+func GetTransformsFromPathsUsingDefaults(transformPaths []string) ([]types.TransformT, error) {
+	return gettransformdata.GetTransformsFromPaths(transformPaths, AnswerFn, AskStaticQuestion, AskDynamicQuestion)
 }

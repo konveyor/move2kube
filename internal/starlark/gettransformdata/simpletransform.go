@@ -113,7 +113,7 @@ func (st *SimpleTransformT) Transform(k8sResource types.K8sResourceT) (types.K8s
 	}
 	transformedK8sResource, ok := transformedK8sResourceI.(types.K8sResourceT)
 	if !ok {
-		return transformedK8sResource, fmt.Errorf("Expected the transformed value to be a map type. Actual value %+v is of type %T", transformedK8sResourceI, transformedK8sResourceI)
+		return transformedK8sResource, fmt.Errorf("expected the transformed value to be a map type. Actual value %+v is of type %T", transformedK8sResourceI, transformedK8sResourceI)
 	}
 	return transformedK8sResource, nil
 }
@@ -180,7 +180,7 @@ func (st *SimpleTransformT) GetTransformsFromSource(transformStr string, ansFn t
 		return nil, err
 	}
 	if err := st.validate(globalsAfter); err != nil {
-		return nil, fmt.Errorf("Validation failed for script. Error: %q", err)
+		return nil, fmt.Errorf("validation failed for script. Error: %q", err)
 	}
 	return st.getTransformsFromGlobals(globalsAfter)
 }
@@ -218,7 +218,7 @@ func (st *SimpleTransformT) fetchAnswer(_ *starlark.Thread, _ *starlark.Builtin,
 	log.Debugf("kwargs: %+v", kwargs)
 	var argStrValue starlark.String
 	if err := starlark.UnpackPositionalArgs(SimpleTransformTAnswers, args, kwargs, 1, &argStrValue); err != nil {
-		return starlark.None, fmt.Errorf("Invalid args provided to '%s'. Expected a single string argument. Error: %q", SimpleTransformTAnswers, err)
+		return starlark.None, fmt.Errorf("invalid args provided to '%s'. Expected a single string argument. Error: %q", SimpleTransformTAnswers, err)
 	}
 	argStr := string(argStrValue)
 	answer, err := answerFn(argStr)
@@ -240,11 +240,11 @@ func (st *SimpleTransformT) dynamicAskQuestion(_ *starlark.Thread, _ *starlark.B
 	log.Debugf("kwargs: %+v", kwargs)
 	argDictValue := &starlark.Dict{}
 	if err := starlark.UnpackPositionalArgs(SimpleTransformTQuestionFn, args, kwargs, 1, &argDictValue); err != nil {
-		return starlark.None, fmt.Errorf("Invalid args provided to '%s'. Expected a single dict argument. Error: %q", SimpleTransformTQuestionFn, err)
+		return starlark.None, fmt.Errorf("invalid args provided to '%s'. Expected a single dict argument. Error: %q", SimpleTransformTQuestionFn, err)
 	}
 	argI, err := util.Unmarshal(argDictValue)
 	if err != nil {
-		return starlark.None, fmt.Errorf("Failed to unmarshal the argument provided to '%s'. Expected a single dict argument. Error: %q", SimpleTransformTQuestionFn, err)
+		return starlark.None, fmt.Errorf("failed to unmarshal the argument provided to '%s'. Expected a single dict argument. Error: %q", SimpleTransformTQuestionFn, err)
 	}
 	answerI, err := dynamicQuestionFn(argI)
 	if err != nil {
@@ -252,7 +252,7 @@ func (st *SimpleTransformT) dynamicAskQuestion(_ *starlark.Thread, _ *starlark.B
 	}
 	answerValue, err := util.Marshal(answerI)
 	if err != nil {
-		return starlark.None, fmt.Errorf("Failed to marshal the answer %+v of type %T into a starlark value. Error: %q", answerI, answerI, err)
+		return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", answerI, answerI, err)
 	}
 	return answerValue, err
 }
@@ -264,7 +264,7 @@ func (*SimpleTransformT) getTransformsFromGlobals(transformGlobals starlark.Stri
 	defer log.Trace("end SimpleTransformT.getTransformsFromGlobals")
 	ouputsValue, ok := transformGlobals[SimpleTransformTOutputs]
 	if !ok {
-		return nil, fmt.Errorf("The script did not set the 'outputs' global variable")
+		return nil, fmt.Errorf("the script did not set the 'outputs' global variable")
 	}
 	ouputsI, err := util.Unmarshal(ouputsValue)
 	if err != nil {
@@ -272,7 +272,7 @@ func (*SimpleTransformT) getTransformsFromGlobals(transformGlobals starlark.Stri
 	}
 	outputs, ok := ouputsI.(types.MapT)
 	if !ok {
-		return nil, fmt.Errorf("Expected %s to be of type %T . Actual value %+v is of type %T", SimpleTransformTOutputs, types.MapT{}, ouputsI, ouputsI)
+		return nil, fmt.Errorf("expected %s to be of type %T . Actual value %+v is of type %T", SimpleTransformTOutputs, types.MapT{}, ouputsI, ouputsI)
 	}
 	transformObjsI, ok := outputs[SimpleTransformTTransforms]
 	if !ok {
@@ -280,33 +280,32 @@ func (*SimpleTransformT) getTransformsFromGlobals(transformGlobals starlark.Stri
 	}
 	transformObjs, ok := transformObjsI.([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("Expected transforms to be an array. Actual value %+v is of type %T", transformObjsI, transformObjsI)
+		return nil, fmt.Errorf("expected transforms to be an array. Actual value %+v is of type %T", transformObjsI, transformObjsI)
 	}
 	transforms := []types.TransformT{}
 	for _, transformObjI := range transformObjs {
 		transformObj, ok := transformObjI.(types.MapT)
 		if !ok {
-			return transforms, fmt.Errorf("Expected transform to be an object. Actual value %+v is of type %T", transformObjI, transformObjI)
+			return transforms, fmt.Errorf("expected transform to be an object. Actual value %+v is of type %T", transformObjI, transformObjI)
 		}
 
 		// the transformation function
 		transformFnNameI, ok := transformObj[SimpleTransformTTransform]
 		if !ok {
-			return transforms, fmt.Errorf("Expected to find key 'transform' with the function to do the transformation. Actual map is:\n%+v", transformObj)
+			return transforms, fmt.Errorf("expected to find key 'transform' with the function to do the transformation. Actual map is:\n%+v", transformObj)
 		}
 		transformFnName, ok := transformFnNameI.(string)
 		if !ok {
-			return transforms, fmt.Errorf("Expected key 'transform' to be a string. Actual value %+v is of type %T", transformFnNameI, transformFnNameI)
+			return transforms, fmt.Errorf("expected key 'transform' to be a string. Actual value %+v is of type %T", transformFnNameI, transformFnNameI)
 		}
 		transformFnValue, ok := transformGlobals[transformFnName]
 		if !ok {
-			return transforms, fmt.Errorf("There is no function called %s in the transformation script. Please check the 'transform' function names", transformFnName)
+			return transforms, fmt.Errorf("there is no function called %s in the transformation script. Please check the 'transform' function names", transformFnName)
 		}
-		var transformFnI interface{}
-		transformFnI = transformFnValue
+		var transformFnI interface{} = transformFnValue
 		transformFn, ok := transformFnI.(*starlark.Function)
 		if !ok {
-			return transforms, fmt.Errorf("Expected %s to be a function. Actual value %+v is of type %T", transformFnName, transformFnI, transformFnI)
+			return transforms, fmt.Errorf("expected %s to be a function. Actual value %+v is of type %T", transformFnName, transformFnI, transformFnI)
 		}
 
 		// the filters
@@ -318,19 +317,19 @@ func (*SimpleTransformT) getTransformsFromGlobals(transformGlobals starlark.Stri
 		}
 		kindsAPIVersionsMap, ok := kindsAPIVersionsI.(types.MapT)
 		if !ok {
-			return transforms, fmt.Errorf("Expected filters to be of type %T . Actual value %+v is of type %T", types.MapT{}, kindsAPIVersionsI, kindsAPIVersionsI)
+			return transforms, fmt.Errorf("expected filters to be of type %T . Actual value %+v is of type %T", types.MapT{}, kindsAPIVersionsI, kindsAPIVersionsI)
 		}
 		kindsAPIVersions := types.KindsAPIVersionsT{}
 		for k, v := range kindsAPIVersionsMap {
 			xsI, ok := v.([]interface{})
 			if !ok {
-				return transforms, fmt.Errorf("Expected value for key %s in filters map to be []interface{} type. Actual value %+v is of type %T", k, v, v)
+				return transforms, fmt.Errorf("expected value for key %s in filters map to be []interface{} type. Actual value %+v is of type %T", k, v, v)
 			}
 			xs := []string{}
 			for _, xI := range xsI {
 				x, ok := xI.(string)
 				if !ok {
-					return transforms, fmt.Errorf("Expected value for key %s in filters map to be []string type. Actual value %+v is of type %T", k, xI, xI)
+					return transforms, fmt.Errorf("expected value for key %s in filters map to be []string type. Actual value %+v is of type %T", k, xI, xI)
 				}
 				xs = append(xs, x)
 			}
@@ -347,7 +346,7 @@ func (st *SimpleTransformT) validate(transformGlobals starlark.StringDict) error
 	defer log.Trace("end SimpleTransformT.validate")
 	ouputsValue, ok := transformGlobals[SimpleTransformTOutputs]
 	if !ok {
-		return fmt.Errorf("The script did not set the 'outputs' global variable")
+		return fmt.Errorf("the script did not set the 'outputs' global variable")
 	}
 	ouputsI, err := util.Unmarshal(ouputsValue)
 	if err != nil {
@@ -355,7 +354,7 @@ func (st *SimpleTransformT) validate(transformGlobals starlark.StringDict) error
 	}
 	outputs, ok := ouputsI.(types.MapT)
 	if !ok {
-		return fmt.Errorf("Expected %s to be of type %T . Actual value %+v is of type %T", SimpleTransformTOutputs, types.MapT{}, ouputsI, ouputsI)
+		return fmt.Errorf("expected %s to be of type %T . Actual value %+v is of type %T", SimpleTransformTOutputs, types.MapT{}, ouputsI, ouputsI)
 	}
 	if err := st.askQuestions(outputs); err != nil {
 		return err
@@ -373,7 +372,7 @@ func (st *SimpleTransformT) askQuestions(outputs types.MapT) error {
 	}
 	questionObjs, ok := questionsI.([]interface{})
 	if !ok {
-		return fmt.Errorf("Expected questions to be []interface{} . Actual value is %+v of type %T", questionsI, questionsI)
+		return fmt.Errorf("expected questions to be []interface{} . Actual value is %+v of type %T", questionsI, questionsI)
 	}
 	for _, questionObjI := range questionObjs {
 		if err := staticQuestionFn(questionObjI); err != nil {

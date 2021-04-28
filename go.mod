@@ -38,7 +38,6 @@ require (
 	go.starlark.net v0.0.0-20210223155950-e043a3d3c984
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.19.4
 	k8s.io/apimachinery v0.19.4
