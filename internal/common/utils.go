@@ -227,13 +227,13 @@ func ReadMove2KubeYaml(path string, out interface{}) error {
 	}
 	groupVersionI, ok := yamlMap["apiVersion"]
 	if !ok {
-		err := fmt.Errorf("Did not find apiVersion in the yaml file at path %s", path)
+		err := fmt.Errorf("did not find apiVersion in the yaml file at path %s", path)
 		log.Debug(err)
 		return err
 	}
 	groupVersionStr, ok := groupVersionI.(string)
 	if !ok {
-		err := fmt.Errorf("The apiVersion is not a string in the yaml file at path %s", path)
+		err := fmt.Errorf("the apiVersion is not a string in the yaml file at path %s", path)
 		log.Debug(err)
 		return err
 	}
@@ -243,7 +243,7 @@ func ReadMove2KubeYaml(path string, out interface{}) error {
 		return err
 	}
 	if groupVersion.Group != types.SchemeGroupVersion.Group {
-		err := fmt.Errorf("The file at path %s doesn't have the correct group. Expected group %s Actual group %s", path, types.SchemeGroupVersion.Group, groupVersion.Group)
+		err := fmt.Errorf("the file at path %s doesn't have the correct group. Expected group %s Actual group %s", path, types.SchemeGroupVersion.Group, groupVersion.Group)
 		log.Debug(err)
 		return err
 	}
@@ -454,7 +454,7 @@ func MakeStringDNSNameCompliant(s string) string {
 	name = regexp.MustCompile(`[^a-z0-9-.]`).ReplaceAllString(name, "-")
 	start, end := name[0], name[len(name)-1]
 	if start == '-' || start == '.' || end == '-' || end == '.' {
-		log.Warnf("The first and/or last characters of the string %q are not alphanumeric.", s)
+		log.Debugf("The first and/or last characters of the string %q are not alphanumeric.", s)
 	}
 	return name
 }
@@ -594,28 +594,28 @@ func CreateAssetsData() (assetsPath string, tempPath string, err error) {
 func CopyFile(dst, src string) error {
 	srcfile, err := os.Open(src)
 	if err != nil {
-		return fmt.Errorf("Failed to open the source file at path %q Error: %q", src, err)
+		return fmt.Errorf("failed to open the source file at path %q Error: %q", src, err)
 	}
 	defer srcfile.Close()
 
 	srcfileinfo, err := srcfile.Stat()
 	if err != nil {
-		return fmt.Errorf("Failed to get size of the source file at path %q Error: %q", src, err)
+		return fmt.Errorf("failed to get size of the source file at path %q Error: %q", src, err)
 	}
 	srcfilesize := srcfileinfo.Size()
 
 	dstfile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, DefaultFilePermission)
 	if err != nil {
-		return fmt.Errorf("Failed to create the destination file at path %q Error: %q", dst, err)
+		return fmt.Errorf("failed to create the destination file at path %q Error: %q", dst, err)
 	}
 	defer dstfile.Close()
 
 	written, err := io.Copy(dstfile, srcfile)
 	if written != srcfilesize {
-		return fmt.Errorf("Failed to copy all the bytes from source %q to destination %q. %d out of %d bytes written. Error: %v", src, dst, written, srcfilesize, err)
+		return fmt.Errorf("failed to copy all the bytes from source %q to destination %q. %d out of %d bytes written. Error: %v", src, dst, written, srcfilesize, err)
 	}
 	if err != nil {
-		return fmt.Errorf("Failed to copy from source %q to destination %q. Error: %q", src, dst, err)
+		return fmt.Errorf("failed to copy from source %q to destination %q. Error: %q", src, dst, err)
 	}
 
 	return dstfile.Close()

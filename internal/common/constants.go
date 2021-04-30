@@ -41,6 +41,8 @@ const (
 	DeployDir string = "deploy"
 	// HelmDir defines the directory where the helm charts are placed
 	HelmDir string = "helm-charts"
+	// OCTemplatesDir defines the directory where the openshift templates are placed
+	OCTemplatesDir string = "openshift-templates"
 	// VolumePrefix defines the prefix to be used for volumes
 	VolumePrefix string = "vol"
 	// DefaultStorageClassName defines the default storage class to be used

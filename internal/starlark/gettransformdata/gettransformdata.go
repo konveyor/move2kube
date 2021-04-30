@@ -17,12 +17,16 @@ limitations under the License.
 package gettransformdata
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"reflect"
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/starlark/types"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // GetTransforms returns the transformations
@@ -88,7 +92,52 @@ func GetK8sResources(k8sResourcesPath string) ([]types.K8sResourceT, error) {
 // GetK8sResourcesFromYaml decodes k8s resources from yaml
 func GetK8sResourcesFromYaml(k8sYaml string) ([]types.K8sResourceT, error) {
 	// TODO: split yaml file into multiple resources
-	var k8sResource types.MapT
-	err := yaml.Unmarshal([]byte(k8sYaml), &k8sResource)
+
+	// NOTE: This roundabout method is required to avoid yaml.v3 unmarshalling timestamps into time.Time
+	var resourceI interface{}
+	if err := yaml.Unmarshal([]byte(k8sYaml), &resourceI); err != nil {
+		log.Errorf("Failed to unmarshal k8s yaml. Error: %q", err)
+		return nil, err
+	}
+	resourceJsonBytes, err := json.Marshal(resourceI)
+	if err != nil {
+		log.Errorf("Failed to marshal the k8s resource into json. K8s resource:\n+%v\nError: %q", resourceI, err)
+		return nil, err
+	}
+	var k8sResource types.K8sResourceT
+	err = json.Unmarshal(resourceJsonBytes, &k8sResource)
 	return []types.K8sResourceT{k8sResource}, err
+}
+
+// GetK8sResourceFromObject converts a runtime.Object into a K8sResourceT
+func GetK8sResourceFromObject(obj runtime.Object) (types.K8sResourceT, error) {
+	objJsonBytes, err := json.Marshal(obj)
+	if err != nil {
+		log.Debugf("Failed to marshal the runtime.Object %+v into json. Error: %q", obj, err)
+		return nil, err
+	}
+	var k8sResource types.K8sResourceT
+	err = json.Unmarshal(objJsonBytes, &k8sResource)
+	return k8sResource, err
+}
+
+// GetObjectFromK8sResource converts a K8sResourceT into a runtime.Object
+// resource: The resource to convert
+// obj: The target struct type (Deployment, Pod, Service, etc.). This can be just an empty struct of the correct type.
+func GetObjectFromK8sResource(resource types.K8sResourceT, obj runtime.Object) (runtime.Object, error) {
+	if obj == nil {
+		return nil, fmt.Errorf("failed to convert the K8sResourceT into a runtime.Object. The target object type is nil")
+	}
+	// Since K8s structs only have JSON struct tags, we marshal into JSON and back into runtime.Object
+	resourceBytes, err := json.Marshal(resource)
+	if err != nil {
+		log.Errorf("failed to marshal the K8sResourceT to json. Error: %q", err)
+		return nil, err
+	}
+	newObj := reflect.New(reflect.ValueOf(obj).Elem().Type()).Interface().(runtime.Object)
+	if err = json.Unmarshal(resourceBytes, newObj); err != nil {
+		log.Errorf("failed to unmarshal the json into runtime.Object. Error: %q", err)
+		return nil, err
+	}
+	return newObj, nil
 }
