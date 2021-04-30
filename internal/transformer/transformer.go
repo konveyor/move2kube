@@ -266,12 +266,12 @@ func writeObjects(outputPath string, objs []runtime.Object) ([]string, error) {
 	for _, obj := range objs {
 		objYamlBytes, err := common.MarshalObjToYaml(obj)
 		if err != nil {
-			log.Errorf("Failed to marshal the runtime.Object to yaml. Object:\n%+v\nError: %q", err)
+			log.Errorf("failed to marshal the runtime.Object to yaml. Object:\n%+v\nError: %q", obj, err)
 			continue
 		}
 		yamlPath := filepath.Join(outputPath, getFilename(obj))
 		if err := ioutil.WriteFile(yamlPath, objYamlBytes, common.DefaultFilePermission); err != nil {
-			log.Errorf("Failed to write the yaml to file at path %s . Error: %q", yamlPath, err)
+			log.Errorf("failed to write the yaml to file at path %s . Error: %q", yamlPath, err)
 			continue
 		}
 		filesWritten = append(filesWritten, yamlPath)
