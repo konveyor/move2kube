@@ -34,6 +34,7 @@ import (
 	outputtypes "github.com/konveyor/move2kube/types/output"
 	templatev1 "github.com/openshift/api/template/v1"
 	log "github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -406,15 +407,15 @@ func (kt *K8sTransformer) writeReadMe(project string, areNewImages bool, outpath
 
 func (kt *K8sTransformer) generateOpenshiftTemplates(ocTemplatesPath, outputPath string, objs []runtime.Object) ([]string, error) {
 	// deploy/openshift-templates/
-	templ := new(templatev1.Template)
-	templ.TypeMeta.APIVersion = "template.openshift.io/v1"
-	templ.TypeMeta.Kind = "Template"
-	templ.ObjectMeta.Name = common.MakeStringDNSNameCompliant(kt.Name)
 	raws := []runtime.RawExtension{}
 	for _, obj := range objs {
 		raws = append(raws, runtime.RawExtension{Object: obj})
 	}
-	templ.Objects = raws
+	templ := &templatev1.Template{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "template.openshift.io/v1", Kind: "Template"},
+		ObjectMeta: metav1.ObjectMeta{Name: common.MakeStringDNSNameCompliant(kt.Name)},
+		Objects:    raws,
+	}
 	filesWritten, err := writeObjects(ocTemplatesPath, []runtime.Object{templ})
 	if err != nil {
 		log.Errorf("failed to write the openshift template objects. Error: %q", err)
