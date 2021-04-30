@@ -17,22 +17,22 @@ limitations under the License.
 package starlark_test
 
 import (
-	"fmt"
 	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/qaengine"
 	"github.com/konveyor/move2kube/internal/starlark"
 	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
 	"github.com/konveyor/move2kube/internal/starlark/runtransforms"
-	"github.com/konveyor/move2kube/internal/starlark/types"
+	"github.com/konveyor/move2kube/internal/transformer/transformations"
 	log "github.com/sirupsen/logrus" // TODO
 )
 
-var (
-	answers = map[string]interface{}{}
-)
+// var (
+// 	answers = map[string]interface{}{}
+// )
 
 func TestGettingAndTransformingResources(t *testing.T) {
 	relBaseDir := "testdata"
@@ -40,11 +40,19 @@ func TestGettingAndTransformingResources(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to make the base directory %s absolute path. Error: %q", relBaseDir, err)
 	}
+
+	qaengine.AddEngine(qaengine.NewDefaultEngine())
+	qaengine.SetupConfigFile(t.TempDir(), nil, []string{filepath.Join(baseDir, "m2kconfig.yaml")}, nil)
+
 	transformsPath := filepath.Join(baseDir, "transforms")
+	transformsPaths := []string{
+		transformsPath + "/t1.star",
+		transformsPath + "/t2.star",
+	}
 	k8sResourcesPath := filepath.Join(baseDir, "k8s-resources")
 	outputPath := t.TempDir()
 
-	filesWritten, err := transformAll(transformsPath, k8sResourcesPath, outputPath)
+	filesWritten, err := transformAll(transformsPaths, k8sResourcesPath, outputPath)
 	if err != nil {
 		t.Fatalf("Failed to apply all the transformations. Error: %q", err)
 	}
@@ -69,10 +77,10 @@ func TestGettingAndTransformingResources(t *testing.T) {
 	}
 }
 
-func transformAll(transformsPath, k8sResourcesPath, outputPath string) ([]string, error) {
+func transformAll(transformsPaths []string, k8sResourcesPath, outputPath string) ([]string, error) {
 	log.Trace("start TransformAll")
 	defer log.Trace("end TransformAll")
-	transforms, err := gettransformdata.GetTransforms(transformsPath, myAnswerFn, myStaticAskQuestion, myDynamicAskQuestion)
+	transforms, err := transformations.GetTransformsFromPathsUsingDefaults(transformsPaths)
 	if err != nil {
 		return nil, err
 	}
@@ -87,90 +95,41 @@ func transformAll(transformsPath, k8sResourcesPath, outputPath string) ([]string
 	return starlark.WriteResources(transformedK8sResources, outputPath)
 }
 
-func myStaticAskQuestion(questionObjI interface{}) error {
-	log.Trace("start myStaticAskQuestion")
-	defer log.Trace("end myStaticAskQuestion")
-	questionObj, ok := questionObjI.(types.MapT)
-	if !ok {
-		return fmt.Errorf("Expected questions to be of map type. Actual value is %+v of type %T", questionObjI, questionObjI)
-	}
-	qakeyI, ok := questionObj["key"]
-	if !ok {
-		return fmt.Errorf("The key 'key' is missing from the question object %+v", questionObj)
-	}
-	qakey, ok := qakeyI.(string)
-	if !ok {
-		return fmt.Errorf("The key 'key' is not a string. The question object %+v", questionObj)
-	}
-	descI, ok := questionObj["description"]
-	if !ok {
-		return fmt.Errorf("The key 'description' is missing from the question object %+v", questionObj)
-	}
-	desc, ok := descI.(string)
-	if !ok {
-		return fmt.Errorf("The key 'description' is not a string. The question object %+v", questionObj)
-	}
-	defaultAnswer := ""
-	defaultAnswerI, ok := questionObj["default"]
-	if ok {
-		newDefaultAnswer, ok := defaultAnswerI.(string)
-		if !ok {
-			return fmt.Errorf("The key 'default' is not a string. The question object %+v", questionObj)
-		}
-		defaultAnswer = newDefaultAnswer
-	}
-	hints := []string{}
-	log.Debugf("key %+v desc %+v hints %+v default %+v", qakey, desc, hints, defaultAnswer)
-	answers[qakey] = fmt.Sprintf("static question: [%s]", qakey)
-	return nil
-}
-
-func myAnswerFn(key string) (interface{}, error) {
-	log.Trace("start myAnswerFn")
-	defer log.Trace("end myAnswerFn")
-	answer, ok := answers[key]
-	if !ok {
-		return nil, fmt.Errorf("Answer not found for the question with key: %s", key)
-	}
-	return answer, nil
-
-}
-
-func myDynamicAskQuestion(questionObjI interface{}) (interface{}, error) {
-	log.Trace("start myDynamicAskQuestion")
-	defer log.Trace("end myDynamicAskQuestion")
-	questionObj, ok := questionObjI.(types.MapT)
-	if !ok {
-		return nil, fmt.Errorf("Excpted questions to be of map type. Actual value is %+v of type %T", questionObjI, questionObjI)
-	}
-	qakeyI, ok := questionObj["key"]
-	if !ok {
-		return nil, fmt.Errorf("The key 'key' is missing from the question object %+v", questionObj)
-	}
-	qakey, ok := qakeyI.(string)
-	if !ok {
-		return nil, fmt.Errorf("The key 'key' is not a string. The question object %+v", questionObj)
-	}
-	descI, ok := questionObj["description"]
-	if !ok {
-		return nil, fmt.Errorf("The key 'description' is missing from the question object %+v", questionObj)
-	}
-	desc, ok := descI.(string)
-	if !ok {
-		return nil, fmt.Errorf("The key 'description' is not a string. The question object %+v", questionObj)
-	}
-	defaultAnswer := ""
-	defaultAnswerI, ok := questionObj["default"]
-	if ok {
-		newDefaultAnswer, ok := defaultAnswerI.(string)
-		if !ok {
-			return nil, fmt.Errorf("The key 'default' is not a string. The question object %+v", questionObj)
-		}
-		defaultAnswer = newDefaultAnswer
-	}
-	hints := []string{}
-	log.Debugf("key %+v desc %+v hints %+v default %+v", qakey, desc, hints, defaultAnswer)
-	answer := fmt.Sprintf("dynamic question: [%s]", qakey)
-	answers[qakey] = answer
-	return answer, nil
-}
+// func myDynamicAskQuestion(questionObjI interface{}) (interface{}, error) {
+// 	log.Trace("start myDynamicAskQuestion")
+// 	defer log.Trace("end myDynamicAskQuestion")
+// 	questionObj, ok := questionObjI.(types.MapT)
+// 	if !ok {
+// 		return nil, fmt.Errorf("Excpted questions to be of map type. Actual value is %+v of type %T", questionObjI, questionObjI)
+// 	}
+// 	qakeyI, ok := questionObj["key"]
+// 	if !ok {
+// 		return nil, fmt.Errorf("The key 'key' is missing from the question object %+v", questionObj)
+// 	}
+// 	qakey, ok := qakeyI.(string)
+// 	if !ok {
+// 		return nil, fmt.Errorf("The key 'key' is not a string. The question object %+v", questionObj)
+// 	}
+// 	descI, ok := questionObj["description"]
+// 	if !ok {
+// 		return nil, fmt.Errorf("The key 'description' is missing from the question object %+v", questionObj)
+// 	}
+// 	desc, ok := descI.(string)
+// 	if !ok {
+// 		return nil, fmt.Errorf("The key 'description' is not a string. The question object %+v", questionObj)
+// 	}
+// 	defaultAnswer := ""
+// 	defaultAnswerI, ok := questionObj["default"]
+// 	if ok {
+// 		newDefaultAnswer, ok := defaultAnswerI.(string)
+// 		if !ok {
+// 			return nil, fmt.Errorf("The key 'default' is not a string. The question object %+v", questionObj)
+// 		}
+// 		defaultAnswer = newDefaultAnswer
+// 	}
+// 	hints := []string{}
+// 	log.Debugf("key %+v desc %+v hints %+v default %+v", qakey, desc, hints, defaultAnswer)
+// 	answer := fmt.Sprintf("dynamic question: [%s]", qakey)
+// 	answers[qakey] = answer
+// 	return answer, nil
+// }

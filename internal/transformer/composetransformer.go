@@ -20,12 +20,10 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
-
 	composetypes "github.com/docker/cli/cli/compose/types"
-
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/internal/types"
+	log "github.com/sirupsen/logrus"
 )
 
 // ComposeTransformer implements Transformer interface

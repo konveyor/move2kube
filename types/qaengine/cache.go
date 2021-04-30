@@ -55,16 +55,12 @@ func NewCache(file string) (cache *Cache) {
 // Load loads and merges cache
 func (cache *Cache) Load() error {
 	c := Cache{}
-	err := common.ReadMove2KubeYaml(cache.Spec.file, &c)
-	if err != nil {
-		log.Errorf("Unable to load cache : %s", err)
-	} else {
-		cache.merge(c)
-		for i := range cache.Spec.Problems {
-			cache.Spec.Problems[i].Resolved = true
-		}
+	if err := common.ReadMove2KubeYaml(cache.Spec.file, &c); err != nil {
+		log.Errorf("Unable to load the cache file at path %s Error: %q", cache.Spec.file, err)
+		return err
 	}
-	return err
+	cache.merge(c)
+	return nil
 }
 
 // Write writes cache to disk
@@ -79,12 +75,12 @@ func (cache *Cache) Write() error {
 // AddSolution adds a problem to solution cache
 func (cache *Cache) AddSolution(p Problem) error {
 	if p.Solution.Type == PasswordSolutionFormType {
-		err := fmt.Errorf("Passwords are not added to the cache")
+		err := fmt.Errorf("passwords are not added to the cache")
 		log.Debug(err)
 		return err
 	}
-	if !p.Resolved {
-		err := fmt.Errorf("Unresolved problem. Not going to be added to cache")
+	if p.Solution.Answer == nil {
+		err := fmt.Errorf("unresolved problem. Not going to be added to cache")
 		log.Warn(err)
 		return err
 	}
@@ -108,28 +104,32 @@ func (cache *Cache) AddSolution(p Problem) error {
 }
 
 // GetSolution reads a solution for the problem
-func (cache *Cache) GetSolution(p Problem) (ans Problem, err error) {
-	if p.Resolved {
+func (cache *Cache) GetSolution(p Problem) (Problem, error) {
+	if p.Solution.Answer != nil {
 		log.Warnf("Problem already solved.")
 		return p, nil
 	}
 	for _, cp := range cache.Spec.Problems {
-		if (cp.ID == p.ID || cp.matches(p)) && cp.Resolved {
-			err := p.SetAnswer(cp.Solution.Answer)
-			return p, err
+		if (cp.ID == p.ID || cp.matches(p)) && cp.Solution.Answer != nil {
+			p.Solution.Answer = cp.Solution.Answer
+			return p, nil
 		}
 	}
-	return p, fmt.Errorf("The problem %+v was not found in the cache", p)
+	return p, fmt.Errorf("the problem %+v was not found in the cache", p)
 }
 
 func (cache *Cache) merge(c Cache) {
 	for _, p := range c.Spec.Problems {
+		found := false
 		for _, op := range cache.Spec.Problems {
 			if op.matches(p) {
-				log.Warnf("There are two answers for %s in cache. Ignoring latter ones.", p.Desc)
-				continue
+				log.Warnf("There are two or more answers for %s in cache. Ignoring latter ones.", p.Desc)
+				found = true
+				break
 			}
 		}
-		cache.Spec.Problems = append(cache.Spec.Problems, p)
+		if !found {
+			cache.Spec.Problems = append(cache.Spec.Problems, p)
+		}
 	}
 }

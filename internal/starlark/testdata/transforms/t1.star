@@ -9,17 +9,11 @@ def lower_number_of_replicas(x):
     return x
 
 def change_the_image(x):
-    x["spec"]["template"]["spec"]["containers"][0]["image"] = answers("services.svc1.containers.[0].image")
+    if x["metadata"]["name"] == "javaspringapp":
+        x["spec"]["template"]["spec"]["containers"][0]["image"] = query({"key":"services.javaspringapp.containers.[0].image"})
     return x
 
 outputs = {
-    "questions": [
-        {
-            "key": "services.svc1.containers.[0].image",
-            "description": "What image should svc1 use?",
-            "default": "svc1-image:v1.23",
-        },
-    ],
     "transforms": [
         {"transform": "select_gpu_nodes", "filter": {"Namespace": ["v1"]}},
         {"transform": "lower_number_of_replicas", "filter": {"Deployment": ["apps/v1", "extensions/v1beta1"]}},

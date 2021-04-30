@@ -17,8 +17,8 @@ spec:
         app: nginx
     spec:
       containers:
-        - image: "static question: [services.svc1.containers.[0].image]"
-          name: 'dynamic question: [services."nginx".containers.[0].name]'
+        - image: "nginx:1.14.2"
+          name: "nginx"
           ports:
             - containerPort: 80
           resources:

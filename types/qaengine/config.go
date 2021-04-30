@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -44,6 +45,8 @@ type Config struct {
 	writeYamlMap  mapT
 	OutputPath    string
 }
+
+var arrayIndexRegex = regexp.MustCompile(`^\[(\d+)\]$`)
 
 // Implement the Store interface
 
@@ -86,40 +89,13 @@ func (c *Config) Load() (err error) {
 }
 
 func (c *Config) convertAnswer(p Problem, value interface{}) (Problem, error) {
-	if p.Solution.Type != MultiSelectSolutionFormType {
-		// value should be a scalar, convert it to string
-		valueStr, err := cast.ToStringE(value)
-		if err != nil {
-			log.Errorf("Failed to cast value %v of type %T to string. Error: %q", value, value, err)
-			return p, err
-		}
-		err = p.SetAnswer([]string{valueStr})
-		return p, err
-	}
-	// value should be an array, convert it to []string
-	valueV := reflect.ValueOf(value)
-	if !valueV.IsValid() || valueV.IsZero() || valueV.Kind() != reflect.Slice {
-		err := fmt.Errorf("Expected to find an array. Actual value %v is of type %T", value, value)
-		log.Error(err)
-		return p, err
-	}
-	valueStrs := []string{}
-	for i := 0; i < valueV.Len(); i++ {
-		v := valueV.Index(i).Interface()
-		valueStr, err := cast.ToStringE(v)
-		if err != nil {
-			log.Errorf("Failed to cast value %v of type %T to string. Error: %q", v, v, err)
-			return p, err
-		}
-		valueStrs = append(valueStrs, valueStr)
-	}
-	err := p.SetAnswer(valueStrs)
-	return p, err
+	p.Solution.Answer = value
+	return p, nil
 }
 
 func (c *Config) normalGetSolution(p Problem) (Problem, error) {
 	key := p.ID
-	value, ok := get(key, c.yamlMap)
+	value, ok := c.Get(key)
 	if ok {
 		return c.convertAnswer(p, value)
 	}
@@ -130,7 +106,7 @@ func (c *Config) normalGetSolution(p Problem) (Problem, error) {
 		baseKey := strings.Join(subKeys[:idx], common.Delim)
 		lastKeySegment := strings.Join(subKeys[idx+1:], common.Delim)
 		newKey := baseKey + common.Delim + common.MatchAll + common.Delim + lastKeySegment
-		v, ok := get(newKey, c.yamlMap)
+		v, ok := c.Get(newKey)
 		if ok {
 			return c.convertAnswer(p, v)
 		}
@@ -147,7 +123,7 @@ func (c *Config) specialGetSolution(p Problem) (Problem, error) {
 	if baseKey == "" {
 		return p, noAns
 	}
-	baseValue, ok := get(baseKey, c.yamlMap)
+	baseValue, ok := c.Get(baseKey)
 	if !ok {
 		return p, noAns
 	}
@@ -161,7 +137,7 @@ func (c *Config) specialGetSolution(p Problem) (Problem, error) {
 	atleastOneKeyHasLastSegment := false
 	for k := range baseValueMap {
 		newK := baseKey + common.Delim + k + common.Delim + lastKeySegment
-		lastKeySegmentValue, ok := get(newK, c.yamlMap)
+		lastKeySegmentValue, ok := c.Get(newK)
 		if !ok {
 			continue
 		}
@@ -180,18 +156,18 @@ func (c *Config) specialGetSolution(p Problem) (Problem, error) {
 	for _, option := range p.Solution.Options {
 		isOptionSelected := true
 		newKey := baseKey + common.Delim + option + common.Delim + lastKeySegment
-		if newValue, ok := get(newKey, c.yamlMap); ok {
+		if newValue, ok := c.Get(newKey); ok {
 			isOptionSelected, ok = newValue.(bool)
 			if !ok {
-				return p, fmt.Errorf("Error occurred in special case for multiselect problems. Expected key %s to have boolean value. Actual value is %v of type %T", newKey, newValue, newValue)
+				return p, fmt.Errorf("error occurred in special case for multiselect problems. Expected key %s to have boolean value. Actual value is %v of type %T", newKey, newValue, newValue)
 			}
 		}
 		if isOptionSelected {
 			selectedOptions = append(selectedOptions, option)
 		}
 	}
-	err := p.SetAnswer(selectedOptions)
-	return p, err
+	p.Solution.Answer = selectedOptions
+	return p, nil
 }
 
 // GetSolution reads a solution from the config
@@ -215,24 +191,18 @@ func (c *Config) Write() error {
 func (c *Config) AddSolution(p Problem) error {
 	log.Debugf("Config.AddSolution the problem is:\n%+v", p)
 	if p.Solution.Type == PasswordSolutionFormType {
-		err := fmt.Errorf("Passwords will not be added to the config")
+		err := fmt.Errorf("passwords will not be added to the config")
 		log.Debug(err)
 		return err
 	}
-	if !p.Resolved {
-		err := fmt.Errorf("Unresolved problem. Not going to be added to config")
+	if p.Solution.Answer == nil {
+		err := fmt.Errorf("unresolved problem. Not going to be added to config")
 		log.Warn(err)
 		return err
 	}
 	if p.Solution.Type != MultiSelectSolutionFormType {
-		if len(p.Solution.Answer) == 0 {
-			return fmt.Errorf("Cannot add the problem\n%v\nto the config because it does not have an answer", p)
-		}
-		if len(p.Solution.Answer) > 1 {
-			return fmt.Errorf("Cannot add the problem\n%v\nto the config because it is not a multi-select problem but it has more than one answer", p)
-		}
-		set(p.ID, p.Solution.Answer[0], c.yamlMap)
-		set(p.ID, p.Solution.Answer[0], c.writeYamlMap)
+		set(p.ID, p.Solution.Answer, c.yamlMap)
+		set(p.ID, p.Solution.Answer, c.writeYamlMap)
 		err := c.Write()
 		if err != nil {
 			log.Errorf("Failed to write to the config file. Error: %q", err)
@@ -240,6 +210,7 @@ func (c *Config) AddSolution(p Problem) error {
 		return err
 	}
 
+	selectedAnswers := p.Solution.Answer.([]string)
 	// multi-select problem has 2 cases
 	key := p.ID
 	idx := strings.LastIndex(key, common.Special)
@@ -253,10 +224,10 @@ func (c *Config) AddSolution(p Problem) error {
 	// special case
 	baseKey, lastKeySegment := key[:idx-len(common.Delim)], key[idx+len(common.Special)+len(common.Delim):]
 	if baseKey == "" {
-		return fmt.Errorf("Failed to add the problem\n%+v\nto the config. The base key is empty", p)
+		return fmt.Errorf("failed to add the problem\n%+v\nto the config. The base key is empty", p)
 	}
 	for _, option := range p.Solution.Options {
-		isOptionSelected := common.IsStringPresent(p.Solution.Answer, option)
+		isOptionSelected := common.IsStringPresent(selectedAnswers, option)
 		newKey := baseKey + common.Delim + option + common.Delim + lastKeySegment
 		set(newKey, isOptionSelected, c.yamlMap)
 		set(newKey, isOptionSelected, c.writeYamlMap)
@@ -266,6 +237,11 @@ func (c *Config) AddSolution(p Problem) error {
 		log.Errorf("Failed to write to the config file. Error: %q", err)
 	}
 	return err
+}
+
+// Get returns the value at the position given by the key in the config
+func (c *Config) Get(key string) (value interface{}, ok bool) {
+	return get(key, c.yamlMap)
 }
 
 // NewConfig creates a new config instance given config strings and paths to config files
@@ -302,7 +278,7 @@ func GenerateYAMLFromExpression(expr string) (string, error) {
 	if err := evaluator.EvaluateNew(expr, printer); err != nil {
 		return "", err
 	}
-	return string(b.Bytes()), nil
+	return b.String(), nil
 }
 
 func isMap(x reflect.Value) bool {
@@ -363,23 +339,41 @@ func MergeYAMLDatasIntoMap(yamlDatas []string) (mapT, error) {
 	return basev.(mapT), nil
 }
 
-func get(key string, config mapT) (value interface{}, ok bool) {
+func getIndex(key string) (int, bool) {
+	matches := arrayIndexRegex.FindSubmatch([]byte(key))
+	if matches == nil {
+		return 0, false
+	}
+	match := matches[1]
+	idx, err := cast.ToIntE(string(match))
+	if err != nil || idx < 0 {
+		return 0, false
+	}
+	return idx, true
+}
+
+func get(key string, config interface{}) (value interface{}, ok bool) {
 	subKeys := getSubKeys(key)
+	value = config
 	for _, subKey := range subKeys {
-		value, ok = config[subKey]
-		if !ok {
-			// partial match
-			return value, false
-		}
 		valueMap, ok := value.(mapT)
 		if ok {
-			config = valueMap
-			continue
+			value, ok = valueMap[subKey]
+			if ok {
+				continue
+			}
+			return value, false
 		}
-		// value is an array or a scalar
-		return value, true
+		valueArr, ok := value.([]interface{})
+		if ok {
+			idx, ok := getIndex(subKey)
+			if ok && idx < len(valueArr) {
+				value = valueArr[idx]
+				continue
+			}
+		}
+		return value, false
 	}
-	// value is a map
 	return value, true
 }
 

@@ -849,3 +849,24 @@ func MarshalObjToYaml(obj runtime.Object) ([]byte, error) {
 	}
 	return b.Bytes(), nil
 }
+
+// ConvertInterfaceToSliceOfStrings converts an interface{} to a []string type.
+// It can handle []interface{} as long as all the values are strings.
+func ConvertInterfaceToSliceOfStrings(xI interface{}) ([]string, error) {
+	if x, ok := xI.([]string); ok {
+		return x, nil
+	}
+	vIs, ok := xI.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to convert to []string. Actual value is %+v of type %T", xI, xI)
+	}
+	vs := []string{}
+	for _, vI := range vIs {
+		v, ok := vI.(string)
+		if !ok {
+			return vs, fmt.Errorf("some of the values are not strings. Actual value is %+v of type %T", xI, xI)
+		}
+		vs = append(vs, v)
+	}
+	return vs, nil
+}

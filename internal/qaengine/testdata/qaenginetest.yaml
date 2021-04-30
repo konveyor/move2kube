@@ -13,9 +13,7 @@ spec:
           - Use existing pull secret
           - No authentication
           - UserName/Password
-        answer:
-          - UserName/Password
-      resolved: true
+        answer: UserName/Password
     - description: 'Enter the container registry username : '
       context:
         - Enter username for container registry login
@@ -23,28 +21,22 @@ spec:
         type: Input
         default:
           - iamapikey
-        answer:
-          - testuser
-      resolved: true
+        answer: testuser
     - description: 'Confirm problem test description : '
       context:
         - Confirm input problem test context.
       solution:
         type: Confirm
-        answer: 
-          - true
-      resolved: true
+        answer: true
     - description: 'Multiline input problem test description : '
       context:
         - Multiline input problem test context.
       solution:
         type: MultiLine
-        answer: 
-        - |
-          line1 
-          line2 
-          line3 
-      resolved: true
+        answer: |
+                line1 
+                line2 
+                line3 
     - description: 'MultiSelect input problem test description : '
       context:
         - MultiSelect input problem test context
@@ -60,4 +52,3 @@ spec:
         answer:
           - Option A
           - Option C
-      resolved: true
