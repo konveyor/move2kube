@@ -190,13 +190,28 @@ func (d *Service) serviceToRoutes(service core.Service, ir irtypes.EnhancedIR) [
 
 	objs := []runtime.Object{}
 	pathPrefix := "/" + service.Name
-	for _, serviceport := range service.Spec.Ports {
+	for i, serviceport := range service.Spec.Ports {
 		path := pathPrefix
 		if len(service.Spec.Ports) > 1 {
 			// All ports cannot be exposed as /svcname because they will clash
-			path = pathPrefix + "/" + serviceport.Name
-			if serviceport.Name == "" {
-				path = pathPrefix + "/" + cast.ToString(serviceport.Port)
+			// Except for the first port, append serviceport name to the path for remaining ports respectively
+			if i != 0 {
+				if len(pathPrefix) == 0 {
+					path = pathPrefix + "/" + serviceport.Name
+					if serviceport.Name == "" {
+						path = pathPrefix + "/" + cast.ToString(serviceport.Port)
+					}
+				} else if pathPrefix[len(pathPrefix)-1:] != "/" {
+					path = pathPrefix + "/" + serviceport.Name
+					if serviceport.Name == "" {
+						path = pathPrefix + "/" + cast.ToString(serviceport.Port)
+					}
+				} else {
+					path = pathPrefix + serviceport.Name
+					if serviceport.Name == "" {
+						path = pathPrefix + cast.ToString(serviceport.Port)
+					}
+				}
 			}
 		}
 		targetPort := intstr.IntOrString{Type: intstr.String, StrVal: serviceport.Name}
@@ -283,13 +298,28 @@ func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.EnhancedIR) 
 func (d *Service) serviceToIngress(service core.Service, ir irtypes.EnhancedIR) []runtime.Object {
 	rules := []networking.IngressRule{}
 	pathPrefix := "/" + service.Name
-	for _, serviceport := range service.Spec.Ports {
+	for i, serviceport := range service.Spec.Ports {
 		path := pathPrefix
 		if len(service.Spec.Ports) > 1 {
 			// All ports cannot be exposed as /svcname because they will clash
-			path = pathPrefix + "/" + serviceport.Name
-			if serviceport.Name == "" {
-				path = pathPrefix + "/" + cast.ToString(serviceport.Port)
+			// Except for the first port, append serviceport name to the path for remaining ports respectively
+			if i != 0 {
+				if len(pathPrefix) == 0 {
+					path = pathPrefix + "/" + serviceport.Name
+					if serviceport.Name == "" {
+						path = pathPrefix + "/" + cast.ToString(serviceport.Port)
+					}
+				} else if pathPrefix[len(pathPrefix)-1:] != "/" {
+					path = pathPrefix + "/" + serviceport.Name
+					if serviceport.Name == "" {
+						path = pathPrefix + "/" + cast.ToString(serviceport.Port)
+					}
+				} else {
+					path = pathPrefix + serviceport.Name
+					if serviceport.Name == "" {
+						path = pathPrefix + cast.ToString(serviceport.Port)
+					}
+				}
 			}
 		}
 		rule := networking.IngressRule{
@@ -392,13 +422,28 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR) [
 	routes := [](*okdroutev1.Route){}
 	servicePorts := d.getServicePorts(service)
 	pathPrefix := service.ServiceRelPath
-	for _, servicePort := range servicePorts {
+	for i, servicePort := range servicePorts {
 		path := pathPrefix
 		if len(servicePorts) > 1 {
 			// All ports cannot be exposed as /ServiceRelPath because they will clash
-			path = pathPrefix + "/" + servicePort.Name
-			if servicePort.Name == "" {
-				path = pathPrefix + "/" + cast.ToString(servicePort.Port)
+			// Except for the first port, append serviceport name to the path for remaining ports respectively
+			if i != 0 {
+				if len(pathPrefix) == 0 {
+					path = pathPrefix + "/" + servicePort.Name
+					if servicePort.Name == "" {
+						path = pathPrefix + "/" + cast.ToString(servicePort.Port)
+					}
+				} else if pathPrefix[len(pathPrefix)-1:] != "/" {
+					path = pathPrefix + "/" + servicePort.Name
+					if servicePort.Name == "" {
+						path = pathPrefix + "/" + cast.ToString(servicePort.Port)
+					}
+				} else {
+					path = pathPrefix + servicePort.Name
+					if servicePort.Name == "" {
+						path = pathPrefix + cast.ToString(servicePort.Port)
+					}
+				}
 			}
 		}
 		route := d.createRoute(service, servicePort, path, ir)
@@ -459,13 +504,28 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR) *networking.Ingress {
 		}
 		servicePorts := d.getServicePorts(service)
 		pathPrefix := service.ServiceRelPath
-		for _, servicePort := range servicePorts {
+		for i, servicePort := range servicePorts {
 			path := pathPrefix
 			if len(servicePorts) > 1 {
 				// All ports cannot be exposed as /ServiceRelPath because they will clash
-				path = pathPrefix + "/" + servicePort.Name
-				if servicePort.Name == "" {
-					path = pathPrefix + "/" + cast.ToString(servicePort.Port)
+				// Except for the first port, append serviceport name to the path for remaining ports respectively
+				if i != 0 {
+					if len(pathPrefix) == 0 {
+						path = pathPrefix + "/" + servicePort.Name
+						if servicePort.Name == "" {
+							path = pathPrefix + "/" + cast.ToString(servicePort.Port)
+						}
+					} else if pathPrefix[len(pathPrefix)-1:] != "/" {
+						path = pathPrefix + "/" + servicePort.Name
+						if servicePort.Name == "" {
+							path = pathPrefix + "/" + cast.ToString(servicePort.Port)
+						}
+					} else {
+						path = pathPrefix + servicePort.Name
+						if servicePort.Name == "" {
+							path = pathPrefix + cast.ToString(servicePort.Port)
+						}
+					}
 				}
 			}
 			backendPort := networking.ServiceBackendPort{Name: servicePort.Name}
