@@ -12,4 +12,4 @@ Move2Kube can be consumed as a [command line tool]({{ site.baseurl }}{% link doc
 
 ![Move2Kube Installation]({{ site.baseurl }}/assets/images/install.png)
 
-Move2Kube is also available at Katacoda- [katacoda.com/move2kube](https://www.katacoda.com/move2kube).
+You can try out Move2Kube in Katacoda- [katacoda.com/move2kube](https://www.katacoda.com/move2kube).
