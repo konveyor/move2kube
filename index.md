@@ -17,7 +17,7 @@ Move2Kube is a tool that uses source artifacts such as Docker Compose files or C
 
 ## A quick start with Move2Kube
 
-With Move2Kube, generating the Kubernetes/OpenShift deployment artifacts for your source platform artifacts is now simple. You can try out Move2Kube in Katacoda- [katacoda.com/move2kube](https://www.katacoda.com/move2kube) or follow the steps mentioned below for trying out Move2Kube on your local machine.
+With Move2Kube, generating the Kubernetes/OpenShift deployment artifacts for your source platform artifacts is now simple. You can try out Move2Kube in [Katacoda](https://www.katacoda.com/move2kube) or follow the steps mentioned below for trying out Move2Kube on your local machine.
 
 
 1. Install Move2Kube
