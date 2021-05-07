@@ -1,4 +1,4 @@
-// +build !excludedist
+// +build ignore
 
 /*
 Copyright IBM Corporation 2020

@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-GO_VERSION  ?= 1.15
+GO_VERSION  ?= $(shell go run ./scripts/detectgoversion/detect.go 2>/dev/null || printf '1.16')
 BINNAME     ?= move2kube
 PLUGIN_BINNAME ?= kubectl-translate
 BINDIR      := $(CURDIR)/bin
@@ -73,7 +73,7 @@ build: get $(BINDIR)/$(BINNAME) ## Build go code
 	@printf "\033[32m-------------------------------------\n BUILD SUCCESS\n-------------------------------------\033[0m\n"
 
 $(BINDIR)/$(BINNAME): $(SRC)
-	go build -tags excludecodegen,excludedist -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/${BINNAME}
+	go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/${BINNAME}
 ifeq ($(HAS_UPX),true)
 	@echo 'upx detected. compressing binary...'
 	upx $(BINDIR)/$(BINNAME)
@@ -89,7 +89,7 @@ endif
 build-kubectl-translate: get $(BINDIR)/$(PLUGIN_BINNAME) ## Build translate plugin for kubectl https://github.com/kubernetes-sigs/krew
 
 $(BINDIR)/$(PLUGIN_BINNAME): $(SRC)
-	go build -tags excludecodegen,excludedist -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(PLUGIN_BINNAME) ./cmd/kubectltranslate
+	go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(PLUGIN_BINNAME) ./cmd/kubectltranslate
 
 .PHONY: get
 get: go.mod
