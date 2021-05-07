@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -180,6 +181,19 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 		if val, ok := segmentRecord["port"]; ok {
 			portToExpose := int(val.(float64)) // Type assert to float64 because json numbers are floats.
 			container.AddExposedPort(portToExpose)
+		}
+
+		// is "ports" present ?
+		if val, ok := segmentRecord["ports"]; ok {
+			switch reflect.TypeOf(val).Kind() {
+			case reflect.Slice:
+				portList := reflect.ValueOf(val)
+				for i := 0; i < portList.Len(); i++ {
+					port := portList.Index(i)
+					portToExpose := int(port.Interface().(float64))
+					container.AddExposedPort(portToExpose)
+				}
+			}
 		}
 
 		// is "files_to_copy" present ?
