@@ -28,7 +28,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//go:generate go run github.com/konveyor/move2kube/internal/common/generator clusters makemaps
+//go:generate go run  ../../scripts/generator/generator.go clusters makemaps
 
 // ClusterMDLoader Implements Loader interface
 type ClusterMDLoader struct {

@@ -16,5 +16,5 @@ Next Steps
 * Push images to registry "./scripts/pushimages.sh <REGISTRY_URL> <REGISTRY_NAMESPACE>"
 {{- end}}
 * The k8s yamls are in "./deploy/yamls/". Use "./scripts/deploy.sh" to deploy them into a kubernetes cluster.
-* The helm chart is at "./deploy/helm/". Use "./scripts/deployhelm.sh" to install it.
+* The helm chart is at "./deploy/helm-charts/". Use "./scripts/deployhelm.sh" to install it.
 * The operator is at "./deploy/operator/".

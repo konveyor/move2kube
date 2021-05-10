@@ -1,7 +1,0 @@
----
-key1:
-    subkey1: subval1
-    subkey2:
-        - subval2arr1
-        - subval2arr2
-...

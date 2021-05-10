@@ -167,7 +167,7 @@ else
 endif
 	mkdir -p $(DISTDIR)/files
 	cp -r ./LICENSE ./scripts/installdeps.sh ./USAGE.md ./samples $(DISTDIR)/files/
-	cd $(DISTDIR) && go run ../scripts/builddist.go -b $(BINNAME) -v $(VERSION)
+	cd $(DISTDIR) && go run ../scripts/dist/builddist.go -b $(BINNAME) -v $(VERSION)
 
 .PHONY: dist-kubectl-translate
 dist-kubectl-translate: clean build-cross-kubectl-translate ## Build kubectl plugin distribution
@@ -181,7 +181,7 @@ else
 endif
 	mkdir -p $(DISTDIR)/files
 	cp -r ./LICENSE $(DISTDIR)/files/
-	cd $(DISTDIR) && go run ../scripts/builddist.go -b '$(PLUGIN_BINNAME)' -v $(VERSION)
+	cd $(DISTDIR) && go run ../scripts/dist/builddist.go -b '$(PLUGIN_BINNAME)' -v $(VERSION)
 
 .PHONY: clean
 clean:
