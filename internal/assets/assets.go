@@ -16,4 +16,4 @@ limitations under the License.
 
 package assets
 
-//go:generate go run github.com/konveyor/move2kube/internal/common/generator . maketar
+//go:generate go run ../../scripts/generator/generator.go . maketar

@@ -37,7 +37,7 @@ import (
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
-//go:generate go run github.com/konveyor/move2kube/internal/common/generator data
+//go:generate go run  ../../scripts/generator/generator.go data
 
 // CfManifestTranslator implements Translator interface for CfManifest files
 type CfManifestTranslator struct {

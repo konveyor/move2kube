@@ -25,7 +25,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//go:generate go run github.com/konveyor/move2kube/internal/common/generator scripts
+//go:generate go run ../../scripts/generator/generator.go scripts
 
 // Containerizer can be used to containerize applications given path to the source code
 type Containerizer interface {

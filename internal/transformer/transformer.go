@@ -46,7 +46,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-//go:generate go run github.com/konveyor/move2kube/internal/common/generator templates
+//go:generate go run  ../../scripts/generator/generator.go templates
 
 // Transformer translates intermediate representation to destination artifacts
 type Transformer interface {
