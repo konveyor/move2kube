@@ -8,6 +8,6 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "redis": "^3.0.2"
+    "redis": "^3.1.1"
   }
 }
