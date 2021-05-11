@@ -89,7 +89,7 @@ func (c *Config) Load() (err error) {
 }
 
 func (c *Config) convertAnswer(p Problem, value interface{}) (Problem, error) {
-	p.Solution.Answer = value
+	p.Answer = value
 	return p, nil
 }
 
@@ -153,7 +153,7 @@ func (c *Config) specialGetSolution(p Problem) (Problem, error) {
 	}
 	// found at least one key, so we will try to answer using the defaults
 	selectedOptions := []string{}
-	for _, option := range p.Solution.Options {
+	for _, option := range p.Options {
 		isOptionSelected := true
 		newKey := baseKey + common.Delim + option + common.Delim + lastKeySegment
 		if newValue, ok := c.Get(newKey); ok {
@@ -166,14 +166,14 @@ func (c *Config) specialGetSolution(p Problem) (Problem, error) {
 			selectedOptions = append(selectedOptions, option)
 		}
 	}
-	p.Solution.Answer = selectedOptions
+	p.Answer = selectedOptions
 	return p, nil
 }
 
 // GetSolution reads a solution from the config
 func (c *Config) GetSolution(p Problem) (Problem, error) {
 	if strings.Contains(p.ID, common.Special) {
-		if p.Solution.Type != MultiSelectSolutionFormType {
+		if p.Type != MultiSelectSolutionFormType {
 			return p, fmt.Errorf("cannot use the %s selector with non multi select problems:%+v", common.Special, p)
 		}
 		return c.specialGetSolution(p)
@@ -190,19 +190,19 @@ func (c *Config) Write() error {
 // AddSolution adds a problem to the config
 func (c *Config) AddSolution(p Problem) error {
 	log.Debugf("Config.AddSolution the problem is:\n%+v", p)
-	if p.Solution.Type == PasswordSolutionFormType {
+	if p.Type == PasswordSolutionFormType {
 		err := fmt.Errorf("passwords will not be added to the config")
 		log.Debug(err)
 		return err
 	}
-	if p.Solution.Answer == nil {
+	if p.Answer == nil {
 		err := fmt.Errorf("unresolved problem. Not going to be added to config")
 		log.Warn(err)
 		return err
 	}
-	if p.Solution.Type != MultiSelectSolutionFormType {
-		set(p.ID, p.Solution.Answer, c.yamlMap)
-		set(p.ID, p.Solution.Answer, c.writeYamlMap)
+	if p.Type != MultiSelectSolutionFormType {
+		set(p.ID, p.Answer, c.yamlMap)
+		set(p.ID, p.Answer, c.writeYamlMap)
 		err := c.Write()
 		if err != nil {
 			log.Errorf("Failed to write to the config file. Error: %q", err)
@@ -210,14 +210,14 @@ func (c *Config) AddSolution(p Problem) error {
 		return err
 	}
 
-	selectedAnswers := p.Solution.Answer.([]string)
+	selectedAnswers := p.Answer.([]string)
 	// multi-select problem has 2 cases
 	key := p.ID
 	idx := strings.LastIndex(key, common.Special)
 	if idx < 0 {
 		// normal case key1 = [val1, val2, val3, ...]
-		set(key, p.Solution.Answer, c.yamlMap)
-		set(key, p.Solution.Answer, c.writeYamlMap)
+		set(key, p.Answer, c.yamlMap)
+		set(key, p.Answer, c.writeYamlMap)
 		return nil
 	}
 
@@ -226,7 +226,7 @@ func (c *Config) AddSolution(p Problem) error {
 	if baseKey == "" {
 		return fmt.Errorf("failed to add the problem\n%+v\nto the config. The base key is empty", p)
 	}
-	for _, option := range p.Solution.Options {
+	for _, option := range p.Options {
 		isOptionSelected := common.IsStringPresent(selectedAnswers, option)
 		newKey := baseKey + common.Delim + option + common.Delim + lastKeySegment
 		set(newKey, isOptionSelected, c.yamlMap)

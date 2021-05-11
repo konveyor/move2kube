@@ -63,9 +63,9 @@ func convertMapTToProblem(questionObj types.MapT) (qatypes.Problem, error) {
 	prob.ID = qakey
 
 	// type
-	prob.Solution.Type = qatypes.InputSolutionFormType
+	prob.Type = qatypes.InputSolutionFormType
 	if quesTypeI, ok := questionObj["type"]; ok {
-		prob.Solution.Type, ok = quesTypeI.(qatypes.SolutionFormType)
+		prob.Type, ok = quesTypeI.(qatypes.SolutionFormType)
 		if !ok {
 			return prob, fmt.Errorf("the key 'type' is not a string. The question object %+v", questionObj)
 		}
@@ -85,22 +85,22 @@ func convertMapTToProblem(questionObj types.MapT) (qatypes.Problem, error) {
 		if err != nil {
 			return prob, fmt.Errorf("the key 'hints' is not an array of strings. Error %q", err)
 		}
-		prob.Context = hints
+		prob.Hints = hints
 	}
 
 	// default
 	if defaultI, ok := questionObj["default"]; ok {
-		prob.Solution.Default = defaultI
+		prob.Default = defaultI
 	}
 
 	// options
-	if prob.Solution.Type == qatypes.SelectSolutionFormType || prob.Solution.Type == qatypes.MultiSelectSolutionFormType {
+	if prob.Type == qatypes.SelectSolutionFormType || prob.Type == qatypes.MultiSelectSolutionFormType {
 		if optionsI, ok := questionObj["options"]; ok {
 			options, err := common.ConvertInterfaceToSliceOfStrings(optionsI)
 			if err != nil {
 				return prob, fmt.Errorf("the key 'options' is not an array of strings. Error: %q", err)
 			}
-			prob.Solution.Options = options
+			prob.Options = options
 		}
 	}
 
@@ -120,7 +120,7 @@ func askQuestion(questionObj types.MapT) (interface{}, error) {
 	if err != nil {
 		log.Fatalf("failed to ask the question. Error: %q", err)
 	}
-	return resolved.Solution.Answer, nil
+	return resolved.Answer, nil
 }
 
 // GetTransformsFromPathsUsingDefaults returns starlark transforms using this package's QA handlers

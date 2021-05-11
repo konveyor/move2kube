@@ -74,12 +74,12 @@ func (cache *Cache) Write() error {
 
 // AddSolution adds a problem to solution cache
 func (cache *Cache) AddSolution(p Problem) error {
-	if p.Solution.Type == PasswordSolutionFormType {
+	if p.Type == PasswordSolutionFormType {
 		err := fmt.Errorf("passwords are not added to the cache")
 		log.Debug(err)
 		return err
 	}
-	if p.Solution.Answer == nil {
+	if p.Answer == nil {
 		err := fmt.Errorf("unresolved problem. Not going to be added to cache")
 		log.Warn(err)
 		return err
@@ -105,13 +105,13 @@ func (cache *Cache) AddSolution(p Problem) error {
 
 // GetSolution reads a solution for the problem
 func (cache *Cache) GetSolution(p Problem) (Problem, error) {
-	if p.Solution.Answer != nil {
+	if p.Answer != nil {
 		log.Warnf("Problem already solved.")
 		return p, nil
 	}
 	for _, cp := range cache.Spec.Problems {
-		if (cp.ID == p.ID || cp.matches(p)) && cp.Solution.Answer != nil {
-			p.Solution.Answer = cp.Solution.Answer
+		if (cp.ID == p.ID || cp.matches(p)) && cp.Answer != nil {
+			p.Answer = cp.Answer
 			return p, nil
 		}
 	}

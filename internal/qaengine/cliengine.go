@@ -18,6 +18,7 @@ package qaengine
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
@@ -49,7 +50,7 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 		log.Errorf("the QA problem object is invalid. Error: %q", err)
 		return prob, err
 	}
-	switch prob.Solution.Type {
+	switch prob.Type {
 	case qatypes.SelectSolutionFormType:
 		return c.fetchSelectAnswer(prob)
 	case qatypes.MultiSelectSolutionFormType:
@@ -69,20 +70,20 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 
 func (*CliEngine) fetchSelectAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	var ans, def string
-	if prob.Solution.Default != nil {
-		def = prob.Solution.Default.(string)
+	if prob.Default != nil {
+		def = prob.Default.(string)
 	} else {
-		def = prob.Solution.Options[0]
+		def = prob.Options[0]
 	}
 	prompt := &survey.Select{
 		Message: getQAMessage(prob),
-		Options: prob.Solution.Options,
+		Options: prob.Options,
 		Default: def,
 	}
 	if err := survey.AskOne(prompt, &ans); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
 	}
-	prob.Solution.Answer = ans
+	prob.Answer = ans
 	return prob, nil
 }
 
@@ -90,21 +91,21 @@ func (*CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (qatypes.Problem,
 	ans := []string{}
 	prompt := &survey.MultiSelect{
 		Message: getQAMessage(prob),
-		Options: prob.Solution.Options,
-		Default: prob.Solution.Default,
+		Options: prob.Options,
+		Default: prob.Default,
 	}
 	tickIcon := func(icons *survey.IconSet) { icons.MarkedOption.Text = "[\u2713]" }
 	if err := survey.AskOne(prompt, &ans, survey.WithIcons(tickIcon)); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
 	}
-	prob.Solution.Answer = ans
+	prob.Answer = ans
 	return prob, nil
 }
 
 func (*CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	var ans, def bool
-	if prob.Solution.Default != nil {
-		def = prob.Solution.Default.(bool)
+	if prob.Default != nil {
+		def = prob.Default.(bool)
 	}
 	prompt := &survey.Confirm{
 		Message: getQAMessage(prob),
@@ -113,14 +114,14 @@ func (*CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (qatypes.Problem, err
 	if err := survey.AskOne(prompt, &ans); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
 	}
-	prob.Solution.Answer = ans
+	prob.Answer = ans
 	return prob, nil
 }
 
 func (*CliEngine) fetchInputAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	var ans, def string
-	if prob.Solution.Default != nil {
-		def = prob.Solution.Default.(string)
+	if prob.Default != nil {
+		def = prob.Default.(string)
 	}
 	prompt := &survey.Input{
 		Message: getQAMessage(prob),
@@ -129,14 +130,14 @@ func (*CliEngine) fetchInputAnswer(prob qatypes.Problem) (qatypes.Problem, error
 	if err := survey.AskOne(prompt, &ans); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
 	}
-	prob.Solution.Answer = ans
+	prob.Answer = ans
 	return prob, nil
 }
 
 func (*CliEngine) fetchMultilineAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	var ans, def string
-	if prob.Solution.Default != nil {
-		def = prob.Solution.Default.(string)
+	if prob.Default != nil {
+		def = prob.Default.(string)
 	}
 	prompt := &survey.Multiline{
 		Message: getQAMessage(prob),
@@ -145,7 +146,7 @@ func (*CliEngine) fetchMultilineAnswer(prob qatypes.Problem) (qatypes.Problem, e
 	if err := survey.AskOne(prompt, &ans); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
 	}
-	prob.Solution.Answer = ans
+	prob.Answer = ans
 	return prob, nil
 }
 
@@ -157,7 +158,7 @@ func (*CliEngine) fetchPasswordAnswer(prob qatypes.Problem) (qatypes.Problem, er
 	if err := survey.AskOne(prompt, &ans); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
 	}
-	prob.Solution.Answer = ans
+	prob.Answer = ans
 	return prob, nil
 }
 
@@ -165,9 +166,8 @@ func getQAMessage(prob qatypes.Problem) string {
 	if prob.Desc == "" {
 		prob.Desc = "Default description for question with id: " + prob.ID
 	}
-	message := fmt.Sprintf("%s \n", prob.Desc)
-	if prob.Context != nil {
-		message = fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context)
+	if len(prob.Hints) == 0 {
+		return fmt.Sprintf("%s\n", prob.Desc)
 	}
-	return message
+	return fmt.Sprintf("%s\nHints:\n[%s]\n", prob.Desc, strings.Join(prob.Hints, ", "))
 }

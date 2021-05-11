@@ -50,18 +50,13 @@ const (
 
 // Problem defines the QA problem
 type Problem struct {
-	ID       string       `yaml:"id,omitempty" json:"id,omitempty"`
-	Desc     string       `yaml:"description,omitempty" json:"description,omitempty"`
-	Context  []string     `yaml:"context,omitempty" json:"context,omitempty"`
-	Solution SolutionForm `yaml:"solution" json:"solution,omitempty"`
-}
-
-// SolutionForm defines the solution
-type SolutionForm struct {
+	ID      string           `yaml:"id" json:"id"`
 	Type    SolutionFormType `yaml:"type,omitempty" json:"type,omitempty"`
+	Desc    string           `yaml:"description,omitempty" json:"description,omitempty"`
+	Hints   []string         `yaml:"hints,omitempty" json:"hints,omitempty"`
 	Options []string         `yaml:"options,omitempty" json:"options,omitempty"`
 	Default interface{}      `yaml:"default,omitempty" json:"default,omitempty"`
-	Answer  interface{}      `yaml:"answer" json:"answer"`
+	Answer  interface{}      `yaml:"answer,omitempty" json:"answer,omitempty"`
 }
 
 // SetAnswer sets the answer
@@ -69,49 +64,49 @@ func (p *Problem) SetAnswer(ansI interface{}) error {
 	if ansI == nil {
 		return fmt.Errorf("the answer is nil")
 	}
-	switch p.Solution.Type {
+	switch p.Type {
 	case InputSolutionFormType, PasswordSolutionFormType, MultilineSolutionFormType, SelectSolutionFormType:
 		ans, ok := ansI.(string)
 		if !ok {
 			return fmt.Errorf("expected answer to be string. Actual value %+v is of type %T", ansI, ansI)
 		}
-		if p.Solution.Type == SelectSolutionFormType {
-			if !common.IsStringPresent(p.Solution.Options, ans) {
+		if p.Type == SelectSolutionFormType {
+			if !common.IsStringPresent(p.Options, ans) {
 				return fmt.Errorf("no matching value in options for %s", ans)
 			}
 		}
-		p.Solution.Answer = ans
+		p.Answer = ans
 	case ConfirmSolutionFormType:
 		ans, ok := ansI.(bool)
 		if !ok {
 			return fmt.Errorf("expected answer to be bool. Actual value %+v is of type %T", ansI, ansI)
 		}
-		p.Solution.Answer = ans
+		p.Answer = ans
 	case MultiSelectSolutionFormType:
 		ans, ok := ansI.([]string)
 		if !ok {
 			return fmt.Errorf("expected answer to be a slice of strings. Actual value %+v is of type %T", ansI, ansI)
 		}
-		p.Solution.Answer = ans
+		p.Answer = ans
 		filteredAns := []string{}
 		for _, a := range ans {
-			if !common.IsStringPresent(p.Solution.Options, a) {
+			if !common.IsStringPresent(p.Options, a) {
 				log.Debugf("No matching value in options for %s. Ignoring.", a)
 				continue
 			}
 			filteredAns = append(filteredAns, a)
 		}
-		p.Solution.Answer = filteredAns
-		log.Debugf("Answering multiselect question %s with %+v", p.ID, p.Solution.Answer)
+		p.Answer = filteredAns
+		log.Debugf("Answering multiselect question %s with %+v", p.ID, p.Answer)
 	default:
-		return fmt.Errorf("unsupported QA problem type %+v", p.Solution.Type)
+		return fmt.Errorf("unsupported QA problem type %+v", p.Type)
 	}
 	return nil
 }
 
 // Matches checks if the problems are same
 func (p *Problem) matches(np Problem) bool {
-	return p.Solution.Type == np.Solution.Type && p.matchString(p.Desc, np.Desc)
+	return p.Type == np.Type && p.matchString(p.Desc, np.Desc)
 }
 
 // Compares str1 with str2 in a case-insensitive manner
@@ -129,69 +124,84 @@ func (p *Problem) matchString(str1 string, str2 string) bool {
 }
 
 // NewSelectProblem creates a new instance of select problem
-func NewSelectProblem(probid, desc string, context []string, def string, opts []string) (Problem, error) {
+func NewSelectProblem(probid, desc string, hints []string, def string, opts []string) (Problem, error) {
 	var answer interface{}
 	if len(opts) == 1 {
 		answer = opts[0]
 	}
 	return Problem{
-		ID:       probid,
-		Desc:     desc,
-		Context:  context,
-		Solution: SolutionForm{Type: SelectSolutionFormType, Default: def, Options: opts, Answer: answer},
+		ID:    probid,
+		Desc:  desc,
+		Hints: hints,
+		Type:  SelectSolutionFormType, Default: def, Options: opts, Answer: answer,
 	}, nil
 }
 
 // NewMultiSelectProblem creates a new instance of multiselect problem
-func NewMultiSelectProblem(probid, desc string, context []string, def []string, opts []string) (Problem, error) {
+func NewMultiSelectProblem(probid, desc string, hints []string, def []string, opts []string) (Problem, error) {
 	var answer interface{}
 	if len(opts) == 0 {
 		answer = []string{}
 	}
 	return Problem{
-		ID:       probid,
-		Desc:     desc,
-		Context:  context,
-		Solution: SolutionForm{Type: MultiSelectSolutionFormType, Default: def, Options: opts, Answer: answer},
+		ID:      probid,
+		Type:    MultiSelectSolutionFormType,
+		Desc:    desc,
+		Hints:   hints,
+		Options: opts,
+		Default: def,
+		Answer:  answer,
 	}, nil
 }
 
 // NewConfirmProblem creates a new instance of confirm problem
-func NewConfirmProblem(probid, desc string, context []string, def bool) (Problem, error) {
+func NewConfirmProblem(probid, desc string, hints []string, def bool) (Problem, error) {
 	return Problem{
-		ID:       probid,
-		Desc:     desc,
-		Context:  context,
-		Solution: SolutionForm{Type: ConfirmSolutionFormType, Default: def, Options: nil, Answer: nil},
+		ID:      probid,
+		Type:    ConfirmSolutionFormType,
+		Desc:    desc,
+		Hints:   hints,
+		Options: nil,
+		Default: def,
+		Answer:  nil,
 	}, nil
 }
 
 // NewInputProblem creates a new instance of input problem
-func NewInputProblem(probid, desc string, context []string, def string) (Problem, error) {
+func NewInputProblem(probid, desc string, hints []string, def string) (Problem, error) {
 	return Problem{
-		ID:       probid,
-		Desc:     desc,
-		Context:  context,
-		Solution: SolutionForm{Type: InputSolutionFormType, Default: def, Options: nil, Answer: nil},
+		ID:      probid,
+		Type:    InputSolutionFormType,
+		Desc:    desc,
+		Hints:   hints,
+		Options: nil,
+		Default: def,
+		Answer:  nil,
 	}, nil
 }
 
 // NewMultilineInputProblem creates a new instance of multiline input problem
-func NewMultilineInputProblem(probid, desc string, context []string, def string) (Problem, error) {
+func NewMultilineInputProblem(probid, desc string, hints []string, def string) (Problem, error) {
 	return Problem{
-		ID:       probid,
-		Desc:     desc,
-		Context:  context,
-		Solution: SolutionForm{Type: MultilineSolutionFormType, Default: def, Options: nil, Answer: nil},
+		ID:      probid,
+		Type:    MultilineSolutionFormType,
+		Desc:    desc,
+		Hints:   hints,
+		Options: nil,
+		Default: def,
+		Answer:  nil,
 	}, nil
 }
 
 // NewPasswordProblem creates a new instance of password problem
-func NewPasswordProblem(probid, desc string, context []string) (p Problem, err error) {
+func NewPasswordProblem(probid, desc string, hints []string) (p Problem, err error) {
 	return Problem{
-		ID:       probid,
-		Desc:     desc,
-		Context:  context,
-		Solution: SolutionForm{Type: PasswordSolutionFormType, Default: nil, Options: nil, Answer: nil},
+		ID:      probid,
+		Type:    PasswordSolutionFormType,
+		Desc:    desc,
+		Hints:   hints,
+		Options: nil,
+		Default: nil,
+		Answer:  nil,
 	}, nil
 }
