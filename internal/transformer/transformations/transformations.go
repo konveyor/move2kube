@@ -65,7 +65,7 @@ func convertMapTToProblem(questionObj types.MapT) (qatypes.Problem, error) {
 	}
 
 	// type
-	if _, ok := questionObj["type"]; !ok {
+	if prob.Type == "" {
 		prob.Type = qatypes.InputSolutionFormType
 	}
 
