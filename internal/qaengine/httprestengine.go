@@ -46,12 +46,12 @@ const (
 
 // NewHTTPRESTEngine creates a new instance of Http REST engine
 func NewHTTPRESTEngine(qaport int) Engine {
-	e := new(HTTPRESTEngine)
-	e.port = qaport
-	e.currentProblem = qatypes.Problem{ID: "", Answer: ""}
-	e.problemChan = make(chan qatypes.Problem)
-	e.answerChan = make(chan qatypes.Problem)
-	return e
+	return &HTTPRESTEngine{
+		port:           qaport,
+		currentProblem: qatypes.Problem{ID: "", Answer: ""},
+		problemChan:    make(chan qatypes.Problem),
+		answerChan:     make(chan qatypes.Problem),
+	}
 }
 
 // StartEngine starts the QA Engine
@@ -129,25 +129,27 @@ func (h *HTTPRESTEngine) solutionHandler(w http.ResponseWriter, r *http.Request)
 		errstr := fmt.Sprintf("Error in reading posted solution: %s", err)
 		http.Error(w, "errstr", http.StatusInternalServerError)
 		log.Errorf(errstr)
+		return
 	}
 	var prob qatypes.Problem
-	err = json.Unmarshal(body, &prob)
-	if err != nil {
+	if err := json.Unmarshal(body, &prob); err != nil {
 		errstr := fmt.Sprintf("Error in un-marshalling solution in QA engine: %s", err)
 		http.Error(w, errstr, http.StatusInternalServerError)
 		log.Errorf(errstr)
+		return
 	}
 	log.Debugf("QA Engine receives solution: %+v", prob)
 	if h.currentProblem.ID != prob.ID {
-		errstr := fmt.Sprintf("Unsuitable answer : %s", err)
+		errstr := fmt.Sprintf("the solution's problem ID doesn't match the current problem. Expected: %s Actual %s", h.currentProblem.ID, prob.ID)
 		http.Error(w, errstr, http.StatusNotAcceptable)
 		log.Errorf(errstr)
+		return
 	}
 	if err := h.currentProblem.SetAnswer(prob.Answer); err != nil {
-		errstr := fmt.Sprintf("Unsuitable answer : %s", err)
+		errstr := fmt.Sprintf("failed to set the solution as the answer. Error: %q", err)
 		http.Error(w, errstr, http.StatusNotAcceptable)
 		log.Errorf(errstr)
-	} else {
-		h.answerChan <- h.currentProblem
+		return
 	}
+	h.answerChan <- h.currentProblem
 }
