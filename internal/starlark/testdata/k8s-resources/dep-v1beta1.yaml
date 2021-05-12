@@ -1,10 +1,8 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: "javaspringapp"
+  name: javaspringapp
 spec:
-  # this replicas value is default
-  # modify it according to your case
   replicas: 5
   template:
     metadata:

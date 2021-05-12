@@ -31,7 +31,7 @@ func (se *StoreEngine) StartEngine() error {
 }
 
 // FetchAnswer fetches the answer from the store
-func (se *StoreEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
+func (se *StoreEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	return se.store.GetSolution(prob)
 }
 

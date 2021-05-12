@@ -48,7 +48,7 @@ const (
 func NewHTTPRESTEngine(qaport int) Engine {
 	e := new(HTTPRESTEngine)
 	e.port = qaport
-	e.currentProblem = qatypes.Problem{ID: "", Resolved: true}
+	e.currentProblem = qatypes.Problem{ID: "", Answer: ""}
 	e.problemChan = make(chan qatypes.Problem)
 	e.answerChan = make(chan qatypes.Problem)
 	return e
@@ -60,7 +60,7 @@ func (h *HTTPRESTEngine) StartEngine() error {
 		var err error
 		h.port, err = freeport.GetFreePort()
 		if err != nil {
-			return fmt.Errorf("Unable to find a free port : %s", err)
+			return fmt.Errorf("unable to find a free port : %s", err)
 		}
 	}
 	// Create the REST router.
@@ -73,7 +73,7 @@ func (h *HTTPRESTEngine) StartEngine() error {
 
 	listener, err := net.Listen("tcp", ":"+qaportstr)
 	if err != nil {
-		return fmt.Errorf("Unable to listen on port %d : %s", h.port, err)
+		return fmt.Errorf("unable to listen on port %d : %s", h.port, err)
 	}
 	go func(listener net.Listener) {
 		err := http.Serve(listener, nil)
@@ -91,16 +91,17 @@ func (*HTTPRESTEngine) IsInteractiveEngine() bool {
 }
 
 // FetchAnswer fetches the answer using a REST service
-func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem, err error) {
-	if prob.ID == "" {
-		prob.Resolved = true
+func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
+	if err := ValidateProblem(prob); err != nil {
+		log.Errorf("the QA problem object is invalid. Error: %q", err)
+		return prob, err
 	}
-	if !prob.Resolved {
+	if prob.Answer == nil {
 		log.Debugf("Passing problem to HTTP REST QA Engine ID: %s, desc: %s", prob.ID, prob.Desc)
 		h.problemChan <- prob
 		prob = <-h.answerChan
-		if !prob.Resolved {
-			return prob, fmt.Errorf("Unable to resolve question %s", prob.Desc)
+		if prob.Answer == nil {
+			return prob, fmt.Errorf("failed to resolve the QA problem: %+v", prob)
 		}
 	}
 	return prob, nil
@@ -110,7 +111,7 @@ func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (ans qatypes.Problem,
 func (h *HTTPRESTEngine) problemHandler(w http.ResponseWriter, r *http.Request) {
 	log.Debug("Looking for a problem fron HTTP REST service")
 	// if currently problem is resolved
-	if h.currentProblem.Resolved || h.currentProblem.ID == "" {
+	if h.currentProblem.Answer != nil || h.currentProblem.ID == "" {
 		// Pick the next problem off the channel
 		h.currentProblem = <-h.problemChan
 	}
@@ -142,8 +143,7 @@ func (h *HTTPRESTEngine) solutionHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, errstr, http.StatusNotAcceptable)
 		log.Errorf(errstr)
 	}
-	err = h.currentProblem.SetAnswer(prob.Solution.Answer)
-	if err != nil {
+	if err := h.currentProblem.SetAnswer(prob.Answer); err != nil {
 		errstr := fmt.Sprintf("Unsuitable answer : %s", err)
 		http.Error(w, errstr, http.StatusNotAcceptable)
 		log.Errorf(errstr)

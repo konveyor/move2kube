@@ -4,61 +4,43 @@ kind: QACache
 spec:
   solutions:
     - description: Which services should we expose?
-      context:
+      hints:
         - An Ingress object will be created for every exposed service.
-      solution:
-        type: MultiSelect
-        default:
-          - nodejs
-        options:
-          - nodejs
-        answer:
-          - nodejs
-      resolved: true
+      type: MultiSelect
+      default:
+        - nodejs
+      options:
+        - nodejs
+      answer:
+        - nodejs
     - description: "Select the registry where your images are hosted:"
-      context:
+      hints:
         - You can always change it later by changing the yamls.
-      solution:
-        type: Select
-        default:
-          - docker.io
-        options:
-          - Other
-          - docker.io
-        answer:
-          - Other
-      resolved: true
+      type: Select
+      default: docker.io
+      options:
+        - Other
+        - docker.io
+      answer: Other
     - description: "Enter the name of the registry : "
-      context:
+      hints:
         - "Ex : docker.io"
-      solution:
-        type: Input
-        default:
-          - docker.io
-        answer:
-          - us.icr.io
-      resolved: true
+      type: Input
+      default: docker.io
+      answer: us.icr.io
     - description: "Enter the namespace where the new images should be pushed : "
-      context:
+      hints:
         - "Ex : myproject"
-      solution:
-        type: Input
-        default:
-          - myproject
-        answer:
-          - myproj
-      resolved: true
+      type: Input
+      default: myproject
+      answer: myproj
     - description: "[us.icr.io] What type of container registry login do you want to use?"
-      context:
+      hints:
         - Docker login from config mode, will use the default config from your local machine.
-      solution:
-        type: Select
-        default:
-          - No authentication
-        options:
-          - Use existing pull secret
-          - No authentication
-          - UserName/Password
-        answer:
-          - No authentication
-      resolved: true
+      type: Select
+      default: No authentication
+      options:
+        - Use existing pull secret
+        - No authentication
+        - UserName/Password
+      answer: No authentication

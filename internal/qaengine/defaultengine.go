@@ -41,6 +41,6 @@ func (*DefaultEngine) IsInteractiveEngine() bool {
 
 // FetchAnswer fetches the default answers
 func (*DefaultEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
-	err := prob.SetAnswer(prob.Solution.Default)
+	err := prob.SetAnswer(prob.Default)
 	return prob, err
 }

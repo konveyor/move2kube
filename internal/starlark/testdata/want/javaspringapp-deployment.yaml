@@ -10,8 +10,8 @@ spec:
         app: javaspringapp-selector
     spec:
       containers:
-        - image: "static question: [services.svc1.containers.[0].image]"
-          name: 'dynamic question: [services."javaspringapp".containers.[0].name]'
+        - image: "index.docker.io/username/javaspringapp:v1.23"
+          name: javaspringapp
           readinessProbe:
             httpGet:
               path: /health

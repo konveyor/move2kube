@@ -30,27 +30,27 @@ import (
 )
 
 // GetTransforms returns the transformations
-func GetTransforms(transformsPath string, ansFn types.AnswerFnT, statQuesFn types.StaticQuestionFnT, dynQuesFn types.DynamicQuestionFnT) ([]types.TransformT, error) {
+func GetTransforms(transformsPath string, dynQuesFn types.DynamicQuestionFnT) ([]types.TransformT, error) {
 	log.Trace("start GetTransforms")
 	defer log.Trace("end GetTransforms")
 	transformPaths, err := common.GetFilesByExt(transformsPath, []string{"." + types.TransformFileExtension})
 	if err != nil {
 		return nil, err
 	}
-	return GetTransformsFromPaths(transformPaths, ansFn, statQuesFn, dynQuesFn)
+	return GetTransformsFromPaths(transformPaths, dynQuesFn)
 }
 
 // GetTransformsFromPaths returns the transformations given a list of script file paths
-func GetTransformsFromPaths(transformPaths []string, ansFn types.AnswerFnT, statQuesFn types.StaticQuestionFnT, dynQuesFn types.DynamicQuestionFnT) ([]types.TransformT, error) {
+func GetTransformsFromPaths(transformPaths []string, dynQuesFn types.DynamicQuestionFnT) ([]types.TransformT, error) {
 	transforms := []types.TransformT{}
 	for _, transformPath := range transformPaths {
 		transformBytes, err := ioutil.ReadFile(transformPath)
 		if err != nil {
-			return transforms, err
+			return transforms, fmt.Errorf("failed to read the file at path %s Error: %q", transformPath, err)
 		}
-		currTransforms, err := GetTransformsFromSource(string(transformBytes), ansFn, statQuesFn, dynQuesFn)
+		currTransforms, err := GetTransformsFromSource(string(transformBytes), dynQuesFn)
 		if err != nil {
-			return transforms, err
+			return transforms, fmt.Errorf("failed to get the starlark transform from the file at path %s Error: %q", transformPath, err)
 		}
 		transforms = append(transforms, currTransforms...)
 	}
@@ -58,10 +58,10 @@ func GetTransformsFromPaths(transformPaths []string, ansFn types.AnswerFnT, stat
 }
 
 // GetTransformsFromSource gets a list of transforms given a transformation script
-func GetTransformsFromSource(transformStr string, ansFn types.AnswerFnT, statQuesFn types.StaticQuestionFnT, dynQuesFn types.DynamicQuestionFnT) ([]types.TransformT, error) {
+func GetTransformsFromSource(transformStr string, dynQuesFn types.DynamicQuestionFnT) ([]types.TransformT, error) {
 	log.Trace("start GetTransformsFromSource")
 	defer log.Trace("end GetTransformsFromSource")
-	return new(SimpleTransformT).GetTransformsFromSource(transformStr, ansFn, statQuesFn, dynQuesFn)
+	return new(SimpleTransformT).GetTransformsFromSource(transformStr, dynQuesFn)
 }
 
 // GetK8sResources gets the k8s resources
@@ -99,25 +99,25 @@ func GetK8sResourcesFromYaml(k8sYaml string) ([]types.K8sResourceT, error) {
 		log.Errorf("Failed to unmarshal k8s yaml. Error: %q", err)
 		return nil, err
 	}
-	resourceJsonBytes, err := json.Marshal(resourceI)
+	resourceJSONBytes, err := json.Marshal(resourceI)
 	if err != nil {
 		log.Errorf("Failed to marshal the k8s resource into json. K8s resource:\n+%v\nError: %q", resourceI, err)
 		return nil, err
 	}
 	var k8sResource types.K8sResourceT
-	err = json.Unmarshal(resourceJsonBytes, &k8sResource)
+	err = json.Unmarshal(resourceJSONBytes, &k8sResource)
 	return []types.K8sResourceT{k8sResource}, err
 }
 
 // GetK8sResourceFromObject converts a runtime.Object into a K8sResourceT
 func GetK8sResourceFromObject(obj runtime.Object) (types.K8sResourceT, error) {
-	objJsonBytes, err := json.Marshal(obj)
+	objJSONBytes, err := json.Marshal(obj)
 	if err != nil {
 		log.Debugf("Failed to marshal the runtime.Object %+v into json. Error: %q", obj, err)
 		return nil, err
 	}
 	var k8sResource types.K8sResourceT
-	err = json.Unmarshal(objJsonBytes, &k8sResource)
+	err = json.Unmarshal(objJSONBytes, &k8sResource)
 	return k8sResource, err
 }
 

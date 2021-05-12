@@ -4,51 +4,37 @@ kind: QACache
 spec:
   solutions:
     - description: Which services should we expose?
-      context:
+      hints:
         - An Ingress object will be created for every exposed service.
-      solution:
-        type: MultiSelect
-        default:
-          - python
-        options:
-          - python
-        answer:
-          - python
-      resolved: true
+      type: MultiSelect
+      default:
+        - python
+      options:
+        - python
+      answer:
+        - python
     - description: "Select the registry where your images are hosted:"
-      context:
+      hints:
         - You can always change it later by changing the yamls.
-      solution:
-        type: Select
-        default:
-          - docker.io
-        options:
-          - Other
-          - docker.io
-        answer:
-          - docker.io
-      resolved: true
+      type: Select
+      default: docker.io
+      options:
+        - Other
+        - docker.io
+      answer: docker.io
     - description: "Enter the namespace where the new images should be pushed : "
-      context:
+      hints:
         - "Ex : myproject"
-      solution:
-        type: Input
-        default:
-          - myproject
-        answer:
-          - myproject
-      resolved: true
+      type: Input
+      default: myproject
+      answer: myproject
     - description: "[docker.io] What type of container registry login do you want to use?"
-      context:
+      hints:
         - Docker login from config mode, will use the default config from your local machine.
-      solution:
-        type: Select
-        default:
-          - No authentication
-        options:
-          - Use existing pull secret
-          - No authentication
-          - UserName/Password
-        answer:
-          - No authentication
-      resolved: true
+      type: Select
+      default: No authentication
+      options:
+        - Use existing pull secret
+        - No authentication
+        - UserName/Password
+      answer: No authentication

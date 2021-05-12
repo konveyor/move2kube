@@ -62,7 +62,7 @@ func AddEngine(e Engine) {
 // AddEngineHighestPriority adds an engine to the list and sets it at highest priority
 func AddEngineHighestPriority(e Engine) error {
 	if err := e.StartEngine(); err != nil {
-		return fmt.Errorf("Failed to start the engine: %T\n%v\nError: %s", e, e, err)
+		return fmt.Errorf("failed to start the engine: %T\n%v\nError: %s", e, e, err)
 	}
 	engines = append([]Engine{e}, engines...)
 	return nil
@@ -110,36 +110,39 @@ func SetupConfigFile(outputPath string, configStrings, configFiles, presets []st
 
 // FetchAnswer fetches the answer for the question
 func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
-	var err error
 	log.Debugf("Fetching answer for problem:\n%v", prob)
-	if prob.Resolved {
+	if prob.Answer != nil {
 		log.Debugf("Problem already solved.")
 		return prob, nil
 	}
+	var err error
 	for _, e := range engines {
 		prob, err = e.FetchAnswer(prob)
 		if err != nil {
 			log.Debugf("Error while fetching answer using engine %T Error: %q", e, err)
 			continue
 		}
-		if prob.Resolved {
+		if prob.Answer != nil {
 			prob = changeSelectToInputForOther(prob)
 			break
 		}
 	}
-	if err != nil || !prob.Resolved {
+	if err != nil || prob.Answer == nil {
+		if err := ValidateProblem(prob); err != nil {
+			return prob, fmt.Errorf("the QA problem object is invalid: %+v\nError: %q", prob, err)
+		}
 		// loop using interactive engine until we get an answer
 		lastEngine := engines[len(engines)-1]
 		if !lastEngine.IsInteractiveEngine() {
-			return prob, fmt.Errorf("Failed to fetch the answer for problem\n%+v\nError: %q", prob, err)
+			return prob, fmt.Errorf("failed to fetch the answer for problem\n%+v\nError: %q", prob, err)
 		}
-		for err != nil || !prob.Resolved {
+		for err != nil || prob.Answer == nil {
 			prob, err = lastEngine.FetchAnswer(prob)
 			if err != nil {
 				log.Errorf("Unable to get answer to %s Error: %q", prob.Desc, err)
 				continue
 			}
-			if prob.Resolved {
+			if prob.Answer != nil {
 				prob = changeSelectToInputForOther(prob)
 			}
 		}
@@ -167,11 +170,13 @@ func WriteStoresToDisk() error {
 }
 
 func changeSelectToInputForOther(prob qatypes.Problem) qatypes.Problem {
-	if prob.Solution.Type == qatypes.SelectSolutionFormType && len(prob.Solution.Answer) > 0 && prob.Solution.Answer[0] == qatypes.OtherAnswer {
-		prob.Solution.Type = qatypes.InputSolutionFormType
-		prob.Desc = string(qatypes.InputSolutionFormType) + " " + prob.Desc
-		prob.Solution.Answer = []string{}
-		prob.Resolved = false
+	if prob.Type == qatypes.SelectSolutionFormType && prob.Answer != nil && prob.Answer.(string) == qatypes.OtherAnswer {
+		newDesc := string(qatypes.InputSolutionFormType) + " " + prob.Desc
+		newProb, err := qatypes.NewInputProblem(prob.ID, newDesc, nil, "")
+		if err != nil {
+			log.Fatalf("failed to change the QA select type problem to input type problem: %+v\nError: %q", prob, err)
+		}
+		return newProb
 	}
 	return prob
 }
@@ -188,9 +193,9 @@ func FetchStringAnswer(probid, desc string, context []string, def string) string
 	if err != nil {
 		log.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
-	answer, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer. Error: %q", err)
+	answer, ok := problem.Answer.(string)
+	if !ok {
+		log.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
 	}
 	return answer
 }
@@ -205,9 +210,9 @@ func FetchBoolAnswer(probid, desc string, context []string, def bool) bool {
 	if err != nil {
 		log.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
-	answer, err := problem.GetBoolAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer. Error: %q", err)
+	answer, ok := problem.Answer.(bool)
+	if !ok {
+		log.Fatalf("Answer is not of the correct type. Expected bool. Actual value is %+v of type %T", problem.Answer, problem.Answer)
 	}
 	return answer
 }
@@ -222,9 +227,9 @@ func FetchSelectAnswer(probid, desc string, context []string, def string, option
 	if err != nil {
 		log.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
-	answer, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer. Error: %q", err)
+	answer, ok := problem.Answer.(string)
+	if !ok {
+		log.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
 	}
 	return answer
 }
@@ -239,9 +244,9 @@ func FetchMultiSelectAnswer(probid, desc string, context, def, options []string)
 	if err != nil {
 		log.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
-	answer, err := problem.GetSliceAnswer()
+	answer, err := common.ConvertInterfaceToSliceOfStrings(problem.Answer)
 	if err != nil {
-		log.Fatalf("Unable to get answer. Error: %q", err)
+		log.Fatalf("Answer is not of the correct type. Expected array of strings. Error: %q", err)
 	}
 	return answer
 }
@@ -256,9 +261,9 @@ func FetchPasswordAnswer(probid, desc string, context []string) string {
 	if err != nil {
 		log.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
-	answer, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer. Error: %q", err)
+	answer, ok := problem.Answer.(string)
+	if !ok {
+		log.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
 	}
 	return answer
 }
@@ -273,9 +278,89 @@ func FetchMultilineAnswer(probid, desc string, context []string, def string) str
 	if err != nil {
 		log.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
-	answer, err := problem.GetStringAnswer()
-	if err != nil {
-		log.Fatalf("Unable to get answer. Error: %q", err)
+	answer, ok := problem.Answer.(string)
+	if !ok {
+		log.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
 	}
 	return answer
+}
+
+// ValidateProblem validates the problem object.
+func ValidateProblem(prob qatypes.Problem) error {
+	if prob.ID == "" {
+		return fmt.Errorf("the QA problem has an empty key: %+v", prob)
+	}
+	if prob.Desc == "" {
+		log.Warnf("the QA problem has an empty description: %+v", prob)
+	}
+	if prob.Hints != nil {
+		if _, err := common.ConvertInterfaceToSliceOfStrings(prob.Hints); err != nil {
+			return fmt.Errorf("expected the hints to be an array of strings for the QA problem: %+v\nError: %q", prob, err)
+		}
+	}
+	switch prob.Type {
+	case qatypes.MultiSelectSolutionFormType:
+		if len(prob.Options) == 0 {
+			log.Debugf("the QA multiselect problem has no options specified: %+v", prob)
+			if prob.Default != nil {
+				xs, err := common.ConvertInterfaceToSliceOfStrings(prob.Default)
+				if err != nil {
+					return fmt.Errorf("the QA multiselect problem has a default which is not an array of strings and has no options specified: %+v", prob)
+				}
+				if len(xs) > 0 {
+					return fmt.Errorf("the QA multiselect problem has a default set but no options specified: %+v", prob)
+				}
+			}
+			return nil
+		}
+		if prob.Default != nil {
+			defaults, err := common.ConvertInterfaceToSliceOfStrings(prob.Default)
+			if err != nil {
+				return fmt.Errorf("expected the defaults to be an array of strings for the QA multiselect problem: %+v\nError: %q", prob, err)
+			}
+			for _, def := range defaults {
+				if !common.IsStringPresent(prob.Options, def) {
+					return fmt.Errorf("one of the defaults [%s] is not present in the options for the QA multiselect problem: %+v", def, prob)
+				}
+			}
+		}
+	case qatypes.SelectSolutionFormType:
+		if len(prob.Options) == 0 {
+			return fmt.Errorf("the QA select problem has no options specified: %+v", prob)
+		}
+		if prob.Default != nil {
+			def, ok := prob.Default.(string)
+			if !ok {
+				return fmt.Errorf("expected the default to be a string for the QA select problem: %+v", prob)
+			}
+			if !common.IsStringPresent(prob.Options, def) {
+				return fmt.Errorf("the default [%s] is not present in the options for the QA select problem: %+v", def, prob)
+			}
+		}
+	case qatypes.ConfirmSolutionFormType:
+		if len(prob.Options) > 0 {
+			log.Warnf("options are not supported for the QA confirm question type: %+v", prob)
+		}
+		if prob.Default != nil {
+			if _, ok := prob.Default.(bool); !ok {
+				return fmt.Errorf("expected the default to be a bool for the QA confirm problem: %+v", prob)
+			}
+		}
+	case qatypes.InputSolutionFormType, qatypes.MultilineSolutionFormType, qatypes.PasswordSolutionFormType:
+		if len(prob.Options) > 0 {
+			log.Warnf("options are not supported for the QA input/multiline/password question types: %+v", prob)
+		}
+		if prob.Default != nil {
+			if prob.Type == qatypes.PasswordSolutionFormType {
+				log.Warnf("default is not supported for the QA password question type: %+v", prob)
+			} else {
+				if _, ok := prob.Default.(string); !ok {
+					return fmt.Errorf("expected the default to be a string for the QA input/multiline problem: %+v", prob)
+				}
+			}
+		}
+	default:
+		return fmt.Errorf("unknown QA problem type: %+v", prob)
+	}
+	return nil
 }

@@ -267,26 +267,26 @@ func getPatches(report dyff.Report, xFile *yaml.Node, diff dyff.Diff) ([]PatchT,
 	log.Trace("getPatch end")
 
 	if len(diff.Details) == 0 {
-		return nil, fmt.Errorf("No details found for the diff: %+v", diff)
+		return nil, fmt.Errorf("no details found for the diff: %+v", diff)
 	}
 	if len(diff.Details) > 1 {
 		// TODO: might have to deal with case where there are 2 details (-) and (+)
-		return nil, fmt.Errorf("More than 1 detail found for the diff: %+v", diff)
+		return nil, fmt.Errorf("more than 1 detail found for the diff: %+v", diff)
 	}
 	detail := diff.Details[0]
 	newPaths, newNodes, err := detailToPatches(diff.Path, xFile, detail)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get the patches for the diff with path %+v and detail %+v . Error: %q", diff.Path, detail, err)
+		return nil, fmt.Errorf("failed to get the patches for the diff with path %+v and detail %+v . Error: %q", diff.Path, detail, err)
 	}
 	if len(newPaths) == 0 {
-		return nil, fmt.Errorf("Got 0 paths for the json patch operation. Diff: %+v Detail: %+v", diff, detail)
+		return nil, fmt.Errorf("got 0 paths for the json patch operation. Diff: %+v Detail: %+v", diff, detail)
 	}
 
 	log.Debugf("new paths: %+v", newPaths)
 
 	if detail.Kind == dyff.MODIFICATION {
 		if detail.From == nil {
-			return nil, fmt.Errorf("The FROM value is empty in the json patch replace operation")
+			return nil, fmt.Errorf("the FROM value is empty in the json patch replace operation")
 		}
 		var v interface{}
 		if err := detail.From.Decode(&v); err != nil {
@@ -311,7 +311,7 @@ func getPatches(report dyff.Report, xFile *yaml.Node, diff dyff.Diff) ([]PatchT,
 	}
 
 	if detail.Kind != dyff.ADDITION {
-		return nil, fmt.Errorf("Unknown json patch operation. Detail: %+v", detail)
+		return nil, fmt.Errorf("unknown json patch operation. Detail: %+v", detail)
 	}
 
 	patches := []PatchT{}
@@ -356,7 +356,7 @@ func detailToPatches(path ytbx.Path, value *yaml.Node, detail dyff.Detail) ([]st
 		return detailToPatchesRemoval(jsonPointer, path, value, detail)
 	}
 
-	return nil, nil, fmt.Errorf("Unknown diff operation. Detail: %+v", detail)
+	return nil, nil, fmt.Errorf("unknown diff operation. Detail: %+v", detail)
 }
 
 // detailToPatchesAddition is the special case to handle addition of a node to a list
@@ -366,7 +366,7 @@ func detailToPatchesAddition(jsonPointer string, path ytbx.Path, value *yaml.Nod
 
 	log.Debugf("jsonPointer: %s", jsonPointer)
 	if detail.To == nil {
-		return nil, nil, fmt.Errorf("The json patch ADDITION operation has an empty TO field: %+v", detail)
+		return nil, nil, fmt.Errorf("the json patch ADDITION operation has an empty TO field: %+v", detail)
 	}
 	log.Debugf("To: %+v", detail.To)
 	someNode := detail.To
@@ -378,7 +378,7 @@ func detailToPatchesAddition(jsonPointer string, path ytbx.Path, value *yaml.Nod
 	}
 	// adding one or more nodes to a list
 	if len(someNode.Content) == 0 {
-		return nil, nil, fmt.Errorf("The list of nodes we are trying to add is empty")
+		return nil, nil, fmt.Errorf("the list of nodes we are trying to add is empty")
 	}
 	jsonPointer += "/-" // append the node(s) to the end of the list
 	if len(someNode.Content) > 1 {
@@ -398,7 +398,7 @@ func detailToPatchesRemoval(jsonPointer string, path ytbx.Path, value *yaml.Node
 
 	log.Debugf("jsonPointer: %s", jsonPointer)
 	if detail.From == nil {
-		return nil, nil, fmt.Errorf("The json patch REMOVAL operation has an empty FROM field: %+v", detail)
+		return nil, nil, fmt.Errorf("the json patch REMOVAL operation has an empty FROM field: %+v", detail)
 	}
 	listWeAreRemovingFrom, err := ytbx.Grab(value, jsonPointer)
 	if err != nil {
@@ -416,15 +416,15 @@ func detailToPatchesRemoval(jsonPointer string, path ytbx.Path, value *yaml.Node
 	log.Debugf("From: %+v and kind is %s", detail.From, kindName)
 
 	if someNode.Kind != yaml.SequenceNode {
-		return nil, nil, fmt.Errorf("Expected to find sequence node. Actual: %+v", someNode)
+		return nil, nil, fmt.Errorf("expected to find sequence node. Actual: %+v", someNode)
 	}
 
 	log.Debugf("sequence: %+v", someNode)
 	if len(someNode.Content) == 0 {
-		return nil, nil, fmt.Errorf("The list of nodes we are trying to remove is empty")
+		return nil, nil, fmt.Errorf("the list of nodes we are trying to remove is empty")
 	}
 	if len(someNode.Content) > 1 {
-		return nil, nil, fmt.Errorf("Removing multiple nodes from the list is not supported")
+		return nil, nil, fmt.Errorf("removing multiple nodes from the list is not supported")
 	}
 	removedNode := someNode.Content[0]
 	// find the index of the node we are remving from the list
@@ -436,7 +436,7 @@ func detailToPatchesRemoval(jsonPointer string, path ytbx.Path, value *yaml.Node
 		}
 	}
 	if idx == -1 {
-		return nil, nil, fmt.Errorf("Failed to find the node in the list we are removing from. List: %+v Node: %+v", listWeAreRemovingFrom, removedNode)
+		return nil, nil, fmt.Errorf("failed to find the node in the list we are removing from. List: %+v Node: %+v", listWeAreRemovingFrom, removedNode)
 	}
 	jsonPointer += "/" + cast.ToString(idx) // index in the list that should be removed
 	return []string{jsonPointer}, nil, nil
@@ -459,16 +459,16 @@ func pathToJSONPointer6901(path ytbx.Path, value *yaml.Node) (string, error) {
 			return jsonPointer, err
 		}
 		if someNode.Kind != yaml.SequenceNode {
-			return jsonPointer, fmt.Errorf("Expected a sequence node. Actual: %+v", value)
+			return jsonPointer, fmt.Errorf("expected a sequence node. Actual: %+v", value)
 		}
 		idx := -1
 		for i, x := range someNode.Content {
 			if x.Kind != yaml.MappingNode {
-				return jsonPointer, fmt.Errorf("Expected a mapping node. Actual: %+v", x)
+				return jsonPointer, fmt.Errorf("expected a mapping node. Actual: %+v", x)
 			}
 			var xMap map[string]interface{}
 			if err := x.Decode(&xMap); err != nil {
-				return jsonPointer, fmt.Errorf("Failed to decode the node into a map. Node: %+v Error: %q", x, err)
+				return jsonPointer, fmt.Errorf("failed to decode the node into a map. Node: %+v Error: %q", x, err)
 			}
 			if xMap[pathElement.Key] == pathElement.Name {
 				idx = i
@@ -476,7 +476,7 @@ func pathToJSONPointer6901(path ytbx.Path, value *yaml.Node) (string, error) {
 			}
 		}
 		if idx == -1 {
-			return jsonPointer, fmt.Errorf("Failed to find the object with the key value pair [%s]: [%s] in the list %+v", pathElement.Key, pathElement.Name, someNode.Content)
+			return jsonPointer, fmt.Errorf("failed to find the object with the key value pair [%s]: [%s] in the list %+v", pathElement.Key, pathElement.Name, someNode.Content)
 		}
 		jsonPointer += "/" + cast.ToString(idx)
 	}

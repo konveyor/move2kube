@@ -18,11 +18,11 @@ package qaengine
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
 )
 
 // CliEngine handles the CLI based qa
@@ -45,8 +45,12 @@ func (*CliEngine) IsInteractiveEngine() bool {
 }
 
 // FetchAnswer fetches the answer using cli
-func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
-	switch prob.Solution.Type {
+func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
+	if err := ValidateProblem(prob); err != nil {
+		log.Errorf("the QA problem object is invalid. Error: %q", err)
+		return prob, err
+	}
+	switch prob.Type {
 	case qatypes.SelectSolutionFormType:
 		return c.fetchSelectAnswer(prob)
 	case qatypes.MultiSelectSolutionFormType:
@@ -59,121 +63,111 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (answer qatypes.Problem, e
 		return c.fetchMultilineAnswer(prob)
 	case qatypes.PasswordSolutionFormType:
 		return c.fetchPasswordAnswer(prob)
-	default:
-		log.Fatalf("Unknown type found: %s", prob.Solution.Type)
 	}
-	return prob, fmt.Errorf("Unknown type found : %s", prob.Solution.Type)
+	log.Fatalf("unknown QA problem type: %+v", prob)
+	return prob, nil
 }
 
-func (*CliEngine) fetchSelectAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
-	var ans, d string
-	if len(prob.Solution.Default) > 0 {
-		d = prob.Solution.Default[0]
+func (*CliEngine) fetchSelectAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
+	var ans, def string
+	if prob.Default != nil {
+		def = prob.Default.(string)
 	} else {
-		d = prob.Solution.Options[0]
+		def = prob.Options[0]
 	}
 	prompt := &survey.Select{
-		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
-		Options: prob.Solution.Options,
-		Default: d,
+		Message: getQAMessage(prob),
+		Options: prob.Options,
+		Default: def,
 	}
-	err = survey.AskOne(prompt, &ans)
-	if err != nil {
+	if err := survey.AskOne(prompt, &ans); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
-		return prob, err
 	}
-
-	err = prob.SetAnswer([]string{ans})
-	return prob, err
+	prob.Answer = ans
+	return prob, nil
 }
 
-func (*CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
+func (*CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	ans := []string{}
 	prompt := &survey.MultiSelect{
-		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
-		Options: prob.Solution.Options,
-		Default: prob.Solution.Default,
+		Message: getQAMessage(prob),
+		Options: prob.Options,
+		Default: prob.Default,
 	}
-	err = survey.AskOne(prompt, &ans, survey.WithIcons(func(icons *survey.IconSet) {
-		icons.MarkedOption.Text = "[\u2713]"
-	}))
-	if err != nil {
+	tickIcon := func(icons *survey.IconSet) { icons.MarkedOption.Text = "[\u2713]" }
+	if err := survey.AskOne(prompt, &ans, survey.WithIcons(tickIcon)); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
-		return prob, err
 	}
-	err = prob.SetAnswer(ans)
-	return prob, err
+	prob.Answer = ans
+	return prob, nil
 }
 
-func (*CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
-	var ans, d bool
-	if len(prob.Solution.Default) > 0 {
-		d, err = cast.ToBoolE(prob.Solution.Default[0])
-		if err != nil {
-			log.Warnf("Unable to parse default value : %s", err)
-		}
+func (*CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
+	var ans, def bool
+	if prob.Default != nil {
+		def = prob.Default.(bool)
 	}
 	prompt := &survey.Confirm{
-		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
-		Default: d,
+		Message: getQAMessage(prob),
+		Default: def,
 	}
-	err = survey.AskOne(prompt, &ans)
-	if err != nil {
+	if err := survey.AskOne(prompt, &ans); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
-		return prob, err
 	}
-	err = prob.SetAnswer([]string{fmt.Sprintf("%v", ans)})
-	return prob, err
+	prob.Answer = ans
+	return prob, nil
 }
 
-func (*CliEngine) fetchInputAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
-	var ans string
-	d := ""
-	if len(prob.Solution.Default) > 0 {
-		d = prob.Solution.Default[0]
+func (*CliEngine) fetchInputAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
+	var ans, def string
+	if prob.Default != nil {
+		def = prob.Default.(string)
 	}
 	prompt := &survey.Input{
-		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
-		Default: d,
+		Message: getQAMessage(prob),
+		Default: def,
 	}
-	err = survey.AskOne(prompt, &ans)
-	if err != nil {
+	if err := survey.AskOne(prompt, &ans); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
-		return prob, err
 	}
-	err = prob.SetAnswer([]string{ans})
-	return prob, err
+	prob.Answer = ans
+	return prob, nil
 }
 
-func (*CliEngine) fetchMultilineAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
-	var ans string
-	d := ""
-	if len(prob.Solution.Default) > 0 {
-		d = prob.Solution.Default[0]
+func (*CliEngine) fetchMultilineAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
+	var ans, def string
+	if prob.Default != nil {
+		def = prob.Default.(string)
 	}
 	prompt := &survey.Multiline{
-		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
-		Default: d,
+		Message: getQAMessage(prob),
+		Default: def,
 	}
-	err = survey.AskOne(prompt, &ans)
-	if err != nil {
+	if err := survey.AskOne(prompt, &ans); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
-		return prob, err
 	}
-	err = prob.SetAnswer([]string{ans})
-	return prob, err
+	prob.Answer = ans
+	return prob, nil
 }
 
-func (*CliEngine) fetchPasswordAnswer(prob qatypes.Problem) (answer qatypes.Problem, err error) {
+func (*CliEngine) fetchPasswordAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	var ans string
 	prompt := &survey.Password{
-		Message: fmt.Sprintf("%s \nHints: \n %s\n", prob.Desc, prob.Context),
+		Message: getQAMessage(prob),
 	}
-	err = survey.AskOne(prompt, &ans)
-	if err != nil {
+	if err := survey.AskOne(prompt, &ans); err != nil {
 		log.Fatalf("Error while asking a question : %s", err)
-		return prob, err
 	}
-	err = prob.SetAnswer([]string{ans})
-	return prob, err
+	prob.Answer = ans
+	return prob, nil
+}
+
+func getQAMessage(prob qatypes.Problem) string {
+	if prob.Desc == "" {
+		prob.Desc = "Default description for question with id: " + prob.ID
+	}
+	if len(prob.Hints) == 0 {
+		return fmt.Sprintf("%s\n", prob.Desc)
+	}
+	return fmt.Sprintf("%s\nHints:\n[%s]\n", prob.Desc, strings.Join(prob.Hints, ", "))
 }
