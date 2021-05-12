@@ -17,6 +17,7 @@ limitations under the License.
 package transformations
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -47,61 +48,25 @@ func convertMapTToProblem(questionObj types.MapT) (qatypes.Problem, error) {
 	defer log.Trace("end convertMapTToProblem")
 
 	prob := qatypes.Problem{}
+	quesBytes, err := json.Marshal(questionObj)
+	if err != nil {
+		return prob, fmt.Errorf("failed to marshal the question object into json: %+v\nError: %q", questionObj, err)
+	}
+	if err := json.Unmarshal(quesBytes, &prob); err != nil {
+		return prob, fmt.Errorf("failed to unmarshal the question json into a QA problem struct: %s\nError: %q", string(quesBytes), err)
+	}
 
 	// key
-	qakeyI, ok := questionObj["key"]
-	if !ok {
-		return prob, fmt.Errorf("the key 'key' is missing from the question object %+v", questionObj)
+	if prob.ID == "" {
+		return prob, fmt.Errorf("the key 'id' is missing from the question object %+v", questionObj)
 	}
-	qakey, ok := qakeyI.(string)
-	if !ok {
-		return prob, fmt.Errorf("the key 'key' is not a string. The question object %+v", questionObj)
+	if !strings.HasPrefix(prob.ID, common.BaseKey) {
+		prob.ID = common.BaseKey + common.Delim + prob.ID
 	}
-	if !strings.HasPrefix(qakey, common.BaseKey) {
-		qakey = common.BaseKey + common.Delim + qakey
-	}
-	prob.ID = qakey
 
 	// type
-	prob.Type = qatypes.InputSolutionFormType
-	if quesTypeI, ok := questionObj["type"]; ok {
-		prob.Type, ok = quesTypeI.(qatypes.SolutionFormType)
-		if !ok {
-			return prob, fmt.Errorf("the key 'type' is not a string. The question object %+v", questionObj)
-		}
-	}
-
-	// description
-	if descI, ok := questionObj["description"]; ok {
-		prob.Desc, ok = descI.(string)
-		if !ok {
-			return prob, fmt.Errorf("the key 'description' is not a string. The question object %+v", questionObj)
-		}
-	}
-
-	// hints
-	if hintsI, ok := questionObj["hints"]; ok {
-		hints, err := common.ConvertInterfaceToSliceOfStrings(hintsI)
-		if err != nil {
-			return prob, fmt.Errorf("the key 'hints' is not an array of strings. Error %q", err)
-		}
-		prob.Hints = hints
-	}
-
-	// default
-	if defaultI, ok := questionObj["default"]; ok {
-		prob.Default = defaultI
-	}
-
-	// options
-	if prob.Type == qatypes.SelectSolutionFormType || prob.Type == qatypes.MultiSelectSolutionFormType {
-		if optionsI, ok := questionObj["options"]; ok {
-			options, err := common.ConvertInterfaceToSliceOfStrings(optionsI)
-			if err != nil {
-				return prob, fmt.Errorf("the key 'options' is not an array of strings. Error: %q", err)
-			}
-			prob.Options = options
-		}
+	if _, ok := questionObj["type"]; !ok {
+		prob.Type = qatypes.InputSolutionFormType
 	}
 
 	return prob, nil

@@ -10,7 +10,7 @@ def lower_number_of_replicas(x):
 
 def change_the_image(x):
     if x["metadata"]["name"] == "javaspringapp":
-        x["spec"]["template"]["spec"]["containers"][0]["image"] = query({"key":"services.javaspringapp.containers.[0].image"})
+        x["spec"]["template"]["spec"]["containers"][0]["image"] = query({"id":"services.javaspringapp.containers.[0].image"})
     return x
 
 outputs = {
