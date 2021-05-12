@@ -83,9 +83,9 @@ func (p *Problem) SetAnswer(ansI interface{}) error {
 		}
 		p.Answer = ans
 	case MultiSelectSolutionFormType:
-		ans, ok := ansI.([]string)
-		if !ok {
-			return fmt.Errorf("expected answer to be a slice of strings. Actual value %+v is of type %T", ansI, ansI)
+		ans, err := common.ConvertInterfaceToSliceOfStrings(ansI)
+		if err != nil {
+			return fmt.Errorf("expected answer to be an array of strings. Error: %q", err)
 		}
 		p.Answer = ans
 		filteredAns := []string{}
