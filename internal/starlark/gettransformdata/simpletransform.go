@@ -44,7 +44,7 @@ def lower_number_of_replicas(x):
     return x
 
 def change_the_ports(x):
-    x["spec"]["template"]["spec"]["containers"][0]["ports"] = query("services.svc1.ports")
+    x["spec"]["template"]["spec"]["containers"][0]["ports"] = query({"id" : "services.svc1.ports"})
     return x
 
 outputs = {
