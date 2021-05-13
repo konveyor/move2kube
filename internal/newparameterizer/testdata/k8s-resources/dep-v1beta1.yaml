@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    openshift.io/node-selector: type=gpu-node,region=east
+  name: javaspringapp
+spec:
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        app: "javaspringapp-selector"
+    spec:
+      containers:
+        - name: javaspringapp
+          image:  "index.docker.io/username/javaspringapp:v1.23"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi

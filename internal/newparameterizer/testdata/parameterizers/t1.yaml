@@ -1,0 +1,17 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Parameterizer
+metadata:
+  name: t1
+spec:
+  parameterizers:
+    - target: 'metadata.annotations."openshift.io/node-selector"'
+      filter:
+        Deployment: ["apps/v1", "extensions/v1beta1"]
+        Service: [v1]
+    - target: "spec.replicas"
+      default: 10
+      filter:
+        Deployment: ["^.*/v1.*$"]
+    - target: "spec.template.spec.containers.[0].image"
+      filter:
+        Deployment: ["apps/v1"]

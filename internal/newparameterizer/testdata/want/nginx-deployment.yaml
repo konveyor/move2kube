@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    "openshift.io/node-selector": '{{ index .Values "Deployment" "apps/v1" "nginx" "metadata" "annotations" "openshift.io/node-selector" }}'
+  labels:
+    app: nginx
+  name: nginx
+spec:
+  replicas: '{{ index .Values "Deployment" "apps/v1" "nginx" "spec" "replicas" }}'
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - image: '{{ index .Values "Deployment" "apps/v1" "nginx" "spec" "template" "spec" "containers" "[0]" "image" }}'
+          name: '{{ index .Values "Deployment" "apps/v1" "nginx" "spec" "template" "spec" "containers" "[0]" "name" }}'
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi

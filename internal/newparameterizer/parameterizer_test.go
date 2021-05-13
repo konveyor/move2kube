@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package starlark_test
+package newparameterizer_test
 
 import (
 	"path/filepath"
@@ -22,37 +22,29 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/qaengine"
+	"github.com/konveyor/move2kube/internal/newparameterizer/applyparameterizers"
+	"github.com/konveyor/move2kube/internal/newparameterizer/getparameterizers"
 	"github.com/konveyor/move2kube/internal/starlark"
 	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
-	"github.com/konveyor/move2kube/internal/starlark/runtransforms"
-	"github.com/konveyor/move2kube/internal/transformer/transformations"
 )
 
-func TestGettingAndTransformingResources(t *testing.T) {
+func TestGettingAndParameterizingResources(t *testing.T) {
 	relBaseDir := "testdata"
 	baseDir, err := filepath.Abs(relBaseDir)
 	if err != nil {
 		t.Fatalf("Failed to make the base directory %s absolute path. Error: %q", relBaseDir, err)
 	}
 
-	qaengine.AddEngine(qaengine.NewDefaultEngine())
-	qaengine.SetupConfigFile(t.TempDir(), nil, []string{filepath.Join(baseDir, "m2kconfig.yaml")}, nil)
-
-	transformsPath := filepath.Join(baseDir, "transforms")
-	transformsPaths := []string{
-		transformsPath + "/t1.star",
-		transformsPath + "/t2.star",
-	}
+	parameterizersPath := filepath.Join(baseDir, "parameterizers")
 	k8sResourcesPath := filepath.Join(baseDir, "k8s-resources")
 	outputPath := t.TempDir()
 
-	filesWritten, err := transformAll(transformsPaths, k8sResourcesPath, outputPath)
+	filesWritten, err := parameterizeAll(parameterizersPath, k8sResourcesPath, outputPath)
 	if err != nil {
-		t.Fatalf("Failed to apply all the transformations. Error: %q", err)
+		t.Fatalf("Failed to apply all the parameterizations. Error: %q", err)
 	}
-	if len(filesWritten) != 3 {
-		t.Fatalf("Expected %d files to be written. Actual: %d", 3, len(filesWritten))
+	if len(filesWritten) != 4 {
+		t.Fatalf("Expected %d files to be written. Actual: %d", 4, len(filesWritten))
 	}
 	wantDataDir := filepath.Join(baseDir, "want")
 	for _, fileWritten := range filesWritten {
@@ -64,16 +56,16 @@ func TestGettingAndTransformingResources(t *testing.T) {
 		}
 		var actualData interface{}
 		if err := common.ReadYaml(fileWritten, &actualData); err != nil {
-			t.Fatalf("Failed to read the transformed k8s resource at path %s . Error: %q", fileWritten, err)
+			t.Fatalf("Failed to read the parameterized k8s resource at path %s . Error: %q", fileWritten, err)
 		}
 		if !cmp.Equal(actualData, wantData) {
-			t.Fatalf("Failed to transform the k8s resource %s properly. Differences:\n%s", filename, cmp.Diff(wantData, actualData))
+			t.Fatalf("Failed to parameterize the k8s resource %s properly. Differences:\n%s", filename, cmp.Diff(wantData, actualData))
 		}
 	}
 }
 
-func transformAll(transformsPaths []string, k8sResourcesPath, outputPath string) ([]string, error) {
-	transforms, err := transformations.GetTransformsFromPathsUsingDefaults(transformsPaths)
+func parameterizeAll(parameterizersPath, k8sResourcesPath, outputPath string) ([]string, error) {
+	parameterizers, err := getparameterizers.GetParameterizers(parameterizersPath)
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +73,18 @@ func transformAll(transformsPaths []string, k8sResourcesPath, outputPath string)
 	if err != nil {
 		return nil, err
 	}
-	transformedK8sResources, err := runtransforms.ApplyTransforms(transforms, k8sResources)
+	parameterizedK8sResources, values, err := applyparameterizers.ApplyParameterizers(parameterizers, k8sResources)
 	if err != nil {
 		return nil, err
 	}
-	return starlark.WriteResources(transformedK8sResources, outputPath)
+	filesWritten, err := starlark.WriteResources(parameterizedK8sResources, outputPath)
+	if err != nil {
+		return filesWritten, err
+	}
+	valuesPath := filepath.Join(outputPath, "values.yaml")
+	if err := common.WriteYaml(valuesPath, values); err != nil {
+		return nil, err
+	}
+	filesWritten = append(filesWritten, valuesPath)
+	return filesWritten, nil
 }

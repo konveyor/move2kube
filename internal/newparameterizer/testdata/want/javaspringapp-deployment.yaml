@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: javaspringapp
+  annotations:
+    "openshift.io/node-selector": '{{ index .Values "Deployment" "extensions/v1beta1" "javaspringapp" "metadata" "annotations" "openshift.io/node-selector" }}'
+spec:
+  replicas: '{{ index .Values "Deployment" "extensions/v1beta1" "javaspringapp" "spec" "replicas" }}'
+  template:
+    metadata:
+      labels:
+        app: javaspringapp-selector
+    spec:
+      containers:
+        - image: "index.docker.io/username/javaspringapp:v1.23"
+          name: javaspringapp
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi

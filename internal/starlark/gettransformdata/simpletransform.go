@@ -137,7 +137,7 @@ func (st *SimpleTransformT) Filter(k8sResource types.K8sResourceT) (bool, error)
 			if err != nil {
 				return false, err
 			}
-			if re.Match([]byte(k8sResourceAPIVersion)) {
+			if re.MatchString(k8sResourceAPIVersion) {
 				return true, nil
 			}
 		}

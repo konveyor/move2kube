@@ -25,8 +25,9 @@ import (
 func ApplyTransforms(transforms []types.TransformT, k8sResources []types.K8sResourceT) ([]types.K8sResourceT, error) {
 	log.Trace("start applyTransforms")
 	defer log.Trace("end applyTransforms")
+	var err error
 	for _, transform := range transforms {
-		k8sResources, err := applyTransform(transform, k8sResources)
+		k8sResources, err = applyTransform(transform, k8sResources)
 		if err != nil {
 			return k8sResources, err
 		}

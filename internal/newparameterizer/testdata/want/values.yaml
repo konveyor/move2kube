@@ -1,0 +1,21 @@
+Deployment:
+  "apps/v1":
+    nginx:
+      metadata:
+        annotations:
+          openshift.io/node-selector: type=gpu-node,region=east
+      spec:
+        replicas: 10
+        template:
+          spec:
+            containers:
+              '[0]':
+                image: nginx:1.14.2
+                name: nginx
+  "extensions/v1beta1":
+    javaspringapp:
+      metadata:
+        annotations:
+          openshift.io/node-selector: type=gpu-node,region=east
+      spec:
+        replicas: 10

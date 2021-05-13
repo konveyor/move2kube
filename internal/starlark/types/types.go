@@ -26,7 +26,7 @@ type K8sResourceT = MapT
 type KindsAPIVersionsT = map[string][]string
 
 const (
-	// TransformFileExtension is the extension for transformation starlark scripts
+	// TransformFileExtension is the file extension for transformation starlark scripts
 	TransformFileExtension = "star"
 )
 
@@ -39,12 +39,6 @@ type TransformT interface {
 	// Filter returns true if the transformation can be applied to the given k8s resource
 	Filter(k8sResource K8sResourceT) (bool, error)
 }
-
-// AnswerFnT is the function used to fetch answers
-type AnswerFnT = func(key string) (answer interface{}, err error)
-
-// StaticQuestionFnT is provided the questions that must be answered before running the script
-type StaticQuestionFnT = func(question interface{}) error
 
 // DynamicQuestionFnT is provided the questions that must be answered while the script is running
 type DynamicQuestionFnT = func(question interface{}) (answer interface{}, err error)
