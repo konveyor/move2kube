@@ -16,10 +16,10 @@ nav_order: 2
    ```
    Access the UI in `http://localhost:8080/`.
 
-   > Note: There is a known issue when using WSL with the above command.  
+   > Note: There is a known issue when using the above command in WSL.  
    The CNB containerization option will not be availabe.  
-   Also empty folders may be created in the root directory.  
-   If you are on Windows, consider using Powershell instead of WSL until this is fixed.
+   Also an empty folder called `workspace` may be created in the root directory.  
+   If you are on Windows, use Powershell instead of WSL until this is fixed.
 
 ## Bringing up Move2Kube UI and API as separate containers
 
