@@ -12,9 +12,14 @@ nav_order: 2
 
    ```console
    $ mkdir -p workspace && cd workspace
-   $ docker run -p 8080:8080 -v $PWD:/workspace -v /var/run/docker.sock:/var/run/docker.sock -it quay.io/konveyor/move2kube-aio:latest
+   $ docker run -p 8080:8080 -v "${PWD}:/workspace" -v /var/run/docker.sock:/var/run/docker.sock --rm -it quay.io/konveyor/move2kube-aio:latest
    ```
    Access the UI in `http://localhost:8080/`.
+
+   > Note: There is a known issue when using WSL with the above command.  
+   The CNB containerization option will not be availabe.  
+   Also empty folders may be created in the root directory.  
+   If you are on Windows, consider using Powershell instead of WSL until this is fixed.
 
 ## Bringing up Move2Kube UI and API as separate containers
 
