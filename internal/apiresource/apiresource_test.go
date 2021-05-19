@@ -20,12 +20,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	okdapi "github.com/openshift/api"
-	tektonscheme "github.com/tektoncd/pipeline/pkg/client/clientset/versioned/scheme"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	k8sapischeme "k8s.io/client-go/kubernetes/scheme"
 )
 
 func createService(name string, ports []v1.ServicePort) runtime.Object {
@@ -42,21 +39,6 @@ func createService(name string, ports []v1.ServicePort) runtime.Object {
 			Ports: ports,
 		},
 	}
-}
-
-func must(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-func getK8sScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	must(okdapi.Install(scheme))
-	must(okdapi.InstallKube(scheme))
-	must(k8sapischeme.AddToScheme(scheme))
-	must(tektonscheme.AddToScheme(scheme))
-	return scheme
 }
 
 func TestDeepMerge(t *testing.T) {

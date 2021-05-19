@@ -32,7 +32,7 @@ import (
 func TestGetSupportedKinds(t *testing.T) {
 	netPolicy := NetworkPolicy{}
 	supKinds := netPolicy.getSupportedKinds()
-	if supKinds == nil || len(supKinds) == 0 {
+	if len(supKinds) == 0 {
 		t.Fatal("The supported kinds is nil/empty.")
 	}
 }

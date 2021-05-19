@@ -21,7 +21,6 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
-	internaltypes "github.com/konveyor/move2kube/internal/types"
 	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	okdappsv1 "github.com/openshift/api/apps/v1"
@@ -193,7 +192,7 @@ func (d *Deployment) createDeploymentConfig(service irtypes.Service, cluster col
 }
 
 // createReplicationController initializes Kubernetes ReplicationController object
-func (d *Deployment) createReplicationController(service internaltypes.Service, cluster collecttypes.ClusterMetadataSpec) *core.ReplicationController {
+func (d *Deployment) createReplicationController(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *core.ReplicationController {
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
 		Labels:      getPodLabels(service.Name, service.Networks),

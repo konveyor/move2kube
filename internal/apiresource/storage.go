@@ -120,44 +120,6 @@ func (s *Storage) createPVC(st irtypes.Storage) *core.PersistentVolumeClaim {
 	return pvc
 }
 
-func convertCfgMapToSecret(cfgMap core.ConfigMap) *core.Secret {
-
-	secretDataMap := stringMapToByteMap(cfgMap.Data)
-
-	s := &core.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       string(irtypes.SecretKind),
-			APIVersion: core.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   cfgMap.Name,
-			Labels: cfgMap.Labels,
-		},
-		Type: core.SecretTypeOpaque,
-		Data: secretDataMap,
-	}
-
-	return s
-}
-
-func convertSecretToCfgMap(s core.Secret) *core.ConfigMap {
-	cmDataMap := byteMapToStringMap(s.Data)
-
-	cm := &core.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       string(irtypes.ConfigMapKind),
-			APIVersion: core.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   s.Name,
-			Labels: s.Labels,
-		},
-		Data: cmDataMap,
-	}
-
-	return cm
-}
-
 func convertPVCVolumeToEmptyVolume(vPVC core.Volume) *core.Volume {
 	vEmptySrc := &core.VolumeSource{
 		EmptyDir: &core.EmptyDirVolumeSource{},
@@ -237,24 +199,4 @@ func convertVolumeBySupportedKind(volume core.Volume, cluster collecttypes.Clust
 	log.Warnf("Unsupported storage type (volume) detected")
 
 	return core.Volume{}
-}
-
-func stringMapToByteMap(sm map[string]string) map[string][]byte {
-	bm := map[string][]byte{}
-
-	for k, v := range sm {
-		bm[k] = []byte(v)
-	}
-
-	return bm
-}
-
-func byteMapToStringMap(bm map[string][]byte) map[string]string {
-	sm := map[string]string{}
-
-	for k, v := range bm {
-		sm[k] = string(v)
-	}
-
-	return sm
 }

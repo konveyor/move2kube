@@ -87,7 +87,7 @@ func (*S2IContainerizer) detect(scriptDir string, directory string) (string, err
 // GetContainer returns the container for a service
 func (d *S2IContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	if service.ContainerBuildType != d.GetContainerBuildStrategy() || len(service.ContainerizationTargetOptions) == 0 {
-		return irtypes.Container{}, fmt.Errorf("Unsupported service type for Containerization or insufficient information in service")
+		return irtypes.Container{}, fmt.Errorf("unsupported service type for Containerization or insufficient information in service")
 	}
 	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
 	container.RepoInfo = service.RepoInfo // TODO: instead of passing this in from plan phase, we should gather git info here itself.

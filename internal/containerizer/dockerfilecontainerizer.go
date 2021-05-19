@@ -88,14 +88,14 @@ func (*DockerfileContainerizer) detect(scriptDir string, directory string) (stri
 func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plantypes.Service) (irtypes.Container, error) {
 	// TODO: Fix exposed ports too
 	if service.ContainerBuildType != d.GetContainerBuildStrategy() || len(service.ContainerizationTargetOptions) == 0 {
-		return irtypes.Container{}, fmt.Errorf("Unsupported service type for containerization or insufficient information in service")
+		return irtypes.Container{}, fmt.Errorf("unsupported service type for containerization or insufficient information in service")
 	}
 	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
 	container.RepoInfo = service.RepoInfo // TODO: instead of passing this in from plan phase, we should gather git info here itself.
 	containerizerDir := service.ContainerizationTargetOptions[0]
 	sourceCodeDir := service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0] // TODO: what about the other source artifacts?
 
-	relOutputPath, err := filepath.Rel(plan.Spec.Inputs.RootDir, sourceCodeDir)
+	relOutputPath, err := plan.GetRelativePath(sourceCodeDir)
 	if err != nil {
 		log.Errorf("Failed to make the source code directory %q relative to the root directory %q Error: %q", sourceCodeDir, plan.Spec.Inputs.RootDir, err)
 		return container, err
@@ -279,7 +279,11 @@ func (d *DockerfileContainerizer) GetContainer(plan plantypes.Plan, service plan
 
 	dockerBuildScriptPath := filepath.Join(relOutputPath, service.ServiceName+"-docker-build.sh")
 	container.AddFile(dockerBuildScriptPath, dockerBuildScriptContents)
-	container.RepoInfo.TargetPath = filepath.Join(container.RepoInfo.GitRepoDir, dockerfilePath)
+	container.RepoInfo.TargetPath, err = plan.GetAbsolutePath(dockerfilePath)
+	if err != nil {
+		log.Errorf("Failed to make the relative dockerfile path %s absolute using the plan's root directory. Error: %q", dockerfilePath, err)
+		return container, err
+	}
 
 	return container, nil
 }
