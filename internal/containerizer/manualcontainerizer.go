@@ -48,5 +48,5 @@ func (d ManualContainerizer) GetContainer(plan plantypes.Plan, service plantypes
 		container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
 		return container, nil
 	}
-	return irtypes.Container{}, fmt.Errorf("Unsupported service type for Containerization or insufficient information in service")
+	return irtypes.Container{}, fmt.Errorf("unsupported service type for Containerization or insufficient information in service")
 }

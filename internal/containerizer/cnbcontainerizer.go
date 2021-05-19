@@ -104,10 +104,10 @@ func (d *CNBContainerizer) GetContainer(plan plantypes.Plan, service plantypes.S
 	// TODO: Fix exposed ports too
 	container := irtypes.NewContainer(d.GetContainerBuildStrategy(), service.Image, true)
 	if service.ContainerBuildType != d.GetContainerBuildStrategy() {
-		return container, fmt.Errorf("Service %s has container build type %s . Expected %s", service.ServiceName, service.ContainerBuildType, d.GetContainerBuildStrategy())
+		return container, fmt.Errorf("service %s has container build type %s . Expected %s", service.ServiceName, service.ContainerBuildType, d.GetContainerBuildStrategy())
 	}
 	if len(service.ContainerizationTargetOptions) == 0 {
-		return container, fmt.Errorf("Service %s has no containerization target options", service.ServiceName)
+		return container, fmt.Errorf("service %s has no containerization target options", service.ServiceName)
 	}
 	builder := service.ContainerizationTargetOptions[0]
 	cnbbuilderstring, err := common.GetStringFromTemplate(scripts.CNBBuilder_sh, struct {
@@ -122,7 +122,7 @@ func (d *CNBContainerizer) GetContainer(plan plantypes.Plan, service plantypes.S
 		return container, err
 	}
 	if len(service.SourceArtifacts[plantypes.SourceDirectoryArtifactType]) == 0 {
-		err := fmt.Errorf("Service %s has no source code directory specified", service.ServiceName)
+		err := fmt.Errorf("service %s has no source code directory specified", service.ServiceName)
 		return container, err
 	}
 	sourceCodeDir := service.SourceArtifacts[plantypes.SourceDirectoryArtifactType][0]

@@ -204,7 +204,7 @@ func (o *APIResource) deepMerge(x, y runtime.Object) (runtime.Object, error) {
 	obj, newGVK, err := codecs.UniversalDeserializer().Decode(mergedJSON, nil, nil)
 
 	if newGVK == nil || *newGVK != yGVK {
-		err := fmt.Errorf("The group version kind after merging is different from before merging. original: %v new: %v", yGVK, newGVK)
+		err := fmt.Errorf("the group version kind after merging is different from before merging. original: %v new: %v", yGVK, newGVK)
 		log.Error(err)
 		return obj, err
 	}

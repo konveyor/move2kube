@@ -21,20 +21,18 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/konveyor/move2kube/types/plan"
-	plantypes "github.com/konveyor/move2kube/types/plan"
-
 	"github.com/konveyor/move2kube/internal/containerizer"
+	plantypes "github.com/konveyor/move2kube/types/plan"
 )
 
 func TestComesBefore(t *testing.T) {
 	serviceOptions := []plantypes.Service{
-		plan.Service{ContainerBuildType: plantypes.ReuseContainerBuildTypeValue},
-		plan.Service{ContainerBuildType: plantypes.DockerFileContainerBuildTypeValue},
+		{ContainerBuildType: plantypes.ReuseContainerBuildTypeValue},
+		{ContainerBuildType: plantypes.DockerFileContainerBuildTypeValue},
 	}
 	want := []plantypes.Service{
-		plan.Service{ContainerBuildType: plantypes.DockerFileContainerBuildTypeValue},
-		plan.Service{ContainerBuildType: plantypes.ReuseContainerBuildTypeValue},
+		{ContainerBuildType: plantypes.DockerFileContainerBuildTypeValue},
+		{ContainerBuildType: plantypes.ReuseContainerBuildTypeValue},
 	}
 	// sort the service options in order of priority
 	sort.Slice(serviceOptions, func(i, j int) bool {
