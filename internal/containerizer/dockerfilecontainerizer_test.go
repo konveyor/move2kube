@@ -52,13 +52,15 @@ func TestDockerFileGetContainer(t *testing.T) {
 		}
 		service := plan.Spec.Inputs.Services["dockerfile"][0]
 
-		dockerfilecontainerizer := new(containerizer.DockerfileContainerizer)
-
 		// Test
-		cont, err := dockerfilecontainerizer.GetContainer(plan, service)
+		cont, err := new(containerizer.DockerfileContainerizer).GetContainer(plan, service)
 		if err != nil {
 			t.Fatal("Failed to get the container. Error:", err)
 		}
+		if filepath.Base(cont.RepoInfo.TargetPath) != want.RepoInfo.TargetPath {
+			t.Fatal("The target dockerfile path is incorrect")
+		}
+		cont.RepoInfo.TargetPath = want.RepoInfo.TargetPath
 		if !cmp.Equal(cont, want) {
 			t.Fatalf("Failed to create the container properly. Difference:\n%s", cmp.Diff(want, cont))
 		}
