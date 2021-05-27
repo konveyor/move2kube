@@ -40,20 +40,53 @@ metadata:
   name: t1
 spec:
   parameterizers:
-    - target: 'metadata.annotations."openshift.io/node-selector"'
-      template: '{{ .Values.metadata.annotations.nodeselector }}'
-      default: "type=gpu-node,region=west"
+  	- target: 'metadata.annotations."openshift.io/node-selector"'
+      template: '${metadata.annotations.nodeselector}'
+	  filter:
+		- kind: 'Deployment'
+	  	  apiVersion: '.*v1.*'
+		  name: 'd1.*'
+		- kind: 'Service'
+		  apiVersion: 'v1'
+    - target: 'spec.replicas'
+      template: '${common.replicas}'
+      parameters:
+	  	- name: 'common.replicas'
+		  value: 10
       filter:
-        Deployment: ["apps/v1", "extensions/v1beta1"]
-        Service: [v1]
-    - target: "spec.replicas"
-      default: 2
-      filter:
-        Deployment: [".*v1.*"]
-		- target: "spec.template.spec.containers.[0].image"
-		template: "{{ .Values.spec.template.spec.containers.[0].image }}"
-		filter:
-		  Deployment: ["apps/v1"]
+        - kind: 'Deployment'
+		  apiVersion: '.*v1.*'
+	- target: 'spec.template.spec.containers.[0].image'
+	  template: '${imageregistryurl}/{imageregistrynamespace}/${imagename}:${imagetag}'
+	  parameters:
+	  	- name: imageregistryurl
+		  default: quay.io
+		- name: imageregistrynamespace
+ 		  default: konveyor
+		- name: imagename
+		  default: default_image
+		  openshiftTemplateParameter: 'foobar_${resourceName}'
+		  helmTemplateParameter: 'services.${kind}.${apiVersion}.${resourceName}.imagename'
+		  values:
+			- env: [dev, staging, prod]
+	 		  apiVersion: apps/v1
+			  resourceName: nginx
+			  value: nginx_image
+			- env: [prod]
+			  apiVersion: apps/v1
+			  resourceName: javaspringapp
+			  value: openjdk8
+			- env: [dev]
+			  apiVersion: extensions/v1beta1
+			  resourceName: javaspringapp
+			  value: openjdk-dev8
+		- name: imagetag
+		  default: latest
+	  envs: [dev, staging, prod]
+	  filter:
+		- kind: 'Deployment'
+		  apiVersion: '.*v1.*'
+		  name: 'd1.*'
 */
 
 // SimpleParameterizerFile is the file format for the parameterizers
