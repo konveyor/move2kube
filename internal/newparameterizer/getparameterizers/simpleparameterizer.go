@@ -35,9 +35,33 @@ import (
 // -----------
 /*
 apiVersion: move2kube.konveyor.io/v1alpha1
-kind: Parameterizer
+kind: Packaging
 metadata:
   name: t1
+spec:
+  paths:
+	- src: custom/yamls
+	  out: custom/
+	  helm: my/dest/helm
+	  kustomize: another/kustomize
+	- src: yamls
+	  helm: my/dest/helm
+	  kustomize: another/kustomize
+  parameterizers:
+    names:
+	  - t1
+	objects:
+		- target: 'metadata.annotations."openshift.io/node-selector"'
+		  template: '${metadata.annotations.nodeselector}'
+		  filter:
+			- kind: 'Deployment'
+			apiVersion: '.*v1.*'
+			name: 'd1.*'
+			- kind: 'Service'
+			apiVersion: 'v1'
+
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Parameterizer
 spec:
   parameterizers:
   	- target: 'metadata.annotations."openshift.io/node-selector"'
@@ -57,7 +81,7 @@ spec:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 	- target: 'spec.template.spec.containers.[0].image'
-	  template: '${imageregistryurl}/{imageregistrynamespace}/${imagename}:${imagetag}'
+	  template: '${imageregistryurl}/${imageregistrynamespace}/${imagename}:${imagetag}'
 	  parameters:
 	  	- name: imageregistryurl
 		  default: quay.io
@@ -65,20 +89,20 @@ spec:
  		  default: konveyor
 		- name: imagename
 		  default: default_image
-		  openshiftTemplateParameter: 'foobar_${resourceName}'
-		  helmTemplateParameter: 'services.${kind}.${apiVersion}.${resourceName}.imagename'
+		  openshiftTemplateParameter: 'foobar_${metadataName}'
+		  helmTemplateParameter: 'services.${kind}.${apiVersion}.${metadataName}.imagename'
 		  values:
 			- env: [dev, staging, prod]
 	 		  apiVersion: apps/v1
-			  resourceName: nginx
+			  metadataName: nginx
 			  value: nginx_image
 			- env: [prod]
 			  apiVersion: apps/v1
-			  resourceName: javaspringapp
+			  metadataName: javaspringapp
 			  value: openjdk8
 			- env: [dev]
 			  apiVersion: extensions/v1beta1
-			  resourceName: javaspringapp
+			  metadataName: javaspringapp
 			  value: openjdk-dev8
 		- name: imagetag
 		  default: latest
@@ -92,8 +116,8 @@ spec:
 // SimpleParameterizerFile is the file format for the parameterizers
 type SimpleParameterizerFile struct {
 	metav1.TypeMeta   `yaml:",inline" json:",inline"`
-	metav1.ObjectMeta `yaml:"metadata,omitempty" json:"metadata,omitempty"`
-	Spec              SimpleParameterizerFileSpec `yaml:"spec,omitempty" json:"spec,omitempty"`
+	metav1.ObjectMeta `yaml:"metadata" json:"metadata"`
+	Spec              SimpleParameterizerFileSpec `yaml:"spec" json:"spec"`
 }
 
 // SimpleParameterizerFileSpec is the spec inside the file format for the parameterizers
@@ -103,10 +127,33 @@ type SimpleParameterizerFileSpec struct {
 
 // SimpleParameterizer implements the ParameterizerT interface
 type SimpleParameterizerT struct {
-	Target           string                      `yaml:"target" json:"target"`
-	HelmTemplate     string                      `yaml:"template,omitempty" json:"template,omitempty"`
-	Default          interface{}                 `yaml:"default,omitempty" json:"default,omitempty"`
-	KindsAPIVersions startypes.KindsAPIVersionsT `yaml:"filter,omitempty" json:"filter,omitempty"`
+	Target     string       `yaml:"target" json:"target"`
+	Template   string       `yaml:"template,omitempty" json:"template,omitempty"`
+	Parameters []ParameterT `yaml:"parameters,omitempty" json:"parameters,omitempty"`
+	Filters    []FilterT    `yaml:"filters,omitempty" json:"filters,omitempty"`
+}
+
+// ParameterT is used to specify the defaults for the parameters in the template
+type ParameterT struct {
+	Name              string            `yaml:"name" json:"name"`
+	Default           interface{}       `yaml:"default,omitempty" json:"default,omitempty"`
+	HelmTemplate      string            `yaml:"helmTemplate,omitempty" json:"helmTemplate,omitempty"`
+	OpenshiftTemplate string            `yaml:"openshiftTemplate,omitempty" json:"openshiftTemplate,omitempty"`
+	Values            []ParameterValueT `yaml:"values,omitempty" json:"values,omitempty"`
+}
+
+type ParameterValueT struct {
+	Env          []string `yaml:"env,omitempty" json:"env,omitempty"`
+	Kind         string   `yaml:"kind,omitempty" json:"kind,omitempty"`
+	ApiVersion   string   `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
+	MetadataName string   `yaml:"metadataName,omitempty" json:"metadataName,omitempty"`
+	Value        string   `yaml:"value" json:"value"`
+}
+
+type FilterT struct {
+	Kind       string `yaml:"kind,omitempty" json:"kind,omitempty"`
+	ApiVersion string `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
+	Name       string `yaml:"name,omitempty" json:"name,omitempty"`
 }
 
 // Parameterize parameterizes the k8s resource
@@ -117,7 +164,7 @@ func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT,
 	if !ok {
 		return nil, fmt.Errorf("the key %s does not exist on the k8s resource: %+v", st.Target, k8sResource)
 	}
-	templ := st.HelmTemplate
+	templ := st.Template
 	newKey := st.Target // TODO: somehow get it from st.HelmTemplate
 	if templ == "" {
 		kind, apiVersion, name, err := starcommon.GetInfoFromK8sResource(k8sResource)
@@ -148,18 +195,18 @@ func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT,
 func (st *SimpleParameterizerT) Filter(k8sResource startypes.K8sResourceT) (bool, error) {
 	log.Trace("start SimpleParameterizerT.Filter")
 	defer log.Trace("end SimpleParameterizerT.Filter")
-	k8sResourceKind, k8sResourceAPIVersion, _, err := starcommon.GetInfoFromK8sResource(k8sResource)
+	k8sResourceKind, k8sResourceAPIVersion, k8sResourceName, err := starcommon.GetInfoFromK8sResource(k8sResource)
 	if err != nil {
 		return false, err
 	}
-	if len(st.KindsAPIVersions) == 0 {
-		// empty map matches all kinds and apiVersions
+	if len(st.Filters) == 0 {
+		// empty map matches all kinds, apiVersions and names
 		return true, nil
 	}
-	for kind, apiVersions := range st.KindsAPIVersions {
+	for _, filter := range st.Filters {
 		// empty kind matches all kinds
-		if kind != "" {
-			re, err := regexp.Compile("^" + kind + "$")
+		if filter.Kind != "" {
+			re, err := regexp.Compile("^" + filter.Kind + "$")
 			if err != nil {
 				return false, err
 			}
@@ -167,19 +214,27 @@ func (st *SimpleParameterizerT) Filter(k8sResource startypes.K8sResourceT) (bool
 				continue
 			}
 		}
-		if len(apiVersions) == 0 {
-			// empty array matches all apiVersions
-			return true, nil
-		}
-		for _, apiVersion := range apiVersions {
-			re, err := regexp.Compile("^" + apiVersion + "$")
+		// empty apiVersion matches all apiVersions
+		if filter.ApiVersion != "" {
+			re, err := regexp.Compile("^" + filter.ApiVersion + "$")
 			if err != nil {
 				return false, err
 			}
-			if re.MatchString(k8sResourceAPIVersion) {
-				return true, nil
+			if !re.MatchString(k8sResourceAPIVersion) {
+				continue
 			}
 		}
+		// empty name matches all names
+		if filter.Name != "" {
+			re, err := regexp.Compile("^" + filter.Name + "$")
+			if err != nil {
+				return false, err
+			}
+			if !re.MatchString(k8sResourceName) {
+				continue
+			}
+		}
+		return true, nil
 	}
 	return false, nil
 }

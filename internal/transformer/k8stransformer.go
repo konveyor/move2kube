@@ -159,21 +159,26 @@ func (kt *K8sTransformer) getAPIResources() []apiresource.IAPIResource {
 // The output folder structure is given below:
 // myproject/
 //   deploy/
+//     custom/yamls/
 //     yamls/
-//     kustomize/
-//       base/
-//       overlay/
-//         dev/
-//         staging/
-//         prod/
-//     helm/
-//       myproject/
-//     operator/
 //     cicd/
 //       tekton/
 //       argocd/
 //   scripts/
 //   source/
+//   my/dest/helm/
+//       myproject/
+//   my/other/dest/helm/
+//       myproject/
+//   my/dest/operator/
+//   another/kustomize/
+//       base/
+//       overlay/
+//         dev/
+//         staging/
+//         prod/
+//   yetanother/openshift-templates/
+
 func (kt *K8sTransformer) WriteObjects(outputPath string, transformPaths []string) error {
 	deployPath := filepath.Join(outputPath, common.DeployDir)
 	if err := os.MkdirAll(deployPath, common.DefaultDirectoryPermission); err != nil {
