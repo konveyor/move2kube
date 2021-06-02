@@ -111,6 +111,10 @@ spec:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
+	// IMPORTANT !!!!!!
+	// The following only makes sense when the field we are parameterizing is a string
+	// IMPORTANT !!!!!!
+
 	// fill the template with multiple keys from the values.yaml
 	// the keys are:
 	// ${imageregistry.url}       becomes {{ index .Values "imageregistry" "url" }}
@@ -291,6 +295,9 @@ func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT,
 	if !ok {
 		return k8sResource, fmt.Errorf("the key %s does not exist on the k8s resource: %+v", st.Target, k8sResource)
 	}
+
+
+
 
 	templ := st.Template
 	if st.Template == "" {
