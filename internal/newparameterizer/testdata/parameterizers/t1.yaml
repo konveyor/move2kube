@@ -15,7 +15,7 @@ spec:
       default: 10
       filters:
         - kind: Deployment
-          apiVersion: "^.*/v1.*$"
+          apiVersion: ".*/v1.*"
     - target: "spec.template.spec.containers.[0].image"
       template: '${imageregistry.url}/${imageregistry.namespace}/${image.name}:${image.tag}'
       filters:

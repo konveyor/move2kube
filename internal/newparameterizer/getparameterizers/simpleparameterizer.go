@@ -73,7 +73,7 @@ spec:
 	// the key is {{ index .Values "Deployment" "apps/v1" "nginx" "spec" "replicas" }}
 	// the default value is the original value for replicas specified in the Deployment yaml
 	- target: 'spec.replicas'
-      filter:
+      filters:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
@@ -83,7 +83,7 @@ spec:
 	// the default value is the original value for replicas specified in the Deployment yaml
     - target: 'spec.replicas'
       template: '${common.replicas}'
-      filter:
+      filters:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
@@ -93,7 +93,7 @@ spec:
 	// the default value is 2
 	- target: 'spec.replicas'
 	  default: 2
-      filter:
+      filters:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
@@ -105,7 +105,7 @@ spec:
     - target: 'spec.replicas'
       template: '${common.replicas}'
 	  default: 2
-      filter:
+      filters:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
@@ -122,7 +122,7 @@ spec:
 	// the default values are taken from the original value specified in the Deployment yaml
 	- target: 'spec.template.spec.containers.[0].image'
 	  template: '${imageregistry.url}/${imageregistry.namespace}/${image.name}:${image.tag}'
-	  filter:
+	  filters:
 		- kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 		  name: 'd1.*'
@@ -142,7 +142,7 @@ spec:
 	- target: 'spec.template.spec.containers.[0].image'
 	  template: '${imageregistry.url}/${imageregistry.namespace}/${image.name}:${image.tag}'
 	  default: 'us.icr.io/move2kube/myimage:myimagetag'
-	  filter:
+	  filters:
 		- kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 		  name: 'd1.*'
@@ -163,7 +163,7 @@ spec:
 	- target: 'spec.template.spec.containers.[0].image'
 	  template: '${imageregistry.url}/${imageregistry.namespace}/${image.name}:${image.tag}'
 	  default: 'us.icr.io/move2kube/myimage:myimagetag'
-	  filter:
+	  filters:
 		- kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 		  name: 'd1.*'
@@ -174,15 +174,15 @@ spec:
 		  openshiftTemplateParameter: 'services_${metadataName}_imagename'
 		  helmTemplateParameter: 'services.${metadataName}.imagename'
 		  values:
-			- env: [dev, staging, prod]
+			- envs: [dev, staging, prod]
 	 		  apiVersion: apps/v1
 			  metadataName: nginx
 			  value: nginx_image
-			- env: [prod]
+			- envs: [prod]
 			  apiVersion: apps/v1
 			  metadataName: javaspringapp
 			  value: openjdk8
-			- env: [dev]
+			- envs: [dev]
 			  apiVersion: extensions/v1beta1
 			  metadataName: javaspringapp
 			  value: openjdk-dev8
