@@ -1,7 +1,7 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Parameterizer
 metadata:
-  name: t2
+  name: p2
 spec:
   parameterizers:
     - target: "spec.template.spec.containers.[0].name"
