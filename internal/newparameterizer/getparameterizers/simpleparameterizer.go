@@ -255,37 +255,6 @@ func splitOnIdxs(s string, idxs []int) []paramOrStringT {
 	return ss
 }
 
-// func parseTemplate(s string, orig string) ([]string, []string, map[string]string, error) {
-// 	matches := stringInterpRegex.FindAllStringSubmatchIndex(s, -1)
-// 	if len(matches) == 0 {
-// 		return nil, nil, nil, fmt.Errorf("no interpolation variables (example: ${foo}) found in the template %s", s)
-// 	}
-// 	idxs := []int{}
-// 	vars := []string{}
-// 	for _, match := range matches {
-// 		// assume len(match) == 4 (2 idxs for the original string, 2 for the capturing group). Not sure when this can be false.
-// 		idxs = append(idxs, match[:2]...)
-// 		vars = append(vars, s[match[2]:match[3]])
-// 	}
-// 	ss := splitOnIdxs(s, idxs)
-// 	newre, err := regexp.Compile("^" + stringInterpRegex.ReplaceAllString(s, `(.*)`) + "$")
-// 	if err != nil {
-// 		return ss, vars, nil, fmt.Errorf("failed to make a new regex using the template: %s\nError: %q", s, err)
-// 	}
-// 	newmatches := newre.FindAllStringSubmatch(orig, -1)
-// 	if len(newmatches) == 0 {
-// 		return ss, vars, nil, fmt.Errorf("no matches found with the new regex %+v", newre)
-// 	}
-// 	if len(newmatches[0]) != len(vars)+1 {
-// 		return ss, vars, nil, fmt.Errorf("expected to find a single match per interpolation variable. Actual %+v", newmatches)
-// 	}
-// 	matchedvars := map[string]string{}
-// 	for i, newmatch := range newmatches[0][1:] {
-// 		matchedvars[vars[i]] = newmatch
-// 	}
-// 	return ss, vars, matchedvars, nil
-// }
-
 func parseTemplate(templ, orig string) ([]string, []paramOrStringT, error) {
 	parameters := stringInterpRegex.FindAllStringSubmatchIndex(templ, -1)
 	if len(parameters) == 0 {
@@ -334,7 +303,6 @@ func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT,
 	if !ok {
 		return k8sResource, fmt.Errorf("the key %s does not exist on the k8s resource: %+v", st.Target, k8sResource)
 	}
-
 	templ := st.Template
 	if templ == "" {
 		kind, apiVersion, name, err := starcommon.GetInfoFromK8sResource(k8sResource)
@@ -343,14 +311,17 @@ func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT,
 		}
 		templ = fmt.Sprintf(`${"%s"."%s"."%s".%s}`, kind, apiVersion, name, st.Target)
 	}
-
 	parameters, err := getParameters(templ)
 	if err != nil {
 		return k8sResource, fmt.Errorf("failed to get the parameters from the template: %s\nError: %q", templ, err)
 	}
 	if len(parameters) == 1 {
 		parameter := parameters[0]
-		helmTemplate := fmt.Sprintf(`{{ index .Values %s }}`, strings.Join(newparamcommon.GetSubKeys(parameter), " "))
+		subkeys := newparamcommon.GetSubKeys(parameter)
+		for i, subkey := range subkeys {
+			subkeys[i] = `"` + subkey + `"`
+		}
+		helmTemplate := fmt.Sprintf(`{{ index .Values %s }}`, strings.Join(subkeys, " "))
 		if err := newparamcommon.Set(st.Target, helmTemplate, k8sResource); err != nil {
 			return k8sResource, fmt.Errorf("failed to set the key %s to the value %s in the k8s resource: %+v\nError: %q", st.Target, helmTemplate, k8sResource, err)
 		}
@@ -387,15 +358,17 @@ Actual value is %+v of type %T`,
 			)
 		}
 	}
-
 	originalValues, paramsAndStrings, err := parseTemplate(templ, defaultStr)
 	if err != nil {
 		return k8sResource, fmt.Errorf("failed to parse the multi parameter template: %s\nError: %q", templ, err)
 	}
-
 	helmTemplates := []string{}
 	for _, parameter := range parameters {
-		helmTemplate := fmt.Sprintf(`{{ index .Values %s }}`, strings.Join(newparamcommon.GetSubKeys(parameter), " "))
+		subkeys := newparamcommon.GetSubKeys(parameter)
+		for i, subkey := range subkeys {
+			subkeys[i] = `"` + subkey + `"`
+		}
+		helmTemplate := fmt.Sprintf(`{{ index .Values %s }}`, strings.Join(subkeys, " "))
 		helmTemplates = append(helmTemplates, helmTemplate)
 	}
 	fullHelmTemplate := ""
@@ -472,7 +445,7 @@ func (*SimpleParameterizerT) GetParameterizersFromPath(parameterizerPath string)
 	log.Trace("start SimpleParameterizerT.GetParameterizersFromPath")
 	defer log.Trace("end SimpleParameterizerT.GetParameterizersFromPath")
 	param := SimpleParameterizerFile{}
-	if err := common.ReadMove2KubeYaml(parameterizerPath, &param); err != nil {
+	if err := common.ReadMove2KubeYamlStrict(parameterizerPath, &param); err != nil {
 		log.Errorf("failed to read the paarameterizer from the file at path %s . Error: %q", parameterizerPath, err)
 		return nil, err
 	}

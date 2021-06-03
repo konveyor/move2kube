@@ -257,6 +257,57 @@ func ReadMove2KubeYaml(path string, out interface{}) error {
 	return nil
 }
 
+// ReadMove2KubeYamlStrict is like ReadMove2KubeYaml but returns an error
+// when it finds unknown fields in the yaml
+func ReadMove2KubeYamlStrict(path string, out interface{}) error {
+	yamlData, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Debugf("Failed to read the yaml file at path %s Error: %q", path, err)
+		return err
+	}
+	yamlMap := map[string]interface{}{}
+	if err := yaml.Unmarshal([]byte(yamlData), yamlMap); err != nil {
+		log.Debugf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
+		return err
+	}
+	groupVersionI, ok := yamlMap["apiVersion"]
+	if !ok {
+		err := fmt.Errorf("did not find apiVersion in the yaml file at path %s", path)
+		log.Debug(err)
+		return err
+	}
+	groupVersionStr, ok := groupVersionI.(string)
+	if !ok {
+		err := fmt.Errorf("the apiVersion is not a string in the yaml file at path %s", path)
+		log.Debug(err)
+		return err
+	}
+	groupVersion, err := schema.ParseGroupVersion(groupVersionStr)
+	if err != nil {
+		log.Debugf("Failed to parse the apiVersion %s Error: %q", groupVersionStr, err)
+		return err
+	}
+	if groupVersion.Group != types.SchemeGroupVersion.Group {
+		err := fmt.Errorf("the file at path %s doesn't have the correct group. Expected group %s Actual group %s", path, types.SchemeGroupVersion.Group, groupVersion.Group)
+		log.Debug(err)
+		return err
+	}
+	if groupVersion.Version != types.SchemeGroupVersion.Version {
+		log.Warnf("The file at path %s was generated using a different version. File version is %s and move2kube version is %s", path, groupVersion.Version, types.SchemeGroupVersion.Version)
+	}
+	jsonBytes, err := json.Marshal(yamlMap)
+	if err != nil {
+		return err
+	}
+	dec := json.NewDecoder(bytes.NewReader(jsonBytes))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(out); err != nil {
+		log.Debugf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
+		return err
+	}
+	return nil
+}
+
 // WriteJSON writes an json to disk
 func WriteJSON(outputPath string, data interface{}) error {
 	var b bytes.Buffer

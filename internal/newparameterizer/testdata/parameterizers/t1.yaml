@@ -5,13 +5,17 @@ metadata:
 spec:
   parameterizers:
     - target: 'metadata.annotations."openshift.io/node-selector"'
-      filter:
-        Deployment: ["apps/v1", "extensions/v1beta1"]
-        Service: [v1]
+      filters:
+        - kind: Deployment
+          apiVersion: "apps/v1|extensions/v1beta1"
+        - kind: Service
+          apiVersion: v1
     - target: "spec.replicas"
       default: 10
-      filter:
-        Deployment: ["^.*/v1.*$"]
+      filters:
+        - kind: Deployment
+          apiVersion: "^.*/v1.*$"
     - target: "spec.template.spec.containers.[0].image"
-      filter:
-        Deployment: ["apps/v1"]
+      filters:
+        - kind: Deployment
+          apiVersion: "apps/v1"

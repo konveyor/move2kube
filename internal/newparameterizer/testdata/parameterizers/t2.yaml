@@ -5,5 +5,6 @@ metadata:
 spec:
   parameterizers:
     - target: "spec.template.spec.containers.[0].name"
-      filter:
-        Deployment: ["apps/v1"]
+      filters:
+        - kind: Deployment
+          apiVersion: "apps/v1"
