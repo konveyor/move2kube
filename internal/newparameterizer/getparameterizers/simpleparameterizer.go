@@ -18,7 +18,6 @@ package getparameterizers
 
 import (
 	"fmt"
-	"html/template"
 	"regexp"
 	"strings"
 
@@ -28,7 +27,6 @@ import (
 	starcommon "github.com/konveyor/move2kube/internal/starlark/common"
 	startypes "github.com/konveyor/move2kube/internal/starlark/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -199,19 +197,26 @@ type SimpleParameterizerFile struct {
 
 // SimpleParameterizerFileSpec is the spec inside the file format for the parameterizers
 type SimpleParameterizerFileSpec struct {
-	Parameterizers []SimpleParameterizerT `yaml:"parameterizers,omitempty" json:"parameterizers,omitempty"`
+	Parameterizers []SimpleParameterizerT `yaml:"parameterizers" json:"parameterizers"`
 }
 
-// SimpleParameterizer implements the ParameterizerT interface
+// SimpleParameterizerT implements the ParameterizerT interface
 type SimpleParameterizerT struct {
 	Target     string       `yaml:"target" json:"target"`
 	Template   string       `yaml:"template,omitempty" json:"template,omitempty"`
 	Default    interface{}  `yaml:"default,omitempty" json:"default,omitempty"`
-	Parameters []ParameterT `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 	Filters    []FilterT    `yaml:"filters,omitempty" json:"filters,omitempty"`
+	Envs       []string     `yaml:"envs,omitempty" json:"envs,omitempty"`
+	Parameters []ParameterT `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 
-// ParameterT is used to specify the defaults for the parameters in the template
+type FilterT struct {
+	Kind       string `yaml:"kind,omitempty" json:"kind,omitempty"`
+	ApiVersion string `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
+	Name       string `yaml:"name,omitempty" json:"name,omitempty"`
+}
+
+// ParameterT is used to specify the environment specific defaults for the keys in the template
 type ParameterT struct {
 	Name              string            `yaml:"name" json:"name"`
 	Default           interface{}       `yaml:"default,omitempty" json:"default,omitempty"`
@@ -221,67 +226,101 @@ type ParameterT struct {
 }
 
 type ParameterValueT struct {
-	Env          []string `yaml:"env,omitempty" json:"env,omitempty"`
+	Envs         []string `yaml:"envs,omitempty" json:"envs,omitempty"`
 	Kind         string   `yaml:"kind,omitempty" json:"kind,omitempty"`
 	ApiVersion   string   `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
 	MetadataName string   `yaml:"metadataName,omitempty" json:"metadataName,omitempty"`
 	Value        string   `yaml:"value" json:"value"`
 }
 
-type FilterT struct {
-	Kind       string `yaml:"kind,omitempty" json:"kind,omitempty"`
-	ApiVersion string `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
-	Name       string `yaml:"name,omitempty" json:"name,omitempty"`
+type paramOrStringT struct {
+	isParam bool
+	data    string
 }
 
 var (
 	stringInterpRegex = regexp.MustCompile(`\${([^}]+)}`)
 )
 
-func splitOnIdxs(s string, idxs []int) []string {
+func splitOnIdxs(s string, idxs []int) []paramOrStringT {
+	ss := []paramOrStringT{}
 	prevIdx := 0
-	ss := []string{}
+	isParam := false
 	for _, idx := range idxs {
-		currs := s[prevIdx:idx]
+		currs := paramOrStringT{isParam: isParam, data: s[prevIdx:idx]}
 		prevIdx = idx
-		if len(currs) == 0 {
-			continue
-		}
+		isParam = !isParam
 		ss = append(ss, currs)
 	}
 	return ss
 }
 
-func parseTemplate(s string, orig interface{}) ([]string, []string, map[string]string, error) {
-	re := regexp.MustCompile(`\${([^}]+)}`)
-	matches := re.FindAllStringSubmatchIndex(s, -1)
-	if len(matches) == 0 {
-		return nil, nil, nil, fmt.Errorf("no interpolation variables (example: ${foo}) found in the template %s", s)
+// func parseTemplate(s string, orig string) ([]string, []string, map[string]string, error) {
+// 	matches := stringInterpRegex.FindAllStringSubmatchIndex(s, -1)
+// 	if len(matches) == 0 {
+// 		return nil, nil, nil, fmt.Errorf("no interpolation variables (example: ${foo}) found in the template %s", s)
+// 	}
+// 	idxs := []int{}
+// 	vars := []string{}
+// 	for _, match := range matches {
+// 		// assume len(match) == 4 (2 idxs for the original string, 2 for the capturing group). Not sure when this can be false.
+// 		idxs = append(idxs, match[:2]...)
+// 		vars = append(vars, s[match[2]:match[3]])
+// 	}
+// 	ss := splitOnIdxs(s, idxs)
+// 	newre, err := regexp.Compile("^" + stringInterpRegex.ReplaceAllString(s, `(.*)`) + "$")
+// 	if err != nil {
+// 		return ss, vars, nil, fmt.Errorf("failed to make a new regex using the template: %s\nError: %q", s, err)
+// 	}
+// 	newmatches := newre.FindAllStringSubmatch(orig, -1)
+// 	if len(newmatches) == 0 {
+// 		return ss, vars, nil, fmt.Errorf("no matches found with the new regex %+v", newre)
+// 	}
+// 	if len(newmatches[0]) != len(vars)+1 {
+// 		return ss, vars, nil, fmt.Errorf("expected to find a single match per interpolation variable. Actual %+v", newmatches)
+// 	}
+// 	matchedvars := map[string]string{}
+// 	for i, newmatch := range newmatches[0][1:] {
+// 		matchedvars[vars[i]] = newmatch
+// 	}
+// 	return ss, vars, matchedvars, nil
+// }
+
+func parseTemplate(templ, orig string) ([]string, []paramOrStringT, error) {
+	parameters := stringInterpRegex.FindAllStringSubmatchIndex(templ, -1)
+	if len(parameters) == 0 {
+		return nil, nil, fmt.Errorf("no parameters found in the template: %s", templ)
 	}
 	idxs := []int{}
-	vars := []string{}
-	for _, match := range matches {
+	for _, match := range parameters {
 		// assume len(match) == 4 (2 idxs for the original string, 2 for the capturing group). Not sure when this can be false.
 		idxs = append(idxs, match[:2]...)
-		vars = append(vars, s[match[2]:match[3]])
 	}
-	ss := splitOnIdxs(s, idxs)
-	newre, err := regexp.Compile("^" + re.ReplaceAllString(s, `(.*)`) + "$")
+	paramsAndStrings := splitOnIdxs(templ, idxs)
+	newre, err := regexp.Compile("^" + stringInterpRegex.ReplaceAllString(templ, `(.+)`) + "$")
 	if err != nil {
-		return ss, vars, nil, fmt.Errorf("failed to make a new regex using the template: %s\nError: %q", s, err)
+		return nil, paramsAndStrings, fmt.Errorf("failed to make a new regex using the template: %s\nError: %q", templ, err)
 	}
-	newmatches := newre.FindAllStringSubmatch(orig, -1)
-	if len(newmatches) == 0 {
-		return ss, vars, nil, fmt.Errorf("no matches found with the new regex %+v", newre)
+	orignalValues := newre.FindAllStringSubmatch(orig, -1)
+	if len(orignalValues) == 0 {
+		return nil, paramsAndStrings, fmt.Errorf("failed to extract the orignal values from the string %s for the template %s using the regex %+v", orig, templ, newre)
 	}
-	if len(newmatches[0]) != len(vars)+1 {
-		return ss, vars, nil, fmt.Errorf("expected to find a single match per interpolation variable. Actual %+v", newmatches)
+	if len(orignalValues[0]) != len(parameters)+1 {
+		return nil, paramsAndStrings, fmt.Errorf("expected to find %d matches (one for each parameter). Actual matches are %+v", len(parameters), orignalValues)
 	}
-	matchedvars := map[string]string{}
-	for i, newmatch := range newmatches[0][1:] {
-		matchedvars[vars[i]] = newmatch
+	return orignalValues[0], paramsAndStrings, nil
+}
+
+func getParameters(templ string) ([]string, error) {
+	matches := stringInterpRegex.FindAllStringSubmatch(templ, -1)
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("no parameters found in the template: %s", templ)
 	}
-	return ss, vars, matchedvars, nil
+	parameters := []string{}
+	for _, match := range matches {
+		parameters = append(parameters, match[1])
+	}
+	return parameters, nil
 }
 
 // Parameterize parameterizes the k8s resource
@@ -296,64 +335,86 @@ func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT,
 		return k8sResource, fmt.Errorf("the key %s does not exist on the k8s resource: %+v", st.Target, k8sResource)
 	}
 
-
-
-
 	templ := st.Template
-	if st.Template == "" {
+	if templ == "" {
 		kind, apiVersion, name, err := starcommon.GetInfoFromK8sResource(k8sResource)
 		if err != nil {
 			return k8sResource, fmt.Errorf("failed to get the kind, apiVersion, and name from the k8s resource: %+v\nError: %q", k8sResource, err)
 		}
-		subKeys := newparamcommon.GetSubKeys(st.Target)
-		for i, subKey := range subKeys {
-			subKeys[i] = `"` + subKey + `"`
-		}
-		templ = `${` + newKey + `}`
+		templ = fmt.Sprintf(`${"%s"."%s"."%s".%s}`, kind, apiVersion, name, st.Target)
 	}
 
-	_, _, matchedVars, err := parseTemplate(st.Template, originalValue)
+	parameters, err := getParameters(templ)
 	if err != nil {
-		return k8sResource, fmt.Errorf("failed to get the interpolation variables from the template: %s\nError: %q", st.Template, err)
+		return k8sResource, fmt.Errorf("failed to get the parameters from the template: %s\nError: %q", templ, err)
 	}
-
-
-		// templ := fmt.Sprintf(`{{ index .Values "%s" "%s" "%s" %s }}`, kind, apiVersion, name, strings.Join(subKeys, " "))
-		// newKey := fmt.Sprintf(`"%s"."%s"."%s".%s`, kind, apiVersion, name, strings.Join(subKeys, "."))
-
-		// if err := newparamcommon.Set(st.Target, templ, k8sResource); err != nil {
-		// 	return k8sResource, fmt.Errorf("failed to parameterize the k8s resource: %+v\nusing the parameterizer %+v\nError: %q", k8sResource, st, err)
-		// }
-		// var finalValue interface{} = originalValue
-		// }
-		// if err := newparamcommon.SetCreatingNew(newKey, finalValue, values); err != nil {
-		// 	return k8sResource, fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml. Error: %q", st.Target, finalValue, err)
-		// }
-		// return k8sResource, nil
-	} else {
-		originalValueStr := ""
-		switch t1 := originalValue.(type) {
-		case string, int, float32, float64:
-			var err error
-			originalValueStr, err = cast.ToStringE(t1)
-			if err != nil {
-				return k8sResource, fmt.Errorf("failed to convert the orignal value to string: %+v\nError: %q", t1, err)
-			}
-		default:
-			return k8sResource, fmt.Errorf("expected the key %s to be a string or int or float. Actual value is %+v of type %T", t1, t1)
+	if len(parameters) == 1 {
+		parameter := parameters[0]
+		helmTemplate := fmt.Sprintf(`{{ index .Values %s }}`, strings.Join(newparamcommon.GetSubKeys(parameter), " "))
+		if err := newparamcommon.Set(st.Target, helmTemplate, k8sResource); err != nil {
+			return k8sResource, fmt.Errorf("failed to set the key %s to the value %s in the k8s resource: %+v\nError: %q", st.Target, helmTemplate, k8sResource, err)
 		}
-		subKeys := []string{}
-		for matchedVar := range matchedVars {
-			subKeys = append(subKeys, matchedVar)
+		// set the key in the values.yaml
+		finalValue := st.Default
+		if st.Default == nil {
+			finalValue = originalValue
 		}
-		newKey = strings.Join(subKeys, ".")
+		if err := newparamcommon.SetCreatingNew(parameter, finalValue, values); err != nil {
+			return k8sResource, fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml. Error: %q", parameter, finalValue, err)
+		}
+		return k8sResource, nil
 	}
-	if err := newparamcommon.Set(st.Target, templ, k8sResource); err != nil {
-		return k8sResource, fmt.Errorf("failed to parameterize the k8s resource: %+v\nusing the parameterizer %+v\nError: %q", k8sResource, st, err)
+
+	// multiple parameters only make sense when the original value is a string
+	originalValueStr, ok := originalValue.(string)
+	if !ok {
+		return k8sResource, fmt.Errorf(
+			`the template %s contains multiple parameters.
+This only makes sense when the original value is a string.
+Actual value is %+v of type %T`,
+			templ, originalValue, originalValue,
+		)
 	}
-	var finalValue interface{} = originalValue
-	if err := newparamcommon.SetCreatingNew(newKey, finalValue, values); err != nil {
-		return k8sResource, fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml. Error: %q", st.Target, finalValue, err)
+	defaultStr := originalValueStr
+	if st.Default != nil {
+		defaultStr, ok = st.Default.(string)
+		if !ok {
+			return k8sResource, fmt.Errorf(
+				`the template %s contains multiple parameters.
+Expected the default value to be a string.
+Actual value is %+v of type %T`,
+				templ, st.Default, st.Default,
+			)
+		}
+	}
+
+	originalValues, paramsAndStrings, err := parseTemplate(templ, defaultStr)
+	if err != nil {
+		return k8sResource, fmt.Errorf("failed to parse the multi parameter template: %s\nError: %q", templ, err)
+	}
+
+	helmTemplates := []string{}
+	for _, parameter := range parameters {
+		helmTemplate := fmt.Sprintf(`{{ index .Values %s }}`, strings.Join(newparamcommon.GetSubKeys(parameter), " "))
+		helmTemplates = append(helmTemplates, helmTemplate)
+	}
+	fullHelmTemplate := ""
+	for i, helmTemplate := range helmTemplates {
+		pOrS := paramsAndStrings[i]
+		if pOrS.isParam {
+			fullHelmTemplate += helmTemplate
+			continue
+		}
+		fullHelmTemplate += pOrS.data
+	}
+	if err := newparamcommon.Set(st.Target, fullHelmTemplate, k8sResource); err != nil {
+		return k8sResource, fmt.Errorf("failed to set the key %s to the value %s in the k8s resource: %+v\nError: %q", st.Target, fullHelmTemplate, k8sResource, err)
+	}
+	// set all the keys in the values.yaml
+	for i, parameter := range parameters {
+		if err := newparamcommon.SetCreatingNew(parameter, originalValues[i], values); err != nil {
+			return k8sResource, fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml. Error: %q", parameter, originalValues[i], err)
+		}
 	}
 	return k8sResource, nil
 }
