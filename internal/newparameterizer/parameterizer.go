@@ -15,3 +15,40 @@ limitations under the License.
 */
 
 package newparameterizer
+
+import (
+	"path/filepath"
+
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/newparameterizer/applyparameterizers"
+	"github.com/konveyor/move2kube/internal/newparameterizer/getparameterizers"
+	"github.com/konveyor/move2kube/internal/starlark"
+	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
+)
+
+// ParameterizeAll parameterizes the k8s yamls in the source path using the
+// parameterizers found in the parameterizers path and outputs a helm chart
+func ParameterizeAll(parameterizersPath, k8sResourcesPath, outputPath string) ([]string, error) {
+	parameterizers, err := getparameterizers.GetParameterizers(parameterizersPath)
+	if err != nil {
+		return nil, err
+	}
+	k8sResources, err := gettransformdata.GetK8sResources(k8sResourcesPath)
+	if err != nil {
+		return nil, err
+	}
+	parameterizedK8sResources, values, err := applyparameterizers.ApplyParameterizers(parameterizers, k8sResources)
+	if err != nil {
+		return nil, err
+	}
+	filesWritten, err := starlark.WriteResources(parameterizedK8sResources, outputPath)
+	if err != nil {
+		return filesWritten, err
+	}
+	valuesPath := filepath.Join(outputPath, "values.yaml")
+	if err := common.WriteYaml(valuesPath, values); err != nil {
+		return nil, err
+	}
+	filesWritten = append(filesWritten, valuesPath)
+	return filesWritten, nil
+}

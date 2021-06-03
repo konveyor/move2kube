@@ -64,6 +64,7 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 	rootCmd.AddCommand(getPlanCommand())
 	rootCmd.AddCommand(getTranslateCommand())
 	rootCmd.AddCommand(getValidateCommand())
+	rootCmd.AddCommand(getParameterizeCommand())
 
 	assetsPath, tempPath, err := common.CreateAssetsData()
 	if err != nil {

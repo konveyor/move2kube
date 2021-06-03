@@ -55,27 +55,27 @@ const (
 
 //TranslateFlags to store values from command line paramters
 type TranslateFlags struct {
-	//IgnoreEnv tells us whether to use data collected from the local machine
+	// IgnoreEnv tells us whether to use data collected from the local machine
 	IgnoreEnv bool
-	//Planfile is contains the path to the plan file
+	// Planfile is contains the path to the plan file
 	Planfile string
-	//Outpath contains the path to the output folder
+	// Outpath contains the path to the output folder
 	Outpath string
-	//SourceFlag contains path to the source folder
+	// SourceFlag contains path to the source folder
 	Srcpath string
-	//Name contains the project name
+	// Name contains the project name
 	Name string
-	//Qacaches contains a list of qacache files
+	// Qacaches contains a list of qacache files
 	Qacaches []string
-	//Configs contains a list of config files
+	// Configs contains a list of config files
 	Configs []string
-	//Configs contains a list of key-value configs
+	// Configs contains a list of key-value configs
 	Setconfigs []string
-	//Qaskip lets you skip all the question answers
+	// Qaskip lets you skip all the question answers
 	Qaskip bool
 	// Overwrite lets you overwrite the output directory if it exists
 	Overwrite bool
-	//PreSets contains a list of preset configurations
+	// PreSets contains a list of preset configurations
 	PreSets []string
 	// TransformPaths contains a list of paths to starlark transformation scripts
 	TransformPaths []string
@@ -136,7 +136,7 @@ func NormalizePaths(paths []string) ([]string, error) {
 		if err != nil {
 			return newPaths, fmt.Errorf("Failed to make the path %s absolute. Error: %q", path, err)
 		}
-		finfo, err:= os.Stat(newPath)
+		finfo, err := os.Stat(newPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				log.Errorf("The path %s does not exist.", newPath)
@@ -149,7 +149,7 @@ func NormalizePaths(paths []string) ([]string, error) {
 			newPaths = append(newPaths, newPath)
 			continue
 		}
-		err = filepath.Walk(newPath, func(path string, info fs.FileInfo, err error) error{
+		err = filepath.Walk(newPath, func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}

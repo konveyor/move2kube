@@ -22,10 +22,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/newparameterizer/applyparameterizers"
-	"github.com/konveyor/move2kube/internal/newparameterizer/getparameterizers"
-	"github.com/konveyor/move2kube/internal/starlark"
-	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
+	"github.com/konveyor/move2kube/internal/newparameterizer"
 )
 
 func TestGettingAndParameterizingResources(t *testing.T) {
@@ -39,7 +36,7 @@ func TestGettingAndParameterizingResources(t *testing.T) {
 	k8sResourcesPath := filepath.Join(baseDir, "k8s-resources")
 	outputPath := t.TempDir()
 
-	filesWritten, err := parameterizeAll(parameterizersPath, k8sResourcesPath, outputPath)
+	filesWritten, err := newparameterizer.ParameterizeAll(parameterizersPath, k8sResourcesPath, outputPath)
 	if err != nil {
 		t.Fatalf("Failed to apply all the parameterizations. Error: %q", err)
 	}
@@ -62,29 +59,4 @@ func TestGettingAndParameterizingResources(t *testing.T) {
 			t.Fatalf("The file %s is different from expected. Differences:\n%s", filename, cmp.Diff(wantData, actualData))
 		}
 	}
-}
-
-func parameterizeAll(parameterizersPath, k8sResourcesPath, outputPath string) ([]string, error) {
-	parameterizers, err := getparameterizers.GetParameterizers(parameterizersPath)
-	if err != nil {
-		return nil, err
-	}
-	k8sResources, err := gettransformdata.GetK8sResources(k8sResourcesPath)
-	if err != nil {
-		return nil, err
-	}
-	parameterizedK8sResources, values, err := applyparameterizers.ApplyParameterizers(parameterizers, k8sResources)
-	if err != nil {
-		return nil, err
-	}
-	filesWritten, err := starlark.WriteResources(parameterizedK8sResources, outputPath)
-	if err != nil {
-		return filesWritten, err
-	}
-	valuesPath := filepath.Join(outputPath, "values.yaml")
-	if err := common.WriteYaml(valuesPath, values); err != nil {
-		return nil, err
-	}
-	filesWritten = append(filesWritten, valuesPath)
-	return filesWritten, nil
 }
