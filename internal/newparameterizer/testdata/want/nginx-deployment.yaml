@@ -7,7 +7,7 @@ metadata:
     app: nginx
   name: nginx
 spec:
-  replicas: '{{ index .Values "Deployment" "apps/v1" "nginx" "spec" "replicas" }}'
+  replicas: '{{ index .Values "common" "replicas" }}'
   selector:
     matchLabels:
       app: nginx

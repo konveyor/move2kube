@@ -1,3 +1,5 @@
+common:
+  replicas: 10
 Deployment:
   "apps/v1":
     nginx:
@@ -5,7 +7,6 @@ Deployment:
         annotations:
           openshift.io/node-selector: type=gpu-node,region=east
       spec:
-        replicas: 10
         template:
           spec:
             containers:
@@ -17,5 +18,3 @@ Deployment:
       metadata:
         annotations:
           openshift.io/node-selector: type=gpu-node,region=east
-      spec:
-        replicas: 10

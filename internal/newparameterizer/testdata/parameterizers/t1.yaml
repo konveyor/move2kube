@@ -11,6 +11,7 @@ spec:
         - kind: Service
           apiVersion: v1
     - target: "spec.replicas"
+      template: "${common.replicas}"
       default: 10
       filters:
         - kind: Deployment

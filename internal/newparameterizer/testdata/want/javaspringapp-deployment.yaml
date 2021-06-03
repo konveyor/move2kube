@@ -5,7 +5,7 @@ metadata:
   annotations:
     "openshift.io/node-selector": '{{ index .Values "Deployment" "extensions/v1beta1" "javaspringapp" "metadata" "annotations" "openshift.io/node-selector" }}'
 spec:
-  replicas: '{{ index .Values "Deployment" "extensions/v1beta1" "javaspringapp" "spec" "replicas" }}'
+  replicas: '{{ index .Values "common" "replicas" }}'
   template:
     metadata:
       labels:
