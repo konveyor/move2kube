@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/konveyor/move2kube/internal/common"
 	internalcommon "github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
 )
@@ -129,12 +130,14 @@ func CheckOutputPath(outpath string, overwrite bool) {
 }
 
 // NormalizePaths cleans the paths and makes them absolute
-func NormalizePaths(paths []string) ([]string, error) {
+// If any of the paths are directories it will walk through
+// them collecting paths to file having a particular set of extensions
+func NormalizePaths(paths []string, extensions []string) ([]string, error) {
 	newPaths := []string{}
 	for _, path := range paths {
 		newPath, err := filepath.Abs(path)
 		if err != nil {
-			return newPaths, fmt.Errorf("Failed to make the path %s absolute. Error: %q", path, err)
+			return newPaths, fmt.Errorf("failed to make the path %s absolute. Error: %q", path, err)
 		}
 		finfo, err := os.Stat(newPath)
 		if err != nil {
@@ -153,7 +156,7 @@ func NormalizePaths(paths []string) ([]string, error) {
 			if err != nil {
 				return err
 			}
-			if !info.IsDir() && filepath.Ext(path) == ".star" {
+			if !info.IsDir() && common.IsStringPresent(extensions, filepath.Ext(path)) {
 				newPaths = append(newPaths, path)
 			}
 			return nil

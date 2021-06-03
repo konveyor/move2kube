@@ -145,7 +145,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	}
 
 	// Translate
-	normalizedTransformPaths, err := cmdcommon.NormalizePaths(flags.TransformPaths)
+	normalizedTransformPaths, err := cmdcommon.NormalizePaths(flags.TransformPaths, []string{".star"})
 	if err != nil {
 		log.Fatalf("Failed to clean the paths:\n%+v\nError: %q", flags.TransformPaths, err)
 	}

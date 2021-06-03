@@ -22,6 +22,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/newparameterizer/applyparameterizers"
 	"github.com/konveyor/move2kube/internal/newparameterizer/getparameterizers"
+	"github.com/konveyor/move2kube/internal/newparameterizer/types"
 	"github.com/konveyor/move2kube/internal/starlark"
 	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
 )
@@ -33,6 +34,20 @@ func ParameterizeAll(parameterizersPath, k8sResourcesPath, outputPath string) ([
 	if err != nil {
 		return nil, err
 	}
+	return ParameterizeAllHelper(parameterizers, k8sResourcesPath, outputPath)
+}
+
+// ParameterizeAllPaths is same as ParameterizeAll but takes a list of absolute paths to parameterizers instead
+func ParameterizeAllPaths(parameterizersPath []string, k8sResourcesPath, outputPath string) ([]string, error) {
+	parameterizers, err := getparameterizers.GetParameterizersFromPaths(parameterizersPath)
+	if err != nil {
+		return nil, err
+	}
+	return ParameterizeAllHelper(parameterizers, k8sResourcesPath, outputPath)
+}
+
+// ParameterizeAllHelper is same as ParameterizeAll but takes a list of parameterizers instead
+func ParameterizeAllHelper(parameterizers []types.ParameterizerT, k8sResourcesPath, outputPath string) ([]string, error) {
 	k8sResources, err := gettransformdata.GetK8sResources(k8sResourcesPath)
 	if err != nil {
 		return nil, err

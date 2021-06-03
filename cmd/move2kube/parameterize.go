@@ -17,7 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"path/filepath"
+
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
+	"github.com/konveyor/move2kube/internal/newparameterizer"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,6 +40,22 @@ const (
 )
 
 func parameterizeHandler(_ *cobra.Command, flags parameterizeFlags) {
+	var err error
+	if flags.Srcpath, err = filepath.Abs(flags.Srcpath); err != nil {
+		log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.Srcpath, err)
+	}
+	if flags.Outpath, err = filepath.Abs(flags.Outpath); err != nil {
+		log.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.Outpath, err)
+	}
+	normalizedParameterizerPaths, err := cmdcommon.NormalizePaths(flags.ParameterizerPaths, []string{".yaml"})
+	if err != nil {
+		log.Fatalf("Failed to clean the paths:\n%+v\nError: %q", flags.ParameterizerPaths, err)
+	}
+	filesWritten, err := newparameterizer.ParameterizeAllPaths(normalizedParameterizerPaths, flags.Srcpath, flags.Outpath)
+	if err != nil {
+		log.Fatalf("Failed to apply all the parameterizations. Error: %q", err)
+	}
+	log.Debugf("filesWritten: %+v", filesWritten)
 }
 
 func getParameterizeCommand() *cobra.Command {
