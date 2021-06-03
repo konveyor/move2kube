@@ -4,12 +4,12 @@ imageregistry:
 services:
   nginx:
     image:
-      name: nginx
-      tag: "1.14.2"
+      name: nginx-allenvs
+      tag: latest # "1.14.2"
   javaspringapp:
     image:
-      name: javaspringapp
-      tag: "v1.23"
+      name: openjdk-dev8
+      tag: latest # "v1.23"
 common:
   replicas: 10
 Deployment:
@@ -23,7 +23,7 @@ Deployment:
           spec:
             containers:
               "[0]":
-                name: nginx
+                name: webcontainer
   "extensions/v1beta1":
     javaspringapp:
       metadata:

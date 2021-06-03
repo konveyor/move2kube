@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
         - image:  '{{ index .Values "imageregistry" "url" }}/{{ index .Values "imageregistry" "namespace" }}/{{ index .Values "services" "javaspringapp" "image" "name" }}:{{ index .Values "services" "javaspringapp" "image" "tag" }}'
-          name: javaspringapp
+          name: apicontainer
           readinessProbe:
             httpGet:
               path: /health

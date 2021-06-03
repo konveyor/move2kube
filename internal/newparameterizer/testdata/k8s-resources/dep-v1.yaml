@@ -17,7 +17,7 @@ spec:
         app: nginx
     spec:
       containers:
-        - name: nginx
+        - name: webcontainer
           image: quay.io/konveyor/nginx:1.14.2
           ports:
             - containerPort: 80

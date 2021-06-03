@@ -46,7 +46,7 @@ func applyParameterizer(parameterizer types.ParameterizerT, k8sResources []start
 	}
 	for _, filteredIdx := range filteredIdxs {
 		k8sResource := k8sResources[filteredIdx]
-		parameterizedK8sResource, err := parameterizer.Parameterize(k8sResource, values)
+		parameterizedK8sResource, err := parameterizer.Parameterize(k8sResource, values, types.DevEnv) // TODO: accept the environment from the caller
 		if err != nil {
 			return k8sResources, values, err
 		}

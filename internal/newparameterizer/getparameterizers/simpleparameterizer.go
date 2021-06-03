@@ -300,10 +300,27 @@ func getParameters(templ string) ([]string, error) {
 	return parameters, nil
 }
 
+func doesMatchEnv(p ParameterValueT, env types.EnvironmentT, kind, apiVersion, metadataName string) bool {
+	if p.Envs != nil && !common.IsStringPresent(p.Envs, string(env)) {
+		return false
+	}
+	if p.Kind != "" && p.Kind != kind {
+		return false
+	}
+	if p.ApiVersion != "" && p.ApiVersion != apiVersion {
+		return false
+	}
+	if p.MetadataName != "" && p.MetadataName != metadataName {
+		return false
+	}
+	return true
+}
+
 // Parameterize parameterizes the k8s resource
-func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT, values map[string]interface{}) (startypes.K8sResourceT, error) {
+func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT, values map[string]interface{}, env types.EnvironmentT) (startypes.K8sResourceT, error) {
 	log.Trace("start SimpleParameterizerT.Parameterize")
 	defer log.Trace("end SimpleParameterizerT.Parameterize")
+
 	if len(st.Target) == 0 {
 		return k8sResource, fmt.Errorf("the target is empty")
 	}
@@ -340,12 +357,25 @@ func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT,
 			}
 		}
 		helmTemplate := fmt.Sprintf(`{{ index .Values %s }}`, strings.Join(subkeys, " "))
+		paramValue := st.Default
+		if st.Default == nil {
+			paramValue = originalValue
+		}
 		for _, stParameter := range st.Parameters {
 			if stParameter.Name != parameter {
 				continue
 			}
 			if stParameter.HelmTemplate != "" {
 				helmTemplate = stParameter.HelmTemplate
+			}
+			if stParameter.Default != "" {
+				paramValue = stParameter.Default
+			}
+			for _, p := range stParameter.Values {
+				if doesMatchEnv(p, env, kind, apiVersion, metadataName) {
+					paramValue = p.Value
+					break
+				}
 			}
 			break
 		}
@@ -354,10 +384,6 @@ func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT,
 		}
 		// set the key in the values.yaml
 		paramKey := strings.Join(subkeys, ".")
-		paramValue := st.Default
-		if st.Default == nil {
-			paramValue = originalValue
-		}
 		if err := newparamcommon.SetCreatingNew(paramKey, paramValue, values); err != nil {
 			return k8sResource, fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml. Error: %q", parameter, paramValue, err)
 		}
@@ -421,7 +447,17 @@ Actual value is %+v of type %T`,
 	helmTemplateIdx := 0
 	for _, pOrS := range paramsAndStrings {
 		if pOrS.isParam {
-			fullHelmTemplate += helmTemplates[helmTemplateIdx]
+			currHelmTemplate := helmTemplates[helmTemplateIdx]
+			for _, stParameter := range st.Parameters {
+				if "${"+stParameter.Name+"}" != pOrS.data {
+					continue
+				}
+				if stParameter.HelmTemplate != "" {
+					currHelmTemplate = stParameter.HelmTemplate
+				}
+				break
+			}
+			fullHelmTemplate += currHelmTemplate
 			helmTemplateIdx++
 			continue
 		}
@@ -453,6 +489,12 @@ Actual value is %+v of type %T`,
 			}
 			if stParameter.Default != "" {
 				paramValue = stParameter.Default
+			}
+			for _, p := range stParameter.Values {
+				if doesMatchEnv(p, env, kind, apiVersion, metadataName) {
+					paramValue = p.Value
+					break
+				}
 			}
 			break
 		}

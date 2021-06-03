@@ -20,17 +20,25 @@ import (
 	startypes "github.com/konveyor/move2kube/internal/starlark/types"
 )
 
-const (
-	// ParameterizerKind is the k8s kind for parameterizers
-	ParameterizerKind = "Parameterizer"
-)
+type EnvironmentT string
 
 // ParameterizerT is a transformation that can be applied to k8s resources
 type ParameterizerT interface {
 	// Parameterize applies the parameterization on the given k8s resource
 	// The k8s resource is changed in place, so the returned resource
 	// could be the same object as the input resource.
-	Parameterize(k8sResource startypes.K8sResourceT, values map[string]interface{}) (startypes.K8sResourceT, error)
+	Parameterize(k8sResource startypes.K8sResourceT, values map[string]interface{}, env EnvironmentT) (startypes.K8sResourceT, error)
 	// Filter returns true if the parameterization can be applied to the given k8s resource
 	Filter(k8sResource startypes.K8sResourceT) (bool, error)
 }
+
+const (
+	DevEnv     EnvironmentT = "dev"
+	StagingEnv EnvironmentT = "staging"
+	ProdEnv    EnvironmentT = "prod"
+)
+
+const (
+	// ParameterizerKind is the k8s kind for parameterizers
+	ParameterizerKind = "Parameterizer"
+)

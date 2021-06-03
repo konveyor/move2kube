@@ -12,7 +12,7 @@ spec:
         app: javaspringapp-selector
     spec:
       containers:
-        - name: javaspringapp
+        - name: apicontainer
           image:  index.docker.io/username/javaspringapp:v1.23
           readinessProbe:
             httpGet:
