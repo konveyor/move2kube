@@ -9,11 +9,11 @@ spec:
   template:
     metadata:
       labels:
-        app: "javaspringapp-selector"
+        app: javaspringapp-selector
     spec:
       containers:
         - name: javaspringapp
-          image:  "index.docker.io/username/javaspringapp:v1.23"
+          image:  index.docker.io/username/javaspringapp:v1.23
           readinessProbe:
             httpGet:
               path: /health

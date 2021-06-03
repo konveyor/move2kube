@@ -277,7 +277,8 @@ func parseTemplate(templ, orig string) ([]string, []paramOrStringT, error) {
 	if len(orignalValues[0]) != len(parameters)+1 {
 		return nil, paramsAndStrings, fmt.Errorf("expected to find %d matches (one for each parameter). Actual matches are %+v", len(parameters), orignalValues)
 	}
-	return orignalValues[0], paramsAndStrings, nil
+	// skip the first element which is the full matched string.
+	return orignalValues[0][1:], paramsAndStrings, nil
 }
 
 func getParameters(templ string) ([]string, error) {
@@ -372,10 +373,11 @@ Actual value is %+v of type %T`,
 		helmTemplates = append(helmTemplates, helmTemplate)
 	}
 	fullHelmTemplate := ""
-	for i, helmTemplate := range helmTemplates {
-		pOrS := paramsAndStrings[i]
+	helmTemplateIdx := 0
+	for _, pOrS := range paramsAndStrings {
 		if pOrS.isParam {
-			fullHelmTemplate += helmTemplate
+			fullHelmTemplate += helmTemplates[helmTemplateIdx]
+			helmTemplateIdx++
 			continue
 		}
 		fullHelmTemplate += pOrS.data

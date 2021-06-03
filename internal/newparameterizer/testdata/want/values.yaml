@@ -1,3 +1,9 @@
+imageregistry:
+  url: quay.io
+  namespace: konveyor
+image:
+  name: nginx
+  tag: '1.14.2'
 common:
   replicas: 10
 Deployment:
@@ -11,7 +17,6 @@ Deployment:
           spec:
             containers:
               '[0]':
-                image: nginx:1.14.2
                 name: nginx
   "extensions/v1beta1":
     javaspringapp:
