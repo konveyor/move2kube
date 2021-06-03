@@ -1,9 +1,15 @@
 imageregistry:
-  url: quay.io
-  namespace: konveyor
-image:
-  name: nginx
-  tag: '1.14.2'
+  url: us.icr.io
+  namespace: move2kube
+services:
+  nginx:
+    image:
+      name: nginx
+      tag: "1.14.2"
+  javaspringapp:
+    image:
+      name: javaspringapp
+      tag: "v1.23"
 common:
   replicas: 10
 Deployment:
@@ -16,7 +22,7 @@ Deployment:
         template:
           spec:
             containers:
-              '[0]':
+              "[0]":
                 name: nginx
   "extensions/v1beta1":
     javaspringapp:

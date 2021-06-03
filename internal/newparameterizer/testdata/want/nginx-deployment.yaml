@@ -17,7 +17,7 @@ spec:
         app: nginx
     spec:
       containers:
-        - image:  '{{ index .Values "imageregistry" "url" }}/{{ index .Values "imageregistry" "namespace" }}/{{ index .Values "image" "name" }}:{{ index .Values "image" "tag" }}'
+        - image:  '{{ index .Values "imageregistry" "url" }}/{{ index .Values "imageregistry" "namespace" }}/{{ index .Values "services" "nginx" "image" "name" }}:{{ index .Values "services" "nginx" "image" "tag" }}'
           name: '{{ index .Values "Deployment" "apps/v1" "nginx" "spec" "template" "spec" "containers" "[0]" "name" }}'
           ports:
             - containerPort: 80

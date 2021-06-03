@@ -12,7 +12,7 @@ spec:
         app: javaspringapp-selector
     spec:
       containers:
-        - image: "index.docker.io/username/javaspringapp:v1.23"
+        - image:  '{{ index .Values "imageregistry" "url" }}/{{ index .Values "imageregistry" "namespace" }}/{{ index .Values "services" "javaspringapp" "image" "name" }}:{{ index .Values "services" "javaspringapp" "image" "tag" }}'
           name: javaspringapp
           readinessProbe:
             httpGet:

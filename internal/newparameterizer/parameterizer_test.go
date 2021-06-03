@@ -59,7 +59,7 @@ func TestGettingAndParameterizingResources(t *testing.T) {
 			t.Fatalf("Failed to read the parameterized k8s resource at path %s . Error: %q", fileWritten, err)
 		}
 		if !cmp.Equal(actualData, wantData) {
-			t.Fatalf("Failed to parameterize the k8s resource %s properly. Differences:\n%s", filename, cmp.Diff(wantData, actualData))
+			t.Fatalf("The file %s is different from expected. Differences:\n%s", filename, cmp.Diff(wantData, actualData))
 		}
 	}
 }

@@ -178,7 +178,7 @@ spec:
 	  parameters:
 		- name: image.name
 		  default: default_image
-		  openshiftTemplateParameter: 'services_${metadataName}_imagename'
+		  openshiftTemplateParameter: 'SERVICES_${metadataName}_IMAGENAME'
 		  helmTemplateParameter: 'services.${metadataName}.imagename'
 		  values:
 			- envs: [dev, staging, prod]
@@ -226,7 +226,7 @@ type FilterT struct {
 // ParameterT is used to specify the environment specific defaults for the keys in the template
 type ParameterT struct {
 	Name              string            `yaml:"name" json:"name"`
-	Default           interface{}       `yaml:"default,omitempty" json:"default,omitempty"`
+	Default           string            `yaml:"default,omitempty" json:"default,omitempty"`
 	HelmTemplate      string            `yaml:"helmTemplate,omitempty" json:"helmTemplate,omitempty"`
 	OpenshiftTemplate string            `yaml:"openshiftTemplate,omitempty" json:"openshiftTemplate,omitempty"`
 	Values            []ParameterValueT `yaml:"values,omitempty" json:"values,omitempty"`
@@ -311,13 +311,14 @@ func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT,
 	if !ok {
 		return k8sResource, fmt.Errorf("the key %s does not exist on the k8s resource: %+v", st.Target, k8sResource)
 	}
+	kind, apiVersion, metadataName, err := starcommon.GetInfoFromK8sResource(k8sResource)
+	if err != nil {
+		return k8sResource, fmt.Errorf("failed to get the kind, apiVersion, and name from the k8s resource: %+v\nError: %q", k8sResource, err)
+	}
+
 	templ := st.Template
 	if templ == "" {
-		kind, apiVersion, name, err := starcommon.GetInfoFromK8sResource(k8sResource)
-		if err != nil {
-			return k8sResource, fmt.Errorf("failed to get the kind, apiVersion, and name from the k8s resource: %+v\nError: %q", k8sResource, err)
-		}
-		templ = fmt.Sprintf(`${"%s"."%s"."%s".%s}`, kind, apiVersion, name, st.Target)
+		templ = fmt.Sprintf(`${"%s"."%s"."%s".%s}`, kind, apiVersion, metadataName, st.Target)
 	}
 	parameters, err := getParameters(templ)
 	if err != nil {
@@ -327,19 +328,38 @@ func (st *SimpleParameterizerT) Parameterize(k8sResource startypes.K8sResourceT,
 		parameter := parameters[0]
 		subkeys := newparamcommon.GetSubKeys(parameter)
 		for i, subkey := range subkeys {
-			subkeys[i] = `"` + subkey + `"`
+			switch subkey {
+			case "$kind":
+				subkeys[i] = `"` + kind + `"`
+			case "$apiVersion":
+				subkeys[i] = `"` + apiVersion + `"`
+			case "$metadataName":
+				subkeys[i] = `"` + metadataName + `"`
+			default:
+				subkeys[i] = `"` + subkey + `"`
+			}
 		}
 		helmTemplate := fmt.Sprintf(`{{ index .Values %s }}`, strings.Join(subkeys, " "))
+		for _, stParameter := range st.Parameters {
+			if stParameter.Name != parameter {
+				continue
+			}
+			if stParameter.HelmTemplate != "" {
+				helmTemplate = stParameter.HelmTemplate
+			}
+			break
+		}
 		if err := newparamcommon.Set(st.Target, helmTemplate, k8sResource); err != nil {
 			return k8sResource, fmt.Errorf("failed to set the key %s to the value %s in the k8s resource: %+v\nError: %q", st.Target, helmTemplate, k8sResource, err)
 		}
 		// set the key in the values.yaml
-		finalValue := st.Default
+		paramKey := strings.Join(subkeys, ".")
+		paramValue := st.Default
 		if st.Default == nil {
-			finalValue = originalValue
+			paramValue = originalValue
 		}
-		if err := newparamcommon.SetCreatingNew(parameter, finalValue, values); err != nil {
-			return k8sResource, fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml. Error: %q", parameter, finalValue, err)
+		if err := newparamcommon.SetCreatingNew(paramKey, paramValue, values); err != nil {
+			return k8sResource, fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml. Error: %q", parameter, paramValue, err)
 		}
 		return k8sResource, nil
 	}
@@ -374,9 +394,27 @@ Actual value is %+v of type %T`,
 	for _, parameter := range parameters {
 		subkeys := newparamcommon.GetSubKeys(parameter)
 		for i, subkey := range subkeys {
-			subkeys[i] = `"` + subkey + `"`
+			switch subkey {
+			case "$kind":
+				subkeys[i] = `"` + kind + `"`
+			case "$apiVersion":
+				subkeys[i] = `"` + apiVersion + `"`
+			case "$metadataName":
+				subkeys[i] = `"` + metadataName + `"`
+			default:
+				subkeys[i] = `"` + subkey + `"`
+			}
 		}
 		helmTemplate := fmt.Sprintf(`{{ index .Values %s }}`, strings.Join(subkeys, " "))
+		for _, stParameter := range st.Parameters {
+			if stParameter.Name != parameter {
+				continue
+			}
+			if stParameter.HelmTemplate != "" {
+				helmTemplate = stParameter.HelmTemplate
+			}
+			break
+		}
 		helmTemplates = append(helmTemplates, helmTemplate)
 	}
 	fullHelmTemplate := ""
@@ -394,8 +432,32 @@ Actual value is %+v of type %T`,
 	}
 	// set all the keys in the values.yaml
 	for i, parameter := range parameters {
-		if err := newparamcommon.SetCreatingNew(parameter, originalValues[i], values); err != nil {
-			return k8sResource, fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml. Error: %q", parameter, originalValues[i], err)
+		subkeys := newparamcommon.GetSubKeys(parameter)
+		for i, subkey := range subkeys {
+			switch subkey {
+			case "$kind":
+				subkeys[i] = `"` + kind + `"`
+			case "$apiVersion":
+				subkeys[i] = `"` + apiVersion + `"`
+			case "$metadataName":
+				subkeys[i] = `"` + metadataName + `"`
+			default:
+				subkeys[i] = `"` + subkey + `"`
+			}
+		}
+		paramKey := strings.Join(subkeys, ".")
+		paramValue := originalValues[i]
+		for _, stParameter := range st.Parameters {
+			if stParameter.Name != parameter {
+				continue
+			}
+			if stParameter.Default != "" {
+				paramValue = stParameter.Default
+			}
+			break
+		}
+		if err := newparamcommon.SetCreatingNew(paramKey, paramValue, values); err != nil {
+			return k8sResource, fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml. Error: %q", parameter, paramValue, err)
 		}
 	}
 	return k8sResource, nil

@@ -11,14 +11,60 @@ spec:
           apiVersion: "apps/v1|extensions/v1beta1"
         - kind: Service
           apiVersion: v1
+    # Case 2: TODO
+    # - target: "spec.replicas"
+    #   template: "${common.replicas}"
+    #   filters:
+    #     - kind: Deployment
+    #       apiVersion: ".*/v1.*"
+    # Case 3: TODO
+    # - target: 'spec.replicas'
+    #   default: 2
+    #   filters:
+    #     - kind: 'Deployment'
+    #       apiVersion: '.*v1.*'
+    # Case 4:
     - target: "spec.replicas"
       template: "${common.replicas}"
       default: 10
       filters:
         - kind: Deployment
           apiVersion: ".*/v1.*"
+    # Case 5:
+    # - target: "spec.template.spec.containers.[0].image"
+    #   default: '${imageregistry.url}/${imageregistry.namespace}/${image.name}:${image.tag}'
+    #   filters:
+    #     - kind: Deployment
+    #       apiVersion: "extension/v1beta1"
+    # Case 6:
+    # - target: "spec.template.spec.containers.[0].image"
+    #   template: '${imageregistry.url}/${imageregistry.namespace}/${image.name}:${image.tag}'
+    #   default: us.icr.io/move2kube/myimage:myimagetag
+    #   filters:
+    #     - kind: Deployment
+    #       apiVersion: "extension/v1beta1"
+    # Case 7:
     - target: "spec.template.spec.containers.[0].image"
-      template: '${imageregistry.url}/${imageregistry.namespace}/${image.name}:${image.tag}'
+      template: '${imageregistry.url}/${imageregistry.namespace}/${services.$metadataName.image.name}:${services.$metadataName.image.tag}'
       filters:
         - kind: Deployment
-          apiVersion: "apps/v1"
+          apiVersion: ".*/v1.*"
+      parameters:
+        - name: imageregistry.url
+          default: us.icr.io
+        - name: imageregistry.namespace
+          default: move2kube
+        # - name: services.$metadataName.image.name
+        #   values:
+        #   - envs: [dev, staging, prod]
+        #     apiVersion: apps/v1
+        #     metadataName: nginx
+        #     value: nginx_image
+        #   - envs: [prod]
+        #     apiVersion: apps/v1
+        #     metadataName: javaspringapp
+        #     value: openjdk-prod8
+        #   - envs: [dev]
+        #     apiVersion: extensions/v1beta1
+        #     metadataName: javaspringapp
+        #     value: openjdk-dev8
