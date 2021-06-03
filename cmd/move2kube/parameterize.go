@@ -76,7 +76,7 @@ func getParameterizeCommand() *cobra.Command {
 
 	// Basic options
 	parameterizeCmd.Flags().StringVarP(&flags.Srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory to parameterize.")
-	parameterizeCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", ".", "Output directory path.")
+	parameterizeCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", "", "Output directory path.")
 	parameterizeCmd.Flags().StringSliceVarP(&flags.ParameterizerPaths, parameterizersFlag, "p", []string{}, "Specify paths to the paramterizer yamls. Can be the path to a yaml file or the path to a folder containing the yamls.")
 
 	must(parameterizeCmd.MarkFlagRequired(cmdcommon.SourceFlag))
