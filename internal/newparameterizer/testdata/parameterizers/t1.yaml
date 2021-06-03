@@ -4,6 +4,7 @@ metadata:
   name: t1
 spec:
   parameterizers:
+    # Case 1:
     - target: 'metadata.annotations."openshift.io/node-selector"'
       filters:
         - kind: Deployment

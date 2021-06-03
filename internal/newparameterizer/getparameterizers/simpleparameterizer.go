@@ -69,43 +69,43 @@ apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Parameterizers
 spec:
   parameterizers:
-  	// Case 1:
-	// fill the template with a single key from the values.yaml,
-	// the key is {{ index .Values "Deployment" "apps/v1" "nginx" "spec" "replicas" }}
-	// the default value is the original value for replicas specified in the Deployment yaml
+  	# Case 1:
+	# fill the template with a single key from the values.yaml,
+	# the key is {{ index .Values "Deployment" "apps/v1" "nginx" "spec" "replicas" }}
+	# the default value is the original value for replicas specified in the Deployment yaml
 	- target: 'spec.replicas'
       filters:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
-  	// Case 2:
-	// fill the template with a single key from the values.yaml
-	// specify the key to use for the values.yaml
-	// the key is {{ index .Values "common" "replicas" }}
-	// the default value is the original value for replicas specified in the Deployment yaml
+  	# Case 2:
+	# fill the template with a single key from the values.yaml
+	# specify the key to use for the values.yaml
+	# the key is {{ index .Values "common" "replicas" }}
+	# the default value is the original value for replicas specified in the Deployment yaml
     - target: 'spec.replicas'
       template: '${common.replicas}'
       filters:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
-  	// Case 3:
-	// fill the template with a single key from the values.yaml
-	// specify the default value to put in the values.yaml
-	// the key is {{ index .Values "Deployment" "apps/v1" "nginx" "spec" "replicas" }}
-	// the default value is 2
+  	# Case 3:
+	# fill the template with a single key from the values.yaml
+	# specify the default value to put in the values.yaml
+	# the key is {{ index .Values "Deployment" "apps/v1" "nginx" "spec" "replicas" }}
+	# the default value is 2
 	- target: 'spec.replicas'
 	  default: 2
       filters:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
-  	// Case 4:
-	// fill the template with a single key from the values.yaml
-	// specify the key to use for the values.yaml
-	// specify the default value to put in the values.yaml
-	// the key is {{ index .Values "common" "replicas" }}
-	// the default value is 2
+  	# Case 4:
+	# fill the template with a single key from the values.yaml
+	# specify the key to use for the values.yaml
+	# specify the default value to put in the values.yaml
+	# the key is {{ index .Values "common" "replicas" }}
+	# the default value is 2
     - target: 'spec.replicas'
       template: '${common.replicas}'
 	  default: 2
@@ -113,18 +113,18 @@ spec:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
-	// IMPORTANT !!!!!!
-	// The following only makes sense when the field we are parameterizing is a string
-	// IMPORTANT !!!!!!
+	# IMPORTANT !!!!!!
+	# The following only makes sense when the field we are parameterizing is a string
+	# IMPORTANT !!!!!!
 
-  	// Case 5:
-	// fill the template with multiple keys from the values.yaml
-	// the keys are:
-	// ${imageregistry.url}       becomes {{ index .Values "imageregistry" "url" }}
-	// ${imageregistry.namespace} becomes {{ index .Values "imageregistry" "namespace" }}
-	// ${image.name}              becomes {{ index .Values "image" "name" }}
-	// ${image.tag}               becomes {{ index .Values "image" "tag" }}
-	// the default values are taken from the original value specified in the Deployment yaml
+  	# Case 5:
+	# fill the template with multiple keys from the values.yaml
+	# the keys are:
+	# ${imageregistry.url}       becomes {{ index .Values "imageregistry" "url" }}
+	# ${imageregistry.namespace} becomes {{ index .Values "imageregistry" "namespace" }}
+	# ${image.name}              becomes {{ index .Values "image" "name" }}
+	# ${image.tag}               becomes {{ index .Values "image" "tag" }}
+	# the default values are taken from the original value specified in the Deployment yaml
 	- target: 'spec.template.spec.containers.[0].image'
 	  template: '${imageregistry.url}/${imageregistry.namespace}/${image.name}:${image.tag}'
 	  filters:
@@ -132,19 +132,19 @@ spec:
 		  apiVersion: '.*v1.*'
 		  name: 'd1.*'
 
-  	// Case 6:
-	// fill the template with multiple keys from the values.yaml
-	// specify the default values to put in the values.yaml
-	// the keys are:
-	// ${imageregistry.url}       becomes {{ index .Values "imageregistry" "url" }}
-	// ${imageregistry.namespace} becomes {{ index .Values "imageregistry" "namespace" }}
-	// ${image.name}              becomes {{ index .Values "image" "name" }}
-	// ${image.tag}               becomes {{ index .Values "image" "tag" }}
-	// the default values are:
-	// ${imageregistry.url}       becomes us.icr.io
-	// ${imageregistry.namespace} becomes move2kube
-	// ${image.name}              becomes myimage
-	// ${image.tag}               becomes myimagetag
+  	# Case 6:
+	# fill the template with multiple keys from the values.yaml
+	# specify the default values to put in the values.yaml
+	# the keys are:
+	# ${imageregistry.url}       becomes {{ index .Values "imageregistry" "url" }}
+	# ${imageregistry.namespace} becomes {{ index .Values "imageregistry" "namespace" }}
+	# ${image.name}              becomes {{ index .Values "image" "name" }}
+	# ${image.tag}               becomes {{ index .Values "image" "tag" }}
+	# the default values are:
+	# ${imageregistry.url}       becomes us.icr.io
+	# ${imageregistry.namespace} becomes move2kube
+	# ${image.name}              becomes myimage
+	# ${image.tag}               becomes myimagetag
 	- target: 'spec.template.spec.containers.[0].image'
 	  template: '${imageregistry.url}/${imageregistry.namespace}/${image.name}:${image.tag}'
 	  default: 'us.icr.io/move2kube/myimage:myimagetag'
@@ -153,20 +153,20 @@ spec:
 		  apiVersion: '.*v1.*'
 		  name: 'd1.*'
 
-  	// Case 7:
-	// fill the template with multiple keys from the values.yaml
-	// specify the default values to put in the values.yaml
-	// specify environment specific default values to put in the values.yaml
-	// the keys are:
-	// ${imageregistry.url}       becomes {{ index .Values "imageregistry" "url" }}
-	// ${imageregistry.namespace} becomes {{ index .Values "imageregistry" "namespace" }}
-	// ${image.name}              becomes {{ index .Values "services" "nginx" "imagename" }}
-	// ${image.tag}               becomes {{ index .Values "image" "tag" }}
-	// the default values are:
-	// ${imageregistry.url}       becomes us.icr.io
-	// ${imageregistry.namespace} becomes move2kube
-	// ${image.name}              becomes different values depending on the environment
-	// ${image.tag}               becomes myimagetag
+  	# Case 7:
+	# fill the template with multiple keys from the values.yaml
+	# specify the default values to put in the values.yaml
+	# specify environment specific default values to put in the values.yaml
+	# the keys are:
+	# ${imageregistry.url}       becomes {{ index .Values "imageregistry" "url" }}
+	# ${imageregistry.namespace} becomes {{ index .Values "imageregistry" "namespace" }}
+	# ${image.name}              becomes {{ index .Values "services" "nginx" "imagename" }}
+	# ${image.tag}               becomes {{ index .Values "image" "tag" }}
+	# the default values are:
+	# ${imageregistry.url}       becomes us.icr.io
+	# ${imageregistry.namespace} becomes move2kube
+	# ${image.name}              becomes different values depending on the environment
+	# ${image.tag}               becomes myimagetag
 	- target: 'spec.template.spec.containers.[0].image'
 	  template: '${imageregistry.url}/${imageregistry.namespace}/${image.name}:${image.tag}'
 	  default: 'us.icr.io/move2kube/myimage:myimagetag'
