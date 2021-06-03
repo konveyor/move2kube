@@ -5,11 +5,11 @@ services:
   nginx:
     image:
       name: nginx-allenvs
-      tag: latest # "1.14.2"
+      tag: latest
   javaspringapp:
     image:
       name: openjdk-dev8
-      tag: latest # "v1.23"
+      tag: latest
 common:
   replicas: 10
 Deployment:
