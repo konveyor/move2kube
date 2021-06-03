@@ -69,6 +69,7 @@ apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Parameterizers
 spec:
   parameterizers:
+  	// Case 1:
 	// fill the template with a single key from the values.yaml,
 	// the key is {{ index .Values "Deployment" "apps/v1" "nginx" "spec" "replicas" }}
 	// the default value is the original value for replicas specified in the Deployment yaml
@@ -77,6 +78,7 @@ spec:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
+  	// Case 2:
 	// fill the template with a single key from the values.yaml
 	// specify the key to use for the values.yaml
 	// the key is {{ index .Values "common" "replicas" }}
@@ -87,6 +89,7 @@ spec:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
+  	// Case 3:
 	// fill the template with a single key from the values.yaml
 	// specify the default value to put in the values.yaml
 	// the key is {{ index .Values "Deployment" "apps/v1" "nginx" "spec" "replicas" }}
@@ -97,6 +100,7 @@ spec:
         - kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 
+  	// Case 4:
 	// fill the template with a single key from the values.yaml
 	// specify the key to use for the values.yaml
 	// specify the default value to put in the values.yaml
@@ -113,6 +117,7 @@ spec:
 	// The following only makes sense when the field we are parameterizing is a string
 	// IMPORTANT !!!!!!
 
+  	// Case 5:
 	// fill the template with multiple keys from the values.yaml
 	// the keys are:
 	// ${imageregistry.url}       becomes {{ index .Values "imageregistry" "url" }}
@@ -127,6 +132,7 @@ spec:
 		  apiVersion: '.*v1.*'
 		  name: 'd1.*'
 
+  	// Case 6:
 	// fill the template with multiple keys from the values.yaml
 	// specify the default values to put in the values.yaml
 	// the keys are:
@@ -147,6 +153,7 @@ spec:
 		  apiVersion: '.*v1.*'
 		  name: 'd1.*'
 
+  	// Case 7:
 	// fill the template with multiple keys from the values.yaml
 	// specify the default values to put in the values.yaml
 	// specify environment specific default values to put in the values.yaml
