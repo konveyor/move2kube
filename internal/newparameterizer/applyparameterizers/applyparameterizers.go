@@ -60,7 +60,7 @@ func filterK8sResources(parameterizer types.ParameterizerT, k8sResources []start
 	defer log.Trace("end filterK8sResources")
 	idxs := []int{}
 	for i, k8sResource := range k8sResources {
-		ok, err := parameterizer.Filter(k8sResource)
+		ok, err := parameterizer.Filter(k8sResource, types.DevEnv) // TODO: accept the env from the caller
 		if err != nil {
 			return idxs, err
 		}

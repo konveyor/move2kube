@@ -29,7 +29,7 @@ type ParameterizerT interface {
 	// could be the same object as the input resource.
 	Parameterize(k8sResource startypes.K8sResourceT, values map[string]interface{}, env EnvironmentT) (startypes.K8sResourceT, error)
 	// Filter returns true if the parameterization can be applied to the given k8s resource
-	Filter(k8sResource startypes.K8sResourceT) (bool, error)
+	Filter(k8sResource startypes.K8sResourceT, env EnvironmentT) (bool, error)
 }
 
 const (

@@ -174,7 +174,7 @@ spec:
 		- kind: 'Deployment'
 		  apiVersion: '.*v1.*'
 		  name: 'd1.*'
-	  envs: [dev, staging, prod]
+		  envs: [dev, staging, prod]
 	  parameters:
 		- name: image.name
 		  default: default_image
@@ -213,14 +213,14 @@ type SimpleParameterizerT struct {
 	Template   string       `yaml:"template,omitempty" json:"template,omitempty"`
 	Default    interface{}  `yaml:"default,omitempty" json:"default,omitempty"`
 	Filters    []FilterT    `yaml:"filters,omitempty" json:"filters,omitempty"`
-	Envs       []string     `yaml:"envs,omitempty" json:"envs,omitempty"`
 	Parameters []ParameterT `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 
 type FilterT struct {
-	Kind       string `yaml:"kind,omitempty" json:"kind,omitempty"`
-	ApiVersion string `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
-	Name       string `yaml:"name,omitempty" json:"name,omitempty"`
+	Kind       string   `yaml:"kind,omitempty" json:"kind,omitempty"`
+	ApiVersion string   `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
+	Name       string   `yaml:"name,omitempty" json:"name,omitempty"`
+	Envs       []string `yaml:"envs,omitempty" json:"envs,omitempty"`
 }
 
 // ParameterT is used to specify the environment specific defaults for the keys in the template
@@ -506,7 +506,7 @@ Actual value is %+v of type %T`,
 }
 
 // Filter returns true if this parameterizer can be applied to the given k8s resource
-func (st *SimpleParameterizerT) Filter(k8sResource startypes.K8sResourceT) (bool, error) {
+func (st *SimpleParameterizerT) Filter(k8sResource startypes.K8sResourceT, env types.EnvironmentT) (bool, error) {
 	log.Trace("start SimpleParameterizerT.Filter")
 	defer log.Trace("end SimpleParameterizerT.Filter")
 	k8sResourceKind, k8sResourceAPIVersion, k8sResourceName, err := starcommon.GetInfoFromK8sResource(k8sResource)
@@ -547,6 +547,9 @@ func (st *SimpleParameterizerT) Filter(k8sResource startypes.K8sResourceT) (bool
 			if !re.MatchString(k8sResourceName) {
 				continue
 			}
+		}
+		if filter.Envs != nil && !common.IsStringPresent(filter.Envs, string(env)) {
+			continue
 		}
 		return true, nil
 	}
