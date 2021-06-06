@@ -14,30 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package generator
-
-import (
-	irtypes "github.com/konveyor/move2kube/types/ir"
-)
-
-type GenericConfig struct {
-	DetectCMD  string    `yaml:"detectCMD"`
-	AnalyseCMD string    `yaml:"analyseCMD"`
-	LocalEnv   string    `yaml:"localEnv"` //When this environment variable is set, the environment is setup to run the program locally
-	Container  Container `yaml:"container,omitempty"`
-}
-
-// Container stores container based execution information
-type Container struct {
-	Image          string         `yaml:"image"`
-	ContainerBuild ContainerBuild `yaml:"build"`
-}
-
-// ContainerBuild stores container build information
-type ContainerBuild struct {
-	Context    string `yaml:"context"`    // Default : Same folder as the yaml
-	Dockerfile string `yaml:"dockerfile"` // Default : Look for Dockerfile in the same folder
-}
+package translator
 
 /*
 Features to support:
@@ -89,14 +66,13 @@ Features to support:
 }
 */
 
-type GenericJSON struct {
-	Paths            []Path           `json:"paths"`
-	TemplatePaths    []TemplatePath   `json:"templatePaths"`
-	Templates        []Template       `json:"templates"`
-	PatchesToCompute []PatchToCompute `json:"patchesToCompute"`
-	Patches          []Patch          `json:"patch"`
-	Config           interface{}      `json:"config"`
-	IR               irtypes.IR       `json:"ir"`
+type Patch struct {
+	Paths           []Path           `json:"paths"`
+	TemplatePaths   []TemplatePath   `json:"templatePaths"`
+	Templates       []Template       `json:"templates"`
+	DeltasToCompute []DeltaToCompute `json:"patchesToCompute"`
+	Deltas          []Delta          `json:"daltas"`
+	Config          interface{}      `json:"config"`
 }
 
 type Path struct {
@@ -114,12 +90,12 @@ type Template struct {
 	Tempalte     string `json:"template"`
 }
 
-type PatchToCompute struct {
+type DeltaToCompute struct {
 	FilesInSource       string `json:"filesInSource"`
 	DestinationFilePath string `json:"destinationFilePath"`
 }
 
-type Patch struct {
+type Delta struct {
 	FilePathInSource    string `json:"filePathInSource"`
 	DestinationFilePath string `json:"destinationFilePath"`
 	PatchString         string `json:"patchString"`

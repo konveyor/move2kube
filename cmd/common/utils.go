@@ -49,8 +49,8 @@ const (
 	PreSetFlag = "preset"
 	// OverwriteFlag is the name of the flag that lets you overwrite the output directory if it exists
 	OverwriteFlag = "overwrite"
-	// TransformsFlag is the name of the flag that lets you specify a list of paths to transformations scripts
-	TransformsFlag = "transforms"
+	// ConfigurationsFlag is the path to extensions directory
+	ConfigurationsFlag = "extensions"
 )
 
 //TranslateFlags to store values from command line paramters
@@ -77,8 +77,8 @@ type TranslateFlags struct {
 	Overwrite bool
 	//PreSets contains a list of preset configurations
 	PreSets []string
-	// TransformPaths contains a list of paths to starlark transformation scripts
-	TransformPaths []string
+	// ExtensionsPaths contains the path to the extensions directory
+	ConfigurationsPath string
 }
 
 // CheckSourcePath checks if the source path is an existing directory.
@@ -136,7 +136,7 @@ func NormalizePaths(paths []string) ([]string, error) {
 		if err != nil {
 			return newPaths, fmt.Errorf("Failed to make the path %s absolute. Error: %q", path, err)
 		}
-		finfo, err:= os.Stat(newPath)
+		finfo, err := os.Stat(newPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				log.Errorf("The path %s does not exist.", newPath)
@@ -149,7 +149,7 @@ func NormalizePaths(paths []string) ([]string, error) {
 			newPaths = append(newPaths, newPath)
 			continue
 		}
-		err = filepath.Walk(newPath, func(path string, info fs.FileInfo, err error) error{
+		err = filepath.Walk(newPath, func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}

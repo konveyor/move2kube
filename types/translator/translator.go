@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package generator
+package translator
 
 import (
 	"github.com/konveyor/move2kube/types"
@@ -32,8 +32,8 @@ kind: Generator
 metadata:
   name: m2k-java-containerizer
 spec:
+  class: Executable
   mode: Container // Container, CustomResource, Service, Custom
-  type: External // External, Internal
   detect: "detect.sh" // Analyse is called if detect is not present
   analyse: "analyse.sh" // Should return a json
   localEnv: "M2KCONTAINERIZER_ENV_AVAILABLE"
@@ -44,7 +44,7 @@ spec:
       dockerfile: Dockerfile
 */
 
-const GeneratorKind = "Generator"
+const TranslatorKind = "Translator"
 
 type Mode string
 
@@ -55,15 +55,15 @@ const (
 	ModeCustom    Mode = "Custom"
 )
 
-// Generator defines definition of cf runtime instance apps file
-type Generator struct {
+// Translator defines definition of cf runtime instance apps file
+type Translator struct {
 	metav1.TypeMeta   `yaml:",inline"`
 	metav1.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec              GeneratorSpec `yaml:"spec,omitempty"`
+	Spec              TranslatorSpec `yaml:"spec,omitempty"`
 }
 
-// GeneratorSpec stores the data
-type GeneratorSpec struct {
+// TranslatorSpec stores the data
+type TranslatorSpec struct {
 	FilePath string `yaml:"-"`
 	Mode     Mode   `yaml:"mode"`
 	Class    string `yaml:"class"`
@@ -71,10 +71,10 @@ type GeneratorSpec struct {
 }
 
 // NewDockerfileContainerizer creates a new instance of DockerfileContainerizer
-func NewDockerfileContainerizer() Generator {
-	return Generator{
+func NewTranslator() Translator {
+	return Translator{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       GeneratorKind,
+			Kind:       TranslatorKind,
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
 	}

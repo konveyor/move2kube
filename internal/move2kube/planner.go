@@ -17,67 +17,29 @@ limitations under the License.
 package move2kube
 
 import (
-	"sort"
-
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/containerizer"
 	"github.com/konveyor/move2kube/internal/metadata"
 	"github.com/konveyor/move2kube/internal/qaengine"
+	"github.com/konveyor/move2kube/internal/translator"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 )
 
 //CreatePlan creates the plan from all planners
-func CreatePlan(inputPath string, prjName string, interactive bool) plantypes.Plan {
+func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.Plan {
 	p := plantypes.NewPlan()
 	p.Name = prjName
 	p.Spec.RootDir = inputPath
-
-	if interactive {
-		containerizer.InitContainerizers(p.Spec.RootDir, selectContainerizationTypes(containerizer.GetAllContainerBuildStrategies()))
-	} else {
-		containerizer.InitContainerizers(p.Spec.RootDir, nil)
+	p.Spec.ConfigurationsDir = configurationsPath
+	if configurationsPath != "" {
+		common.CheckAndCopyConfigurations(configurationsPath)
 	}
-
-	log.Infoln("Planning Translation")
-	for _, l := range selectedTranslationPlanners {
-		log.Infof("[%T] Planning translation", l)
-		services, err := l.GetServiceOptions(inputPath, p)
-		if err != nil {
-			log.Warnf("[%T] Failed : %s", l, err)
-		} else {
-			p.AddServicesToPlan(services, l.GetTranslatorType())
-			log.Infof("[%T] Done", l)
-		}
+	translator.Init(common.AssetsPath)
+	ts := translator.GetTranslators()
+	for tn, t := range ts {
+		p.Spec.Translators[tn] = t.GetConfig().Spec.FilePath
 	}
-	log.Infoln("Translation planning done")
-
-	// sort the containerization options in order of priority
-	for tt, serviceOptions := range p.Spec.Services {
-		for soi, so := range serviceOptions {
-			log.Debugf("Before sorting options of a service option: %s service options:\n%v", tt, so)
-			sort.Slice(so.ContainerizationTargetOptions, func(i, j int) bool {
-				return containerizer.ComesBefore(so.ContainerizationTargetOptions[i].ContainerBuildType, so.ContainerizationTargetOptions[j].ContainerBuildType)
-			})
-			p.Spec.Inputs.Services[tt][soi].ContainerizationTargetOptions = so.ContainerizationTargetOptions
-			log.Debugf("After sorting options of a service option: %s service options:\n%v", tt, so)
-		}
-	}
-
-	// sort the service options in order of priority
-	for serviceName, serviceOptions := range p.Spec.Services {
-		log.Debugf("Before sorting options of service: %s service options:\n%v", serviceName, serviceOptions)
-		sort.Slice(serviceOptions, func(i, j int) bool {
-			if len(serviceOptions[j].ContainerizationTargetOptions) == 0 {
-				return true
-			}
-			if len(serviceOptions[i].ContainerizationTargetOptions) == 0 {
-				return false
-			}
-			return containerizer.ComesBefore(serviceOptions[i].ContainerizationTargetOptions[0].ContainerBuildType, serviceOptions[j].ContainerizationTargetOptions[0].ContainerBuildType)
-		})
-		log.Debugf("After sorting options of service: %s service options:\n%v", serviceName, serviceOptions)
-	}
+	p.Spec.Services = translator.GetServices(inputPath)
 
 	log.Infoln("Planning Metadata")
 	metadataPlanners := metadata.GetLoaders()
@@ -238,7 +200,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 			break
 		}
 	}
-	p.Spec.Inputs.Services = services
+	p.Spec.Services = services
 
 	// Choose cluster type to target
 	clusters := new(metadata.ClusterMDLoader).GetClusters(p)
@@ -247,16 +209,8 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 		clusterTypeList = append(clusterTypeList, c)
 	}
 	clusterType := qaengine.FetchSelectAnswer(common.ConfigTargetClusterTypeKey, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, string(common.DefaultClusterType), clusterTypeList)
-	p.Spec.Outputs.Kubernetes.TargetCluster.Type = clusterType
-	p.Spec.Outputs.Kubernetes.TargetCluster.Path = ""
+	p.Spec.TargetCluster.Type = clusterType
+	p.Spec.TargetCluster.Path = ""
 
 	return p
-}
-
-func selectTranslators(translationTypes []string) []string {
-	return qaengine.FetchMultiSelectAnswer(common.ConfigSourceTypesKey, "Select all source types that you are interested in:", []string{"Services that don't support any of the source types you are interested in will be ignored."}, translationTypes, translationTypes)
-}
-
-func selectContainerizationTypes(containerizationTypes []string) []string {
-	return qaengine.FetchMultiSelectAnswer(common.ConfigContainerizationTypesKey, "Select all containerization modes that is of interest:", []string{"Services that don't support any of the containerization techniques you are interested in will be ignored."}, containerizationTypes, containerizationTypes)
 }

@@ -37,6 +37,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/konveyor/move2kube/internal/assets"
 	"github.com/konveyor/move2kube/types"
+	"github.com/otiai10/copy"
 	log "github.com/sirupsen/logrus"
 	"github.com/xrash/smetrics"
 	"gopkg.in/yaml.v3"
@@ -588,6 +589,68 @@ func CreateAssetsData() (assetsPath string, tempPath string, err error) {
 	return assetsPath, tempPath, nil
 }
 
+// CopyConfigurationsAssetsData copies an extensions to the assets directory
+func CopyConfigurationsAssetsData(extensionsPath string) (err error) {
+	if extensionsPath == "" {
+		return nil
+	}
+	// Return the absolute version of extensions directory.
+	extensionsPath, err = filepath.Abs(extensionsPath)
+	if err != nil {
+		log.Errorf("Unable to make the extensions directory path %q absolute. Error: %q", extensionsPath, err)
+		return err
+	}
+	assetsPath, err := filepath.Abs(AssetsPath)
+	if err != nil {
+		log.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
+		return err
+	}
+	customAssetsPath := filepath.Join(assetsPath, "custom")
+
+	// Create the subdirectory and copy the assets into it.
+	if err = os.MkdirAll(customAssetsPath, DefaultDirectoryPermission); err != nil {
+		log.Errorf("Unable to create the custom assets directory at path %q Error: %q", customAssetsPath, err)
+		return err
+	}
+	if err = copy.Copy(extensionsPath, customAssetsPath); err != nil {
+		log.Errorf("Failed to copy the extensions %s over to the directory at path %s Error: %q", extensionsPath, customAssetsPath, err)
+		return err
+	}
+
+	return nil
+}
+
+// CheckAndCopyConfigurations checks if the extensions path is an existing directory and copies to assets
+func CheckAndCopyConfigurations(extensionsPath string) {
+	if extensionsPath == "" {
+		return
+	}
+	extensionsPath, err := filepath.Abs(extensionsPath)
+	if err != nil {
+		log.Fatalf("Unable to make the extensions directory path %q absolute. Error: %q", extensionsPath, err)
+	}
+	fi, err := os.Stat(extensionsPath)
+	if os.IsNotExist(err) {
+		log.Fatalf("The given extensions directory %s does not exist. Error: %q", extensionsPath, err)
+	}
+	if err != nil {
+		log.Fatalf("Error while accessing the given extensions directory %s Error: %q", extensionsPath, err)
+	}
+	if !fi.IsDir() {
+		log.Fatalf("The given extensions path %s is a file. Expected a directory. Exiting.", extensionsPath)
+	}
+	pwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Failed to get the current working directory. Error: %q", err)
+	}
+	if IsParent(pwd, extensionsPath) {
+		log.Fatalf("The given extensions directory %s is a parent of the current working directory.", extensionsPath)
+	}
+	if err = CopyConfigurationsAssetsData(extensionsPath); err != nil {
+		log.Fatalf("Unable to copy extensions data : %s", err)
+	}
+}
+
 // CopyFile copies a file from src to dst.
 // The dst file will be truncated if it exists.
 // Returns an error if it failed to copy all the bytes.
@@ -686,34 +749,37 @@ func GetGitRepoDetails(path, remoteName string) (remoteURLs []string, branch str
 }
 
 // GetGitRepoName returns the remote repo's name and context.
-func GetGitRepoName(path string) (repo string, root string) {
+func GetGitRepoName(path string) (repoName, repoUrl, root string, err error) {
 	r, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
 		log.Debugf("Unable to open %s as a git repo : %s", path, err)
-		return "", ""
+		return "", "", "", err
 	}
 	remote, err := r.Remote("origin")
 	if err != nil {
 		log.Debugf("Unable to get origin remote : %s", err)
-		return "", ""
+		return "", "", "", err
 	}
 	if len(remote.Config().URLs) == 0 {
-		log.Debugf("Unable to get origins")
-		return "", ""
+		err = fmt.Errorf("Unable to get origins")
+		log.Debugf("%s", err)
+		return "", "", "", err
 	}
 	u := remote.Config().URLs[0]
 	if strings.HasPrefix(u, "git") {
 		parts := strings.Split(u, ":")
 		if len(parts) != 2 {
+			err = fmt.Errorf("Unable to find git repo name")
+			log.Debugf("%s", err)
 			// Unable to find git repo name
-			return "", ""
+			return "", "", "", err
 		}
 		u = parts[1]
 	}
 	giturl, err := url.Parse(u)
 	if err != nil {
 		log.Debugf("Unable to get origin remote host : %s", err)
-		return "", ""
+		return "", "", "", err
 	}
 	name := filepath.Base(giturl.Path)
 	name = strings.TrimSuffix(name, filepath.Ext(name))
@@ -721,7 +787,7 @@ func GetGitRepoName(path string) (repo string, root string) {
 	if err != nil {
 		log.Warnf("Unable to get root of repo : %s", err)
 	}
-	return name, w.Filesystem.Root()
+	return name, giturl.Path, w.Filesystem.Root(), nil
 }
 
 // SplitYAML splits a file into multiple YAML documents.

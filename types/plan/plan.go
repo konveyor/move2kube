@@ -89,12 +89,15 @@ type Plan struct {
 	Spec              Spec `yaml:"spec,omitempty"`
 }
 
+type Service []Translator
+
 // Spec stores the data about the plan
 type Spec struct {
 	RootDir             string                                   `yaml:"rootDir"`
-	Generators          []string                                 `yaml:"generators"` // Generator name or image name
+	ConfigurationsDir   string                                   `yaml:"configurationsDir"`
+	Translators         map[string]string                        `yaml:"translators" m2kpath:"normal"`
+	Services            map[string]Service                       `yaml:"services"` //[servicename]
 	K8sFiles            []string                                 `yaml:"kubernetesYamls,omitempty" m2kpath:"normal"`
-	Services            map[string]Service                       `yaml:"services"`                                       //[servicename]
 	TargetInfoArtifacts map[TargetInfoArtifactTypeValue][]string `yaml:"targetInfoArtifacts,omitempty" m2kpath:"normal"` //[targetinfoartifacttype][List of artifacts]
 	TargetCluster       TargetClusterType                        `yaml:"targetCluster,omitempty"`
 }
@@ -106,61 +109,24 @@ type TargetClusterType struct {
 	Path string `yaml:"path,omitempty" m2kpath:"normal"`
 }
 
-// Service defines a plan service
-type Service struct {
-	SourceArtifacts   []SourceArtifact   `yaml:"sourceArtifacts,omitempty"`
-	GenerationOptions []GenerationOption `yaml:"generatorOptions,omitempty"`
+// Translator stores translator option
+type Translator struct {
+	Mode                   string              `yaml:"mode" json:"mode"` // container, customresource, service, generic
+	Name                   string              `yaml:"name" json:"name"`
+	ArtifactTypess         []string            `yaml:"artifacttypes,omitempty" json:"artifacts,omitempty"`
+	ExclusiveArtifactTypes []string            `yaml:"exclusiveArtifactTypes,omitempty" json:"exclusiveArtifacts,omitempty"`
+	Config                 interface{}         `yaml:"config,omitempty" json:"config,omitempty"`
+	Paths                  map[string][]string `yaml:"paths,omitempty" json:"paths,omitempty" m2kpath:"normal"`
 }
 
-func (p *Plan) AddServicesToPlan(services map[string]Service) {
+func (p *Plan) AddServicesToPlan(services map[string][]Translator) {
 	for sn, s := range services {
 		if os, ok := p.Spec.Services[sn]; ok {
-			os.Merge(s)
-			p.Spec.Services[sn] = os
+			p.Spec.Services[sn] = append(os, s...)
 		} else {
 			p.Spec.Services[sn] = s
 		}
 	}
-}
-
-func (s *Service) Merge(ns Service) {
-	for _, sa := range ns.SourceArtifacts {
-		s.AddSourceArtifact(sa)
-	}
-	s.GenerationOptions = append(s.GenerationOptions, ns.GenerationOptions...)
-}
-
-func (s *Service) AddSourceArtifact(sa SourceArtifact) {
-	found := false
-	for osai, osa := range s.SourceArtifacts {
-		if osa.Type == sa.Type && osa.ID == sa.ID {
-			s.SourceArtifacts[osai].Artifacts = common.MergeStringSlices(s.SourceArtifacts[osai].Artifacts, sa.Artifacts)
-			found = true
-			break
-		}
-	}
-	if !found {
-		s.SourceArtifacts = append(s.SourceArtifacts, sa)
-	}
-}
-
-func (s *Service) AddGenerationOption(o GenerationOption) {
-	s.GenerationOptions = append(s.GenerationOptions, o)
-}
-
-// SourceArtifact stores information about a source artifact
-type SourceArtifact struct {
-	ID        string                  `yaml:"id"`
-	Type      SourceArtifactTypeValue `yaml:"type"`
-	Artifacts []string                `yaml:"artifacts" m2kpath:"if:Type:in:DockerCompose,CfManifest,CfRunningManifest,Dockerfile"` //[translationartifacttype][List of artifacts]
-}
-
-// GenerationOption stores generation target option
-type GenerationOption struct {
-	Mode   string            `yaml:"mode"` // container, operator, service
-	Name   string            `yaml:"name"`
-	Config interface{}       `yaml:"config"`
-	Paths  map[string]string `yaml:"paths" m2kpath:"normal"`
 }
 
 // NewPlan creates a new plan

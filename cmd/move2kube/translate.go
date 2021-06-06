@@ -88,15 +88,16 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
 		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
-		qaengine.SetupConfigFile(flags.Outpath, flags.Setconfigs, flags.Configs, flags.PreSets)
-		qaengine.SetupCacheFile(flags.Outpath, flags.Qacaches)
+		qaengine.SetupConfigFile(filepath.Join(flags.Outpath, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
+		qaengine.AddCaches(flags.Qacaches...)
+		qaengine.SetupWriteCacheFile(filepath.Join(flags.Outpath, common.QACacheFile))
 		if err := qaengine.WriteStoresToDisk(); err != nil {
 			log.Warnf("Failed to write the stores to disk. Error: %q", err)
 		}
 		// Global settings
 
 		log.Debugf("Creating a new plan.")
-		p = move2kube.CreatePlan(flags.Srcpath, flags.Name, true)
+		p = move2kube.CreatePlan(flags.Srcpath, flags.ConfigurationsPath, flags.Name, true)
 		p = move2kube.CuratePlan(p)
 	} else {
 		log.Infof("Detected a plan file at path %s. Will translate using this plan.", flags.Planfile)
@@ -118,9 +119,15 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 				log.Fatalf("Failed to set the root directory to %q Error: %q", flags.Srcpath, err)
 			}
 		}
+		if cmd.Flags().Changed(cmdcommon.ConfigurationsFlag) {
+			if flags.ConfigurationsPath != "" {
+				p.Spec.ConfigurationsDir = flags.ConfigurationsPath
+			}
+		}
 
 		// Global settings
 		cmdcommon.CheckSourcePath(p.Spec.RootDir)
+		common.CheckAndCopyConfigurations(p.Spec.ConfigurationsDir)
 		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
 		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
 		if p.Spec.RootDir == flags.Outpath || common.IsParent(flags.Outpath, p.Spec.RootDir) || common.IsParent(p.Spec.RootDir, flags.Outpath) {
@@ -130,8 +137,9 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
 		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
-		qaengine.SetupConfigFile(flags.Outpath, flags.Setconfigs, flags.Configs, flags.PreSets)
-		qaengine.SetupCacheFile(flags.Outpath, flags.Qacaches)
+		qaengine.SetupConfigFile(filepath.Join(flags.Outpath, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
+		qaengine.AddCaches(flags.Qacaches...)
+		qaengine.SetupWriteCacheFile(filepath.Join(flags.Outpath, common.QACacheFile))
 		if err := qaengine.WriteStoresToDisk(); err != nil {
 			log.Warnf("Failed to write the stores to disk. Error: %q", err)
 		}
@@ -175,7 +183,7 @@ func getTranslateCommand() *cobra.Command {
 	translateCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
 	translateCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
-	translateCmd.Flags().StringSliceVarP(&flags.TransformPaths, cmdcommon.TransformsFlag, "t", []string{}, "Specify paths to the transformation scripts to apply. Can be the path to a script or the path to a folder containing the scripts.")
+	translateCmd.Flags().StringVarP(&flags.ConfigurationsPath, cmdcommon.ConfigurationsFlag, "c", "", "Specify directory where configurations are stored.")
 
 	// Advanced options
 	translateCmd.Flags().BoolVar(&flags.IgnoreEnv, cmdcommon.IgnoreEnvFlag, false, "Ignore data from local machine.")

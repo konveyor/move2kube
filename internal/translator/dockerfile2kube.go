@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package source
+package translator
 
 import (
 	"fmt"
@@ -47,7 +47,7 @@ func (dockerfileTranslator *DockerfileTranslator) GetServiceOptions(inputPath st
 	for sn, dfs := range sdfs {
 		ns := plantypes.Service{
 			ContainerizationOptions: make([]plantypes.ContainerizationOption, len(dfs)),
-			SourceArtifacts:               make([]plantypes.SourceArtifact, len(dfs)),
+			SourceArtifacts:         make([]plantypes.SourceArtifact, len(dfs)),
 		}
 		for dfi, df := range dfs {
 			var repoInfo plantypes.RepoInfo
@@ -254,19 +254,4 @@ func bucketDFs(dfs []dockerfile) map[string][]dockerfile {
 		}
 	}
 	return sDockerfiles
-}
-
-func findCommonPrefix(files []dockerfile) string {
-	paths := make([]string, len(files))
-	for i, file := range files {
-		paths[i] = file.pathsuffix
-	}
-	return common.CleanAndFindCommonDirectory(paths)
-}
-
-func trimPrefix(files []dockerfile, prefix string) []dockerfile {
-	for i, f := range files {
-		files[i].pathsuffix = strings.TrimPrefix(f.pathsuffix, prefix+string(filepath.Separator))
-	}
-	return files
 }

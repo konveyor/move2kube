@@ -71,7 +71,7 @@ func AddEngineHighestPriority(e Engine) error {
 // AddCaches adds cache responders.
 // Later cache files override earlier cache files.
 // [base.yaml, project.yaml, service.yaml]
-func AddCaches(cacheFiles []string) {
+func AddCaches(cacheFiles ...string) {
 	common.ReverseInPlace(cacheFiles)
 	for _, cacheFile := range cacheFiles {
 		e := NewStoreEngineFromCache(cacheFile)
@@ -82,26 +82,26 @@ func AddCaches(cacheFiles []string) {
 	}
 }
 
-// SetupCacheFile adds cache responders
-func SetupCacheFile(outputPath string, cacheFiles []string) {
-	writeCachePath := filepath.Join(outputPath, common.QACacheFile)
+// SetupWriteCacheFile adds write cache
+func SetupWriteCacheFile(writeCachePath string) {
 	cache := qatypes.NewCache(writeCachePath)
 	cache.Write()
 	writeStores = append(writeStores, cache)
-	cacheFiles = append(cacheFiles, writeCachePath)
-	AddCaches(cacheFiles)
+	AddCaches(writeCachePath)
 }
 
 // SetupConfigFile adds config responders - should be called only once
-func SetupConfigFile(outputPath string, configStrings, configFiles, presets []string) {
+func SetupConfigFile(writeConfigFile string, configStrings, configFiles, presets []string) {
 	presetPaths := []string{}
 	for _, preset := range presets {
 		presetPath := filepath.Join(common.AssetsPath, "configs", preset+".yaml")
 		presetPaths = append(presetPaths, presetPath)
 	}
 	configFiles = append(presetPaths, configFiles...)
-	writeConfig := qatypes.NewConfig(filepath.Join(outputPath, common.ConfigFile), configStrings, configFiles)
-	writeStores = append(writeStores, writeConfig)
+	writeConfig := qatypes.NewConfig(writeConfigFile, configStrings, configFiles)
+	if writeConfigFile != "" {
+		writeStores = append(writeStores, writeConfig)
+	}
 	e := &StoreEngine{store: writeConfig}
 	if err := AddEngineHighestPriority(e); err != nil {
 		log.Errorf("Ignoring engine %T due to error : %s", e, err)
