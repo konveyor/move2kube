@@ -21,8 +21,8 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	clustersmetadata "github.com/konveyor/move2kube/internal/metadata/clusters"
-	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -46,7 +46,7 @@ func (clusterMDLoader *ClusterMDLoader) UpdatePlan(inputPath string, plan *plant
 		if err != nil {
 			continue
 		}
-		plan.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType] = append(plan.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType], filePath)
+		plan.Spec.Configuration.TargetClusters[cm.Name] = filePath
 
 		// If we are targeting the default cluster type then change it to the custom cluster type the user provided.
 		if plan.Spec.TargetCluster.Type == common.DefaultClusterType {
@@ -99,7 +99,7 @@ func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[str
 	}
 
 	// Load collected cluster metadata.
-	clusterMDPaths := plan.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType]
+	clusterMDPaths := plan.Spec.Configuration.TargetClusters
 	for _, clusterMDPath := range clusterMDPaths {
 		cm, err := clusterMDLoader.getClusterMetadata(clusterMDPath)
 		if err != nil {

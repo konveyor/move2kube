@@ -14,17 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package plan_test
+package irpreprocessor
 
 import (
-	"testing"
-
-	"github.com/konveyor/move2kube/types/plan"
+	irtypes "github.com/konveyor/move2kube/types/ir"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
-func TestNewPlan(t *testing.T) {
-	p := plan.NewPlan()
-	if p.Spec.Services == nil {
-		t.Error("Failed to instantiate the plan fields properly. Actual:", p)
+// imagePullPolicyOptimizer sets the pull policy to be always
+type imagePullPolicyPreprocessor struct {
+}
+
+func (ep imagePullPolicyPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
+	for k, scObj := range ir.Services {
+		for i := range scObj.Containers {
+			scObj.Containers[i].ImagePullPolicy = core.PullAlways
+		}
+		ir.Services[k] = scObj
 	}
+
+	return ir, nil
 }

@@ -553,7 +553,7 @@ func TestMergeStringSlices(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			merged := common.MergeStringSlices(tc.inArr1, tc.inArr2)
+			merged := common.MergeStringSlices(tc.inArr1, tc.inArr2...)
 			if !cmp.Equal(merged, tc.out) {
 				t.Fatalf("Failed to merge the arrays properly. Array1: %v Array2: %v Difference:\n%s", tc.inArr1, tc.inArr2, cmp.Diff(tc.out, merged))
 			}

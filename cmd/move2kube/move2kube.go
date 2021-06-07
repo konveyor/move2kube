@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/konveyor/move2kube/assets"
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
 	log "github.com/sirupsen/logrus"
@@ -65,7 +66,7 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 	rootCmd.AddCommand(getTranslateCommand())
 	rootCmd.AddCommand(getValidateCommand())
 
-	assetsPath, tempPath, err := common.CreateAssetsData()
+	assetsPath, tempPath, err := common.CreateAssetsData(assets.Tar)
 	if err != nil {
 		log.Fatalf("Unable to create the assets directory. Error: %q", err)
 	}

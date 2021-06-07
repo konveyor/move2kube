@@ -19,7 +19,7 @@ package common
 import (
 	"fmt"
 
-	"github.com/konveyor/move2kube/internal/move2kube"
+	api "github.com/konveyor/move2kube/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -33,7 +33,7 @@ func GetVersionCommand() *cobra.Command {
 		Use:   "version",
 		Short: "Print the version information",
 		Long:  "Print the version information",
-		Run:   func(*cobra.Command, []string) { fmt.Println(move2kube.GetVersion(long)) },
+		Run:   func(*cobra.Command, []string) { fmt.Println(api.GetVersion(long)) },
 	}
 
 	versionCmd.Flags().BoolVarP(&long, "long", "l", false, "print the version details")

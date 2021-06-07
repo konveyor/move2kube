@@ -20,16 +20,16 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/konveyor/move2kube/internal/translator/gointerface"
+	"github.com/konveyor/move2kube/internal/translator/gointerfaces"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
 	gointerfacetypes "github.com/konveyor/move2kube/types/translator/classes/gointerface"
+	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
 	translatorTypes map[string]reflect.Type = make(map[string]reflect.Type)
-	translators     map[string]Translator   = make(map[string]Translator)
 )
 
 type Translator interface {
@@ -49,9 +49,9 @@ type GoInterface struct {
 }
 
 func init() {
-	translatorObjs := []Translator{gointerface.Compose{}}
+	translatorObjs := []Translator{new(gointerfaces.Compose)}
 	for _, tt := range translatorObjs {
-		t := reflect.TypeOf(tt)
+		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
 		if ot, ok := translatorTypes[tn]; ok {
 			log.Errorf("Two translator classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
@@ -63,14 +63,27 @@ func init() {
 
 func (t *GoInterface) Init(tc translatortypes.Translator) error {
 	t.tc = tc
-	var ok bool
-	if t.config, ok = tc.Spec.Config.(gointerfacetypes.Config); !ok {
-		err := fmt.Errorf("unable to load config %+v into %T", tc.Spec.Config, gointerfacetypes.Config{})
-		log.Errorf("%s", err)
+	config := gointerfacetypes.Config{}
+	decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Metadata: nil,
+		Result:   &config,
+		TagName:  "yaml",
+	})
+	if err := decoder.Decode(tc.Spec.Config); err != nil {
+		log.Errorf("unable to load config for GoInterface Translator %+v into %T : %s", tc.Spec.Config, gointerfacetypes.Config{}, err)
 		return err
+	} else {
+		log.Debugf("GoInterface Translator config is %+v", config)
+		t.config = config
 	}
-	t.impl = reflect.New(translatorTypes[tc.Spec.Class]).Interface().(Translator)
-	return nil
+	log.Debugf("Looking for struct %s", t.config.Class)
+	if tt, ok := translatorTypes[t.config.Class]; ok {
+		t.impl = reflect.New(tt).Interface().(Translator)
+		return nil
+	}
+	err := fmt.Errorf("unable to locate traslator struct type %s in %+v", t.config.Class, translatorTypes)
+	log.Errorf("%s", err)
+	return err
 }
 
 func (t *GoInterface) GetConfig() translatortypes.Translator {
@@ -78,25 +91,25 @@ func (t *GoInterface) GetConfig() translatortypes.Translator {
 }
 
 func (t *GoInterface) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	panic("not implemented") // TODO: Implement
+	return t.impl.BaseDirectoryDetect(dir)
 }
 
 func (t *GoInterface) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	panic("not implemented") // TODO: Implement
+	return t.impl.DirectoryDetect(dir)
 }
 
 func (t *GoInterface) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	panic("not implemented") // TODO: Implement
+	return t.impl.KnownDirectoryDetect(dir)
 }
 
 func (t *GoInterface) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
-	panic("not implemented") // TODO: Implement
+	return t.impl.ServiceAugmentDetect(serviceName, service)
 }
 
-func (t *GoInterface) PlanDetect(_ plantypes.Plan) ([]plantypes.Translator, error) {
-	panic("not implemented") // TODO: Implement
+func (t *GoInterface) PlanDetect(p plantypes.Plan) ([]plantypes.Translator, error) {
+	return t.impl.PlanDetect(p)
 }
 
 func (t *GoInterface) Translate(serviceName string) map[string]translatortypes.Patch {
-	panic("not implemented") // TODO: Implement
+	return t.impl.Translate(serviceName)
 }

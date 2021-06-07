@@ -28,7 +28,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	commonknownhosts "github.com/konveyor/move2kube/internal/common/knownhosts"
-	"github.com/konveyor/move2kube/internal/qaengine"
+	"github.com/konveyor/move2kube/qaengine"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
@@ -185,7 +185,7 @@ func loadSSHKey(filename string) (string, error) {
 		return marshalECDSAIntoPEM(actualKey), nil
 	default:
 		log.Errorf("Unknown key type [%T]", key)
-		return "", fmt.Errorf("Unknown key type [%T]", key)
+		return "", fmt.Errorf("unknown key type [%T]", key)
 	}
 }
 
@@ -196,10 +196,7 @@ func GetSSHKey(domain string) (string, bool) {
 		return "", false
 	}
 
-	filenames := []string{}
-	for _, filename := range privateKeysToConsider {
-		filenames = append(filenames, filename)
-	}
+	filenames := privateKeysToConsider
 	noAnswer := "none of the above"
 	filenames = append(filenames, noAnswer)
 	qaKey := common.ConfigRepoKeysKey + common.Delim + `"` + domain + `"` + common.Delim + "key"

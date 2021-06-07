@@ -60,7 +60,7 @@ func (c *ClusterCollector) Collect(inputPath string, outputPath string) error {
 	}
 	cmd := c.getClusterCommand()
 	if cmd == "" {
-		errStr := "No kubectl or oc in path. Add kubectl to path and rerun to collect data about the cluster in context."
+		errStr := "no kubectl or oc in path. Add kubectl to path and rerun to collect data about the cluster in context"
 		log.Warnf(errStr)
 		return fmt.Errorf(errStr)
 	}
@@ -587,7 +587,7 @@ func (c *ClusterCollector) isSupportedGV(kind string, gvStr string) (bool, error
 	lines := strings.Split(string(output), "\n")
 
 	if len(lines) < 2 {
-		return false, fmt.Errorf("Description incomplete")
+		return false, fmt.Errorf("description incomplete")
 	}
 
 	if strings.Contains(lines[1], "VERSION") {
@@ -610,7 +610,7 @@ func (c *ClusterCollector) getGVKUsingNameCLI(name string) (string, string, erro
 	lines := strings.Split(string(output), "\n")
 
 	if len(lines) < 2 {
-		return "", "", fmt.Errorf("Description incomplete")
+		return "", "", fmt.Errorf("description incomplete")
 	}
 
 	if strings.Contains(lines[0], "KIND") {

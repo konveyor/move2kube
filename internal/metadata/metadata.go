@@ -17,7 +17,7 @@ limitations under the License.
 package metadata
 
 import (
-	irtypes "github.com/konveyor/move2kube/internal/types"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 )
 
@@ -29,6 +29,6 @@ type Loader interface {
 
 // GetLoaders returns planner for given format
 func GetLoaders() []Loader {
-	var planners = []Loader{new(ClusterMDLoader), new(K8sFilesLoader)}
+	var planners = []Loader{new(ClusterMDLoader)}
 	return planners
 }

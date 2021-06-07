@@ -18,8 +18,6 @@ package collection
 
 import (
 	"github.com/konveyor/move2kube/types"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ImageMetadataKind defines kind for imagemetadata file
@@ -27,9 +25,9 @@ const ImageMetadataKind types.Kind = "ImageMetadata"
 
 // ImageInfo stores data about different images
 type ImageInfo struct {
-	metav1.TypeMeta   `yaml:",inline"`
-	metav1.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec              ImageInfoSpec `yaml:"spec,omitempty"`
+	types.TypeMeta   `yaml:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec             ImageInfoSpec `yaml:"spec,omitempty"`
 }
 
 // ImageInfoSpec defines the data stored about ImageInfo
@@ -43,7 +41,7 @@ type ImageInfoSpec struct {
 // NewImageInfo creates a new imageinfo instance
 func NewImageInfo() ImageInfo {
 	return ImageInfo{
-		TypeMeta: metav1.TypeMeta{
+		TypeMeta: types.TypeMeta{
 			Kind:       string(ImageMetadataKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},

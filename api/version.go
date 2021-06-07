@@ -14,17 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package plan_test
+package api
 
 import (
-	"testing"
+	"gopkg.in/yaml.v3"
 
-	"github.com/konveyor/move2kube/types/plan"
+	"github.com/konveyor/move2kube/types/info"
 )
 
-func TestNewPlan(t *testing.T) {
-	p := plan.NewPlan()
-	if p.Spec.Services == nil {
-		t.Error("Failed to instantiate the plan fields properly. Actual:", p)
+// GetVersion returns the version
+func GetVersion(long bool) string {
+	if !long {
+		return info.GetVersion()
 	}
+	v := info.GetVersionInfo()
+	ver, _ := yaml.Marshal(v)
+	return string(ver)
 }

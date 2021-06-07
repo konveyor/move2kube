@@ -17,5 +17,5 @@ limitations under the License.
 package gointerface
 
 type Config struct {
-	StructName string `yaml:"structName"`
+	Class string `yaml:"class"`
 }

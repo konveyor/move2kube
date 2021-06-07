@@ -35,7 +35,6 @@ import (
 	"text/template"
 
 	"github.com/go-git/go-git/v5"
-	"github.com/konveyor/move2kube/internal/assets"
 	"github.com/konveyor/move2kube/types"
 	"github.com/otiai10/copy"
 	log "github.com/sirupsen/logrus"
@@ -218,12 +217,12 @@ func ReadYaml(file string, data interface{}) error {
 func ReadMove2KubeYaml(path string, out interface{}) error {
 	yamlData, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Debugf("Failed to read the yaml file at path %s Error: %q", path, err)
+		log.Errorf("Failed to read the yaml file at path %s Error: %q", path, err)
 		return err
 	}
 	yamlMap := map[string]interface{}{}
 	if err := yaml.Unmarshal([]byte(yamlData), yamlMap); err != nil {
-		log.Debugf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
+		log.Errorf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
 		return err
 	}
 	groupVersionI, ok := yamlMap["apiVersion"]
@@ -555,7 +554,7 @@ func FindCommonDirectory(paths []string) string {
 }
 
 // CreateAssetsData creates an assets directory and dumps the assets data into it
-func CreateAssetsData() (assetsPath string, tempPath string, err error) {
+func CreateAssetsData(assetsTar string) (assetsPath string, tempPath string, err error) {
 	// Return the absolute version of existing asset paths.
 	tempPath, err = filepath.Abs(TempPath)
 	if err != nil {
@@ -581,7 +580,7 @@ func CreateAssetsData() (assetsPath string, tempPath string, err error) {
 		log.Errorf("Unable to create the assets directory at path %q Error: %q", assetsPath, err)
 		return "", "", err
 	}
-	if err := UnTarString(assets.Tar, assetsPath); err != nil {
+	if err := UnTarString(assetsTar, assetsPath); err != nil {
 		log.Errorf("Unable to untar the assets into the assets directory at path %q Error: %q", assetsPath, err)
 		return "", "", err
 	}
@@ -761,7 +760,7 @@ func GetGitRepoName(path string) (repoName, repoUrl, root string, err error) {
 		return "", "", "", err
 	}
 	if len(remote.Config().URLs) == 0 {
-		err = fmt.Errorf("Unable to get origins")
+		err = fmt.Errorf("unable to get origins")
 		log.Debugf("%s", err)
 		return "", "", "", err
 	}
@@ -769,7 +768,7 @@ func GetGitRepoName(path string) (repoName, repoUrl, root string, err error) {
 	if strings.HasPrefix(u, "git") {
 		parts := strings.Split(u, ":")
 		if len(parts) != 2 {
-			err = fmt.Errorf("Unable to find git repo name")
+			err = fmt.Errorf("unable to find git repo name")
 			log.Debugf("%s", err)
 			// Unable to find git repo name
 			return "", "", "", err

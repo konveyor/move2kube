@@ -76,7 +76,7 @@ func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx conte
 }
 
 func recurse(value reflect.Value, ctx context) error {
-	// fmt.Printf("type [%v] ctx [%v]\n", value.Type(), ctx)
+	//log.Debugf("type [%v] ctx [%v]\n", value.Type(), ctx)
 	switch value.Kind() {
 	case reflect.String:
 		if !ctx.ShouldConvert {

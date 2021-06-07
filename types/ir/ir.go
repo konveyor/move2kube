@@ -94,18 +94,20 @@ type ServiceToPodPortForwarding struct {
 	PodPort     Port
 }
 
+type ContainerBuildTypeValue string
+
 // Container defines images that need to be built or reused.
 type Container struct {
-	ContainerBuildType plantypes.ContainerBuildTypeValue `yaml:"-"`
-	Name               string                            `yaml:"-"`
-	ContextPath        string                            `yaml:"-"`
-	RepoInfo           RepoInfo                          `yaml:"-"`
-	ImageNames         []string                          `yaml:"-"`
-	New                bool                              `yaml:"-"` // true if this is a new image that needs to be built
-	NewFiles           map[string][]byte                 `yaml:"-"` //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
-	ExposedPorts       []int                             `yaml:"ports"`
-	UserID             int                               `yaml:"userID"`
-	AccessedDirs       []string                          `yaml:"accessedDirs"`
+	ContainerBuildType ContainerBuildTypeValue `yaml:"-"`
+	Name               string                  `yaml:"-"`
+	ContextPath        string                  `yaml:"-"`
+	RepoInfo           RepoInfo                `yaml:"-"`
+	ImageNames         []string                `yaml:"-"`
+	New                bool                    `yaml:"-"` // true if this is a new image that needs to be built
+	NewFiles           map[string][]byte       `yaml:"-"` //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
+	ExposedPorts       []int                   `yaml:"ports"`
+	UserID             int                     `yaml:"userID"`
+	AccessedDirs       []string                `yaml:"accessedDirs"`
 }
 
 // RepoInfo contains information specific to creating the CI/CD pipeline.
@@ -217,7 +219,7 @@ func (service *Service) merge(nService Service) {
 	if nService.Replicas != 0 {
 		service.Replicas = nService.Replicas
 	}
-	service.Networks = common.MergeStringSlices(service.Networks, nService.Networks)
+	service.Networks = common.MergeStringSlices(service.Networks, nService.Networks...)
 	if nService.ServiceRelPath != "" {
 		service.ServiceRelPath = nService.ServiceRelPath
 	}
@@ -279,7 +281,7 @@ func (service *Service) HasValidAnnotation(annotation string) bool {
 }
 
 // NewContainer creates a new container
-func NewContainer(containerBuildType plantypes.ContainerBuildTypeValue, imagename string, new bool) Container {
+func NewContainer(containerBuildType ContainerBuildTypeValue, imagename string, new bool) Container {
 	return Container{
 		ContainerBuildType: containerBuildType,
 		ImageNames:         []string{imagename},
@@ -289,22 +291,6 @@ func NewContainer(containerBuildType plantypes.ContainerBuildTypeValue, imagenam
 		UserID:             -1,
 		AccessedDirs:       []string{},
 	}
-}
-
-// NewContainerFromImageInfo creates a new container from image info
-func NewContainerFromImageInfo(i collecttypes.ImageInfo) Container {
-	imagename := ""
-	if len(i.Spec.Tags) > 0 {
-		imagename = i.Spec.Tags[0]
-	} else {
-		log.Errorf("The image info %v has no tags. Leaving the tag empty for the container.", i)
-	}
-	c := NewContainer(plantypes.ReuseContainerBuildTypeValue, imagename, false)
-	c.ImageNames = i.Spec.Tags
-	c.ExposedPorts = i.Spec.PortsToExpose
-	c.UserID = i.Spec.UserID
-	c.AccessedDirs = i.Spec.AccessedDirs
-	return c
 }
 
 // Merge merges containers
@@ -330,9 +316,9 @@ func (c *Container) Merge(newc Container) bool {
 					log.Errorf("Two different users found for image : %d in %d. Ignoring new users.", c.UserID, newc.UserID)
 				}
 			}
-			c.ImageNames = common.MergeStringSlices(c.ImageNames, newc.ImageNames)
+			c.ImageNames = common.MergeStringSlices(c.ImageNames, newc.ImageNames...)
 			c.ExposedPorts = common.MergeIntSlices(c.ExposedPorts, newc.ExposedPorts)
-			c.AccessedDirs = common.MergeStringSlices(c.AccessedDirs, newc.AccessedDirs) //Needs to be clarified
+			c.AccessedDirs = common.MergeStringSlices(c.AccessedDirs, newc.AccessedDirs...) //Needs to be clarified
 			if !c.New {
 				c.NewFiles = newc.NewFiles
 				c.UserID = newc.UserID //Needs to be clarified

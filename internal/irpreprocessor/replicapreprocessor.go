@@ -14,17 +14,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package plan_test
+package irpreprocessor
 
 import (
-	"testing"
-
-	"github.com/konveyor/move2kube/types/plan"
+	irtypes "github.com/konveyor/move2kube/internal/types"
 )
 
-func TestNewPlan(t *testing.T) {
-	p := plan.NewPlan()
-	if p.Spec.Services == nil {
-		t.Error("Failed to instantiate the plan fields properly. Actual:", p)
+// replicaOptimizer sets the minimum number of replicas
+type replicaPreprocessor struct {
+}
+
+const (
+	minReplicas = 2
+)
+
+func (ep replicaPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
+	for k, scObj := range ir.Services {
+		if scObj.Replicas < minReplicas {
+			scObj.Replicas = minReplicas
+		}
+		ir.Services[k] = scObj
 	}
+
+	return ir, nil
 }

@@ -14,17 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package plan_test
+package assets
 
-import (
-	"testing"
-
-	"github.com/konveyor/move2kube/types/plan"
-)
-
-func TestNewPlan(t *testing.T) {
-	p := plan.NewPlan()
-	if p.Spec.Services == nil {
-		t.Error("Failed to instantiate the plan fields properly. Actual:", p)
-	}
-}
+//go:generate go run ../scripts/generator/generator.go . maketar

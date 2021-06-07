@@ -27,8 +27,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/qaengine"
 	"github.com/konveyor/move2kube/internal/translator/classes"
+	"github.com/konveyor/move2kube/qaengine"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
 )
@@ -55,7 +55,7 @@ type Translator interface {
 func init() {
 	translatorObjs := []Translator{new(classes.GoInterface)}
 	for _, tt := range translatorObjs {
-		t := reflect.TypeOf(tt)
+		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
 		if ot, ok := translatorTypes[tn]; ok {
 			log.Errorf("Two translator classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
@@ -86,18 +86,24 @@ func Init(assetsPath string) error {
 			translatorConfigs[tc.Name] = tc
 			continue
 		}
-		log.Errorf("Unable to find suitable translator class for translator config at %s", filePath)
+		log.Errorf("Unable to find suitable translator class (%s) for translator config at %s", tc.Spec.Class, filePath)
 	}
-	tns := make([]string, len(translatorConfigs))
+	tns := make([]string, 0)
 	for tn := range translatorConfigs {
 		tns = append(tns, tn)
 	}
 	translatorNames := qaengine.FetchMultiSelectAnswer(common.ConfigTranslatorTypesKey, "Select all translator types that you are interested in:", []string{"Services that don't support any of the translator types you are interested in will be ignored."}, tns, tns)
 	for _, tn := range translatorNames {
 		tc := translatorConfigs[tn]
-		t := reflect.New(translatorTypes[tc.Spec.Class]).Interface().(Translator)
-		if err := t.Init(tc); err != nil {
-			log.Errorf("Unable to initialize translator %s : %s", tc.Name, err)
+		if c, ok := translatorTypes[tc.Spec.Class]; !ok {
+			log.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
+		} else {
+			t := reflect.New(c).Interface().(Translator)
+			if err := t.Init(tc); err != nil {
+				log.Errorf("Unable to initialize translator %s : %s", tc.Name, err)
+			} else {
+				translators[tn] = t
+			}
 		}
 	}
 	return nil
@@ -130,35 +136,41 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 	services = make(map[string]plantypes.Service)
 	unservices := make([]plantypes.Translator, 0)
 	log.Infoln("Planning Translation - Base Directory")
+	log.Debugf("Translators : %+v", translators)
 	for _, t := range translators {
-		log.Infof("[%T] Planning translation", t)
+		tn := t.GetConfig().Name
+		log.Infof("[%s] Planning translation", tn)
 		nservices, nunservices, err := t.BaseDirectoryDetect(dir)
 		if err != nil {
-			log.Warnf("[%T] Failed : %s", t, err)
+			log.Errorf("[%s] Failed : %s", tn, err)
 		} else {
 			services = plantypes.MergeServices(services, nservices)
 			unservices = append(unservices, nunservices...)
-			log.Infof("[%T] Done", t)
+			log.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
+			log.Infof("[%s] Done", tn)
 		}
 	}
+	log.Infof("[Base Directory] Identified %d namedservices and %d unnamedservices", len(services), len(unservices))
 	log.Infoln("Translation planning - Base Directory done")
 	log.Infoln("Planning Translation - Directory Walk")
 	nservices, nunservices, err := walkForServices(dir, translators, services)
 	if err != nil {
-		log.Warnf("Translation planning - Directory Walk failed : %s", err)
+		log.Errorf("Translation planning - Directory Walk failed : %s", err)
 	} else {
-		services = plantypes.MergeServices(services, nservices)
+		services = nservices
 		unservices = append(unservices, nunservices...)
 		log.Infoln("Translation planning - Directory Walk done")
 	}
-	services = nameServices(prjName, nservices, unservices)
+	log.Infof("[Directory Walk] Identified %d namedservices and %d unnamedservices", len(services), len(unservices))
+	services = nameServices(prjName, services, unservices)
+	log.Infof("[Named Services] Identified %d namedservices", len(services))
 	log.Infoln("Planning Service Augmentors")
 	for _, t := range translators {
 		log.Debugf("[%T] Planning translation", t)
 		for sn, s := range services {
 			sts, err := t.ServiceAugmentDetect(sn, s)
 			if err != nil {
-				log.Warnf("[%T] Failed for service %s : %s", t, sn, err)
+				log.Errorf("[%T] Failed for service %s : %s", t, sn, err)
 			} else {
 				services[sn] = append(s, sts...)
 			}
@@ -169,7 +181,7 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 	return
 }
 
-func GetPlanTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Translator, err error) {
+func GetIRTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Translator, err error) {
 	log.Infoln("Planning plan translators")
 	for _, t := range translators {
 		log.Infof("[%T] Planning translation", t)
@@ -271,7 +283,7 @@ type project struct {
 }
 
 func nameServices(projName string, nServices map[string]plantypes.Service, sts []plantypes.Translator) (services map[string]plantypes.Service) {
-	services = make(map[string]plantypes.Service)
+	services = nServices
 	// Collate services by project path or shared common base dir
 	servicePaths := make(map[string][]plantypes.Translator)
 	for _, st := range sts {

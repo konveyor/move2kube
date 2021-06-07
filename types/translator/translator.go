@@ -18,8 +18,6 @@ package translator
 
 import (
 	"github.com/konveyor/move2kube/types"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 /*
@@ -57,23 +55,23 @@ const (
 
 // Translator defines definition of cf runtime instance apps file
 type Translator struct {
-	metav1.TypeMeta   `yaml:",inline"`
-	metav1.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec              TranslatorSpec `yaml:"spec,omitempty"`
+	types.TypeMeta   `yaml:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec             TranslatorSpec `yaml:"spec,omitempty"`
 }
 
 // TranslatorSpec stores the data
 type TranslatorSpec struct {
-	FilePath string `yaml:"-"`
-	Mode     Mode   `yaml:"mode"`
-	Class    string `yaml:"class"`
-	Config   interface{}
+	FilePath string      `yaml:"-"`
+	Mode     Mode        `yaml:"mode"`
+	Class    string      `yaml:"class"`
+	Config   interface{} `yaml:"config"`
 }
 
 // NewDockerfileContainerizer creates a new instance of DockerfileContainerizer
 func NewTranslator() Translator {
 	return Translator{
-		TypeMeta: metav1.TypeMeta{
+		TypeMeta: types.TypeMeta{
 			Kind:       TranslatorKind,
 			APIVersion: types.SchemeGroupVersion.String(),
 		},

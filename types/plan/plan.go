@@ -17,8 +17,6 @@ limitations under the License.
 package plan
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types"
 )
@@ -32,9 +30,6 @@ const (
 	K8sServiceMetadataTargetArtifactType = "KubernetesServiceMetadata"
 )
 
-// TargetInfoArtifactTypeValue defines the target info type
-type TargetInfoArtifactTypeValue string
-
 // PlanKind is kind of plan file
 const PlanKind types.Kind = "Plan"
 
@@ -44,29 +39,33 @@ const (
 	ModeService   = "Service"
 )
 
-const (
-	// K8sClusterArtifactType defines target info
-	K8sClusterArtifactType TargetInfoArtifactTypeValue = "KubernetesCluster"
-)
-
 // Plan defines the format of plan
 type Plan struct {
-	metav1.TypeMeta   `yaml:",inline"`
-	metav1.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec              Spec `yaml:"spec,omitempty"`
+	types.TypeMeta   `yaml:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec             Spec `yaml:"spec,omitempty"`
 }
 
 type Service []Translator
 
 // Spec stores the data about the plan
 type Spec struct {
-	RootDir             string                                   `yaml:"rootDir"`
-	ConfigurationsDir   string                                   `yaml:"configurationsDir"`
-	AllTranslators      map[string]string                        `yaml:"allTranslators" m2kpath:"normal"`
-	Services            map[string]Service                       `yaml:"services"` //[servicename]
-	TopTranslators      []Translator                             `yaml:"topTranslators"`
-	TargetInfoArtifacts map[TargetInfoArtifactTypeValue][]string `yaml:"targetInfoArtifacts,omitempty" m2kpath:"normal"` //[targetinfoartifacttype][List of artifacts]
-	TargetCluster       TargetClusterType                        `yaml:"targetCluster,omitempty"`
+	RootDir           string `yaml:"rootDir"`
+	ConfigurationsDir string `yaml:"configurationsDir,omitempty"`
+
+	Services      map[string]Service `yaml:"services"` //[servicename]
+	IRTranslators []Translator       `yaml:"irTranslators"`
+	TargetCluster TargetClusterType  `yaml:"targetCluster,omitempty"`
+
+	Configuration Configuration `yaml:"configuration,omitempty"`
+}
+
+type Configuration struct {
+	Translators    map[string][]string `yaml:"translators,omitempty" m2kpath:"normal"`    //[name]filepath // TOFIX: Change type to map[string]string after struttag parsing bug fix
+	Parameterizers map[string]string   `yaml:"parameterizers,omitempty" m2kpath:"normal"` //[name]filepath
+	Transformers   map[string]string   `yaml:"transformers,omitempty" m2kpath:"normal"`   //[name]filepath
+	Packaging      map[string]string   `yaml:"packaging,omitempty" m2kpath:"normal"`      //[name]filepath
+	TargetClusters map[string]string   `yaml:"targetClusters,omitempty" m2kpath:"normal"` //[clustername]filepath
 }
 
 // TargetClusterType contains either the type of the target cluster or path to a file containing the target cluster metadata.
@@ -86,31 +85,28 @@ type Translator struct {
 	Paths                  map[string][]string `yaml:"paths,omitempty" json:"paths,omitempty" m2kpath:"normal"`
 }
 
-func (p *Plan) AddServicesToPlan(services map[string][]Translator) {
-	for sn, s := range services {
-		if os, ok := p.Spec.Services[sn]; ok {
-			p.Spec.Services[sn] = append(os, s...)
-		} else {
-			p.Spec.Services[sn] = s
-		}
-	}
-}
-
 // NewPlan creates a new plan
 // Sets the version and optionally fills in some default values
 func NewPlan() Plan {
 	plan := Plan{
-		TypeMeta: metav1.TypeMeta{
+		TypeMeta: types.TypeMeta{
 			Kind:       string(PlanKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
-		ObjectMeta: metav1.ObjectMeta{
+		ObjectMeta: types.ObjectMeta{
 			Name: common.DefaultProjectName,
 		},
 		Spec: Spec{
-			Services:            make(map[string]Service),
-			TargetInfoArtifacts: make(map[TargetInfoArtifactTypeValue][]string),
-			TargetCluster:       TargetClusterType{Type: common.DefaultClusterType},
+			Services:      make(map[string]Service),
+			IRTranslators: []Translator{},
+			TargetCluster: TargetClusterType{Type: common.DefaultClusterType},
+			Configuration: Configuration{
+				Translators:    make(map[string][]string),
+				Parameterizers: make(map[string]string),
+				Transformers:   make(map[string]string),
+				Packaging:      make(map[string]string),
+				TargetClusters: make(map[string]string),
+			},
 		},
 	}
 	return plan

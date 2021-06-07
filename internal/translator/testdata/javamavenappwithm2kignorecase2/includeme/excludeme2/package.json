@@ -1,9 +1,0 @@
-{
-  "name" : "main",
-  "version" : "0.1.0",
-  "description": "This is a test web server",
-  "keywords": ["test", "webserver"],
-  "scripts": {
-        "start": "node main.js"
-   }
-}

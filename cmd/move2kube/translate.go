@@ -20,10 +20,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/konveyor/move2kube/api"
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/move2kube"
-	"github.com/konveyor/move2kube/internal/qaengine"
+	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -97,19 +97,15 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		// Global settings
 
 		log.Debugf("Creating a new plan.")
-		p = move2kube.CreatePlan(flags.Srcpath, flags.ConfigurationsPath, flags.Name, true)
-		p = move2kube.CuratePlan(p)
+		p = api.CreatePlan(flags.Srcpath, flags.ConfigurationsPath, flags.Name)
+		p = api.CuratePlan(p)
 	} else {
 		log.Infof("Detected a plan file at path %s. Will translate using this plan.", flags.Planfile)
 		if p, err = plan.ReadPlan(flags.Planfile); err != nil {
 			log.Fatalf("Unable to read the plan at path %s Error: %q", flags.Planfile, err)
 		}
 		if len(p.Spec.Services) == 0 {
-			if len(p.Spec.K8sFiles) == 0 {
-				log.Fatalf("Failed to find any services. Aborting.")
-			} else {
-				log.Infof("No services found. Proceeding for kubernetes artifacts translation.")
-			}
+			log.Fatalf("Failed to find any services. Aborting.")
 		}
 		if cmd.Flags().Changed(cmdcommon.NameFlag) {
 			p.Name = flags.Name
@@ -145,15 +141,9 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 		// Global settings
 
-		p = move2kube.CuratePlan(p)
+		p = api.CuratePlan(p)
 	}
-
-	// Translate
-	normalizedTransformPaths, err := cmdcommon.NormalizePaths(flags.TransformPaths)
-	if err != nil {
-		log.Fatalf("Failed to clean the paths:\n%+v\nError: %q", flags.TransformPaths, err)
-	}
-	move2kube.Translate(p, flags.Outpath, flags.qadisablecli, normalizedTransformPaths)
+	api.Translate(p, flags.Outpath, flags.qadisablecli)
 	log.Infof("Translated target artifacts can be found at [%s].", flags.Outpath)
 }
 

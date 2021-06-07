@@ -16,6 +16,10 @@ limitations under the License.
 
 package translator
 
+import (
+	irtypes "github.com/konveyor/move2kube/types/ir"
+)
+
 /*
 Features to support:
 1. Allow for template composing

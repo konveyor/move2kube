@@ -22,3 +22,17 @@ const (
 	CfRunningManifestArtifactType SourceArtifactTypeValue = "CfRunningManifest"
 
 )
+
+
+func MapInterfaceToYamlStruct(m interface{}, t reflect.Type) (interface{}, error) {
+	log.Debugf("Loading mapinterface %+v into %T", m, t)
+	yamlString, err := yaml.Marshal(m)
+	if err != nil {
+		log.Errorf("Unable to parse mapinterface %+v as yaml string", m)
+		return nil, err
+	}
+	s := reflect.New(t).Interface().(t.)
+	err = yaml.Unmarshal(yamlString, &s)
+	log.Debugf("Loaded config (%T) : %s", s, s)
+	return err
+}

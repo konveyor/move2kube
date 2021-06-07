@@ -18,8 +18,6 @@ package collection
 
 import (
 	"github.com/konveyor/move2kube/types"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CfInstanceAppsMetadataKind defines kind of cf runtime instance apps file
@@ -27,9 +25,9 @@ const CfInstanceAppsMetadataKind types.Kind = "CfInstanceApps"
 
 // CfInstanceApps defines definition of cf runtime instance apps file
 type CfInstanceApps struct {
-	metav1.TypeMeta   `yaml:",inline"`
-	metav1.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec              CfInstanceAppsSpec `yaml:"spec,omitempty"`
+	types.TypeMeta   `yaml:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec             CfInstanceAppsSpec `yaml:"spec,omitempty"`
 }
 
 // CfInstanceAppsSpec stores the data
@@ -52,7 +50,7 @@ type CfApplication struct {
 // NewCfInstanceApps creates a new instance of CfInstanceApps
 func NewCfInstanceApps() CfInstanceApps {
 	return CfInstanceApps{
-		TypeMeta: metav1.TypeMeta{
+		TypeMeta: types.TypeMeta{
 			Kind:       string(CfInstanceAppsMetadataKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
