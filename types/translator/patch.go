@@ -73,6 +73,7 @@ type Patch struct {
 	DeltasToCompute []DeltaToCompute `json:"patchesToCompute"`
 	Deltas          []Delta          `json:"daltas"`
 	Config          interface{}      `json:"config"`
+	IR              irtypes.IR       `json:"ir"`
 }
 
 type Path struct {
@@ -87,7 +88,7 @@ type TemplatePath struct {
 
 type Template struct {
 	DestFilePath string `json:"destinationFilePath"`
-	Tempalte     string `json:"template"`
+	Template     string `json:"template"`
 }
 
 type DeltaToCompute struct {

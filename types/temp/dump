@@ -1,0 +1,24 @@
+const (
+	// DockerFileContainerBuildTypeValue defines the containerization type as docker file
+	DockerFileContainerBuildTypeValue ContainerBuildTypeValue = "NewDockerfile"
+	// ReuseDockerFileContainerBuildTypeValue defines the containerization type as reuse of dockerfile
+	ReuseDockerFileContainerBuildTypeValue ContainerBuildTypeValue = "ReuseDockerfile"
+	// ReuseContainerBuildTypeValue defines the containerization type as reuse of an existing container
+	ReuseContainerBuildTypeValue ContainerBuildTypeValue = "ReuseImage"
+	// CNBContainerBuildTypeValue defines the containerization type of cloud native buildpack
+	CNBContainerBuildTypeValue ContainerBuildTypeValue = "CNB"
+	// ManualContainerBuildTypeValue defines that the tool assumes that the image will be created manually
+	ManualContainerBuildTypeValue ContainerBuildTypeValue = "Manual"
+	// S2IContainerBuildTypeValue defines the containerization type of S2I
+	S2IContainerBuildTypeValue ContainerBuildTypeValue = "S2I"
+)
+
+const (
+	
+
+	// CfManifestArtifactType defines the source artifact type of cf manifest
+	CfManifestArtifactType SourceArtifactTypeValue = "CfManifest"
+	// CfRunningManifestArtifactType defines the source artifact type of a manifest of a running instance
+	CfRunningManifestArtifactType SourceArtifactTypeValue = "CfRunningManifest"
+
+)

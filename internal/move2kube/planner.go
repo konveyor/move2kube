@@ -37,18 +37,14 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 	translator.Init(common.AssetsPath)
 	ts := translator.GetTranslators()
 	for tn, t := range ts {
-		p.Spec.Translators[tn] = t.GetConfig().Spec.FilePath
+		p.Spec.AllTranslators[tn] = t.GetConfig().Spec.FilePath
 	}
-	p.Spec.Services = translator.GetServices(inputPath)
+	p.Spec.Services = translator.GetServices(p.Name, inputPath)
+	p.Spec.TopTranslators, _ = translator.GetPlanTranslators(p)
 
 	log.Infoln("Planning Metadata")
 	metadataPlanners := metadata.GetLoaders()
 	for _, l := range metadataPlanners {
-		if !allowKube2Kube {
-			if _, ok := l.(*metadata.K8sFilesLoader); ok {
-				continue
-			}
-		}
 		log.Infof("[%T] Planning metadata", l)
 		err := l.UpdatePlan(inputPath, &p)
 		if err != nil {
@@ -63,145 +59,6 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 
 // CuratePlan allows curation the plan with the qa engine
 func CuratePlan(p plantypes.Plan) plantypes.Plan {
-	if len(p.Spec.Inputs.Services) == 0 {
-		log.Debugf("No services found.")
-	}
-
-	// Identify translation types of interest
-	translationTypes := []string{}
-	for tt := range p.Spec.Inputs.Services {
-		translationTypes = append(translationTypes, string(tt))
-	}
-	translationTypes = common.UniqueStrings(translationTypes)
-	selectedTranslationTypes := selectTranslators(translationTypes)
-	planServices := map[plantypes.TranslationTypeValue][]plantypes.Service{}
-	for tt, services := range p.Spec.Inputs.Services {
-		if common.IsStringPresent(selectedTranslationTypes, string(tt)) {
-			planServices[tt] = services
-		}
-	}
-	p.Spec.Inputs.Services = planServices
-	if len(p.Spec.Inputs.Services) == 0 {
-		if len(p.Spec.Inputs.K8sFiles) == 0 {
-			log.Fatalf("Failed to find any services that support the selected translation types.")
-		} else {
-			log.Debugf("Failed to find any services that support the selected translation types.")
-		}
-	}
-
-	// Identify services of interest
-	servicenames := []string{}
-	for _, svcs := range p.Spec.Inputs.Services {
-		for _, s := range svcs {
-			servicenames = append(servicenames, s.ServiceName)
-		}
-	}
-	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, servicenames, servicenames)
-	planServices = map[string][]plantypes.Service{}
-	for _, s := range selectedServices {
-		planServices[s] = p.Spec.Inputs.Services[s]
-	}
-	if len(p.Spec.Inputs.Services) == 0 {
-		if len(p.Spec.Inputs.K8sFiles) == 0 {
-			log.Fatalf("All services were deselected. Aborting.")
-		} else {
-			log.Debugf("All services were deselected however some k8s files were detected.")
-		}
-	}
-	p.Spec.Inputs.Services = planServices
-
-	// Identify containerization techniques of interest
-	conTypes := []string{}
-	for _, serviceOptions := range p.Spec.Inputs.Services {
-		for _, serviceOption := range serviceOptions {
-			for _, cOption := range serviceOption.ContainerizationTargetOptions {
-				conTypes = append(conTypes, string(cOption.ContainerBuildType))
-			}
-		}
-	}
-	conTypes = common.UniqueStrings(conTypes)
-	selectedConTypes := selectContainerizationTypes(conTypes)
-	if len(selectedConTypes) == 0 {
-		log.Infof("No containerization technique was selected; It could mean some services will get ignored.")
-	}
-
-	services := map[string][]plantypes.Service{}
-	for serviceName, serviceOptions := range p.Spec.Inputs.Services {
-		sConTypes := []string{}
-		for _, serviceOption := range serviceOptions {
-			if len(serviceOption.ContainerizationTargetOptions) == 0 {
-				log.Errorf("Ignoring service option for %s since no valid containerization section found", serviceOption.ServiceName)
-			}
-			if common.IsStringPresent(selectedConTypes, string(serviceOption.ContainerizationTargetOptions[0].ContainerBuildType)) {
-				sConTypes = append(sConTypes, string(serviceOption.ContainerizationTargetOptions[0].ContainerBuildType))
-			}
-		}
-		// TODO: service options should have unique container build types already so we don't need to make sConTypes unique.
-		// we need this because of a bug where different folders with the same name get detected as the same service.
-		sConTypes = common.UniqueStrings(sConTypes)
-		if len(sConTypes) == 0 {
-			log.Warnf("Ignoring service %s, since it does not support any selected containerization technique.", serviceName)
-			continue
-		}
-		selectedSConType := sConTypes[0]
-		if len(sConTypes) > 1 {
-			qaKey := common.ConfigServicesKey + common.Delim + `"` + serviceName + `"` + common.Delim + "containerization" + common.Delim + "type"
-			selectedSConType = qaengine.FetchSelectAnswer(qaKey, "Select containerization technique for service "+serviceName+":", []string{"Choose the containerization technique of interest."}, selectedSConType, sConTypes)
-		}
-
-		for _, serviceOption := range serviceOptions {
-			if selectedSConType != string(serviceOption.ContainerBuildType) {
-				continue
-			}
-			if len(serviceOption.ContainerizationTargetOptions) <= 1 {
-				if serviceOption.ContainerBuildType != plantypes.ReuseContainerBuildTypeValue &&
-					serviceOption.ContainerBuildType != plantypes.ManualContainerBuildTypeValue &&
-					len(serviceOption.ContainerizationTargetOptions) == 0 {
-					log.Warnf("The selected containerization technique %v has no valid targets.", selectedSConType)
-				}
-				services[serviceName] = []plantypes.Service{serviceOption}
-				break
-			}
-
-			// Multiple containerization targets
-
-			// Convert absolute paths to relative. TODO: We are assuming that this won't make it ambiguous.
-			// TODO: if we add more build types that require conversion add it here as well.
-			buildTypesRequiringConversion := []string{
-				string(plantypes.DockerFileContainerBuildTypeValue),
-				string(plantypes.ReuseDockerFileContainerBuildTypeValue),
-				string(plantypes.S2IContainerBuildTypeValue),
-			}
-			requiresConversion := common.IsStringPresent(buildTypesRequiringConversion, string(serviceOption.ContainerBuildType))
-			options := serviceOption.ContainerizationTargetOptions
-			if requiresConversion {
-				options = []string{}
-				for _, option := range serviceOption.ContainerizationTargetOptions {
-					relOptionPath, err := p.GetRelativePath(option)
-					if err != nil {
-						log.Errorf("Failed to make the option path %q relative to the root directory. Error: %q", option, err)
-						continue
-					}
-					options = append(options, relOptionPath)
-				}
-			}
-			qaKey := common.ConfigServicesKey + common.Delim + `"` + serviceName + `"` + common.Delim + "containerization" + common.Delim + "target"
-			selectedSConMode := qaengine.FetchSelectAnswer(qaKey, "Select containerization target for service "+serviceName+":", []string{"Choose the target that should be used for containerization."}, options[0], options)
-			if requiresConversion {
-				absOptionPath, err := p.GetAbsolutePath(selectedSConMode)
-				if err != nil {
-					log.Errorf("Failed to make the option path %q absolute. Error: %q", selectedSConMode, err)
-				} else {
-					selectedSConMode = absOptionPath
-				}
-			}
-			serviceOption.ContainerizationTargetOptions = []string{selectedSConMode}
-			services[serviceName] = []plantypes.Service{serviceOption}
-			break
-		}
-	}
-	p.Spec.Services = services
-
 	// Choose cluster type to target
 	clusters := new(metadata.ClusterMDLoader).GetClusters(p)
 	clusterTypeList := []string{}

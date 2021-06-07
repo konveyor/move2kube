@@ -59,7 +59,7 @@ func TestCreatePlan(t *testing.T) {
 		containerizer.InitContainerizers(inputPath, nil)
 
 		// Test
-		p := move2kube.CreatePlan(inputPath, prjName, false)
+		p := move2kube.CreatePlan(inputPath, "", prjName)
 		if !cmp.Equal(p, want) {
 			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
 		}
@@ -93,7 +93,7 @@ func TestCreatePlan(t *testing.T) {
 		containerizer.InitContainerizers(inputPath, nil)
 
 		// Test
-		p := move2kube.CreatePlan(inputPath, prjName, false)
+		p := move2kube.CreatePlan(inputPath, "", prjName)
 		if !cmp.Equal(p, want) {
 			t.Fatalf("Failed to create the plan properly. Difference:\n%s", cmp.Diff(want, p))
 		}
@@ -119,8 +119,8 @@ func TestCreatePlan(t *testing.T) {
 		containerizer.InitContainerizers(inputPath, nil)
 
 		// Test
-		actual := move2kube.CreatePlan(inputPath, prjName, false)
-		for _, services := range actual.Spec.Inputs.Services {
+		actual := move2kube.CreatePlan(inputPath, "", prjName)
+		for _, services := range actual.Spec.Services {
 			for i := range services {
 				services[i].RepoInfo = plantypes.RepoInfo{}
 			}

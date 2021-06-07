@@ -1,5 +1,5 @@
 /*
-Copyright IBM Corporation 2020
+Copyright IBM Corporation 2020, 2021
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,12 +28,9 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/qaengine"
+	"github.com/konveyor/move2kube/internal/translator/classes"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
-)
-
-const (
-	ProjectPathSourceArtifact = "ProjectPath"
 )
 
 var (
@@ -41,8 +38,22 @@ var (
 	translators     map[string]Translator   = make(map[string]Translator)
 )
 
+// Translator interface defines translator that translates files and converts it to ir representation
+type Translator interface {
+	Init(tc translatortypes.Translator) error
+	GetConfig() translatortypes.Translator
+
+	BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
+	DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
+	KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
+	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
+	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
+
+	Translate(serviceName string) map[string]translatortypes.Patch
+}
+
 func init() {
-	translatorObjs := []Translator{directory.Executable{}}
+	translatorObjs := []Translator{new(classes.GoInterface)}
 	for _, tt := range translatorObjs {
 		t := reflect.TypeOf(tt)
 		tn := t.Name()
@@ -95,7 +106,7 @@ func Init(assetsPath string) error {
 func getTranslatorConfig(path string) (translatortypes.Translator, error) {
 	tc := translatortypes.Translator{
 		Spec: translatortypes.TranslatorSpec{
-			Class:    reflect.TypeOf(directory.Executable{}).Name(),
+			Class:    reflect.TypeOf(classes.GoInterface{}).Name(),
 			FilePath: path,
 		},
 	}
@@ -115,20 +126,6 @@ func GetTranslators() map[string]Translator {
 	return translators
 }
 
-// Translator interface defines translator that translates files and converts it to ir representation
-type Translator interface {
-	Init(tc translatortypes.Translator) error
-	GetConfig() translatortypes.Translator
-
-	BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
-	DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
-	KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
-	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
-	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
-
-	Translate(serviceName string) map[string]translatortypes.Patch
-}
-
 func GetServices(prjName string, dir string) (services map[string]plantypes.Service) {
 	services = make(map[string]plantypes.Service)
 	unservices := make([]plantypes.Translator, 0)
@@ -139,7 +136,7 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 		if err != nil {
 			log.Warnf("[%T] Failed : %s", t, err)
 		} else {
-			services = mergeServices(services, nservices)
+			services = plantypes.MergeServices(services, nservices)
 			unservices = append(unservices, nunservices...)
 			log.Infof("[%T] Done", t)
 		}
@@ -150,7 +147,7 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 	if err != nil {
 		log.Warnf("Translation planning - Directory Walk failed : %s", err)
 	} else {
-		services = mergeServices(services, nservices)
+		services = plantypes.MergeServices(services, nservices)
 		unservices = append(unservices, nunservices...)
 		log.Infoln("Translation planning - Directory Walk done")
 	}
@@ -197,9 +194,9 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 	log.Infoln("Planning Translation - Known Directory")
 	for sn, s := range bservices {
 		for _, t := range s {
-			if len(t.Paths) > 0 && len(t.Paths[ProjectPathSourceArtifact]) > 0 {
-				pps := t.Paths[ProjectPathSourceArtifact]
-				knownProjectPaths = common.MergeStringSlices(knownProjectPaths, pps)
+			if len(t.Paths) > 0 && len(t.Paths[plantypes.ProjectPathSourceArtifact]) > 0 {
+				pps := t.Paths[plantypes.ProjectPathSourceArtifact]
+				knownProjectPaths = common.MergeStringSlices(knownProjectPaths, pps...)
 				for _, p := range pps {
 					for _, t := range translators {
 						log.Debugf("[%T] Planning translation", t)
@@ -208,8 +205,8 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 							log.Warnf("[%T] Failed : %s", t, err)
 						} else {
 							// TODO: Decide whether recurse on the nservices for project paths
-							services = mergeServices(services, nservices)
-							services = mergeServices(services, map[string]plantypes.Service{sn: nunservices})
+							services = plantypes.MergeServices(services, nservices)
+							services = plantypes.MergeServices(services, map[string]plantypes.Service{sn: nunservices})
 							log.Debugf("[%T] Done", t)
 						}
 					}
@@ -244,7 +241,7 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 			if err != nil {
 				log.Warnf("[%T] Failed : %s", t, err)
 			} else {
-				mergeServices(services, nservices)
+				plantypes.MergeServices(services, nservices)
 				unservices = append(unservices, nunservices...)
 				if len(nservices) > 0 || len(unservices) > 0 {
 					found = true
@@ -268,17 +265,6 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 	return
 }
 
-func mergeServices(s1 map[string]plantypes.Service, s2 map[string]plantypes.Service) map[string]plantypes.Service {
-	for s2n, s2t := range s2 {
-		if s1t, ok := s1[s2n]; ok {
-			s1t = append(s1t, s2t...)
-		} else {
-			s1[s2n] = s2t
-		}
-	}
-	return s1
-}
-
 type project struct {
 	path       string
 	pathsuffix string
@@ -289,7 +275,7 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 	// Collate services by project path or shared common base dir
 	servicePaths := make(map[string][]plantypes.Translator)
 	for _, st := range sts {
-		pps, ok := st.Paths[ProjectPathSourceArtifact]
+		pps, ok := st.Paths[plantypes.ProjectPathSourceArtifact]
 		bpp := common.CleanAndFindCommonDirectory(pps)
 		if !ok {
 			paths := []string{}
@@ -336,7 +322,7 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 			delete(servicePaths, basePaths[0])
 		}
 	}
-	// Only one set of unnames services, use project name
+	// Only one set of unnamed services, use project name
 	if len(nServices) == 0 && len(servicePaths) == 1 {
 		for _, ts := range servicePaths {
 			services[projName] = ts
@@ -346,7 +332,7 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 
 	// TODO: Have temporarily adopted naming logic from old Dockerfile containerizer. Validate the approach.
 	repoProjects := map[string][]project{}
-	for sp, _ := range servicePaths {
+	for sp := range servicePaths {
 		repo, ok := basePathRepos[sp]
 		if !ok {
 			repo = projName
@@ -384,7 +370,7 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 			svcs[sn] = servicePaths[p.path]
 		}
 	}
-	return mergeServices(services, svcs)
+	return plantypes.MergeServices(services, svcs)
 }
 
 func getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContents []string) {

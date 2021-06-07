@@ -23,58 +23,25 @@ import (
 	"github.com/konveyor/move2kube/types"
 )
 
-// ContainerBuildTypeValue defines the containerization type
-type ContainerBuildTypeValue string
+const (
+	ProjectPathSourceArtifact = "ProjectPath"
+)
+
+const (
+	ContainerBuildTargetArtifactType     = "ContainerBuild"
+	K8sServiceMetadataTargetArtifactType = "KubernetesServiceMetadata"
+)
 
 // TargetInfoArtifactTypeValue defines the target info type
 type TargetInfoArtifactTypeValue string
-
-// SourceArtifactTypeValue defines the source artifact type
-type SourceArtifactTypeValue string
-
-// TargetArtifactTypeValue defines the target artifact type
-type TargetArtifactTypeValue string
 
 // PlanKind is kind of plan file
 const PlanKind types.Kind = "Plan"
 
 const (
-	// DockerFileContainerBuildTypeValue defines the containerization type as docker file
-	DockerFileContainerBuildTypeValue ContainerBuildTypeValue = "NewDockerfile"
-	// ReuseDockerFileContainerBuildTypeValue defines the containerization type as reuse of dockerfile
-	ReuseDockerFileContainerBuildTypeValue ContainerBuildTypeValue = "ReuseDockerfile"
-	// ReuseContainerBuildTypeValue defines the containerization type as reuse of an existing container
-	ReuseContainerBuildTypeValue ContainerBuildTypeValue = "ReuseImage"
-	// CNBContainerBuildTypeValue defines the containerization type of cloud native buildpack
-	CNBContainerBuildTypeValue ContainerBuildTypeValue = "CNB"
-	// ManualContainerBuildTypeValue defines that the tool assumes that the image will be created manually
-	ManualContainerBuildTypeValue ContainerBuildTypeValue = "Manual"
-	// S2IContainerBuildTypeValue defines the containerization type of S2I
-	S2IContainerBuildTypeValue ContainerBuildTypeValue = "S2I"
-)
-
-const (
-	// ComposeFileArtifactType defines the source artifact type of Docker compose
-	ComposeFileArtifactType SourceArtifactTypeValue = "DockerCompose"
-	// ImageInfoArtifactType defines the source artifact type of image info
-	ImageInfoArtifactType SourceArtifactTypeValue = "ImageInfo"
-	// CfManifestArtifactType defines the source artifact type of cf manifest
-	CfManifestArtifactType SourceArtifactTypeValue = "CfManifest"
-	// CfRunningManifestArtifactType defines the source artifact type of a manifest of a running instance
-	CfRunningManifestArtifactType SourceArtifactTypeValue = "CfRunningManifest"
-	// DockerfileArtifactType defines the source artifact type of dockerfile
-	DockerfileArtifactType SourceArtifactTypeValue = "Dockerfile"
-)
-
-const (
-	GenerationModeContainer = "Container"
-	GenerationModeOperator  = "Operator"
-	GenerationModeService   = "Service"
-)
-
-const (
-	GenerationPathTypeContext    = "Context"
-	GenerationPathTypeDockerfile = "Dockerfile"
+	ModeContainer = "Container"
+	ModeOperator  = "Operator"
+	ModeService   = "Service"
 )
 
 const (
@@ -95,9 +62,9 @@ type Service []Translator
 type Spec struct {
 	RootDir             string                                   `yaml:"rootDir"`
 	ConfigurationsDir   string                                   `yaml:"configurationsDir"`
-	Translators         map[string]string                        `yaml:"translators" m2kpath:"normal"`
+	AllTranslators      map[string]string                        `yaml:"allTranslators" m2kpath:"normal"`
 	Services            map[string]Service                       `yaml:"services"` //[servicename]
-	K8sFiles            []string                                 `yaml:"kubernetesYamls,omitempty" m2kpath:"normal"`
+	TopTranslators      []Translator                             `yaml:"topTranslators"`
 	TargetInfoArtifacts map[TargetInfoArtifactTypeValue][]string `yaml:"targetInfoArtifacts,omitempty" m2kpath:"normal"` //[targetinfoartifacttype][List of artifacts]
 	TargetCluster       TargetClusterType                        `yaml:"targetCluster,omitempty"`
 }
@@ -113,7 +80,7 @@ type TargetClusterType struct {
 type Translator struct {
 	Mode                   string              `yaml:"mode" json:"mode"` // container, customresource, service, generic
 	Name                   string              `yaml:"name" json:"name"`
-	ArtifactTypess         []string            `yaml:"artifacttypes,omitempty" json:"artifacts,omitempty"`
+	ArtifactTypes          []string            `yaml:"artifacttypes,omitempty" json:"artifacts,omitempty"`
 	ExclusiveArtifactTypes []string            `yaml:"exclusiveArtifactTypes,omitempty" json:"exclusiveArtifacts,omitempty"`
 	Config                 interface{}         `yaml:"config,omitempty" json:"config,omitempty"`
 	Paths                  map[string][]string `yaml:"paths,omitempty" json:"paths,omitempty" m2kpath:"normal"`
@@ -141,11 +108,20 @@ func NewPlan() Plan {
 			Name: common.DefaultProjectName,
 		},
 		Spec: Spec{
-			K8sFiles:            []string{},
 			Services:            make(map[string]Service),
 			TargetInfoArtifacts: make(map[TargetInfoArtifactTypeValue][]string),
 			TargetCluster:       TargetClusterType{Type: common.DefaultClusterType},
 		},
 	}
 	return plan
+}
+
+func MergeServices(s1 map[string]Service, s2 map[string]Service) map[string]Service {
+	if s1 == nil {
+		return s2
+	}
+	for s2n, s2t := range s2 {
+		s1[s2n] = append(s1[s2n], s2t...)
+	}
+	return s1
 }

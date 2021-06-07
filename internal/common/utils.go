@@ -333,7 +333,7 @@ func IsIntPresent(list []int, value int) bool {
 }
 
 // MergeStringSlices merges two string slices
-func MergeStringSlices(slice1 []string, slice2 []string) []string {
+func MergeStringSlices(slice1 []string, slice2 ...string) []string {
 	for _, item := range slice2 {
 		if !IsStringPresent(slice1, item) {
 			slice1 = append(slice1, item)
