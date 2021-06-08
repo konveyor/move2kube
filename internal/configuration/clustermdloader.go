@@ -25,8 +25,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate go run  ../../scripts/generator/generator.go clusters makemaps
-
 // ClusterMDLoader Implements Loader interface
 type ClusterMDLoader struct {
 }

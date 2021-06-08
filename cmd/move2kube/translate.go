@@ -141,7 +141,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 
 		p = api.CuratePlan(p)
 	}
-	api.Translate(p, flags.Outpath, flags.qadisablecli)
+	api.Translate(p, flags.Outpath)
 	logrus.Infof("Translated target artifacts can be found at [%s].", flags.Outpath)
 }
 

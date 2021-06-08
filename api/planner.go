@@ -60,6 +60,104 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 
 // CuratePlan allows curation the plan with the qa engine
 func CuratePlan(p plantypes.Plan) plantypes.Plan {
+	modes := []string{}
+	translators := []string{}
+	for s, st := range p.Spec.Services {
+		for _, t := range st {
+			if t.Mode == "" {
+				logrus.Warnf("Ignoring translator %+v for service %s due to empty mode", t, s)
+				continue
+			}
+			if _, ok := p.Spec.Configuration.Translators[t.Name]; !ok {
+				logrus.Debugf("Unable to find translator %s in configuration. Ignoring.", t.Name)
+				continue
+			}
+			if !common.IsStringPresent(modes, t.Mode) {
+				modes = append(modes, t.Mode)
+			}
+			if !common.IsStringPresent(translators, t.Name) {
+				translators = append(translators, t.Name)
+			}
+		}
+	}
+	for _, t := range p.Spec.PlanTranslators {
+		if _, ok := p.Spec.Configuration.Translators[t.Name]; !ok {
+			logrus.Debugf("Unable to find translator %s in configuration. Ignoring.", t.Name)
+			continue
+		}
+		if !common.IsStringPresent(translators, t.Name) {
+			translators = append(translators, t.Name)
+		}
+	}
+	modes = qaengine.FetchMultiSelectAnswer(common.ConfigModesKey, "Choose modes to use:", []string{"Modes generally specify the deployment model"}, modes, modes)
+	translators = qaengine.FetchMultiSelectAnswer(common.ConfigTranslatorsKey, "Choose translators to use:", []string{"Translators are those that does the conversion"}, translators, translators)
+	uTranslators := []string{}
+	for sn, st := range p.Spec.Services {
+		mode := ""
+		exclusiveArtifactTypes := []string{}
+		sTranslators := []plantypes.Translator{}
+		for _, t := range st {
+			if mode == "" {
+				if t.Mode == "" {
+					logrus.Warnf("Ignoring translator %+v for service %s due to empty mode", t, sn)
+					continue
+				}
+				if !common.IsStringPresent(modes, t.Mode) {
+					logrus.Debugf("Ignoring translator %+v for service %s due to deselected mode %s", t, sn, t.Mode)
+					continue
+				}
+				if !common.IsStringPresent(translators, t.Name) {
+					logrus.Debugf("Ignoring translator %+v for service %s due to deselected translator %s", t, sn, t.Mode)
+					continue
+				}
+				mode = t.Mode
+			} else if mode != t.Mode {
+				logrus.Debugf("Ingoring %+v for service %s due to differing mode", t, sn)
+			}
+			if !common.IsStringPresent(translators, t.Name) {
+				logrus.Debugf("Ignoring translator %+v for service %s due to deselected translator %s", t, sn, t.Mode)
+				continue
+			}
+			if !common.IsStringPresent(uTranslators, t.Name) {
+				uTranslators = append(translators, t.Name)
+			}
+			artifactsToUse := []string{}
+			for _, at := range t.ArtifactTypes {
+				if common.IsStringPresent(exclusiveArtifactTypes, at) {
+					continue
+				}
+				artifactsToUse = append(artifactsToUse, at)
+			}
+			t.ArtifactTypes = artifactsToUse
+			exclusiveArtifactTypes = append(exclusiveArtifactTypes, t.ExclusiveArtifactTypes...)
+			sTranslators = append(sTranslators, t)
+		}
+		if mode != "" {
+			modes = append(modes, mode)
+		}
+		p.Spec.Services[sn] = sTranslators
+	}
+	for _, t := range p.Spec.PlanTranslators {
+		if _, ok := p.Spec.Configuration.Translators[t.Name]; !ok {
+			logrus.Debugf("Unable to find translator %s in configuration. Ignoring.", t.Name)
+			continue
+		}
+		if !common.IsStringPresent(translators, t.Name) {
+			logrus.Debugf("Plan translator %s has been unselected. Ignoring.", t.Name)
+			continue
+		}
+		uTranslators = append(uTranslators, t.Name)
+	}
+	tcs := map[string]string{}
+	for _, tn := range uTranslators {
+		if t, ok := p.Spec.Configuration.Translators[tn]; ok {
+			tcs[tn] = t
+		} else {
+			logrus.Errorf("Unable to find configuration for translator %s", tn)
+		}
+	}
+	translator.InitTranslators(tcs)
+
 	// Choose cluster type to target
 	clusters := new(configuration.ClusterMDLoader).GetClusters(p)
 	clusterTypeList := []string{}
@@ -70,5 +168,6 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	p.Spec.TargetCluster.Type = clusterType
 	p.Spec.TargetCluster.Path = ""
 
+	logrus.Debugf("Plan : %+v", p)
 	return p
 }

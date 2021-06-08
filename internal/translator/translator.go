@@ -43,7 +43,8 @@ type Translator interface {
 	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
-	TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch
+	TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch // [artifactName]
+	TranslateIR(patches []translatortypes.Patch) []translatortypes.PathMapping
 }
 
 func init() {
@@ -89,6 +90,27 @@ func Init(assetsPath string) error {
 	translatorNames := qaengine.FetchMultiSelectAnswer(common.ConfigTranslatorTypesKey, "Select all translator types that you are interested in:", []string{"Services that don't support any of the translator types you are interested in will be ignored."}, tns, tns)
 	for _, tn := range translatorNames {
 		tc := translatorConfigs[tn]
+		if c, ok := translatorTypes[tc.Spec.Class]; !ok {
+			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
+		} else {
+			t := reflect.New(c).Interface().(Translator)
+			if err := t.Init(tc); err != nil {
+				logrus.Errorf("Unable to initialize translator %s : %s", tc.Name, err)
+			} else {
+				translators[tn] = t
+			}
+		}
+	}
+	return nil
+}
+
+func InitTranslators(translatorToInit map[string]string) error {
+	for tn, tfilepath := range translatorToInit {
+		tc, err := getTranslatorConfig(tfilepath)
+		if err != nil {
+			logrus.Errorf("Unable to load %s as Translator config", tfilepath, err)
+			continue
+		}
 		if c, ok := translatorTypes[tc.Spec.Class]; !ok {
 			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
 		} else {
@@ -156,7 +178,7 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 	return
 }
 
-func GetIRTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Translator, err error) {
+func GetPlanTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Translator, err error) {
 	logrus.Infoln("Planning plan translators")
 	for _, t := range translators {
 		logrus.Infof("[%T] Planning translation", t)
@@ -173,5 +195,5 @@ func GetIRTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Tran
 }
 
 func Translate(plan plantypes.Plan, outputPath string) (err error) {
-
+	return nil
 }

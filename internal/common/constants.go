@@ -92,6 +92,8 @@ const (
 	ConfigServicesKey = BaseKey + d + "services"
 	//ConfigStoragesKey represents Storages Key
 	ConfigStoragesKey = BaseKey + d + "storages"
+	//ConfigModesKey represents modes Key
+	ConfigModesKey = BaseKey + d + "modes"
 	//ConfigTranslatorsKey represents translators Key
 	ConfigTranslatorsKey = BaseKey + d + "translators"
 	//ConfigTargetKey represents Target Key

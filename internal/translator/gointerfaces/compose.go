@@ -18,7 +18,6 @@ package gointerfaces
 
 import (
 	"path/filepath"
-	"reflect"
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/gointerfaces/compose"
@@ -89,7 +88,7 @@ func (t *Compose) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error) {
 	return nil, nil
 }
 
-func (t *Compose) Translate(serviceName string) map[string]translatortypes.Patch {
+func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch {
 	/*ir := irtypes.NewIR(plan)
 	service := plan.Spec.Services[serviceName]
 	for _, sa := range service.SourceArtifacts {
@@ -126,10 +125,13 @@ func (t *Compose) Translate(serviceName string) map[string]translatortypes.Patch
 	return nil
 }
 
+func (t *Compose) TranslateIR(patches []translatortypes.Patch) []translatortypes.PathMapping {
+	return nil
+}
+
 func (t *Compose) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) plantypes.Translator {
 	ct := plantypes.Translator{
 		Mode:                   plantypes.ModeContainer,
-		Name:                   reflect.TypeOf(t).Elem().Name(),
 		ArtifactTypes:          []string{plantypes.K8sServiceMetadataTargetArtifactType, plantypes.ContainerBuildTargetArtifactType},
 		ExclusiveArtifactTypes: []string{plantypes.K8sServiceMetadataTargetArtifactType, plantypes.ContainerBuildTargetArtifactType},
 		Config: ComposeConfig{

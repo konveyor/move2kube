@@ -21,7 +21,6 @@ import (
 	"reflect"
 
 	"github.com/konveyor/move2kube/internal/translator/gointerfaces"
-	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
 	gointerfacetypes "github.com/konveyor/move2kube/types/translator/classes/gointerface"
@@ -40,8 +39,8 @@ type Translator interface {
 	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
-	TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch
-	TranslateIR(ir irtypes.IR) map[string][]translatortypes.Patch
+	TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch // [artifactName]
+	TranslateIR(patches []translatortypes.Patch) []translatortypes.PathMapping
 }
 
 type GoInterface struct {
@@ -93,7 +92,16 @@ func (t *GoInterface) GetConfig() translatortypes.Translator {
 }
 
 func (t *GoInterface) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	return t.impl.BaseDirectoryDetect(dir)
+	ns, uns, err := t.impl.BaseDirectoryDetect(dir)
+	for i, s := range ns {
+		for j := range s {
+			ns[i][j].Name = t.tc.Name
+		}
+	}
+	for i := range uns {
+		uns[i].Name = t.tc.Name
+	}
+	return ns, uns, err
 }
 
 func (t *GoInterface) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
@@ -116,6 +124,6 @@ func (t *GoInterface) TranslateService(serviceName string, translatorPlan planty
 	return t.impl.TranslateService(serviceName, translatorPlan, artifactsToGenerate)
 }
 
-func (t *GoInterface) TranslateIR(ir irtypes.IR) map[string][]irtypes.Patch {
-	return t.impl.TranslateIR(ir)
+func (t *GoInterface) TranslateIR(patches []translatortypes.Patch) []translatortypes.PathMapping {
+	return t.impl.TranslateIR(patches)
 }
