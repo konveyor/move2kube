@@ -18,11 +18,11 @@ package api
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/metadata"
+	"github.com/konveyor/move2kube/internal/configuration"
 	"github.com/konveyor/move2kube/internal/translator"
 	"github.com/konveyor/move2kube/qaengine"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 //CreatePlan creates the plan from all planners
@@ -34,34 +34,34 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 	if configurationsPath != "" {
 		common.CheckAndCopyConfigurations(configurationsPath)
 	}
+	logrus.Infoln("Loading Configuration")
+	configurationLoaders := configuration.GetLoaders()
+	for _, l := range configurationLoaders {
+		logrus.Infof("[%T] Loading configuration", l)
+		err := l.UpdatePlan(&p)
+		if err != nil {
+			logrus.Warnf("[%T] Failed : %s", l, err)
+		} else {
+			logrus.Infof("[%T] Done", l)
+		}
+	}
 	translator.Init(common.AssetsPath)
 	ts := translator.GetTranslators()
 	for tn, t := range ts {
 		p.Spec.Configuration.Translators[tn] = t.GetConfig().Spec.FilePath
 	}
-	p.Spec.Services = translator.GetServices(p.Name, inputPath)
-	log.Infof("No of services identified : %d", len(p.Spec.Services))
-	p.Spec.IRTranslators, _ = translator.GetIRTranslators(p)
+	logrus.Infoln("Configuration loading done")
 
-	log.Infoln("Planning Metadata")
-	metadataPlanners := metadata.GetLoaders()
-	for _, l := range metadataPlanners {
-		log.Infof("[%T] Planning metadata", l)
-		err := l.UpdatePlan(&p)
-		if err != nil {
-			log.Warnf("[%T] Failed : %s", l, err)
-		} else {
-			log.Infof("[%T] Done", l)
-		}
-	}
-	log.Infoln("Metadata planning done")
+	p.Spec.Services = translator.GetServices(p.Name, inputPath)
+	logrus.Infof("No of services identified : %d", len(p.Spec.Services))
+	p.Spec.PlanTranslators, _ = translator.GetPlanTranslators(p)
 	return p
 }
 
 // CuratePlan allows curation the plan with the qa engine
 func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	// Choose cluster type to target
-	clusters := new(metadata.ClusterMDLoader).GetClusters(p)
+	clusters := new(configuration.ClusterMDLoader).GetClusters(p)
 	clusterTypeList := []string{}
 	for c := range clusters {
 		clusterTypeList = append(clusterTypeList, c)

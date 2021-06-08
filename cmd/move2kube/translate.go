@@ -25,7 +25,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -46,15 +46,15 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 	var err error
 
 	if flags.Planfile, err = filepath.Abs(flags.Planfile); err != nil {
-		log.Fatalf("Failed to make the plan file path %q absolute. Error: %q", flags.Planfile, err)
+		logrus.Fatalf("Failed to make the plan file path %q absolute. Error: %q", flags.Planfile, err)
 	}
 	if flags.Srcpath != "" {
 		if flags.Srcpath, err = filepath.Abs(flags.Srcpath); err != nil {
-			log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.Srcpath, err)
+			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.Srcpath, err)
 		}
 	}
 	if flags.Outpath, err = filepath.Abs(flags.Outpath); err != nil {
-		log.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.Outpath, err)
+		logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.Outpath, err)
 	}
 
 	// Global settings
@@ -69,12 +69,12 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		_, err = os.Stat(flags.Planfile)
 	}
 	if err != nil {
-		log.Debugf("No plan file found.")
+		logrus.Debugf("No plan file found.")
 		if cmd.Flags().Changed(cmdcommon.PlanFlag) {
-			log.Fatalf("Error while accessing plan file at path %s Error: %q", flags.Planfile, err)
+			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.Planfile, err)
 		}
 		if !cmd.Flags().Changed(cmdcommon.SourceFlag) {
-			log.Fatalf("Invalid usage. Must specify either path to a plan file or path to directory containing source code.")
+			logrus.Fatalf("Invalid usage. Must specify either path to a plan file or path to directory containing source code.")
 		}
 
 		// Global settings
@@ -82,36 +82,36 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
 		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
 		if flags.Srcpath == flags.Outpath || common.IsParent(flags.Outpath, flags.Srcpath) || common.IsParent(flags.Srcpath, flags.Outpath) {
-			log.Fatalf("The source path %s and output path %s overlap.", flags.Srcpath, flags.Outpath)
+			logrus.Fatalf("The source path %s and output path %s overlap.", flags.Srcpath, flags.Outpath)
 		}
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
-			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
+			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
 		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
 		qaengine.SetupConfigFile(filepath.Join(flags.Outpath, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
 		qaengine.SetupWriteCacheFile(filepath.Join(flags.Outpath, common.QACacheFile))
 		if err := qaengine.WriteStoresToDisk(); err != nil {
-			log.Warnf("Failed to write the stores to disk. Error: %q", err)
+			logrus.Warnf("Failed to write the stores to disk. Error: %q", err)
 		}
 		// Global settings
 
-		log.Debugf("Creating a new plan.")
+		logrus.Debugf("Creating a new plan.")
 		p = api.CreatePlan(flags.Srcpath, flags.ConfigurationsPath, flags.Name)
 		p = api.CuratePlan(p)
 	} else {
-		log.Infof("Detected a plan file at path %s. Will translate using this plan.", flags.Planfile)
+		logrus.Infof("Detected a plan file at path %s. Will translate using this plan.", flags.Planfile)
 		if p, err = plan.ReadPlan(flags.Planfile); err != nil {
-			log.Fatalf("Unable to read the plan at path %s Error: %q", flags.Planfile, err)
+			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.Planfile, err)
 		}
 		if len(p.Spec.Services) == 0 {
-			log.Fatalf("Failed to find any services. Aborting.")
+			logrus.Fatalf("Failed to find any services. Aborting.")
 		}
 		if cmd.Flags().Changed(cmdcommon.NameFlag) {
 			p.Name = flags.Name
 		}
 		if cmd.Flags().Changed(cmdcommon.SourceFlag) {
 			if err := p.SetRootDir(flags.Srcpath); err != nil {
-				log.Fatalf("Failed to set the root directory to %q Error: %q", flags.Srcpath, err)
+				logrus.Fatalf("Failed to set the root directory to %q Error: %q", flags.Srcpath, err)
 			}
 		}
 		if cmd.Flags().Changed(cmdcommon.ConfigurationsFlag) {
@@ -126,23 +126,23 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
 		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
 		if p.Spec.RootDir == flags.Outpath || common.IsParent(flags.Outpath, p.Spec.RootDir) || common.IsParent(p.Spec.RootDir, flags.Outpath) {
-			log.Fatalf("The source path %s and output path %s overlap.", p.Spec.RootDir, flags.Outpath)
+			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.RootDir, flags.Outpath)
 		}
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
-			log.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
+			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
 		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
 		qaengine.SetupConfigFile(filepath.Join(flags.Outpath, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
 		qaengine.SetupWriteCacheFile(filepath.Join(flags.Outpath, common.QACacheFile))
 		if err := qaengine.WriteStoresToDisk(); err != nil {
-			log.Warnf("Failed to write the stores to disk. Error: %q", err)
+			logrus.Warnf("Failed to write the stores to disk. Error: %q", err)
 		}
 		// Global settings
 
 		p = api.CuratePlan(p)
 	}
 	api.Translate(p, flags.Outpath, flags.qadisablecli)
-	log.Infof("Translated target artifacts can be found at [%s].", flags.Outpath)
+	logrus.Infof("Translated target artifacts can be found at [%s].", flags.Outpath)
 }
 
 func getTranslateCommand() *cobra.Command {

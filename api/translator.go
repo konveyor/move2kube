@@ -17,45 +17,17 @@ limitations under the License.
 package api
 
 import (
+	"github.com/konveyor/move2kube/internal/translator"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	"github.com/sirupsen/logrus"
 )
 
 // Translate translates the artifacts and writes output
-func Translate(plan plantypes.Plan, outputPath string, qadisablecli bool) {
-	/*sourceIR, err := translator.Translate(plan)
+func Translate(plan plantypes.Plan, outputPath string) {
+	logrus.Infof("Starting Plan Translation")
+	err := translator.Translate(plan, outputPath)
 	if err != nil {
-		log.Fatalf("Failed to translate the plan to intermediate representation. Error: %q", err)
+		logrus.Fatalf("Failed to translate the plan. Error: %q", err)
 	}
-	log.Debugf("Total storages loaded : %d", len(sourceIR.Storages))
-
-	log.Infoln("Begin Metadata loading")
-	metadataLoaders := metadata.GetLoaders()
-	for _, metadataLoader := range metadataLoaders {
-		log.Debugf("[%T] Begin metadata loading", metadataLoader)
-		err := metadataLoader.LoadToIR(plan, &sourceIR)
-		if err != nil {
-			log.Warnf("Metadata loader [%T] failed. Error: %q", metadataLoader, err)
-		} else {
-			log.Debugf("[%T] Done", metadataLoader)
-		}
-	}
-	log.Infoln("Metadata loading done")
-
-	log.Debugf("Total services loaded : %d", len(sourceIR.Services))
-	log.Debugf("Total containers loaded : %d", len(sourceIR.Containers))
-
-	optimizedIR, err := irpreprocessor.Preprocess(sourceIR)
-	if err != nil {
-		log.Errorf("Error occurred while running the optimizers. Error: %q", err)
-		optimizedIR = sourceIR
-	}
-	log.Debugf("Total services optimized : %d", len(optimizedIR.Services))
-
-	composeTransformer := transform.ComposeTransformer{}
-	if err := composeTransformer.Transform(optimizedIR); err != nil {
-		log.Errorf("Error while translating docker compose file. Error: %q", err)
-	} else if err := composeTransformer.WriteObjects(outputPath, nil); err != nil {
-		log.Errorf("Unable to write docker compose objects. Error: %q", err)
-	}
-	log.Info("Translation completed")*/
+	logrus.Infof("Plan Translation done")
 }

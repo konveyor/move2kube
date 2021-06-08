@@ -22,7 +22,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // CliEngine handles the CLI based qa
@@ -47,7 +47,7 @@ func (*CliEngine) IsInteractiveEngine() bool {
 // FetchAnswer fetches the answer using cli
 func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	if err := ValidateProblem(prob); err != nil {
-		log.Errorf("the QA problem object is invalid. Error: %q", err)
+		logrus.Errorf("the QA problem object is invalid. Error: %q", err)
 		return prob, err
 	}
 	switch prob.Type {
@@ -64,7 +64,7 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	case qatypes.PasswordSolutionFormType:
 		return c.fetchPasswordAnswer(prob)
 	}
-	log.Fatalf("unknown QA problem type: %+v", prob)
+	logrus.Fatalf("unknown QA problem type: %+v", prob)
 	return prob, nil
 }
 
@@ -81,7 +81,7 @@ func (*CliEngine) fetchSelectAnswer(prob qatypes.Problem) (qatypes.Problem, erro
 		Default: def,
 	}
 	if err := survey.AskOne(prompt, &ans); err != nil {
-		log.Fatalf("Error while asking a question : %s", err)
+		logrus.Fatalf("Error while asking a question : %s", err)
 	}
 	prob.Answer = ans
 	return prob, nil
@@ -96,7 +96,7 @@ func (*CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (qatypes.Problem,
 	}
 	tickIcon := func(icons *survey.IconSet) { icons.MarkedOption.Text = "[\u2713]" }
 	if err := survey.AskOne(prompt, &ans, survey.WithIcons(tickIcon)); err != nil {
-		log.Fatalf("Error while asking a question : %s", err)
+		logrus.Fatalf("Error while asking a question : %s", err)
 	}
 	prob.Answer = ans
 	return prob, nil
@@ -112,7 +112,7 @@ func (*CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (qatypes.Problem, err
 		Default: def,
 	}
 	if err := survey.AskOne(prompt, &ans); err != nil {
-		log.Fatalf("Error while asking a question : %s", err)
+		logrus.Fatalf("Error while asking a question : %s", err)
 	}
 	prob.Answer = ans
 	return prob, nil
@@ -128,7 +128,7 @@ func (*CliEngine) fetchInputAnswer(prob qatypes.Problem) (qatypes.Problem, error
 		Default: def,
 	}
 	if err := survey.AskOne(prompt, &ans); err != nil {
-		log.Fatalf("Error while asking a question : %s", err)
+		logrus.Fatalf("Error while asking a question : %s", err)
 	}
 	prob.Answer = ans
 	return prob, nil
@@ -144,7 +144,7 @@ func (*CliEngine) fetchMultilineAnswer(prob qatypes.Problem) (qatypes.Problem, e
 		Default: def,
 	}
 	if err := survey.AskOne(prompt, &ans); err != nil {
-		log.Fatalf("Error while asking a question : %s", err)
+		logrus.Fatalf("Error while asking a question : %s", err)
 	}
 	prob.Answer = ans
 	return prob, nil
@@ -156,7 +156,7 @@ func (*CliEngine) fetchPasswordAnswer(prob qatypes.Problem) (qatypes.Problem, er
 		Message: getQAMessage(prob),
 	}
 	if err := survey.AskOne(prompt, &ans); err != nil {
-		log.Fatalf("Error while asking a question : %s", err)
+		logrus.Fatalf("Error while asking a question : %s", err)
 	}
 	prob.Answer = ans
 	return prob, nil

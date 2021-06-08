@@ -23,7 +23,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // ingressOptimizer optimizes the ingress options of the application
@@ -33,7 +33,7 @@ type ingressPreprocessor struct {
 // customize modifies image paths and secret
 func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 	if len(ir.Services) == 0 {
-		log.Debugf("No services to optimize")
+		logrus.Debugf("No services to optimize")
 		return ir, nil
 	}
 
@@ -49,7 +49,7 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 
 	exposedServiceNames = qaengine.FetchMultiSelectAnswer(common.ConfigServicesExposeKey, "Select all services that should be exposed:", []string{"Exposed services will be reachable from outside the cluster."}, exposedServiceNames, serviceNames)
 	if len(exposedServiceNames) == 0 {
-		log.Debugf("User deselected all services. Not exposing anything.")
+		logrus.Debugf("User deselected all services. Not exposing anything.")
 		return ir, nil
 	}
 
@@ -63,7 +63,7 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 			exposedServiceRelPath = "/"
 		}
 		exposedServiceRelPath = qaengine.FetchStringAnswer(key, message, hints, exposedServiceRelPath)
-		log.Debugf("Exposing service %s on path %s", exposedServiceName, exposedServiceRelPath)
+		logrus.Debugf("Exposing service %s on path %s", exposedServiceName, exposedServiceRelPath)
 
 		exposedServiceRelPath = opt.normalizeServiceRelPath(exposedServiceRelPath)
 
@@ -82,7 +82,7 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 func (opt *ingressPreprocessor) normalizeServiceRelPath(exposedServiceRelPath string) string {
 	exposedServiceRelPath = strings.TrimSpace(exposedServiceRelPath)
 	if len(exposedServiceRelPath) == 0 {
-		log.Warnf("User gave an empty service path. Assuming it should be exposed on /")
+		logrus.Warnf("User gave an empty service path. Assuming it should be exposed on /")
 	}
 	if !strings.HasPrefix(exposedServiceRelPath, "/") {
 		exposedServiceRelPath = "/" + exposedServiceRelPath

@@ -20,13 +20,13 @@ import (
 	"fmt"
 
 	"github.com/konveyor/move2kube/transformer/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // GetInfoFromK8sResource returns some useful information given a k8s resource
 func GetInfoFromK8sResource(k8sResource types.K8sResourceT) (kind string, apiVersion string, name string, err error) {
-	log.Trace("start getInfoFromK8sResource")
-	defer log.Trace("end getInfoFromK8sResource")
+	logrus.Trace("start getInfoFromK8sResource")
+	defer logrus.Trace("end getInfoFromK8sResource")
 	kindI, ok := k8sResource["kind"]
 	if !ok {
 		return "", "", "", fmt.Errorf("There is no kind specified in the k8s resource %+v", k8sResource)

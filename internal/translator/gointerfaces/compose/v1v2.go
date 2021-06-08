@@ -31,7 +31,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"k8s.io/apimachinery/pkg/api/resource"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -58,7 +58,7 @@ func removeNonExistentEnvFilesV2(path string) preprocessFunc {
 					}
 					finfo, err := os.Stat(envFilePath)
 					if os.IsNotExist(err) || finfo.IsDir() {
-						log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+						logrus.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
 						delete(vals, envFile)
 					}
 				} else if envfilesvalsint, ok := envfilesvals.([]interface{}); ok {
@@ -71,7 +71,7 @@ func removeNonExistentEnvFilesV2(path string) preprocessFunc {
 							}
 							finfo, err := os.Stat(envFilePath)
 							if os.IsNotExist(err) || finfo.IsDir() {
-								log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+								logrus.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
 								continue
 							}
 							envfiles = append(envfiles, envfilesstr)
@@ -96,7 +96,7 @@ func ParseV2(path string) (*project.Project, error) {
 	if !common.IgnoreEnvironment {
 		absSomeEnvFilePath, err := filepath.Abs(someEnvFilePath)
 		if err != nil {
-			log.Errorf("Failed to make the path %s absolute. Error: %q", someEnvFilePath, err)
+			logrus.Errorf("Failed to make the path %s absolute. Error: %q", someEnvFilePath, err)
 			return nil, err
 		}
 		someEnvFilePath = absSomeEnvFilePath
@@ -113,13 +113,13 @@ func ParseV2(path string) (*project.Project, error) {
 		Preprocess:  removeNonExistentEnvFilesV2(path),
 	}
 	proj := project.NewProject(&context, nil, &parseOptions)
-	originalLevel := log.GetLevel()
-	log.SetLevel(log.FatalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
+	originalLevel := logrus.GetLevel()
+	logrus.SetLevel(logrus.FatalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
 	err := proj.Parse()
-	log.SetLevel(originalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
+	logrus.SetLevel(originalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
 	if err != nil {
 		err := fmt.Errorf("failed to load docker compose file at path %s Error: %q", path, err)
-		log.Debug(err)
+		logrus.Debug(err)
 		return nil, err
 	}
 	return proj, nil
@@ -158,7 +158,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		}
 		serviceContainer.Name = strings.ToLower(composeServiceConfig.ContainerName)
 		if serviceContainer.Name != composeServiceConfig.ContainerName {
-			log.Debugf("Container name in service %q has been changed from %q to %q", name, composeServiceConfig.ContainerName, serviceContainer.Name)
+			logrus.Debugf("Container name in service %q has been changed from %q to %q", name, composeServiceConfig.ContainerName, serviceContainer.Name)
 		}
 		if serviceContainer.Name == "" {
 			serviceContainer.Name = serviceConfig.Name
@@ -179,7 +179,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		if composeServiceConfig.User != "" {
 			uid, err := cast.ToInt64E(composeServiceConfig.User)
 			if err != nil {
-				log.Warn("Ignoring user directive. User to be specified as a UID (numeric).")
+				logrus.Warn("Ignoring user directive. User to be specified as a UID (numeric).")
 			} else {
 				securityContext.RunAsUser = &uid
 			}
@@ -208,7 +208,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		// group should be in gid format not group name
 		groupAdd, err := getGroupAdd(composeServiceConfig.GroupAdd)
 		if err != nil {
-			log.Warnf("GroupAdd should be in gid format, not as group name : %s", err)
+			logrus.Warnf("GroupAdd should be in gid format, not as group name : %s", err)
 		}
 		if groupAdd != nil {
 			podSecurityContext.SupplementalGroups = groupAdd
@@ -216,7 +216,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		if composeServiceConfig.StopGracePeriod != "" {
 			serviceConfig.TerminationGracePeriodSeconds, err = durationInSeconds(composeServiceConfig.StopGracePeriod)
 			if err != nil {
-				log.Warnf("Failed to parse duration %v for service %v", composeServiceConfig.StopGracePeriod, name)
+				logrus.Warnf("Failed to parse duration %v for service %v", composeServiceConfig.StopGracePeriod, name)
 			}
 		}
 		if composeServiceConfig.MemLimit != 0 {
@@ -229,7 +229,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 
 		restart := composeServiceConfig.Restart
 		if restart == "unless-stopped" {
-			log.Warnf("Restart policy 'unless-stopped' in service %s is not supported, convert it to 'always'", name)
+			logrus.Warnf("Restart policy 'unless-stopped' in service %s is not supported, convert it to 'always'", name)
 			serviceConfig.RestartPolicy = core.RestartPolicyAlways
 		}
 
@@ -248,7 +248,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, vml...)
 
 		if composeServiceConfig.VolumesFrom != nil {
-			log.Warnf("Ignoring VolumeFrom in compose for service %s : %s", serviceName, composeServiceConfig.VolumesFrom)
+			logrus.Warnf("Ignoring VolumeFrom in compose for service %s : %s", serviceName, composeServiceConfig.VolumesFrom)
 		}
 
 		if composeServiceConfig.Volumes != nil {
@@ -258,7 +258,7 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 					if !filepath.IsAbs(vol.Source) {
 						hPath, err := filepath.Abs(vol.Source)
 						if err != nil {
-							log.Debugf("Could not create an absolute path for [%s]", hPath)
+							logrus.Debugf("Could not create an absolute path for [%s]", hPath)
 						}
 					}
 					// Generate a hash Id for the given source file path to be mounted.
@@ -401,7 +401,7 @@ func (*V1V2Loader) parseContainerPort(value string) (servicePort int, podPort in
 		// "3000"
 		podPort, err = cast.ToIntE(value)
 		if err != nil {
-			log.Debugf("Failed to parse the port %s as an integer. Error: %q", value, err)
+			logrus.Debugf("Failed to parse the port %s as an integer. Error: %q", value, err)
 			return podPort, podPort, protocol, err
 		}
 		return podPort, podPort, protocol, nil
@@ -419,12 +419,12 @@ func (*V1V2Loader) parseContainerPort(value string) (servicePort int, podPort in
 	}
 	servicePort, err = cast.ToIntE(servicePortStr)
 	if err != nil {
-		log.Debugf("Failed to parse the port %s as an integer. Error: %q", servicePortStr, err)
+		logrus.Debugf("Failed to parse the port %s as an integer. Error: %q", servicePortStr, err)
 		return servicePort, servicePort, protocol, err
 	}
 	podPort, err = cast.ToIntE(podPortStr)
 	if err != nil {
-		log.Debugf("Failed to parse the port %s as an integer. Error: %q", podPortStr, err)
+		logrus.Debugf("Failed to parse the port %s as an integer. Error: %q", podPortStr, err)
 		return servicePort, podPort, protocol, err
 	}
 	return servicePort, podPort, protocol, nil

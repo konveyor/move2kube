@@ -37,7 +37,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/konveyor/move2kube/types"
 	"github.com/otiai10/copy"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/xrash/smetrics"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,10 +49,10 @@ import (
 func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 	var files []string
 	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
-		log.Warnf("Error in walking through files due to : %q", err)
+		logrus.Warnf("Error in walking through files due to : %q", err)
 		return nil, err
 	} else if !info.IsDir() {
-		log.Warnf("The path %q is not a directory.", inputPath)
+		logrus.Warnf("The path %q is not a directory.", inputPath)
 	}
 	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil && path == inputPath { // if walk for root search path return gets error
@@ -60,7 +60,7 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 			return err
 		}
 		if err != nil {
-			log.Warnf("Skipping path %q due to error: %q", path, err)
+			logrus.Warnf("Skipping path %q due to error: %q", path, err)
 			return nil
 		}
 		// Skip directories
@@ -76,10 +76,10 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		log.Warnf("Error in walking through files due to : %q", err)
+		logrus.Warnf("Error in walking through files due to : %q", err)
 		return files, err
 	}
-	log.Debugf("No of files with %s ext identified : %d", exts, len(files))
+	logrus.Debugf("No of files with %s ext identified : %d", exts, len(files))
 	return files, nil
 }
 
@@ -87,10 +87,10 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 func GetFilesByName(inputPath string, names []string) ([]string, error) {
 	var files []string
 	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
-		log.Warnf("Error in walking through files due to : %q", err)
+		logrus.Warnf("Error in walking through files due to : %q", err)
 		return files, err
 	} else if !info.IsDir() {
-		log.Warnf("The path %q is not a directory.", inputPath)
+		logrus.Warnf("The path %q is not a directory.", inputPath)
 	}
 	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil && path == inputPath { // if walk for root search path return gets error
@@ -98,7 +98,7 @@ func GetFilesByName(inputPath string, names []string) ([]string, error) {
 			return err
 		}
 		if err != nil {
-			log.Warnf("Skipping path %q due to error: %q", path, err)
+			logrus.Warnf("Skipping path %q due to error: %q", path, err)
 			return nil
 		}
 		// Skip directories
@@ -114,10 +114,10 @@ func GetFilesByName(inputPath string, names []string) ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		log.Warnf("Error in walking through files due to : %s", err)
+		logrus.Warnf("Error in walking through files due to : %s", err)
 		return files, err
 	}
-	log.Debugf("No of files with %s names identified : %d", names, len(files))
+	logrus.Debugf("No of files with %s names identified : %d", names, len(files))
 	return files, nil
 }
 
@@ -125,17 +125,17 @@ func GetFilesByName(inputPath string, names []string) ([]string, error) {
 func YamlAttrPresent(path string, attr string) (bool, interface{}) {
 	yamlFile, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Warnf("Error in reading yaml file %s: %s. Skipping", path, err)
+		logrus.Warnf("Error in reading yaml file %s: %s. Skipping", path, err)
 		return false, nil
 	}
 	var fileContents map[string]interface{}
 	err = yaml.Unmarshal(yamlFile, &fileContents)
 	if err != nil {
-		log.Warnf("Error in unmarshalling yaml file %s: %s. Skipping", path, err)
+		logrus.Warnf("Error in unmarshalling yaml file %s: %s. Skipping", path, err)
 		return false, nil
 	}
 	if value, ok := fileContents[attr]; ok {
-		log.Debugf("%s file has %s attribute", path, attr)
+		logrus.Debugf("%s file has %s attribute", path, attr)
 		return true, value
 	}
 	return false, nil
@@ -163,11 +163,11 @@ func ObjectToYamlBytes(data interface{}) ([]byte, error) {
 	encoder := yaml.NewEncoder(&b)
 	encoder.SetIndent(2)
 	if err := encoder.Encode(data); err != nil {
-		log.Errorf("Failed to encode the object to yaml. Error: %q", err)
+		logrus.Errorf("Failed to encode the object to yaml. Error: %q", err)
 		return nil, err
 	}
 	if err := encoder.Close(); err != nil {
-		log.Errorf("Failed to close the yaml encoder. Error: %q", err)
+		logrus.Errorf("Failed to close the yaml encoder. Error: %q", err)
 		return nil, err
 	}
 	return b.Bytes(), nil
@@ -177,7 +177,7 @@ func ObjectToYamlBytes(data interface{}) ([]byte, error) {
 func WriteYaml(outputPath string, data interface{}) error {
 	yamlBytes, err := ObjectToYamlBytes(data)
 	if err != nil {
-		log.Errorf("Failed to encode the object as a yaml string. Error: %q", err)
+		logrus.Errorf("Failed to encode the object as a yaml string. Error: %q", err)
 		return err
 	}
 	return ioutil.WriteFile(outputPath, yamlBytes, DefaultFilePermission)
@@ -187,12 +187,12 @@ func WriteYaml(outputPath string, data interface{}) error {
 func ReadYaml(file string, data interface{}) error {
 	yamlFile, err := ioutil.ReadFile(file)
 	if err != nil {
-		log.Debugf("Error in reading yaml file %s: %s.", file, err)
+		logrus.Debugf("Error in reading yaml file %s: %s.", file, err)
 		return err
 	}
 	err = yaml.Unmarshal(yamlFile, data)
 	if err != nil {
-		log.Debugf("Error in unmarshalling yaml file %s: %s.", file, err)
+		logrus.Debugf("Error in unmarshalling yaml file %s: %s.", file, err)
 		return err
 	}
 	rv := reflect.ValueOf(data)
@@ -203,7 +203,7 @@ func ReadYaml(file string, data interface{}) error {
 			if fv.Kind() == reflect.String {
 				val := strings.TrimSpace(fv.String())
 				if strings.HasPrefix(val, types.SchemeGroupVersion.Group) && !strings.HasSuffix(val, types.SchemeGroupVersion.Version) {
-					log.Warnf("The application file (%s) was generated using a different version than (%s)", val, types.SchemeGroupVersion.String())
+					logrus.Warnf("The application file (%s) was generated using a different version than (%s)", val, types.SchemeGroupVersion.String())
 				}
 			}
 		}
@@ -217,41 +217,41 @@ func ReadYaml(file string, data interface{}) error {
 func ReadMove2KubeYaml(path string, out interface{}) error {
 	yamlData, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Errorf("Failed to read the yaml file at path %s Error: %q", path, err)
+		logrus.Errorf("Failed to read the yaml file at path %s Error: %q", path, err)
 		return err
 	}
 	yamlMap := map[string]interface{}{}
 	if err := yaml.Unmarshal([]byte(yamlData), yamlMap); err != nil {
-		log.Errorf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
+		logrus.Errorf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
 		return err
 	}
 	groupVersionI, ok := yamlMap["apiVersion"]
 	if !ok {
 		err := fmt.Errorf("did not find apiVersion in the yaml file at path %s", path)
-		log.Debug(err)
+		logrus.Debug(err)
 		return err
 	}
 	groupVersionStr, ok := groupVersionI.(string)
 	if !ok {
 		err := fmt.Errorf("the apiVersion is not a string in the yaml file at path %s", path)
-		log.Debug(err)
+		logrus.Debug(err)
 		return err
 	}
 	groupVersion, err := schema.ParseGroupVersion(groupVersionStr)
 	if err != nil {
-		log.Debugf("Failed to parse the apiVersion %s Error: %q", groupVersionStr, err)
+		logrus.Debugf("Failed to parse the apiVersion %s Error: %q", groupVersionStr, err)
 		return err
 	}
 	if groupVersion.Group != types.SchemeGroupVersion.Group {
 		err := fmt.Errorf("the file at path %s doesn't have the correct group. Expected group %s Actual group %s", path, types.SchemeGroupVersion.Group, groupVersion.Group)
-		log.Debug(err)
+		logrus.Debug(err)
 		return err
 	}
 	if groupVersion.Version != types.SchemeGroupVersion.Version {
-		log.Warnf("The file at path %s was generated using a different version. File version is %s and move2kube version is %s", path, groupVersion.Version, types.SchemeGroupVersion.Version)
+		logrus.Warnf("The file at path %s was generated using a different version. File version is %s and move2kube version is %s", path, groupVersion.Version, types.SchemeGroupVersion.Version)
 	}
 	if err := yaml.Unmarshal(yamlData, out); err != nil {
-		log.Debugf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
+		logrus.Debugf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
 		return err
 	}
 	return nil
@@ -262,12 +262,12 @@ func WriteJSON(outputPath string, data interface{}) error {
 	var b bytes.Buffer
 	encoder := json.NewEncoder(&b)
 	if err := encoder.Encode(data); err != nil {
-		log.Error("Error while Encoding object")
+		logrus.Error("Error while Encoding object")
 		return err
 	}
 	err := ioutil.WriteFile(outputPath, b.Bytes(), DefaultFilePermission)
 	if err != nil {
-		log.Errorf("Error writing json to file: %s", err)
+		logrus.Errorf("Error writing json to file: %s", err)
 		return err
 	}
 	return nil
@@ -277,12 +277,12 @@ func WriteJSON(outputPath string, data interface{}) error {
 func ReadJSON(file string, data interface{}) error {
 	jsonFile, err := ioutil.ReadFile(file)
 	if err != nil {
-		log.Debugf("Error in reading json file %s: %s.", file, err)
+		logrus.Debugf("Error in reading json file %s: %s.", file, err)
 		return err
 	}
 	err = json.Unmarshal(jsonFile, &data)
 	if err != nil {
-		log.Debugf("Error in unmarshalling json file %s: %s.", file, err)
+		logrus.Debugf("Error in unmarshalling json file %s: %s.", file, err)
 		return err
 	}
 	return nil
@@ -306,7 +306,7 @@ func NormalizeForServiceName(svcName string) string {
 	re := regexp.MustCompile("[._]")
 	newName := strings.ToLower(re.ReplaceAllString(svcName, "-"))
 	if newName != svcName {
-		log.Infof("Changing service name to %s from %s", svcName, newName)
+		logrus.Infof("Changing service name to %s from %s", svcName, newName)
 	}
 	return newName
 }
@@ -357,7 +357,7 @@ func GetStringFromTemplate(tpl string, config interface{}) (string, error) {
 	var packageTemplate = template.Must(template.New("").Parse(tpl))
 	err := packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
-		log.Warnf("Unable to translate template %q to string using the data %v", tpl, config)
+		logrus.Warnf("Unable to translate template %q to string using the data %v", tpl, config)
 		return "", err
 	}
 	return tplbuffer.String(), nil
@@ -369,12 +369,12 @@ func WriteTemplateToFile(tpl string, config interface{}, writepath string, filem
 	var packageTemplate = template.Must(template.New("").Parse(tpl))
 	err := packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
-		log.Warnf("Unable to translate template %q to string using the data %v", tpl, config)
+		logrus.Warnf("Unable to translate template %q to string using the data %v", tpl, config)
 		return err
 	}
 	err = ioutil.WriteFile(writepath, tplbuffer.Bytes(), filemode)
 	if err != nil {
-		log.Warnf("Error writing file at %s : %s", writepath, err)
+		logrus.Warnf("Error writing file at %s : %s", writepath, err)
 		return err
 	}
 	return nil
@@ -425,19 +425,19 @@ func MergeStringMaps(map1 map[string]string, map2 map[string]string) map[string]
 // Also see page 13 of https://tools.ietf.org/html/rfc1123#page-13
 func MakeFileNameCompliant(name string) string {
 	if len(name) == 0 {
-		log.Error("The input name is empty.")
+		logrus.Error("The input name is empty.")
 		return ""
 	}
 	baseName := filepath.Base(name)
 	invalidChars := regexp.MustCompile("[^a-zA-Z0-9-.]+")
 	processedName := invalidChars.ReplaceAllString(baseName, "-")
 	if len(processedName) > 63 {
-		log.Debugf("Warning: The processed name %q is longer than 63 characters long.", processedName)
+		logrus.Debugf("Warning: The processed name %q is longer than 63 characters long.", processedName)
 	}
 	first := processedName[0]
 	last := processedName[len(processedName)-1]
 	if first == '-' || first == '.' || last == '-' || last == '.' {
-		log.Debugf("Warning: The first and/or last characters of the name %q are not alphanumeric.", processedName)
+		logrus.Debugf("Warning: The first and/or last characters of the name %q are not alphanumeric.", processedName)
 	}
 	return processedName
 }
@@ -454,7 +454,7 @@ func MakeStringDNSNameCompliant(s string) string {
 	name = regexp.MustCompile(`[^a-z0-9-.]`).ReplaceAllString(name, "-")
 	start, end := name[0], name[len(name)-1]
 	if start == '-' || start == '.' || end == '-' || end == '.' {
-		log.Debugf("The first and/or last characters of the string %q are not alphanumeric.", s)
+		logrus.Debugf("The first and/or last characters of the string %q are not alphanumeric.", s)
 	}
 	return name
 }
@@ -558,18 +558,18 @@ func CreateAssetsData(assetsTar string) (assetsPath string, tempPath string, err
 	// Return the absolute version of existing asset paths.
 	tempPath, err = filepath.Abs(TempPath)
 	if err != nil {
-		log.Errorf("Unable to make the temporary directory path %q absolute. Error: %q", tempPath, err)
+		logrus.Errorf("Unable to make the temporary directory path %q absolute. Error: %q", tempPath, err)
 		return "", "", err
 	}
 	assetsPath, err = filepath.Abs(AssetsPath)
 	if err != nil {
-		log.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
+		logrus.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
 		return "", "", err
 	}
 
 	// Try to create a new temporary directory for the assets.
 	if newTempPath, err := ioutil.TempDir("", TempDirPrefix); err != nil {
-		log.Errorf("Unable to create temp dir. Defaulting to local path.")
+		logrus.Errorf("Unable to create temp dir. Defaulting to local path.")
 	} else {
 		tempPath = newTempPath
 		assetsPath = filepath.Join(newTempPath, AssetsDir)
@@ -577,11 +577,11 @@ func CreateAssetsData(assetsTar string) (assetsPath string, tempPath string, err
 
 	// Either way create the subdirectory and untar the assets into it.
 	if err := os.MkdirAll(assetsPath, DefaultDirectoryPermission); err != nil {
-		log.Errorf("Unable to create the assets directory at path %q Error: %q", assetsPath, err)
+		logrus.Errorf("Unable to create the assets directory at path %q Error: %q", assetsPath, err)
 		return "", "", err
 	}
 	if err := UnTarString(assetsTar, assetsPath); err != nil {
-		log.Errorf("Unable to untar the assets into the assets directory at path %q Error: %q", assetsPath, err)
+		logrus.Errorf("Unable to untar the assets into the assets directory at path %q Error: %q", assetsPath, err)
 		return "", "", err
 	}
 
@@ -596,23 +596,23 @@ func CopyConfigurationsAssetsData(extensionsPath string) (err error) {
 	// Return the absolute version of extensions directory.
 	extensionsPath, err = filepath.Abs(extensionsPath)
 	if err != nil {
-		log.Errorf("Unable to make the extensions directory path %q absolute. Error: %q", extensionsPath, err)
+		logrus.Errorf("Unable to make the extensions directory path %q absolute. Error: %q", extensionsPath, err)
 		return err
 	}
 	assetsPath, err := filepath.Abs(AssetsPath)
 	if err != nil {
-		log.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
+		logrus.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
 		return err
 	}
 	configurationsAssetsPath := filepath.Join(assetsPath, "configurations")
 
 	// Create the subdirectory and copy the assets into it.
 	if err = os.MkdirAll(configurationsAssetsPath, DefaultDirectoryPermission); err != nil {
-		log.Errorf("Unable to create the custom assets directory at path %q Error: %q", configurationsAssetsPath, err)
+		logrus.Errorf("Unable to create the custom assets directory at path %q Error: %q", configurationsAssetsPath, err)
 		return err
 	}
 	if err = copy.Copy(extensionsPath, configurationsAssetsPath); err != nil {
-		log.Errorf("Failed to copy the extensions %s over to the directory at path %s Error: %q", extensionsPath, configurationsAssetsPath, err)
+		logrus.Errorf("Failed to copy the extensions %s over to the directory at path %s Error: %q", extensionsPath, configurationsAssetsPath, err)
 		return err
 	}
 
@@ -626,27 +626,27 @@ func CheckAndCopyConfigurations(configurationsPath string) {
 	}
 	configurationsPath, err := filepath.Abs(configurationsPath)
 	if err != nil {
-		log.Fatalf("Unable to make the extensions directory path %q absolute. Error: %q", configurationsPath, err)
+		logrus.Fatalf("Unable to make the extensions directory path %q absolute. Error: %q", configurationsPath, err)
 	}
 	fi, err := os.Stat(configurationsPath)
 	if os.IsNotExist(err) {
-		log.Fatalf("The given extensions directory %s does not exist. Error: %q", configurationsPath, err)
+		logrus.Fatalf("The given extensions directory %s does not exist. Error: %q", configurationsPath, err)
 	}
 	if err != nil {
-		log.Fatalf("Error while accessing the given extensions directory %s Error: %q", configurationsPath, err)
+		logrus.Fatalf("Error while accessing the given extensions directory %s Error: %q", configurationsPath, err)
 	}
 	if !fi.IsDir() {
-		log.Fatalf("The given extensions path %s is a file. Expected a directory. Exiting.", configurationsPath)
+		logrus.Fatalf("The given extensions path %s is a file. Expected a directory. Exiting.", configurationsPath)
 	}
 	pwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("Failed to get the current working directory. Error: %q", err)
+		logrus.Fatalf("Failed to get the current working directory. Error: %q", err)
 	}
 	if IsParent(pwd, configurationsPath) {
-		log.Fatalf("The given extensions directory %s is a parent of the current working directory.", configurationsPath)
+		logrus.Fatalf("The given extensions directory %s is a parent of the current working directory.", configurationsPath)
 	}
 	if err = CopyConfigurationsAssetsData(configurationsPath); err != nil {
-		log.Fatalf("Unable to copy extensions data : %s", err)
+		logrus.Fatalf("Unable to copy extensions data : %s", err)
 	}
 }
 
@@ -722,26 +722,26 @@ func GetGitRemoteNames(path string) ([]string, error) {
 func GetGitRepoDetails(path, remoteName string) (remoteURLs []string, branch string, repoDir string, finalerr error) {
 	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
-		log.Debugf("Unable to open the path %q as a git repo. Error: %q", path, err)
+		logrus.Debugf("Unable to open the path %q as a git repo. Error: %q", path, err)
 		return nil, "", "", err
 	}
 
 	if workTree, err := repo.Worktree(); err == nil {
 		repoDir = workTree.Filesystem.Root()
 	} else {
-		log.Debugf("Unable to get the repo directory. Error: %q", err)
+		logrus.Debugf("Unable to get the repo directory. Error: %q", err)
 	}
 
 	if ref, err := repo.Head(); err == nil {
 		branch = filepath.Base(string(ref.Name()))
 	} else {
-		log.Debugf("Unable to get the current branch. Error: %q", err)
+		logrus.Debugf("Unable to get the current branch. Error: %q", err)
 	}
 
 	if remote, err := repo.Remote(remoteName); err == nil {
 		remoteURLs = remote.Config().URLs
 	} else {
-		log.Debugf("Unable to get remote named %s Error: %q", remoteName, err)
+		logrus.Debugf("Unable to get remote named %s Error: %q", remoteName, err)
 	}
 
 	return remoteURLs, branch, repoDir, nil
@@ -751,17 +751,17 @@ func GetGitRepoDetails(path, remoteName string) (remoteURLs []string, branch str
 func GetGitRepoName(path string) (repoName, repoUrl, root string, err error) {
 	r, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
-		log.Debugf("Unable to open %s as a git repo : %s", path, err)
+		logrus.Debugf("Unable to open %s as a git repo : %s", path, err)
 		return "", "", "", err
 	}
 	remote, err := r.Remote("origin")
 	if err != nil {
-		log.Debugf("Unable to get origin remote : %s", err)
+		logrus.Debugf("Unable to get origin remote : %s", err)
 		return "", "", "", err
 	}
 	if len(remote.Config().URLs) == 0 {
 		err = fmt.Errorf("unable to get origins")
-		log.Debugf("%s", err)
+		logrus.Debugf("%s", err)
 		return "", "", "", err
 	}
 	u := remote.Config().URLs[0]
@@ -769,7 +769,7 @@ func GetGitRepoName(path string) (repoName, repoUrl, root string, err error) {
 		parts := strings.Split(u, ":")
 		if len(parts) != 2 {
 			err = fmt.Errorf("unable to find git repo name")
-			log.Debugf("%s", err)
+			logrus.Debugf("%s", err)
 			// Unable to find git repo name
 			return "", "", "", err
 		}
@@ -777,14 +777,14 @@ func GetGitRepoName(path string) (repoName, repoUrl, root string, err error) {
 	}
 	giturl, err := url.Parse(u)
 	if err != nil {
-		log.Debugf("Unable to get origin remote host : %s", err)
+		logrus.Debugf("Unable to get origin remote host : %s", err)
 		return "", "", "", err
 	}
 	name := filepath.Base(giturl.Path)
 	name = strings.TrimSuffix(name, filepath.Ext(name))
 	w, err := r.Worktree()
 	if err != nil {
-		log.Warnf("Unable to get root of repo : %s", err)
+		logrus.Warnf("Unable to get root of repo : %s", err)
 	}
 	return name, giturl.Path, w.Filesystem.Root(), nil
 }
@@ -825,11 +825,11 @@ func IsParent(child, parent string) bool {
 	var err error
 	child, err = filepath.Abs(child)
 	if err != nil {
-		log.Fatalf("Failed to make the path %s absolute. Error: %s", child, err)
+		logrus.Fatalf("Failed to make the path %s absolute. Error: %s", child, err)
 	}
 	parent, err = filepath.Abs(parent)
 	if err != nil {
-		log.Fatalf("Failed to make the path %s absolute. Error: %s", parent, err)
+		logrus.Fatalf("Failed to make the path %s absolute. Error: %s", parent, err)
 	}
 	if parent == "/" {
 		return true
@@ -886,7 +886,7 @@ func IsSameRuntimeObject(obj1, obj2 runtime.Object) bool {
 	gvk2 := obj2.GetObjectKind().GroupVersionKind()
 	if gvk1 != gvk2 {
 		if gvk1.Kind == gvk2.Kind {
-			log.Errorf("The 2 objects have the same kind, namespace and name but different group versions. Object1:\n%+v\nObject2:\n%+v", obj1, obj2)
+			logrus.Errorf("The 2 objects have the same kind, namespace and name but different group versions. Object1:\n%+v\nObject2:\n%+v", obj1, obj2)
 		}
 		return false
 	}
@@ -897,19 +897,19 @@ func IsSameRuntimeObject(obj1, obj2 runtime.Object) bool {
 func MarshalObjToYaml(obj runtime.Object) ([]byte, error) {
 	objJSONBytes, err := json.Marshal(obj)
 	if err != nil {
-		log.Errorf("Error while marshalling object %+v to json. Error: %q", obj, err)
+		logrus.Errorf("Error while marshalling object %+v to json. Error: %q", obj, err)
 		return nil, err
 	}
 	var jsonObj interface{}
 	if err := yaml.Unmarshal(objJSONBytes, &jsonObj); err != nil {
-		log.Errorf("Unable to unmarshal the json as yaml:\n%s\nError: %q", objJSONBytes, err)
+		logrus.Errorf("Unable to unmarshal the json as yaml:\n%s\nError: %q", objJSONBytes, err)
 		return nil, err
 	}
 	var b bytes.Buffer
 	encoder := yaml.NewEncoder(&b)
 	encoder.SetIndent(2)
 	if err := encoder.Encode(jsonObj); err != nil {
-		log.Errorf("Error while encoding the json object:\n%s\nError: %q", jsonObj, err)
+		logrus.Errorf("Error while encoding the json object:\n%s\nError: %q", jsonObj, err)
 		return nil, err
 	}
 	return b.Bytes(), nil
@@ -940,17 +940,17 @@ func ConvertInterfaceToSliceOfStrings(xI interface{}) ([]string, error) {
 // It returns true of it found a git repo.
 func GatherGitInfo(path string) (repoURL string, repoBranch string, err error) {
 	if finfo, err := os.Stat(path); err != nil {
-		log.Errorf("Failed to stat the path %q Error %q", path, err)
+		logrus.Errorf("Failed to stat the path %q Error %q", path, err)
 		return "", "", err
 	} else if !finfo.IsDir() {
 		pathDir := filepath.Dir(path)
-		log.Debugf("The path %q is not a directory. Using %q instead.", path, pathDir)
+		logrus.Debugf("The path %q is not a directory. Using %q instead.", path, pathDir)
 		path = pathDir
 	}
 	preferredRemote := "upstream"
 	remoteNames, err := GetGitRemoteNames(path)
 	if err != nil || len(remoteNames) == 0 {
-		log.Debugf("No remotes found at path %q Error: %q", path, err)
+		logrus.Debugf("No remotes found at path %q Error: %q", path, err)
 	} else {
 		if !IsStringPresent(remoteNames, preferredRemote) {
 			preferredRemote = "origin"
@@ -961,12 +961,12 @@ func GatherGitInfo(path string) (repoURL string, repoBranch string, err error) {
 	}
 	remoteURLs, branch, _, err := GetGitRepoDetails(path, preferredRemote)
 	if err != nil {
-		log.Debugf("Failed to get the git repo at path %q Error: %q", path, err)
+		logrus.Debugf("Failed to get the git repo at path %q Error: %q", path, err)
 		return "", "", err
 	}
 	repoBranch = branch
 	if len(remoteURLs) == 0 {
-		log.Debugf("The git repo at path %q has no remotes set.", path)
+		logrus.Debugf("The git repo at path %q has no remotes set.", path)
 	} else {
 		repoURL = remoteURLs[0]
 	}

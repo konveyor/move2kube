@@ -23,7 +23,7 @@ import (
 	"github.com/konveyor/move2kube/internal/k8sschema"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	okdroutev1 "github.com/openshift/api/route/v1"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -70,12 +70,12 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 		}
 		if service.OnlyIngress {
 			if !exposeobjectcreated {
-				log.Errorf("Failed to create the ingress for service %q . Probable cause: The cluster doesn't support ingress resources.", service.Name)
+				logrus.Errorf("Failed to create the ingress for service %q . Probable cause: The cluster doesn't support ingress resources.", service.Name)
 			}
 			continue
 		}
 		if !common.IsStringPresent(supportedKinds, common.ServiceKind) {
-			log.Errorf("Could not find a valid resource type in cluster to create a Service")
+			logrus.Errorf("Could not find a valid resource type in cluster to create a Service")
 			continue
 		}
 		if exposeobjectcreated || !service.HasValidAnnotation(common.ExposeSelector) {

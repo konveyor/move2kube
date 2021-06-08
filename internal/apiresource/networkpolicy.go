@@ -20,7 +20,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
@@ -44,17 +44,17 @@ func (d *NetworkPolicy) getSupportedKinds() []string {
 func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if !common.IsStringPresent(supportedKinds, networkPolicyKind) {
-		log.Errorf("Could not find a valid resource type in cluster to create a NetworkPolicy")
+		logrus.Errorf("Could not find a valid resource type in cluster to create a NetworkPolicy")
 		return nil
 	}
 
 	for _, service := range ir.Services {
 		// Create services depending on whether the service needs to be externally exposed
 		for _, net := range service.Networks {
-			log.Debugf("Network %s is detected at Source, shall be converted to equivalent NetworkPolicy at Destination", net)
+			logrus.Debugf("Network %s is detected at Source, shall be converted to equivalent NetworkPolicy at Destination", net)
 			obj, err := d.createNetworkPolicy(net)
 			if err != nil {
-				log.Warnf("Unable to create Network Policy for network %v for service %s : %s", net, service.Name, err)
+				logrus.Warnf("Unable to create Network Policy for network %v for service %s : %s", net, service.Name, err)
 				continue
 			}
 			objs = append(objs, obj)

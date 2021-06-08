@@ -53,11 +53,11 @@ type Spec struct {
 	RootDir           string `yaml:"rootDir"`
 	ConfigurationsDir string `yaml:"configurationsDir,omitempty"`
 
-	Services      map[string]Service `yaml:"services"` //[servicename]
-	IRTranslators []Translator       `yaml:"irTranslators"`
-	TargetCluster TargetClusterType  `yaml:"targetCluster,omitempty"`
+	Services        map[string]Service `yaml:"services"` //[servicename]
+	PlanTranslators []Translator       `yaml:"planTranslators"`
 
-	Configuration Configuration `yaml:"configuration,omitempty"`
+	TargetCluster TargetClusterType `yaml:"targetCluster,omitempty"`
+	Configuration Configuration     `yaml:"configuration,omitempty"`
 }
 
 type Configuration struct {
@@ -97,9 +97,9 @@ func NewPlan() Plan {
 			Name: common.DefaultProjectName,
 		},
 		Spec: Spec{
-			Services:      make(map[string]Service),
-			IRTranslators: []Translator{},
-			TargetCluster: TargetClusterType{Type: common.DefaultClusterType},
+			Services:        make(map[string]Service),
+			PlanTranslators: []Translator{},
+			TargetCluster:   TargetClusterType{Type: common.DefaultClusterType},
 			Configuration: Configuration{
 				Translators:    make(map[string]string),
 				Parameterizers: make(map[string]string),

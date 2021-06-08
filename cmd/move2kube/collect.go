@@ -24,7 +24,7 @@ import (
 	"github.com/konveyor/move2kube/api"
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -43,21 +43,21 @@ func collectHandler(flags collectFlags) {
 
 	if outpath != "" {
 		if outpath, err = filepath.Abs(outpath); err != nil {
-			log.Fatalf("Failed to make the output directory path %q absolute. Error: %q", outpath, err)
+			logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", outpath, err)
 		}
 	}
 	if srcpath != "" {
 		srcpath, err = filepath.Abs(srcpath)
 		if err != nil {
-			log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
+			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
 		}
 		fi, err := os.Stat(srcpath)
 		if os.IsNotExist(err) {
-			log.Fatalf("Source directory does not exist: %s.", err)
+			logrus.Fatalf("Source directory does not exist: %s.", err)
 		} else if err != nil {
-			log.Fatalf("Error while accessing directory: %s. ", srcpath)
+			logrus.Fatalf("Error while accessing directory: %s. ", srcpath)
 		} else if !fi.IsDir() {
-			log.Fatalf("Source path is a file, expected directory: %s.", srcpath)
+			logrus.Fatalf("Source path is a file, expected directory: %s.", srcpath)
 		}
 	}
 	outpath = filepath.Join(filepath.Clean(outpath), types.AppNameShort+"_collect")
@@ -66,7 +66,7 @@ func collectHandler(flags collectFlags) {
 	} else {
 		api.Collect(srcpath, outpath, strings.Split(annotations, ","))
 	}
-	log.Infof("Collect Output in [%s]. Copy this directory into the source directory to be used for planning.", outpath)
+	logrus.Infof("Collect Output in [%s]. Copy this directory into the source directory to be used for planning.", outpath)
 }
 
 func getCollectCommand() *cobra.Command {

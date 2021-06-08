@@ -24,7 +24,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	okdbuildv1 "github.com/openshift/api/build/v1"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	giturls "github.com/whilp/git-urls"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -101,7 +101,7 @@ func (*BuildConfig) getBuildSource(irBuildConfig irtypes.BuildConfig, ir irtypes
 	if irBuildConfig.RepoInfo.GitRepoDir != "" {
 		relDockerfilePath, err := filepath.Rel(irBuildConfig.RepoInfo.GitRepoDir, irBuildConfig.RepoInfo.TargetPath)
 		if err != nil {
-			log.Debugf("Failed to make the path %s relative to the path %s Error %q", irBuildConfig.RepoInfo.TargetPath, irBuildConfig.RepoInfo.GitRepoDir, err)
+			logrus.Debugf("Failed to make the path %s relative to the path %s Error %q", irBuildConfig.RepoInfo.TargetPath, irBuildConfig.RepoInfo.GitRepoDir, err)
 		} else {
 			contextPath = filepath.Dir(relDockerfilePath)
 		}
@@ -127,7 +127,7 @@ func (*BuildConfig) getBuildStrategy(irBuildConfig irtypes.BuildConfig, ir irtyp
 	if irBuildConfig.RepoInfo.GitRepoDir != "" {
 		relDockerfilePath, err := filepath.Rel(irBuildConfig.RepoInfo.GitRepoDir, irBuildConfig.RepoInfo.TargetPath)
 		if err != nil {
-			log.Debugf("Failed to make the path %s relative to the path %s Error %q", irBuildConfig.RepoInfo.TargetPath, irBuildConfig.RepoInfo.GitRepoDir, err)
+			logrus.Debugf("Failed to make the path %s relative to the path %s Error %q", irBuildConfig.RepoInfo.TargetPath, irBuildConfig.RepoInfo.GitRepoDir, err)
 		} else {
 			dockerfilePath = relDockerfilePath
 		}
@@ -143,9 +143,9 @@ func (bc *BuildConfig) getBuildTriggerPolicy(irBuildConfig irtypes.BuildConfig, 
 	if irBuildConfig.RepoInfo.GitRepoURL != "" {
 		gitRepoURLObj, err := giturls.Parse(irBuildConfig.RepoInfo.GitRepoURL)
 		if err != nil {
-			log.Warnf("Failed to parse git repo url %s Error: %q", irBuildConfig.RepoInfo.GitRepoURL, err)
+			logrus.Warnf("Failed to parse git repo url %s Error: %q", irBuildConfig.RepoInfo.GitRepoURL, err)
 		} else if gitRepoURLObj.Hostname() == "" {
-			log.Warnf("Successfully parsed git repo url %s but the host name is empty: %+v", irBuildConfig.RepoInfo.GitRepoURL, gitRepoURLObj)
+			logrus.Warnf("Successfully parsed git repo url %s but the host name is empty: %+v", irBuildConfig.RepoInfo.GitRepoURL, gitRepoURLObj)
 		} else {
 			webHookType = bc.getWebHookType(gitRepoURLObj.Hostname())
 		}
@@ -160,7 +160,7 @@ func (bc *BuildConfig) getBuildTriggerPolicy(irBuildConfig irtypes.BuildConfig, 
 	case okdbuildv1.BitbucketWebHookBuildTriggerType:
 		policy.BitbucketWebHook = &webHookTrigger
 	default:
-		log.Warnf("the git repo is not on github, gitlab or bitbucket. Using generic webhook")
+		logrus.Warnf("the git repo is not on github, gitlab or bitbucket. Using generic webhook")
 		policy.GenericWebHook = &webHookTrigger
 	}
 	return policy
@@ -175,7 +175,7 @@ func (*BuildConfig) getWebHookType(gitDomain string) okdbuildv1.BuildTriggerType
 	case strings.Contains(gitDomain, "bitbucket"):
 		return okdbuildv1.BitbucketWebHookBuildTriggerType
 	default:
-		log.Debugf("The git repo %s is not on github, gitlab or bitbucket. Defaulting to generic web hook trigger", gitDomain)
+		logrus.Debugf("The git repo %s is not on github, gitlab or bitbucket. Defaulting to generic web hook trigger", gitDomain)
 		return okdbuildv1.GenericWebHookBuildTriggerType
 	}
 }

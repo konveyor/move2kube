@@ -18,13 +18,13 @@ package runtransforms
 
 import (
 	"github.com/konveyor/move2kube/transformer/types"
-	log "github.com/sirupsen/logrus" // TODO
+	"github.com/sirupsen/logrus"
 )
 
 // ApplyTransforms applies the given transformations to the given k8s resources
 func ApplyTransforms(transforms []types.TransformT, k8sResources []types.K8sResourceT) ([]types.K8sResourceT, error) {
-	log.Trace("start applyTransforms")
-	defer log.Trace("end applyTransforms")
+	logrus.Trace("start applyTransforms")
+	defer logrus.Trace("end applyTransforms")
 	for _, transform := range transforms {
 		k8sResources, err := applyTransform(transform, k8sResources)
 		if err != nil {
@@ -35,8 +35,8 @@ func ApplyTransforms(transforms []types.TransformT, k8sResources []types.K8sReso
 }
 
 func applyTransform(transform types.TransformT, k8sResources []types.K8sResourceT) ([]types.K8sResourceT, error) {
-	log.Trace("start applyTransform")
-	defer log.Trace("end applyTransform")
+	logrus.Trace("start applyTransform")
+	defer logrus.Trace("end applyTransform")
 	filteredIdxs, err := filterK8sResources(transform, k8sResources)
 	if err != nil {
 		return k8sResources, err
@@ -53,8 +53,8 @@ func applyTransform(transform types.TransformT, k8sResources []types.K8sResource
 }
 
 func filterK8sResources(transform types.TransformT, k8sResources []types.K8sResourceT) ([]int, error) {
-	log.Trace("start filterK8sResources")
-	defer log.Trace("end filterK8sResources")
+	logrus.Trace("start filterK8sResources")
+	defer logrus.Trace("end filterK8sResources")
 	idxs := []int{}
 	for i, k8sResource := range k8sResources {
 		ok, err := transform.Filter(k8sResource)

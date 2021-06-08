@@ -14,16 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package metadata
+package configuration
 
 import (
 	"fmt"
 
 	"github.com/konveyor/move2kube/internal/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 //go:generate go run  ../../scripts/generator/generator.go clusters makemaps
@@ -36,7 +35,7 @@ type ClusterMDLoader struct {
 func (clusterMDLoader *ClusterMDLoader) UpdatePlan(plan *plantypes.Plan) error {
 	filePaths, err := common.GetFilesByExt(common.AssetsPath, []string{".yml", ".yaml"})
 	if err != nil {
-		log.Warnf("Failed to fetch the cluster metadata yamls at path %q Error: %q", common.AssetsPath, err)
+		logrus.Warnf("Failed to fetch the cluster metadata yamls at path %q Error: %q", common.AssetsPath, err)
 		return err
 	}
 	for _, filePath := range filePaths {
@@ -54,29 +53,6 @@ func (clusterMDLoader *ClusterMDLoader) UpdatePlan(plan *plantypes.Plan) error {
 	return nil
 }
 
-// LoadToIR loads target cluster in IR
-func (clusterMDLoader *ClusterMDLoader) LoadToIR(plan plantypes.Plan, ir *irtypes.IR) error {
-	clusters := clusterMDLoader.GetClusters(plan)
-	target := plan.Spec.TargetCluster
-	if target.Type == "" && target.Path == "" {
-		log.Warnf("Neither type nor path is specified for the target cluster. Going with the default cluster type: %s", common.DefaultClusterType)
-		target.Type = common.DefaultClusterType
-	}
-	if target.Type != "" && target.Path != "" {
-		return fmt.Errorf("only one of type or path should be specified for the target cluster. Target cluster: %v", target)
-	}
-	key := target.Type
-	if target.Path != "" {
-		key = target.Path
-	}
-	cm, ok := clusters[key]
-	if !ok {
-		return fmt.Errorf("the requested target cluster %v was not found", target)
-	}
-	ir.TargetClusterSpec = cm.Spec
-	return nil
-}
-
 // GetClusters loads list of clusters
 func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[string]collecttypes.ClusterMetadata {
 	clusters := map[string]collecttypes.ClusterMetadata{}
@@ -86,12 +62,12 @@ func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[str
 	for _, clusterMDPath := range clusterMDPaths {
 		cm, err := clusterMDLoader.getClusterMetadata(clusterMDPath)
 		if err != nil {
-			log.Errorf("Failed to load the cluster metadata at path %q Error: %q", clusterMDPath, err)
+			logrus.Errorf("Failed to load the cluster metadata at path %q Error: %q", clusterMDPath, err)
 			continue
 		}
 		if len(cm.Spec.StorageClasses) == 0 {
 			cm.Spec.StorageClasses = []string{common.DefaultStorageClassName}
-			log.Debugf("No storage class in the cluster %s at path %q, adding [default] storage class", cm.Name, clusterMDPath)
+			logrus.Debugf("No storage class in the cluster %s at path %q, adding [default] storage class", cm.Name, clusterMDPath)
 		}
 		clusters[cm.Name] = cm
 	}
@@ -102,12 +78,12 @@ func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[str
 func (*ClusterMDLoader) getClusterMetadata(path string) (collecttypes.ClusterMetadata, error) {
 	cm := collecttypes.ClusterMetadata{}
 	if err := common.ReadMove2KubeYaml(path, &cm); err != nil {
-		log.Debugf("Failed to read the cluster metadata at path %q Error: %q", path, err)
+		logrus.Debugf("Failed to read the cluster metadata at path %q Error: %q", path, err)
 		return cm, err
 	}
 	if cm.Kind != string(collecttypes.ClusterMetadataKind) {
 		err := fmt.Errorf("the file at path %q is not a valid cluster metadata. Expected kind: %s Actual kind: %s", path, collecttypes.ClusterMetadataKind, cm.Kind)
-		log.Debug(err)
+		logrus.Debug(err)
 		return cm, err
 	}
 	return cm, nil

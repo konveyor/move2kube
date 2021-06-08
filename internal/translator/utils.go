@@ -28,7 +28,7 @@ import (
 	"github.com/konveyor/move2kube/internal/translator/classes"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func getTranslatorConfig(path string) (translatortypes.Translator, error) {
@@ -39,12 +39,12 @@ func getTranslatorConfig(path string) (translatortypes.Translator, error) {
 		},
 	}
 	if err := common.ReadMove2KubeYaml(path, &tc); err != nil {
-		log.Debugf("Failed to read the translator metadata at path %q Error: %q", path, err)
+		logrus.Debugf("Failed to read the translator metadata at path %q Error: %q", path, err)
 		return tc, err
 	}
 	if tc.Kind != translatortypes.TranslatorKind {
 		err := fmt.Errorf("the file at path %q is not a valid cluster metadata. Expected kind: %s Actual kind: %s", path, translatortypes.TranslatorKind, tc.Kind)
-		log.Debug(err)
+		logrus.Debug(err)
 		return tc, err
 	}
 	return tc, nil
@@ -56,7 +56,7 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
 	knownProjectPaths := make([]string, 0)
 
-	log.Infoln("Planning Translation - Known Directory")
+	logrus.Infoln("Planning Translation - Known Directory")
 	for sn, s := range bservices {
 		for _, t := range s {
 			if len(t.Paths) > 0 && len(t.Paths[plantypes.ProjectPathSourceArtifact]) > 0 {
@@ -64,26 +64,26 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 				knownProjectPaths = common.MergeStringSlices(knownProjectPaths, pps...)
 				for _, p := range pps {
 					for _, t := range translators {
-						log.Debugf("[%T] Planning translation", t)
+						logrus.Debugf("[%T] Planning translation", t)
 						nservices, nunservices, err := t.KnownDirectoryDetect(p)
 						if err != nil {
-							log.Warnf("[%T] Failed : %s", t, err)
+							logrus.Warnf("[%T] Failed : %s", t, err)
 						} else {
 							// TODO: Decide whether recurse on the nservices for project paths
 							services = plantypes.MergeServices(services, nservices)
 							services = plantypes.MergeServices(services, map[string]plantypes.Service{sn: nunservices})
-							log.Debugf("[%T] Done", t)
+							logrus.Debugf("[%T] Done", t)
 						}
 					}
 				}
 			}
 		}
 	}
-	log.Infoln("Translation planning - Known Directory done")
+	logrus.Infoln("Translation planning - Known Directory done")
 
 	err = filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Warnf("Skipping path %q due to error. Error: %q", path, err)
+			logrus.Warnf("Skipping path %q due to error. Error: %q", path, err)
 			return nil
 		}
 		if !info.IsDir() {
@@ -98,25 +98,25 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 			}
 			return nil
 		}
-		log.Debugf("Planning dir translation - %s", path)
+		logrus.Debugf("Planning dir translation - %s", path)
 		found := false
 		for _, t := range translators {
-			log.Debugf("[%T] Planning translation", t, path)
+			logrus.Debugf("[%T] Planning translation", t, path)
 			nservices, nunservices, err := t.DirectoryDetect(path)
 			if err != nil {
-				log.Warnf("[%T] Failed : %s", t, err)
+				logrus.Warnf("[%T] Failed : %s", t, err)
 			} else {
 				plantypes.MergeServices(services, nservices)
 				unservices = append(unservices, nunservices...)
 				if len(nservices) > 0 || len(unservices) > 0 {
 					found = true
 				}
-				log.Debugf("[%T] Done", t)
+				logrus.Debugf("[%T] Done", t)
 			}
 		}
-		log.Debugf("Dir translation done - %s", path)
+		logrus.Debugf("Dir translation done - %s", path)
 		if !found {
-			log.Debugf("No service found in directory %q", path)
+			logrus.Debugf("No service found in directory %q", path)
 			if common.IsStringPresent(ignoreContents, path) {
 				return filepath.SkipDir
 			}
@@ -125,7 +125,7 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 		return filepath.SkipDir // Skip all subdirectories when base directory is a valid package
 	})
 	if err != nil {
-		log.Errorf("Error occurred while walking through the directory at path %q Error: %q", inputPath, err)
+		logrus.Errorf("Error occurred while walking through the directory at path %q Error: %q", inputPath, err)
 	}
 	return
 }
@@ -150,7 +150,7 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 			if len(paths) > 0 {
 				bpp = common.CleanAndFindCommonDirectory(paths)
 			} else {
-				log.Errorf("No paths in the translator. Ignoring translator : %+v", st)
+				logrus.Errorf("No paths in the translator. Ignoring translator : %+v", st)
 				continue
 			}
 		}
@@ -166,11 +166,11 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 	for sp := range servicePaths {
 		repoName, repoUrl, _, err := common.GetGitRepoName(sp)
 		if err != nil {
-			log.Debugf("Unable to find any git repo for directory %s : %s", sp, err)
+			logrus.Debugf("Unable to find any git repo for directory %s : %s", sp, err)
 			continue
 		}
 		if repoName == "" {
-			log.Debugf("No repo name found for repo at %s", repoUrl)
+			logrus.Debugf("No repo name found for repo at %s", repoUrl)
 			continue
 		}
 		if bps, ok := gitRepoNames[repoName]; ok {
@@ -241,13 +241,13 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 func getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContents []string) {
 	filePaths, err := common.GetFilesByName(inputPath, []string{common.IgnoreFilename})
 	if err != nil {
-		log.Warnf("Unable to fetch .m2kignore files at path %q Error: %q", inputPath, err)
+		logrus.Warnf("Unable to fetch .m2kignore files at path %q Error: %q", inputPath, err)
 		return ignoreDirectories, ignoreContents
 	}
 	for _, filePath := range filePaths {
 		file, err := os.Open(filePath)
 		if err != nil {
-			log.Warnf("Failed to open the .m2kignore file at path %q Error: %q", filePath, err)
+			logrus.Warnf("Failed to open the .m2kignore file at path %q Error: %q", filePath, err)
 			continue
 		}
 		defer file.Close()

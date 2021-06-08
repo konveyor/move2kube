@@ -18,13 +18,14 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
 	http.HandleFunc("/golang", func(response http.ResponseWriter, _ *http.Request) {
 		fmt.Fprintf(response, "This is a Go web app")
 	})
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	logrus.Fatal(http.ListenAndServe(":8080", nil))
 }

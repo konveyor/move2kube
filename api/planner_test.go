@@ -28,7 +28,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func setupAssets(t *testing.T) {
@@ -42,7 +42,7 @@ func setupAssets(t *testing.T) {
 }
 
 func TestCreatePlan(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("create plan for empty app and without the cache folder", func(t *testing.T) {
 		// Setup

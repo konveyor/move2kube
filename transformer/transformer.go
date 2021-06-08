@@ -26,15 +26,15 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	transformercommon "github.com/konveyor/move2kube/transformer/common"
 	"github.com/konveyor/move2kube/transformer/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
 // WriteResources writes out k8s resources to a given directory.
 // It will create the output directory if it doesn't exist.
 func WriteResources(k8sResources []types.K8sResourceT, outputPath string) ([]string, error) {
-	log.Trace("start WriteResources")
-	defer log.Trace("end WriteResources")
+	logrus.Trace("start WriteResources")
+	defer logrus.Trace("end WriteResources")
 	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
 		return nil, err
 	}
@@ -54,8 +54,8 @@ func WriteResources(k8sResources []types.K8sResourceT, outputPath string) ([]str
 }
 
 func getFilename(k8sResource types.K8sResourceT) (string, error) {
-	log.Trace("start getFilename")
-	defer log.Trace("end getFilename")
+	logrus.Trace("start getFilename")
+	defer logrus.Trace("end getFilename")
 	kind, _, name, err := transformercommon.GetInfoFromK8sResource(k8sResource)
 	if err != nil {
 		return "", err
@@ -65,11 +65,11 @@ func getFilename(k8sResource types.K8sResourceT) (string, error) {
 
 // WriteResource writes out a k8s resource to a given file path.
 func WriteResource(k8sResource types.K8sResourceT, outputPath string) error {
-	log.Trace("start WriteResource")
-	defer log.Trace("end WriteResource")
+	logrus.Trace("start WriteResource")
+	defer logrus.Trace("end WriteResource")
 	yamlBytes, err := yaml.Marshal(k8sResource)
 	if err != nil {
-		log.Error("Error while Encoding object")
+		logrus.Error("Error while Encoding object")
 		return err
 	}
 	return ioutil.WriteFile(outputPath, yamlBytes, common.DefaultFilePermission)

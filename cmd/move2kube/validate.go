@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/api"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,7 +36,7 @@ type validateFlags struct {
 func validateHandler(flags validateFlags) {
 	artifactspath, err := filepath.Abs(flags.artifactspath)
 	if err != nil {
-		log.Fatalf("Failed to make the directory path %q absolute. Error: %q", artifactspath, err)
+		logrus.Fatalf("Failed to make the directory path %q absolute. Error: %q", artifactspath, err)
 	}
 	api.PrintValidate(artifactspath)
 }

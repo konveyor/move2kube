@@ -22,7 +22,7 @@ import (
 	"github.com/konveyor/move2kube/assets"
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +41,7 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 `,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			if verbose {
-				log.SetLevel(log.DebugLevel)
+				logrus.SetLevel(logrus.DebugLevel)
 			}
 			return nil
 		},
@@ -56,12 +56,12 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 
 	assetsPath, tempPath, err := common.CreateAssetsData(assets.Tar)
 	if err != nil {
-		log.Fatalf("Unable to create the assets directory. Error: %q", err)
+		logrus.Fatalf("Unable to create the assets directory. Error: %q", err)
 	}
 	common.TempPath = tempPath
 	common.AssetsPath = assetsPath
 	defer os.RemoveAll(tempPath)
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatalf("Error: %q", err)
+		logrus.Fatalf("Error: %q", err)
 	}
 }

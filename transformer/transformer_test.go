@@ -26,7 +26,8 @@ import (
 	"github.com/konveyor/move2kube/transformer/gettransformdata"
 	"github.com/konveyor/move2kube/transformer/runtransforms"
 	"github.com/konveyor/move2kube/transformer/transformations"
-	log "github.com/sirupsen/logrus" // TODO
+	"github.com/sirupsen/logrus"
+	// TODO
 )
 
 // var (
@@ -77,8 +78,8 @@ func TestGettingAndTransformingResources(t *testing.T) {
 }
 
 func transformAll(transformsPaths []string, k8sResourcesPath, outputPath string) ([]string, error) {
-	log.Trace("start TransformAll")
-	defer log.Trace("end TransformAll")
+	logrus.Trace("start TransformAll")
+	defer logrus.Trace("end TransformAll")
 	transforms, err := transformations.GetTransformsFromPathsUsingDefaults(transformsPaths)
 	if err != nil {
 		return nil, err
@@ -95,8 +96,8 @@ func transformAll(transformsPaths []string, k8sResourcesPath, outputPath string)
 }
 
 // func myDynamicAskQuestion(questionObjI interface{}) (interface{}, error) {
-// 	log.Trace("start myDynamicAskQuestion")
-// 	defer log.Trace("end myDynamicAskQuestion")
+// 	logrus.Trace("start myDynamicAskQuestion")
+// 	defer logrus.Trace("end myDynamicAskQuestion")
 // 	questionObj, ok := questionObjI.(types.MapT)
 // 	if !ok {
 // 		return nil, fmt.Errorf("Excpted questions to be of map type. Actual value is %+v of type %T", questionObjI, questionObjI)
@@ -127,7 +128,7 @@ func transformAll(transformsPaths []string, k8sResourcesPath, outputPath string)
 // 		defaultAnswer = newDefaultAnswer
 // 	}
 // 	hints := []string{}
-// 	log.Debugf("key %+v desc %+v hints %+v default %+v", qakey, desc, hints, defaultAnswer)
+// 	logrus.Debugf("key %+v desc %+v hints %+v default %+v", qakey, desc, hints, defaultAnswer)
 // 	answer := fmt.Sprintf("dynamic question: [%s]", qakey)
 // 	answers[qakey] = answer
 // 	return answer, nil

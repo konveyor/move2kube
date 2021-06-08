@@ -21,11 +21,12 @@ import (
 	"reflect"
 
 	"github.com/konveyor/move2kube/internal/translator/gointerfaces"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
 	gointerfacetypes "github.com/konveyor/move2kube/types/translator/classes/gointerface"
 	"github.com/mitchellh/mapstructure"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -39,7 +40,8 @@ type Translator interface {
 	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
-	Translate(serviceName string) map[string]translatortypes.Patch
+	TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch
+	TranslateIR(ir irtypes.IR) map[string][]translatortypes.Patch
 }
 
 type GoInterface struct {
@@ -54,7 +56,7 @@ func init() {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
 		if ot, ok := translatorTypes[tn]; ok {
-			log.Errorf("Two translator classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
+			logrus.Errorf("Two translator classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
 			continue
 		}
 		translatorTypes[tn] = t
@@ -70,19 +72,19 @@ func (t *GoInterface) Init(tc translatortypes.Translator) error {
 		TagName:  "yaml",
 	})
 	if err := decoder.Decode(tc.Spec.Config); err != nil {
-		log.Errorf("unable to load config for GoInterface Translator %+v into %T : %s", tc.Spec.Config, gointerfacetypes.Config{}, err)
+		logrus.Errorf("unable to load config for GoInterface Translator %+v into %T : %s", tc.Spec.Config, gointerfacetypes.Config{}, err)
 		return err
 	} else {
-		log.Debugf("GoInterface Translator config is %+v", config)
+		logrus.Debugf("GoInterface Translator config is %+v", config)
 		t.config = config
 	}
-	log.Debugf("Looking for struct %s", t.config.Class)
+	logrus.Debugf("Looking for struct %s", t.config.Class)
 	if tt, ok := translatorTypes[t.config.Class]; ok {
 		t.impl = reflect.New(tt).Interface().(Translator)
 		return nil
 	}
 	err := fmt.Errorf("unable to locate traslator struct type %s in %+v", t.config.Class, translatorTypes)
-	log.Errorf("%s", err)
+	logrus.Errorf("%s", err)
 	return err
 }
 
@@ -110,6 +112,10 @@ func (t *GoInterface) PlanDetect(p plantypes.Plan) ([]plantypes.Translator, erro
 	return t.impl.PlanDetect(p)
 }
 
-func (t *GoInterface) Translate(serviceName string) map[string]translatortypes.Patch {
-	return t.impl.Translate(serviceName)
+func (t *GoInterface) TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch {
+	return t.impl.TranslateService(serviceName, translatorPlan, artifactsToGenerate)
+}
+
+func (t *GoInterface) TranslateIR(ir irtypes.IR) map[string][]irtypes.Patch {
+	return t.impl.TranslateIR(ir)
 }

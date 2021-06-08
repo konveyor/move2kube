@@ -23,7 +23,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,18 +35,18 @@ func PrintValidate(inputPath string) error {
 
 	filePaths, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
 	if err != nil {
-		log.Errorf("Unable to fetch yaml files at path %q Error: %q", inputPath, err)
+		logrus.Errorf("Unable to fetch yaml files at path %q Error: %q", inputPath, err)
 		return err
 	}
 	for _, filePath := range filePaths {
 		data, err := ioutil.ReadFile(filePath)
 		if err != nil {
-			log.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
+			logrus.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
 			continue
 		}
 		docs, err := common.SplitYAML(data)
 		if err != nil {
-			log.Debugf("Failed to split the file at path %q into YAML documents. Error: %q", filePath, err)
+			logrus.Debugf("Failed to split the file at path %q into YAML documents. Error: %q", filePath, err)
 			continue
 		}
 		for _, doc := range docs {
@@ -57,7 +57,7 @@ func PrintValidate(inputPath string) error {
 			objectMeta := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
 			for k, v := range objectMeta.Annotations {
 				if strings.HasPrefix(k, common.TODOAnnotation) {
-					log.Infof("%s : %s", k, v)
+					logrus.Infof("%s : %s", k, v)
 				}
 			}
 		}

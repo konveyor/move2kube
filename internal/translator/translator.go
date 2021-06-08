@@ -19,13 +19,12 @@ package translator
 import (
 	"reflect"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/classes"
 	"github.com/konveyor/move2kube/qaengine"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -44,7 +43,7 @@ type Translator interface {
 	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
-	Translate(serviceName string) map[string]translatortypes.Patch
+	TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch
 }
 
 func init() {
@@ -53,7 +52,7 @@ func init() {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
 		if ot, ok := translatorTypes[tn]; ok {
-			log.Errorf("Two translator classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
+			logrus.Errorf("Two translator classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
 			continue
 		}
 		translatorTypes[tn] = t
@@ -63,25 +62,25 @@ func init() {
 func Init(assetsPath string) error {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
-		log.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
+		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
 		return err
 	}
 	translatorConfigs := make(map[string]translatortypes.Translator)
 	for _, filePath := range filePaths {
 		tc, err := getTranslatorConfig(filePath)
 		if err != nil {
-			log.Debugf("Unable to load %s as Translator config", filePath, err)
+			logrus.Debugf("Unable to load %s as Translator config", filePath, err)
 			continue
 		}
 		if ot, ok := translatorConfigs[tc.Name]; ok {
-			log.Errorf("Found two conflicting translator Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath)
+			logrus.Errorf("Found two conflicting translator Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath)
 			continue
 		}
 		if _, ok := translatorTypes[tc.Spec.Class]; ok {
 			translatorConfigs[tc.Name] = tc
 			continue
 		}
-		log.Errorf("Unable to find suitable translator class (%s) for translator config at %s", tc.Spec.Class, filePath)
+		logrus.Errorf("Unable to find suitable translator class (%s) for translator config at %s", tc.Spec.Class, filePath)
 	}
 	tns := make([]string, 0)
 	for tn := range translatorConfigs {
@@ -91,11 +90,11 @@ func Init(assetsPath string) error {
 	for _, tn := range translatorNames {
 		tc := translatorConfigs[tn]
 		if c, ok := translatorTypes[tc.Spec.Class]; !ok {
-			log.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
+			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
 		} else {
 			t := reflect.New(c).Interface().(Translator)
 			if err := t.Init(tc); err != nil {
-				log.Errorf("Unable to initialize translator %s : %s", tc.Name, err)
+				logrus.Errorf("Unable to initialize translator %s : %s", tc.Name, err)
 			} else {
 				translators[tn] = t
 			}
@@ -111,70 +110,68 @@ func GetTranslators() map[string]Translator {
 func GetServices(prjName string, dir string) (services map[string]plantypes.Service) {
 	services = make(map[string]plantypes.Service)
 	unservices := make([]plantypes.Translator, 0)
-	log.Infoln("Planning Translation - Base Directory")
-	log.Debugf("Translators : %+v", translators)
+	logrus.Infoln("Planning Translation - Base Directory")
+	logrus.Debugf("Translators : %+v", translators)
 	for _, t := range translators {
 		tn := t.GetConfig().Name
-		log.Infof("[%s] Planning translation", tn)
+		logrus.Infof("[%s] Planning translation", tn)
 		nservices, nunservices, err := t.BaseDirectoryDetect(dir)
 		if err != nil {
-			log.Errorf("[%s] Failed : %s", tn, err)
+			logrus.Errorf("[%s] Failed : %s", tn, err)
 		} else {
 			services = plantypes.MergeServices(services, nservices)
 			unservices = append(unservices, nunservices...)
-			log.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
-			log.Infof("[%s] Done", tn)
+			logrus.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
+			logrus.Infof("[%s] Done", tn)
 		}
 	}
-	log.Infof("[Base Directory] Identified %d namedservices and %d unnamedservices", len(services), len(unservices))
-	log.Infoln("Translation planning - Base Directory done")
-	log.Infoln("Planning Translation - Directory Walk")
+	logrus.Infof("[Base Directory] Identified %d namedservices and %d unnamedservices", len(services), len(unservices))
+	logrus.Infoln("Translation planning - Base Directory done")
+	logrus.Infoln("Planning Translation - Directory Walk")
 	nservices, nunservices, err := walkForServices(dir, translators, services)
 	if err != nil {
-		log.Errorf("Translation planning - Directory Walk failed : %s", err)
+		logrus.Errorf("Translation planning - Directory Walk failed : %s", err)
 	} else {
 		services = nservices
 		unservices = append(unservices, nunservices...)
-		log.Infoln("Translation planning - Directory Walk done")
+		logrus.Infoln("Translation planning - Directory Walk done")
 	}
-	log.Infof("[Directory Walk] Identified %d namedservices and %d unnamedservices", len(services), len(unservices))
+	logrus.Infof("[Directory Walk] Identified %d namedservices and %d unnamedservices", len(services), len(unservices))
 	services = nameServices(prjName, services, unservices)
-	log.Infof("[Named Services] Identified %d namedservices", len(services))
-	log.Infoln("Planning Service Augmentors")
+	logrus.Infof("[Named Services] Identified %d namedservices", len(services))
+	logrus.Infoln("Planning Service Augmentors")
 	for _, t := range translators {
-		log.Debugf("[%T] Planning translation", t)
+		logrus.Debugf("[%T] Planning translation", t)
 		for sn, s := range services {
 			sts, err := t.ServiceAugmentDetect(sn, s)
 			if err != nil {
-				log.Errorf("[%T] Failed for service %s : %s", t, sn, err)
+				logrus.Errorf("[%T] Failed for service %s : %s", t, sn, err)
 			} else {
 				services[sn] = append(s, sts...)
 			}
 		}
-		log.Debugf("[%T] Done", t)
+		logrus.Debugf("[%T] Done", t)
 	}
-	log.Infoln("Service Augmentors planning - done")
+	logrus.Infoln("Service Augmentors planning - done")
 	return
 }
 
 func GetIRTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Translator, err error) {
-	log.Infoln("Planning plan translators")
+	logrus.Infoln("Planning plan translators")
 	for _, t := range translators {
-		log.Infof("[%T] Planning translation", t)
+		logrus.Infof("[%T] Planning translation", t)
 		ts, err := t.PlanDetect(plan)
 		if err != nil {
-			log.Warnf("[%T] Failed : %s", t, err)
+			logrus.Warnf("[%T] Failed : %s", t, err)
 		} else {
 			suitableTranslators = append(suitableTranslators, ts...)
-			log.Infof("[%T] Done", t)
+			logrus.Infof("[%T] Done", t)
 		}
 	}
-	log.Infoln("Plan translator planning - done")
+	logrus.Infoln("Plan translator planning - done")
 	return suitableTranslators, nil
 }
 
-/*
-func TranslateServices(plan plantypes.Plan) (ir irtypes.IR, err error) {
+func Translate(plan plantypes.Plan, outputPath string) (err error) {
 
 }
-*/

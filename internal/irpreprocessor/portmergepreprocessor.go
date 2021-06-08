@@ -19,7 +19,7 @@ package irpreprocessor
 import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
@@ -42,7 +42,7 @@ func (opt *portMergePreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) 
 		}
 
 		// The service has no ports so we gather some eligible ports and ask a question.
-		log.Debugf("The service %s has no ports", service.Name)
+		logrus.Debugf("The service %s has no ports", service.Name)
 		portToContainerIdx := opt.gatherPorts(ir, service)
 		if len(portToContainerIdx) == 0 {
 			continue
@@ -60,7 +60,7 @@ func (*portMergePreprocessor) gatherPorts(ir irtypes.IR, service irtypes.Service
 		if irContainer, ok := ir.GetContainer(coreContainer.Image); ok {
 			for _, exposedPort := range irContainer.ExposedPorts {
 				if oldcoreContainerIdx, ok := portToContainerIdx[exposedPort]; ok {
-					log.Debugf("The port %d is eligible to be exposed by both container %s and container %s of service %s",
+					logrus.Debugf("The port %d is eligible to be exposed by both container %s and container %s of service %s",
 						exposedPort, service.Containers[oldcoreContainerIdx].Name, coreContainer.Name, service.Name)
 					continue
 				}
@@ -70,9 +70,9 @@ func (*portMergePreprocessor) gatherPorts(ir irtypes.IR, service irtypes.Service
 	}
 	if len(portToContainerIdx) == 0 {
 		if len(service.Containers) == 0 {
-			log.Infof("The service %s has no ports because it has no containers.", service.Name)
+			logrus.Infof("The service %s has no ports because it has no containers.", service.Name)
 		} else {
-			log.Infof("No ports detected for service %s . Adding default port %d", service.Name, common.DefaultServicePort)
+			logrus.Infof("No ports detected for service %s . Adding default port %d", service.Name, common.DefaultServicePort)
 			portToContainerIdx[common.DefaultServicePort] = 0 // the first container index
 		}
 	}

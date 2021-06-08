@@ -31,7 +31,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"k8s.io/apimachinery/pkg/api/resource"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -58,7 +58,7 @@ func removeNonExistentEnvFilesV3(path string, parsedComposeFile map[string]inter
 							}
 							finfo, err := os.Stat(envFilePath)
 							if os.IsNotExist(err) || finfo.IsDir() {
-								log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+								logrus.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
 								delete(vals, envFile)
 							}
 						} else if envfilesvalsint, ok := envfilesvals.([]interface{}); ok {
@@ -71,7 +71,7 @@ func removeNonExistentEnvFilesV3(path string, parsedComposeFile map[string]inter
 									}
 									finfo, err := os.Stat(envFilePath)
 									if os.IsNotExist(err) || finfo.IsDir() {
-										log.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+										logrus.Warnf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
 										continue
 									}
 									envfiles = append(envfiles, envfilesstr)
@@ -92,14 +92,14 @@ func ParseV3(path string) (*types.Config, error) {
 	fileData, err := ioutil.ReadFile(path)
 	if err != nil {
 		err := fmt.Errorf("unable to load Compose file at path %s Error: %q", path, err)
-		log.Debug(err)
+		logrus.Debug(err)
 		return nil, err
 	}
 	// Parse the Compose File
 	parsedComposeFile, err := loader.ParseYAML(fileData)
 	if err != nil {
 		err := fmt.Errorf("unable to load Compose file at path %s Error: %q", path, err)
-		log.Debug(err)
+		logrus.Debug(err)
 		return nil, err
 	}
 	parsedComposeFile = removeNonExistentEnvFilesV3(path, parsedComposeFile)
@@ -112,7 +112,7 @@ func ParseV3(path string) (*types.Config, error) {
 	config, err := loader.Load(configDetails)
 	if err != nil {
 		err := fmt.Errorf("unable to load Compose file at path %s Error: %q", path, err)
-		log.Debug(err)
+		logrus.Debug(err)
 		return nil, err
 	}
 	return config, nil
@@ -120,13 +120,13 @@ func ParseV3(path string) (*types.Config, error) {
 
 // ConvertToIR loads an v3 compose file into IR
 func (c *V3Loader) ConvertToIR(composefilepath string, serviceName string) (irtypes.IR, error) {
-	log.Debugf("About to load configuration from docker compose file at path %s", composefilepath)
+	logrus.Debugf("About to load configuration from docker compose file at path %s", composefilepath)
 	config, err := ParseV3(composefilepath)
 	if err != nil {
-		log.Warnf("Error while loading docker compose config : %s", err)
+		logrus.Warnf("Error while loading docker compose config : %s", err)
 		return irtypes.IR{}, err
 	}
-	log.Debugf("About to start loading docker compose to intermediate rep")
+	logrus.Debugf("About to start loading docker compose to intermediate rep")
 	return c.convertToIR(filepath.Dir(composefilepath), *config, serviceName)
 }
 
@@ -177,7 +177,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 			if composeServiceConfig.Pid == "host" {
 				serviceConfig.SecurityContext.HostPID = true
 			} else {
-				log.Warnf("Ignoring PID key for service \"%v\". Invalid value \"%v\".", name, composeServiceConfig.Pid)
+				logrus.Warnf("Ignoring PID key for service \"%v\". Invalid value \"%v\".", name, composeServiceConfig.Pid)
 			}
 		}
 		securityContext := &core.SecurityContext{}
@@ -187,7 +187,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		if composeServiceConfig.User != "" {
 			uid, err := cast.ToInt64E(composeServiceConfig.User)
 			if err != nil {
-				log.Warn("Ignoring user directive. User to be specified as a UID (numeric).")
+				logrus.Warn("Ignoring user directive. User to be specified as a UID (numeric).")
 			} else {
 				securityContext.RunAsUser = &uid
 			}
@@ -232,7 +232,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 				if composeServiceConfig.Deploy.Resources.Limits.NanoCPUs != "" {
 					cpuLimit, err := cast.ToFloat64E(composeServiceConfig.Deploy.Resources.Limits.NanoCPUs)
 					if err != nil {
-						log.Warnf("Unable to convert cpu limits resources value : %s", err)
+						logrus.Warnf("Unable to convert cpu limits resources value : %s", err)
 					}
 					CPULimit := int64(cpuLimit * 1000)
 					if CPULimit != 0 {
@@ -250,7 +250,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 				if composeServiceConfig.Deploy.Resources.Reservations.NanoCPUs != "" {
 					cpuReservation, err := cast.ToFloat64E(composeServiceConfig.Deploy.Resources.Reservations.NanoCPUs)
 					if err != nil {
-						log.Warnf("Unable to convert cpu limits reservation value : %s", err)
+						logrus.Warnf("Unable to convert cpu limits reservation value : %s", err)
 					}
 					CPUReservation := int64(cpuReservation * 1000)
 					if CPUReservation != 0 {
@@ -265,7 +265,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		if composeServiceConfig.HealthCheck != nil && !composeServiceConfig.HealthCheck.Disable {
 			probe, err := c.getHealthCheck(*composeServiceConfig.HealthCheck)
 			if err != nil {
-				log.Warnf("Unable to parse health check : %s", err)
+				logrus.Warnf("Unable to parse health check : %s", err)
 			} else {
 				serviceContainer.LivenessProbe = &probe
 			}
@@ -275,7 +275,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 			restart = composeServiceConfig.Deploy.RestartPolicy.Condition
 		}
 		if restart == "unless-stopped" {
-			log.Warnf("Restart policy 'unless-stopped' in service %s is not supported, convert it to 'always'", name)
+			logrus.Warnf("Restart policy 'unless-stopped' in service %s is not supported, convert it to 'always'", name)
 			serviceConfig.RestartPolicy = core.RestartPolicyAlways
 		}
 		// replicas:
@@ -342,7 +342,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 			vSrc.Name = common.MakeFileNameCompliant(c.Source)
 			if o, ok := composeObject.Configs[c.Source]; ok {
 				if o.External.External {
-					log.Errorf("Config metadata %s has an external source", c.Source)
+					logrus.Errorf("Config metadata %s has an external source", c.Source)
 				} else {
 					srcBaseName := filepath.Base(o.File)
 					vSrc.Items = []core.KeyToPath{{Key: srcBaseName, Path: filepath.Base(target)}}
@@ -352,7 +352,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 					}
 				}
 			} else {
-				log.Errorf("Unable to find configmap object for %s", vSrc.Name)
+				logrus.Errorf("Unable to find configmap object for %s", vSrc.Name)
 			}
 			serviceConfig.AddVolume(core.Volume{
 				Name:         vSrc.Name,
@@ -373,7 +373,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 				if !filepath.IsAbs(vol.Source) {
 					hPath, err := filepath.Abs(vol.Source)
 					if err != nil {
-						log.Debugf("Could not create an absolute path for [%s]", hPath)
+						logrus.Debugf("Could not create an absolute path for [%s]", hPath)
 					}
 				}
 				// Generate a hash Id for the given source file path to be mounted.
@@ -427,7 +427,7 @@ func (c *V3Loader) getSecretStorages(secrets map[string]types.SecretConfig) []ir
 		if !secretObj.External.External {
 			content, err := ioutil.ReadFile(secretObj.File)
 			if err != nil {
-				log.Warnf("Could not read the secret file [%s]", secretObj.File)
+				logrus.Warnf("Could not read the secret file [%s]", secretObj.File)
 			} else {
 				storage.Content = map[string][]byte{secretName: content}
 			}
@@ -451,19 +451,19 @@ func (c *V3Loader) getConfigStorages(configs map[string]types.ConfigObjConfig) [
 		if !cfgObj.External.External {
 			fileInfo, err := os.Stat(cfgObj.File)
 			if err != nil {
-				log.Warnf("Could not identify the type of secret artifact [%s]. Encountered [%s]", cfgObj.File, err)
+				logrus.Warnf("Could not identify the type of secret artifact [%s]. Encountered [%s]", cfgObj.File, err)
 			} else {
 				if !fileInfo.IsDir() {
 					content, err := ioutil.ReadFile(cfgObj.File)
 					if err != nil {
-						log.Warnf("Could not read the secret file [%s]. Encountered [%s]", cfgObj.File, err)
+						logrus.Warnf("Could not read the secret file [%s]. Encountered [%s]", cfgObj.File, err)
 					} else {
 						storage.Content = map[string][]byte{cfgName: content}
 					}
 				} else {
 					dataMap, err := c.getAllDirContentAsMap(cfgObj.File)
 					if err != nil {
-						log.Warnf("Could not read the secret directory [%s]. Encountered [%s]", cfgObj.File, err)
+						logrus.Warnf("Could not read the secret directory [%s]. Encountered [%s]", cfgObj.File, err)
 					} else {
 						storage.Content = dataMap
 					}
@@ -569,7 +569,7 @@ func (c *V3Loader) getHealthCheck(composeHealthCheck types.HealthCheckConfig) (c
 			},
 		}
 	} else {
-		log.Warnf("Could not find command to execute in probe : %s", composeHealthCheck.Test)
+		logrus.Warnf("Could not find command to execute in probe : %s", composeHealthCheck.Test)
 	}
 	if composeHealthCheck.Timeout != nil {
 		parse, err := time.ParseDuration(composeHealthCheck.Timeout.String())
@@ -624,15 +624,15 @@ func (c *V3Loader) getAllDirContentAsMap(directoryPath string) (map[string][]byt
 			continue
 		}
 		fileName := file.Name()
-		log.Debugf("Reading file into the data map: [%s]", fileName)
+		logrus.Debugf("Reading file into the data map: [%s]", fileName)
 		data, err := ioutil.ReadFile(filepath.Join(directoryPath, fileName))
 		if err != nil {
-			log.Debugf("Unable to read file data : %s", fileName)
+			logrus.Debugf("Unable to read file data : %s", fileName)
 			continue
 		}
 		dataMap[fileName] = data
 		count = count + 1
 	}
-	log.Debugf("Read %d files into the data map", count)
+	logrus.Debugf("Read %d files into the data map", count)
 	return dataMap, nil
 }

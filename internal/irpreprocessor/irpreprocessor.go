@@ -17,9 +17,8 @@ limitations under the License.
 package irpreprocessor
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/sirupsen/logrus"
 )
 
 // irpreprocessor optimizes the configuration
@@ -36,17 +35,17 @@ func getIRPreprocessors() []irpreprocessor {
 // Preprocess preprocesses IR before application artifacts are generated
 func Preprocess(ir irtypes.IR) (irtypes.IR, error) {
 	optimizers := getIRPreprocessors()
-	log.Infoln("Begin Optimization")
+	logrus.Infoln("Begin Optimization")
 	for _, o := range optimizers {
-		log.Debugf("[%T] Begin Optimization", o)
+		logrus.Debugf("[%T] Begin Optimization", o)
 		var err error
 		ir, err = o.preprocess(ir)
 		if err != nil {
-			log.Warnf("[%T] Failed : %s", o, err.Error())
+			logrus.Warnf("[%T] Failed : %s", o, err.Error())
 		} else {
-			log.Debugf("[%T] Done", o)
+			logrus.Debugf("[%T] Done", o)
 		}
 	}
-	log.Infoln("Optimization done")
+	logrus.Infoln("Optimization done")
 	return ir, nil
 }

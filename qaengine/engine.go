@@ -22,7 +22,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Engine defines interface for qa engines
@@ -53,7 +53,7 @@ func StartEngine(qaskip bool, qaport int, qadisablecli bool) {
 // AddEngine appends an engine to the engines slice
 func AddEngine(e Engine) {
 	if err := e.StartEngine(); err != nil {
-		log.Errorf("Ignoring engine %T due to error : %s", e, err)
+		logrus.Errorf("Ignoring engine %T due to error : %s", e, err)
 	} else {
 		engines = append(engines, e)
 	}
@@ -76,7 +76,7 @@ func AddCaches(cacheFiles ...string) {
 	for _, cacheFile := range cacheFiles {
 		e := NewStoreEngineFromCache(cacheFile)
 		if err := AddEngineHighestPriority(e); err != nil {
-			log.Errorf("Ignoring engine %T due to error : %s", e, err)
+			logrus.Errorf("Ignoring engine %T due to error : %s", e, err)
 			continue
 		}
 	}
@@ -104,22 +104,22 @@ func SetupConfigFile(writeConfigFile string, configStrings, configFiles, presets
 	}
 	e := &StoreEngine{store: writeConfig}
 	if err := AddEngineHighestPriority(e); err != nil {
-		log.Errorf("Ignoring engine %T due to error : %s", e, err)
+		logrus.Errorf("Ignoring engine %T due to error : %s", e, err)
 	}
 }
 
 // FetchAnswer fetches the answer for the question
 func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
-	log.Debugf("Fetching answer for problem:\n%v", prob)
+	logrus.Debugf("Fetching answer for problem:\n%v", prob)
 	if prob.Answer != nil {
-		log.Debugf("Problem already solved.")
+		logrus.Debugf("Problem already solved.")
 		return prob, nil
 	}
 	var err error
 	for _, e := range engines {
 		prob, err = e.FetchAnswer(prob)
 		if err != nil {
-			log.Debugf("Error while fetching answer using engine %T Error: %q", e, err)
+			logrus.Debugf("Error while fetching answer using engine %T Error: %q", e, err)
 			continue
 		}
 		if prob.Answer != nil {
@@ -139,7 +139,7 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 		for err != nil || prob.Answer == nil {
 			prob, err = lastEngine.FetchAnswer(prob)
 			if err != nil {
-				log.Errorf("Unable to get answer to %s Error: %q", prob.Desc, err)
+				logrus.Errorf("Unable to get answer to %s Error: %q", prob.Desc, err)
 				continue
 			}
 			if prob.Answer != nil {
@@ -174,7 +174,7 @@ func changeSelectToInputForOther(prob qatypes.Problem) qatypes.Problem {
 		newDesc := string(qatypes.InputSolutionFormType) + " " + prob.Desc
 		newProb, err := qatypes.NewInputProblem(prob.ID, newDesc, nil, "")
 		if err != nil {
-			log.Fatalf("failed to change the QA select type problem to input type problem: %+v\nError: %q", prob, err)
+			logrus.Fatalf("failed to change the QA select type problem to input type problem: %+v\nError: %q", prob, err)
 		}
 		return newProb
 	}
@@ -187,15 +187,15 @@ func changeSelectToInputForOther(prob qatypes.Problem) qatypes.Problem {
 func FetchStringAnswer(probid, desc string, context []string, def string) string {
 	problem, err := qatypes.NewInputProblem(probid, desc, context, def)
 	if err != nil {
-		log.Fatalf("Unable to create problem. Error: %q", err)
+		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
 	problem, err = FetchAnswer(problem)
 	if err != nil {
-		log.Fatalf("Unable to fetch answer. Error: %q", err)
+		logrus.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
 	answer, ok := problem.Answer.(string)
 	if !ok {
-		log.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
+		logrus.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
 	}
 	return answer
 }
@@ -204,15 +204,15 @@ func FetchStringAnswer(probid, desc string, context []string, def string) string
 func FetchBoolAnswer(probid, desc string, context []string, def bool) bool {
 	problem, err := qatypes.NewConfirmProblem(probid, desc, context, def)
 	if err != nil {
-		log.Fatalf("Unable to create problem. Error: %q", err)
+		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
 	problem, err = FetchAnswer(problem)
 	if err != nil {
-		log.Fatalf("Unable to fetch answer. Error: %q", err)
+		logrus.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
 	answer, ok := problem.Answer.(bool)
 	if !ok {
-		log.Fatalf("Answer is not of the correct type. Expected bool. Actual value is %+v of type %T", problem.Answer, problem.Answer)
+		logrus.Fatalf("Answer is not of the correct type. Expected bool. Actual value is %+v of type %T", problem.Answer, problem.Answer)
 	}
 	return answer
 }
@@ -221,15 +221,15 @@ func FetchBoolAnswer(probid, desc string, context []string, def bool) bool {
 func FetchSelectAnswer(probid, desc string, context []string, def string, options []string) string {
 	problem, err := qatypes.NewSelectProblem(probid, desc, context, def, options)
 	if err != nil {
-		log.Fatalf("Unable to create problem. Error: %q", err)
+		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
 	problem, err = FetchAnswer(problem)
 	if err != nil {
-		log.Fatalf("Unable to fetch answer. Error: %q", err)
+		logrus.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
 	answer, ok := problem.Answer.(string)
 	if !ok {
-		log.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
+		logrus.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
 	}
 	return answer
 }
@@ -238,15 +238,15 @@ func FetchSelectAnswer(probid, desc string, context []string, def string, option
 func FetchMultiSelectAnswer(probid, desc string, context, def, options []string) []string {
 	problem, err := qatypes.NewMultiSelectProblem(probid, desc, context, def, options)
 	if err != nil {
-		log.Fatalf("Unable to create problem. Error: %q", err)
+		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
 	problem, err = FetchAnswer(problem)
 	if err != nil {
-		log.Fatalf("Unable to fetch answer. Error: %q", err)
+		logrus.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
 	answer, err := common.ConvertInterfaceToSliceOfStrings(problem.Answer)
 	if err != nil {
-		log.Fatalf("Answer is not of the correct type. Expected array of strings. Error: %q", err)
+		logrus.Fatalf("Answer is not of the correct type. Expected array of strings. Error: %q", err)
 	}
 	return answer
 }
@@ -255,15 +255,15 @@ func FetchMultiSelectAnswer(probid, desc string, context, def, options []string)
 func FetchPasswordAnswer(probid, desc string, context []string) string {
 	problem, err := qatypes.NewPasswordProblem(probid, desc, context)
 	if err != nil {
-		log.Fatalf("Unable to create problem. Error: %q", err)
+		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
 	problem, err = FetchAnswer(problem)
 	if err != nil {
-		log.Fatalf("Unable to fetch answer. Error: %q", err)
+		logrus.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
 	answer, ok := problem.Answer.(string)
 	if !ok {
-		log.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
+		logrus.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
 	}
 	return answer
 }
@@ -272,15 +272,15 @@ func FetchPasswordAnswer(probid, desc string, context []string) string {
 func FetchMultilineAnswer(probid, desc string, context []string, def string) string {
 	problem, err := qatypes.NewMultilineInputProblem(probid, desc, context, def)
 	if err != nil {
-		log.Fatalf("Unable to create problem. Error: %q", err)
+		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
 	problem, err = FetchAnswer(problem)
 	if err != nil {
-		log.Fatalf("Unable to fetch answer. Error: %q", err)
+		logrus.Fatalf("Unable to fetch answer. Error: %q", err)
 	}
 	answer, ok := problem.Answer.(string)
 	if !ok {
-		log.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
+		logrus.Fatalf("Answer is not of the correct type. Expected string. Actual value is %+v of type %T", problem.Answer, problem.Answer)
 	}
 	return answer
 }
@@ -291,7 +291,7 @@ func ValidateProblem(prob qatypes.Problem) error {
 		return fmt.Errorf("the QA problem has an empty key: %+v", prob)
 	}
 	if prob.Desc == "" {
-		log.Warnf("the QA problem has an empty description: %+v", prob)
+		logrus.Warnf("the QA problem has an empty description: %+v", prob)
 	}
 	if prob.Hints != nil {
 		if _, err := common.ConvertInterfaceToSliceOfStrings(prob.Hints); err != nil {
@@ -301,7 +301,7 @@ func ValidateProblem(prob qatypes.Problem) error {
 	switch prob.Type {
 	case qatypes.MultiSelectSolutionFormType:
 		if len(prob.Options) == 0 {
-			log.Debugf("the QA multiselect problem has no options specified: %+v", prob)
+			logrus.Debugf("the QA multiselect problem has no options specified: %+v", prob)
 			if prob.Default != nil {
 				xs, err := common.ConvertInterfaceToSliceOfStrings(prob.Default)
 				if err != nil {
@@ -339,7 +339,7 @@ func ValidateProblem(prob qatypes.Problem) error {
 		}
 	case qatypes.ConfirmSolutionFormType:
 		if len(prob.Options) > 0 {
-			log.Warnf("options are not supported for the QA confirm question type: %+v", prob)
+			logrus.Warnf("options are not supported for the QA confirm question type: %+v", prob)
 		}
 		if prob.Default != nil {
 			if _, ok := prob.Default.(bool); !ok {
@@ -348,11 +348,11 @@ func ValidateProblem(prob qatypes.Problem) error {
 		}
 	case qatypes.InputSolutionFormType, qatypes.MultilineSolutionFormType, qatypes.PasswordSolutionFormType:
 		if len(prob.Options) > 0 {
-			log.Warnf("options are not supported for the QA input/multiline/password question types: %+v", prob)
+			logrus.Warnf("options are not supported for the QA input/multiline/password question types: %+v", prob)
 		}
 		if prob.Default != nil {
 			if prob.Type == qatypes.PasswordSolutionFormType {
-				log.Warnf("default is not supported for the QA password question type: %+v", prob)
+				logrus.Warnf("default is not supported for the QA password question type: %+v", prob)
 			} else {
 				if _, ok := prob.Default.(string); !ok {
 					return fmt.Errorf("expected the default to be a string for the QA input/multiline problem: %+v", prob)

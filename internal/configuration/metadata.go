@@ -14,17 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package metadata
+package configuration
 
 import (
-	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 )
 
 // Loader handles loading of various metadata
 type Loader interface {
 	UpdatePlan(p *plantypes.Plan) error
-	LoadToIR(p plantypes.Plan, ir *irtypes.IR) error
 }
 
 // GetLoaders returns planner for given format

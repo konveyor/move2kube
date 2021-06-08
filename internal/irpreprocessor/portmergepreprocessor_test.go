@@ -23,12 +23,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
+	logus "github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestPortMergeOptimizer(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("IR with no services", func(t *testing.T) {
 		// Setup

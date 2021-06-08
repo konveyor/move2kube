@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 
 	internalcommon "github.com/konveyor/move2kube/internal/common"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -81,20 +81,20 @@ type TranslateFlags struct {
 func CheckSourcePath(srcpath string) {
 	fi, err := os.Stat(srcpath)
 	if os.IsNotExist(err) {
-		log.Fatalf("The given source directory %s does not exist. Error: %q", srcpath, err)
+		logrus.Fatalf("The given source directory %s does not exist. Error: %q", srcpath, err)
 	}
 	if err != nil {
-		log.Fatalf("Error while accessing the given source directory %s Error: %q", srcpath, err)
+		logrus.Fatalf("Error while accessing the given source directory %s Error: %q", srcpath, err)
 	}
 	if !fi.IsDir() {
-		log.Fatalf("The given source path %s is a file. Expected a directory. Exiting.", srcpath)
+		logrus.Fatalf("The given source path %s is a file. Expected a directory. Exiting.", srcpath)
 	}
 	pwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("Failed to get the current working directory. Error: %q", err)
+		logrus.Fatalf("Failed to get the current working directory. Error: %q", err)
 	}
 	if internalcommon.IsParent(pwd, srcpath) {
-		log.Fatalf("The given source directory %s is a parent of the current working directory.", srcpath)
+		logrus.Fatalf("The given source directory %s is a parent of the current working directory.", srcpath)
 	}
 }
 
@@ -102,26 +102,26 @@ func CheckSourcePath(srcpath string) {
 func CheckOutputPath(outpath string, overwrite bool) {
 	fi, err := os.Stat(outpath)
 	if os.IsNotExist(err) {
-		log.Debugf("Translated artifacts will be written to %s", outpath)
+		logrus.Debugf("Translated artifacts will be written to %s", outpath)
 		return
 	}
 	if err != nil {
-		log.Fatalf("Error while accessing output directory at path %s Error: %q . Exiting", outpath, err)
+		logrus.Fatalf("Error while accessing output directory at path %s Error: %q . Exiting", outpath, err)
 	}
 	if !overwrite {
-		log.Fatalf("Output directory %s exists. Exiting", outpath)
+		logrus.Fatalf("Output directory %s exists. Exiting", outpath)
 	}
 	if !fi.IsDir() {
-		log.Fatalf("Output path %s is a file. Expected a directory. Exiting", outpath)
+		logrus.Fatalf("Output path %s is a file. Expected a directory. Exiting", outpath)
 	}
 	pwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("Failed to get the current working directory. Error: %q", err)
+		logrus.Fatalf("Failed to get the current working directory. Error: %q", err)
 	}
 	if internalcommon.IsParent(pwd, outpath) {
-		log.Fatalf("The given output directory %s is a parent of the current working directory.", outpath)
+		logrus.Fatalf("The given output directory %s is a parent of the current working directory.", outpath)
 	}
-	log.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
+	logrus.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
 }
 
 // NormalizePaths cleans the paths and makes them absolute
@@ -135,9 +135,9 @@ func NormalizePaths(paths []string) ([]string, error) {
 		finfo, err := os.Stat(newPath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				log.Errorf("The path %s does not exist.", newPath)
+				logrus.Errorf("The path %s does not exist.", newPath)
 			} else {
-				log.Errorf("Failed to access the path %s . Error: %q", newPath, err)
+				logrus.Errorf("Failed to access the path %s . Error: %q", newPath, err)
 			}
 			continue
 		}
@@ -155,7 +155,7 @@ func NormalizePaths(paths []string) ([]string, error) {
 			return nil
 		})
 		if err != nil {
-			log.Warnf("Failed to walk through the files in the directory %s . Error: %q", newPath, err)
+			logrus.Warnf("Failed to walk through the files in the directory %s . Error: %q", newPath, err)
 		}
 	}
 	return newPaths, nil

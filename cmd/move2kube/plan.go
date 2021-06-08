@@ -26,7 +26,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/qaengine"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -54,19 +54,19 @@ func planHandler(flags planFlags) {
 
 	planfile, err = filepath.Abs(planfile)
 	if err != nil {
-		log.Fatalf("Failed to make the plan file path %q absolute. Error: %q", planfile, err)
+		logrus.Fatalf("Failed to make the plan file path %q absolute. Error: %q", planfile, err)
 	}
 	srcpath, err = filepath.Abs(srcpath)
 	if err != nil {
-		log.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
+		logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
 	}
 	// TODO: should we normalize the project name?
 	fi, err := os.Stat(srcpath)
 	if err != nil {
-		log.Fatalf("Unable to access source directory : %s", err)
+		logrus.Fatalf("Unable to access source directory : %s", err)
 	}
 	if !fi.IsDir() {
-		log.Fatalf("Input is a file, expected directory: %s", srcpath)
+		logrus.Fatalf("Input is a file, expected directory: %s", srcpath)
 	}
 	fi, err = os.Stat(planfile)
 	if os.IsNotExist(err) {
@@ -76,7 +76,7 @@ func planHandler(flags planFlags) {
 			planfile = filepath.Join(planfile, common.DefaultPlanFile)
 		}
 	} else if err != nil {
-		log.Fatalf("Error while accessing plan file path %s : %s ", planfile, err)
+		logrus.Fatalf("Error while accessing plan file path %s : %s ", planfile, err)
 	} else if fi.IsDir() {
 		planfile = filepath.Join(planfile, common.DefaultPlanFile)
 	}
@@ -84,10 +84,10 @@ func planHandler(flags planFlags) {
 	qaengine.SetupConfigFile("", flags.setconfigs, flags.configs, flags.preSets)
 	p := move2kube.CreatePlan(srcpath, configurationsPath, name)
 	if err = plantypes.WritePlan(planfile, p); err != nil {
-		log.Errorf("Unable to write plan file (%s) : %s", planfile, err)
+		logrus.Errorf("Unable to write plan file (%s) : %s", planfile, err)
 		return
 	}
-	log.Infof("Plan can be found at [%s].", planfile)
+	logrus.Infof("Plan can be found at [%s].", planfile)
 }
 
 func getPlanCommand() *cobra.Command {

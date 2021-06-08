@@ -18,7 +18,7 @@ package fixer
 
 import (
 	"github.com/konveyor/move2kube/internal/k8sschema"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -39,20 +39,20 @@ func Fix(obj runtime.Object) runtime.Object {
 	for _, fixer := range fixers {
 		fgvk := fixer.getGroupVersionKind()
 		if fgvk.Kind == obj.GetObjectKind().GroupVersionKind().Kind {
-			log.Debugf("Running fixer %T", fixer)
+			logrus.Debugf("Running fixer %T", fixer)
 			newobj, err := k8sschema.ConvertToVersion(obj, fgvk.GroupVersion())
 			if err != nil {
-				log.Errorf("Unable to convert to %s for fixer %T", fgvk, fixer)
+				logrus.Errorf("Unable to convert to %s for fixer %T", fgvk, fixer)
 				continue
 			}
 			newobj, err = fixer.fix(newobj)
 			if err != nil {
-				log.Errorf("Unable to fix %s using fixer %T : %s", fgvk, fixer, err)
+				logrus.Errorf("Unable to fix %s using fixer %T : %s", fgvk, fixer, err)
 				continue
 			}
 			newobj, err = k8sschema.ConvertToVersion(newobj, objgv)
 			if err != nil {
-				log.Errorf("Unable to convert back %s : %s", fgvk, err)
+				logrus.Errorf("Unable to convert back %s : %s", fgvk, err)
 				continue
 			}
 			obj = newobj

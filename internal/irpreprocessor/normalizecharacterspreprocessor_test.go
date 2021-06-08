@@ -22,12 +22,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 func TestStripQuotation(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("strip matching single quotation marks from input string", func(t *testing.T) {
 		// Setup
@@ -67,7 +67,7 @@ func TestStripQuotation(t *testing.T) {
 }
 
 func TestOptimize(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("IR with no services", func(t *testing.T) {
 		// Setup

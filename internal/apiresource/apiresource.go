@@ -26,7 +26,7 @@ import (
 	"github.com/konveyor/move2kube/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -54,18 +54,18 @@ type APIResource struct {
 // ConvertIRToObjects converts IR to a runtime objects
 func (o *APIResource) ConvertIRToObjects(ir irtypes.EnhancedIR) (newObjs, ignoredObjs []runtime.Object) {
 	ignoredResources := []runtime.Object{}
-	for _, obj := range ir.CachedObjects {
+	for _, obj := range ir.KubernetesObjects {
 		if obj == nil {
 			continue
 		}
-		if !o.loadResource(obj, ir.CachedObjects, ir) {
+		if !o.loadResource(obj, ir.KubernetesObjects, ir) {
 			ignoredResources = append(ignoredResources, obj)
 		}
 	}
 	objs := o.createNewResources(ir, o.getClusterSupportedKinds(ir.TargetClusterSpec))
 	for _, obj := range objs {
 		if !o.loadResource(obj, objs, ir) {
-			log.Errorf("Object created seems to be of an incompatible type : %+v [Supported Types: %+v]", obj.GetObjectKind(), o.getSupportedKinds())
+			logrus.Errorf("Object created seems to be of an incompatible type : %+v [Supported Types: %+v]", obj.GetObjectKind(), o.getSupportedKinds())
 		}
 	}
 	return o.cachedobjs, ignoredResources
@@ -151,7 +151,7 @@ func (*APIResource) getObjectID(obj runtime.Object) string {
 	k8sObjValue := reflect.ValueOf(obj).Elem()
 	objMeta, ok := k8sObjValue.FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
 	if !ok {
-		log.Errorf("Failed to retrieve object metadata")
+		logrus.Errorf("Failed to retrieve object metadata")
 	}
 	return objMeta.GetNamespace() + objMeta.GetName()
 }
@@ -177,27 +177,27 @@ func (o *APIResource) deepMerge(x, y runtime.Object) (runtime.Object, error) {
 	xGVK := x.GetObjectKind().GroupVersionKind()
 	yGVK := y.GetObjectKind().GroupVersionKind()
 	if xGVK.Kind != yGVK.Kind {
-		log.Errorf("Attempting to merge to different kinds : %s & %s", xGVK.Kind, yGVK.Kind)
+		logrus.Errorf("Attempting to merge to different kinds : %s & %s", xGVK.Kind, yGVK.Kind)
 	}
 	newx, err := k8sschema.ConvertToVersion(x, yGVK.GroupVersion())
 	if err != nil {
-		log.Errorf("Unable to convert version : %s. Will try to merge two different versions", err)
+		logrus.Errorf("Unable to convert version : %s. Will try to merge two different versions", err)
 	} else {
 		x = newx
 	}
 	xJSON, err := json.Marshal(x)
 	if err != nil {
-		log.Errorf("Merge failed. Failed to marshal the first object %v to json. Error: %q", x, err)
+		logrus.Errorf("Merge failed. Failed to marshal the first object %v to json. Error: %q", x, err)
 		return nil, err
 	}
 	yJSON, err := json.Marshal(y)
 	if err != nil {
-		log.Errorf("Merge failed. Failed to marshal the second object %v to json. Error: %q", y, err)
+		logrus.Errorf("Merge failed. Failed to marshal the second object %v to json. Error: %q", y, err)
 		return nil, err
 	}
 	mergedJSON, err := strategicpatch.StrategicMergePatch(xJSON, yJSON, x) // need to provide in reverse for proper ordering
 	if err != nil {
-		log.Errorf("Failed to merge the objects \n%s\n and \n%s\n Error: %q", xJSON, yJSON, err)
+		logrus.Errorf("Failed to merge the objects \n%s\n and \n%s\n Error: %q", xJSON, yJSON, err)
 		return nil, err
 	}
 	codecs := serializer.NewCodecFactory(k8sschema.GetSchema())
@@ -205,7 +205,7 @@ func (o *APIResource) deepMerge(x, y runtime.Object) (runtime.Object, error) {
 
 	if newGVK == nil || *newGVK != yGVK {
 		err := fmt.Errorf("the group version kind after merging is different from before merging. original: %v new: %v", yGVK, newGVK)
-		log.Error(err)
+		logrus.Error(err)
 		return obj, err
 	}
 	return obj, err

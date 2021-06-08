@@ -23,7 +23,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -79,7 +79,7 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 			continue
 		}
 		if container.ContainerBuildType == plantypes.ManualContainerBuildTypeValue || container.ContainerBuildType == plantypes.ReuseContainerBuildTypeValue {
-			log.Debugf("Manual or reuse containerization. We will skip this for CICD.")
+			logrus.Debugf("Manual or reuse containerization. We will skip this for CICD.")
 			continue
 		}
 		if container.ContainerBuildType == plantypes.DockerFileContainerBuildTypeValue || container.ContainerBuildType == plantypes.ReuseDockerFileContainerBuildTypeValue {
@@ -118,7 +118,7 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 				relDockerfilePath, err := filepath.Rel(container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath)
 				if err != nil {
 					// TODO: Bump up the error after fixing abs path, rel path issues
-					log.Debugf("ERROR: Failed to make the path %q relative to the path %q Error %q", container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath, err)
+					logrus.Debugf("ERROR: Failed to make the path %q relative to the path %q Error %q", container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath, err)
 				} else {
 					dockerfilePath = relDockerfilePath
 					// We can't figure out the context from the source. So assume the context is the directory containing the dockerfile.
@@ -145,12 +145,12 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 			prevTaskName = buildPushTaskName
 		} else if container.ContainerBuildType == plantypes.S2IContainerBuildTypeValue {
 			// TODO: Implement support for S2I
-			log.Debugf("S2I not yet supported for Tekton")
+			logrus.Debugf("S2I not yet supported for Tekton")
 		} else if container.ContainerBuildType == plantypes.CNBContainerBuildTypeValue {
 			// TODO: Implement support for CNB
-			log.Debugf("CNB not yet supported for Tekton")
+			logrus.Debugf("CNB not yet supported for Tekton")
 		} else {
-			log.Errorf("Unknown containerization method: %v", container.ContainerBuildType)
+			logrus.Errorf("Unknown containerization method: %v", container.ContainerBuildType)
 		}
 	}
 	pipeline.Spec.Tasks = tasks

@@ -27,7 +27,7 @@ import (
 	sourcetypes "github.com/konveyor/move2kube/internal/collector/sourcetypes"
 	"github.com/konveyor/move2kube/internal/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
 
@@ -47,14 +47,14 @@ func (c *ImagesCollector) Collect(inputDirectory string, outputPath string) erro
 	outputPath = filepath.Join(outputPath, "images")
 	err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission)
 	if err != nil {
-		log.Errorf("Unable to create output directory %s : %s", outputPath, err)
+		logrus.Errorf("Unable to create output directory %s : %s", outputPath, err)
 		return err
 	}
 	imageNames, err := getImageNames(inputDirectory)
 	if err != nil {
 		return err
 	}
-	log.Debugf("Images : %s", imageNames)
+	logrus.Debugf("Images : %s", imageNames)
 	for _, imageName := range imageNames {
 		imagedata, err := getDockerInspectResult(imageName)
 		if err != nil {
@@ -74,7 +74,7 @@ func (c *ImagesCollector) Collect(inputDirectory string, outputPath string) erro
 			}
 			imagefile := filepath.Join(outputPath, common.NormalizeForFilename(shortesttag)+".yaml")
 			err := common.WriteYaml(imagefile, imageInfo)
-			log.Errorf("Unable to write file %s : %s", imagefile, err)
+			logrus.Errorf("Unable to write file %s : %s", imagefile, err)
 		}
 	}
 
@@ -86,13 +86,13 @@ func getDockerInspectResult(imageName string) ([]byte, error) {
 	jsonOutput, err := cmd.CombinedOutput()
 	if err != nil {
 		if strings.Contains(string(jsonOutput), "permission denied") {
-			log.Warnf("Error while running docker-inspect due to lack of permissions")
-			log.Warnf("Please refer to [https://docs.docker.com/engine/install/linux-postinstall/] to fix this issue")
+			logrus.Warnf("Error while running docker-inspect due to lack of permissions")
+			logrus.Warnf("Please refer to [https://docs.docker.com/engine/install/linux-postinstall/] to fix this issue")
 		} else if strings.Contains(string(jsonOutput), "No such object") {
-			log.Warnf("Image [%s] not available in local image repo. Run \"docker pull %s\"", imageName, imageName)
+			logrus.Warnf("Image [%s] not available in local image repo. Run \"docker pull %s\"", imageName, imageName)
 			return nil, nil
 		} else {
-			log.Warnf("Error while running docker-inspect: %s", err)
+			logrus.Warnf("Error while running docker-inspect: %s", err)
 		}
 		return nil, err
 	}
@@ -104,13 +104,13 @@ func getImageInfo(data []byte) collecttypes.ImageInfo {
 	imgLayerInfo := []sourcetypes.DockerImage{}
 	err := json.Unmarshal(data, &imgLayerInfo)
 	if err != nil {
-		log.Errorf("Unable to unmarshal image info : %s", err)
+		logrus.Errorf("Unable to unmarshal image info : %s", err)
 	}
 	for _, image := range imgLayerInfo {
 		imageInfo.Spec.Tags = image.RepoTags
 		imageInfo.Spec.UserID, err = cast.ToIntE(image.CConfig.User)
 		if err != nil {
-			log.Debugf("UserID not available in image metadata for [%s]", image.RepoTags[0])
+			logrus.Debugf("UserID not available in image metadata for [%s]", image.RepoTags[0])
 			imageInfo.Spec.UserID = -1
 		}
 		imageInfo.Spec.AccessedDirs = append(imageInfo.Spec.AccessedDirs, image.CConfig.WorkingDir)
@@ -118,7 +118,7 @@ func getImageInfo(data []byte) collecttypes.ImageInfo {
 			regex := regexp.MustCompile("[0-9]+")
 			portNumber, err := cast.ToIntE(string(regex.FindAll([]byte(key), -1)[0]))
 			if err != nil {
-				log.Debugf("PortNumber not available in image metadata for [%s]", image.RepoTags[0])
+				logrus.Debugf("PortNumber not available in image metadata for [%s]", image.RepoTags[0])
 			} else {
 				imageInfo.Spec.PortsToExpose = append(imageInfo.Spec.PortsToExpose, portNumber)
 			}
@@ -138,14 +138,14 @@ func getAllImageNames() ([]string, error) {
 	cmd := exec.Command("bash", "-c", "docker image list --format '{{.Repository}}:{{.Tag}}'")
 	outputStr, err := cmd.Output()
 	if err != nil {
-		log.Warnf("Error while running docker image list : %s", err)
+		logrus.Warnf("Error while running docker image list : %s", err)
 		return nil, err
 	}
 	images := strings.Split(string(outputStr), "\n")
 	cleanimages := []string{}
 	for _, image := range images {
 		if strings.HasPrefix(image, "<none>") || strings.HasSuffix(image, "<none>") {
-			log.Debugf("Ignore image with <none> : %s", image)
+			logrus.Debugf("Ignore image with <none> : %s", image)
 			continue
 		}
 	}
@@ -156,7 +156,7 @@ func getDCImageNames(directorypath string) ([]string, error) {
 	var imageNames []string
 	files, err := common.GetFilesByExt(directorypath, []string{".yml", ".yaml"})
 	if err != nil {
-		log.Warnf("Unable to fetch yaml files and recognize Docker image yamls : %s", err)
+		logrus.Warnf("Unable to fetch yaml files and recognize Docker image yamls : %s", err)
 	}
 	for _, path := range files {
 		dc := sourcetypes.DockerCompose{}

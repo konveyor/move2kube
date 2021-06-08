@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -76,7 +76,7 @@ func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx conte
 }
 
 func recurse(value reflect.Value, ctx context) error {
-	//log.Debugf("type [%v] ctx [%v]\n", value.Type(), ctx)
+	//logrus.Debugf("type [%v] ctx [%v]\n", value.Type(), ctx)
 	switch value.Kind() {
 	case reflect.String:
 		if !ctx.ShouldConvert {
@@ -150,7 +150,7 @@ func recurse(value reflect.Value, ctx context) error {
 func convertPathsDecode(plan *Plan) error {
 	rootDir, err := filepath.Abs(plan.Spec.RootDir)
 	if err != nil {
-		log.Errorf("Failed to make the root directory path %q absolute. Error %q", plan.Spec.RootDir, err)
+		logrus.Errorf("Failed to make the root directory path %q absolute. Error %q", plan.Spec.RootDir, err)
 		return err
 	}
 	plan.Spec.RootDir = rootDir
@@ -164,17 +164,17 @@ func convertPathsEncode(plan *Plan) error {
 	ctx := context{Convert: plan.GetRelativePath}
 	planV := reflect.ValueOf(plan).Elem()
 	if err := recurse(planV, ctx); err != nil {
-		log.Errorf("Error while converting absolute paths to relative. Error: %q", err)
+		logrus.Errorf("Error while converting absolute paths to relative. Error: %q", err)
 	}
 
 	pwd, err := os.Getwd()
 	if err != nil {
-		log.Errorf("Failed to get the current working directory. Error %q", err)
+		logrus.Errorf("Failed to get the current working directory. Error %q", err)
 		return err
 	}
 	rootDir, err := filepath.Rel(pwd, plan.Spec.RootDir)
 	if err != nil {
-		log.Errorf("Failed to make the root directory path %q relative to the current working directory %q Error %q", rootDir, pwd, err)
+		logrus.Errorf("Failed to make the root directory path %q relative to the current working directory %q Error %q", rootDir, pwd, err)
 		return err
 	}
 	plan.Spec.RootDir = rootDir
@@ -185,7 +185,7 @@ func convertPathsEncode(plan *Plan) error {
 func ReadPlan(path string) (Plan, error) {
 	plan := Plan{}
 	if err := common.ReadMove2KubeYaml(path, &plan); err != nil {
-		log.Errorf("Failed to load the plan file at path %q Error %q", path, err)
+		logrus.Errorf("Failed to load the plan file at path %q Error %q", path, err)
 		return plan, err
 	}
 
@@ -200,7 +200,7 @@ func (plan *Plan) Copy() (Plan, error) {
 	copy := Plan{}
 	planBytes, err := yaml.Marshal(plan)
 	if err != nil {
-		log.Errorf("Failed to marshal the plan to yaml. Error: %q", err)
+		logrus.Errorf("Failed to marshal the plan to yaml. Error: %q", err)
 		return copy, err
 	}
 	err = yaml.Unmarshal(planBytes, &copy)
@@ -211,7 +211,7 @@ func (plan *Plan) Copy() (Plan, error) {
 func WritePlan(path string, plan Plan) error {
 	copy, err := plan.Copy()
 	if err != nil {
-		log.Errorf("Failed to create a copy of the plan before writing. Error: %q", err)
+		logrus.Errorf("Failed to create a copy of the plan before writing. Error: %q", err)
 		return err
 	}
 	if err := convertPathsEncode(&copy); err != nil {
@@ -262,7 +262,7 @@ func (plan *Plan) GetRelativePath(absPath string) (string, error) {
 		return absPath, nil
 	}
 	if !filepath.IsAbs(absPath) {
-		log.Debugf("The input path %q is not an absolute path. Cannot make it relative to the root directory.", absPath)
+		logrus.Debugf("The input path %q is not an absolute path. Cannot make it relative to the root directory.", absPath)
 		return absPath, nil
 	}
 	if IsAssetsPath(absPath) {
@@ -278,7 +278,7 @@ func (plan *Plan) GetAbsolutePath(relPath string) (string, error) {
 		return relPath, nil
 	}
 	if filepath.IsAbs(relPath) {
-		log.Debugf("The input path %q is not an relative path. Cannot make it absolute.", relPath)
+		logrus.Debugf("The input path %q is not an relative path. Cannot make it absolute.", relPath)
 		return relPath, nil
 	}
 	if IsAssetsPath(relPath) {

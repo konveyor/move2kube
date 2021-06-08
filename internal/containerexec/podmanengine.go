@@ -22,7 +22,7 @@ import (
 	"os/exec"
 
 	"github.com/docker/docker/api/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type podmanEngine struct {
@@ -38,16 +38,16 @@ func newPodmanEngine() *podmanEngine {
 // InspectImage returns inspect output for an image using Podman
 func (e *podmanEngine) InspectImage(image string) (t types.ImageInspect, err error) {
 	inspectcmd := exec.Command("podman", "inspect", image)
-	log.Debugf("Inspecting image %s", image)
+	logrus.Debugf("Inspecting image %s", image)
 	output, err := inspectcmd.CombinedOutput()
 	if err != nil {
-		log.Debugf("Unable to inspect image %s : %s, %s", image, err, output)
+		logrus.Debugf("Unable to inspect image %s : %s, %s", image, err, output)
 		return t, err
 	}
 	t = types.ImageInspect{}
 	err = json.Unmarshal(output, &t)
 	if err != nil {
-		log.Debugf("Error in unmarshalling json %s: %s.", output, err)
+		logrus.Debugf("Error in unmarshalling json %s: %s.", output, err)
 	}
 	return t, err
 }
@@ -57,10 +57,10 @@ func (e *podmanEngine) pullImage(image string) bool {
 		return a
 	}
 	pullcmd := exec.Command("podman", "pull", image)
-	log.Debugf("Pulling image %s", image)
+	logrus.Debugf("Pulling image %s", image)
 	output, err := pullcmd.CombinedOutput()
 	if err != nil {
-		log.Warnf("Error while pulling builder %s : %s : %s", image, err, output)
+		logrus.Warnf("Error while pulling builder %s : %s : %s", image, err, output)
 		e.availableImages[image] = false
 		return false
 	}
@@ -71,7 +71,7 @@ func (e *podmanEngine) pullImage(image string) bool {
 // RunContainer executes a container using podman
 func (e *podmanEngine) RunContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error) {
 	if !e.pullImage(image) {
-		log.Debugf("Unable to pull image using podman : %s", image)
+		logrus.Debugf("Unable to pull image using podman : %s", image)
 		return "", false, fmt.Errorf("unable to pull image")
 	}
 	args := []string{"run", "--rm"}
@@ -83,10 +83,10 @@ func (e *podmanEngine) RunContainer(image string, cmd string, volsrc string, vol
 		args = append(args, cmd)
 	}
 	detectcmd := exec.Command("podman", args...)
-	log.Debugf("Running detect on image %s", image)
+	logrus.Debugf("Running detect on image %s", image)
 	o, err := detectcmd.CombinedOutput()
 	if err != nil {
-		log.Debugf("Detect failed %s : %s : %s", image, err, output)
+		logrus.Debugf("Detect failed %s : %s : %s", image, err, output)
 		return string(o), false, err
 	}
 	return string(o), true, nil

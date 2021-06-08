@@ -20,7 +20,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -116,7 +116,7 @@ func (s *Storage) createPVC(st irtypes.Storage) *core.PersistentVolumeClaim {
 		Spec: st.PersistentVolumeClaimSpec,
 	}
 
-	log.Debugf("%+v", st.PersistentVolumeClaimSpec)
+	logrus.Debugf("%+v", st.PersistentVolumeClaimSpec)
 	return pvc
 }
 
@@ -187,7 +187,7 @@ func convertVolumeBySupportedKind(volume core.Volume, cluster collecttypes.Clust
 		//PVC -> Empty (If PVC not available)
 		if cluster.GetSupportedVersions(string(irtypes.PVCKind)) == nil {
 			vEmpty := convertPVCVolumeToEmptyVolume(volume)
-			log.Warnf("PVC not supported in target cluster. Defaulting volume [%s] to emptyDir", volume.Name)
+			logrus.Warnf("PVC not supported in target cluster. Defaulting volume [%s] to emptyDir", volume.Name)
 			return *vEmpty
 
 		}
@@ -196,7 +196,7 @@ func convertVolumeBySupportedKind(volume core.Volume, cluster collecttypes.Clust
 	if volume.VolumeSource.HostPath != nil || volume.VolumeSource.EmptyDir != nil {
 		return volume
 	}
-	log.Warnf("Unsupported storage type (volume) detected")
+	logrus.Warnf("Unsupported storage type (volume) detected")
 
 	return core.Volume{}
 }

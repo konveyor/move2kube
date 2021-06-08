@@ -25,7 +25,7 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // TarAsString converts a directory into a string
@@ -69,7 +69,7 @@ func TarAsString(path string, ignorefiles []string) (string, error) {
 		return nil
 	})
 	if err != nil {
-		log.Warnf("Failed to create tar string: %s : %s", path, err)
+		logrus.Warnf("Failed to create tar string: %s : %s", path, err)
 	}
 	return base64.StdEncoding.EncodeToString(buf.Bytes()), err
 }
@@ -78,7 +78,7 @@ func TarAsString(path string, ignorefiles []string) (string, error) {
 func UnTarString(tarstring string, path string) (err error) {
 	val, err := base64.StdEncoding.DecodeString(tarstring)
 	if err != nil {
-		log.Errorf("Unable to decode tarstring : %s", err)
+		logrus.Errorf("Unable to decode tarstring : %s", err)
 		return err
 	}
 	tr := tar.NewReader(bytes.NewReader(val))

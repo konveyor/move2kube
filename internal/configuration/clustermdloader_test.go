@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package metadata_test
+package configuration_test
 
 import (
 	"path/filepath"
@@ -22,21 +22,20 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/metadata"
+	"github.com/konveyor/move2kube/internal/configuration"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func TestUpdatePlan(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("update plan when there are no files", func(t *testing.T) {
 		// Setup
 		p := plantypes.NewPlan()
 		want := plantypes.NewPlan()
-		loader := metadata.ClusterMDLoader{}
+		loader := configuration.ClusterMDLoader{}
 
 		// Test
 		if err := loader.UpdatePlan(&p); err != nil {
@@ -49,7 +48,7 @@ func TestUpdatePlan(t *testing.T) {
 
 	t.Run("check if all clusters in constant were loaded", func(t *testing.T) {
 		p := plantypes.NewPlan()
-		cmMap := new(metadata.ClusterMDLoader).GetClusters(p)
+		cmMap := new(configuration.ClusterMDLoader).GetClusters(p)
 
 		relInputPath := "clusters/"
 		inputPath, err := filepath.Abs(relInputPath)
@@ -103,7 +102,7 @@ func TestUpdatePlan(t *testing.T) {
 		// Setup
 		p := plantypes.NewPlan()
 		want := plantypes.NewPlan()
-		loader := metadata.ClusterMDLoader{}
+		loader := configuration.ClusterMDLoader{}
 
 		// Test
 		if err := loader.UpdatePlan(&p); err != nil {
@@ -118,7 +117,7 @@ func TestUpdatePlan(t *testing.T) {
 		// Setup
 		p := plantypes.NewPlan()
 		want := plantypes.NewPlan()
-		loader := metadata.ClusterMDLoader{}
+		loader := configuration.ClusterMDLoader{}
 
 		// Test
 		if err := loader.UpdatePlan(&p); err != nil {
@@ -135,7 +134,7 @@ func TestUpdatePlan(t *testing.T) {
 		want := plantypes.NewPlan()
 		want.Spec.Configuration.TargetClusters = map[string]string{"name1": "testdata/validfiles/test1.yaml", "name2": "testdata/validfiles/test2.yml"}
 		want.Spec.TargetCluster = plantypes.TargetClusterType{Type: "name1"}
-		loader := metadata.ClusterMDLoader{}
+		loader := configuration.ClusterMDLoader{}
 
 		// Test
 		if err := loader.UpdatePlan(&p); err != nil {
@@ -147,25 +146,12 @@ func TestUpdatePlan(t *testing.T) {
 	})
 }
 
-func TestLoadToIR(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
-
-	t.Run("load IR with an empty plan", func(t *testing.T) {
-		p := plantypes.NewPlan()
-		ir := irtypes.NewIR(p)
-		loader := metadata.ClusterMDLoader{}
-		if err := loader.LoadToIR(p, &ir); err != nil {
-			t.Fatal("Failed to load IR. Error:", err)
-		}
-	})
-}
-
 func TestGetClusters(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("check default cluster type is valid", func(t *testing.T) {
 		p := plantypes.NewPlan()
-		loader := metadata.ClusterMDLoader{}
+		loader := configuration.ClusterMDLoader{}
 		cmMap := loader.GetClusters(p)
 		if _, ok := cmMap[common.DefaultClusterType]; !ok {
 			t.Fatal("Missing builtin "+common.DefaultClusterType+" cluster metadata. The returned cluster info:", cmMap)
@@ -174,7 +160,7 @@ func TestGetClusters(t *testing.T) {
 
 	t.Run("get clusters from an empty plan", func(t *testing.T) {
 		p := plantypes.NewPlan()
-		loader := metadata.ClusterMDLoader{}
+		loader := configuration.ClusterMDLoader{}
 		cmMap := loader.GetClusters(p)
 		if _, ok := cmMap[common.DefaultClusterType]; !ok {
 			t.Fatal("Missing builtin "+common.DefaultClusterType+" cluster metadata. The returned cluster info:", cmMap)
@@ -208,7 +194,7 @@ func TestGetClusters(t *testing.T) {
 	t.Run("get clusters from a filled plan", func(t *testing.T) {
 		p := plantypes.NewPlan()
 		p.Spec.Configuration.TargetClusters = map[string]string{"name1": "testdata/validfiles/test1.yaml", "name2": "testdata/validfiles/test2.yml"}
-		loader := metadata.ClusterMDLoader{}
+		loader := configuration.ClusterMDLoader{}
 		cmMap := loader.GetClusters(p)
 		if _, ok := cmMap["IBM-IKS"]; !ok {
 			t.Fatal("Missing builtin IBM-IKS cluster metadata. The returned cluster info:", cmMap)
@@ -233,7 +219,7 @@ func TestGetClusters(t *testing.T) {
 	t.Run("get clusters from a filled plan", func(t *testing.T) {
 		p := plantypes.NewPlan()
 		p.Spec.Configuration.TargetClusters = map[string]string{"name1": "testdata/validfilesnostorageclasses/test1.yaml", "name2": "testdata/validfilesnostorageclasses/test2.yml"}
-		loader := metadata.ClusterMDLoader{}
+		loader := configuration.ClusterMDLoader{}
 		cmMap := loader.GetClusters(p)
 		if _, ok := cmMap["IBM-IKS"]; !ok {
 			t.Fatal("Missing builtin IBM-IKS cluster metadata. The returned cluster info:", cmMap)

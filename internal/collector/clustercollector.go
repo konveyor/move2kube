@@ -30,7 +30,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	cgdiscovery "k8s.io/client-go/discovery"
@@ -55,18 +55,18 @@ func (c *ClusterCollector) Collect(inputPath string, outputPath string) error {
 	outputPath = filepath.Join(outputPath, "clusters")
 	err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission)
 	if err != nil {
-		log.Errorf("Unable to create output directory at path %q Error: %q", outputPath, err)
+		logrus.Errorf("Unable to create output directory at path %q Error: %q", outputPath, err)
 		return err
 	}
 	cmd := c.getClusterCommand()
 	if cmd == "" {
 		errStr := "no kubectl or oc in path. Add kubectl to path and rerun to collect data about the cluster in context"
-		log.Warnf(errStr)
+		logrus.Warnf(errStr)
 		return fmt.Errorf(errStr)
 	}
 	name, err := c.getClusterContextName()
 	if err != nil {
-		log.Warnf("Unable to access cluster in context : %s", err)
+		logrus.Warnf("Unable to access cluster in context : %s", err)
 		return err
 	}
 	clusterMd := collecttypes.NewClusterMetadata(name)
@@ -77,10 +77,10 @@ func (c *ClusterCollector) Collect(inputPath string, outputPath string) error {
 
 	clusterMd.Spec.APIKindVersionMap, err = c.collectUsingAPI()
 	if err != nil {
-		log.Warnf("Failed to collect using the API. Error: %q . Falling back to using the CLI.", err)
+		logrus.Warnf("Failed to collect using the API. Error: %q . Falling back to using the CLI.", err)
 		clusterMd.Spec.APIKindVersionMap, err = c.collectUsingCLI()
 		if err != nil {
-			log.Warnf("Failed to collect using the CLI. Error: %q", err)
+			logrus.Warnf("Failed to collect using the CLI. Error: %q", err)
 			return err
 		}
 	}
@@ -103,7 +103,7 @@ func (c *ClusterCollector) getClusterCommand() string {
 		c.clusterCmd = cmd
 		return c.clusterCmd
 	}
-	log.Warnf("Unable to find the %s command. Error: %q", cmd, err)
+	logrus.Warnf("Unable to find the %s command. Error: %q", cmd, err)
 
 	cmd = "oc"
 	_, err = exec.LookPath(cmd)
@@ -111,7 +111,7 @@ func (c *ClusterCollector) getClusterCommand() string {
 		c.clusterCmd = cmd
 		return c.clusterCmd
 	}
-	log.Warnf("Unable to find the %s command. Error: %q", cmd, err)
+	logrus.Warnf("Unable to find the %s command. Error: %q", cmd, err)
 
 	return ""
 }
@@ -129,9 +129,9 @@ func (c *ClusterCollector) getStorageClasses() ([]string, error) {
 	if err != nil {
 		errDesc := c.interpretError(string(yamlOutput))
 		if errDesc != "" {
-			log.Warnf("Error while running %s. %s", ccmd, errDesc)
+			logrus.Warnf("Error while running %s. %s", ccmd, errDesc)
 		} else {
-			log.Warnf("Error while fetching storage classes using command [%s]", cmd)
+			logrus.Warnf("Error while fetching storage classes using command [%s]", cmd)
 		}
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (c *ClusterCollector) getStorageClasses() ([]string, error) {
 	fileContents := map[string]interface{}{}
 	err = yaml.Unmarshal(yamlOutput, &fileContents)
 	if err != nil {
-		log.Errorf("Error in unmarshalling yaml: %s. Skipping.", err)
+		logrus.Errorf("Error in unmarshalling yaml: %s. Skipping.", err)
 		return nil, err
 	}
 
@@ -150,7 +150,7 @@ func (c *ClusterCollector) getStorageClasses() ([]string, error) {
 		if mapSC, ok := sc.(map[string]interface{}); ok {
 			storageClasses = append(storageClasses, mapSC["metadata"].(map[string]interface{})["name"].(string))
 		} else {
-			log.Warnf("Unknown type detected in cluster metadata [%T]", mapSC)
+			logrus.Warnf("Unknown type detected in cluster metadata [%T]", mapSC)
 		}
 	}
 
@@ -179,7 +179,7 @@ func (c *ClusterCollector) getAPI() (*cgdiscovery.DiscoveryClient, error) {
 	rules := cgclientcmd.NewDefaultClientConfigLoadingRules()
 	cfg, err := cgclientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, &cgclientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
-		log.Warnf("Failed to get the default config for the cluster API client. Error: %q", err)
+		logrus.Warnf("Failed to get the default config for the cluster API client. Error: %q", err)
 		return nil, err
 	}
 	return cgdiscovery.NewDiscoveryClientForConfig(cfg)
@@ -188,7 +188,7 @@ func (c *ClusterCollector) getAPI() (*cgdiscovery.DiscoveryClient, error) {
 func (c *ClusterCollector) getPreferredResourceUsingAPI(api *cgdiscovery.DiscoveryClient) ([]schema.GroupVersion, error) {
 	defer func() []schema.GroupVersion {
 		if rErr := recover(); rErr != nil {
-			log.Errorf("Recovered from error in getPreferredResourceUsingAPI [%s]", rErr)
+			logrus.Errorf("Recovered from error in getPreferredResourceUsingAPI [%s]", rErr)
 			return nil
 		}
 		return []schema.GroupVersion{}
@@ -196,12 +196,12 @@ func (c *ClusterCollector) getPreferredResourceUsingAPI(api *cgdiscovery.Discove
 	debug.SetPanicOnFault(true)
 	var gvList []schema.GroupVersion
 	if api == nil {
-		log.Errorf("API object is null")
+		logrus.Errorf("API object is null")
 		return nil, fmt.Errorf("API object is null")
 	}
 	apiGroupList, err := api.ServerGroups()
 	if err != nil {
-		log.Errorf("API request for server-group list failed")
+		logrus.Errorf("API request for server-group list failed")
 		return nil, err
 	}
 	for _, group := range apiGroupList.Groups {
@@ -237,7 +237,7 @@ func (c *ClusterCollector) getPreferredResourceUsingAPI(api *cgdiscovery.Discove
 func (c *ClusterCollector) getKindsForGroups(api *cgdiscovery.DiscoveryClient) (map[string][]schema.GroupVersion, error) {
 	defer func() map[string][]schema.GroupVersion {
 		if rErr := recover(); rErr != nil {
-			log.Errorf("Recovered from error in getKindsForGroups [%s]", rErr)
+			logrus.Errorf("Recovered from error in getKindsForGroups [%s]", rErr)
 			return nil
 		}
 		var emptyMap map[string][]schema.GroupVersion
@@ -254,7 +254,7 @@ func (c *ClusterCollector) getKindsForGroups(api *cgdiscovery.DiscoveryClient) (
 	for _, rscListObj := range apiResourceList {
 		gvObj, err := schema.ParseGroupVersion(rscListObj.GroupVersion)
 		for err != nil {
-			log.Warnf("Ignoring group-version [%s]. Could not parse it", rscListObj.GroupVersion)
+			logrus.Warnf("Ignoring group-version [%s]. Could not parse it", rscListObj.GroupVersion)
 			continue
 		}
 
@@ -301,27 +301,27 @@ func (c *ClusterCollector) sortGroupVersionByPreference(prefGVList []schema.Grou
 func (c *ClusterCollector) collectUsingAPI() (map[string][]string, error) {
 	api, err := c.getAPI()
 	if err != nil {
-		log.Warnf("Failed to api handle for cluster")
+		logrus.Warnf("Failed to api handle for cluster")
 		return nil, err
 	}
 
 	gvList, err := c.getPreferredResourceUsingAPI(api)
 	errStr := "Failed to retrieve preferred group information from cluster"
 	if err != nil {
-		log.Warnf(errStr)
+		logrus.Warnf(errStr)
 		return nil, err
 	} else if len(gvList) == 0 {
-		log.Warnf(errStr)
+		logrus.Warnf(errStr)
 		return nil, fmt.Errorf(errStr)
 	}
 
 	mapKind, err := c.getKindsForGroups(api)
 	errStr = "Failed to retrieve <kind, group-version> information from cluster"
 	if err != nil {
-		log.Warnf(errStr)
+		logrus.Warnf(errStr)
 		return nil, err
 	} else if len(mapKind) == 0 {
-		log.Warnf(errStr)
+		logrus.Warnf(errStr)
 		return nil, fmt.Errorf(errStr)
 	}
 
@@ -429,7 +429,7 @@ func (c *ClusterCollector) sortVersionList(vList *[]string) {
 	for index, versionStr := range *vList {
 		svObj, err := semver.NewVersion(versionStr)
 		if err != nil {
-			log.Warnf("Skipping Version: %s", versionStr)
+			logrus.Warnf("Skipping Version: %s", versionStr)
 			continue
 		}
 
@@ -460,7 +460,7 @@ func (c *ClusterCollector) clusterByGroupsAndSortVersions(gvList []string) []str
 	for _, gvStr := range gvList {
 		gvObj, err := schema.ParseGroupVersion(gvStr)
 		if err != nil {
-			log.Debugf("Error parting group version [%s]", gvStr)
+			logrus.Debugf("Error parting group version [%s]", gvStr)
 			continue
 		}
 
@@ -492,10 +492,10 @@ func (c *ClusterCollector) collectUsingCLI() (map[string][]string, error) {
 	cmd := exec.Command("bash", "-c", c.getClusterCommand()+" api-resources -o name")
 	output, err := cmd.Output()
 	if err != nil {
-		log.Errorf("Error while running kubectl api-resources: %s", err)
+		logrus.Errorf("Error while running kubectl api-resources: %s", err)
 		return nil, err
 	}
-	log.Debugf("Got kind information for cluster")
+	logrus.Debugf("Got kind information for cluster")
 	nameList := strings.Split(string(output), "\n")
 	mapKind := map[string][]schema.GroupVersion{}
 	for _, name := range nameList {
@@ -504,7 +504,7 @@ func (c *ClusterCollector) collectUsingCLI() (map[string][]string, error) {
 			name := tmpArray[0]
 			kind, gvStr, err := c.getGVKUsingNameCLI(name)
 			if err != nil {
-				log.Debugf("Erroring parsing kind from CLI output")
+				logrus.Debugf("Erroring parsing kind from CLI output")
 				continue
 			}
 			group := ""
@@ -544,7 +544,7 @@ func (c *ClusterCollector) collectUsingCLI() (map[string][]string, error) {
 			gvList := c.getPreferredGVUsingCLI(kind, availableGroupList)
 			apiMd[kind] = gvList
 		} else {
-			log.Warnf("Empty group for kind [%s]", kind)
+			logrus.Warnf("Empty group for kind [%s]", kind)
 		}
 	}
 
@@ -562,7 +562,7 @@ func (c *ClusterCollector) getPreferredGVUsingCLI(kind string, availableGroupLis
 				if isSupported {
 					gvList = append(gvList, gv.String())
 				} else {
-					log.Debugf("Group version not found by CLI for kind [%s] : %s", kind, err)
+					logrus.Debugf("Group version not found by CLI for kind [%s] : %s", kind, err)
 				}
 			}
 		} else {
@@ -580,7 +580,7 @@ func (c *ClusterCollector) isSupportedGV(kind string, gvStr string) (bool, error
 	cmd := exec.Command("bash", "-c", c.getClusterCommand()+" explain "+kind+" --api-version="+gvStr+" --recursive")
 	output, err := cmd.Output()
 	if err != nil {
-		log.Debugf("Error while running %s for verifying [%s]\n", c.getClusterCommand(), gvStr)
+		logrus.Debugf("Error while running %s for verifying [%s]\n", c.getClusterCommand(), gvStr)
 		return false, err
 	}
 
@@ -601,7 +601,7 @@ func (c *ClusterCollector) getGVKUsingNameCLI(name string) (string, string, erro
 	cmd := exec.Command("bash", "-c", c.getClusterCommand()+" explain "+name)
 	output, err := cmd.Output()
 	if err != nil {
-		//log.Errorf("Error while running kubectl: %s\n", err)
+		//logrus.Errorf("Error while running kubectl: %s\n", err)
 		return "", "", err
 	}
 

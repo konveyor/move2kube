@@ -24,7 +24,7 @@ import (
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	okdappsv1 "github.com/openshift/api/apps/v1"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -64,14 +64,14 @@ func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []
 		var obj runtime.Object
 		if service.Daemon {
 			if !common.IsStringPresent(supportedKinds, daemonSetKind) {
-				log.Errorf("Creating Daemonset even though not supported by target cluster.")
+				logrus.Errorf("Creating Daemonset even though not supported by target cluster.")
 			}
 			obj = d.createDaemonSet(service, ir.TargetClusterSpec)
 		} else if service.RestartPolicy == core.RestartPolicyNever || service.RestartPolicy == core.RestartPolicyOnFailure {
 			if common.IsStringPresent(supportedKinds, jobKind) {
 				obj = d.createJob(service, ir.TargetClusterSpec)
 			} else {
-				log.Errorf("Could not find a valid resource type in cluster to create a job/pod.")
+				logrus.Errorf("Could not find a valid resource type in cluster to create a job/pod.")
 			}
 			pod := d.createPod(service, ir.TargetClusterSpec)
 			pod.Spec.RestartPolicy = core.RestartPolicyOnFailure
@@ -85,7 +85,7 @@ func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []
 		} else if common.IsStringPresent(supportedKinds, podKind) {
 			obj = d.createPod(service, ir.TargetClusterSpec)
 		} else {
-			log.Errorf("Could not find a valid resource type in cluster to create a deployment. Creating Deployment anyhow")
+			logrus.Errorf("Could not find a valid resource type in cluster to create a deployment. Creating Deployment anyhow")
 			obj = d.createDeployment(service, ir.TargetClusterSpec)
 		}
 		if obj != nil {
@@ -110,7 +110,7 @@ func (d *Deployment) convertToClusterSupportedKinds(obj runtime.Object, supporte
 		if !common.IsStringPresent(supportedKinds, jobKind) && common.IsStringPresent(supportedKinds, podKind) {
 			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyOnFailure, ir.TargetClusterSpec)}, true
 		}
-		log.Warnf("Both Job and Pod not supported. No other valid way to translate this object. : %+v", obj)
+		logrus.Warnf("Both Job and Pod not supported. No other valid way to translate this object. : %+v", obj)
 		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, deploymentConfigKind) {
@@ -174,7 +174,7 @@ func (d *Deployment) createDeployment(service irtypes.Service, cluster collectty
 	podSpec := service.PodSpec
 	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
 	podSpec.RestartPolicy = core.RestartPolicyAlways
-	log.Debugf("Created deployment for %s", service.Name)
+	logrus.Debugf("Created deployment for %s", service.Name)
 	return d.toDeployment(meta, podSpec, int32(service.Replicas), cluster)
 }
 
@@ -187,7 +187,7 @@ func (d *Deployment) createDeploymentConfig(service irtypes.Service, cluster col
 	podSpec := service.PodSpec
 	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
 	podSpec.RestartPolicy = core.RestartPolicyAlways
-	log.Debugf("Created DeploymentConfig for %s", service.Name)
+	logrus.Debugf("Created DeploymentConfig for %s", service.Name)
 	return d.toDeploymentConfig(meta, podSpec, int32(service.Replicas), cluster)
 }
 
@@ -201,7 +201,7 @@ func (d *Deployment) createReplicationController(service irtypes.Service, cluste
 	podSpec := service.PodSpec
 	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
 	podSpec.RestartPolicy = core.RestartPolicyAlways
-	log.Debugf("Created DeploymentConfig for %s", service.Name)
+	logrus.Debugf("Created DeploymentConfig for %s", service.Name)
 	return d.toReplicationController(meta, podSpec, int32(service.Replicas), cluster)
 }
 
@@ -399,7 +399,7 @@ func (d *Deployment) convertVolumesKindsByPolicy(podspec core.PodSpec, cluster c
 		for _, vm := range container.VolumeMounts {
 			volume := getMatchingVolume(vm, podspec.Volumes)
 			if volume == (core.Volume{}) {
-				log.Warnf("Couldn't find a corresponding volume for volume mount %s", vm.Name)
+				logrus.Warnf("Couldn't find a corresponding volume for volume mount %s", vm.Name)
 				continue
 			}
 			volMounts = append(volMounts, vm)

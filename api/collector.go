@@ -22,33 +22,33 @@ import (
 
 	collector "github.com/konveyor/move2kube/internal/collector"
 	"github.com/konveyor/move2kube/internal/common"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 //Collect gets the metadata from multiple sources, filters it and dumps it into files within source directory
 func Collect(inputPath string, outputPath string, annotations []string) {
 	collectors, err := collector.GetCollectors()
 	if err != nil {
-		log.Fatalf("Failed to get the collectors. Error: %q", err)
+		logrus.Fatalf("Failed to get the collectors. Error: %q", err)
 	}
 	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
-		log.Fatalf("Unable to create output directory at path %q Error: %q", outputPath, err)
+		logrus.Fatalf("Unable to create output directory at path %q Error: %q", outputPath, err)
 	}
-	log.Infoln("Begin collection")
+	logrus.Infoln("Begin collection")
 	for _, collector := range collectors {
 		if len(annotations) > 0 {
 			if !hasOverlap(annotations, collector.GetAnnotations()) {
 				continue
 			}
 		}
-		log.Infof("[%T] Begin collection", collector)
+		logrus.Infof("[%T] Begin collection", collector)
 		if err = collector.Collect(inputPath, outputPath); err != nil {
-			log.Warnf("[%T] failed. Error: %q", collector, err)
+			logrus.Warnf("[%T] failed. Error: %q", collector, err)
 			continue
 		}
-		log.Infof("[%T] Done", collector)
+		logrus.Infof("[%T] Done", collector)
 	}
-	log.Infoln("Collection done")
+	logrus.Infoln("Collection done")
 }
 
 func hasOverlap(a []string, b []string) bool {

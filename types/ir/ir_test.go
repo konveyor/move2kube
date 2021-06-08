@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
@@ -30,7 +30,7 @@ import (
 )
 
 func TestAddVolume(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("add a volume to an empty service", func(t *testing.T) {
 		// Setup
@@ -65,7 +65,7 @@ func TestAddVolume(t *testing.T) {
 }
 
 func TestNewContainer(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	name1 := "name1"
 	new1 := true
@@ -82,7 +82,7 @@ func TestNewContainer(t *testing.T) {
 }
 
 func TestNewContainerFromImageInfo(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("get container from image with tags", func(t *testing.T) {
 		imginfo1 := collecttypes.NewImageInfo()
@@ -121,7 +121,7 @@ func TestNewContainerFromImageInfo(t *testing.T) {
 }
 
 func TestContainerMerge(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("merge 2 empty containers", func(t *testing.T) {
 		// Setup
@@ -317,7 +317,7 @@ func TestContainerMerge(t *testing.T) {
 }
 
 func TestAddFile(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("add a new script to an empty container", func(t *testing.T) {
 		// Setup
@@ -378,7 +378,7 @@ func TestAddFile(t *testing.T) {
 }
 
 func TestAddExposedPort(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("add a new port to expose to an empty container", func(t *testing.T) {
 		// Setup
@@ -417,7 +417,7 @@ func TestAddExposedPort(t *testing.T) {
 }
 
 func TestAddImageName(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("add a new image name to an empty container", func(t *testing.T) {
 		// Setup
@@ -456,7 +456,7 @@ func TestAddImageName(t *testing.T) {
 }
 
 func TestAddAccessedDirs(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("add a new directory to an empty container", func(t *testing.T) {
 		// Setup
@@ -495,7 +495,7 @@ func TestAddAccessedDirs(t *testing.T) {
 }
 
 func TestNewIR(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	p := plantypes.NewPlan()
 	ir := irtypes.NewIR(p)
@@ -507,7 +507,7 @@ func TestNewIR(t *testing.T) {
 }
 
 func TestIRMerge(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("merge 2 empty irs", func(t *testing.T) {
 		// Setup
@@ -605,7 +605,7 @@ func TestIRMerge(t *testing.T) {
 }
 
 func TestStorageMerge(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("merge empty storage into empty storage", func(t *testing.T) {
 		s1 := irtypes.Storage{}
@@ -644,7 +644,7 @@ func TestStorageMerge(t *testing.T) {
 }
 
 func TestAddContainer(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("add a new container to an empty IR", func(t *testing.T) {
 		// Setup
@@ -688,7 +688,7 @@ func TestAddContainer(t *testing.T) {
 }
 
 func TestAddStorage(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("add a new storage to an empty IR", func(t *testing.T) {
 		// Setup
@@ -729,7 +729,7 @@ func TestAddStorage(t *testing.T) {
 }
 
 func TestGetContainer(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("get container for non existent image name from empty ir", func(t *testing.T) {
 		imgname1 := "imgname1"

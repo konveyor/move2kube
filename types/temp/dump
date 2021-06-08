@@ -25,14 +25,52 @@ const (
 
 
 func MapInterfaceToYamlStruct(m interface{}, t reflect.Type) (interface{}, error) {
-	log.Debugf("Loading mapinterface %+v into %T", m, t)
+	logrus.Debugf("Loading mapinterface %+v into %T", m, t)
 	yamlString, err := yaml.Marshal(m)
 	if err != nil {
-		log.Errorf("Unable to parse mapinterface %+v as yaml string", m)
+		logrus.Errorf("Unable to parse mapinterface %+v as yaml string", m)
 		return nil, err
 	}
 	s := reflect.New(t).Interface().(t.)
 	err = yaml.Unmarshal(yamlString, &s)
-	log.Debugf("Loaded config (%T) : %s", s, s)
+	logrus.Debugf("Loaded config (%T) : %s", s, s)
 	return err
+}
+
+	RegistryURL          string
+	RegistryNamespace    string
+	TargetClusterSpec    collecttypes.ClusterMetadataSpec
+	IngressTLSSecretName string
+
+	RootDir string
+	Name    string
+
+
+
+// GetFullImageName returns the full image name including registry url and namespace
+func (ir *IR) GetFullImageName(imageName string) string {
+	if ir.RegistryURL != "" && ir.RegistryNamespace != "" {
+		return ir.RegistryURL + "/" + ir.RegistryNamespace + "/" + imageName
+	}
+	if ir.RegistryNamespace != "" {
+		return ir.RegistryNamespace + "/" + imageName
+	}
+	return imageName
+}
+
+
+
+// GetContainer returns container which has the imagename
+func (ir *IR) GetContainer(imagename string) (con Container, exists bool) {
+	for _, c := range ir.Containers {
+		if common.IsStringPresent(c.ImageNames, imagename) {
+			return c, true
+		} else if c.New {
+			parts := strings.Split(imagename, "/")
+			if len(parts) > 2 && parts[0] == ir.RegistryURL && common.IsStringPresent(c.ImageNames, parts[len(parts)-1]) {
+				return c, true
+			}
+		}
+	}
+	return Container{}, false
 }

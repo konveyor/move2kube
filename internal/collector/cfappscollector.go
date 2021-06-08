@@ -25,7 +25,7 @@ import (
 	sourcetypes "github.com/konveyor/move2kube/internal/collector/sourcetypes"
 	"github.com/konveyor/move2kube/internal/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // CfAppsCollector collects cf runtime applications
@@ -45,30 +45,30 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 	cmd := exec.Command("cf", "curl", "/v2/apps")
 	output, err := cmd.Output()
 	if err != nil {
-		log.Errorf("%s", err.Error())
+		logrus.Errorf("%s", err.Error())
 		return err
 	}
-	log.Debugf("Cf Curl output %s", output)
+	logrus.Debugf("Cf Curl output %s", output)
 	sourcecfinstanceapps := sourcetypes.CfInstanceApps{}
 	err = json.Unmarshal([]byte(output), &sourcecfinstanceapps)
 	if err != nil {
-		log.Errorf("Error in unmarshalling yaml: %s. Skipping.", err)
+		logrus.Errorf("Error in unmarshalling yaml: %s. Skipping.", err)
 		return err
 	}
 	outputPath = filepath.Join(outputPath, "cf")
 	err = os.MkdirAll(outputPath, common.DefaultDirectoryPermission)
 	if err != nil {
-		log.Errorf("Unable to create outputPath %s : %s", outputPath, err)
+		logrus.Errorf("Unable to create outputPath %s : %s", outputPath, err)
 	}
 	cfinstanceapps := collecttypes.NewCfInstanceApps()
 	cfinstanceapps.Spec.CfApplications = []collecttypes.CfApplication{}
 	fileName := "instanceapps_"
 
-	log.Debugf("Detected %d apps", len(sourcecfinstanceapps.CfResources))
+	logrus.Debugf("Detected %d apps", len(sourcecfinstanceapps.CfResources))
 	for _, sourcecfapp := range sourcecfinstanceapps.CfResources {
 		app := collecttypes.CfApplication{}
 		app.Name = sourcecfapp.CfAppEntity.Name
-		log.Debugf("Reading info about %s", app.Name)
+		logrus.Debugf("Reading info about %s", app.Name)
 
 		if sourcecfapp.CfAppEntity.Buildpack != "null" {
 			app.Buildpack = sourcecfapp.CfAppEntity.Buildpack
@@ -92,7 +92,7 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		outputPath = filepath.Join(outputPath, common.NormalizeForFilename(fileName)+".yaml")
 		err = common.WriteYaml(outputPath, cfinstanceapps)
 		if err != nil {
-			log.Errorf("Unable to write collect output : %s", err)
+			logrus.Errorf("Unable to write collect output : %s", err)
 		}
 		return err
 	}

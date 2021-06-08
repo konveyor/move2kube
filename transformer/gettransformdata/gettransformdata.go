@@ -24,15 +24,15 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/transformer/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // GetTransforms returns the transformations
 func GetTransforms(transformsPath string, dynQuesFn types.DynamicQuestionFnT) ([]types.TransformT, error) {
-	log.Trace("start GetTransforms")
-	defer log.Trace("end GetTransforms")
+	logrus.Trace("start GetTransforms")
+	defer logrus.Trace("end GetTransforms")
 	transformPaths, err := common.GetFilesByExt(transformsPath, []string{"." + types.TransformFileExtension})
 	if err != nil {
 		return nil, err
@@ -59,15 +59,15 @@ func GetTransformsFromPaths(transformPaths []string, dynQuesFn types.DynamicQues
 
 // GetTransformsFromSource gets a list of transforms given a transformation script
 func GetTransformsFromSource(transformStr string, dynQuesFn types.DynamicQuestionFnT) ([]types.TransformT, error) {
-	log.Trace("start GetTransformsFromSource")
-	defer log.Trace("end GetTransformsFromSource")
+	logrus.Trace("start GetTransformsFromSource")
+	defer logrus.Trace("end GetTransformsFromSource")
 	return new(SimpleTransformT).GetTransformsFromSource(transformStr, dynQuesFn)
 }
 
 // GetK8sResources gets the k8s resources
 func GetK8sResources(k8sResourcesPath string) ([]types.K8sResourceT, error) {
-	log.Trace("start GetK8sResources")
-	defer log.Trace("end GetK8sResources")
+	logrus.Trace("start GetK8sResources")
+	defer logrus.Trace("end GetK8sResources")
 	yamlPaths, err := common.GetFilesByExt(k8sResourcesPath, []string{".yaml"})
 	if err != nil {
 		return nil, err
@@ -76,12 +76,12 @@ func GetK8sResources(k8sResourcesPath string) ([]types.K8sResourceT, error) {
 	for _, yamlPath := range yamlPaths {
 		k8sYamlBytes, err := ioutil.ReadFile(yamlPath)
 		if err != nil {
-			log.Errorf("Failed to read the yaml file at path %s . Error: %q", yamlPath, err)
+			logrus.Errorf("Failed to read the yaml file at path %s . Error: %q", yamlPath, err)
 			continue
 		}
 		currK8sResources, err := GetK8sResourcesFromYaml(string(k8sYamlBytes))
 		if err != nil {
-			log.Debugf("Failed to get k8s resources from the yaml file at path %s . Error: %q", yamlPath, err)
+			logrus.Debugf("Failed to get k8s resources from the yaml file at path %s . Error: %q", yamlPath, err)
 			continue
 		}
 		k8sResources = append(k8sResources, currK8sResources...)
@@ -96,12 +96,12 @@ func GetK8sResourcesFromYaml(k8sYaml string) ([]types.K8sResourceT, error) {
 	// NOTE: This roundabout method is required to avoid yaml.v3 unmarshalling timestamps into time.Time
 	var resourceI interface{}
 	if err := yaml.Unmarshal([]byte(k8sYaml), &resourceI); err != nil {
-		log.Errorf("Failed to unmarshal k8s yaml. Error: %q", err)
+		logrus.Errorf("Failed to unmarshal k8s yaml. Error: %q", err)
 		return nil, err
 	}
 	resourceJSONBytes, err := json.Marshal(resourceI)
 	if err != nil {
-		log.Errorf("Failed to marshal the k8s resource into json. K8s resource:\n+%v\nError: %q", resourceI, err)
+		logrus.Errorf("Failed to marshal the k8s resource into json. K8s resource:\n+%v\nError: %q", resourceI, err)
 		return nil, err
 	}
 	var k8sResource types.K8sResourceT
@@ -113,7 +113,7 @@ func GetK8sResourcesFromYaml(k8sYaml string) ([]types.K8sResourceT, error) {
 func GetK8sResourceFromObject(obj runtime.Object) (types.K8sResourceT, error) {
 	objJSONBytes, err := json.Marshal(obj)
 	if err != nil {
-		log.Debugf("Failed to marshal the runtime.Object %+v into json. Error: %q", obj, err)
+		logrus.Debugf("Failed to marshal the runtime.Object %+v into json. Error: %q", obj, err)
 		return nil, err
 	}
 	var k8sResource types.K8sResourceT
@@ -131,12 +131,12 @@ func GetObjectFromK8sResource(resource types.K8sResourceT, obj runtime.Object) (
 	// Since K8s structs only have JSON struct tags, we marshal into JSON and back into runtime.Object
 	resourceBytes, err := json.Marshal(resource)
 	if err != nil {
-		log.Errorf("failed to marshal the K8sResourceT to json. Error: %q", err)
+		logrus.Errorf("failed to marshal the K8sResourceT to json. Error: %q", err)
 		return nil, err
 	}
 	newObj := reflect.New(reflect.ValueOf(obj).Elem().Type()).Interface().(runtime.Object)
 	if err = json.Unmarshal(resourceBytes, newObj); err != nil {
-		log.Errorf("failed to unmarshal the json into runtime.Object. Error: %q", err)
+		logrus.Errorf("failed to unmarshal the json into runtime.Object. Error: %q", err)
 		return nil, err
 	}
 	return newObj, nil

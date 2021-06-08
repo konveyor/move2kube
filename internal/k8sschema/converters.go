@@ -19,7 +19,6 @@ package k8sschema
 import (
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,21 +27,22 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
+	"github.com/sirupsen/logrus"
 )
 
 // ConvertToSupportedVersion converts obj to a supported Version
 func ConvertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) (runtime.Object, error) {
 	newobj, err := convertToSupportedVersion(obj, clusterSpec)
 	if err != nil {
-		log.Debugf("Unable to translate object to a supported version : %s.", err)
+		logrus.Debugf("Unable to translate object to a supported version : %s.", err)
 		if obj.GetObjectKind().GroupVersionKind().Version == core.SchemeGroupVersion.Version {
 			newobj, err = ConvertToPreferredVersion(obj, clusterSpec)
 			if err != nil {
-				log.Warnf("Unable to convert (%+v) to preferred version : %s", obj.GetObjectKind(), err)
+				logrus.Warnf("Unable to convert (%+v) to preferred version : %s", obj.GetObjectKind(), err)
 				newobj = obj
 			}
 		} else {
-			log.Debugf("Returning obj in original version : %+v", obj.GetObjectKind())
+			logrus.Debugf("Returning obj in original version : %+v", obj.GetObjectKind())
 			newobj = obj
 		}
 	}
@@ -54,19 +54,19 @@ func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 	objgvk := obj.GetObjectKind().GroupVersionKind()
 	objgv := objgvk.GroupVersion()
 	kind := objgvk.Kind
-	log.Debugf("Converting %s to supported version", kind)
+	logrus.Debugf("Converting %s to supported version", kind)
 	versions := clusterSpec.GetSupportedVersions(kind)
 	if len(versions) == 0 {
 		return nil, fmt.Errorf("kind %s unsupported in target cluster : %+v", kind, obj.GetObjectKind())
 	}
-	log.Debugf("Supported Versions : %+v", versions)
+	logrus.Debugf("Supported Versions : %+v", versions)
 	if kind == common.ServiceKind && objgv.Group == knativev1.SchemeGroupVersion.Group {
 		return obj, nil
 	}
 	for _, v := range versions {
 		gv, err := schema.ParseGroupVersion(v)
 		if err != nil {
-			log.Debugf("Unable to parse group version %s : %s", v, err)
+			logrus.Debugf("Unable to parse group version %s : %s", v, err)
 			continue
 		}
 		if kind == common.ServiceKind && gv.Group == knativev1.SchemeGroupVersion.Group {
@@ -74,7 +74,7 @@ func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 		}
 		newobj, err := ConvertToVersion(obj, gv)
 		if err != nil {
-			log.Debugf("Unable to convert : %s", err)
+			logrus.Debugf("Unable to convert : %s", err)
 			continue
 		}
 		scheme.Default(newobj)
@@ -89,13 +89,13 @@ func ConvertToPreferredVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 	objgvk := obj.GetObjectKind().GroupVersionKind()
 	objgv := objgvk.GroupVersion()
 	kind := objgvk.Kind
-	log.Debugf("Converting %s to preferred version", kind)
+	logrus.Debugf("Converting %s to preferred version", kind)
 	groups := []string{}
 	vs := clusterSpec.APIKindVersionMap[kind]
 	for _, v := range vs {
 		gv, err := schema.ParseGroupVersion(v)
 		if err != nil {
-			log.Debugf("Unable to parse group version %s : %s", v, err)
+			logrus.Debugf("Unable to parse group version %s : %s", v, err)
 			continue
 		}
 		if !common.IsStringPresent(groups, gv.Group) {
@@ -111,7 +111,7 @@ func ConvertToPreferredVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 		for _, v := range versions {
 			newobj, err := ConvertToVersion(obj, v)
 			if err != nil {
-				log.Debugf("Unable to convert : %s", err)
+				logrus.Debugf("Unable to convert : %s", err)
 				continue
 			}
 			scheme.Default(newobj)
@@ -124,7 +124,7 @@ func ConvertToPreferredVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 
 // ConvertToVersion converts objects to a version
 func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runtime.Object, err error) {
-	log.Debugf("Attempting to convert %s to %s", obj.GetObjectKind().GroupVersionKind(), dgv)
+	logrus.Debugf("Attempting to convert %s to %s", obj.GetObjectKind().GroupVersionKind(), dgv)
 	objvk := obj.GetObjectKind().GroupVersionKind()
 	objgv := objvk.GroupVersion()
 	kind := objvk.Kind
@@ -132,7 +132,7 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 	if err == nil {
 		return newobj, nil
 	}
-	log.Debugf("Unable to do direct translation : %s", err)
+	logrus.Debugf("Unable to do direct translation : %s", err)
 	akt := liasonscheme.AllKnownTypes()
 	for kt := range akt {
 		if kind != kt.Kind {
@@ -141,31 +141,31 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 		kobj := obj
 		if objgv.Group != dgv.Group {
 			igv := schema.GroupVersion{Group: objgv.Group, Version: core.SchemeGroupVersion.Version}
-			log.Debugf("Attempting conversion of %s obj to %s", objgv, igv)
+			logrus.Debugf("Attempting conversion of %s obj to %s", objgv, igv)
 			iobj, err := checkAndConvertToVersion(obj, igv)
 			if err != nil {
-				log.Debugf("Unable to convert to unversioned object : %s", err)
+				logrus.Debugf("Unable to convert to unversioned object : %s", err)
 			} else {
 				kobj = iobj
 			}
 		}
-		log.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
+		logrus.Debugf("Attempting conversion of %s obj to %s", obj.GetObjectKind().GroupVersionKind(), kt)
 		iobj, err := checkAndConvertToVersion(kobj, kt.GroupVersion())
 		if err != nil {
-			log.Debugf("Unable to convert to unversioned object : %s", err)
+			logrus.Debugf("Unable to convert to unversioned object : %s", err)
 			continue
 		} else {
 			kobj = iobj
 		}
-		log.Debugf("Converted %s obj to %s", objgv, kt)
+		logrus.Debugf("Converted %s obj to %s", objgv, kt)
 		newobj, err = checkAndConvertToVersion(kobj, dgv)
 		if err == nil {
 			return newobj, nil
 		}
-		log.Debugf("Unable to convert through unversioned object : %s", kt)
+		logrus.Debugf("Unable to convert through unversioned object : %s", kt)
 	}
 	err = fmt.Errorf("unable to do convert %s to %s", objgv, dgv)
-	log.Debugf("%s", err)
+	logrus.Debugf("%s", err)
 	return obj, err
 }
 
@@ -180,18 +180,18 @@ func ConvertToLiasonScheme(obj runtime.Object) (newobj runtime.Object, err error
 		iobj := obj
 		if obj.GetObjectKind().GroupVersionKind().Group != kt.Group {
 			igv := schema.GroupVersion{Group: iobj.GetObjectKind().GroupVersionKind().Group, Version: core.SchemeGroupVersion.Version}
-			log.Debugf("Attempting conversion of %s obj to %s", iobj.GetObjectKind().GroupVersionKind(), igv)
+			logrus.Debugf("Attempting conversion of %s obj to %s", iobj.GetObjectKind().GroupVersionKind(), igv)
 			eobj, err := checkAndConvertToVersion(iobj, igv)
 			if err != nil {
-				log.Debugf("Unable to convert to unversioned object : %s", err)
+				logrus.Debugf("Unable to convert to unversioned object : %s", err)
 			} else {
 				iobj = eobj
 			}
 		}
-		log.Debugf("Attempting conversion of %s obj to %s", iobj.GetObjectKind().GroupVersionKind(), kt)
+		logrus.Debugf("Attempting conversion of %s obj to %s", iobj.GetObjectKind().GroupVersionKind(), kt)
 		iobj, err := checkAndConvertToVersion(iobj, kt.GroupVersion())
 		if err != nil {
-			log.Debugf("Unable to convert to unversioned object : %s", err)
+			logrus.Debugf("Unable to convert to unversioned object : %s", err)
 			continue
 		}
 		return iobj, nil
@@ -217,7 +217,7 @@ func checkAndConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newo
 func convertBetweenObjects(in interface{}, out interface{}) error {
 	err := scheme.Convert(in, out, nil)
 	if err != nil {
-		log.Debugf("Unable to convert from %T to %T : %s", in, out, err)
+		logrus.Debugf("Unable to convert from %T to %T : %s", in, out, err)
 	}
 	return err
 }
@@ -227,7 +227,7 @@ func ConvertToV1PodSpec(podSpec *core.PodSpec) corev1.PodSpec {
 	vPodSpec := corev1.PodSpec{}
 	err := convertBetweenObjects(podSpec, &vPodSpec)
 	if err != nil {
-		log.Errorf("Unable to convert PodSpec to versioned PodSpec : %s", err)
+		logrus.Errorf("Unable to convert PodSpec to versioned PodSpec : %s", err)
 	}
 	return vPodSpec
 }
@@ -237,7 +237,7 @@ func ConvertToPodSpec(podspec *corev1.PodSpec) core.PodSpec {
 	uvPodSpec := core.PodSpec{}
 	err := convertBetweenObjects(podspec, &uvPodSpec)
 	if err != nil {
-		log.Errorf("Unable to convert versioned PodSpec to unversioned PodSpec : %s", err)
+		logrus.Errorf("Unable to convert versioned PodSpec to unversioned PodSpec : %s", err)
 	}
 	return uvPodSpec
 }

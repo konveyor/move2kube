@@ -26,7 +26,7 @@ import (
 	"github.com/gorilla/mux"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/phayes/freeport"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
 
@@ -78,10 +78,10 @@ func (h *HTTPRESTEngine) StartEngine() error {
 	go func(listener net.Listener) {
 		err := http.Serve(listener, nil)
 		if err != nil {
-			log.Fatalf("Unable to start qa server : %s", err)
+			logrus.Fatalf("Unable to start qa server : %s", err)
 		}
 	}(listener)
-	log.Info("Started QA engine on: localhost:" + qaportstr)
+	logrus.Info("Started QA engine on: localhost:" + qaportstr)
 	return nil
 }
 
@@ -93,11 +93,11 @@ func (*HTTPRESTEngine) IsInteractiveEngine() bool {
 // FetchAnswer fetches the answer using a REST service
 func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	if err := ValidateProblem(prob); err != nil {
-		log.Errorf("the QA problem object is invalid. Error: %q", err)
+		logrus.Errorf("the QA problem object is invalid. Error: %q", err)
 		return prob, err
 	}
 	if prob.Answer == nil {
-		log.Debugf("Passing problem to HTTP REST QA Engine ID: %s, desc: %s", prob.ID, prob.Desc)
+		logrus.Debugf("Passing problem to HTTP REST QA Engine ID: %s, desc: %s", prob.ID, prob.Desc)
 		h.problemChan <- prob
 		prob = <-h.answerChan
 		if prob.Answer == nil {
@@ -109,46 +109,46 @@ func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, err
 
 // problemHandler returns the current problem being handled
 func (h *HTTPRESTEngine) problemHandler(w http.ResponseWriter, r *http.Request) {
-	log.Debug("Looking for a problem fron HTTP REST service")
+	logrus.Debug("Looking for a problem fron HTTP REST service")
 	// if currently problem is resolved
 	if h.currentProblem.Answer != nil || h.currentProblem.ID == "" {
 		// Pick the next problem off the channel
 		h.currentProblem = <-h.problemChan
 	}
-	log.Debugf("QA Engine serves problem id: %s, desc: %s", h.currentProblem.ID, h.currentProblem.Desc)
+	logrus.Debugf("QA Engine serves problem id: %s, desc: %s", h.currentProblem.ID, h.currentProblem.Desc)
 	// Send the problem to the request.
 	_ = json.NewEncoder(w).Encode(h.currentProblem)
 }
 
 // solutionHandler accepts solution for a single open problem.
 func (h *HTTPRESTEngine) solutionHandler(w http.ResponseWriter, r *http.Request) {
-	log.Debugf("QA Engine reading solution: %s", r.Body)
+	logrus.Debugf("QA Engine reading solution: %s", r.Body)
 	// Read out the solution
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		errstr := fmt.Sprintf("Error in reading posted solution: %s", err)
 		http.Error(w, "errstr", http.StatusInternalServerError)
-		log.Errorf(errstr)
+		logrus.Errorf(errstr)
 		return
 	}
 	var prob qatypes.Problem
 	if err := json.Unmarshal(body, &prob); err != nil {
 		errstr := fmt.Sprintf("Error in un-marshalling solution in QA engine: %s", err)
 		http.Error(w, errstr, http.StatusInternalServerError)
-		log.Errorf(errstr)
+		logrus.Errorf(errstr)
 		return
 	}
-	log.Debugf("QA Engine receives solution: %+v", prob)
+	logrus.Debugf("QA Engine receives solution: %+v", prob)
 	if h.currentProblem.ID != prob.ID {
 		errstr := fmt.Sprintf("the solution's problem ID doesn't match the current problem. Expected: %s Actual %s", h.currentProblem.ID, prob.ID)
 		http.Error(w, errstr, http.StatusNotAcceptable)
-		log.Errorf(errstr)
+		logrus.Errorf(errstr)
 		return
 	}
 	if err := h.currentProblem.SetAnswer(prob.Answer); err != nil {
 		errstr := fmt.Sprintf("failed to set the solution as the answer. Error: %q", err)
 		http.Error(w, errstr, http.StatusNotAcceptable)
-		log.Errorf(errstr)
+		logrus.Errorf(errstr)
 		return
 	}
 	h.answerChan <- h.currentProblem

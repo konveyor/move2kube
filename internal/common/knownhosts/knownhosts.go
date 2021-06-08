@@ -26,7 +26,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
@@ -124,10 +124,10 @@ func addKeyToMap(hostTokey map[string]ssh.PublicKey) ssh.HostKeyCallback {
 	return func(hostPort string, address net.Addr, key ssh.PublicKey) error {
 		host, port, err := net.SplitHostPort(hostPort)
 		if err != nil {
-			log.Errorf("Failed to split %s into host and the port. Error %q", hostPort, err)
+			logrus.Errorf("Failed to split %s into host and the port. Error %q", hostPort, err)
 			return err
 		}
-		log.Debugf("host %s on port %s at address %v has the key %v of type %T", host, port, address, key, key)
+		logrus.Debugf("host %s on port %s at address %v has the key %v of type %T", host, port, address, key, key)
 		hostTokey[host] = key
 		return nil
 	}
@@ -147,9 +147,9 @@ func GetKey(host string) ssh.PublicKey {
 	url := net.JoinHostPort(host, defaultSSHPort)
 	// Get key
 	_, err := ssh.Dial("tcp", url, config)
-	log.Debug(`This error should say "handshake failed: ssh: unable to authenticate, attempted methods [none], no supported methods remain". Error:`, err)
+	logrus.Debug(`This error should say "handshake failed: ssh: unable to authenticate, attempted methods [none], no supported methods remain". Error:`, err)
 	if err == nil {
-		log.Warnf("This should have failed but it didn't.")
+		logrus.Warnf("This should have failed but it didn't.")
 	}
 	return hostTokey[host]
 }

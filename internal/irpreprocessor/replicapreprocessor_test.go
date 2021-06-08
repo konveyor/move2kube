@@ -22,11 +22,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func TestReplicaPreprocessor(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("IR with no services", func(t *testing.T) {
 		// Setup

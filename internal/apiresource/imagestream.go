@@ -22,7 +22,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	okdimagev1 "github.com/openshift/api/image/v1"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,7 +48,7 @@ func (*ImageStream) getSupportedKinds() []string {
 func (imageStream *ImageStream) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
 	objs := []runtime.Object{}
 	if !common.IsStringPresent(supportedKinds, imageStreamKind) {
-		log.Debugf("Could not find a valid resource type in cluster to create an ImageStream")
+		logrus.Debugf("Could not find a valid resource type in cluster to create an ImageStream")
 		return objs
 	}
 	// Create an imagestream for each image that we are using

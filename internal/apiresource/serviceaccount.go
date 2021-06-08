@@ -19,7 +19,7 @@ package apiresource
 import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,7 +44,7 @@ func (sa *ServiceAccount) createNewResources(ir irtypes.EnhancedIR, supportedKin
 			objs = append(objs, sa.createNewResource(irresource))
 		}
 	} else {
-		log.Errorf("Could not find a valid resource type in cluster to create a service account.")
+		logrus.Errorf("Could not find a valid resource type in cluster to create a service account.")
 	}
 	return objs
 }

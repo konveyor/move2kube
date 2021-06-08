@@ -31,9 +31,8 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/ioutils"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type dockerEngine struct {
@@ -53,18 +52,18 @@ func (e *dockerEngine) pullImage(image string) bool {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		log.Debugf("Unable to pull image %s : %s", image, err)
+		logrus.Debugf("Unable to pull image %s : %s", image, err)
 		e.availableImages[image] = false
 		return false
 	}
 	out, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
 	if err != nil {
-		log.Debugf("Unable to pull image %s : %s", image, err)
+		logrus.Debugf("Unable to pull image %s : %s", image, err)
 		e.availableImages[image] = false
 		return false
 	}
 	if b, err := ioutil.ReadAll(out); err == nil {
-		log.Debug(cast.ToString(b))
+		logrus.Debug(cast.ToString(b))
 	}
 	e.availableImages[image] = true
 	return true
@@ -73,13 +72,13 @@ func (e *dockerEngine) pullImage(image string) bool {
 // RunContainer executes a container
 func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error) {
 	if !e.pullImage(image) {
-		log.Debugf("Unable to pull image using docker : %s", image)
+		logrus.Debugf("Unable to pull image using docker : %s", image)
 		return "", false, fmt.Errorf("unable to pull image")
 	}
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		log.Debugf("Error during docker client creation : %s", err)
+		logrus.Debugf("Error during docker client creation : %s", err)
 		return "", false, err
 	}
 	contconfig := &container.Config{
@@ -89,7 +88,7 @@ func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, vol
 		contconfig.Cmd = []string{cmd}
 	}
 	if (volsrc == "" && voldest != "") || (volsrc != "" && voldest == "") {
-		log.Warnf("Either volume source (%s) or destination (%s) is empty. Ingoring volume mount.", volsrc, voldest)
+		logrus.Warnf("Either volume source (%s) or destination (%s) is empty. Ingoring volume mount.", volsrc, voldest)
 	}
 	hostconfig := &container.HostConfig{}
 	if volsrc != "" && voldest != "" {
@@ -104,27 +103,27 @@ func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, vol
 	}
 	resp, err := cli.ContainerCreate(ctx, contconfig, hostconfig, nil, "")
 	if err != nil {
-		log.Debugf("Error during container creation : %s", err)
+		logrus.Debugf("Error during container creation : %s", err)
 		resp, err = cli.ContainerCreate(ctx, contconfig, nil, nil, "")
 		if err != nil {
-			log.Debugf("Container creation failed with image %s with no volumes", image)
+			logrus.Debugf("Container creation failed with image %s with no volumes", image)
 			return "", false, err
 		}
-		log.Debugf("Container %s created with image %s with no volumes", resp.ID, image)
+		logrus.Debugf("Container %s created with image %s with no volumes", resp.ID, image)
 		defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true})
 		if volsrc != "" && voldest != "" {
 			err = copyDir(ctx, cli, resp.ID, volsrc, voldest)
 			if err != nil {
-				log.Debugf("Container data copy failed for image %s with volume %s:%s : %s", image, volsrc, voldest, err)
+				logrus.Debugf("Container data copy failed for image %s with volume %s:%s : %s", image, volsrc, voldest, err)
 				return "", false, err
 			}
-			log.Debugf("Data copied from %s to %s in container %s with image %s", volsrc, voldest, resp.ID, image)
+			logrus.Debugf("Data copied from %s to %s in container %s with image %s", volsrc, voldest, resp.ID, image)
 		}
 	}
-	log.Debugf("Container %s created with image %s", resp.ID, image)
+	logrus.Debugf("Container %s created with image %s", resp.ID, image)
 	defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true})
 	if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		log.Debugf("Error during container startup of container %s : %s", resp.ID, err)
+		logrus.Debugf("Error during container startup of container %s : %s", resp.ID, err)
 		return "", false, err
 	}
 	statusCh, errCh := cli.ContainerWait(
@@ -135,15 +134,15 @@ func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, vol
 	select {
 	case err := <-errCh:
 		if err != nil {
-			log.Debugf("Error during waiting for container : %s", err)
+			logrus.Debugf("Error during waiting for container : %s", err)
 			return "", false, err
 		}
 	case status := <-statusCh:
-		log.Debugf("Container exited with status code: %#+v", status.StatusCode)
+		logrus.Debugf("Container exited with status code: %#+v", status.StatusCode)
 		options := types.ContainerLogsOptions{ShowStdout: true}
 		out, err := cli.ContainerLogs(ctx, resp.ID, options)
 		if err != nil {
-			log.Debugf("Error while getting container logs : %s", err)
+			logrus.Debugf("Error while getting container logs : %s", err)
 			return "", true, err
 		}
 		logs := ""
@@ -177,7 +176,7 @@ func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst stri
 	reader := readDirAsTar(src, dst)
 	if reader == nil {
 		err := fmt.Errorf("error during create tar archive from '%s'", src)
-		log.Error(err)
+		logrus.Error(err)
 		return err
 	}
 	defer reader.Close()
@@ -192,7 +191,7 @@ func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst stri
 		defer pw.Close()
 		var nBytesCopied int64
 		nBytesCopied, err = io.Copy(pw, reader)
-		log.Debugf("%d bytes copied into pipe as tar", nBytesCopied)
+		logrus.Debugf("%d bytes copied into pipe as tar", nBytesCopied)
 	}()
 	<-doneChan
 	if err == nil {
@@ -232,7 +231,7 @@ func writeDirToTar(w *io.PipeWriter, srcDir, basePath string) error {
 	defer tw.Close()
 	return filepath.Walk(srcDir, func(file string, fi os.FileInfo, err error) error {
 		if err != nil {
-			log.Debugf("Error walking folder to copy to container : %s", err)
+			logrus.Debugf("Error walking folder to copy to container : %s", err)
 			return err
 		}
 		if fi.Mode()&os.ModeSocket != 0 {
@@ -257,25 +256,25 @@ func writeDirToTar(w *io.PipeWriter, srcDir, basePath string) error {
 		}
 		relPath, err := filepath.Rel(srcDir, file)
 		if err != nil {
-			log.Debugf("Error walking folder to copy to container : %s", err)
+			logrus.Debugf("Error walking folder to copy to container : %s", err)
 			return err
 		} else if relPath == "." {
 			return nil
 		}
 		header.Name = filepath.ToSlash(filepath.Join(basePath, relPath))
 		if err := tw.WriteHeader(header); err != nil {
-			log.Debugf("Error walking folder to copy to container : %s", err)
+			logrus.Debugf("Error walking folder to copy to container : %s", err)
 			return err
 		}
 		if fi.Mode().IsRegular() {
 			f, err := os.Open(file)
 			if err != nil {
-				log.Debugf("Error walking folder to copy to container : %s", err)
+				logrus.Debugf("Error walking folder to copy to container : %s", err)
 				return err
 			}
 			defer f.Close()
 			if _, err := io.Copy(tw, f); err != nil {
-				log.Debugf("Error walking folder to copy to container : %s", err)
+				logrus.Debugf("Error walking folder to copy to container : %s", err)
 				return err
 			}
 		}

@@ -25,7 +25,7 @@ import (
 	"github.com/konveyor/move2kube/transformer/types"
 	starjson "github.com/qri-io/starlib/encoding/json"
 	"github.com/qri-io/starlib/util"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"go.starlark.net/starlark"
 )
 
@@ -83,8 +83,8 @@ const (
 
 // Transform transforms the k8s resource
 func (st *SimpleTransformT) Transform(k8sResource types.K8sResourceT) (types.K8sResourceT, error) {
-	log.Trace("start SimpleTransformT.Transform")
-	defer log.Trace("end SimpleTransformT.Transform")
+	logrus.Trace("start SimpleTransformT.Transform")
+	defer logrus.Trace("end SimpleTransformT.Transform")
 	thread := &starlark.Thread{Name: "my thread"}
 	k8sResourceValue, err := util.Marshal(k8sResource)
 	if err != nil {
@@ -107,8 +107,8 @@ func (st *SimpleTransformT) Transform(k8sResource types.K8sResourceT) (types.K8s
 
 // Filter returns true if this transformation can be applied to the given k8s resource
 func (st *SimpleTransformT) Filter(k8sResource types.K8sResourceT) (bool, error) {
-	log.Trace("start SimpleTransformT.Filter")
-	defer log.Trace("end SimpleTransformT.Filter")
+	logrus.Trace("start SimpleTransformT.Filter")
+	defer logrus.Trace("end SimpleTransformT.Filter")
 	k8sResourceKind, k8sResourceAPIVersion, _, err := starcommon.GetInfoFromK8sResource(k8sResource)
 	if err != nil {
 		return false, err
@@ -147,8 +147,8 @@ func (st *SimpleTransformT) Filter(k8sResource types.K8sResourceT) (bool, error)
 
 // NewSimpleTransform returns a new instance of SimpleTransformT
 func NewSimpleTransform(transformFn *starlark.Function, kindsAPIVersions types.KindsAPIVersionsT) *SimpleTransformT {
-	log.Trace("start NewSimpleTransform")
-	defer log.Trace("end NewSimpleTransform")
+	logrus.Trace("start NewSimpleTransform")
+	defer logrus.Trace("end NewSimpleTransform")
 	return &SimpleTransformT{
 		transformFn:      transformFn,
 		kindsAPIVersions: kindsAPIVersions,
@@ -157,8 +157,8 @@ func NewSimpleTransform(transformFn *starlark.Function, kindsAPIVersions types.K
 
 // GetTransformsFromSource returns a list of transforms given the transformation script
 func (st *SimpleTransformT) GetTransformsFromSource(transformStr string, dynQuesFn types.DynamicQuestionFnT) ([]types.TransformT, error) {
-	log.Trace("start SimpleTransformT.GetTransformsFromSource")
-	defer log.Trace("end SimpleTransformT.GetTransformsFromSource")
+	logrus.Trace("start SimpleTransformT.GetTransformsFromSource")
+	defer logrus.Trace("end SimpleTransformT.GetTransformsFromSource")
 	st.dynamicQuestionFn = dynQuesFn
 	globalsAfter, err := st.getTransformGlobals(transformStr)
 	if err != nil {
@@ -171,8 +171,8 @@ func (st *SimpleTransformT) GetTransformsFromSource(transformStr string, dynQues
 }
 
 func (st *SimpleTransformT) getTransformGlobals(transformStr string) (starlark.StringDict, error) {
-	log.Trace("start SimpleTransformT.getTransformGlobals")
-	defer log.Trace("end SimpleTransformT.getTransformGlobals")
+	logrus.Trace("start SimpleTransformT.getTransformGlobals")
+	defer logrus.Trace("end SimpleTransformT.getTransformGlobals")
 	globalsBefore, err := st.getPredeclaredVariables()
 	if err != nil {
 		return nil, err
@@ -183,8 +183,8 @@ func (st *SimpleTransformT) getTransformGlobals(transformStr string) (starlark.S
 
 // getPredeclaredVariables gives all of the variables required to run the script and do the transformation.
 func (st *SimpleTransformT) getPredeclaredVariables() (starlark.StringDict, error) {
-	log.Trace("start SimpleTransformT.getPredeclaredVariables")
-	defer log.Trace("end SimpleTransformT.getPredeclaredVariables")
+	logrus.Trace("start SimpleTransformT.getPredeclaredVariables")
+	defer logrus.Trace("end SimpleTransformT.getPredeclaredVariables")
 	// TODO: fill all necessary globals required to run the script and do the transformation.
 	globalsBefore, err := starjson.LoadModule()
 	if err != nil {
@@ -195,11 +195,11 @@ func (st *SimpleTransformT) getPredeclaredVariables() (starlark.StringDict, erro
 }
 
 func (st *SimpleTransformT) dynamicAskQuestion(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	log.Trace("start SimpleTransformT.dynamicAskQuestion")
-	defer log.Trace("end SimpleTransformT.dynamicAskQuestion")
-	log.Debugf("%s called from starlark", SimpleTransformTQuestionFn)
-	log.Debugf("args: %+v", args)
-	log.Debugf("kwargs: %+v", kwargs)
+	logrus.Trace("start SimpleTransformT.dynamicAskQuestion")
+	defer logrus.Trace("end SimpleTransformT.dynamicAskQuestion")
+	logrus.Debugf("%s called from starlark", SimpleTransformTQuestionFn)
+	logrus.Debugf("args: %+v", args)
+	logrus.Debugf("kwargs: %+v", kwargs)
 	argDictValue := &starlark.Dict{}
 	if err := starlark.UnpackPositionalArgs(SimpleTransformTQuestionFn, args, kwargs, 1, &argDictValue); err != nil {
 		return starlark.None, fmt.Errorf("invalid args provided to '%s'. Expected a single dict argument. Error: %q", SimpleTransformTQuestionFn, err)
@@ -222,8 +222,8 @@ func (st *SimpleTransformT) dynamicAskQuestion(_ *starlark.Thread, _ *starlark.B
 // getTransformsFromGlobals is responsible for extracting transformations from the transformation script.
 // This makes it very specific to the format of the script file.
 func (*SimpleTransformT) getTransformsFromGlobals(transformGlobals starlark.StringDict) ([]types.TransformT, error) {
-	log.Trace("start SimpleTransformT.getTransformsFromGlobals")
-	defer log.Trace("end SimpleTransformT.getTransformsFromGlobals")
+	logrus.Trace("start SimpleTransformT.getTransformsFromGlobals")
+	defer logrus.Trace("end SimpleTransformT.getTransformsFromGlobals")
 	ouputsValue, ok := transformGlobals[SimpleTransformTOutputs]
 	if !ok {
 		return nil, fmt.Errorf("the script did not set the 'outputs' global variable")
@@ -296,8 +296,8 @@ func (*SimpleTransformT) getTransformsFromGlobals(transformGlobals starlark.Stri
 }
 
 func (st *SimpleTransformT) validate(transformGlobals starlark.StringDict) error {
-	log.Trace("start SimpleTransformT.validate")
-	defer log.Trace("end SimpleTransformT.validate")
+	logrus.Trace("start SimpleTransformT.validate")
+	defer logrus.Trace("end SimpleTransformT.validate")
 	ouputsValue, ok := transformGlobals[SimpleTransformTOutputs]
 	if !ok {
 		return fmt.Errorf("the script did not set the 'outputs' global variable")
