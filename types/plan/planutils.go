@@ -57,7 +57,7 @@ func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx conte
 	// Special cases.
 	tagParts := strings.Split(tag, ":")
 	if len(tagParts) == 0 {
-		return ctx, fmt.Errorf("The m2kpath struct tag has an invalid format. Actual tag: %s", tag)
+		return ctx, fmt.Errorf("the m2kpath struct tag has an invalid format. Actual tag: %s", tag)
 	}
 	// Special case for converting subset of map.
 	if len(tagParts) == 2 && tagParts[0] == structTagMapKeys {
@@ -72,7 +72,7 @@ func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx conte
 		ctx.ShouldConvert = common.IsStringPresent(validValues, targetField)
 		return ctx, nil
 	}
-	return ctx, fmt.Errorf("Failed to process the tag. Actual tag: %s", tag)
+	return ctx, fmt.Errorf("failed to process the tag. Actual tag: %s", tag)
 }
 
 func recurse(value reflect.Value, ctx context) error {
@@ -84,7 +84,7 @@ func recurse(value reflect.Value, ctx context) error {
 		}
 		if len(ctx.MapKeysToConvert) > 0 {
 			if ctx.CurrentMapKey.Kind() != reflect.String {
-				return fmt.Errorf("Map keys are not of kind string. Actual kind: %v", ctx.CurrentMapKey.Kind())
+				return fmt.Errorf("map keys are not of kind string. Actual kind: %v", ctx.CurrentMapKey.Kind())
 			}
 			if !common.IsStringPresent(ctx.MapKeysToConvert, ctx.CurrentMapKey.String()) {
 				break
@@ -92,7 +92,7 @@ func recurse(value reflect.Value, ctx context) error {
 		}
 		s, err := ctx.Convert(value.String())
 		if err != nil {
-			return fmt.Errorf("Failed to convert %s Error: %q", value.String(), err)
+			return fmt.Errorf("failed to convert %s Error: %q", value.String(), err)
 		}
 		value.SetString(s)
 	case reflect.Struct:
@@ -117,9 +117,29 @@ func recurse(value reflect.Value, ctx context) error {
 		iter := value.MapRange()
 		for iter.Next() {
 			ctx.CurrentMapKey = iter.Key()
-			if err := recurse(iter.Value(), ctx); err != nil {
-				return err
+			v := iter.Value()
+			if v.Kind() != reflect.String {
+				if err := recurse(v, ctx); err != nil {
+					return err
+				}
+				continue
 			}
+			if !ctx.ShouldConvert {
+				continue
+			}
+			if len(ctx.MapKeysToConvert) > 0 {
+				if ctx.CurrentMapKey.Kind() != reflect.String {
+					return fmt.Errorf("map keys are not of kind string. Actual kind: %v", ctx.CurrentMapKey.Kind())
+				}
+				if !common.IsStringPresent(ctx.MapKeysToConvert, ctx.CurrentMapKey.String()) {
+					continue
+				}
+			}
+			s, err := ctx.Convert(v.String())
+			if err != nil {
+				return fmt.Errorf("failed to convert %s Error: %q", v.String(), err)
+			}
+			value.SetMapIndex(ctx.CurrentMapKey, reflect.ValueOf(s))
 		}
 	default:
 		//fmt.Println("default. Actual kind:", value.Kind())
