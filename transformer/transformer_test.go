@@ -22,11 +22,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/qaengine"
-	"github.com/konveyor/move2kube/internal/starlark"
-	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
-	"github.com/konveyor/move2kube/internal/starlark/runtransforms"
-	"github.com/konveyor/move2kube/internal/transformer/transformations"
+	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/transformer/gettransformdata"
+	"github.com/konveyor/move2kube/transformer/runtransforms"
+	"github.com/konveyor/move2kube/transformer/transformations"
 	log "github.com/sirupsen/logrus" // TODO
 )
 

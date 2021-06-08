@@ -21,7 +21,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
-	irtypes "github.com/konveyor/move2kube/internal/types"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	okdroutev1 "github.com/openshift/api/route/v1"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"

@@ -23,7 +23,7 @@ import (
 	"reflect"
 
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/starlark/types"
+	"github.com/konveyor/move2kube/transformer/types"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime"

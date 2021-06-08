@@ -47,7 +47,7 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 	metadataPlanners := metadata.GetLoaders()
 	for _, l := range metadataPlanners {
 		log.Infof("[%T] Planning metadata", l)
-		err := l.UpdatePlan(inputPath, &p)
+		err := l.UpdatePlan(&p)
 		if err != nil {
 			log.Warnf("[%T] Failed : %s", l, err)
 		} else {

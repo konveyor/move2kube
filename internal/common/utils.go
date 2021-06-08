@@ -604,15 +604,15 @@ func CopyConfigurationsAssetsData(extensionsPath string) (err error) {
 		log.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
 		return err
 	}
-	customAssetsPath := filepath.Join(assetsPath, "custom")
+	configurationsAssetsPath := filepath.Join(assetsPath, "configurations")
 
 	// Create the subdirectory and copy the assets into it.
-	if err = os.MkdirAll(customAssetsPath, DefaultDirectoryPermission); err != nil {
-		log.Errorf("Unable to create the custom assets directory at path %q Error: %q", customAssetsPath, err)
+	if err = os.MkdirAll(configurationsAssetsPath, DefaultDirectoryPermission); err != nil {
+		log.Errorf("Unable to create the custom assets directory at path %q Error: %q", configurationsAssetsPath, err)
 		return err
 	}
-	if err = copy.Copy(extensionsPath, customAssetsPath); err != nil {
-		log.Errorf("Failed to copy the extensions %s over to the directory at path %s Error: %q", extensionsPath, customAssetsPath, err)
+	if err = copy.Copy(extensionsPath, configurationsAssetsPath); err != nil {
+		log.Errorf("Failed to copy the extensions %s over to the directory at path %s Error: %q", extensionsPath, configurationsAssetsPath, err)
 		return err
 	}
 
@@ -620,32 +620,32 @@ func CopyConfigurationsAssetsData(extensionsPath string) (err error) {
 }
 
 // CheckAndCopyConfigurations checks if the extensions path is an existing directory and copies to assets
-func CheckAndCopyConfigurations(extensionsPath string) {
-	if extensionsPath == "" {
+func CheckAndCopyConfigurations(configurationsPath string) {
+	if configurationsPath == "" {
 		return
 	}
-	extensionsPath, err := filepath.Abs(extensionsPath)
+	configurationsPath, err := filepath.Abs(configurationsPath)
 	if err != nil {
-		log.Fatalf("Unable to make the extensions directory path %q absolute. Error: %q", extensionsPath, err)
+		log.Fatalf("Unable to make the extensions directory path %q absolute. Error: %q", configurationsPath, err)
 	}
-	fi, err := os.Stat(extensionsPath)
+	fi, err := os.Stat(configurationsPath)
 	if os.IsNotExist(err) {
-		log.Fatalf("The given extensions directory %s does not exist. Error: %q", extensionsPath, err)
+		log.Fatalf("The given extensions directory %s does not exist. Error: %q", configurationsPath, err)
 	}
 	if err != nil {
-		log.Fatalf("Error while accessing the given extensions directory %s Error: %q", extensionsPath, err)
+		log.Fatalf("Error while accessing the given extensions directory %s Error: %q", configurationsPath, err)
 	}
 	if !fi.IsDir() {
-		log.Fatalf("The given extensions path %s is a file. Expected a directory. Exiting.", extensionsPath)
+		log.Fatalf("The given extensions path %s is a file. Expected a directory. Exiting.", configurationsPath)
 	}
 	pwd, err := os.Getwd()
 	if err != nil {
 		log.Fatalf("Failed to get the current working directory. Error: %q", err)
 	}
-	if IsParent(pwd, extensionsPath) {
-		log.Fatalf("The given extensions directory %s is a parent of the current working directory.", extensionsPath)
+	if IsParent(pwd, configurationsPath) {
+		log.Fatalf("The given extensions directory %s is a parent of the current working directory.", configurationsPath)
 	}
-	if err = CopyConfigurationsAssetsData(extensionsPath); err != nil {
+	if err = CopyConfigurationsAssetsData(configurationsPath); err != nil {
 		log.Fatalf("Unable to copy extensions data : %s", err)
 	}
 }

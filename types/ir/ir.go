@@ -1,5 +1,5 @@
 /*
-Copyright IBM Corporation 2020
+Copyright IBM Corporation 2020, 2021
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import (
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
@@ -34,12 +33,14 @@ import (
 
 // IR is the intermediate representation filled by source translators
 type IR struct {
-	RootDir       string
-	Name          string
-	Containers    []Container // Images to be built
-	Services      map[string]Service
-	Storages      []Storage
-	CachedObjects []runtime.Object
+	RootDir string
+	Name    string
+
+	NewFiles map[string][]byte //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
+
+	Containers []Container // Images to be built
+	Services   map[string]Service
+	Storages   []Storage
 
 	RegistryURL          string
 	RegistryNamespace    string
@@ -47,32 +48,12 @@ type IR struct {
 	IngressTLSSecretName string
 }
 
-// EnhancedIR is IR with extra data specific to API resource sets
-type EnhancedIR struct {
-	IR
-	Roles           []Role
-	RoleBindings    []RoleBinding
-	ServiceAccounts []ServiceAccount
-	BuildConfigs    []BuildConfig
-	TektonResources TektonResources
-}
-
-// BuildConfig contains the resources needed to create a BuildConfig
-type BuildConfig struct {
-	RepoInfo          RepoInfo
-	Name              string
-	ImageStreamName   string
-	ImageStreamTag    string
-	SourceSecretName  string
-	WebhookSecretName string
-}
-
 // Service defines structure of an IR service
 type Service struct {
 	core.PodSpec
 
-	Name                        string `json:"name"`
-	BackendServiceName          string `json:"backendServiceName"` // Optional field when ingress name is not the same as backend service name
+	Name                        string
+	BackendServiceName          string // Optional field when ingress name is not the same as backend service name
 	Annotations                 map[string]string
 	Labels                      map[string]string
 	ServiceToPodPortForwardings []ServiceToPodPortForwarding
@@ -81,8 +62,6 @@ type Service struct {
 	ServiceRelPath              string //Ingress fan-out path
 	OnlyIngress                 bool
 	Daemon                      bool //Gets converted to DaemonSet
-
-	Config interface{} `json:"config"`
 }
 
 // Port is a port number with an optional port name.
@@ -104,7 +83,6 @@ type Container struct {
 	RepoInfo           RepoInfo                `yaml:"-"`
 	ImageNames         []string                `yaml:"-"`
 	New                bool                    `yaml:"-"` // true if this is a new image that needs to be built
-	NewFiles           map[string][]byte       `yaml:"-"` //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
 	ExposedPorts       []int                   `yaml:"ports"`
 	UserID             int                     `yaml:"userID"`
 	AccessedDirs       []string                `yaml:"accessedDirs"`
@@ -127,32 +105,6 @@ type Storage struct {
 	StorageType                    StorageKindType   //Type of storage cfgmap, secret, pvc
 	SecretType                     core.SecretType   // Optional field to store the type of secret data
 	Content                        map[string][]byte //Optional field meant to store content for cfgmap or secret
-}
-
-// ServiceAccount holds the details about the service account resource
-type ServiceAccount struct {
-	Name        string
-	SecretNames []string
-}
-
-// RoleBinding holds the details about the role binding resource
-type RoleBinding struct {
-	Name               string
-	RoleName           string
-	ServiceAccountName string
-}
-
-// Role holds the details about the role resource
-type Role struct {
-	Name        string
-	PolicyRules []PolicyRule
-}
-
-// PolicyRule holds the details about the policy rules for the service account resources
-type PolicyRule struct {
-	APIGroups []string
-	Resources []string
-	Verbs     []string
 }
 
 const (
@@ -395,7 +347,6 @@ func (ir *IR) Merge(newir IR) {
 		ir.AddStorage(newst)
 	}
 	ir.TargetClusterSpec.Merge(newir.TargetClusterSpec)
-	ir.CachedObjects = append(ir.CachedObjects, newir.CachedObjects...)
 }
 
 // IsIngressTLSEnabled checks if TLS is enabled for the ingress.

@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/konveyor/move2kube/internal/types"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -152,12 +152,12 @@ func TestOptimize(t *testing.T) {
 		}
 		svcname1 := "svcname1"
 		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname2, Replicas: 4}
+		svc1 := irtypes.Service{Name: svcname1, Replicas: 2}
+		svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 		svc1.Containers = append(svc1.Containers, c1)
 		svc2.Containers = append(svc2.Containers, c2)
 		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
+		ir := irtypes.NewIR(p)
 		ir.Services[svcname1] = svc1
 		ir.Services[svcname2] = svc2
 
@@ -192,12 +192,12 @@ func TestOptimize(t *testing.T) {
 		}
 		svcname1 := "svcname1"
 		svcname2 := "svcname2"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname2, Replicas: 4}
+		svc1 := irtypes.Service{Name: svcname1, Replicas: 2}
+		svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 		svc1.Containers = append(svc1.Containers, c1)
 		svc2.Containers = append(svc2.Containers, c2)
 		p := plantypes.NewPlan()
-		ir := types.NewIR(p)
+		ir := irtypes.NewIR(p)
 		ir.Services[svcname1] = svc1
 		ir.Services[svcname2] = svc2
 
@@ -215,7 +215,7 @@ func TestOptimize(t *testing.T) {
 	})
 }
 
-func getIRWithServicesAndContainersWithValidEnv() types.IR {
+func getIRWithServicesAndContainersWithValidEnv() irtypes.IR {
 	c1 := core.Container{
 		Name: "container-1",
 		Env: []core.EnvVar{
@@ -232,19 +232,19 @@ func getIRWithServicesAndContainersWithValidEnv() types.IR {
 	}
 	svcname1 := "svcname1"
 	svcname2 := "svcname2"
-	svc1 := types.Service{Name: svcname1, Replicas: 2}
-	svc2 := types.Service{Name: svcname2, Replicas: 4}
+	svc1 := irtypes.Service{Name: svcname1, Replicas: 2}
+	svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 	svc1.Containers = append(svc1.Containers, c1)
 	svc2.Containers = append(svc2.Containers, c2)
 
 	p := plantypes.NewPlan()
-	ir := types.NewIR(p)
+	ir := irtypes.NewIR(p)
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 	return ir
 }
 
-func getIRWithServicesAndContainersWithoutEnv() types.IR {
+func getIRWithServicesAndContainersWithoutEnv() irtypes.IR {
 	c1 := core.Container{
 		Name: "container-1",
 	}
@@ -253,19 +253,19 @@ func getIRWithServicesAndContainersWithoutEnv() types.IR {
 	}
 	svcname1 := "svcname1"
 	svcname2 := "svcname2"
-	svc1 := types.Service{Name: svcname1, Replicas: 2}
-	svc2 := types.Service{Name: svcname2, Replicas: 4}
+	svc1 := irtypes.Service{Name: svcname1, Replicas: 2}
+	svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 	svc1.Containers = append(svc1.Containers, c1)
 	svc2.Containers = append(svc2.Containers, c2)
 
 	p := plantypes.NewPlan()
-	ir := types.NewIR(p)
+	ir := irtypes.NewIR(p)
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname1] = svc2
 	return ir
 }
 
-func getExpectedIR() types.IR {
+func getExpectedIR() irtypes.IR {
 	c1 := core.Container{
 		Name: "container-1",
 		Env: []core.EnvVar{
@@ -283,18 +283,18 @@ func getExpectedIR() types.IR {
 	}
 	svcname1 := "svcname1"
 	svcname2 := "svcname2"
-	svc1 := types.Service{Name: svcname1, Replicas: 2}
-	svc2 := types.Service{Name: svcname2, Replicas: 4}
+	svc1 := irtypes.Service{Name: svcname1, Replicas: 2}
+	svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 	svc1.Containers = append(svc1.Containers, c1)
 	svc2.Containers = append(svc2.Containers, c2)
 	p := plantypes.NewPlan()
-	ir := types.NewIR(p)
+	ir := irtypes.NewIR(p)
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 	return ir
 }
 
-func getExpectedIRWithAffinityInContainer() types.IR {
+func getExpectedIRWithAffinityInContainer() irtypes.IR {
 	c1 := core.Container{
 		Name: "container-1",
 		Env: []core.EnvVar{
@@ -310,12 +310,12 @@ func getExpectedIRWithAffinityInContainer() types.IR {
 	}
 	svcname1 := "svcname1"
 	svcname2 := "svcname2"
-	svc1 := types.Service{Name: svcname1, Replicas: 2}
-	svc2 := types.Service{Name: svcname2, Replicas: 4}
+	svc1 := irtypes.Service{Name: svcname1, Replicas: 2}
+	svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 	svc1.Containers = append(svc1.Containers, c1)
 	svc2.Containers = append(svc2.Containers, c2)
 	p := plantypes.NewPlan()
-	ir := types.NewIR(p)
+	ir := irtypes.NewIR(p)
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 	return ir

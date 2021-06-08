@@ -31,8 +31,6 @@ const (
 	SourceFlag = "source"
 	// OutputFlag is the name of the flag that contains path to the output folder
 	OutputFlag = "output"
-	// QACacheFlag is the name of the flag that contains list of qacache files
-	QACacheFlag = "qacache"
 	// NameFlag is the name of the flag that contains the project name
 	NameFlag = "name"
 	// PlanFlag is the name of the flag that contains the path to the plan file
@@ -65,8 +63,6 @@ type TranslateFlags struct {
 	Srcpath string
 	//Name contains the project name
 	Name string
-	//Qacaches contains a list of qacache files
-	Qacaches []string
 	//Configs contains a list of config files
 	Configs []string
 	//Configs contains a list of key-value configs

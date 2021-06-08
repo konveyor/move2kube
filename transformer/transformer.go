@@ -24,8 +24,8 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
-	starcommon "github.com/konveyor/move2kube/internal/starlark/common"
-	"github.com/konveyor/move2kube/internal/starlark/types"
+	transformercommon "github.com/konveyor/move2kube/transformer/common"
+	"github.com/konveyor/move2kube/transformer/types"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -56,7 +56,7 @@ func WriteResources(k8sResources []types.K8sResourceT, outputPath string) ([]str
 func getFilename(k8sResource types.K8sResourceT) (string, error) {
 	log.Trace("start getFilename")
 	defer log.Trace("end getFilename")
-	kind, _, name, err := starcommon.GetInfoFromK8sResource(k8sResource)
+	kind, _, name, err := transformercommon.GetInfoFromK8sResource(k8sResource)
 	if err != nil {
 		return "", err
 	}

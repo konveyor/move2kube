@@ -23,8 +23,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/metadata"
-	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,10 +37,9 @@ func TestUpdatePlan(t *testing.T) {
 		p := plantypes.NewPlan()
 		want := plantypes.NewPlan()
 		loader := metadata.ClusterMDLoader{}
-		inputPath := t.TempDir()
 
 		// Test
-		if err := loader.UpdatePlan(inputPath, &p); err != nil {
+		if err := loader.UpdatePlan(&p); err != nil {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
 		if !cmp.Equal(p, want) {
@@ -105,10 +104,9 @@ func TestUpdatePlan(t *testing.T) {
 		p := plantypes.NewPlan()
 		want := plantypes.NewPlan()
 		loader := metadata.ClusterMDLoader{}
-		inputPath := "testdata/emptyfiles"
 
 		// Test
-		if err := loader.UpdatePlan(inputPath, &p); err != nil {
+		if err := loader.UpdatePlan(&p); err != nil {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
 		if !cmp.Equal(p, want) {
@@ -121,10 +119,9 @@ func TestUpdatePlan(t *testing.T) {
 		p := plantypes.NewPlan()
 		want := plantypes.NewPlan()
 		loader := metadata.ClusterMDLoader{}
-		inputPath := "testdata/invalidfiles"
 
 		// Test
-		if err := loader.UpdatePlan(inputPath, &p); err != nil {
+		if err := loader.UpdatePlan(&p); err != nil {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
 		if !cmp.Equal(p, want) {
@@ -136,13 +133,12 @@ func TestUpdatePlan(t *testing.T) {
 		// Setup
 		p := plantypes.NewPlan()
 		want := plantypes.NewPlan()
-		want.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType] = []string{"testdata/validfiles/test1.yaml", "testdata/validfiles/test2.yml"}
+		want.Spec.Configuration.TargetClusters = map[string]string{"name1": "testdata/validfiles/test1.yaml", "name2": "testdata/validfiles/test2.yml"}
 		want.Spec.TargetCluster = plantypes.TargetClusterType{Type: "name1"}
 		loader := metadata.ClusterMDLoader{}
-		inputPath := "testdata/validfiles"
 
 		// Test
-		if err := loader.UpdatePlan(inputPath, &p); err != nil {
+		if err := loader.UpdatePlan(&p); err != nil {
 			t.Fatal("Failed to update the plan. Error:", err)
 		}
 		if !cmp.Equal(p, want) {
@@ -211,7 +207,7 @@ func TestGetClusters(t *testing.T) {
 
 	t.Run("get clusters from a filled plan", func(t *testing.T) {
 		p := plantypes.NewPlan()
-		p.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType] = []string{"testdata/validfiles/test1.yaml", "testdata/validfiles/test2.yml"}
+		p.Spec.Configuration.TargetClusters = map[string]string{"name1": "testdata/validfiles/test1.yaml", "name2": "testdata/validfiles/test2.yml"}
 		loader := metadata.ClusterMDLoader{}
 		cmMap := loader.GetClusters(p)
 		if _, ok := cmMap["IBM-IKS"]; !ok {
@@ -236,7 +232,7 @@ func TestGetClusters(t *testing.T) {
 
 	t.Run("get clusters from a filled plan", func(t *testing.T) {
 		p := plantypes.NewPlan()
-		p.Spec.Inputs.TargetInfoArtifacts[plantypes.K8sClusterArtifactType] = []string{"testdata/validfilesnostorageclasses/test1.yaml", "testdata/validfilesnostorageclasses/test2.yml"}
+		p.Spec.Configuration.TargetClusters = map[string]string{"name1": "testdata/validfilesnostorageclasses/test1.yaml", "name2": "testdata/validfilesnostorageclasses/test2.yml"}
 		loader := metadata.ClusterMDLoader{}
 		cmMap := loader.GetClusters(p)
 		if _, ok := cmMap["IBM-IKS"]; !ok {

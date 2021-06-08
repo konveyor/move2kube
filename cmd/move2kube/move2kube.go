@@ -1,5 +1,5 @@
 /*
-Copyright IBM Corporation 2020
+Copyright IBM Corporation 2020, 2021
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ package main
 
 import (
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/konveyor/move2kube/assets"
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
@@ -47,16 +45,6 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 			}
 			return nil
 		},
-	}
-
-	if strings.HasPrefix(filepath.Base(os.Args[0]), "kubectl-") {
-		// Invoked as a kubectl plugin.
-
-		// Cobra doesn't have a way to specify a two word command (ie. "kubectl move2kube"), so set a custom usage template
-		// with kubectl in it. Cobra will use this template for the root and all child commands.
-		oldUsageTemplate := rootCmd.UsageTemplate()
-		newUsageTemplate := strings.NewReplacer("{{.UseLine}}", "kubectl {{.UseLine}}", "{{.CommandPath}}", "kubectl {{.CommandPath}}").Replace(oldUsageTemplate)
-		rootCmd.SetUsageTemplate(newUsageTemplate)
 	}
 
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")

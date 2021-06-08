@@ -21,8 +21,8 @@ import (
 	"regexp"
 
 	"github.com/konveyor/move2kube/internal/common"
-	starcommon "github.com/konveyor/move2kube/internal/starlark/common"
-	"github.com/konveyor/move2kube/internal/starlark/types"
+	starcommon "github.com/konveyor/move2kube/transformer/common"
+	"github.com/konveyor/move2kube/transformer/types"
 	starjson "github.com/qri-io/starlib/encoding/json"
 	"github.com/qri-io/starlib/util"
 	log "github.com/sirupsen/logrus"

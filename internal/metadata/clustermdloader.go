@@ -20,12 +20,10 @@ import (
 	"fmt"
 
 	"github.com/konveyor/move2kube/internal/common"
-	clustersmetadata "github.com/konveyor/move2kube/internal/metadata/clusters"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 //go:generate go run  ../../scripts/generator/generator.go clusters makemaps
@@ -35,10 +33,10 @@ type ClusterMDLoader struct {
 }
 
 // UpdatePlan - output a plan based on the input directory contents
-func (clusterMDLoader *ClusterMDLoader) UpdatePlan(inputPath string, plan *plantypes.Plan) error {
-	filePaths, err := common.GetFilesByExt(inputPath, []string{".yml", ".yaml"})
+func (clusterMDLoader *ClusterMDLoader) UpdatePlan(plan *plantypes.Plan) error {
+	filePaths, err := common.GetFilesByExt(common.AssetsPath, []string{".yml", ".yaml"})
 	if err != nil {
-		log.Warnf("Failed to fetch the cluster metadata yamls at path %q Error: %q", inputPath, err)
+		log.Warnf("Failed to fetch the cluster metadata yamls at path %q Error: %q", common.AssetsPath, err)
 		return err
 	}
 	for _, filePath := range filePaths {
@@ -83,21 +81,6 @@ func (clusterMDLoader *ClusterMDLoader) LoadToIR(plan plantypes.Plan, ir *irtype
 func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[string]collecttypes.ClusterMetadata {
 	clusters := map[string]collecttypes.ClusterMetadata{}
 
-	// Load built-in cluster metadata.
-	for name, metadata := range clustersmetadata.Constants {
-		cm := collecttypes.ClusterMetadata{}
-		if err := yaml.Unmarshal([]byte(metadata), &cm); err != nil {
-			log.Warnf("Unable to unmarshal built-in cluster info %s Error: %q", name, err)
-			continue
-		}
-		if len(cm.Spec.StorageClasses) == 0 {
-			cm.Spec.StorageClasses = []string{common.DefaultStorageClassName}
-			log.Debugf("No storage class in the cluster %s, adding [default] storage class", name)
-		}
-		cm.Spec.Inbuilt = true
-		clusters[cm.Name] = cm
-	}
-
 	// Load collected cluster metadata.
 	clusterMDPaths := plan.Spec.Configuration.TargetClusters
 	for _, clusterMDPath := range clusterMDPaths {
@@ -110,7 +93,6 @@ func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[str
 			cm.Spec.StorageClasses = []string{common.DefaultStorageClassName}
 			log.Debugf("No storage class in the cluster %s at path %q, adding [default] storage class", cm.Name, clusterMDPath)
 		}
-		cm.Spec.Inbuilt = false
 		clusters[cm.Name] = cm
 	}
 

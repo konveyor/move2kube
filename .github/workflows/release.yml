@@ -186,16 +186,6 @@ jobs:
           file: _dist/output/*
           file_glob: true
           overwrite: true
-      - name: build and release the plugin
-        run: VERSION='${{ github.event.inputs.tag }}' make dist-kubectl-translate
-      - name: upload plugin release assets
-        uses: HarikrishnanBalagopal/upload-release-action@v3
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.event.inputs.tag }}
-          file: _dist/output/*
-          file_glob: true
-          overwrite: true
       - name: slack notification
         uses: rtCamp/action-slack-notify@v2
         env:

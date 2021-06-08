@@ -20,7 +20,7 @@ import (
 	"regexp"
 	"strings"
 
-	irtypes "github.com/konveyor/move2kube/internal/types"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 

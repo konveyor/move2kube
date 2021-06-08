@@ -33,7 +33,6 @@ type ClusterMetadata struct {
 
 // ClusterMetadataSpec stores the data
 type ClusterMetadataSpec struct {
-	Inbuilt           bool                `yaml:"-"`
 	StorageClasses    []string            `yaml:"storageClasses"`
 	APIKindVersionMap map[string][]string `yaml:"apiKindVersionMap"` //[kubernetes kind]["gv1", "gv2",...,"gvn"] prioritized group-version
 	Host              string              `yaml:"host,omitempty"`    // Optional field, either collected with move2kube collect or by asking the user.

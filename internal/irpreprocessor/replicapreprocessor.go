@@ -17,7 +17,7 @@ limitations under the License.
 package irpreprocessor
 
 import (
-	irtypes "github.com/konveyor/move2kube/internal/types"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 )
 
 // replicaOptimizer sets the minimum number of replicas

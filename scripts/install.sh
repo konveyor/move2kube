@@ -283,38 +283,6 @@ wait_for_user() {
     return 0
 }
 
-askBeforeInstallingKubectlPlugins() {
-    if [ "$QUIET" = 'true' ]; then
-        return 0
-    fi
-    echo 'Would you like to install move2kube as a kubectl plugin?'
-    echo 'This will install "move2kube" and "translate" plugins for kubectl.'
-    wait_for_user
-}
-
-# downloadAndInstallPlugin downloads the latest plugin and installs it.
-downloadAndInstallPlugin() {
-    local plugin_dist="kubectl-translate-$MOVE2KUBE_TAG-$OS-$ARCH.tar.gz"
-    local plugin_download_url="https://github.com/konveyor/move2kube/releases/download/$MOVE2KUBE_TAG/$plugin_dist"
-    if ! isURLExist "$plugin_download_url"; then
-        echo 'Failed to find the plugins for this version. Skipping plugin installation.'
-        return 0
-    fi
-    local plugin_tmp_file="$MOVE2KUBE_TMP_ROOT/$plugin_dist"
-    if [ "$VERIFY_CHECKSUM" = 'true' ]; then
-        downloadAndVerifyChecksum "$plugin_download_url" "$plugin_tmp_file"
-    else
-        download "$plugin_download_url" "$plugin_tmp_file"
-    fi
-    echo 'Installing translate plugin for kubectl'
-    local plugin_tar_dir="$MOVE2KUBE_TMP_ROOT/plugin"
-    mkdir -p "$plugin_tar_dir"
-    tar -xzf "$plugin_tmp_file" -C "$plugin_tar_dir"
-    runAsRoot cp "$plugin_tar_dir/kubectl-translate/kubectl-translate" "$MOVE2KUBE_INSTALL_DIR/kubectl-translate"
-    echo 'Installing move2kube plugin for kubectl'
-    runAsRoot ln -f -s "$MOVE2KUBE_INSTALL_DIR/$BINARY_NAME" "$MOVE2KUBE_INSTALL_DIR/kubectl-$BINARY_NAME"
-}
-
 # cleanup temporary files.
 cleanup() {
     echo 'cleaning up temporary files and directories...'
@@ -348,11 +316,6 @@ main() {
     if ! checkMove2KubeInstalledVersion; then
         downloadMove2Kube
         installMove2Kube
-        if askBeforeInstallingKubectlPlugins; then
-            downloadAndInstallPlugin
-        else
-            echo 'Failed to get confirmation. Not installing kubectl plugins.'
-        fi
     fi
     testVersion
     echo 'Done!'

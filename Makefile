@@ -14,7 +14,6 @@
 
 GO_VERSION  ?= $(shell go run ./scripts/detectgoversion/detect.go 2>/dev/null || printf '1.16')
 BINNAME     ?= move2kube
-PLUGIN_BINNAME ?= kubectl-translate
 BINDIR      := $(CURDIR)/bin
 DISTDIR		:= $(CURDIR)/_dist
 TARGETS     := darwin/amd64 linux/amd64
@@ -85,12 +84,6 @@ endif
 	mkdir -p $(GOPATH)/bin/
 	cp $(BINDIR)/$(BINNAME) $(GOPATH)/bin/
 
-.PHONY: build-kubectl-translate
-build-kubectl-translate: get $(BINDIR)/$(PLUGIN_BINNAME) ## Build translate plugin for kubectl https://github.com/kubernetes-sigs/krew
-
-$(BINDIR)/$(PLUGIN_BINNAME): $(SRC)
-	go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(PLUGIN_BINNAME) ./cmd/kubectltranslate
-
 .PHONY: get
 get: go.mod
 	go mod download
@@ -151,10 +144,6 @@ $(GOX):
 build-cross: $(GOX) clean
 	CGO_ENABLED=0 $(GOX) -parallel=3 -output="$(DISTDIR)/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/${BINNAME}
 
-.PHONY: build-cross-kubectl-translate
-build-cross-kubectl-translate: $(GOX) clean
-	CGO_ENABLED=0 $(GOX) -parallel=3 -output="$(DISTDIR)/{{.OS}}-{{.Arch}}/$(PLUGIN_BINNAME)" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/kubectltranslate
-
 .PHONY: dist
 dist: clean build-cross ## Build distribution
 ifeq ($(HAS_UPX),true)
@@ -168,20 +157,6 @@ endif
 	mkdir -p $(DISTDIR)/files
 	cp -r ./LICENSE ./scripts/installdeps.sh ./USAGE.md ./samples $(DISTDIR)/files/
 	cd $(DISTDIR) && go run ../scripts/dist/builddist.go -b $(BINNAME) -v $(VERSION)
-
-.PHONY: dist-kubectl-translate
-dist-kubectl-translate: clean build-cross-kubectl-translate ## Build kubectl plugin distribution
-ifeq ($(HAS_UPX),true)
-	@echo 'upx detected. compressing binary...'
-	upx $(shell find . -type f -name '$(PLUGIN_BINNAME)')
-else
-	@echo 'For smaller binaries, please install upx:'
-	@echo 'MacOS: brew install upx'
-	@echo 'Linux: sudo apt-get install upx'
-endif
-	mkdir -p $(DISTDIR)/files
-	cp -r ./LICENSE $(DISTDIR)/files/
-	cd $(DISTDIR) && go run ../scripts/dist/builddist.go -b '$(PLUGIN_BINNAME)' -v $(VERSION)
 
 .PHONY: clean
 clean:

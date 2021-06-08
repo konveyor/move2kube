@@ -23,7 +23,7 @@ import (
 
 // Loader handles loading of various metadata
 type Loader interface {
-	UpdatePlan(inputPath string, p *plantypes.Plan) error
+	UpdatePlan(p *plantypes.Plan) error
 	LoadToIR(p plantypes.Plan, ir *irtypes.IR) error
 }
 

@@ -17,7 +17,7 @@ limitations under the License.
 package runtransforms
 
 import (
-	"github.com/konveyor/move2kube/internal/starlark/types"
+	"github.com/konveyor/move2kube/transformer/types"
 	log "github.com/sirupsen/logrus" // TODO
 )
 

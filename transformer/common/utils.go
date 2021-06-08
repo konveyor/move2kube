@@ -19,7 +19,7 @@ package common
 import (
 	"fmt"
 
-	"github.com/konveyor/move2kube/internal/starlark/types"
+	"github.com/konveyor/move2kube/transformer/types"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -23,13 +23,14 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/konveyor/move2kube/assets"
 	"github.com/konveyor/move2kube/internal/common"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	yaml "gopkg.in/yaml.v3"
 )
 
 func setupAssets(t *testing.T) {
-	assetsPath, tempPath, err := common.CreateAssetsData()
+	assetsPath, tempPath, err := common.CreateAssetsData(assets.Tar)
 	if err != nil {
 		t.Fatalf("Unable to create the assets directory. Error: %q", err)
 	}

@@ -89,7 +89,6 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
 		qaengine.SetupConfigFile(filepath.Join(flags.Outpath, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
-		qaengine.AddCaches(flags.Qacaches...)
 		qaengine.SetupWriteCacheFile(filepath.Join(flags.Outpath, common.QACacheFile))
 		if err := qaengine.WriteStoresToDisk(); err != nil {
 			log.Warnf("Failed to write the stores to disk. Error: %q", err)
@@ -134,7 +133,6 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		}
 		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
 		qaengine.SetupConfigFile(filepath.Join(flags.Outpath, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
-		qaengine.AddCaches(flags.Qacaches...)
 		qaengine.SetupWriteCacheFile(filepath.Join(flags.Outpath, common.QACacheFile))
 		if err := qaengine.WriteStoresToDisk(); err != nil {
 			log.Warnf("Failed to write the stores to disk. Error: %q", err)
@@ -169,7 +167,6 @@ func getTranslateCommand() *cobra.Command {
 	translateCmd.Flags().StringVarP(&flags.Srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory to translate. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
 	translateCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	translateCmd.Flags().StringVarP(&flags.Name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	translateCmd.Flags().StringSliceVarP(&flags.Qacaches, cmdcommon.QACacheFlag, "q", []string{}, "Specify qa cache file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
 	translateCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
 	translateCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")

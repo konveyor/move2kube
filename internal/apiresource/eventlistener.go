@@ -18,8 +18,7 @@ package apiresource
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	"github.com/konveyor/move2kube/internal/types/tekton"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -51,7 +50,7 @@ func (el *EventListener) createNewResources(ir irtypes.EnhancedIR, supportedKind
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
-func (el *EventListener) createNewResource(ireventlistener tekton.EventListener) *triggersv1alpha1.EventListener {
+func (el *EventListener) createNewResource(ireventlistener irtypes.EventListener) *triggersv1alpha1.EventListener {
 	eventListener := new(triggersv1alpha1.EventListener)
 	eventListener.TypeMeta = metav1.TypeMeta{
 		Kind:       eventListenerKind,

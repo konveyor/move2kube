@@ -27,7 +27,6 @@ import (
 	"github.com/konveyor/move2kube/assets"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator"
-	"github.com/konveyor/move2kube/internal/translator/executable/containerizer"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 )
@@ -58,7 +57,7 @@ func TestCreatePlan(t *testing.T) {
 		if err := want.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
-		translator.Init(inputPath, nil)
+		translator.Init(common.AssetsDir)
 
 		// Test
 		p := api.CreatePlan(inputPath, "", prjName)
@@ -92,7 +91,7 @@ func TestCreatePlan(t *testing.T) {
 		if err := want.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
-		containerizer.InitContainerizers(inputPath, nil)
+		translator.Init(common.AssetsPath)
 
 		// Test
 		p := api.CreatePlan(inputPath, "", prjName)
@@ -118,7 +117,7 @@ func TestCreatePlan(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Cannot read the plan at path %q Error: %q", testDataPlanPath, err)
 		}
-		containerizer.InitContainerizers(inputPath, nil)
+		translator.Init(common.AssetsPath)
 
 		// Test
 		actual := api.CreatePlan(inputPath, "", prjName)

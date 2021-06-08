@@ -24,7 +24,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	types "github.com/konveyor/move2kube/types/ir"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -36,8 +36,8 @@ func TestAddVolume(t *testing.T) {
 		// Setup
 		name1 := "name1"
 		v := core.Volume{Name: name1}
-		s := types.Service{}
-		want := types.Service{}
+		s := irtypes.Service{}
+		want := irtypes.Service{}
 		want.Volumes = []core.Volume{v}
 
 		// Test
@@ -51,9 +51,9 @@ func TestAddVolume(t *testing.T) {
 		// Setup
 		name1 := "name1"
 		v := core.Volume{Name: name1}
-		s := types.Service{}
+		s := irtypes.Service{}
 		s.Volumes = []core.Volume{v}
-		want := types.Service{}
+		want := irtypes.Service{}
 		want.Volumes = []core.Volume{v}
 
 		// Test
@@ -69,7 +69,7 @@ func TestNewContainer(t *testing.T) {
 
 	name1 := "name1"
 	new1 := true
-	c := types.NewContainer(plantypes.DockerFileContainerBuildTypeValue, name1, new1)
+	c := irtypes.NewContainer(plantypes.DockerFileContainerBuildTypeValue, name1, new1)
 	if len(c.ImageNames) != 1 || c.ImageNames[0] != name1 {
 		t.Fatal("Failed to initialize the container properly. Expected image names to be: [", name1, "] Actual:", c.ImageNames)
 	}
@@ -87,7 +87,7 @@ func TestNewContainerFromImageInfo(t *testing.T) {
 	t.Run("get container from image with tags", func(t *testing.T) {
 		imginfo1 := collecttypes.NewImageInfo()
 		imginfo1.Spec.Tags = []string{"tag1"}
-		c := types.NewContainerFromImageInfo(imginfo1)
+		c := irtypes.NewContainerFromImageInfo(imginfo1)
 		if !cmp.Equal(c.ImageNames, imginfo1.Spec.Tags) {
 			t.Fatalf("Failed to initialze the image names from the tags properly. Difference between image names:\n%s", cmp.Diff(imginfo1.Spec.Tags, c.ImageNames))
 		}
@@ -104,7 +104,7 @@ func TestNewContainerFromImageInfo(t *testing.T) {
 
 	t.Run("get container from image without tags", func(t *testing.T) {
 		imginfo1 := collecttypes.NewImageInfo()
-		c := types.NewContainerFromImageInfo(imginfo1)
+		c := irtypes.NewContainerFromImageInfo(imginfo1)
 		if !cmp.Equal(c.ImageNames, imginfo1.Spec.Tags) {
 			t.Fatalf("Failed to initialze the image names from the tags properly. Difference between image names:\n%s", cmp.Diff(imginfo1.Spec.Tags, c.ImageNames))
 		}
@@ -128,11 +128,11 @@ func TestContainerMerge(t *testing.T) {
 		buildType1 := plantypes.DockerFileContainerBuildTypeValue
 		name1 := "name1"
 		new1 := true
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		name2 := "name2"
 		new2 := true
-		c2 := types.NewContainer(buildType1, name2, new2)
-		want := types.NewContainer(buildType1, name1, new1)
+		c2 := irtypes.NewContainer(buildType1, name2, new2)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 
 		// Test
 		if c1.Merge(c2) || !reflect.DeepEqual(c1, want) { // TODO: If neither container has image name should it return true?
@@ -145,13 +145,13 @@ func TestContainerMerge(t *testing.T) {
 		buildType1 := plantypes.DockerFileContainerBuildTypeValue
 		name1 := "name1"
 		new1 := true
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
 		name2 := "name2"
 		new2 := true
-		c2 := types.NewContainer(buildType1, name2, new2)
+		c2 := irtypes.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname4", "imgname5", "imgname6"}
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
 
 		// Test
@@ -165,13 +165,13 @@ func TestContainerMerge(t *testing.T) {
 		buildType1 := plantypes.DockerFileContainerBuildTypeValue
 		name1 := "name1"
 		new1 := true
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
 		name2 := "name2"
 		new2 := false
-		c2 := types.NewContainer(buildType1, name2, new2)
+		c2 := irtypes.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname3", "imgname4", "imgname5"}
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3", "imgname4", "imgname5"}
 
 		// Test
@@ -187,15 +187,15 @@ func TestContainerMerge(t *testing.T) {
 		new1 := true
 		path1 := "path1"
 		contents1 := "contents1"
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
 		c1.NewFiles[path1] = []byte(contents1)
 		name2 := "name2"
 		new2 := true
-		c2 := types.NewContainer(buildType1, name2, new2)
+		c2 := irtypes.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname3", "imgname4", "imgname5"}
 		c2.NewFiles[path1] = []byte(contents1)
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3", "imgname4", "imgname5"}
 		want.NewFiles[path1] = []byte(contents1)
 
@@ -214,15 +214,15 @@ func TestContainerMerge(t *testing.T) {
 		path2 := "path2"
 		contents1 := "contents1"
 		contents2 := "contents2"
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
 		c1.NewFiles[path1] = []byte(contents1)
 		name2 := "name2"
 		new2 := true
-		c2 := types.NewContainer(buildType1, name2, new2)
+		c2 := irtypes.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname3", "imgname4", "imgname5"}
 		c2.NewFiles[path2] = []byte(contents2)
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3", "imgname4", "imgname5"}
 		want.NewFiles[path1] = []byte(contents1)
 		want.NewFiles[path2] = []byte(contents2)
@@ -241,15 +241,15 @@ func TestContainerMerge(t *testing.T) {
 		path1 := "path1"
 		contents1 := "contents1"
 		contents2 := "contents2"
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
 		c1.NewFiles[path1] = []byte(contents1)
 		name2 := "name2"
 		new2 := true
-		c2 := types.NewContainer(buildType1, name2, new2)
+		c2 := irtypes.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname3", "imgname4", "imgname5"}
 		c2.NewFiles[path1] = []byte(contents2)
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3", "imgname4", "imgname5"}
 		want.NewFiles[path1] = []byte(contents1)
 
@@ -264,15 +264,15 @@ func TestContainerMerge(t *testing.T) {
 		buildType1 := plantypes.DockerFileContainerBuildTypeValue
 		name1 := "name1"
 		new1 := true
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
 		c1.UserID = 1
 		name2 := "name2"
 		new2 := true
-		c2 := types.NewContainer(buildType1, name2, new2)
+		c2 := irtypes.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname3", "imgname4", "imgname5"}
 		c2.UserID = 2
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3", "imgname4", "imgname5"}
 		want.UserID = 1
 
@@ -292,19 +292,19 @@ func TestContainerMerge(t *testing.T) {
 
 		name1 := "name1"
 		new1 := false
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
 		c1.UserID = 1
 		c1.NewFiles[path1] = []byte(contents1)
 
 		name2 := "name2"
 		new2 := true
-		c2 := types.NewContainer(buildType1, name2, new2)
+		c2 := irtypes.NewContainer(buildType1, name2, new2)
 		c2.ImageNames = []string{"imgname3", "imgname4", "imgname5"}
 		c2.UserID = 2
 		c2.NewFiles[path2] = []byte(contents2)
 
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ImageNames = []string{"imgname1", "imgname2", "imgname3", "imgname4", "imgname5"}
 		want.UserID = 2
 		want.NewFiles[path2] = []byte(contents2)
@@ -326,8 +326,8 @@ func TestAddFile(t *testing.T) {
 		new1 := true
 		path1 := "path1/foo/bar"
 		contents1 := "contents1"
-		c := types.NewContainer(buildType1, name1, new1)
-		want := types.NewContainer(buildType1, name1, new1)
+		c := irtypes.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.NewFiles[path1] = []byte(contents1)
 
 		// Test
@@ -344,9 +344,9 @@ func TestAddFile(t *testing.T) {
 		new1 := true
 		path1 := "path1/foo/bar"
 		contents1 := "contents1"
-		c := types.NewContainer(buildType1, name1, new1)
+		c := irtypes.NewContainer(buildType1, name1, new1)
 		c.NewFiles[path1] = []byte(contents1)
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.NewFiles[path1] = []byte(contents1)
 
 		// Test
@@ -364,9 +364,9 @@ func TestAddFile(t *testing.T) {
 		path1 := "path1/foo/bar"
 		contents1 := "contents1"
 		contents2 := "contents2"
-		c := types.NewContainer(buildType1, name1, new1)
+		c := irtypes.NewContainer(buildType1, name1, new1)
 		c.NewFiles[path1] = []byte(contents1)
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.NewFiles[path1] = []byte(contents1)
 
 		// Test
@@ -386,8 +386,8 @@ func TestAddExposedPort(t *testing.T) {
 		name1 := "name1"
 		new1 := true
 		port1 := 8080
-		c := types.NewContainer(buildType1, name1, new1)
-		want := types.NewContainer(buildType1, name1, new1)
+		c := irtypes.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ExposedPorts = append(want.ExposedPorts, port1)
 
 		// Test
@@ -403,9 +403,9 @@ func TestAddExposedPort(t *testing.T) {
 		name1 := "name1"
 		new1 := true
 		port1 := 8080
-		c := types.NewContainer(buildType1, name1, new1)
+		c := irtypes.NewContainer(buildType1, name1, new1)
 		c.ExposedPorts = append(c.ExposedPorts, port1)
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ExposedPorts = append(want.ExposedPorts, port1)
 
 		// Test
@@ -425,8 +425,8 @@ func TestAddImageName(t *testing.T) {
 		name1 := "name1"
 		new1 := true
 		img1 := "img1"
-		c := types.NewContainer(buildType1, name1, new1)
-		want := types.NewContainer(buildType1, name1, new1)
+		c := irtypes.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ImageNames = append(want.ImageNames, img1)
 
 		// Test
@@ -442,9 +442,9 @@ func TestAddImageName(t *testing.T) {
 		name1 := "name1"
 		new1 := true
 		img1 := "img1"
-		c := types.NewContainer(buildType1, name1, new1)
+		c := irtypes.NewContainer(buildType1, name1, new1)
 		c.ImageNames = append(c.ImageNames, img1)
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.ImageNames = append(want.ImageNames, img1)
 
 		// Test
@@ -464,8 +464,8 @@ func TestAddAccessedDirs(t *testing.T) {
 		name1 := "name1"
 		new1 := true
 		dir1 := "dir1"
-		c := types.NewContainer(buildType1, name1, new1)
-		want := types.NewContainer(buildType1, name1, new1)
+		c := irtypes.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.AccessedDirs = append(want.AccessedDirs, dir1)
 
 		// Test
@@ -481,9 +481,9 @@ func TestAddAccessedDirs(t *testing.T) {
 		name1 := "name1"
 		new1 := true
 		dir1 := "dir1"
-		c := types.NewContainer(buildType1, name1, new1)
+		c := irtypes.NewContainer(buildType1, name1, new1)
 		c.AccessedDirs = append(c.AccessedDirs, dir1)
-		want := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewContainer(buildType1, name1, new1)
 		want.AccessedDirs = append(want.AccessedDirs, dir1)
 
 		// Test
@@ -498,7 +498,7 @@ func TestNewIR(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
 	p := plantypes.NewPlan()
-	ir := types.NewIR(p)
+	ir := irtypes.NewIR(p)
 	if ir.Containers == nil ||
 		ir.Services == nil ||
 		ir.Storages == nil {
@@ -512,11 +512,11 @@ func TestIRMerge(t *testing.T) {
 	t.Run("merge 2 empty irs", func(t *testing.T) {
 		// Setup
 		p1 := plantypes.NewPlan()
-		ir1 := types.NewIR(p1)
+		ir1 := irtypes.NewIR(p1)
 		p2 := plantypes.NewPlan()
-		ir2 := types.NewIR(p2)
+		ir2 := irtypes.NewIR(p2)
 		p3 := plantypes.NewPlan()
-		want := types.NewIR(p3)
+		want := irtypes.NewIR(p3)
 		// Test
 		ir1.Merge(ir2)
 		if !cmp.Equal(ir1, want) {
@@ -529,13 +529,13 @@ func TestIRMerge(t *testing.T) {
 		name1 := "name1"
 		name2 := "name2"
 		p1 := plantypes.NewPlan()
-		ir1 := types.NewIR(p1)
+		ir1 := irtypes.NewIR(p1)
 		ir1.Name = name1
 		p2 := plantypes.NewPlan()
-		ir2 := types.NewIR(p2)
+		ir2 := irtypes.NewIR(p2)
 		ir2.Name = name2
 		p3 := plantypes.NewPlan()
-		want := types.NewIR(p3)
+		want := irtypes.NewIR(p3)
 		want.Name = name1
 		// Test
 		ir1.Merge(ir2)
@@ -548,15 +548,15 @@ func TestIRMerge(t *testing.T) {
 		// Setup
 		name1 := "name1"
 		p1 := plantypes.NewPlan()
-		ir1 := types.NewIR(p1)
+		ir1 := irtypes.NewIR(p1)
 		ir1.Name = ""
 
 		p2 := plantypes.NewPlan()
-		ir2 := types.NewIR(p2)
+		ir2 := irtypes.NewIR(p2)
 		ir2.Name = name1
 
 		p3 := plantypes.NewPlan()
-		want := types.NewIR(p3)
+		want := irtypes.NewIR(p3)
 		want.Name = name1
 
 		// Test
@@ -571,27 +571,27 @@ func TestIRMerge(t *testing.T) {
 		buildType1 := plantypes.DockerFileContainerBuildTypeValue
 		contname1 := "contname1"
 		new1 := true
-		c1 := types.NewContainer(buildType1, contname1, new1)
+		c1 := irtypes.NewContainer(buildType1, contname1, new1)
 		c1.ImageNames = []string{"imgname1", "imgname2", "imgname3"}
 
-		s1 := types.Storage{Name: "storage1"}
+		s1 := irtypes.Storage{Name: "storage1"}
 
 		svcname1 := "svcname1"
-		svc1 := types.Service{Name: svcname1, Replicas: 2}
-		svc2 := types.Service{Name: svcname1, Replicas: 4}
+		svc1 := irtypes.Service{Name: svcname1, Replicas: 2}
+		svc2 := irtypes.Service{Name: svcname1, Replicas: 4}
 
 		p1 := plantypes.NewPlan()
-		ir1 := types.NewIR(p1)
+		ir1 := irtypes.NewIR(p1)
 		ir1.Services[svcname1] = svc1
 
 		p2 := plantypes.NewPlan()
-		ir2 := types.NewIR(p2)
+		ir2 := irtypes.NewIR(p2)
 		ir2.Services[svcname1] = svc2
 		ir2.Containers = append(ir2.Containers, c1)
 		ir2.Storages = append(ir2.Storages, s1)
 
 		p3 := plantypes.NewPlan()
-		want := types.NewIR(p3)
+		want := irtypes.NewIR(p3)
 		want.Services[svcname1] = svc2
 		want.Containers = append(want.Containers, c1)
 		want.Storages = append(want.Storages, s1)
@@ -608,20 +608,20 @@ func TestStorageMerge(t *testing.T) {
 	log.SetLevel(log.DebugLevel)
 
 	t.Run("merge empty storage into empty storage", func(t *testing.T) {
-		s1 := types.Storage{}
-		s2 := types.Storage{}
-		want := types.Storage{}
+		s1 := irtypes.Storage{}
+		s2 := irtypes.Storage{}
+		want := irtypes.Storage{}
 		if !s1.Merge(s2) || !reflect.DeepEqual(s1, want) {
 			t.Fatalf("Failed to merge 2 empty storages properly. Difference:\n%s:", cmp.Diff(want, s1))
 		}
 	})
 
 	t.Run("merge storages with different names", func(t *testing.T) {
-		s1 := types.Storage{}
+		s1 := irtypes.Storage{}
 		s1.Name = "name1"
-		s2 := types.Storage{}
+		s2 := irtypes.Storage{}
 		s2.Name = "name2"
-		want := types.Storage{}
+		want := irtypes.Storage{}
 		want.Name = "name1"
 		if s1.Merge(s2) || !reflect.DeepEqual(s1, want) {
 			t.Fatalf("Should not merge 2 storages with different names. Merge should return false. Difference:\n%s:", cmp.Diff(want, s1))
@@ -630,11 +630,11 @@ func TestStorageMerge(t *testing.T) {
 
 	t.Run("merge filled storage into filled storage", func(t *testing.T) {
 		// Setup
-		s1 := types.Storage{}
+		s1 := irtypes.Storage{}
 		s1.Content = map[string][]byte{"key1": []byte("val1")}
-		s2 := types.Storage{}
+		s2 := irtypes.Storage{}
 		s2.Content = map[string][]byte{"key2": []byte("val2")}
-		want := types.Storage{}
+		want := irtypes.Storage{}
 		want.Content = map[string][]byte{"key2": []byte("val2")}
 		// Test
 		if !s1.Merge(s2) || !reflect.DeepEqual(s1, want) {
@@ -651,11 +651,11 @@ func TestAddContainer(t *testing.T) {
 		buildType1 := plantypes.DockerFileContainerBuildTypeValue
 		name1 := "name1"
 		new1 := true
-		c := types.NewContainer(buildType1, name1, new1)
+		c := irtypes.NewContainer(buildType1, name1, new1)
 		p1 := plantypes.NewPlan()
-		ir := types.NewIR(p1)
+		ir := irtypes.NewIR(p1)
 		p2 := plantypes.NewPlan()
-		want := types.NewIR(p2)
+		want := irtypes.NewIR(p2)
 		want.Containers = append(want.Containers, c)
 		// Test
 		ir.AddContainer(c)
@@ -669,14 +669,14 @@ func TestAddContainer(t *testing.T) {
 		buildType1 := plantypes.DockerFileContainerBuildTypeValue
 		name1 := "name1"
 		new1 := true
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		p1 := plantypes.NewPlan()
-		ir := types.NewIR(p1)
+		ir := irtypes.NewIR(p1)
 		ir.Containers = append(ir.Containers, c1)
 
 		p2 := plantypes.NewPlan()
-		want := types.NewIR(p2)
-		c2 := types.NewContainer(buildType1, name1, new1)
+		want := irtypes.NewIR(p2)
+		c2 := irtypes.NewContainer(buildType1, name1, new1)
 		want.Containers = append(want.Containers, c2)
 
 		// Test
@@ -692,13 +692,13 @@ func TestAddStorage(t *testing.T) {
 
 	t.Run("add a new storage to an empty IR", func(t *testing.T) {
 		// Setup
-		s := types.Storage{}
+		s := irtypes.Storage{}
 
 		p1 := plantypes.NewPlan()
-		ir := types.NewIR(p1)
+		ir := irtypes.NewIR(p1)
 
 		p2 := plantypes.NewPlan()
-		want := types.NewIR(p2)
+		want := irtypes.NewIR(p2)
 		want.Storages = append(want.Storages, s)
 
 		// Test
@@ -710,14 +710,14 @@ func TestAddStorage(t *testing.T) {
 
 	t.Run("add a existing storage to an filled IR", func(t *testing.T) {
 		// Setup
-		s := types.Storage{}
+		s := irtypes.Storage{}
 
 		p1 := plantypes.NewPlan()
-		ir := types.NewIR(p1)
+		ir := irtypes.NewIR(p1)
 		ir.Storages = append(ir.Storages, s)
 
 		p2 := plantypes.NewPlan()
-		want := types.NewIR(p2)
+		want := irtypes.NewIR(p2)
 		want.Storages = append(want.Storages, s)
 
 		// Test
@@ -734,7 +734,7 @@ func TestGetContainer(t *testing.T) {
 	t.Run("get container for non existent image name from empty ir", func(t *testing.T) {
 		imgname1 := "imgname1"
 		p1 := plantypes.NewPlan()
-		ir := types.NewIR(p1)
+		ir := irtypes.NewIR(p1)
 		if _, ok := ir.GetContainer(imgname1); ok {
 			t.Fatal("Should not have found the image name", imgname1, "in an empty ir.")
 		}
@@ -745,10 +745,10 @@ func TestGetContainer(t *testing.T) {
 		buildType1 := plantypes.DockerFileContainerBuildTypeValue
 		name1 := "contname1"
 		new1 := true
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		imgname1 := "imgname1"
 		p1 := plantypes.NewPlan()
-		ir := types.NewIR(p1)
+		ir := irtypes.NewIR(p1)
 		ir.Containers = append(ir.Containers, c1)
 
 		// Test
@@ -764,10 +764,10 @@ func TestGetContainer(t *testing.T) {
 		new1 := true
 		imgname1 := "imgname1"
 
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = append(c1.ImageNames, imgname1)
 		p1 := plantypes.NewPlan()
-		ir := types.NewIR(p1)
+		ir := irtypes.NewIR(p1)
 		ir.Containers = append(ir.Containers, c1)
 
 		// Test
@@ -785,10 +785,10 @@ func TestGetContainer(t *testing.T) {
 		imgname1 := "imgname1"
 		imgurl1 := registry1 + "/namespace/" + imgname1
 
-		c1 := types.NewContainer(buildType1, name1, new1)
+		c1 := irtypes.NewContainer(buildType1, name1, new1)
 		c1.ImageNames = append(c1.ImageNames, imgname1)
 		p1 := plantypes.NewPlan()
-		ir := types.NewIR(p1)
+		ir := irtypes.NewIR(p1)
 		ir.Containers = append(ir.Containers, c1)
 		ir.RegistryURL = registry1
 

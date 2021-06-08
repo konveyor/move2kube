@@ -21,8 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	"github.com/konveyor/move2kube/internal/types/tekton"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	log "github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
@@ -59,7 +58,7 @@ func (p *Pipeline) createNewResources(ir irtypes.EnhancedIR, supportedKinds []st
 	return objs
 }
 
-func (*Pipeline) createNewResource(irpipeline tekton.Pipeline, ir irtypes.EnhancedIR) *v1beta1.Pipeline {
+func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.EnhancedIR) *v1beta1.Pipeline {
 	pipeline := new(v1beta1.Pipeline)
 	pipeline.TypeMeta = metav1.TypeMeta{
 		Kind:       pipelineKind,

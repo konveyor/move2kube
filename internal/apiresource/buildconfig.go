@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	okdbuildv1 "github.com/openshift/api/build/v1"
 	log "github.com/sirupsen/logrus"
 	giturls "github.com/whilp/git-urls"

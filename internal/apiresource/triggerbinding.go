@@ -18,8 +18,7 @@ package apiresource
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	"github.com/konveyor/move2kube/internal/types/tekton"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,7 +46,7 @@ func (tb *TriggerBinding) createNewResources(ir irtypes.EnhancedIR, supportedKin
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
-func (*TriggerBinding) createNewResource(irtriggerbinding tekton.TriggerBinding) *triggersv1alpha1.TriggerBinding {
+func (*TriggerBinding) createNewResource(irtriggerbinding irtypes.TriggerBinding) *triggersv1alpha1.TriggerBinding {
 	triggerBinding := new(triggersv1alpha1.TriggerBinding)
 	triggerBinding.TypeMeta = metav1.TypeMeta{
 		Kind:       string(triggersv1alpha1.NamespacedTriggerBindingKind),
