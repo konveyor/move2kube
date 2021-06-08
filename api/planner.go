@@ -37,7 +37,7 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 	translator.Init(common.AssetsPath)
 	ts := translator.GetTranslators()
 	for tn, t := range ts {
-		p.Spec.Configuration.Translators[tn] = []string{t.GetConfig().Spec.FilePath}
+		p.Spec.Configuration.Translators[tn] = t.GetConfig().Spec.FilePath
 	}
 	p.Spec.Services = translator.GetServices(p.Name, inputPath)
 	log.Infof("No of services identified : %d", len(p.Spec.Services))

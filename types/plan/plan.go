@@ -61,11 +61,11 @@ type Spec struct {
 }
 
 type Configuration struct {
-	Translators    map[string][]string `yaml:"translators,omitempty" m2kpath:"normal"`    //[name]filepath // TOFIX: Change type to map[string]string after struttag parsing bug fix
-	Parameterizers map[string]string   `yaml:"parameterizers,omitempty" m2kpath:"normal"` //[name]filepath
-	Transformers   map[string]string   `yaml:"transformers,omitempty" m2kpath:"normal"`   //[name]filepath
-	Packaging      map[string]string   `yaml:"packaging,omitempty" m2kpath:"normal"`      //[name]filepath
-	TargetClusters map[string]string   `yaml:"targetClusters,omitempty" m2kpath:"normal"` //[clustername]filepath
+	Translators    map[string]string `yaml:"translators,omitempty" m2kpath:"normal"`    //[name]filepath // TOFIX: Change type to map[string]string after struttag parsing bug fix
+	Parameterizers map[string]string `yaml:"parameterizers,omitempty" m2kpath:"normal"` //[name]filepath
+	Transformers   map[string]string `yaml:"transformers,omitempty" m2kpath:"normal"`   //[name]filepath
+	Packaging      map[string]string `yaml:"packaging,omitempty" m2kpath:"normal"`      //[name]filepath
+	TargetClusters map[string]string `yaml:"targetClusters,omitempty" m2kpath:"normal"` //[clustername]filepath
 }
 
 // TargetClusterType contains either the type of the target cluster or path to a file containing the target cluster metadata.
@@ -101,7 +101,7 @@ func NewPlan() Plan {
 			IRTranslators: []Translator{},
 			TargetCluster: TargetClusterType{Type: common.DefaultClusterType},
 			Configuration: Configuration{
-				Translators:    make(map[string][]string),
+				Translators:    make(map[string]string),
 				Parameterizers: make(map[string]string),
 				Transformers:   make(map[string]string),
 				Packaging:      make(map[string]string),

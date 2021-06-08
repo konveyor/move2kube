@@ -14,11 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package translator
-
-import (
-	irtypes "github.com/konveyor/move2kube/types/ir"
-)
+package ir
 
 /*
 Features to support:
@@ -71,38 +67,25 @@ Features to support:
 */
 
 type Patch struct {
-	Paths           []Path           `json:"paths"`
-	TemplatePaths   []TemplatePath   `json:"templatePaths"`
-	Templates       []Template       `json:"templates"`
-	DeltasToCompute []DeltaToCompute `json:"patchesToCompute"`
-	Deltas          []Delta          `json:"daltas"`
-	Config          interface{}      `json:"config"`
-	IR              irtypes.IR       `json:"ir"`
+	CopyPaths []CopyPath
+	Deltas    []Delta
+	File      []File
 }
 
-type Path struct {
-	SrcFilePath  string `json:"sourceFilePath"`
-	DestFilePath string `json:"destinationFilePath"`
+type CopyPath struct {
+	SrcPath  string
+	DestPath string
 }
 
-type TemplatePath struct {
-	Filename     string `json:"fileName"`
-	DestFilePath string `json:"destinationFilePath"`
-}
-
-type Template struct {
-	DestFilePath string `json:"destinationFilePath"`
-	Template     string `json:"template"`
-}
-
-type DeltaToCompute struct {
-	FilesInSource       string `json:"filesInSource"`
-	DestinationFilePath string `json:"destinationFilePath"`
+type File struct {
+	FileContents string
+	DestPath     string
+	isBinary     bool
 }
 
 type Delta struct {
-	FilePathInSource    string `json:"filePathInSource"`
-	DestinationFilePath string `json:"destinationFilePath"`
-	PatchString         string `json:"patchString"`
-	Type                string `json:"type"` // should support xmlpatch, jsonpatch, yamlpatch, linuxpatch depending on file extension - Optinal automatically computed
+	FilePathInSource    string
+	DestinationFilePath string
+	PatchString         string
+	Type                string // should support xmlpatch, jsonpatch, yamlpatch, linuxpatch depending on file extension - Optinal automatically computed
 }

@@ -17,16 +17,12 @@ limitations under the License.
 package api
 
 import (
-	"github.com/konveyor/move2kube/internal/irpreprocessor"
-	"github.com/konveyor/move2kube/internal/metadata"
-	"github.com/konveyor/move2kube/internal/translator"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	log "github.com/sirupsen/logrus"
 )
 
 // Translate translates the artifacts and writes output
 func Translate(plan plantypes.Plan, outputPath string, qadisablecli bool) {
-	sourceIR, err := translator.Translate(plan)
+	/*sourceIR, err := translator.Translate(plan)
 	if err != nil {
 		log.Fatalf("Failed to translate the plan to intermediate representation. Error: %q", err)
 	}
@@ -61,5 +57,5 @@ func Translate(plan plantypes.Plan, outputPath string, qadisablecli bool) {
 	} else if err := composeTransformer.WriteObjects(outputPath, nil); err != nil {
 		log.Errorf("Unable to write docker compose objects. Error: %q", err)
 	}
-	log.Info("Translation completed")
+	log.Info("Translation completed")*/
 }

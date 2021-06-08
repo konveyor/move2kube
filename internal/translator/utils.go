@@ -26,7 +26,9 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/classes"
-	"github.com/prometheus/common/log"
+	plantypes "github.com/konveyor/move2kube/types/plan"
+	translatortypes "github.com/konveyor/move2kube/types/translator"
+	log "github.com/sirupsen/logrus"
 )
 
 func getTranslatorConfig(path string) (translatortypes.Translator, error) {

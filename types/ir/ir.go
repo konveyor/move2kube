@@ -25,7 +25,9 @@ import (
 	"github.com/konveyor/move2kube/internal/common/deepcopy"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	translatortypes "github.com/konveyor/move2kube/types/translator"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
@@ -36,8 +38,6 @@ type IR struct {
 	RootDir string
 	Name    string
 
-	NewFiles map[string][]byte //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
-
 	Containers []Container // Images to be built
 	Services   map[string]Service
 	Storages   []Storage
@@ -46,6 +46,9 @@ type IR struct {
 	RegistryNamespace    string
 	TargetClusterSpec    collecttypes.ClusterMetadataSpec
 	IngressTLSSecretName string
+
+	KubernetesObjects []runtime.Object
+	Patches           map[string][]translatortypes.Patch // [ArtifactType]
 }
 
 // Service defines structure of an IR service
@@ -83,6 +86,7 @@ type Container struct {
 	RepoInfo           RepoInfo                `yaml:"-"`
 	ImageNames         []string                `yaml:"-"`
 	New                bool                    `yaml:"-"` // true if this is a new image that needs to be built
+	NewFiles           map[string][]byte       `yaml:"-"` //[filename][filecontents] This contains the build scripts, new Dockerfiles, etc.
 	ExposedPorts       []int                   `yaml:"ports"`
 	UserID             int                     `yaml:"userID"`
 	AccessedDirs       []string                `yaml:"accessedDirs"`

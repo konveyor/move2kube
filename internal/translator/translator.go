@@ -173,6 +173,8 @@ func GetIRTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Tran
 	return suitableTranslators, nil
 }
 
+/*
 func TranslateServices(plan plantypes.Plan) (ir irtypes.IR, err error) {
 
 }
+*/
