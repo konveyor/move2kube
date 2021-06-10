@@ -25,19 +25,23 @@ type Patch struct {
 	ServiceName string               `json:"serviceName,omitempty"`
 	Translator  plantypes.Translator `json:"translator"`
 
-	SourceDir     string `json:"sourceDir,omitempty"`     // Default is /source
-	UseSourceDiff bool   `json:"useSourceDiff,omitempty"` // Default is true
-
-	// Paths in machine/image - can use "template:" in source to apply template
-	// If relative path is used after "template:", then the source directory is relateive to template directory
-	// Destination directory is relative to output directory
 	PathMappings []PathMapping `json:"pathMappings"`
 	Config       interface{}   `json:"config"`
 
 	IR irtypes.IR `json:"ir"`
 }
 
+type PathMappingType string
+
+const (
+	DefaultPathMappingType    PathMappingType = "Default"    // Normal Copy with overwrite
+	TemplatePathMappingType   PathMappingType = "Template"   // Source path when relative, is relative to yaml file location
+	SourcePathMappingType     PathMappingType = "Source"     // Source path becomes relative to source directory
+	SourceDiffPathMappingType PathMappingType = "SourceDiff" // Source path becomes relative to source directory
+)
+
 type PathMapping struct {
-	SrcPath  string `yaml:"sourcePath"`
-	DestPath string `yaml:"destinationPath"`
+	Type     PathMappingType `yaml:"type,omitempty"` // Default - Normal copy
+	SrcPath  string          `yaml:"sourcePath"`
+	DestPath string          `yaml:"destinationPath"` // Relative to output directory
 }

@@ -28,6 +28,7 @@ import (
 	"github.com/konveyor/move2kube/internal/translator/classes"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
+	"github.com/otiai10/copy"
 	"github.com/sirupsen/logrus"
 )
 
@@ -333,4 +334,38 @@ func trimPrefix(files []project, prefix string) []project {
 		files[i].pathsuffix = strings.TrimPrefix(f.pathsuffix, prefix+string(filepath.Separator))
 	}
 	return files
+}
+
+func convertPatchToPathMappings(p translatortypes.Patch) []translatortypes.PathMapping {
+	for _, pm := range p.PathMappings {
+		switch pm.Type {
+		case translatortypes.SourcePathMappingType:
+		case translatortypes.SourceDiffPathMappingType:
+		case translatortypes.TemplatePathMappingType:
+		default:
+		}
+	}
+	return []translatortypes.PathMapping{}
+}
+
+func createOutput(pathMappings []translatortypes.PathMapping, sourcePath, outputPath string) error {
+	for _, pm := range pathMappings {
+		switch pm.Type {
+		case translatortypes.SourcePathMappingType:
+			if err := copy.Copy(filepath.Join(sourcePath, pm.SrcPath), filepath.Join(outputPath, pm.DestPath)); err != nil {
+				logrus.Errorf("Error while copying sourcepath for %+v", pm)
+			}
+		case translatortypes.SourceDiffPathMappingType:
+		case translatortypes.TemplatePathMappingType:
+		default:
+			srcPath := pm.SrcPath
+			if !filepath.IsAbs(pm.SrcPath) {
+				srcPath = filepath.Join(pm.SrcPath)
+			}
+			if err := copy.Copy(srcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
+				logrus.Errorf("Error while copying sourcepath for %+v", pm)
+			}
+		}
+	}
+	return nil
 }

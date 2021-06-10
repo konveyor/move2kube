@@ -93,11 +93,9 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		if err := qaengine.WriteStoresToDisk(); err != nil {
 			logrus.Warnf("Failed to write the stores to disk. Error: %q", err)
 		}
-		// Global settings
 
 		logrus.Debugf("Creating a new plan.")
 		p = api.CreatePlan(flags.Srcpath, flags.ConfigurationsPath, flags.Name)
-		p = api.CuratePlan(p)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will translate using this plan.", flags.Planfile)
 		if p, err = plan.ReadPlan(flags.Planfile); err != nil {
@@ -137,10 +135,8 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 		if err := qaengine.WriteStoresToDisk(); err != nil {
 			logrus.Warnf("Failed to write the stores to disk. Error: %q", err)
 		}
-		// Global settings
-
-		p = api.CuratePlan(p)
 	}
+	p = api.CuratePlan(p)
 	api.Translate(p, flags.Outpath)
 	logrus.Infof("Translated target artifacts can be found at [%s].", flags.Outpath)
 }

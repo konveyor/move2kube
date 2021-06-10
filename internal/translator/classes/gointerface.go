@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"github.com/konveyor/move2kube/internal/translator/gointerfaces"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
 	gointerfacetypes "github.com/konveyor/move2kube/types/translator/classes/gointerface"
@@ -39,8 +40,9 @@ type Translator interface {
 	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
-	TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch // [artifactName]
-	TranslateIR(patches []translatortypes.Patch) []translatortypes.PathMapping
+	TranslateService(serviceName string, translatorPlan plantypes.Translator, tempOutputDir string) ([]translatortypes.Patch, error)
+	TranslateIR(ir irtypes.IR, tempOutputDir string) ([]translatortypes.PathMapping, error)
+	PathForIR(patch translatortypes.Patch) string
 }
 
 type GoInterface struct {
@@ -93,37 +95,42 @@ func (t *GoInterface) GetConfig() translatortypes.Translator {
 
 func (t *GoInterface) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
 	ns, uns, err := t.impl.BaseDirectoryDetect(dir)
-	for i, s := range ns {
-		for j := range s {
-			ns[i][j].Name = t.tc.Name
-		}
-	}
-	for i := range uns {
-		uns[i].Name = t.tc.Name
-	}
+	ns, uns = setTranslatorInfo(t.tc, ns, uns)
 	return ns, uns, err
 }
 
 func (t *GoInterface) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	return t.impl.DirectoryDetect(dir)
+	ns, uns, err := t.impl.DirectoryDetect(dir)
+	ns, uns = setTranslatorInfo(t.tc, ns, uns)
+	return ns, uns, err
 }
 
 func (t *GoInterface) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	return t.impl.KnownDirectoryDetect(dir)
+	ns, uns, err := t.impl.KnownDirectoryDetect(dir)
+	ns, uns = setTranslatorInfo(t.tc, ns, uns)
+	return ns, uns, err
 }
 
 func (t *GoInterface) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
-	return t.impl.ServiceAugmentDetect(serviceName, service)
+	ts, err := t.impl.ServiceAugmentDetect(serviceName, service)
+	_, ts = setTranslatorInfo(t.tc, nil, ts)
+	return ts, err
 }
 
 func (t *GoInterface) PlanDetect(p plantypes.Plan) ([]plantypes.Translator, error) {
-	return t.impl.PlanDetect(p)
+	ts, err := t.impl.PlanDetect(p)
+	_, ts = setTranslatorInfo(t.tc, nil, ts)
+	return ts, err
 }
 
-func (t *GoInterface) TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch {
-	return t.impl.TranslateService(serviceName, translatorPlan, artifactsToGenerate)
+func (t *GoInterface) TranslateService(serviceName string, translatorPlan plantypes.Translator, tempOutputDir string) ([]translatortypes.Patch, error) {
+	return t.impl.TranslateService(serviceName, translatorPlan, tempOutputDir)
 }
 
-func (t *GoInterface) TranslateIR(patches []translatortypes.Patch) []translatortypes.PathMapping {
-	return t.impl.TranslateIR(patches)
+func (t *GoInterface) PathForIR(patch translatortypes.Patch) string {
+	return t.impl.PathForIR(patch)
+}
+
+func (t *GoInterface) TranslateIR(ir irtypes.IR, tempOutputDir string) ([]translatortypes.PathMapping, error) {
+	return t.impl.TranslateIR(ir, tempOutputDir)
 }

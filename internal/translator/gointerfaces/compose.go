@@ -22,6 +22,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/gointerfaces/compose"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
 	"github.com/sirupsen/logrus"
@@ -88,7 +89,7 @@ func (t *Compose) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error) {
 	return nil, nil
 }
 
-func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.Translator, artifactsToGenerate []string) map[string]translatortypes.Patch {
+func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.Translator, tempOutputDir string) ([]translatortypes.Patch, error) {
 	/*ir := irtypes.NewIR(plan)
 	service := plan.Spec.Services[serviceName]
 	for _, sa := range service.SourceArtifacts {
@@ -122,11 +123,15 @@ func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.
 		}
 	}*/
 
-	return nil
+	return nil, nil
 }
 
-func (t *Compose) TranslateIR(patches []translatortypes.Patch) []translatortypes.PathMapping {
-	return nil
+func (t *Compose) TranslateIR(ir irtypes.IR, tempOutputDir string) ([]translatortypes.PathMapping, error) {
+	return nil, nil
+}
+
+func (t *Compose) PathForIR(patch translatortypes.Patch) string {
+	return filepath.Join(common.DeployDir, "compose")
 }
 
 func (t *Compose) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) plantypes.Translator {

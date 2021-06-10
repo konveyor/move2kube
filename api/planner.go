@@ -135,6 +135,10 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 		if mode != "" {
 			modes = append(modes, mode)
 		}
+		if len(sTranslators) == 0 {
+			logrus.Errorf("No translators selected for service %s. Ignoring.", sn)
+			continue
+		}
 		p.Spec.Services[sn] = sTranslators
 	}
 	for _, t := range p.Spec.PlanTranslators {

@@ -29,8 +29,9 @@ import (
 )
 
 type context struct {
+	RootDir          string
 	ShouldConvert    bool
-	Convert          func(string) (string, error)
+	Convert          func(string, string) (string, error)
 	MapKeysToConvert []string
 	CurrentMapKey    reflect.Value
 }
@@ -44,7 +45,10 @@ const (
 )
 
 func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx context) (context, error) {
-	ctx := context{Convert: oldCtx.Convert}
+	ctx := context{
+		RootDir: oldCtx.RootDir,
+		Convert: oldCtx.Convert,
+	}
 	tag, ok := structT.Field(i).Tag.Lookup(structTag)
 	if !ok {
 		ctx.ShouldConvert = false
@@ -90,7 +94,7 @@ func recurse(value reflect.Value, ctx context) error {
 				break
 			}
 		}
-		s, err := ctx.Convert(value.String())
+		s, err := ctx.Convert(value.String(), ctx.RootDir)
 		if err != nil {
 			return fmt.Errorf("failed to convert %s Error: %q", value.String(), err)
 		}
@@ -135,7 +139,7 @@ func recurse(value reflect.Value, ctx context) error {
 					continue
 				}
 			}
-			s, err := ctx.Convert(v.String())
+			s, err := ctx.Convert(v.String(), ctx.RootDir)
 			if err != nil {
 				return fmt.Errorf("failed to convert %s Error: %q", v.String(), err)
 			}
@@ -147,22 +151,27 @@ func recurse(value reflect.Value, ctx context) error {
 	return nil
 }
 
-func convertPathsDecode(plan *Plan) error {
-	rootDir, err := filepath.Abs(plan.Spec.RootDir)
+func convertPathsDecode(obj interface{}, rootDir string) (absRootDir string, err error) {
+	absRootDir, err = filepath.Abs(rootDir)
 	if err != nil {
-		logrus.Errorf("Failed to make the root directory path %q absolute. Error %q", plan.Spec.RootDir, err)
-		return err
+		logrus.Errorf("Failed to make the root directory path %q absolute. Error %q", rootDir, err)
+		return absRootDir, err
 	}
-	plan.Spec.RootDir = rootDir
 
-	ctx := context{Convert: plan.GetAbsolutePath}
-	planV := reflect.ValueOf(plan).Elem()
-	return recurse(planV, ctx)
+	ctx := context{
+		RootDir: rootDir,
+		Convert: GetAbsolutePath,
+	}
+	planV := reflect.ValueOf(obj).Elem()
+	return absRootDir, recurse(planV, ctx)
 }
 
-func convertPathsEncode(plan *Plan) error {
-	ctx := context{Convert: plan.GetRelativePath}
-	planV := reflect.ValueOf(plan).Elem()
+func convertPathsEncode(obj interface{}, rootDir string) (relRootDir string, err error) {
+	ctx := context{
+		RootDir: rootDir,
+		Convert: GetRelativePath,
+	}
+	planV := reflect.ValueOf(obj).Elem()
 	if err := recurse(planV, ctx); err != nil {
 		logrus.Errorf("Error while converting absolute paths to relative. Error: %q", err)
 	}
@@ -170,26 +179,25 @@ func convertPathsEncode(plan *Plan) error {
 	pwd, err := os.Getwd()
 	if err != nil {
 		logrus.Errorf("Failed to get the current working directory. Error %q", err)
-		return err
+		return "", err
 	}
-	rootDir, err := filepath.Rel(pwd, plan.Spec.RootDir)
+	relRootDir, err = filepath.Rel(pwd, rootDir)
 	if err != nil {
 		logrus.Errorf("Failed to make the root directory path %q relative to the current working directory %q Error %q", rootDir, pwd, err)
-		return err
 	}
-	plan.Spec.RootDir = rootDir
-	return nil
+	return relRootDir, err
 }
 
 // ReadPlan decodes the plan from yaml converting relative paths to absolute.
 func ReadPlan(path string) (Plan, error) {
 	plan := Plan{}
-	if err := common.ReadMove2KubeYaml(path, &plan); err != nil {
+	var err error
+	if err = common.ReadMove2KubeYaml(path, &plan); err != nil {
 		logrus.Errorf("Failed to load the plan file at path %q Error %q", path, err)
 		return plan, err
 	}
 
-	if err := convertPathsDecode(&plan); err != nil {
+	if plan.Spec.RootDir, err = convertPathsDecode(&plan, plan.Spec.RootDir); err != nil {
 		return plan, err
 	}
 	return plan, nil
@@ -214,7 +222,7 @@ func WritePlan(path string, plan Plan) error {
 		logrus.Errorf("Failed to create a copy of the plan before writing. Error: %q", err)
 		return err
 	}
-	if err := convertPathsEncode(&copy); err != nil {
+	if copy.Spec.RootDir, err = convertPathsEncode(&copy, copy.Spec.RootDir); err != nil {
 		return err
 	}
 	return common.WriteYaml(path, copy)
@@ -234,7 +242,7 @@ func IsAssetsPath(path string) bool {
 func (plan *Plan) SetRootDir(rootDir string) error {
 	oldRootDir := plan.Spec.RootDir
 
-	convert := func(oldPath string) (string, error) {
+	convert := func(oldPath, rootDir string) (string, error) {
 		if oldPath == "" || !filepath.IsAbs(oldPath) || IsAssetsPath(oldPath) {
 			return oldPath, nil
 		}
@@ -245,7 +253,10 @@ func (plan *Plan) SetRootDir(rootDir string) error {
 		return filepath.Join(rootDir, relPath), nil
 	}
 
-	ctx := context{Convert: convert}
+	ctx := context{
+		RootDir: plan.Spec.RootDir,
+		Convert: convert,
+	}
 	planV := reflect.ValueOf(plan).Elem()
 	err := recurse(planV, ctx)
 	if err != nil {
@@ -257,7 +268,7 @@ func (plan *Plan) SetRootDir(rootDir string) error {
 }
 
 // GetRelativePath returns a path relative to the root directory of the plan
-func (plan *Plan) GetRelativePath(absPath string) (string, error) {
+func GetRelativePath(absPath, rootDir string) (string, error) {
 	if absPath == "" {
 		return absPath, nil
 	}
@@ -268,12 +279,12 @@ func (plan *Plan) GetRelativePath(absPath string) (string, error) {
 	if IsAssetsPath(absPath) {
 		return filepath.Rel(common.TempPath, absPath)
 	}
-	return filepath.Rel(plan.Spec.RootDir, absPath)
+	return filepath.Rel(rootDir, absPath)
 }
 
 // GetAbsolutePath takes a path relative to the plan's root directory or
 // assets path and makes it absolute.
-func (plan *Plan) GetAbsolutePath(relPath string) (string, error) {
+func GetAbsolutePath(relPath, rootDir string) (string, error) {
 	if relPath == "" {
 		return relPath, nil
 	}
@@ -284,5 +295,5 @@ func (plan *Plan) GetAbsolutePath(relPath string) (string, error) {
 	if IsAssetsPath(relPath) {
 		return filepath.Join(common.TempPath, relPath), nil
 	}
-	return filepath.Join(plan.Spec.RootDir, relPath), nil
+	return filepath.Join(rootDir, relPath), nil
 }
