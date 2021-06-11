@@ -59,9 +59,14 @@ func replicateProcessFileCallBack(sourceFilePath, destinationFilePath string, co
 		return err
 	}
 	defer destinationWriter.Close()
-	_, err = io.Copy(sourceReader, destinationWriter)
+	_, err = io.Copy(destinationWriter, sourceReader)
 	if err != nil {
 		logrus.Errorf("Unable to copy file %s to %s : %s", sourceFilePath, destinationFilePath, err)
+		return err
+	}
+	err = destinationWriter.Sync()
+	if err != nil {
+		logrus.Errorf("Unable to sync file %s to %s : %s", sourceFilePath, destinationFilePath, err)
 		return err
 	}
 	err = os.Chmod(destinationFilePath, si.Mode())

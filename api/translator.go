@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
@@ -24,6 +25,7 @@ import (
 
 // Translate translates the artifacts and writes output
 func Translate(plan plantypes.Plan, outputPath string) {
+	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	logrus.Infof("Starting Plan Translation")
 	err := translator.Translate(plan, outputPath)
 	if err != nil {

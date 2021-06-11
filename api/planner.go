@@ -27,6 +27,7 @@ import (
 
 //CreatePlan creates the plan from all planners
 func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.Plan {
+	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	p := plantypes.NewPlan()
 	p.Name = prjName
 	p.Spec.RootDir = inputPath
@@ -60,6 +61,7 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 
 // CuratePlan allows curation the plan with the qa engine
 func CuratePlan(p plantypes.Plan) plantypes.Plan {
+	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	modes := []string{}
 	translators := []string{}
 	for s, st := range p.Spec.Services {

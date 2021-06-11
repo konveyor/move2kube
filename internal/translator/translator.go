@@ -205,11 +205,12 @@ func Translate(plan plantypes.Plan, outputPath string) (err error) {
 	if err := os.MkdirAll(tempOutputPath, common.DefaultDirectoryPermission); err != nil {
 		logrus.Fatalf("Failed to create the output directory at path %s Error: %q", tempOutputPath, err)
 	}
-	tempInputPath, err := ioutil.TempDir("", plan.Name+"*")
+	tempInputPath, err := ioutil.TempDir(common.TempPath, "translate")
 	if err != nil {
 		logrus.Fatalf("Failed to create temporary input directory at path %s Error: %q", tempInputPath, err)
 	}
-	defer os.RemoveAll(tempInputPath)
+	logrus.Debugf("Temp translate Dir : %s", tempInputPath)
+	//defer os.RemoveAll(tempInputPath) // TOFIX: Uncomment
 	patches := []translatortypes.Patch{}
 	pathMappings := []translatortypes.PathMapping{}
 	for serviceName, service := range plan.Spec.Services {
@@ -236,7 +237,7 @@ func Translate(plan plantypes.Plan, outputPath string) (err error) {
 			}
 			_, err = plantypes.ConvertPathsDecode(&tempTranslator, tempInputPath)
 			if err != nil {
-				logrus.Errorf("Unable to encode of translator obj %+v. Ignoring : %s", translator, err)
+				logrus.Errorf("Unable to decode of translator obj %+v. Ignoring : %s", translator, err)
 				continue
 			}
 			if err := filesystem.Replicate(plan.Spec.RootDir, tempInputPath); err != nil {

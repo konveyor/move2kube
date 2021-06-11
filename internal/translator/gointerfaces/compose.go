@@ -25,6 +25,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
+	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
 )
 
@@ -90,39 +91,42 @@ func (t *Compose) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error) {
 }
 
 func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.Translator, tempOutputDir string) ([]translatortypes.Patch, error) {
-	/*ir := irtypes.NewIR(plan)
-	service := plan.Spec.Services[serviceName]
-	for _, sa := range service.SourceArtifacts {
-		if sa.Type == plantypes.ComposeFileArtifactType {
-			for _, path := range sa.Artifacts {
-				logrus.Debugf("File %s being loaded from compose service : %s", path, sa.ID)
-				// Try v3 first and if it fails try v1v2
-				if cir, errV3 := new(compose.V3Loader).ConvertToIR(path, sa.ID); errV3 == nil {
-					ir.Merge(cir)
-					logrus.Debugf("compose v3 translator returned %d services", len(ir.Services))
-				} else if cir, errV1V2 := new(compose.V1V2Loader).ConvertToIR(path, sa.ID); errV1V2 == nil {
-					ir.Merge(cir)
-					logrus.Debugf("compose v1v2 translator returned %d services", len(ir.Services))
-				} else {
-					logrus.Errorf("Unable to parse the docker compose file at path %s Error V3: %q Error V1V2: %q", path, errV3, errV1V2)
-				}
-			}
+	var config ComposeConfig
+	decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Metadata: nil,
+		Result:   &config,
+		TagName:  "yaml",
+	})
+	if err := decoder.Decode(translatorPlan.Config); err != nil {
+		logrus.Errorf("unable to load config for GoInterface Translator %+v into %T : %s", translatorPlan.Config, config, err)
+		return nil, err
+	} else {
+		logrus.Debugf("Compose Translator config is %+v", config)
+	}
+	ir := irtypes.NewIR()
+	for _, path := range translatorPlan.Paths[composeFileSourceArtifactType] {
+		logrus.Debugf("File %s being loaded from compose service : %s", path, config.ServiceName)
+		// Try v3 first and if it fails try v1v2
+		if cir, errV3 := new(compose.V3Loader).ConvertToIR(path, config.ServiceName); errV3 == nil {
+			ir.Merge(cir)
+			logrus.Debugf("compose v3 translator returned %d services", len(ir.Services))
+		} else if cir, errV1V2 := new(compose.V1V2Loader).ConvertToIR(path, config.ServiceName); errV1V2 == nil {
+			ir.Merge(cir)
+			logrus.Debugf("compose v1v2 translator returned %d services", len(ir.Services))
+		} else {
+			logrus.Errorf("Unable to parse the docker compose file at path %s Error V3: %q Error V1V2: %q", path, errV3, errV1V2)
 		}
 	}
-	for _, sa := range service.SourceArtifacts {
-		if sa.Type != plantypes.ImageInfoArtifactType {
+	for _, path := range translatorPlan.Paths[imageInfoSourceArtifactType] {
+		imgMD := collecttypes.ImageInfo{}
+		if err := common.ReadMove2KubeYaml(path, &imgMD); err != nil {
+			logrus.Errorf("Failed to read image info yaml at path %s Error: %q", path, err)
 			continue
 		}
-		for _, path := range sa.Artifacts {
-			imgMD := collecttypes.ImageInfo{}
-			if err := common.ReadMove2KubeYaml(path, &imgMD); err != nil {
-				logrus.Errorf("Failed to read image info yaml at path %s Error: %q", path, err)
-				continue
-			}
-			ir.AddContainer(irtypes.NewContainerFromImageInfo(imgMD))
+		for _, it := range imgMD.Spec.Tags {
+			ir.AddContainer(it, newContainerFromImageInfo(imgMD))
 		}
-	}*/
-
+	}
 	return nil, nil
 }
 
@@ -190,4 +194,13 @@ func (c *Compose) getServicesFromComposeFile(composeFilePath string, imageMetada
 		logrus.Debugf("Failed to parse file at path %s as a docker compose file. Error V3: %q Error V1V2: %q", composeFilePath, errV3, errV1V2)
 	}
 	return services
+}
+
+// newContainerFromImageInfo creates a new container from image info
+func newContainerFromImageInfo(i collecttypes.ImageInfo) irtypes.Container {
+	c := irtypes.NewContainer()
+	c.ExposedPorts = i.Spec.PortsToExpose
+	c.UserID = i.Spec.UserID
+	c.AccessedDirs = i.Spec.AccessedDirs
+	return c
 }

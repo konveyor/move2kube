@@ -30,6 +30,8 @@ const (
 	TempDirPrefix = types.AppNameShort + "-"
 	// AssetsDir defines the dir of the assets temp directory
 	AssetsDir = types.AppNameShort + "assets"
+	// TranslateDir defines the dir of the assets temp directory
+	TranslateDir = "translate"
 
 	// ScriptsDir defines the directory where the output scripts are placed
 	ScriptsDir = "scripts"

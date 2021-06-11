@@ -568,7 +568,7 @@ func CreateAssetsData(assetsTar string) (assetsPath string, tempPath string, err
 	}
 
 	// Try to create a new temporary directory for the assets.
-	if newTempPath, err := ioutil.TempDir("", TempDirPrefix); err != nil {
+	if newTempPath, err := ioutil.TempDir("", types.AppName+"*"); err != nil {
 		logrus.Errorf("Unable to create temp dir. Defaulting to local path.")
 	} else {
 		tempPath = newTempPath
@@ -589,14 +589,14 @@ func CreateAssetsData(assetsTar string) (assetsPath string, tempPath string, err
 }
 
 // CopyConfigurationsAssetsData copies an extensions to the assets directory
-func CopyConfigurationsAssetsData(extensionsPath string) (err error) {
-	if extensionsPath == "" {
+func CopyConfigurationsAssetsData(configurationsPath string) (err error) {
+	if configurationsPath == "" {
 		return nil
 	}
 	// Return the absolute version of extensions directory.
-	extensionsPath, err = filepath.Abs(extensionsPath)
+	configurationsPath, err = filepath.Abs(configurationsPath)
 	if err != nil {
-		logrus.Errorf("Unable to make the extensions directory path %q absolute. Error: %q", extensionsPath, err)
+		logrus.Errorf("Unable to make the extensions directory path %q absolute. Error: %q", configurationsPath, err)
 		return err
 	}
 	assetsPath, err := filepath.Abs(AssetsPath)
@@ -611,8 +611,8 @@ func CopyConfigurationsAssetsData(extensionsPath string) (err error) {
 		logrus.Errorf("Unable to create the custom assets directory at path %q Error: %q", configurationsAssetsPath, err)
 		return err
 	}
-	if err = filesystem.Replicate(extensionsPath, configurationsAssetsPath); err != nil {
-		logrus.Errorf("Failed to copy the extensions %s over to the directory at path %s Error: %q", extensionsPath, configurationsAssetsPath, err)
+	if err = filesystem.Replicate(configurationsPath, configurationsAssetsPath); err != nil {
+		logrus.Errorf("Failed to copy the extensions %s over to the directory at path %s Error: %q", configurationsPath, configurationsAssetsPath, err)
 		return err
 	}
 

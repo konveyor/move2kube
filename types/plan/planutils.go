@@ -157,9 +157,8 @@ func ConvertPathsDecode(obj interface{}, rootDir string) (absRootDir string, err
 		logrus.Errorf("Failed to make the root directory path %q absolute. Error %q", rootDir, err)
 		return absRootDir, err
 	}
-
 	ctx := context{
-		RootDir: rootDir,
+		RootDir: absRootDir,
 		Convert: GetAbsolutePath,
 	}
 	planV := reflect.ValueOf(obj).Elem()
@@ -174,8 +173,8 @@ func ConvertPathsEncode(obj interface{}, rootDir string) (relRootDir string, err
 	planV := reflect.ValueOf(obj).Elem()
 	if err := recurse(planV, ctx); err != nil {
 		logrus.Errorf("Error while converting absolute paths to relative. Error: %q", err)
+		return "", err
 	}
-
 	pwd, err := os.Getwd()
 	if err != nil {
 		logrus.Errorf("Failed to get the current working directory. Error %q", err)
@@ -210,7 +209,6 @@ func CopyObj(obj interface{}, copy interface{}) error {
 		logrus.Errorf("Failed to marshal the plan to yaml. Error: %q", err)
 		return err
 	}
-	logrus.Infof("%T", copy)
 	err = yaml.Unmarshal(planBytes, copy)
 	if err != nil {
 		logrus.Errorf("Failed to unmarshal the yaml to plan. Error: %q", err)
@@ -236,7 +234,7 @@ func WritePlan(path string, plan Plan) error {
 // IsAssetsPath returns true if it is a m2kassets path.
 func IsAssetsPath(path string) bool {
 	if filepath.IsAbs(path) {
-		return strings.HasPrefix(path, common.TempPath)
+		return strings.HasPrefix(path, filepath.Join(common.TempPath, common.AssetsDir))
 	}
 	pathParts := strings.Split(path, string(os.PathSeparator))
 	return len(pathParts) > 0 && pathParts[0] == common.AssetsDir
@@ -278,8 +276,9 @@ func GetRelativePath(absPath, rootDir string) (string, error) {
 		return absPath, nil
 	}
 	if !filepath.IsAbs(absPath) {
-		logrus.Debugf("The input path %q is not an absolute path. Cannot make it relative to the root directory.", absPath)
-		return absPath, nil
+		err := fmt.Errorf("the input path %q is not an absolute path. Cannot make it relative to the root directory (%s)", absPath, rootDir)
+		logrus.Errorf("%s", err)
+		return absPath, err
 	}
 	if IsAssetsPath(absPath) {
 		return filepath.Rel(common.TempPath, absPath)

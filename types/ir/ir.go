@@ -23,16 +23,23 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/deepcopy"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
 )
 
+const (
+	DockerfileContainerBuildType ContainerBuildTypeValue = "Dockerfile"
+)
+
+const (
+	DockerfileContainerBuildArtifactTypeValue ContainerBuildArtifactTypeValue = "Dockerfile"
+)
+
 // IR is the intermediate representation filled by source translators
 type IR struct {
-	Containers []Container // Images to be built
+	Containers map[string]Container // [imageName]
 	Services   map[string]Service
 	Storages   []Storage
 }
@@ -63,18 +70,21 @@ type ServiceToPodPortForwarding struct {
 }
 
 type ContainerBuildTypeValue string
+type ContainerBuildArtifactTypeValue string
 
 // Container defines images that need to be built or reused.
 type Container struct {
-	ContainerBuildType ContainerBuildTypeValue `yaml:"-"`
-	Name               string                  `yaml:"-"`
-	ContextPath        string                  `yaml:"-"`
-	RepoInfo           RepoInfo                `yaml:"-"`
-	ImageNames         []string                `yaml:"-"`
-	New                bool                    `yaml:"-"` // true if this is a new image that needs to be built
-	ExposedPorts       []int                   `yaml:"ports"`
-	UserID             int                     `yaml:"userID"`
-	AccessedDirs       []string                `yaml:"accessedDirs"`
+	ExposedPorts []int    `yaml:"ports"`
+	UserID       int      `yaml:"userID"`
+	AccessedDirs []string `yaml:"accessedDirs"`
+	Build        ContainerBuild
+}
+
+type ContainerBuild struct {
+	ContainerBuildType ContainerBuildTypeValue                      `yaml:"-"`
+	ContextPath        string                                       `yaml:"-"`
+	RepoInfo           RepoInfo                                     `yaml:"-"`
+	Artifacts          map[ContainerBuildArtifactTypeValue][]string `yaml:"-"` //[artifacttype]value
 }
 
 // RepoInfo contains information specific to creating the CI/CD pipeline.
@@ -211,55 +221,53 @@ func (service *Service) HasValidAnnotation(annotation string) bool {
 }
 
 // NewContainer creates a new container
-func NewContainer(containerBuildType ContainerBuildTypeValue, imagename string, new bool) Container {
+func NewContainer() Container {
 	return Container{
-		ContainerBuildType: containerBuildType,
-		ImageNames:         []string{imagename},
-		New:                new,
-		ExposedPorts:       []int{},
-		UserID:             -1,
-		AccessedDirs:       []string{},
+		ExposedPorts: []int{},
+		UserID:       -1,
+		AccessedDirs: []string{},
 	}
 }
 
 // Merge merges containers
 func (c *Container) Merge(newc Container) bool {
+	if c.UserID != newc.UserID {
+		logrus.Errorf("Two different users found for image : %d in %d. Ignoring new users.", c.UserID, newc.UserID)
+	}
+	c.ExposedPorts = common.MergeIntSlices(c.ExposedPorts, newc.ExposedPorts)
+	c.AccessedDirs = common.MergeStringSlices(c.AccessedDirs, newc.AccessedDirs...)
+	c.Build.Merge(newc.Build)
+	return true
+}
+
+func (c *ContainerBuild) Merge(newc ContainerBuild) bool {
+	if c.ContainerBuildType == "" {
+		c = &newc
+		return true
+	}
+	if newc.ContainerBuildType == "" {
+		return true
+	}
 	if c.ContainerBuildType != newc.ContainerBuildType {
+		logrus.Errorf("Incompatible container build types %s and %s can not be merged", c.ContainerBuildType, newc.ContainerBuildType)
 		return false
 	}
-	for _, imagename := range newc.ImageNames {
-		if common.IsStringPresent(c.ImageNames, imagename) {
-			if c.New != newc.New {
-				logrus.Errorf("Both old and new image seems to share the same tag for container %s.", imagename)
-			} else if c.New && newc.New {
-				if c.UserID != newc.UserID {
-					logrus.Errorf("Two different users found for image : %d in %d. Ignoring new users.", c.UserID, newc.UserID)
-				}
-			}
-			c.ImageNames = common.MergeStringSlices(c.ImageNames, newc.ImageNames...)
-			c.ExposedPorts = common.MergeIntSlices(c.ExposedPorts, newc.ExposedPorts)
-			c.AccessedDirs = common.MergeStringSlices(c.AccessedDirs, newc.AccessedDirs...) //Needs to be clarified
-			if !c.New {
-				c.UserID = newc.UserID //Needs to be clarified
-			}
-			return true
-		}
-		logrus.Debugf("Mismatching during container merge [%s, %s]", c.ImageNames, imagename)
+	if c.ContextPath == "" {
+		c.ContextPath = newc.ContextPath
 	}
-	return false
+	if c.RepoInfo.GitRepoURL == "" {
+		c.RepoInfo.GitRepoURL = newc.RepoInfo.GitRepoURL
+		c.RepoInfo.GitRepoBranch = newc.RepoInfo.GitRepoBranch
+	} else if (newc.RepoInfo.GitRepoURL == "" || c.RepoInfo.GitRepoURL == newc.RepoInfo.GitRepoURL) && c.RepoInfo.GitRepoBranch == "" {
+		c.RepoInfo.GitRepoBranch = newc.RepoInfo.GitRepoBranch
+	}
+	return true
 }
 
 // AddExposedPort adds an exposed port to a container
 func (c *Container) AddExposedPort(port int) {
 	if !common.IsIntPresent(c.ExposedPorts, port) {
 		c.ExposedPorts = append(c.ExposedPorts, port)
-	}
-}
-
-// AddImageName adds image name to a container
-func (c *Container) AddImageName(imagename string) {
-	if !common.IsStringPresent(c.ImageNames, imagename) {
-		c.ImageNames = append(c.ImageNames, imagename)
 	}
 }
 
@@ -271,9 +279,9 @@ func (c *Container) AddAccessedDirs(dirname string) {
 }
 
 // NewIR creates a new IR
-func NewIR(p plantypes.Plan) IR {
+func NewIR() IR {
 	ir := IR{}
-	ir.Containers = []Container{}
+	ir.Containers = make(map[string]Container)
 	ir.Services = make(map[string]Service)
 	ir.Storages = []Storage{}
 	return ir
@@ -284,8 +292,8 @@ func (ir *IR) Merge(newir IR) {
 	for _, sc := range newir.Services {
 		ir.addService(sc)
 	}
-	for _, newcontainer := range newir.Containers {
-		ir.AddContainer(newcontainer)
+	for in, newcontainer := range newir.Containers {
+		ir.AddContainer(in, newcontainer)
 	}
 	for _, newst := range newir.Storages {
 		ir.AddStorage(newst)
@@ -312,16 +320,12 @@ func (s *Storage) Merge(newst Storage) bool {
 }
 
 // AddContainer adds a conatainer to IR
-func (ir *IR) AddContainer(container Container) {
-	merged := false
-	for i := range ir.Containers {
-		if ir.Containers[i].Merge(container) {
-			merged = true
-			break
-		}
-	}
-	if !merged {
-		ir.Containers = append(ir.Containers, container)
+func (ir *IR) AddContainer(imageName string, container Container) {
+	if im, ok := ir.Containers[imageName]; ok {
+		im.Merge(container)
+		ir.Containers[imageName] = im
+	} else {
+		ir.Containers[imageName] = container
 	}
 }
 
