@@ -19,16 +19,17 @@ package translator
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 
+	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/classes"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
-	"github.com/otiai10/copy"
 	"github.com/sirupsen/logrus"
 )
 
@@ -336,33 +337,85 @@ func trimPrefix(files []project, prefix string) []project {
 	return files
 }
 
-func convertPatchToPathMappings(p translatortypes.Patch) []translatortypes.PathMapping {
+func convertPatchToPathMappings(p translatortypes.Patch, inputPath, tempInputPath, tempOutputPath, pluginPath string) []translatortypes.PathMapping {
+	pathMappings := []translatortypes.PathMapping{}
 	for _, pm := range p.PathMappings {
 		switch pm.Type {
 		case translatortypes.SourcePathMappingType:
-		case translatortypes.SourceDiffPathMappingType:
-		case translatortypes.TemplatePathMappingType:
+			if filepath.IsAbs(pm.SrcPath) {
+				srcPath, err := filepath.Rel(tempInputPath, pm.SrcPath)
+				if err != nil {
+					logrus.Errorf("Invalid sourcePath %s in translator %+v. Ignoring.", pm.SrcPath, pm)
+				}
+				pm.SrcPath = srcPath
+			}
+			pathMappings = append(pathMappings, pm)
+		case translatortypes.ModifiedSourcePathMappingType:
+			srcPath := pm.SrcPath
+			if filepath.IsAbs(pm.SrcPath) {
+				var err error
+				srcPath, err = filepath.Rel(tempInputPath, pm.SrcPath)
+				if err != nil {
+					logrus.Errorf("Invalid sourcePath %s in translator %+v. Ignoring.", pm.SrcPath, pm)
+					continue
+				}
+			}
+			newTempDir, err := ioutil.TempDir(tempOutputPath, "modifiedsource-*")
+			if err != nil {
+				logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
+				continue
+			}
+			if srcPath != "" {
+				err := ioutil.WriteFile(filepath.Join(newTempDir, "sourcerelativepath.config"), []byte(srcPath), 0666)
+				if err != nil {
+					logrus.Errorf("Unable to persist source relative path to file")
+				}
+			}
+			if err := filesystem.GenerateDelta(filepath.Join(inputPath, srcPath), filepath.Join(tempInputPath, srcPath), newTempDir); err == nil {
+				pm.SrcPath = newTempDir
+			} else {
+				logrus.Errorf("Error while copying modified sourcepath for %+v. Ignoring.", pm)
+				continue
+			}
+			pm.SrcPath = newTempDir
+			pathMappings = append(pathMappings, pm)
 		default:
+			if !filepath.IsAbs(pm.SrcPath) {
+				pm.SrcPath = filepath.Join(pluginPath, pm.SrcPath)
+			} else if common.IsParent(pm.SrcPath, tempInputPath) {
+				newTempDir, err := ioutil.TempDir(tempOutputPath, "templates-*")
+				if err != nil {
+					logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
+					continue
+				}
+				if err := filesystem.Replicate(pm.SrcPath, newTempDir); err == nil {
+					pm.SrcPath = newTempDir
+				} else {
+					logrus.Errorf("Error while copying sourcepath for %+v. Ignoring.", pm)
+					continue
+				}
+			}
+			pathMappings = append(pathMappings, pm)
 		}
 	}
-	return []translatortypes.PathMapping{}
+	return pathMappings
 }
 
 func createOutput(pathMappings []translatortypes.PathMapping, sourcePath, outputPath string) error {
 	for _, pm := range pathMappings {
 		switch pm.Type {
 		case translatortypes.SourcePathMappingType:
-			if err := copy.Copy(filepath.Join(sourcePath, pm.SrcPath), filepath.Join(outputPath, pm.DestPath)); err != nil {
+			if err := filesystem.Replicate(filepath.Join(sourcePath, pm.SrcPath), filepath.Join(outputPath, pm.DestPath)); err != nil {
 				logrus.Errorf("Error while copying sourcepath for %+v", pm)
 			}
-		case translatortypes.SourceDiffPathMappingType:
+		case translatortypes.ModifiedSourcePathMappingType:
 		case translatortypes.TemplatePathMappingType:
 		default:
 			srcPath := pm.SrcPath
 			if !filepath.IsAbs(pm.SrcPath) {
 				srcPath = filepath.Join(pm.SrcPath)
 			}
-			if err := copy.Copy(srcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
+			if err := filesystem.Replicate(srcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
 				logrus.Errorf("Error while copying sourcepath for %+v", pm)
 			}
 		}

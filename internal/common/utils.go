@@ -35,8 +35,8 @@ import (
 	"text/template"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/types"
-	"github.com/otiai10/copy"
 	"github.com/sirupsen/logrus"
 	"github.com/xrash/smetrics"
 	"gopkg.in/yaml.v3"
@@ -611,7 +611,7 @@ func CopyConfigurationsAssetsData(extensionsPath string) (err error) {
 		logrus.Errorf("Unable to create the custom assets directory at path %q Error: %q", configurationsAssetsPath, err)
 		return err
 	}
-	if err = copy.Copy(extensionsPath, configurationsAssetsPath); err != nil {
+	if err = filesystem.Replicate(extensionsPath, configurationsAssetsPath); err != nil {
 		logrus.Errorf("Failed to copy the extensions %s over to the directory at path %s Error: %q", extensionsPath, configurationsAssetsPath, err)
 		return err
 	}

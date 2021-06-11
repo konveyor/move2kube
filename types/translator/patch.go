@@ -37,7 +37,7 @@ const (
 	DefaultPathMappingType    PathMappingType = "Default"    // Normal Copy with overwrite
 	TemplatePathMappingType   PathMappingType = "Template"   // Source path when relative, is relative to yaml file location
 	SourcePathMappingType     PathMappingType = "Source"     // Source path becomes relative to source directory
-	SourceDiffPathMappingType PathMappingType = "SourceDiff" // Source path becomes relative to source directory
+	ModifiedSourcePathMappingType PathMappingType = "SourceDiff" // Source path becomes relative to source directory
 )
 
 type PathMapping struct {

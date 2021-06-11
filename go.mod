@@ -22,8 +22,8 @@ require (
 	github.com/mikefarah/yq/v4 v4.4.1
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/moby/buildkit v0.7.2
+	github.com/mutagen-io/mutagen v0.11.8 // indirect
 	github.com/openshift/api v0.0.0-20200930075302-db52bc4ef99f // release-4.6
-	github.com/otiai10/copy v1.0.2
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
 	github.com/qri-io/starlib v0.4.2

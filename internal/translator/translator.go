@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/classes"
 	"github.com/konveyor/move2kube/qaengine"
@@ -204,6 +205,11 @@ func Translate(plan plantypes.Plan, outputPath string) (err error) {
 	if err := os.MkdirAll(tempOutputPath, common.DefaultDirectoryPermission); err != nil {
 		logrus.Fatalf("Failed to create the output directory at path %s Error: %q", tempOutputPath, err)
 	}
+	tempInputPath, err := ioutil.TempDir("", plan.Name+"*")
+	if err != nil {
+		logrus.Fatalf("Failed to create temporary input directory at path %s Error: %q", tempInputPath, err)
+	}
+	defer os.RemoveAll(tempInputPath)
 	patches := []translatortypes.Patch{}
 	pathMappings := []translatortypes.PathMapping{}
 	for serviceName, service := range plan.Spec.Services {
@@ -217,14 +223,33 @@ func Translate(plan plantypes.Plan, outputPath string) (err error) {
 				logrus.Fatalf("Failed to create the temp translator output directory at path %s Error: %q", tempServiceOutputPath, err)
 			}
 			tempServiceTranslatorOutputPath := filepath.Join(tempServiceOutputPath, ttempdirName)
-			ps, err := translators[translator.Name].TranslateService(serviceName, translator, tempServiceTranslatorOutputPath)
+			tempTranslator := plantypes.Translator{}
+			err := plantypes.CopyObj(translator, &tempTranslator)
+			if err != nil {
+				logrus.Errorf("Unable to make copy of translator obj %+v. Ignoring : %s", translator, err)
+				continue
+			}
+			_, err = plantypes.ConvertPathsEncode(&tempTranslator, plan.Spec.RootDir)
+			if err != nil {
+				logrus.Errorf("Unable to encode of translator obj %+v. Ignoring : %s", translator, err)
+				continue
+			}
+			_, err = plantypes.ConvertPathsDecode(&tempTranslator, tempInputPath)
+			if err != nil {
+				logrus.Errorf("Unable to encode of translator obj %+v. Ignoring : %s", translator, err)
+				continue
+			}
+			if err := filesystem.Replicate(plan.Spec.RootDir, tempInputPath); err != nil {
+				logrus.Errorf("Unable to copy contents to temp directory %s: %s", tempInputPath, err)
+			}
+			ps, err := translators[translator.Name].TranslateService(serviceName, tempTranslator, tempServiceTranslatorOutputPath)
 			if err != nil {
 				logrus.Errorf("Unable to translate service %s using %s : %s", serviceName, translator.Name, err)
 				continue
 			}
 			patches = append(patches, ps...)
 			for _, p := range patches {
-				pathMappings = append(pathMappings, p.PathMappings...)
+				pathMappings = append(pathMappings, convertPatchToPathMappings(p, plan.Spec.RootDir, tempInputPath, tempOutputPath, filepath.Dir(translators[translator.Name].GetConfig().Spec.FilePath))...)
 			}
 		}
 	}
@@ -253,10 +278,10 @@ func Translate(plan plantypes.Plan, outputPath string) (err error) {
 			pathMappings = append(pathMappings, pm...)
 		}
 	}
-	/*if err := createOutput(pathMappings); err != nil {
+	if err := createOutput(pathMappings, plan.Spec.RootDir, outputPath); err != nil {
 		logrus.Errorf("Unable to create output from pathmappings : %s", err)
 		return err
-	}*/
+	}
 	if err := os.RemoveAll(tempOutputPath); err != nil {
 		logrus.Errorf("Unable to delete temp directory %s : %s", tempOutputPath, err)
 	}

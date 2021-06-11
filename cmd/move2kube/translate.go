@@ -102,6 +102,7 @@ func translateHandler(cmd *cobra.Command, flags translateFlags) {
 			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.Planfile, err)
 		}
 		if len(p.Spec.Services) == 0 {
+			logrus.Debugf("Plan : %+v", p)
 			logrus.Fatalf("Failed to find any services. Aborting.")
 		}
 		if cmd.Flags().Changed(cmdcommon.NameFlag) {

@@ -151,7 +151,7 @@ func recurse(value reflect.Value, ctx context) error {
 	return nil
 }
 
-func convertPathsDecode(obj interface{}, rootDir string) (absRootDir string, err error) {
+func ConvertPathsDecode(obj interface{}, rootDir string) (absRootDir string, err error) {
 	absRootDir, err = filepath.Abs(rootDir)
 	if err != nil {
 		logrus.Errorf("Failed to make the root directory path %q absolute. Error %q", rootDir, err)
@@ -166,7 +166,7 @@ func convertPathsDecode(obj interface{}, rootDir string) (absRootDir string, err
 	return absRootDir, recurse(planV, ctx)
 }
 
-func convertPathsEncode(obj interface{}, rootDir string) (relRootDir string, err error) {
+func ConvertPathsEncode(obj interface{}, rootDir string) (relRootDir string, err error) {
 	ctx := context{
 		RootDir: rootDir,
 		Convert: GetRelativePath,
@@ -197,32 +197,37 @@ func ReadPlan(path string) (Plan, error) {
 		return plan, err
 	}
 
-	if plan.Spec.RootDir, err = convertPathsDecode(&plan, plan.Spec.RootDir); err != nil {
+	if plan.Spec.RootDir, err = ConvertPathsDecode(&plan, plan.Spec.RootDir); err != nil {
 		return plan, err
 	}
 	return plan, nil
 }
 
-// Copy makes a copy of the plan.
-func (plan *Plan) Copy() (Plan, error) {
-	copy := Plan{}
-	planBytes, err := yaml.Marshal(plan)
+// CopyObj makes a copy of the serializable Object.
+func CopyObj(obj interface{}, copy interface{}) error {
+	planBytes, err := yaml.Marshal(obj)
 	if err != nil {
 		logrus.Errorf("Failed to marshal the plan to yaml. Error: %q", err)
-		return copy, err
+		return err
 	}
-	err = yaml.Unmarshal(planBytes, &copy)
-	return copy, err
+	logrus.Infof("%T", copy)
+	err = yaml.Unmarshal(planBytes, copy)
+	if err != nil {
+		logrus.Errorf("Failed to unmarshal the yaml to plan. Error: %q", err)
+		return err
+	}
+	return nil
 }
 
 // WritePlan encodes the plan to yaml converting absolute paths to relative.
 func WritePlan(path string, plan Plan) error {
-	copy, err := plan.Copy()
+	copy := Plan{}
+	err := CopyObj(plan, &copy)
 	if err != nil {
 		logrus.Errorf("Failed to create a copy of the plan before writing. Error: %q", err)
 		return err
 	}
-	if copy.Spec.RootDir, err = convertPathsEncode(&copy, copy.Spec.RootDir); err != nil {
+	if copy.Spec.RootDir, err = ConvertPathsEncode(&copy, copy.Spec.RootDir); err != nil {
 		return err
 	}
 	return common.WriteYaml(path, copy)
