@@ -21,6 +21,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	okdroutev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
@@ -46,7 +47,7 @@ func (d *Service) getSupportedKinds() []string {
 }
 
 // createNewResources converts IR to runtime objects
-func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	ingressEnabled := false
 	for _, service := range ir.Services {
@@ -55,7 +56,7 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 			// Create services depending on whether the service needs to be externally exposed
 			if common.IsStringPresent(supportedKinds, routeKind) {
 				//Create Route
-				routeObjs := d.createRoutes(service, ir)
+				routeObjs := d.createRoutes(service, ir, targetCluster.Spec)
 				for _, routeObj := range routeObjs {
 					objs = append(objs, routeObj)
 				}
@@ -91,7 +92,7 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 
 	// Create one ingress for all services
 	if ingressEnabled {
-		obj := d.createIngress(ir)
+		obj := d.createIngress(ir, targetCluster.Spec)
 		objs = append(objs, obj)
 	}
 
@@ -99,7 +100,7 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 }
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *Service) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (d *Service) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	lobj, _ := k8sschema.ConvertToLiasonScheme(obj)
 	if common.IsStringPresent(supportedKinds, routeKind) {
 		if _, ok := obj.(*okdroutev1.Route); ok {
@@ -110,20 +111,20 @@ func (d *Service) convertToClusterSupportedKinds(obj runtime.Object, supportedKi
 		}
 		if service, ok := lobj.(*core.Service); ok {
 			if service.Spec.Type == core.ServiceTypeLoadBalancer || service.Spec.Type == core.ServiceTypeNodePort {
-				return d.serviceToRoutes(*service, ir), true
+				return d.serviceToRoutes(*service, ir, targetCluster.Spec), true
 			}
 			return []runtime.Object{obj}, true
 		}
 	} else if common.IsStringPresent(supportedKinds, common.IngressKind) {
 		if route, ok := obj.(*okdroutev1.Route); ok {
-			return d.routeToIngress(*route, ir), true
+			return d.routeToIngress(*route, ir, targetCluster.Spec), true
 		}
 		if _, ok := lobj.(*networking.Ingress); ok {
 			return []runtime.Object{obj}, true
 		}
 		if service, ok := lobj.(*core.Service); ok {
 			if service.Spec.Type == core.ServiceTypeLoadBalancer || service.Spec.Type == core.ServiceTypeNodePort {
-				return d.serviceToIngress(*service, ir), true
+				return d.serviceToIngress(*service, ir, targetCluster.Spec), true
 			}
 			return []runtime.Object{obj}, true
 		}
@@ -183,7 +184,7 @@ func (d *Service) ingressToRoute(ingress networking.Ingress) []runtime.Object {
 	return objs
 }
 
-func (d *Service) serviceToRoutes(service core.Service, ir irtypes.EnhancedIR) []runtime.Object {
+func (d *Service) serviceToRoutes(service core.Service, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) []runtime.Object {
 	weight := int32(1)                          //Hard-coded to 1 to avoid Helm v3 errors
 	ingressArray := []okdroutev1.RouteIngress{} //Hard-coded to empty list to avoid Helm v3 errors
 	ingressArray = append(ingressArray, okdroutev1.RouteIngress{Host: ""})
@@ -211,7 +212,7 @@ func (d *Service) serviceToRoutes(service core.Service, ir irtypes.EnhancedIR) [
 			},
 			ObjectMeta: service.ObjectMeta,
 			Spec: okdroutev1.RouteSpec{
-				Host: ir.TargetClusterSpec.Host,
+				Host: targetClusterSpec.Host,
 				Path: path,
 				To: okdroutev1.RouteTargetReference{
 					Kind:   common.ServiceKind,
@@ -230,7 +231,7 @@ func (d *Service) serviceToRoutes(service core.Service, ir irtypes.EnhancedIR) [
 	return objs
 }
 
-func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.EnhancedIR) []runtime.Object {
+func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) []runtime.Object {
 	targetPort := networking.ServiceBackendPort{}
 	if route.Spec.Port.TargetPort.Type == intstr.String {
 		targetPort.Name = route.Spec.Port.TargetPort.StrVal
@@ -268,19 +269,10 @@ func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.EnhancedIR) 
 		},
 	}
 
-	if ir.IsIngressTLSEnabled() {
-		tls := networking.IngressTLS{Hosts: []string{route.Spec.Host}}
-		tls.SecretName = "<TODO: fill the tls secret for this domain>"
-		if route.Spec.Host == ir.TargetClusterSpec.Host {
-			tls.SecretName = ir.IngressTLSSecretName
-		}
-		ingress.Spec.TLS = []networking.IngressTLS{tls}
-	}
-
 	return []runtime.Object{&ingress}
 }
 
-func (d *Service) serviceToIngress(service core.Service, ir irtypes.EnhancedIR) []runtime.Object {
+func (d *Service) serviceToIngress(service core.Service, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) []runtime.Object {
 	rules := []networking.IngressRule{}
 	pathPrefix := "/" + service.Name
 	for _, serviceport := range service.Spec.Ports {
@@ -308,7 +300,7 @@ func (d *Service) serviceToIngress(service core.Service, ir irtypes.EnhancedIR) 
 					},
 				},
 			},
-			Host: ir.TargetClusterSpec.Host,
+			Host: targetClusterSpec.Host,
 		}
 		rules = append(rules, rule)
 	}
@@ -319,14 +311,6 @@ func (d *Service) serviceToIngress(service core.Service, ir irtypes.EnhancedIR) 
 		},
 		ObjectMeta: service.ObjectMeta,
 		Spec:       networking.IngressSpec{Rules: rules},
-	}
-	if ir.IsIngressTLSEnabled() {
-		ingress.Spec.TLS = []networking.IngressTLS{
-			{
-				Hosts:      []string{ir.TargetClusterSpec.Host},
-				SecretName: ir.IngressTLSSecretName,
-			},
-		}
 	}
 	service.Spec.Type = core.ServiceTypeClusterIP
 	return []runtime.Object{&ingress, &service}
@@ -388,7 +372,7 @@ func (d *Service) ingressToService(ingress networking.Ingress) []runtime.Object 
 	return objs
 }
 
-func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR) [](*okdroutev1.Route) {
+func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) [](*okdroutev1.Route) {
 	routes := [](*okdroutev1.Route){}
 	servicePorts := d.getServicePorts(service)
 	pathPrefix := service.ServiceRelPath
@@ -401,7 +385,7 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR) [
 				path = pathPrefix + "/" + cast.ToString(servicePort.Port)
 			}
 		}
-		route := d.createRoute(service, servicePort, path, ir)
+		route := d.createRoute(service, servicePort, path, ir, targetClusterSpec)
 		routes = append(routes, route)
 	}
 	return routes
@@ -412,7 +396,7 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR) [
 //[https://bugzilla.redhat.com/show_bug.cgi?id=1773682]
 // Can't use https because of this https://github.com/openshift/origin/issues/2162
 // When service has multiple ports,the route needs a port name. Port number doesn't seem to work.
-func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, path string, ir irtypes.EnhancedIR) *okdroutev1.Route {
+func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, path string, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) *okdroutev1.Route {
 	weight := int32(1)                                    //Hard-coded to 1 to avoid Helm v3 errors
 	ingressArray := []okdroutev1.RouteIngress{{Host: ""}} //Hard-coded to empty string to avoid Helm v3 errors
 
@@ -426,7 +410,7 @@ func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, pa
 			Labels: getServiceLabels(service.Name),
 		},
 		Spec: okdroutev1.RouteSpec{
-			Host: ir.TargetClusterSpec.Host,
+			Host: targetClusterSpec.Host,
 			Path: path,
 			To: okdroutev1.RouteTargetReference{
 				Kind:   common.ServiceKind,
@@ -444,7 +428,7 @@ func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, pa
 
 // createIngress creates a single ingress for all services
 //TODO: Only supports fan-out. Virtual named hosting is not supported yet.
-func (d *Service) createIngress(ir irtypes.EnhancedIR) *networking.Ingress {
+func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) *networking.Ingress {
 	pathType := networking.PathTypePrefix
 
 	// Create the fan-out paths
@@ -489,7 +473,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR) *networking.Ingress {
 	// Configure the rule with the above fan-out paths
 	rules := []networking.IngressRule{
 		{
-			Host: ir.TargetClusterSpec.Host,
+			Host: targetClusterSpec.Host,
 			IngressRuleValue: networking.IngressRuleValue{
 				HTTP: &networking.HTTPIngressRuleValue{
 					Paths: httpIngressPaths,
@@ -498,12 +482,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR) *networking.Ingress {
 		},
 	}
 
-	ingressName := ir.Name
-	if len(ir.Services) == 1 {
-		for _, service := range ir.Services {
-			ingressName = service.Name
-		}
-	}
+	ingressName := "ingress"
 	ingress := networking.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       common.IngressKind,
@@ -514,12 +493,6 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR) *networking.Ingress {
 			Labels: getServiceLabels(ingressName),
 		},
 		Spec: networking.IngressSpec{Rules: rules},
-	}
-	// If TLS enabled, then add the TLS secret name and the host to the ingress.
-	// Otherwise, skip the TLS section.
-	if ir.IsIngressTLSEnabled() {
-		tls := []networking.IngressTLS{{Hosts: []string{ir.TargetClusterSpec.Host}, SecretName: ir.IngressTLSSecretName}}
-		ingress.Spec.TLS = tls
 	}
 
 	return &ingress

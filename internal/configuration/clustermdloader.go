@@ -37,7 +37,7 @@ func (clusterMDLoader *ClusterMDLoader) UpdatePlan(plan *plantypes.Plan) error {
 		return err
 	}
 	for _, filePath := range filePaths {
-		cm, err := clusterMDLoader.getClusterMetadata(filePath)
+		cm, err := clusterMDLoader.GetClusterMetadata(filePath)
 		if err != nil {
 			continue
 		}
@@ -58,7 +58,7 @@ func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[str
 	// Load collected cluster metadata.
 	clusterMDPaths := plan.Spec.Configuration.TargetClusters
 	for _, clusterMDPath := range clusterMDPaths {
-		cm, err := clusterMDLoader.getClusterMetadata(clusterMDPath)
+		cm, err := clusterMDLoader.GetClusterMetadata(clusterMDPath)
 		if err != nil {
 			logrus.Errorf("Failed to load the cluster metadata at path %q Error: %q", clusterMDPath, err)
 			continue
@@ -73,7 +73,7 @@ func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[str
 	return clusters
 }
 
-func (*ClusterMDLoader) getClusterMetadata(path string) (collecttypes.ClusterMetadata, error) {
+func (*ClusterMDLoader) GetClusterMetadata(path string) (collecttypes.ClusterMetadata, error) {
 	cm := collecttypes.ClusterMetadata{}
 	if err := common.ReadMove2KubeYaml(path, &cm); err != nil {
 		logrus.Debugf("Failed to read the cluster metadata at path %q Error: %q", path, err)

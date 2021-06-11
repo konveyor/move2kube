@@ -61,7 +61,7 @@ type Spec struct {
 }
 
 type Configuration struct {
-	Translators    map[string]string `yaml:"translators,omitempty" m2kpath:"normal"`    //[name]filepath // TOFIX: Change type to map[string]string after struttag parsing bug fix
+	Translators    map[string]string `yaml:"translators,omitempty" m2kpath:"normal"`    //[name]filepath
 	Parameterizers map[string]string `yaml:"parameterizers,omitempty" m2kpath:"normal"` //[name]filepath
 	Transformers   map[string]string `yaml:"transformers,omitempty" m2kpath:"normal"`   //[name]filepath
 	Packaging      map[string]string `yaml:"packaging,omitempty" m2kpath:"normal"`      //[name]filepath

@@ -48,7 +48,6 @@ type ComposeConfig struct {
 }
 
 func (t *Compose) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	//Load images
 	yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
 	if err != nil {
 		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
@@ -64,7 +63,6 @@ func (t *Compose) BaseDirectoryDetect(dir string) (namedServices map[string]plan
 			imageMetadataPaths[imagetag] = path
 		}
 	}
-	//Fill data into plan
 	services := map[string]plantypes.Service{}
 	for _, path := range yamlpaths {
 		currServices := t.getServicesFromComposeFile(path, imageMetadataPaths)
@@ -127,15 +125,18 @@ func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.
 			ir.AddContainer(it, newContainerFromImageInfo(imgMD))
 		}
 	}
+	p := translatortypes.Patch{
+		IR: ir,
+	}
+	return []translatortypes.Patch{p}, nil
+}
+
+func (t *Compose) TranslateIR(ir irtypes.IR, destDir string, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error) {
 	return nil, nil
 }
 
-func (t *Compose) TranslateIR(ir irtypes.IR, tempOutputDir string) ([]translatortypes.PathMapping, error) {
-	return nil, nil
-}
-
-func (t *Compose) PathForIR(patch translatortypes.Patch) string {
-	return filepath.Join(common.DeployDir, "compose")
+func (t *Compose) PathForIR(patch translatortypes.Patch, planTranslator plantypes.Translator) string {
+	return ""
 }
 
 func (t *Compose) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) plantypes.Translator {

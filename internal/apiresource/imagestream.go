@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/konveyor/move2kube/internal/common"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	okdimagev1 "github.com/openshift/api/image/v1"
 	"github.com/sirupsen/logrus"
@@ -45,16 +46,16 @@ func (*ImageStream) getSupportedKinds() []string {
 }
 
 // createNewResources converts IR to runtime objects
-func (imageStream *ImageStream) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (imageStream *ImageStream) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	if !common.IsStringPresent(supportedKinds, imageStreamKind) {
 		logrus.Debugf("Could not find a valid resource type in cluster to create an ImageStream")
 		return objs
 	}
 	// Create an imagestream for each image that we are using
-	for _, irContainer := range ir.Containers {
-		imageStreamName, imageStreamTag := imageStream.GetImageStreamNameAndTag(irContainer.ImageNames[0])
-		imageStream := imageStream.createImageStream(imageStreamName, imageStreamTag, irContainer, ir)
+	for in, irContainer := range ir.Containers {
+		imageStreamName, imageStreamTag := imageStream.GetImageStreamNameAndTag(in)
+		imageStream := imageStream.createImageStream(imageStreamName, imageStreamTag, in, irContainer, ir)
 		objs = append(objs, &imageStream)
 	}
 	return objs
@@ -68,13 +69,12 @@ func (*ImageStream) GetImageStreamNameAndTag(fullImageName string) (string, stri
 	return imageStreamName, tag
 }
 
-func (*ImageStream) createImageStream(name, tag string, irContainer irtypes.Container, ir irtypes.EnhancedIR) okdimagev1.ImageStream {
-	fullImageName := ir.GetFullImageName(irContainer.ImageNames[0])
+func (*ImageStream) createImageStream(name, tag string, imageName string, irContainer irtypes.Container, ir irtypes.EnhancedIR) okdimagev1.ImageStream {
 	tags := []okdimagev1.TagReference{
 		{
 			From: &corev1.ObjectReference{
 				Kind: "DockerImage",
-				Name: fullImageName,
+				Name: imageName,
 			},
 			Name: tag,
 		},
@@ -94,7 +94,7 @@ func (*ImageStream) createImageStream(name, tag string, irContainer irtypes.Cont
 }
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (imageStream *ImageStream) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (imageStream *ImageStream) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	if common.IsStringPresent(imageStream.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}

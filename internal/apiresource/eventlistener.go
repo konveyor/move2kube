@@ -18,6 +18,7 @@ package apiresource
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,19 +39,19 @@ func (*EventListener) getSupportedKinds() []string {
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
-func (el *EventListener) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (el *EventListener) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
 	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
 	irresources := ir.TektonResources.EventListeners
 	for _, irresource := range irresources {
-		objs = append(objs, el.createNewResource(irresource))
+		objs = append(objs, el.createNewResource(irresource, targetCluster))
 	}
 	return objs
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
-func (el *EventListener) createNewResource(ireventlistener irtypes.EventListener) *triggersv1alpha1.EventListener {
+func (el *EventListener) createNewResource(ireventlistener irtypes.EventListener, targetCluster collecttypes.ClusterMetadata) *triggersv1alpha1.EventListener {
 	eventListener := new(triggersv1alpha1.EventListener)
 	eventListener.TypeMeta = metav1.TypeMeta{
 		Kind:       eventListenerKind,
@@ -74,7 +75,7 @@ func (el *EventListener) createNewResource(ireventlistener irtypes.EventListener
 }
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
-func (el *EventListener) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (el *EventListener) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	if common.IsStringPresent(el.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}

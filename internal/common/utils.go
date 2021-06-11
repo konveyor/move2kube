@@ -938,10 +938,10 @@ func ConvertInterfaceToSliceOfStrings(xI interface{}) ([]string, error) {
 
 // GatherGitInfo tries to find the git repo for the path if one exists.
 // It returns true of it found a git repo.
-func GatherGitInfo(path string) (repoURL string, repoBranch string, err error) {
+func GatherGitInfo(path string) (repoURL string, repoBranch string, root string, err error) {
 	if finfo, err := os.Stat(path); err != nil {
 		logrus.Errorf("Failed to stat the path %q Error %q", path, err)
-		return "", "", err
+		return "", "", "", err
 	} else if !finfo.IsDir() {
 		pathDir := filepath.Dir(path)
 		logrus.Debugf("The path %q is not a directory. Using %q instead.", path, pathDir)
@@ -959,10 +959,10 @@ func GatherGitInfo(path string) (repoURL string, repoBranch string, err error) {
 			}
 		}
 	}
-	remoteURLs, branch, _, err := GetGitRepoDetails(path, preferredRemote)
+	remoteURLs, branch, repoDir, err := GetGitRepoDetails(path, preferredRemote)
 	if err != nil {
 		logrus.Debugf("Failed to get the git repo at path %q Error: %q", path, err)
-		return "", "", err
+		return "", "", "", err
 	}
 	repoBranch = branch
 	if len(remoteURLs) == 0 {
@@ -970,5 +970,5 @@ func GatherGitInfo(path string) (repoURL string, repoBranch string, err error) {
 	} else {
 		repoURL = remoteURLs[0]
 	}
-	return repoURL, repoBranch, nil
+	return repoURL, repoBranch, repoDir, nil
 }

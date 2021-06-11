@@ -18,6 +18,7 @@ package apiresource
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +40,7 @@ func (*RoleBinding) getSupportedKinds() []string {
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
-func (rb *RoleBinding) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (rb *RoleBinding) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	if common.IsStringPresent(supportedKinds, roleBindingKind) {
 		irresources := ir.RoleBindings
@@ -68,7 +69,7 @@ func (*RoleBinding) createNewResource(irrolebinding irtypes.RoleBinding) *rbac.R
 }
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
-func (rb *RoleBinding) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (rb *RoleBinding) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	if common.IsStringPresent(rb.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}

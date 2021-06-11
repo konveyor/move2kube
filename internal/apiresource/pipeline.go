@@ -21,8 +21,8 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/internal/common"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +47,7 @@ func (*Pipeline) getSupportedKinds() []string {
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
-func (p *Pipeline) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (p *Pipeline) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	// Since tekton is an extension, the tekton resources are put in a separate folder from the main application.
 	// We ignore supported kinds because these resources are optional and it's upto the user to install the extension if they need it.
@@ -74,18 +74,18 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 	tasks := []v1beta1.PipelineTask{}
 	firstTask := true
 	prevTaskName := ""
-	for i, container := range ir.Containers {
-		if !container.New {
+	i := 0
+	for imageName, container := range ir.Containers {
+		if container.Build.ContainerBuildType == "" {
 			continue
 		}
-		if container.ContainerBuildType == plantypes.ManualContainerBuildTypeValue || container.ContainerBuildType == plantypes.ReuseContainerBuildTypeValue {
-			logrus.Debugf("Manual or reuse containerization. We will skip this for CICD.")
-			continue
-		}
-		if container.ContainerBuildType == plantypes.DockerFileContainerBuildTypeValue || container.ContainerBuildType == plantypes.ReuseDockerFileContainerBuildTypeValue {
+		i++
+		if container.Build.ContainerBuildType == irtypes.DockerfileContainerBuildType {
+			gitRepoURL, branchName, repoDir, err := common.GatherGitInfo(container.Build.ContextPath)
+			if err != nil {
+				logrus.Debugf("Unable to identify git repo for %s : %s", container.Build.ContextPath, err)
+			}
 			cloneTaskName := "clone-" + fmt.Sprint(i)
-			gitRepoURL := container.RepoInfo.GitRepoURL
-			branchName := container.RepoInfo.GitRepoBranch
 			if gitRepoURL == "" {
 				gitRepoURL = gitRepoURLPlaceholder
 			}
@@ -109,16 +109,15 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 				cloneTask.RunAfter = []string{prevTaskName}
 			}
 
-			imageName := container.ImageNames[0]
 			// Assume there is no git repo. If there is no git repo we can't do CI/CD.
 			dockerfilePath := dockerfilePathPlaceholder
 			contextPath := contextPathPlaceholder
 			// If there is a git repo, set the correct context and dockerfile paths.
-			if container.RepoInfo.GitRepoDir != "" {
-				relDockerfilePath, err := filepath.Rel(container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath)
+			if repoDir != "" {
+				relDockerfilePath, err := filepath.Rel(repoDir, container.Build.ContextPath)
 				if err != nil {
 					// TODO: Bump up the error after fixing abs path, rel path issues
-					logrus.Debugf("ERROR: Failed to make the path %q relative to the path %q Error %q", container.RepoInfo.GitRepoDir, container.RepoInfo.TargetPath, err)
+					logrus.Debugf("ERROR: Failed to make the path %q relative to the path %q Error %q", repoDir, container.Build.ContextPath, err)
 				} else {
 					dockerfilePath = relDockerfilePath
 					// We can't figure out the context from the source. So assume the context is the directory containing the dockerfile.
@@ -143,14 +142,14 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 			tasks = append(tasks, cloneTask, buildPushTask)
 			firstTask = false
 			prevTaskName = buildPushTaskName
-		} else if container.ContainerBuildType == plantypes.S2IContainerBuildTypeValue {
+		} else if container.Build.ContainerBuildType == irtypes.S2IContainerBuildTypeValue {
 			// TODO: Implement support for S2I
 			logrus.Debugf("S2I not yet supported for Tekton")
-		} else if container.ContainerBuildType == plantypes.CNBContainerBuildTypeValue {
+		} else if container.Build.ContainerBuildType == irtypes.CNBContainerBuildTypeValue {
 			// TODO: Implement support for CNB
 			logrus.Debugf("CNB not yet supported for Tekton")
 		} else {
-			logrus.Errorf("Unknown containerization method: %v", container.ContainerBuildType)
+			logrus.Errorf("Unknown containerization method: %v", container.Build.ContainerBuildType)
 		}
 	}
 	pipeline.Spec.Tasks = tasks
@@ -158,7 +157,7 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 }
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
-func (p *Pipeline) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (p *Pipeline) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	if common.IsStringPresent(p.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}

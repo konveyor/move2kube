@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"github.com/konveyor/move2kube/internal/translator/gointerfaces"
+	"github.com/konveyor/move2kube/internal/translator/gointerfaces/irtranslators"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
@@ -41,8 +42,8 @@ type Translator interface {
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
 	TranslateService(serviceName string, translatorPlan plantypes.Translator, tempOutputDir string) ([]translatortypes.Patch, error)
-	TranslateIR(ir irtypes.IR, tempOutputDir string) ([]translatortypes.PathMapping, error)
-	PathForIR(patch translatortypes.Patch) string
+	TranslateIR(ir irtypes.IR, destDir string, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error)
+	PathForIR(patch translatortypes.Patch, planTranslator plantypes.Translator) string
 }
 
 type GoInterface struct {
@@ -52,7 +53,7 @@ type GoInterface struct {
 }
 
 func init() {
-	translatorObjs := []Translator{new(gointerfaces.Compose)}
+	translatorObjs := []Translator{new(gointerfaces.Compose), new(irtranslators.Kubernetes)}
 	for _, tt := range translatorObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -127,10 +128,10 @@ func (t *GoInterface) TranslateService(serviceName string, translatorPlan planty
 	return t.impl.TranslateService(serviceName, translatorPlan, tempOutputDir)
 }
 
-func (t *GoInterface) PathForIR(patch translatortypes.Patch) string {
-	return t.impl.PathForIR(patch)
+func (t *GoInterface) PathForIR(patch translatortypes.Patch, planTranslator plantypes.Translator) string {
+	return t.impl.PathForIR(patch, planTranslator)
 }
 
-func (t *GoInterface) TranslateIR(ir irtypes.IR, tempOutputDir string) ([]translatortypes.PathMapping, error) {
-	return t.impl.TranslateIR(ir, tempOutputDir)
+func (t *GoInterface) TranslateIR(ir irtypes.IR, destDir string, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error) {
+	return t.impl.TranslateIR(ir, destDir, plan, tempOutputDir)
 }

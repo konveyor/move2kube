@@ -31,10 +31,8 @@ import (
 
 const (
 	DockerfileContainerBuildType ContainerBuildTypeValue = "Dockerfile"
-)
-
-const (
-	DockerfileContainerBuildArtifactTypeValue ContainerBuildArtifactTypeValue = "Dockerfile"
+	S2IContainerBuildTypeValue   ContainerBuildTypeValue = "S2I"
+	CNBContainerBuildTypeValue   ContainerBuildTypeValue = "CNB"
 )
 
 // IR is the intermediate representation filled by source translators
@@ -83,14 +81,7 @@ type Container struct {
 type ContainerBuild struct {
 	ContainerBuildType ContainerBuildTypeValue                      `yaml:"-"`
 	ContextPath        string                                       `yaml:"-"`
-	RepoInfo           RepoInfo                                     `yaml:"-"`
 	Artifacts          map[ContainerBuildArtifactTypeValue][]string `yaml:"-"` //[artifacttype]value
-}
-
-// RepoInfo contains information specific to creating the CI/CD pipeline.
-type RepoInfo struct {
-	GitRepoURL    string `yaml:"gitRepoURL"`
-	GitRepoBranch string `yaml:"gitRepoBranch"`
 }
 
 // StorageKindType defines storage type kind
@@ -254,12 +245,6 @@ func (c *ContainerBuild) Merge(newc ContainerBuild) bool {
 	}
 	if c.ContextPath == "" {
 		c.ContextPath = newc.ContextPath
-	}
-	if c.RepoInfo.GitRepoURL == "" {
-		c.RepoInfo.GitRepoURL = newc.RepoInfo.GitRepoURL
-		c.RepoInfo.GitRepoBranch = newc.RepoInfo.GitRepoBranch
-	} else if (newc.RepoInfo.GitRepoURL == "" || c.RepoInfo.GitRepoURL == newc.RepoInfo.GitRepoURL) && c.RepoInfo.GitRepoBranch == "" {
-		c.RepoInfo.GitRepoBranch = newc.RepoInfo.GitRepoBranch
 	}
 	return true
 }

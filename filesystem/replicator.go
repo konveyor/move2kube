@@ -19,6 +19,7 @@ package filesystem
 import (
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 )
@@ -55,8 +56,18 @@ func replicateProcessFileCallBack(sourceFilePath, destinationFilePath string, co
 	defer sourceReader.Close()
 	destinationWriter, err := os.Create(destinationFilePath)
 	if err != nil {
-		logrus.Errorf("Unable to create destination file")
-		return err
+		sdi, err := os.Stat(filepath.Dir(sourceFilePath))
+		if err != nil {
+			logrus.Errorf("Unable to stat parent dir of %s : %s", sourceFilePath, err)
+			return err
+		}
+		if mderr := os.MkdirAll(filepath.Dir(destinationFilePath), sdi.Mode()); mderr == nil {
+			destinationWriter, err = os.Create(destinationFilePath)
+		}
+		if err != nil {
+			logrus.Errorf("Unable to create destination file %s : %s", destinationFilePath, err)
+			return err
+		}
 	}
 	defer destinationWriter.Close()
 	_, err = io.Copy(destinationWriter, sourceReader)

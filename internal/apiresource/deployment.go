@@ -58,7 +58,7 @@ func (d *Deployment) getSupportedKinds() []string {
 }
 
 // createNewResources converts ir to runtime object
-func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	for _, service := range ir.Services {
 		var obj runtime.Object
@@ -66,27 +66,27 @@ func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []
 			if !common.IsStringPresent(supportedKinds, daemonSetKind) {
 				logrus.Errorf("Creating Daemonset even though not supported by target cluster.")
 			}
-			obj = d.createDaemonSet(service, ir.TargetClusterSpec)
+			obj = d.createDaemonSet(service, targetCluster.Spec)
 		} else if service.RestartPolicy == core.RestartPolicyNever || service.RestartPolicy == core.RestartPolicyOnFailure {
 			if common.IsStringPresent(supportedKinds, jobKind) {
-				obj = d.createJob(service, ir.TargetClusterSpec)
+				obj = d.createJob(service, targetCluster.Spec)
 			} else {
 				logrus.Errorf("Could not find a valid resource type in cluster to create a job/pod.")
 			}
-			pod := d.createPod(service, ir.TargetClusterSpec)
+			pod := d.createPod(service, targetCluster.Spec)
 			pod.Spec.RestartPolicy = core.RestartPolicyOnFailure
 			obj = pod
 		} else if common.IsStringPresent(supportedKinds, deploymentConfigKind) {
-			obj = d.createDeploymentConfig(service, ir.TargetClusterSpec)
+			obj = d.createDeploymentConfig(service, targetCluster.Spec)
 		} else if common.IsStringPresent(supportedKinds, common.DeploymentKind) {
-			obj = d.createDeployment(service, ir.TargetClusterSpec)
+			obj = d.createDeployment(service, targetCluster.Spec)
 		} else if common.IsStringPresent(supportedKinds, replicationControllerKind) {
-			obj = d.createReplicationController(service, ir.TargetClusterSpec)
+			obj = d.createReplicationController(service, targetCluster.Spec)
 		} else if common.IsStringPresent(supportedKinds, podKind) {
-			obj = d.createPod(service, ir.TargetClusterSpec)
+			obj = d.createPod(service, targetCluster.Spec)
 		} else {
 			logrus.Errorf("Could not find a valid resource type in cluster to create a deployment. Creating Deployment anyhow")
-			obj = d.createDeployment(service, ir.TargetClusterSpec)
+			obj = d.createDeployment(service, targetCluster.Spec)
 		}
 		if obj != nil {
 			objs = append(objs, obj)
@@ -96,63 +96,63 @@ func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []
 }
 
 // convertToClusterSupportedKinds converts objects to kind supported by the cluster
-func (d *Deployment) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (d *Deployment) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	lobj, _ := k8sschema.ConvertToLiasonScheme(obj)
 	if d1, ok := lobj.(*apps.DaemonSet); ok {
 		return []runtime.Object{d1}, true
 	}
 	if d1, ok := lobj.(*core.Pod); ok && (d1.Spec.RestartPolicy == core.RestartPolicyOnFailure || d1.Spec.RestartPolicy == core.RestartPolicyNever) {
 		if common.IsStringPresent(supportedKinds, jobKind) {
-			return []runtime.Object{d.podToJob(*d1, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.podToJob(*d1, targetCluster.Spec)}, true
 		}
 		return []runtime.Object{obj}, true
 	} else if d1, ok := lobj.(*batch.Job); ok && !common.IsStringPresent(supportedKinds, jobKind) {
 		if !common.IsStringPresent(supportedKinds, jobKind) && common.IsStringPresent(supportedKinds, podKind) {
-			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyOnFailure, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyOnFailure, targetCluster.Spec)}, true
 		}
 		logrus.Warnf("Both Job and Pod not supported. No other valid way to translate this object. : %+v", obj)
 		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, deploymentConfigKind) {
 		if d1, ok := lobj.(*apps.Deployment); ok {
-			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, targetCluster.Spec)}, true
 		} else if d1, ok := lobj.(*core.ReplicationController); ok {
-			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, targetCluster.Spec)}, true
 		} else if d1, ok := lobj.(*core.Pod); ok {
 			var replicas int32 = 2
-			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec, replicas, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toDeploymentConfig(d1.ObjectMeta, d1.Spec, replicas, targetCluster.Spec)}, true
 		}
 		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, common.DeploymentKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
-			return []runtime.Object{d.toDeployment(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toDeployment(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas, targetCluster.Spec)}, true
 		} else if d1, ok := lobj.(*core.ReplicationController); ok {
-			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, targetCluster.Spec)}, true
 		} else if d1, ok := lobj.(*core.Pod); ok {
 			var replicas int32 = 2
-			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec, replicas, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toDeployment(d1.ObjectMeta, d1.Spec, replicas, targetCluster.Spec)}, true
 		}
 		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, replicationControllerKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
-			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), d1.Spec.Replicas, targetCluster.Spec)}, true
 		} else if d1, ok := lobj.(*apps.Deployment); ok {
-			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec.Template.Spec, d1.Spec.Replicas, targetCluster.Spec)}, true
 		} else if d1, ok := lobj.(*core.Pod); ok {
 			var replicas int32 = 2
-			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec, replicas, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toReplicationController(d1.ObjectMeta, d1.Spec, replicas, targetCluster.Spec)}, true
 		}
 		return []runtime.Object{obj}, true
 	}
 	if common.IsStringPresent(supportedKinds, podKind) {
 		if d1, ok := obj.(*okdappsv1.DeploymentConfig); ok {
-			return []runtime.Object{d.toPod(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), core.RestartPolicyAlways, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toPod(d1.ObjectMeta, k8sschema.ConvertToPodSpec(&d1.Spec.Template.Spec), core.RestartPolicyAlways, targetCluster.Spec)}, true
 		} else if d1, ok := lobj.(*apps.Deployment); ok {
-			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyAlways, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyAlways, targetCluster.Spec)}, true
 		} else if d1, ok := lobj.(*core.ReplicationController); ok {
-			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyAlways, ir.TargetClusterSpec)}, true
+			return []runtime.Object{d.toPod(d1.ObjectMeta, d1.Spec.Template.Spec, core.RestartPolicyAlways, targetCluster.Spec)}, true
 		}
 		return []runtime.Object{obj}, true
 	}

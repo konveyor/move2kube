@@ -57,7 +57,7 @@ func (opt *portMergePreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) 
 func (*portMergePreprocessor) gatherPorts(ir irtypes.IR, service irtypes.Service) map[int]int {
 	portToContainerIdx := map[int]int{}
 	for coreContainerIdx, coreContainer := range service.Containers {
-		if irContainer, ok := ir.GetContainer(coreContainer.Image); ok {
+		if irContainer, ok := ir.Containers[coreContainer.Image]; ok {
 			for _, exposedPort := range irContainer.ExposedPorts {
 				if oldcoreContainerIdx, ok := portToContainerIdx[exposedPort]; ok {
 					logrus.Debugf("The port %d is eligible to be exposed by both container %s and container %s of service %s",

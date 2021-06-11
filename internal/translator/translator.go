@@ -49,8 +49,8 @@ type Translator interface {
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
 	TranslateService(serviceName string, translatorPlan plantypes.Translator, tempOutputDir string) ([]translatortypes.Patch, error)
-	PathForIR(patch translatortypes.Patch) string
-	TranslateIR(ir irtypes.IR, tempOutputDir string) ([]translatortypes.PathMapping, error)
+	PathForIR(patch translatortypes.Patch, planTranslator plantypes.Translator) string
+	TranslateIR(ir irtypes.IR, destDir string, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error)
 }
 
 func init() {
@@ -187,13 +187,13 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 func GetPlanTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Translator, err error) {
 	logrus.Infoln("Planning plan translators")
 	for _, t := range translators {
-		logrus.Infof("[%T] Planning translation", t)
+		logrus.Infof("[%s] Planning translation", t.GetConfig().Name)
 		ts, err := t.PlanDetect(plan)
 		if err != nil {
-			logrus.Warnf("[%T] Failed : %s", t, err)
+			logrus.Warnf("[%s] Failed : %s", t.GetConfig().Name, err)
 		} else {
 			suitableTranslators = append(suitableTranslators, ts...)
-			logrus.Infof("[%T] Done", t)
+			logrus.Infof("[%s] Done", t.GetConfig().Name)
 		}
 	}
 	logrus.Infoln("Plan translator planning - done")
@@ -248,16 +248,20 @@ func Translate(plan plantypes.Plan, outputPath string) (err error) {
 				logrus.Errorf("Unable to translate service %s using %s : %s", serviceName, translator.Name, err)
 				continue
 			}
-			patches = append(patches, ps...)
-			for _, p := range patches {
+			for _, p := range ps {
+				p.ServiceName = serviceName
+				p.Translator = translator
 				pathMappings = append(pathMappings, convertPatchToPathMappings(p, plan.Spec.RootDir, tempInputPath, tempOutputPath, filepath.Dir(translators[translator.Name].GetConfig().Spec.FilePath))...)
+				patches = append(patches, p)
 			}
 		}
 	}
+	logrus.Infof("Got %d patches from services", len(patches))
 	irs := map[string]map[string]irtypes.IR{} // [translatorName][path]
+	logrus.Infof("Processing patches for IR")
 	for _, pt := range plan.Spec.PlanTranslators {
 		for _, p := range patches {
-			path := translators[pt.Name].PathForIR(p)
+			path := translators[pt.Name].PathForIR(p, pt)
 			if irs[pt.Name] == nil {
 				irs[pt.Name] = map[string]irtypes.IR{}
 			}
@@ -269,16 +273,27 @@ func Translate(plan plantypes.Plan, outputPath string) (err error) {
 			}
 		}
 	}
-	for _, pt := range plan.Spec.PlanTranslators {
-		for path, ir := range irs[pt.Name] {
-			pm, err := translators[pt.Name].TranslateIR(ir, path)
+	logrus.Infof("Done Processing patches for IR")
+	logrus.Debugf("IRs : %+v", irs)
+
+	logrus.Infof("Starting IR Translations")
+	for ptName, tIRs := range irs {
+		logrus.Infof("Starting %s IR Translations with %d IRs", ptName, len(tIRs))
+		for path, ir := range tIRs {
+			irTempdir, err := ioutil.TempDir(tempOutputPath, "ir.*")
 			if err != nil {
-				logrus.Errorf("Unable to translate IR using %s", pt.Name)
+				logrus.Fatalf("Failed to create the temp translator output directory at path %s Error: %q", tempOutputPath, err)
+			}
+			pm, err := translators[ptName].TranslateIR(ir, path, plan, irTempdir)
+			if err != nil {
+				logrus.Errorf("Unable to translate IR using %s", ptName)
 				continue
 			}
 			pathMappings = append(pathMappings, pm...)
 		}
+		logrus.Infof("%s IR Translation done", ptName)
 	}
+	logrus.Infof("IR Translations Done")
 	if err := createOutput(pathMappings, plan.Spec.RootDir, outputPath); err != nil {
 		logrus.Errorf("Unable to create output from pathmappings : %s", err)
 		return err

@@ -23,9 +23,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/transformer"
 	"github.com/konveyor/move2kube/transformer/gettransformdata"
+	"github.com/konveyor/move2kube/transformer/qa"
 	"github.com/konveyor/move2kube/transformer/runtransforms"
-	"github.com/konveyor/move2kube/transformer/transformations"
 	"github.com/sirupsen/logrus"
 	// TODO
 )
@@ -80,7 +81,7 @@ func TestGettingAndTransformingResources(t *testing.T) {
 func transformAll(transformsPaths []string, k8sResourcesPath, outputPath string) ([]string, error) {
 	logrus.Trace("start TransformAll")
 	defer logrus.Trace("end TransformAll")
-	transforms, err := transformations.GetTransformsFromPathsUsingDefaults(transformsPaths)
+	transforms, err := qa.GetTransformsFromPathsUsingDefaults(transformsPaths)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +93,7 @@ func transformAll(transformsPaths []string, k8sResourcesPath, outputPath string)
 	if err != nil {
 		return nil, err
 	}
-	return starlark.WriteResources(transformedK8sResources, outputPath)
+	return transformer.WriteResources(transformedK8sResources, outputPath)
 }
 
 // func myDynamicAskQuestion(questionObjI interface{}) (interface{}, error) {

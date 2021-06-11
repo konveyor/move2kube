@@ -19,6 +19,7 @@ package apiresource
 import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +42,7 @@ func (d *NetworkPolicy) getSupportedKinds() []string {
 }
 
 // createNewResources converts ir to runtime objects
-func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	if !common.IsStringPresent(supportedKinds, networkPolicyKind) {
 		logrus.Errorf("Could not find a valid resource type in cluster to create a NetworkPolicy")
@@ -64,7 +65,7 @@ func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds
 }
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *NetworkPolicy) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (d *NetworkPolicy) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	if common.IsStringPresent(d.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}

@@ -18,6 +18,7 @@ package apiresource
 
 import (
 	"github.com/konveyor/move2kube/internal/k8sschema"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,7 +36,7 @@ type KnativeService struct {
 }
 
 // createNewResources creates new knative services for IR
-func (d *KnativeService) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (d *KnativeService) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 
 	for _, service := range ir.Services {
@@ -67,7 +68,7 @@ func (d *KnativeService) createNewResources(ir irtypes.EnhancedIR, supportedKind
 }
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *KnativeService) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (d *KnativeService) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	if d1, ok := obj.(*knativev1.Service); ok {
 		return []runtime.Object{d1}, true
 	}

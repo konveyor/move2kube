@@ -54,10 +54,10 @@ type PolicyRule struct {
 
 // BuildConfig contains the resources needed to create a BuildConfig
 type BuildConfig struct {
-	RepoInfo          RepoInfo
 	Name              string
 	ImageStreamName   string
 	ImageStreamTag    string
 	SourceSecretName  string
 	WebhookSecretName string
+	ContainerBuild    ContainerBuild
 }
