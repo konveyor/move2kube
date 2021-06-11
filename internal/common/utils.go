@@ -363,23 +363,6 @@ func GetStringFromTemplate(tpl string, config interface{}) (string, error) {
 	return tplbuffer.String(), nil
 }
 
-// WriteTemplateToFile writes a templated string to a file
-func WriteTemplateToFile(tpl string, config interface{}, writepath string, filemode os.FileMode) error {
-	var tplbuffer bytes.Buffer
-	var packageTemplate = template.Must(template.New("").Parse(tpl))
-	err := packageTemplate.Execute(&tplbuffer, config)
-	if err != nil {
-		logrus.Warnf("Unable to translate template %q to string using the data %v", tpl, config)
-		return err
-	}
-	err = ioutil.WriteFile(writepath, tplbuffer.Bytes(), filemode)
-	if err != nil {
-		logrus.Warnf("Error writing file at %s : %s", writepath, err)
-		return err
-	}
-	return nil
-}
-
 // GetClosestMatchingString returns the closest matching string for a given search string
 func GetClosestMatchingString(options []string, searchstring string) string {
 	// tokenize all strings

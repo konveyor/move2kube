@@ -379,6 +379,22 @@ func convertPatchToPathMappings(p translatortypes.Patch, inputPath, tempInputPat
 			}
 			pm.SrcPath = newTempDir
 			pathMappings = append(pathMappings, pm)
+		case translatortypes.TemplatePathMappingType:
+			if !filepath.IsAbs(pm.SrcPath) {
+				pm.SrcPath = filepath.Join(pluginPath, pm.SrcPath)
+			}
+			newTempDir, err := ioutil.TempDir(tempOutputPath, "templates-*")
+			if err != nil {
+				logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
+				continue
+			}
+			if err := filesystem.TemplateCopy(pm.SrcPath, newTempDir, p.Config); err != nil {
+				logrus.Errorf("Error while copying sourcepath for %+v. Ignoring.", pm)
+				continue
+			}
+			pm.Type = translatortypes.DefaultPathMappingType
+			pm.SrcPath = newTempDir
+			pathMappings = append(pathMappings, pm)
 		default:
 			if !filepath.IsAbs(pm.SrcPath) {
 				pm.SrcPath = filepath.Join(pluginPath, pm.SrcPath)
@@ -409,7 +425,9 @@ func createOutput(pathMappings []translatortypes.PathMapping, sourcePath, output
 				logrus.Errorf("Error while copying sourcepath for %+v", pm)
 			}
 		case translatortypes.ModifiedSourcePathMappingType:
-		case translatortypes.TemplatePathMappingType:
+			logrus.Errorf("Modified source path mapping type copy yet to be implemented")
+			//TODO: Implement
+			continue
 		default:
 			srcPath := pm.SrcPath
 			if !filepath.IsAbs(pm.SrcPath) {
