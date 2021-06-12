@@ -39,6 +39,8 @@ const (
 	SourceDir = "source"
 	// DeployDir defines the directory where the deployment artifacts are placed
 	DeployDir = "deploy"
+	// CICDDir defines the directory where the deployment artifacts are placed
+	CICDDir = "cicd"
 	// HelmDir defines the directory where the helm charts are placed
 	HelmDir = "helm-charts"
 	// OCTemplatesDir defines the directory where the openshift templates are placed

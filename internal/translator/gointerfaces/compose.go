@@ -17,8 +17,10 @@ limitations under the License.
 package gointerfaces
 
 import (
+	"os"
 	"path/filepath"
 
+	composetypes "github.com/docker/cli/cli/compose/types"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/gointerfaces/compose"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -30,7 +32,6 @@ import (
 )
 
 const (
-
 	// composeFileSourceArtifactType defines the source artifact type of Docker compose
 	composeFileSourceArtifactType = "DockerCompose"
 	// imageInfoSourceArtifactType defines the source artifact type of image info
@@ -39,12 +40,25 @@ const (
 	dockerfileSourceArtifactType = "Dockerfile"
 )
 
+const (
+	ComposeArtifacts = "ComposeYamls"
+)
+
 // Compose implements Translator interface
 type Compose struct {
 }
 
 type ComposeConfig struct {
-	ServiceName string `yaml:"serviceName"`
+	ServiceName string `yaml:"serviceName,omitempty"`
+}
+
+type composeObj struct {
+	Version  string
+	Services map[string]composetypes.ServiceConfig   `yaml:",omitempty"`
+	Networks map[string]composetypes.NetworkConfig   `yaml:",omitempty"`
+	Volumes  map[string]composetypes.VolumeConfig    `yaml:",omitempty"`
+	Secrets  map[string]composetypes.SecretConfig    `yaml:",omitempty"`
+	Configs  map[string]composetypes.ConfigObjConfig `yaml:",omitempty"`
 }
 
 func (t *Compose) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
@@ -85,10 +99,14 @@ func (t *Compose) ServiceAugmentDetect(serviceName string, service plantypes.Ser
 }
 
 func (t *Compose) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error) {
-	return nil, nil
+	ts := []plantypes.Translator{{
+		Mode:          plantypes.ModeContainer,
+		ArtifactTypes: []string{ComposeArtifacts},
+	}}
+	return ts, nil
 }
 
-func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.Translator, tempOutputDir string) ([]translatortypes.Patch, error) {
+func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error) {
 	var config ComposeConfig
 	decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Metadata: nil,
@@ -101,7 +119,7 @@ func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.
 	} else {
 		logrus.Debugf("Compose Translator config is %+v", config)
 	}
-	ir := irtypes.NewIR()
+	ir := irtypes.NewIR(plan.Name)
 	for _, path := range translatorPlan.Paths[composeFileSourceArtifactType] {
 		logrus.Debugf("File %s being loaded from compose service : %s", path, config.ServiceName)
 		// Try v3 first and if it fails try v1v2
@@ -131,12 +149,61 @@ func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.
 	return []translatortypes.Patch{p}, nil
 }
 
-func (t *Compose) TranslateIR(ir irtypes.IR, destDir string, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error) {
-	return nil, nil
-}
+func (t *Compose) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error) {
+	logrus.Debugf("Starting Compose transform")
+	logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 
-func (t *Compose) PathForIR(patch translatortypes.Patch, planTranslator plantypes.Translator) string {
-	return ""
+	c := composeObj{
+		Version:  "3.5",
+		Services: map[string]composetypes.ServiceConfig{},
+	}
+
+	var exposedPort uint32 = 8080
+	for _, service := range ir.Services {
+		for _, container := range service.Containers {
+			ports := []composetypes.ServicePortConfig{}
+			for _, port := range container.Ports {
+				ports = append(ports, composetypes.ServicePortConfig{
+					Target:    uint32(port.ContainerPort),
+					Published: exposedPort,
+				})
+				exposedPort++
+			}
+			env := make(composetypes.MappingWithEquals)
+			for _, e := range container.Env {
+				env[e.Name] = &e.Value
+			}
+			serviceConfig := composetypes.ServiceConfig{
+				ContainerName: container.Name,
+				Image:         container.Image,
+				Ports:         ports,
+				Environment:   env,
+			}
+			c.Services[service.Name] = serviceConfig
+		}
+	}
+	logrus.Debugf("Total transformed objects : %d", len(c.Services))
+
+	composePath := filepath.Join(tempOutputDir, common.DeployDir, "compose")
+	if err := os.MkdirAll(composePath, common.DefaultDirectoryPermission); err != nil {
+		logrus.Errorf("Unable to create output directory %s : %s", tempOutputDir, err)
+	}
+	artifactsPath := filepath.Join(composePath, "docker-compose.yaml")
+	if err := common.WriteYaml(artifactsPath, c); err != nil {
+		logrus.Errorf("Unable to write docker compose file %s : %s", artifactsPath, err)
+	}
+
+	destPath, err := filepath.Rel(tempOutputDir, artifactsPath)
+	if err != nil {
+		logrus.Errorf("Invalid yaml path : %s", destPath)
+		return nil, err
+	}
+	return []translatortypes.PathMapping{{
+		Type:     translatortypes.DefaultPathMappingType,
+		SrcPath:  artifactsPath,
+		DestPath: destPath,
+	}}, nil
+
 }
 
 func (t *Compose) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) plantypes.Translator {
@@ -198,7 +265,7 @@ func (c *Compose) getServicesFromComposeFile(composeFilePath string, imageMetada
 }
 
 // newContainerFromImageInfo creates a new container from image info
-func newContainerFromImageInfo(i collecttypes.ImageInfo) irtypes.Container {
+func newContainerFromImageInfo(i collecttypes.ImageInfo) irtypes.ContainerImage {
 	c := irtypes.NewContainer()
 	c.ExposedPorts = i.Spec.PortsToExpose
 	c.UserID = i.Spec.UserID

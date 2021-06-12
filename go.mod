@@ -20,7 +20,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/homeport/dyff v1.2.1
 	github.com/mikefarah/yq/v4 v4.4.1
-	github.com/mitchellh/mapstructure v1.4.1 // indirect
+	github.com/mitchellh/mapstructure v1.4.1
 	github.com/moby/buildkit v0.7.2
 	github.com/mutagen-io/mutagen v0.11.8 // indirect
 	github.com/openshift/api v0.0.0-20200930075302-db52bc4ef99f // release-4.6

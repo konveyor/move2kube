@@ -75,13 +75,13 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 	firstTask := true
 	prevTaskName := ""
 	i := 0
-	for imageName, container := range ir.Containers {
+	for imageName, container := range ir.ContainerImages {
 		if container.Build.ContainerBuildType == "" {
 			continue
 		}
 		i++
 		if container.Build.ContainerBuildType == irtypes.DockerfileContainerBuildType {
-			gitRepoURL, branchName, repoDir, err := common.GatherGitInfo(container.Build.ContextPath)
+			_, repoDir, _, gitRepoURL, branchName, err := common.GatherGitInfo(container.Build.ContextPath)
 			if err != nil {
 				logrus.Debugf("Unable to identify git repo for %s : %s", container.Build.ContextPath, err)
 			}

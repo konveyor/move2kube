@@ -53,7 +53,7 @@ func (imageStream *ImageStream) createNewResources(ir irtypes.EnhancedIR, suppor
 		return objs
 	}
 	// Create an imagestream for each image that we are using
-	for in, irContainer := range ir.Containers {
+	for in, irContainer := range ir.ContainerImages {
 		imageStreamName, imageStreamTag := imageStream.GetImageStreamNameAndTag(in)
 		imageStream := imageStream.createImageStream(imageStreamName, imageStreamTag, in, irContainer, ir)
 		objs = append(objs, &imageStream)
@@ -69,7 +69,7 @@ func (*ImageStream) GetImageStreamNameAndTag(fullImageName string) (string, stri
 	return imageStreamName, tag
 }
 
-func (*ImageStream) createImageStream(name, tag string, imageName string, irContainer irtypes.Container, ir irtypes.EnhancedIR) okdimagev1.ImageStream {
+func (*ImageStream) createImageStream(name, tag string, imageName string, irContainer irtypes.ContainerImage, ir irtypes.EnhancedIR) okdimagev1.ImageStream {
 	tags := []okdimagev1.TagReference{
 		{
 			From: &corev1.ObjectReference{

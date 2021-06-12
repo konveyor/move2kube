@@ -37,9 +37,11 @@ const (
 
 // IR is the intermediate representation filled by source translators
 type IR struct {
-	Containers map[string]Container // [imageName]
-	Services   map[string]Service
-	Storages   []Storage
+	Name            string
+	Path            string                    // Relative to output dir
+	ContainerImages map[string]ContainerImage // [imageName]
+	Services        map[string]Service
+	Storages        []Storage
 }
 
 // Service defines structure of an IR service
@@ -70,8 +72,8 @@ type ServiceToPodPortForwarding struct {
 type ContainerBuildTypeValue string
 type ContainerBuildArtifactTypeValue string
 
-// Container defines images that need to be built or reused.
-type Container struct {
+// ContainerImage defines images that need to be built or reused.
+type ContainerImage struct {
 	ExposedPorts []int    `yaml:"ports"`
 	UserID       int      `yaml:"userID"`
 	AccessedDirs []string `yaml:"accessedDirs"`
@@ -212,8 +214,8 @@ func (service *Service) HasValidAnnotation(annotation string) bool {
 }
 
 // NewContainer creates a new container
-func NewContainer() Container {
-	return Container{
+func NewContainer() ContainerImage {
+	return ContainerImage{
 		ExposedPorts: []int{},
 		UserID:       -1,
 		AccessedDirs: []string{},
@@ -221,7 +223,7 @@ func NewContainer() Container {
 }
 
 // Merge merges containers
-func (c *Container) Merge(newc Container) bool {
+func (c *ContainerImage) Merge(newc ContainerImage) bool {
 	if c.UserID != newc.UserID {
 		logrus.Errorf("Two different users found for image : %d in %d. Ignoring new users.", c.UserID, newc.UserID)
 	}
@@ -250,23 +252,25 @@ func (c *ContainerBuild) Merge(newc ContainerBuild) bool {
 }
 
 // AddExposedPort adds an exposed port to a container
-func (c *Container) AddExposedPort(port int) {
+func (c *ContainerImage) AddExposedPort(port int) {
 	if !common.IsIntPresent(c.ExposedPorts, port) {
 		c.ExposedPorts = append(c.ExposedPorts, port)
 	}
 }
 
 // AddAccessedDirs adds accessed directories to container
-func (c *Container) AddAccessedDirs(dirname string) {
+func (c *ContainerImage) AddAccessedDirs(dirname string) {
 	if !common.IsStringPresent(c.AccessedDirs, dirname) {
 		c.AccessedDirs = append(c.AccessedDirs, dirname)
 	}
 }
 
 // NewIR creates a new IR
-func NewIR() IR {
-	ir := IR{}
-	ir.Containers = make(map[string]Container)
+func NewIR(name string) IR {
+	ir := IR{
+		Name: name,
+	}
+	ir.ContainerImages = make(map[string]ContainerImage)
 	ir.Services = make(map[string]Service)
 	ir.Storages = []Storage{}
 	return ir
@@ -277,7 +281,7 @@ func (ir *IR) Merge(newir IR) {
 	for _, sc := range newir.Services {
 		ir.addService(sc)
 	}
-	for in, newcontainer := range newir.Containers {
+	for in, newcontainer := range newir.ContainerImages {
 		ir.AddContainer(in, newcontainer)
 	}
 	for _, newst := range newir.Storages {
@@ -305,12 +309,12 @@ func (s *Storage) Merge(newst Storage) bool {
 }
 
 // AddContainer adds a conatainer to IR
-func (ir *IR) AddContainer(imageName string, container Container) {
-	if im, ok := ir.Containers[imageName]; ok {
+func (ir *IR) AddContainer(imageName string, container ContainerImage) {
+	if im, ok := ir.ContainerImages[imageName]; ok {
 		im.Merge(container)
-		ir.Containers[imageName] = im
+		ir.ContainerImages[imageName] = im
 	} else {
-		ir.Containers[imageName] = container
+		ir.ContainerImages[imageName] = container
 	}
 }
 

@@ -684,94 +684,6 @@ func UniqueStrings(xs []string) []string {
 	return unique
 }
 
-// GetGitRemoteNames returns a list of remotes if there is a repo and remotes exists.
-func GetGitRemoteNames(path string) ([]string, error) {
-	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
-	if err != nil {
-		return nil, err
-	}
-	remotes, err := repo.Remotes()
-	if err != nil {
-		return nil, err
-	}
-	remoteNames := []string{}
-	for _, remote := range remotes {
-		remoteNames = append(remoteNames, remote.Config().Name)
-	}
-	return remoteNames, nil
-}
-
-// GetGitRepoDetails returns the remote urls for a git repo at path.
-func GetGitRepoDetails(path, remoteName string) (remoteURLs []string, branch string, repoDir string, finalerr error) {
-	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
-	if err != nil {
-		logrus.Debugf("Unable to open the path %q as a git repo. Error: %q", path, err)
-		return nil, "", "", err
-	}
-
-	if workTree, err := repo.Worktree(); err == nil {
-		repoDir = workTree.Filesystem.Root()
-	} else {
-		logrus.Debugf("Unable to get the repo directory. Error: %q", err)
-	}
-
-	if ref, err := repo.Head(); err == nil {
-		branch = filepath.Base(string(ref.Name()))
-	} else {
-		logrus.Debugf("Unable to get the current branch. Error: %q", err)
-	}
-
-	if remote, err := repo.Remote(remoteName); err == nil {
-		remoteURLs = remote.Config().URLs
-	} else {
-		logrus.Debugf("Unable to get remote named %s Error: %q", remoteName, err)
-	}
-
-	return remoteURLs, branch, repoDir, nil
-}
-
-// GetGitRepoName returns the remote repo's name and context.
-func GetGitRepoName(path string) (repoName, repoUrl, root string, err error) {
-	r, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
-	if err != nil {
-		logrus.Debugf("Unable to open %s as a git repo : %s", path, err)
-		return "", "", "", err
-	}
-	remote, err := r.Remote("origin")
-	if err != nil {
-		logrus.Debugf("Unable to get origin remote : %s", err)
-		return "", "", "", err
-	}
-	if len(remote.Config().URLs) == 0 {
-		err = fmt.Errorf("unable to get origins")
-		logrus.Debugf("%s", err)
-		return "", "", "", err
-	}
-	u := remote.Config().URLs[0]
-	if strings.HasPrefix(u, "git") {
-		parts := strings.Split(u, ":")
-		if len(parts) != 2 {
-			err = fmt.Errorf("unable to find git repo name")
-			logrus.Debugf("%s", err)
-			// Unable to find git repo name
-			return "", "", "", err
-		}
-		u = parts[1]
-	}
-	giturl, err := url.Parse(u)
-	if err != nil {
-		logrus.Debugf("Unable to get origin remote host : %s", err)
-		return "", "", "", err
-	}
-	name := filepath.Base(giturl.Path)
-	name = strings.TrimSuffix(name, filepath.Ext(name))
-	w, err := r.Worktree()
-	if err != nil {
-		logrus.Warnf("Unable to get root of repo : %s", err)
-	}
-	return name, giturl.Path, w.Filesystem.Root(), nil
-}
-
 // SplitYAML splits a file into multiple YAML documents.
 func SplitYAML(rawYAML []byte) ([][]byte, error) {
 	dec := yaml.NewDecoder(bytes.NewReader(rawYAML))
@@ -920,38 +832,66 @@ func ConvertInterfaceToSliceOfStrings(xI interface{}) ([]string, error) {
 }
 
 // GatherGitInfo tries to find the git repo for the path if one exists.
-// It returns true of it found a git repo.
-func GatherGitInfo(path string) (repoURL string, repoBranch string, root string, err error) {
+func GatherGitInfo(path string) (repoName, repoDir, repoHostName, repoURL, repoBranch string, err error) {
 	if finfo, err := os.Stat(path); err != nil {
 		logrus.Errorf("Failed to stat the path %q Error %q", path, err)
-		return "", "", "", err
+		return "", "", "", "", "", err
 	} else if !finfo.IsDir() {
 		pathDir := filepath.Dir(path)
 		logrus.Debugf("The path %q is not a directory. Using %q instead.", path, pathDir)
 		path = pathDir
 	}
-	preferredRemote := "upstream"
-	remoteNames, err := GetGitRemoteNames(path)
-	if err != nil || len(remoteNames) == 0 {
+	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
+	if err != nil {
+		logrus.Debugf("Unable to open the path %q as a git repo. Error: %q", path, err)
+		return "", "", "", "", "", err
+	}
+	remotes, err := repo.Remotes()
+	if err != nil || len(remotes) == 0 {
 		logrus.Debugf("No remotes found at path %q Error: %q", path, err)
-	} else {
-		if !IsStringPresent(remoteNames, preferredRemote) {
-			preferredRemote = "origin"
-			if !IsStringPresent(remoteNames, preferredRemote) {
-				preferredRemote = remoteNames[0]
-			}
+	}
+	var preferredRemote *git.Remote
+	if preferredRemote = getGitRemoteByName(remotes, "upstream"); preferredRemote == nil {
+		if preferredRemote = getGitRemoteByName(remotes, "origin"); preferredRemote == nil {
+			preferredRemote = remotes[0]
 		}
 	}
-	remoteURLs, branch, repoDir, err := GetGitRepoDetails(path, preferredRemote)
-	if err != nil {
-		logrus.Debugf("Failed to get the git repo at path %q Error: %q", path, err)
-		return "", "", "", err
-	}
-	repoBranch = branch
-	if len(remoteURLs) == 0 {
-		logrus.Debugf("The git repo at path %q has no remotes set.", path)
+	if workTree, err := repo.Worktree(); err == nil {
+		repoDir = workTree.Filesystem.Root()
 	} else {
-		repoURL = remoteURLs[0]
+		logrus.Debugf("Unable to get the repo directory. Error: %q", err)
 	}
-	return repoURL, repoBranch, repoDir, nil
+	if ref, err := repo.Head(); err == nil {
+		repoBranch = filepath.Base(string(ref.Name()))
+	} else {
+		logrus.Debugf("Unable to get the current branch. Error: %q", err)
+	}
+	if len(preferredRemote.Config().URLs) == 0 {
+		err = fmt.Errorf("unable to get origins")
+		logrus.Debugf("%s", err)
+	}
+	u := preferredRemote.Config().URLs[0]
+	if strings.HasPrefix(u, "git") {
+		parts := strings.Split(u, ":")
+		if len(parts) == 2 {
+			u = parts[1]
+		}
+	}
+	giturl, err := url.Parse(u)
+	if err != nil {
+		logrus.Debugf("Unable to get origin remote host : %s", err)
+	}
+	repoName = filepath.Base(giturl.Path)
+	repoName = strings.TrimSuffix(repoName, filepath.Ext(repoName))
+	err = nil
+	return
+}
+
+func getGitRemoteByName(remotes []*git.Remote, remoteName string) *git.Remote {
+	for _, r := range remotes {
+		if r.Config().Name == remoteName {
+			return r
+		}
+	}
+	return nil
 }

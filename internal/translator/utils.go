@@ -166,7 +166,7 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 	gitRepoNames := make(map[string][]string) // [repoName][]basePath
 	basePathRepos := make(map[string]string)
 	for sp := range servicePaths {
-		repoName, repoUrl, _, err := common.GetGitRepoName(sp)
+		repoName, _, _, repoUrl, _, err := common.GatherGitInfo(sp)
 		if err != nil {
 			logrus.Debugf("Unable to find any git repo for directory %s : %s", sp, err)
 			continue

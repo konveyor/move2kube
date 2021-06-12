@@ -86,3 +86,26 @@ func (*ClusterMDLoader) GetClusterMetadata(path string) (collecttypes.ClusterMet
 	}
 	return cm, nil
 }
+
+func (c *ClusterMDLoader) GetTargetClusterMetadataForPlan(plan plantypes.Plan) (targetCluster collecttypes.ClusterMetadata, err error) {
+	if plan.Spec.TargetCluster.Path != "" {
+		targetCluster, err = c.GetClusterMetadata(plan.Spec.TargetCluster.Path)
+		if err != nil {
+			logrus.Errorf("Unable to load cluster metadata from %s : %s", plan.Spec.TargetCluster.Path, err)
+			return targetCluster, err
+		}
+	} else if plan.Spec.TargetCluster.Type != "" {
+		var ok bool
+		targetCluster, ok = c.GetClusters(plan)[plan.Spec.TargetCluster.Type]
+		if !ok {
+			err = fmt.Errorf("unable to load cluster metadata from %s", plan.Spec.TargetCluster.Type)
+			logrus.Errorf("%s", err)
+			return targetCluster, err
+		}
+	} else {
+		err := fmt.Errorf("unable to find target cluster : %+v", plan.Spec.TargetCluster)
+		logrus.Errorf("%s", err)
+		return targetCluster, err
+	}
+	return targetCluster, nil
+}

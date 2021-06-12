@@ -41,9 +41,8 @@ type Translator interface {
 	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
-	TranslateService(serviceName string, translatorPlan plantypes.Translator, tempOutputDir string) ([]translatortypes.Patch, error)
-	TranslateIR(ir irtypes.IR, destDir string, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error)
-	PathForIR(patch translatortypes.Patch, planTranslator plantypes.Translator) string
+	TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error)
+	TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error)
 }
 
 type GoInterface struct {
@@ -53,7 +52,7 @@ type GoInterface struct {
 }
 
 func init() {
-	translatorObjs := []Translator{new(gointerfaces.Compose), new(irtranslators.Kubernetes)}
+	translatorObjs := []Translator{new(gointerfaces.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton)}
 	for _, tt := range translatorObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -124,14 +123,10 @@ func (t *GoInterface) PlanDetect(p plantypes.Plan) ([]plantypes.Translator, erro
 	return ts, err
 }
 
-func (t *GoInterface) TranslateService(serviceName string, translatorPlan plantypes.Translator, tempOutputDir string) ([]translatortypes.Patch, error) {
-	return t.impl.TranslateService(serviceName, translatorPlan, tempOutputDir)
+func (t *GoInterface) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error) {
+	return t.impl.TranslateService(serviceName, translatorPlan, plan, tempOutputDir)
 }
 
-func (t *GoInterface) PathForIR(patch translatortypes.Patch, planTranslator plantypes.Translator) string {
-	return t.impl.PathForIR(patch, planTranslator)
-}
-
-func (t *GoInterface) TranslateIR(ir irtypes.IR, destDir string, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error) {
-	return t.impl.TranslateIR(ir, destDir, plan, tempOutputDir)
+func (t *GoInterface) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error) {
+	return t.impl.TranslateIR(ir, plan, tempOutputDir)
 }
