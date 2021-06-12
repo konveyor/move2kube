@@ -25,6 +25,7 @@ import (
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/classes"
+	"github.com/konveyor/move2kube/internal/translator/classes/irtranslators"
 	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -53,7 +54,7 @@ type Translator interface {
 }
 
 func init() {
-	translatorObjs := []Translator{new(classes.GoInterface)}
+	translatorObjs := []Translator{new(classes.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig)}
 	for _, tt := range translatorObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -146,6 +147,8 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 		if err != nil {
 			logrus.Errorf("[%s] Failed : %s", tn, err)
 		} else {
+			nservices = setTranslatorNameForServices(nservices, t.GetConfig())
+			unservices = setTranslatorNameForTranslators(unservices, t.GetConfig())
 			services = plantypes.MergeServices(services, nservices)
 			unservices = append(unservices, nunservices...)
 			logrus.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
@@ -174,6 +177,7 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 			if err != nil {
 				logrus.Errorf("[%T] Failed for service %s : %s", t, sn, err)
 			} else {
+				sts = setTranslatorNameForTranslators(sts, t.GetConfig())
 				services[sn] = append(s, sts...)
 			}
 		}
@@ -191,6 +195,7 @@ func GetPlanTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Tr
 		if err != nil {
 			logrus.Warnf("[%s] Failed : %s", t.GetConfig().Name, err)
 		} else {
+			ts = setTranslatorNameForTranslators(ts, t.GetConfig())
 			suitableTranslators = append(suitableTranslators, ts...)
 			logrus.Infof("[%s] Done", t.GetConfig().Name)
 		}

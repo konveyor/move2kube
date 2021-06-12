@@ -16,6 +16,7 @@ limitations under the License.
 
 package classes
 
+/*
 import (
 	"fmt"
 	"reflect"
@@ -29,6 +30,25 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
 )
+
+type Config struct {
+	DetectCMD  string    `yaml:"detectCMD"`
+	AnalyseCMD string    `yaml:"analyseCMD"`
+	LocalEnv   string    `yaml:"localEnv"` //When this environment variable is set, the environment is setup to run the program locally
+	Container  Container `yaml:"container,omitempty"`
+}
+
+// Container stores container based execution information
+type Container struct {
+	Image          string         `yaml:"image"`
+	ContainerBuild ContainerBuild `yaml:"build"`
+}
+
+// ContainerBuild stores container build information
+type ContainerBuild struct {
+	Context    string `yaml:"context"`    // Default : Same folder as the yaml
+	Dockerfile string `yaml:"dockerfile"` // Default : Look for Dockerfile in the same folder
+}
 
 var (
 	translatorTypes map[string]reflect.Type = make(map[string]reflect.Type)
@@ -52,7 +72,7 @@ type GoInterface struct {
 }
 
 func init() {
-	translatorObjs := []Translator{new(gointerfaces.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton)}
+	translatorObjs := []Translator{new(gointerfaces.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig)}
 	for _, tt := range translatorObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -130,3 +150,4 @@ func (t *GoInterface) TranslateService(serviceName string, translatorPlan planty
 func (t *GoInterface) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error) {
 	return t.impl.TranslateIR(ir, plan, tempOutputDir)
 }
+*/

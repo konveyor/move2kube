@@ -4,6 +4,4 @@ metadata:
   name: tekton
 spec:
   mode: "Container"
-  class: "GoInterface"
-  config:
-    class: "Tekton"
+  class: "Tekton"

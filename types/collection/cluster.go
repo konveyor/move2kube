@@ -113,16 +113,6 @@ func (c *ClusterMetadataSpec) GetSupportedVersions(kind string) []string {
 	return nil
 }
 
-// IsTektonInstalled returns true if Tekton has been installed on this cluster
-func (c *ClusterMetadataSpec) IsTektonInstalled() bool {
-	return len(c.GetSupportedVersions("Task")) > 0
-}
-
-// IsBuildConfigSupported returns true if the cluster is Openshift and has build configs
-func (c *ClusterMetadataSpec) IsBuildConfigSupported() bool {
-	return len(c.GetSupportedVersions("BuildConfig")) > 0
-}
-
 // NewClusterMetadata creates a new cluster metadata instance
 func NewClusterMetadata(contextName string) ClusterMetadata {
 	return ClusterMetadata{

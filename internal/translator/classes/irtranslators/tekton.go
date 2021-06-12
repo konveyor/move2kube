@@ -62,9 +62,19 @@ const (
 
 // Tekton implements Translator interface
 type Tekton struct {
+	Config translatortypes.Translator
 }
 
 type TektonConfig struct {
+}
+
+func (t *Tekton) Init(tc translatortypes.Translator) error {
+	t.Config = tc
+	return nil
+}
+
+func (t *Tekton) GetConfig() translatortypes.Translator {
+	return t.Config
 }
 
 func (t *Tekton) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {

@@ -22,12 +22,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/translator/classes"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
 	"github.com/sirupsen/logrus"
@@ -36,7 +34,6 @@ import (
 func getTranslatorConfig(path string) (translatortypes.Translator, error) {
 	tc := translatortypes.Translator{
 		Spec: translatortypes.TranslatorSpec{
-			Class:    reflect.TypeOf(classes.GoInterface{}).Name(),
 			FilePath: path,
 		},
 	}
@@ -71,6 +68,8 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 						if err != nil {
 							logrus.Warnf("[%T] Failed : %s", t, err)
 						} else {
+							nservices = setTranslatorNameForServices(nservices, t.GetConfig())
+							unservices = setTranslatorNameForTranslators(unservices, t.GetConfig())
 							// TODO: Decide whether recurse on the nservices for project paths
 							services = plantypes.MergeServices(services, nservices)
 							services = plantypes.MergeServices(services, map[string]plantypes.Service{sn: nunservices})
@@ -108,6 +107,8 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 			if err != nil {
 				logrus.Warnf("[%T] Failed : %s", t, err)
 			} else {
+				nservices = setTranslatorNameForServices(nservices, t.GetConfig())
+				unservices = setTranslatorNameForTranslators(unservices, t.GetConfig())
 				plantypes.MergeServices(services, nservices)
 				unservices = append(unservices, nunservices...)
 				if len(nservices) > 0 || len(unservices) > 0 {
@@ -439,4 +440,19 @@ func createOutput(pathMappings []translatortypes.PathMapping, sourcePath, output
 		}
 	}
 	return nil
+}
+
+func setTranslatorNameForServices(services map[string]plantypes.Service, t translatortypes.Translator) map[string]plantypes.Service {
+	for sn, s := range services {
+		services[sn] = setTranslatorNameForTranslators(s, t)
+	}
+	return services
+}
+
+func setTranslatorNameForTranslators(translators []plantypes.Translator, t translatortypes.Translator) []plantypes.Translator {
+	for sti, st := range translators {
+		st.Name = t.Name
+		translators[sti] = st
+	}
+	return translators
 }

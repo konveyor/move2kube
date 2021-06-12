@@ -30,45 +30,55 @@ import (
 )
 
 const (
-	K8sArtifacts = "KubernetesYamls"
+	KnativeArtifacts = "KnativeYamls"
 )
 
-// Kubernetes implements Translator interface
-type Kubernetes struct {
+// Knative implements Translator interface
+type Knative struct {
+	Config translatortypes.Translator
 }
 
-type KubernetesConfig struct {
+type KnativeConfig struct {
 }
 
-func (t *Kubernetes) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
+func (t *Knative) Init(tc translatortypes.Translator) error {
+	t.Config = tc
+	return nil
+}
+
+func (t *Knative) GetConfig() translatortypes.Translator {
+	return t.Config
+}
+
+func (t *Knative) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
 	return nil, nil, nil
 }
 
-func (t *Kubernetes) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
+func (t *Knative) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
 	return nil, nil, nil
 }
 
-func (t *Kubernetes) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
+func (t *Knative) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
 	return nil, nil, nil
 }
 
-func (t *Kubernetes) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
+func (t *Knative) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
 	return nil, nil
 }
 
-func (t *Kubernetes) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error) {
+func (t *Knative) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error) {
 	ts := []plantypes.Translator{{
 		Mode:          plantypes.ModeContainer,
-		ArtifactTypes: []string{K8sArtifacts},
+		ArtifactTypes: []string{KnativeArtifacts},
 	}}
 	return ts, nil
 }
 
-func (t *Kubernetes) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error) {
+func (t *Knative) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error) {
 	return nil, nil
 }
 
-func (t *Kubernetes) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) (pathMappings []translatortypes.PathMapping, err error) {
+func (t *Knative) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) (pathMappings []translatortypes.PathMapping, err error) {
 	logrus.Debugf("Translating IR using Kubernetes translator")
 	targetCluster, err := new(configuration.ClusterMDLoader).GetTargetClusterMetadataForPlan(plan)
 	if err != nil {
@@ -76,10 +86,10 @@ func (t *Kubernetes) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputD
 		logrus.Errorf("%s", err)
 		return nil, err
 	}
-	tempDest := filepath.Join(tempOutputDir, common.DeployDir, "yamls")
+	tempDest := filepath.Join(tempOutputDir, common.DeployDir, "knative")
 	logrus.Debugf("Starting Kubernetes transform")
 	logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
-	apis := []apiresource.IAPIResource{&apiresource.Deployment{}, &apiresource.Storage{}, &apiresource.Service{}, &apiresource.ImageStream{}, &apiresource.NetworkPolicy{}}
+	apis := []apiresource.IAPIResource{&apiresource.KnativeService{}}
 	if files, err := apiresource.TransformAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, targetCluster); err == nil {
 		for _, f := range files {
 			if destPath, err := filepath.Rel(tempOutputDir, f); err != nil {

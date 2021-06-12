@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gointerfaces
+package classes
 
 import (
 	"os"
@@ -22,7 +22,7 @@ import (
 
 	composetypes "github.com/docker/cli/cli/compose/types"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/translator/gointerfaces/compose"
+	"github.com/konveyor/move2kube/internal/translator/classes/compose"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -46,6 +46,7 @@ const (
 
 // Compose implements Translator interface
 type Compose struct {
+	Config translatortypes.Translator
 }
 
 type ComposeConfig struct {
@@ -59,6 +60,15 @@ type composeObj struct {
 	Volumes  map[string]composetypes.VolumeConfig    `yaml:",omitempty"`
 	Secrets  map[string]composetypes.SecretConfig    `yaml:",omitempty"`
 	Configs  map[string]composetypes.ConfigObjConfig `yaml:",omitempty"`
+}
+
+func (t *Compose) Init(tc translatortypes.Translator) error {
+	t.Config = tc
+	return nil
+}
+
+func (t *Compose) GetConfig() translatortypes.Translator {
+	return t.Config
 }
 
 func (t *Compose) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {

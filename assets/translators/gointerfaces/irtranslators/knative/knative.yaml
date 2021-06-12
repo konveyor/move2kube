@@ -4,6 +4,4 @@ metadata:
   name: knative
 spec:
   mode: "Container"
-  class: "GoInterface"
-  config:
-    class: "Knative"
+  class: "Knative"

@@ -4,6 +4,4 @@ metadata:
   name: kubernetes
 spec:
   mode: "Container"
-  class: "GoInterface"
-  config:
-    class: "Kubernetes"
+  class: "Kubernetes"
