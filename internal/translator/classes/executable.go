@@ -38,116 +38,13 @@ type Config struct {
 	Container  Container `yaml:"container,omitempty"`
 }
 
-// Container stores container based execution information
-type Container struct {
-	Image          string         `yaml:"image"`
-	ContainerBuild ContainerBuild `yaml:"build"`
-}
 
-// ContainerBuild stores container build information
-type ContainerBuild struct {
-	Context    string `yaml:"context"`    // Default : Same folder as the yaml
-	Dockerfile string `yaml:"dockerfile"` // Default : Look for Dockerfile in the same folder
-}
-
-var (
-	translatorTypes map[string]reflect.Type = make(map[string]reflect.Type)
-)
-
-type Translator interface {
 	BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
 	DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
-	KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
 	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
 	TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error)
 	TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error)
-}
 
-type GoInterface struct {
-	tc     translatortypes.Translator
-	config gointerfacetypes.Config
-	impl   Translator
-}
-
-func init() {
-	translatorObjs := []Translator{new(gointerfaces.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig)}
-	for _, tt := range translatorObjs {
-		t := reflect.TypeOf(tt).Elem()
-		tn := t.Name()
-		if ot, ok := translatorTypes[tn]; ok {
-			logrus.Errorf("Two translator classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
-			continue
-		}
-		translatorTypes[tn] = t
-	}
-}
-
-func (t *GoInterface) Init(tc translatortypes.Translator) error {
-	t.tc = tc
-	config := gointerfacetypes.Config{}
-	decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Metadata: nil,
-		Result:   &config,
-		TagName:  "yaml",
-	})
-	if err := decoder.Decode(tc.Spec.Config); err != nil {
-		logrus.Errorf("unable to load config for GoInterface Translator %+v into %T : %s", tc.Spec.Config, gointerfacetypes.Config{}, err)
-		return err
-	} else {
-		logrus.Debugf("GoInterface Translator config is %+v", config)
-		t.config = config
-	}
-	logrus.Debugf("Looking for struct %s", t.config.Class)
-	if tt, ok := translatorTypes[t.config.Class]; ok {
-		t.impl = reflect.New(tt).Interface().(Translator)
-		return nil
-	}
-	err := fmt.Errorf("unable to locate traslator struct type %s in %+v", t.config.Class, translatorTypes)
-	logrus.Errorf("%s", err)
-	return err
-}
-
-func (t *GoInterface) GetConfig() translatortypes.Translator {
-	return t.tc
-}
-
-func (t *GoInterface) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	ns, uns, err := t.impl.BaseDirectoryDetect(dir)
-	ns, uns = setTranslatorInfo(t.tc, ns, uns)
-	return ns, uns, err
-}
-
-func (t *GoInterface) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	ns, uns, err := t.impl.DirectoryDetect(dir)
-	ns, uns = setTranslatorInfo(t.tc, ns, uns)
-	return ns, uns, err
-}
-
-func (t *GoInterface) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	ns, uns, err := t.impl.KnownDirectoryDetect(dir)
-	ns, uns = setTranslatorInfo(t.tc, ns, uns)
-	return ns, uns, err
-}
-
-func (t *GoInterface) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
-	ts, err := t.impl.ServiceAugmentDetect(serviceName, service)
-	_, ts = setTranslatorInfo(t.tc, nil, ts)
-	return ts, err
-}
-
-func (t *GoInterface) PlanDetect(p plantypes.Plan) ([]plantypes.Translator, error) {
-	ts, err := t.impl.PlanDetect(p)
-	_, ts = setTranslatorInfo(t.tc, nil, ts)
-	return ts, err
-}
-
-func (t *GoInterface) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error) {
-	return t.impl.TranslateService(serviceName, translatorPlan, plan, tempOutputDir)
-}
-
-func (t *GoInterface) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error) {
-	return t.impl.TranslateIR(ir, plan, tempOutputDir)
-}
 */

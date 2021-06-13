@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package containerexec
+package container
 
 import (
 	"testing"
@@ -27,7 +27,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("normal use case", func(t *testing.T) {
-		provider := newDockerEngine()
+		provider, _ := NewDockerEngine()
 		image := "cloudfoundry/cnb:cflinuxfs3"
 
 		// Test
@@ -37,7 +37,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	})
 
 	t.Run("normal use case where we get result from cache", func(t *testing.T) {
-		provider := newDockerEngine()
+		provider, _ := NewDockerEngine()
 		image := "cloudfoundry/cnb:cflinuxfs3"
 		want := map[string]bool{}
 		want[image] = true
@@ -55,7 +55,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	})
 
 	t.Run("check for a non existent image", func(t *testing.T) {
-		provider := newDockerEngine()
+		provider, _ := NewDockerEngine()
 		image := "this/doesnotexist:foobar"
 		if provider.pullImage(image) {
 			t.Fatalf("Should not have succeeded. The builder image %q does not exist", image)

@@ -34,18 +34,18 @@ import (
 )
 
 var (
-	translatorTypes map[string]reflect.Type = make(map[string]reflect.Type)
-	translators     map[string]Translator   = make(map[string]Translator)
+	translatorTypes       map[string]reflect.Type = make(map[string]reflect.Type)
+	translators           map[string]Translator   = make(map[string]Translator)
+	translatorSourcePaths map[string]string       = make(map[string]string)
 )
 
 // Translator interface defines translator that translates files and converts it to ir representation
 type Translator interface {
-	Init(tc translatortypes.Translator) error
+	Init(tc translatortypes.Translator, sourcePath string) (newSourcePath string, err error)
 	GetConfig() translatortypes.Translator
 
 	BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
 	DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
-	KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
 	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
@@ -54,7 +54,7 @@ type Translator interface {
 }
 
 func init() {
-	translatorObjs := []Translator{new(classes.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig)}
+	translatorObjs := []Translator{new(classes.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig), new(classes.CNBContainerizer)}
 	for _, tt := range translatorObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -66,7 +66,7 @@ func init() {
 	}
 }
 
-func Init(assetsPath string) error {
+func Init(assetsPath, sourcePath string) error {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
 		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
@@ -100,17 +100,18 @@ func Init(assetsPath string) error {
 			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
 		} else {
 			t := reflect.New(c).Interface().(Translator)
-			if err := t.Init(tc); err != nil {
+			if tSourcePath, err := t.Init(tc, sourcePath); err != nil {
 				logrus.Errorf("Unable to initialize translator %s : %s", tc.Name, err)
 			} else {
 				translators[tn] = t
+				translatorSourcePaths[tn] = tSourcePath
 			}
 		}
 	}
 	return nil
 }
 
-func InitTranslators(translatorToInit map[string]string) error {
+func InitTranslators(translatorToInit map[string]string, sourcePath string) error {
 	for tn, tfilepath := range translatorToInit {
 		tc, err := getTranslatorConfig(tfilepath)
 		if err != nil {
@@ -121,10 +122,11 @@ func InitTranslators(translatorToInit map[string]string) error {
 			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
 		} else {
 			t := reflect.New(c).Interface().(Translator)
-			if err := t.Init(tc); err != nil {
+			if tSourcePath, err := t.Init(tc, sourcePath); err != nil {
 				logrus.Errorf("Unable to initialize translator %s : %s", tc.Name, err)
 			} else {
 				translators[tn] = t
+				translatorSourcePaths[tn] = tSourcePath
 			}
 		}
 	}

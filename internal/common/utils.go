@@ -37,6 +37,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/types"
+	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
 	"github.com/xrash/smetrics"
 	"gopkg.in/yaml.v3"
@@ -475,6 +476,16 @@ func MakeStringDNSLabelNameCompliant(s string) string {
 	return MakeStringDNSNameCompliant(name)
 }
 
+// MakeStringEnvNameCompliant makes the string into a valid Environment variable name.
+func MakeStringEnvNameCompliant(s string) string {
+	name := strings.ToUpper(s)
+	name = regexp.MustCompile(`[^a-z0-9_]`).ReplaceAllString(name, "_")
+	if regexp.MustCompile(`^[0-9]`).Match([]byte(name)) {
+		logrus.Debugf("The first characters of the string %q must not be a digit.", s)
+	}
+	return name
+}
+
 // MakeStringPathSegmentNameCompliant makes the string a valid path segment name.
 // See https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#path-segment-names
 // The name cannot be "." or ".." and the name should not contain "/" or "%".
@@ -892,6 +903,21 @@ func getGitRemoteByName(remotes []*git.Remote, remoteName string) *git.Remote {
 		if r.Config().Name == remoteName {
 			return r
 		}
+	}
+	return nil
+}
+
+func GetObjFromInterface(obj interface{}, loadinto interface{}) error {
+	decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Metadata: nil,
+		Result:   &loadinto,
+		TagName:  "yaml",
+	})
+	if err := decoder.Decode(obj); err != nil {
+		logrus.Errorf("Unable to load obj %+v into %T : %s", obj, loadinto, err)
+		return err
+	} else {
+		logrus.Debugf("Object Loaded is %+v", loadinto)
 	}
 	return nil
 }

@@ -27,7 +27,6 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
-	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
 )
 
@@ -100,10 +99,6 @@ func (t *Compose) DirectoryDetect(dir string) (namedServices map[string]plantype
 	return nil, nil, nil
 }
 
-func (t *Compose) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	return nil, nil, nil
-}
-
 func (t *Compose) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
 	return nil, nil
 }
@@ -118,16 +113,10 @@ func (t *Compose) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error) {
 
 func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error) {
 	var config ComposeConfig
-	decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Metadata: nil,
-		Result:   &config,
-		TagName:  "yaml",
-	})
-	if err := decoder.Decode(translatorPlan.Config); err != nil {
-		logrus.Errorf("unable to load config for GoInterface Translator %+v into %T : %s", translatorPlan.Config, config, err)
+	err := common.GetObjFromInterface(translatorPlan.Config, &config)
+	if err != nil {
+		logrus.Errorf("unable to load config for Translator %+v into %T : %s", translatorPlan.Config, config, err)
 		return nil, err
-	} else {
-		logrus.Debugf("Compose Translator config is %+v", config)
 	}
 	ir := irtypes.NewIR(plan.Name)
 	for _, path := range translatorPlan.Paths[composeFileSourceArtifactType] {

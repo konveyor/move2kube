@@ -68,10 +68,6 @@ func (t *BuildConfig) DirectoryDetect(dir string) (namedServices map[string]plan
 	return nil, nil, nil
 }
 
-func (t *BuildConfig) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	return nil, nil, nil
-}
-
 func (t *BuildConfig) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
 	return nil, nil
 }

@@ -11,6 +11,7 @@ require (
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.0-20210327100132-d1d58eaab188 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
+	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5 // indirect
 	github.com/docker/cli v20.10.0-rc1+incompatible
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 	github.com/docker/libcompose v0.4.1-0.20171025083809-57bd716502dc

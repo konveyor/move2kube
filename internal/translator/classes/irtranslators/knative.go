@@ -58,10 +58,6 @@ func (t *Knative) DirectoryDetect(dir string) (namedServices map[string]plantype
 	return nil, nil, nil
 }
 
-func (t *Knative) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	return nil, nil, nil
-}
-
 func (t *Knative) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
 	return nil, nil
 }

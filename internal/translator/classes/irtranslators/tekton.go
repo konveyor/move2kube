@@ -85,10 +85,6 @@ func (t *Tekton) DirectoryDetect(dir string) (namedServices map[string]plantypes
 	return nil, nil, nil
 }
 
-func (t *Tekton) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	return nil, nil, nil
-}
-
 func (t *Tekton) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
 	return nil, nil
 }

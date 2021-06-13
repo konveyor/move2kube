@@ -46,7 +46,7 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 			logrus.Infof("[%T] Done", l)
 		}
 	}
-	translator.Init(common.AssetsPath)
+	translator.Init(common.AssetsPath, inputPath)
 	ts := translator.GetTranslators()
 	for tn, t := range ts {
 		p.Spec.Configuration.Translators[tn] = t.GetConfig().Spec.FilePath
@@ -162,7 +162,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 			logrus.Errorf("Unable to find configuration for translator %s", tn)
 		}
 	}
-	translator.InitTranslators(tcs)
+	translator.InitTranslators(tcs, p.Spec.RootDir)
 
 	// Choose cluster type to target
 	clusters := new(configuration.ClusterMDLoader).GetClusters(p)

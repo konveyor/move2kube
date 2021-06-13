@@ -1,7 +1,7 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Translator
 metadata:
-  name: buildconfig
+  name: Compose
 spec:
   mode: "Container"
-  class: "BuildConfig"
+  class: "Compose"

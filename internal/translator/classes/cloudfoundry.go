@@ -272,10 +272,6 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (namedServices map[string]pla
 	return nil, nil, nil
 }
 
-func (t *CloudFoundry) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	return nil, nil, nil
-}
-
 func (t *CloudFoundry) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
 	return nil, nil
 }

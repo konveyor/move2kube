@@ -58,10 +58,6 @@ func (t *Kubernetes) DirectoryDetect(dir string) (namedServices map[string]plant
 	return nil, nil, nil
 }
 
-func (t *Kubernetes) KnownDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	return nil, nil, nil
-}
-
 func (t *Kubernetes) ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error) {
 	return nil, nil
 }

@@ -1,0 +1,9 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Translator
+metadata:
+  name: CNBContainerizer
+spec:
+  mode: "Container"
+  class: "CNBContainerizer"
+  config:
+    cnbbuilderimage: "gcr.io/buildpacks/builder"

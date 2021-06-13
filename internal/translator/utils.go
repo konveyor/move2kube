@@ -55,33 +55,6 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
 	knownProjectPaths := make([]string, 0)
 
-	logrus.Infoln("Planning Translation - Known Directory")
-	for sn, s := range bservices {
-		for _, t := range s {
-			if len(t.Paths) > 0 && len(t.Paths[plantypes.ProjectPathSourceArtifact]) > 0 {
-				pps := t.Paths[plantypes.ProjectPathSourceArtifact]
-				knownProjectPaths = common.MergeStringSlices(knownProjectPaths, pps...)
-				for _, p := range pps {
-					for _, t := range translators {
-						logrus.Debugf("[%T] Planning translation", t)
-						nservices, nunservices, err := t.KnownDirectoryDetect(p)
-						if err != nil {
-							logrus.Warnf("[%T] Failed : %s", t, err)
-						} else {
-							nservices = setTranslatorNameForServices(nservices, t.GetConfig())
-							unservices = setTranslatorNameForTranslators(unservices, t.GetConfig())
-							// TODO: Decide whether recurse on the nservices for project paths
-							services = plantypes.MergeServices(services, nservices)
-							services = plantypes.MergeServices(services, map[string]plantypes.Service{sn: nunservices})
-							logrus.Debugf("[%T] Done", t)
-						}
-					}
-				}
-			}
-		}
-	}
-	logrus.Infoln("Translation planning - Known Directory done")
-
 	err = filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			logrus.Warnf("Skipping path %q due to error. Error: %q", path, err)
