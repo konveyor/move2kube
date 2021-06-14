@@ -155,7 +155,7 @@ func TestOptimize(t *testing.T) {
 		svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 		svc1.Containers = append(svc1.Containers, c1)
 		svc2.Containers = append(svc2.Containers, c2)
-		ir := irtypes.NewIR()
+		ir := irtypes.NewIR("")
 		ir.Services[svcname1] = svc1
 		ir.Services[svcname2] = svc2
 
@@ -194,7 +194,7 @@ func TestOptimize(t *testing.T) {
 		svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 		svc1.Containers = append(svc1.Containers, c1)
 		svc2.Containers = append(svc2.Containers, c2)
-		ir := irtypes.NewIR()
+		ir := irtypes.NewIR("")
 		ir.Services[svcname1] = svc1
 		ir.Services[svcname2] = svc2
 
@@ -234,7 +234,7 @@ func getIRWithServicesAndContainersWithValidEnv() irtypes.IR {
 	svc1.Containers = append(svc1.Containers, c1)
 	svc2.Containers = append(svc2.Containers, c2)
 
-	ir := irtypes.NewIR()
+	ir := irtypes.NewIR("")
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 	return ir
@@ -254,7 +254,7 @@ func getIRWithServicesAndContainersWithoutEnv() irtypes.IR {
 	svc1.Containers = append(svc1.Containers, c1)
 	svc2.Containers = append(svc2.Containers, c2)
 
-	ir := irtypes.NewIR()
+	ir := irtypes.NewIR("")
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname1] = svc2
 	return ir
@@ -282,7 +282,7 @@ func getExpectedIR() irtypes.IR {
 	svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 	svc1.Containers = append(svc1.Containers, c1)
 	svc2.Containers = append(svc2.Containers, c2)
-	ir := irtypes.NewIR()
+	ir := irtypes.NewIR("")
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 	return ir
@@ -308,7 +308,7 @@ func getExpectedIRWithAffinityInContainer() irtypes.IR {
 	svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 	svc1.Containers = append(svc1.Containers, c1)
 	svc2.Containers = append(svc2.Containers, c2)
-	ir := irtypes.NewIR()
+	ir := irtypes.NewIR("")
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 	return ir

@@ -23,7 +23,6 @@ import (
 )
 
 const (
-	TempOutputRelPath = "." + types.AppNameShort
 	// DefaultPlanFile defines default name for plan file
 	DefaultPlanFile = types.AppNameShort + ".plan"
 	// TempDirPrefix defines the prefix of the temp directory

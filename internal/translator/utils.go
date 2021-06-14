@@ -76,12 +76,14 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 		found := false
 		for _, t := range translators {
 			logrus.Debugf("[%T] Planning translation", t, path)
-			nservices, nunservices, err := t.DirectoryDetect(path)
+			_, env := t.GetConfig()
+			env.Sync()
+			nservices, nunservices, err := t.DirectoryDetect(env.EncodePath(path))
 			if err != nil {
 				logrus.Warnf("[%T] Failed : %s", t, err)
 			} else {
-				nservices = setTranslatorNameForServices(nservices, t.GetConfig())
-				unservices = setTranslatorNameForTranslators(unservices, t.GetConfig())
+				nservices = postProcessServices(nservices, t)
+				unservices = postProcessTranslators(unservices, t)
 				plantypes.MergeServices(services, nservices)
 				unservices = append(unservices, nunservices...)
 				if len(nservices) > 0 || len(unservices) > 0 {
@@ -311,84 +313,102 @@ func trimPrefix(files []project, prefix string) []project {
 	return files
 }
 
-func convertPatchToPathMappings(p translatortypes.Patch, inputPath, tempInputPath, tempOutputPath, pluginPath string) []translatortypes.PathMapping {
+func convertPatchToPathMappings(p translatortypes.Patch, t Translator) []translatortypes.PathMapping {
 	pathMappings := []translatortypes.PathMapping{}
-	for _, pm := range p.PathMappings {
-		switch pm.Type {
-		case translatortypes.SourcePathMappingType:
-			if filepath.IsAbs(pm.SrcPath) {
-				srcPath, err := filepath.Rel(tempInputPath, pm.SrcPath)
-				if err != nil {
-					logrus.Errorf("Invalid sourcePath %s in translator %+v. Ignoring.", pm.SrcPath, pm)
-				}
-				pm.SrcPath = srcPath
-			}
-			pathMappings = append(pathMappings, pm)
-		case translatortypes.ModifiedSourcePathMappingType:
-			srcPath := pm.SrcPath
-			if filepath.IsAbs(pm.SrcPath) {
-				var err error
-				srcPath, err = filepath.Rel(tempInputPath, pm.SrcPath)
-				if err != nil {
-					logrus.Errorf("Invalid sourcePath %s in translator %+v. Ignoring.", pm.SrcPath, pm)
-					continue
-				}
-			}
-			newTempDir, err := ioutil.TempDir(tempOutputPath, "modifiedsource-*")
-			if err != nil {
-				logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
-				continue
-			}
-			if srcPath != "" {
-				err := ioutil.WriteFile(filepath.Join(newTempDir, "sourcerelativepath.config"), []byte(srcPath), 0666)
-				if err != nil {
-					logrus.Errorf("Unable to persist source relative path to file")
-				}
-			}
-			if err := filesystem.GenerateDelta(filepath.Join(inputPath, srcPath), filepath.Join(tempInputPath, srcPath), newTempDir); err == nil {
-				pm.SrcPath = newTempDir
-			} else {
-				logrus.Errorf("Error while copying modified sourcepath for %+v. Ignoring.", pm)
-				continue
-			}
-			pm.SrcPath = newTempDir
-			pathMappings = append(pathMappings, pm)
-		case translatortypes.TemplatePathMappingType:
-			if !filepath.IsAbs(pm.SrcPath) {
-				pm.SrcPath = filepath.Join(pluginPath, pm.SrcPath)
-			}
-			newTempDir, err := ioutil.TempDir(tempOutputPath, "templates-*")
-			if err != nil {
-				logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
-				continue
-			}
-			if err := filesystem.TemplateCopy(pm.SrcPath, newTempDir, p.Config); err != nil {
-				logrus.Errorf("Error while copying sourcepath for %+v. Ignoring.", pm)
-				continue
-			}
-			pm.Type = translatortypes.DefaultPathMappingType
-			pm.SrcPath = newTempDir
-			pathMappings = append(pathMappings, pm)
-		default:
-			if !filepath.IsAbs(pm.SrcPath) {
-				pm.SrcPath = filepath.Join(pluginPath, pm.SrcPath)
-			} else if common.IsParent(pm.SrcPath, tempInputPath) {
-				newTempDir, err := ioutil.TempDir(tempOutputPath, "templates-*")
-				if err != nil {
-					logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
-					continue
-				}
-				if err := filesystem.Replicate(pm.SrcPath, newTempDir); err == nil {
-					pm.SrcPath = newTempDir
-				} else {
-					logrus.Errorf("Error while copying sourcepath for %+v. Ignoring.", pm)
-					continue
-				}
-			}
-			pathMappings = append(pathMappings, pm)
-		}
+	npm, err := processPathMappings(p.PathMappings, t, p.Config)
+	if err != nil {
+		logrus.Errorf("Unable to process path mappings : %s", err)
+		return npm
 	}
 	return pathMappings
+}
+
+func processPathMappings(pms []translatortypes.PathMapping, t Translator, templateConfig interface{}) ([]translatortypes.PathMapping, error) {
+	pathMappings := []translatortypes.PathMapping{}
+	for _, pm := range pms {
+		npm, err := processPathMapping(pm, t, templateConfig)
+		if err != nil {
+			logrus.Errorf("Unable to process path mapping : %s", err)
+			continue
+		}
+		pathMappings = append(pathMappings, npm)
+	}
+	return pathMappings, nil
+}
+
+func processPathMapping(pm translatortypes.PathMapping, t Translator, templateConfig interface{}) (translatortypes.PathMapping, error) {
+	config, env := t.GetConfig()
+	switch pm.Type {
+	case translatortypes.SourcePathMappingType:
+		pm.SrcPath = env.DecodePath(pm.SrcPath)
+		return pm, nil
+	case translatortypes.ModifiedSourcePathMappingType:
+		orgSrcPath := env.GetSourcePath()
+		srcPath := orgSrcPath
+		if filepath.IsAbs(pm.SrcPath) {
+			var err error
+			srcPath, err = filepath.Rel(orgSrcPath, pm.SrcPath)
+			if err != nil {
+				logrus.Errorf("Invalid sourcePath %s in translator %+v. Ignoring.", pm.SrcPath, pm)
+				return pm, err
+			}
+		}
+		pm.SrcPath = env.SyncOutput(pm.SrcPath)
+		newTempDir, err := ioutil.TempDir(common.TempPath, "modifiedsource-*")
+		if err != nil {
+			logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
+			return pm, err
+		}
+		if srcPath != "" {
+			err := ioutil.WriteFile(filepath.Join(newTempDir, "sourcerelativepath.config"), []byte(srcPath), 0666)
+			if err != nil {
+				logrus.Errorf("Unable to persist source relative path to file")
+			}
+		}
+		if err := filesystem.GenerateDelta(filepath.Join(orgSrcPath, srcPath), pm.SrcPath, newTempDir); err == nil {
+			pm.SrcPath = newTempDir
+		} else {
+			logrus.Errorf("Error while copying modified sourcepath for %+v. Ignoring.", pm)
+			return pm, err
+		}
+		pm.SrcPath = newTempDir
+		return pm, nil
+	case translatortypes.TemplatePathMappingType:
+		if !filepath.IsAbs(pm.SrcPath) {
+			pm.SrcPath = filepath.Join(config.Spec.FilePath, pm.SrcPath)
+		}
+		pm.SrcPath = env.SyncOutput(pm.SrcPath)
+		newTempDir, err := ioutil.TempDir(common.TempPath, "templates-*")
+		if err != nil {
+			logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
+			return pm, err
+		}
+		if err := filesystem.TemplateCopy(pm.SrcPath, newTempDir, templateConfig); err != nil {
+			logrus.Errorf("Error while copying sourcepath for %+v. Ignoring.", pm)
+			return pm, err
+		}
+		pm.Type = translatortypes.DefaultPathMappingType
+		pm.SrcPath = newTempDir
+		return pm, nil
+	default:
+		if !filepath.IsAbs(pm.SrcPath) {
+			pm.SrcPath = filepath.Join(config.Spec.FilePath, pm.SrcPath)
+		} else {
+			pm.SrcPath = env.SyncOutput(pm.SrcPath)
+			newTempDir, err := ioutil.TempDir(common.TempPath, "default-*")
+			if err != nil {
+				logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
+				return pm, err
+			}
+			if err := filesystem.Replicate(pm.SrcPath, newTempDir); err == nil {
+				pm.SrcPath = newTempDir
+			} else {
+				logrus.Errorf("Error while copying sourcepath for %+v. Ignoring.", pm)
+				return pm, err
+			}
+		}
+		return pm, nil
+	}
 }
 
 func createOutput(pathMappings []translatortypes.PathMapping, sourcePath, outputPath string) error {
@@ -415,17 +435,68 @@ func createOutput(pathMappings []translatortypes.PathMapping, sourcePath, output
 	return nil
 }
 
-func setTranslatorNameForServices(services map[string]plantypes.Service, t translatortypes.Translator) map[string]plantypes.Service {
+func postProcessServices(services map[string]plantypes.Service, t Translator) map[string]plantypes.Service {
 	for sn, s := range services {
-		services[sn] = setTranslatorNameForTranslators(s, t)
+		services[sn] = postProcessTranslators(s, t)
 	}
 	return services
 }
 
-func setTranslatorNameForTranslators(translators []plantypes.Translator, t translatortypes.Translator) []plantypes.Translator {
+func postProcessTranslators(translators []plantypes.Translator, t Translator) []plantypes.Translator {
 	for sti, st := range translators {
-		st.Name = t.Name
+		config, env := t.GetConfig()
+		srcPath := env.GetSourcePath()
+		st.Name = config.Name
+		err := plantypes.ChangePaths(&st, srcPath, env.DecodePath(srcPath))
+		if err != nil {
+			logrus.Errorf("Unable to encode of translator obj %+v. Ignoring : %s", t, err)
+			continue
+		}
 		translators[sti] = st
 	}
 	return translators
+}
+
+func preProcessTranslators(translators []plantypes.Translator, t Translator) []plantypes.Translator {
+	for sti, st := range translators {
+		_, env := t.GetConfig()
+		srcPath := env.GetSourcePath()
+		err := plantypes.ChangePaths(&st, env.DecodePath(srcPath), srcPath)
+		if err != nil {
+			logrus.Errorf("Unable to decode of translator obj %+v. Ignoring : %s", t, err)
+			continue
+		}
+		translators[sti] = st
+	}
+	return translators
+}
+
+func preProcessTranslator(p plantypes.Translator, t Translator) plantypes.Translator {
+	_, env := t.GetConfig()
+	srcPath := env.GetSourcePath()
+	err := plantypes.ChangePaths(&p, env.DecodePath(srcPath), srcPath)
+	if err != nil {
+		logrus.Errorf("Unable to decode of translator obj %+v. Ignoring : %s", t, err)
+	}
+	return p
+}
+
+func preProcessPlanObj(p interface{}, t Translator) interface{} {
+	_, env := t.GetConfig()
+	srcPath := env.GetSourcePath()
+	err := plantypes.ChangePaths(&p, env.DecodePath(srcPath), srcPath)
+	if err != nil {
+		logrus.Errorf("Unable to decode of plan obj %+v. Ignoring : %s", t, err)
+	}
+	return p
+}
+
+func postProcessPlanObj(p interface{}, t Translator) interface{} {
+	_, env := t.GetConfig()
+	srcPath := env.GetSourcePath()
+	err := plantypes.ChangePaths(&p, srcPath, env.DecodePath(srcPath))
+	if err != nil {
+		logrus.Errorf("Unable to decode of plan obj %+v. Ignoring : %s", t, err)
+	}
+	return p
 }

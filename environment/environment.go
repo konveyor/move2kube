@@ -32,8 +32,10 @@ import (
 
 type Environment struct {
 	Name      string
+	Source    string
 	Paths     map[string]string
 	Container ContainerEnvironment
+	TempDir   string
 }
 
 // Container stores container based execution information
@@ -50,16 +52,28 @@ type ContainerBuild struct {
 type ContainerEnvironment struct {
 	ImageName     string
 	ImageWithData string
+	CID           string // A started instance of ImageWithData
 	PID           int
 	Root          string
 }
 
-func NewEnvironment(name string, paths map[string]string, container Container) (env Environment, err error) {
+func NewEnvironment(name string, source string, container *Container) (env Environment, err error) {
 	env = Environment{
-		Name:  name,
-		Paths: paths,
+		Name:   name,
+		Source: source,
+		Paths:  map[string]string{},
 	}
-	if container.Image != "" {
+	env.TempDir, err = ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
+	if err != nil {
+		logrus.Errorf("Unable to create temp dir : %s", err)
+	}
+	tempSrc := filepath.Join(env.TempDir, "src")
+	err = os.MkdirAll(tempSrc, common.DefaultDirectoryPermission)
+	if err != nil {
+		logrus.Errorf("Unable to create temp dir : %s", err)
+	}
+	env.Paths[source] = tempSrc
+	if container != nil {
 		containerEnvironment := ContainerEnvironment{
 			ImageName: container.Image,
 		}
@@ -86,7 +100,7 @@ func NewEnvironment(name string, paths map[string]string, container Container) (
 		if containerEnvironment.PID == 0 && containerEnvironment.Root == "" {
 			cengine := GetContainerEngine()
 			newImageName := container.Image + env.Name + uniuri.NewLen(5)
-			err := cengine.CopyDirsIntoImage(container.Image, newImageName, paths)
+			err := cengine.CopyDirsIntoImage(container.Image, newImageName, env.Paths)
 			if err != nil {
 				logrus.Debugf("Unable to create new container image with new data")
 				if container.ContainerBuild.Context != "" {
@@ -95,7 +109,7 @@ func NewEnvironment(name string, paths map[string]string, container Container) (
 						logrus.Errorf("Unable to buiold new container image for %s : %s", container.Image, err)
 						return env, err
 					}
-					err = cengine.CopyDirsIntoImage(container.Image, newImageName, paths)
+					err = cengine.CopyDirsIntoImage(container.Image, newImageName, env.Paths)
 					if err != nil {
 						logrus.Errorf("Unable to copy paths to new container image : %s", err)
 					}
@@ -104,15 +118,21 @@ func NewEnvironment(name string, paths map[string]string, container Container) (
 				}
 			}
 			containerEnvironment.ImageWithData = newImageName
+			cid, err := cengine.CreateContainer(newImageName)
+			if err != nil {
+				logrus.Errorf("Unable to start container with image %s : %s", newImageName, cid)
+				return env, err
+			}
+			containerEnvironment.CID = cid
 		}
 		env.Container = containerEnvironment
 	}
-	if env.Container.ImageWithData != "" {
-		for sp, dp := range paths {
+	if env.Container.CID == "" {
+		for sp, dp := range env.Paths {
 			if dp == "" {
 				dp, err = ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 				if err != nil {
-					logrus.Errorf("Unable to create ")
+					logrus.Errorf("Unable to create temp dir : %s", err)
 				}
 			}
 			if env.Container.PID != 0 {
@@ -129,7 +149,57 @@ func NewEnvironment(name string, paths map[string]string, container Container) (
 			}
 		}
 	}
+	env.Source = env.EncodePath(env.Source)
 	return env, nil
+}
+
+func (e *Environment) Sync() error {
+	if e.Container.ImageWithData != "" {
+		cengine := GetContainerEngine()
+		err := cengine.StopAndRemoveContainer(e.Container.CID)
+		if err != nil {
+			logrus.Errorf("Unable to delete image %s : %s", e.Container.ImageWithData, err)
+		}
+		cid, err := cengine.CreateContainer(e.Container.ImageWithData)
+		if err != nil {
+			logrus.Errorf("Unable to start container with image %s : %s", e.Container.ImageWithData, cid)
+			return err
+		}
+		e.Container.CID = cid
+	} else {
+		for sp, dp := range e.Paths {
+			err := filesystem.Replicate(sp, dp)
+			if err != nil {
+				logrus.Errorf("Unable to remove directory %s : %s", dp, err)
+			}
+		}
+	}
+	return nil
+}
+
+func (e *Environment) SyncOutput(path string) (outputPath string) {
+	output, err := ioutil.TempDir(e.TempDir, "*")
+	if err != nil {
+		logrus.Errorf("Unable to create temp dir : %s", err)
+		return path
+	}
+	if e.Container.CID != "" {
+		cengine := GetContainerEngine()
+		err = cengine.CopyDirsFromContainer(e.Container.CID, map[string]string{path: output})
+		if err != nil {
+			logrus.Errorf("Unable to copy paths to new container image : %s", err)
+		}
+		return output
+	} else if e.Container.PID != 0 {
+		nsp := filepath.Join("proc", fmt.Sprint(e.Container.PID), "root", path)
+		err = filesystem.Replicate(nsp, output)
+		if err != nil {
+			logrus.Errorf("Unable to replicate in syncoutput : %s", err)
+			return path
+		}
+		return output
+	}
+	return path
 }
 
 func (e *Environment) Destroy() error {
@@ -138,6 +208,10 @@ func (e *Environment) Destroy() error {
 		err := cengine.RemoveImage(e.Container.ImageWithData)
 		if err != nil {
 			logrus.Errorf("Unable to delete image %s : %s", e.Container.ImageWithData, err)
+		}
+		err = cengine.StopAndRemoveContainer(e.Container.CID)
+		if err != nil {
+			logrus.Errorf("Unable to stop and remove container %s : %s", e.Container.CID, err)
 		}
 	} else {
 		for _, dp := range e.Paths {
@@ -148,4 +222,36 @@ func (e *Environment) Destroy() error {
 		}
 	}
 	return nil
+}
+
+func (e *Environment) EncodePath(outsidepath string) string {
+	for sp, dp := range e.Paths {
+		if common.IsParent(outsidepath, sp) {
+			relPath, err := filepath.Rel(outsidepath, sp)
+			if err != nil {
+				logrus.Errorf("Unable to map rel paths : %s", err)
+			} else {
+				return filepath.Join(dp, relPath)
+			}
+		}
+	}
+	return outsidepath
+}
+
+func (e *Environment) DecodePath(envpath string) string {
+	for sp, dp := range e.Paths {
+		if common.IsParent(envpath, dp) {
+			relPath, err := filepath.Rel(envpath, dp)
+			if err != nil {
+				logrus.Errorf("Unable to map rel paths : %s", err)
+			} else {
+				return filepath.Join(sp, relPath)
+			}
+		}
+	}
+	return envpath
+}
+
+func (e *Environment) GetSourcePath() string {
+	return e.Source
 }

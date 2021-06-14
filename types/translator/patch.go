@@ -34,14 +34,14 @@ type Patch struct {
 type PathMappingType string
 
 const (
-	DefaultPathMappingType    PathMappingType = "Default"    // Normal Copy with overwrite
-	TemplatePathMappingType   PathMappingType = "Template"   // Source path when relative, is relative to yaml file location
-	SourcePathMappingType     PathMappingType = "Source"     // Source path becomes relative to source directory
+	DefaultPathMappingType        PathMappingType = "Default"    // Normal Copy with overwrite
+	TemplatePathMappingType       PathMappingType = "Template"   // Source path when relative, is relative to yaml file location
+	SourcePathMappingType         PathMappingType = "Source"     // Source path becomes relative to source directory
 	ModifiedSourcePathMappingType PathMappingType = "SourceDiff" // Source path becomes relative to source directory
 )
 
 type PathMapping struct {
 	Type     PathMappingType `yaml:"type,omitempty"` // Default - Normal copy
-	SrcPath  string          `yaml:"sourcePath"`
-	DestPath string          `yaml:"destinationPath"` // Relative to output directory
+	SrcPath  string          `yaml:"sourcePath" m2kplan:"normal"`
+	DestPath string          `yaml:"destinationPath" m2kplan:"normal"` // Relative to output directory
 }

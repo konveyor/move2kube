@@ -14,6 +14,7 @@ require (
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5 // indirect
 	github.com/docker/cli v20.10.0-rc1+incompatible
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
+	github.com/docker/go v1.5.1-1.0.20160303222718-d30aec9fd63c // indirect
 	github.com/docker/libcompose v0.4.1-0.20171025083809-57bd716502dc
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/gonvenience/ytbx v1.3.0
@@ -35,6 +36,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tektoncd/pipeline v0.18.1
 	github.com/tektoncd/triggers v0.10.0
+	github.com/theupdateframework/notary v0.7.0 // indirect
 	github.com/whilp/git-urls v1.0.0
 	github.com/xrash/smetrics v0.0.0-20200730060457-89a2a8a1fb0b
 	go.starlark.net v0.0.0-20210223155950-e043a3d3c984

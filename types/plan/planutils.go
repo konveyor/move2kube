@@ -80,7 +80,7 @@ func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx conte
 }
 
 func recurse(value reflect.Value, ctx context) error {
-	//logrus.Debugf("type [%v] ctx [%v]\n", value.Type(), ctx)
+	//logrus.Infof("type [%v] ctx [%v]\n", value.Type(), ctx)
 	switch value.Kind() {
 	case reflect.String:
 		if !ctx.ShouldConvert {
@@ -185,6 +185,20 @@ func ConvertPathsEncode(obj interface{}, rootDir string) (relRootDir string, err
 		logrus.Errorf("Failed to make the root directory path %q relative to the current working directory %q Error %q", rootDir, pwd, err)
 	}
 	return relRootDir, err
+}
+
+func ChangePaths(obj interface{}, currRoot, newRoot string) (err error) {
+	_, err = ConvertPathsEncode(obj, currRoot)
+	if err != nil {
+		logrus.Errorf("Unable to encode of translator obj %+v. Ignoring : %s", obj, err)
+		return err
+	}
+	_, err = ConvertPathsDecode(obj, newRoot)
+	if err != nil {
+		logrus.Errorf("Unable to decode of translator obj %+v. Ignoring : %s", obj, err)
+		return err
+	}
+	return nil
 }
 
 // ReadPlan decodes the plan from yaml converting relative paths to absolute.

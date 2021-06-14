@@ -17,15 +17,11 @@ limitations under the License.
 package translator
 
 import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"reflect"
 
-	"github.com/konveyor/move2kube/filesystem"
+	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/classes"
-	"github.com/konveyor/move2kube/internal/translator/classes/irtranslators"
 	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -34,27 +30,26 @@ import (
 )
 
 var (
-	translatorTypes       map[string]reflect.Type = make(map[string]reflect.Type)
-	translators           map[string]Translator   = make(map[string]Translator)
-	translatorSourcePaths map[string]string       = make(map[string]string)
+	translatorTypes map[string]reflect.Type = make(map[string]reflect.Type)
+	translators     map[string]Translator   = make(map[string]Translator)
 )
 
 // Translator interface defines translator that translates files and converts it to ir representation
 type Translator interface {
-	Init(tc translatortypes.Translator, sourcePath string) (newSourcePath string, err error)
-	GetConfig() translatortypes.Translator
+	Init(tc translatortypes.Translator, env environment.Environment) (err error)
+	GetConfig() (translatortypes.Translator, environment.Environment)
 
 	BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
 	DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error)
 	ServiceAugmentDetect(serviceName string, service plantypes.Service) ([]plantypes.Translator, error)
 	PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 
-	TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error)
-	TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error)
+	TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan) ([]translatortypes.Patch, error)
+	TranslateIR(ir irtypes.IR, plan plantypes.Plan) ([]translatortypes.PathMapping, error)
 }
 
 func init() {
-	translatorObjs := []Translator{new(classes.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig), new(classes.CNBContainerizer)}
+	translatorObjs := []Translator{new(classes.Compose)} //, new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig), new(classes.CNBContainerizer)}
 	for _, tt := range translatorObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -66,7 +61,7 @@ func init() {
 	}
 }
 
-func Init(assetsPath, sourcePath string) error {
+func Init(assetsPath, sourcePath string) (err error) {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
 		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
@@ -100,11 +95,15 @@ func Init(assetsPath, sourcePath string) error {
 			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
 		} else {
 			t := reflect.New(c).Interface().(Translator)
-			if tSourcePath, err := t.Init(tc, sourcePath); err != nil {
+			env, err := environment.NewEnvironment(tc.Name, sourcePath, nil)
+			if err != nil {
+				logrus.Errorf("Unable to create environment : %s", err)
+				return err
+			}
+			if err := t.Init(tc, env); err != nil {
 				logrus.Errorf("Unable to initialize translator %s : %s", tc.Name, err)
 			} else {
 				translators[tn] = t
-				translatorSourcePaths[tn] = tSourcePath
 			}
 		}
 	}
@@ -122,11 +121,15 @@ func InitTranslators(translatorToInit map[string]string, sourcePath string) erro
 			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
 		} else {
 			t := reflect.New(c).Interface().(Translator)
-			if tSourcePath, err := t.Init(tc, sourcePath); err != nil {
+			env, err := environment.NewEnvironment(tc.Name, sourcePath, nil)
+			if err != nil {
+				logrus.Errorf("Unable to create environment : %s", err)
+				return err
+			}
+			if err := t.Init(tc, env); err != nil {
 				logrus.Errorf("Unable to initialize translator %s : %s", tc.Name, err)
 			} else {
 				translators[tn] = t
-				translatorSourcePaths[tn] = tSourcePath
 			}
 		}
 	}
@@ -142,15 +145,16 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 	unservices := make([]plantypes.Translator, 0)
 	logrus.Infoln("Planning Translation - Base Directory")
 	logrus.Debugf("Translators : %+v", translators)
-	for _, t := range translators {
-		tn := t.GetConfig().Name
+	for tn, t := range translators {
+		_, env := t.GetConfig()
+		env.Sync()
 		logrus.Infof("[%s] Planning translation", tn)
-		nservices, nunservices, err := t.BaseDirectoryDetect(dir)
+		nservices, nunservices, err := t.BaseDirectoryDetect(env.EncodePath(dir))
 		if err != nil {
 			logrus.Errorf("[%s] Failed : %s", tn, err)
 		} else {
-			nservices = setTranslatorNameForServices(nservices, t.GetConfig())
-			unservices = setTranslatorNameForTranslators(unservices, t.GetConfig())
+			nservices = postProcessServices(nservices, t)
+			unservices = postProcessTranslators(unservices, t)
 			services = plantypes.MergeServices(services, nservices)
 			unservices = append(unservices, nunservices...)
 			logrus.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
@@ -175,11 +179,15 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 	for _, t := range translators {
 		logrus.Debugf("[%T] Planning translation", t)
 		for sn, s := range services {
+			_, env := t.GetConfig()
+			env.Sync()
+			s = preProcessTranslators(s, t)
 			sts, err := t.ServiceAugmentDetect(sn, s)
 			if err != nil {
 				logrus.Errorf("[%T] Failed for service %s : %s", t, sn, err)
 			} else {
-				sts = setTranslatorNameForTranslators(sts, t.GetConfig())
+				s = postProcessTranslators(s, t)
+				sts = postProcessTranslators(sts, t)
 				services[sn] = append(s, sts...)
 			}
 		}
@@ -192,14 +200,18 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 func GetPlanTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Translator, err error) {
 	logrus.Infoln("Planning plan translators")
 	for _, t := range translators {
-		logrus.Infof("[%s] Planning translation", t.GetConfig().Name)
+		config, env := t.GetConfig()
+		env.Sync()
+		logrus.Infof("[%s] Planning translation", config.Name)
+		preProcessPlanObj(&plan, t)
 		ts, err := t.PlanDetect(plan)
 		if err != nil {
-			logrus.Warnf("[%s] Failed : %s", t.GetConfig().Name, err)
+			logrus.Warnf("[%s] Failed : %s", config.Name, err)
 		} else {
-			ts = setTranslatorNameForTranslators(ts, t.GetConfig())
+			postProcessPlanObj(&plan, t)
+			ts = postProcessTranslators(ts, t)
 			suitableTranslators = append(suitableTranslators, ts...)
-			logrus.Infof("[%s] Done", t.GetConfig().Name)
+			logrus.Infof("[%s] Done", config.Name)
 		}
 	}
 	logrus.Infoln("Plan translator planning - done")
@@ -207,49 +219,14 @@ func GetPlanTranslators(plan plantypes.Plan) (suitableTranslators []plantypes.Tr
 }
 
 func Translate(plan plantypes.Plan, outputPath string) (err error) {
-	tempOutputPath := filepath.Join(outputPath, common.TempOutputRelPath)
-	if err := os.MkdirAll(tempOutputPath, common.DefaultDirectoryPermission); err != nil {
-		logrus.Fatalf("Failed to create the output directory at path %s Error: %q", tempOutputPath, err)
-	}
-	tempInputPath, err := ioutil.TempDir(common.TempPath, "translate")
-	if err != nil {
-		logrus.Fatalf("Failed to create temporary input directory at path %s Error: %q", tempInputPath, err)
-	}
-	logrus.Debugf("Temp translate Dir : %s", tempInputPath)
-	//defer os.RemoveAll(tempInputPath) // TOFIX: Uncomment
 	patches := []translatortypes.Patch{}
 	pathMappings := []translatortypes.PathMapping{}
 	for serviceName, service := range plan.Spec.Services {
-		tempServiceOutputPath := filepath.Join(tempOutputPath, serviceName)
-		if err := os.MkdirAll(tempServiceOutputPath, common.DefaultDirectoryPermission); err != nil {
-			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", tempServiceOutputPath, err)
-		}
 		for _, translator := range service {
-			var ttempdirName string
-			if ttempdirName, err = ioutil.TempDir(tempServiceOutputPath, translator.Name+".*"); err != nil {
-				logrus.Fatalf("Failed to create the temp translator output directory at path %s Error: %q", tempServiceOutputPath, err)
-			}
-			tempServiceTranslatorOutputPath := filepath.Join(tempServiceOutputPath, ttempdirName)
-			tempTranslator := plantypes.Translator{}
-			err := plantypes.CopyObj(translator, &tempTranslator)
-			if err != nil {
-				logrus.Errorf("Unable to make copy of translator obj %+v. Ignoring : %s", translator, err)
-				continue
-			}
-			_, err = plantypes.ConvertPathsEncode(&tempTranslator, plan.Spec.RootDir)
-			if err != nil {
-				logrus.Errorf("Unable to encode of translator obj %+v. Ignoring : %s", translator, err)
-				continue
-			}
-			_, err = plantypes.ConvertPathsDecode(&tempTranslator, tempInputPath)
-			if err != nil {
-				logrus.Errorf("Unable to decode of translator obj %+v. Ignoring : %s", translator, err)
-				continue
-			}
-			if err := filesystem.Replicate(plan.Spec.RootDir, tempInputPath); err != nil {
-				logrus.Errorf("Unable to copy contents to temp directory %s: %s", tempInputPath, err)
-			}
-			ps, err := translators[translator.Name].TranslateService(serviceName, tempTranslator, plan, tempServiceTranslatorOutputPath)
+			t := translators[translator.Name]
+			_, env := t.GetConfig()
+			env.Sync()
+			ps, err := t.TranslateService(serviceName, preProcessTranslator(translator, t), preProcessPlanObj(plan, t).(plantypes.Plan))
 			if err != nil {
 				logrus.Errorf("Unable to translate service %s using %s : %s", serviceName, translator.Name, err)
 				continue
@@ -257,7 +234,7 @@ func Translate(plan plantypes.Plan, outputPath string) (err error) {
 			for _, p := range ps {
 				p.ServiceName = serviceName
 				p.Translator = translator
-				pathMappings = append(pathMappings, convertPatchToPathMappings(p, plan.Spec.RootDir, tempInputPath, tempOutputPath, filepath.Dir(translators[translator.Name].GetConfig().Spec.FilePath))...)
+				pathMappings = append(pathMappings, convertPatchToPathMappings(p, t)...)
 				patches = append(patches, p)
 			}
 		}
@@ -285,11 +262,15 @@ func Translate(plan plantypes.Plan, outputPath string) (err error) {
 	for ptName, tIRs := range irs {
 		logrus.Infof("Starting %s IR Translations with %d IRs", ptName, len(tIRs))
 		for _, ir := range tIRs {
-			irTempdir, err := ioutil.TempDir(tempOutputPath, "ir.*")
+			t := translators[ptName]
+			_, env := t.GetConfig()
+			env.Sync()
+			pm, err := t.TranslateIR(preProcessPlanObj(ir, t).(irtypes.IR), preProcessPlanObj(plan, t).(plantypes.Plan))
 			if err != nil {
-				logrus.Fatalf("Failed to create the temp translator output directory at path %s Error: %q", tempOutputPath, err)
+				logrus.Errorf("Unable to translate IR using %s", ptName)
+				continue
 			}
-			pm, err := translators[ptName].TranslateIR(ir, plan, irTempdir)
+			pm, err = processPathMappings(pm, t, nil)
 			if err != nil {
 				logrus.Errorf("Unable to translate IR using %s", ptName)
 				continue
@@ -302,9 +283,6 @@ func Translate(plan plantypes.Plan, outputPath string) (err error) {
 	if err := createOutput(pathMappings, plan.Spec.RootDir, outputPath); err != nil {
 		logrus.Errorf("Unable to create output from pathmappings : %s", err)
 		return err
-	}
-	if err := os.RemoveAll(tempOutputPath); err != nil {
-		logrus.Errorf("Unable to delete temp directory %s : %s", tempOutputPath, err)
 	}
 	return nil
 }

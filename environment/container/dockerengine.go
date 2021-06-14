@@ -112,7 +112,7 @@ func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, vol
 		logrus.Debugf("Container %s created with image %s with no volumes", resp.ID, image)
 		defer e.cli.ContainerRemove(e.ctx, resp.ID, types.ContainerRemoveOptions{Force: true})
 		if volsrc != "" && voldest != "" {
-			err = copyDir(e.ctx, e.cli, resp.ID, volsrc, voldest)
+			err = copyDirToContainer(e.ctx, e.cli, resp.ID, volsrc, voldest)
 			if err != nil {
 				logrus.Debugf("Container data copy failed for image %s with volume %s:%s : %s", image, volsrc, voldest, err)
 				return "", false, err
@@ -168,7 +168,7 @@ func (e *dockerEngine) InspectImage(image string) (types.ImageInspect, error) {
 }
 
 // CreateContainer creates a container
-func (e *dockerEngine) createContainer(image string) (containerid string, err error) {
+func (e *dockerEngine) CreateContainer(image string) (containerid string, err error) {
 	if !e.pullImage(image) {
 		logrus.Debugf("Unable to pull image using docker : %s", image)
 		return "", fmt.Errorf("unable to pull image")
@@ -187,7 +187,7 @@ func (e *dockerEngine) createContainer(image string) (containerid string, err er
 }
 
 // CreateContainer creates a container
-func (e *dockerEngine) stopAndRemoveContainer(containerID string) (err error) {
+func (e *dockerEngine) StopAndRemoveContainer(containerID string) (err error) {
 	err = e.cli.ContainerRemove(e.ctx, containerID, types.ContainerRemoveOptions{Force: true})
 	if err != nil {
 		logrus.Errorf("Unable to delete container with containerid %s : %s", containerID, err)
@@ -202,13 +202,13 @@ func (e *dockerEngine) CopyDirsIntoImage(image, newImageName string, paths map[s
 		logrus.Debugf("Unable to pull image using docker : %s", image)
 		return fmt.Errorf("unable to pull image")
 	}
-	cid, err := e.createContainer(image)
+	cid, err := e.CreateContainer(image)
 	if err != nil {
 		logrus.Errorf("Unable to create container with base image %s : %s", image, err)
 		return err
 	}
 	for sp, dp := range paths {
-		err = copyDir(e.ctx, e.cli, cid, sp, dp)
+		err = copyDirToContainer(e.ctx, e.cli, cid, sp, dp)
 		if err != nil {
 			logrus.Debugf("Container data copy failed for image %s with volume %s:%s : %s", image, sp, dp, err)
 			return err
@@ -221,9 +221,32 @@ func (e *dockerEngine) CopyDirsIntoImage(image, newImageName string, paths map[s
 		logrus.Errorf("Unable to commit container as image : %s", err)
 		return err
 	}
-	err = e.stopAndRemoveContainer(cid)
+	err = e.StopAndRemoveContainer(cid)
 	if err != nil {
 		logrus.Errorf("Unable to stop and remove container %s : %s", cid, err)
+	}
+	return nil
+}
+
+func (e *dockerEngine) CopyDirsIntoContainer(containerID string, paths map[string]string) (err error) {
+	for sp, dp := range paths {
+		err = copyDirToContainer(e.ctx, e.cli, containerID, sp, dp)
+		if err != nil {
+			logrus.Debugf("Container data copy failed for image %s with volume %s:%s : %s", containerID, sp, dp, err)
+			return err
+		}
+	}
+	return nil
+}
+
+// CopyDirsFromContainer creates a container
+func (e *dockerEngine) CopyDirsFromContainer(containerID string, paths map[string]string) (err error) {
+	for sp, dp := range paths {
+		err = copyFromContainer(e.ctx, containerID, sp, dp)
+		if err != nil {
+			logrus.Debugf("Container data copy failed for image %s with volume %s:%s : %s", containerID, sp, dp, err)
+			return err
+		}
 	}
 	return nil
 }

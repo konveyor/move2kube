@@ -16,6 +16,7 @@ limitations under the License.
 
 package classes
 
+/*
 import (
 	"encoding/json"
 	"fmt"
@@ -66,26 +67,26 @@ type buildpackInfo struct {
 	Homepage string `toml:"homepage,omitempty" json:"homepage,omitempty"`
 }
 
-func (t *CNBContainerizer) Init(tc translatortypes.Translator, sourcePath string) (string, error) {
+func (t *CNBContainerizer) Init(tc translatortypes.Translator, sourcePath string) (env environment.Environment, err error) {
 	t.TConfig = tc
 	t.CNBConfig = CNBContainerizerYamlConfig{}
-	err := common.GetObjFromInterface(t.TConfig.Spec.Config, &t.CNBConfig)
+	err = common.GetObjFromInterface(t.TConfig.Spec.Config, &t.CNBConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Translator %+v into %T : %s", t.TConfig.Spec.Config, t.CNBConfig, err)
-		return err
+		return env, err
 	}
 	container := environment.Container{
 		Image: t.CNBConfig.BuilderImageName,
 	}
-	nSourcePath := filepath.Join(common.TempPath, "translate", "cnb")
+	nSourcePath := filepath.Join(common.TranslatorsTempPath, "cnb")
 	paths := map[string]string{sourcePath: nSourcePath}
-	env, err := environment.NewEnvironment(tc.Name, paths, container)
+	env, err = environment.NewEnvironment(tc.Name, paths, container)
 	if err != nil {
 		logrus.Errorf("Unable to create environment : %s", err)
-		return err
+		return env, err
 	}
 	t.Environment = env
-	return nil
+	return env, nil
 }
 
 func (t *CNBContainerizer) GetConfig() translatortypes.Translator {
@@ -242,3 +243,4 @@ func (d *CNBContainerizer) getBuildersFromLabel(label string) (buildpacks []stri
 	}
 	return
 }
+*/

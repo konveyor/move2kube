@@ -57,7 +57,7 @@ func TestCreatePlan(t *testing.T) {
 		if err := want.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
-		translator.Init(common.AssetsDir)
+		translator.Init(common.AssetsDir, inputPath)
 
 		// Test
 		p := api.CreatePlan(inputPath, "", prjName)
@@ -91,7 +91,7 @@ func TestCreatePlan(t *testing.T) {
 		if err := want.SetRootDir(inputPath); err != nil {
 			t.Fatalf("Failed to set the root directory of the plan to path %q Error: %q", inputPath, err)
 		}
-		translator.Init(common.AssetsPath)
+		translator.Init(common.AssetsPath, inputPath)
 
 		// Test
 		p := api.CreatePlan(inputPath, "", prjName)
@@ -117,7 +117,7 @@ func TestCreatePlan(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Cannot read the plan at path %q Error: %q", testDataPlanPath, err)
 		}
-		translator.Init(common.AssetsPath)
+		translator.Init(common.AssetsPath, inputPath)
 
 		// Test
 		actual := api.CreatePlan(inputPath, "", prjName)

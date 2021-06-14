@@ -34,8 +34,12 @@ type ContainerEngine interface {
 	// InspectImage gets Inspect output for a container
 	InspectImage(image string) (dockertypes.ImageInspect, error)
 	CopyDirsIntoImage(image, newImageName string, paths map[string]string) (err error)
+	CopyDirsIntoContainer(containerID string, paths map[string]string) (err error)
+	CopyDirsFromContainer(containerID string, paths map[string]string) (err error)
 	BuildImage(image, context, dockerfile string) (err error)
 	RemoveImage(image string) (err error)
+	CreateContainer(image string) (containerid string, err error)
+	StopAndRemoveContainer(containerID string) (err error)
 }
 
 func initContainerEngine() {

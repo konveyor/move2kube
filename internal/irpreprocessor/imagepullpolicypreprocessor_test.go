@@ -75,7 +75,7 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 		svc1.Containers = append(svc1.Containers, c1)
 		svc2.Containers = append(svc2.Containers, c2)
 
-		ir := irtypes.NewIR()
+		ir := irtypes.NewIR("")
 		ir.Services[svcname1] = svc1
 		ir.Services[svcname2] = svc2
 
@@ -114,14 +114,14 @@ func getIRWithServicesAndWithoutContainers() irtypes.IR {
 	svcname2 := "svcname2"
 	svc1 := irtypes.Service{Name: svcname1, Replicas: 2}
 	svc2 := irtypes.Service{Name: svcname2, Replicas: 2}
-	ir := irtypes.NewIR()
+	ir := irtypes.NewIR("")
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 	return ir
 }
 
 func getIRWithoutServices() irtypes.IR {
-	ir := irtypes.NewIR()
+	ir := irtypes.NewIR("")
 	return ir
 }
 
@@ -140,7 +140,7 @@ func getIRWithImagePullPolicySetAsAlways() irtypes.IR {
 	svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
 	svc1.Containers = append(svc1.Containers, c1)
 	svc2.Containers = append(svc2.Containers, c2)
-	ir := irtypes.NewIR()
+	ir := irtypes.NewIR("")
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 	return ir

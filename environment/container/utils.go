@@ -1,5 +1,5 @@
 /*
-Copyright IBM Corporation 2020
+Copyright IBM Corporation 2020, 2021
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,13 +25,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/docker/cli/cli/command"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/sirupsen/logrus"
 )
 
-func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
+func copyDirToContainer(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
 	reader := readDirAsTar(src, dst)
 	if reader == nil {
 		err := fmt.Errorf("error during create tar archive from '%s'", src)
@@ -57,6 +59,26 @@ func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst stri
 		err = clientErr
 	}
 	return err
+}
+
+func copyFromContainer(ctx context.Context, containerID string, containerPath, destPath string) (err error) {
+	cli, err := command.NewDockerCli()
+	if err != nil {
+		logrus.Errorf("Unable to create new docker cli : %s", err)
+		return err
+	}
+	content, stat, err := cli.Client().CopyFromContainer(ctx, containerID, containerPath)
+	if err != nil {
+		logrus.Errorf("Unable to copy from container : %s", err)
+		return err
+	}
+	defer content.Close()
+	copyInfo := archive.CopyInfo{
+		Path:   containerPath,
+		Exists: true,
+		IsDir:  stat.Mode.IsDir(),
+	}
+	return archive.CopyTo(content, copyInfo, destPath)
 }
 
 func readDirAsTar(srcDir, basePath string) io.ReadCloser {

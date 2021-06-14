@@ -49,7 +49,8 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 	translator.Init(common.AssetsPath, inputPath)
 	ts := translator.GetTranslators()
 	for tn, t := range ts {
-		p.Spec.Configuration.Translators[tn] = t.GetConfig().Spec.FilePath
+		config, _ := t.GetConfig()
+		p.Spec.Configuration.Translators[tn] = config.Spec.FilePath
 	}
 	logrus.Infoln("Configuration loading done")
 

@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"os"
+
 	"github.com/konveyor/move2kube/assets"
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
@@ -58,7 +60,7 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 	}
 	common.TempPath = tempPath
 	common.AssetsPath = assetsPath
-	//defer os.RemoveAll(tempPath) //TOFIX: Uncomment
+	defer os.RemoveAll(tempPath)
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatalf("Error: %q", err)
 	}

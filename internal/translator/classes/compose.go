@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	composetypes "github.com/docker/cli/cli/compose/types"
+	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/classes/compose"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -45,7 +46,8 @@ const (
 
 // Compose implements Translator interface
 type Compose struct {
-	Config translatortypes.Translator
+	Config      translatortypes.Translator
+	Environment environment.Environment
 }
 
 type ComposeConfig struct {
@@ -61,13 +63,14 @@ type composeObj struct {
 	Configs  map[string]composetypes.ConfigObjConfig `yaml:",omitempty"`
 }
 
-func (t *Compose) Init(tc translatortypes.Translator) error {
+func (t *Compose) Init(tc translatortypes.Translator, env environment.Environment) (err error) {
 	t.Config = tc
+	t.Environment = env
 	return nil
 }
 
-func (t *Compose) GetConfig() translatortypes.Translator {
-	return t.Config
+func (t *Compose) GetConfig() (translatortypes.Translator, environment.Environment) {
+	return t.Config, t.Environment
 }
 
 func (t *Compose) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
@@ -111,7 +114,7 @@ func (t *Compose) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error) {
 	return ts, nil
 }
 
-func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error) {
+func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan) ([]translatortypes.Patch, error) {
 	var config ComposeConfig
 	err := common.GetObjFromInterface(translatorPlan.Config, &config)
 	if err != nil {
@@ -148,7 +151,7 @@ func (t *Compose) TranslateService(serviceName string, translatorPlan plantypes.
 	return []translatortypes.Patch{p}, nil
 }
 
-func (t *Compose) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.PathMapping, error) {
+func (t *Compose) TranslateIR(ir irtypes.IR, plan plantypes.Plan) ([]translatortypes.PathMapping, error) {
 	logrus.Debugf("Starting Compose transform")
 	logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 
@@ -183,26 +186,20 @@ func (t *Compose) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir 
 	}
 	logrus.Debugf("Total transformed objects : %d", len(c.Services))
 
-	composePath := filepath.Join(tempOutputDir, common.DeployDir, "compose")
-	if err := os.MkdirAll(composePath, common.DefaultDirectoryPermission); err != nil {
-		logrus.Errorf("Unable to create output directory %s : %s", tempOutputDir, err)
-	}
-	artifactsPath := filepath.Join(composePath, "docker-compose.yaml")
-	if err := common.WriteYaml(artifactsPath, c); err != nil {
-		logrus.Errorf("Unable to write docker compose file %s : %s", artifactsPath, err)
-	}
+	composePath := filepath.Join(common.DeployDir, "compose")
 
-	destPath, err := filepath.Rel(tempOutputDir, artifactsPath)
-	if err != nil {
-		logrus.Errorf("Invalid yaml path : %s", destPath)
-		return nil, err
+	absComposePath := filepath.Join(t.Environment.TempDir, composePath)
+	if err := os.MkdirAll(absComposePath, common.DefaultDirectoryPermission); err != nil {
+		logrus.Errorf("Unable to create output directory %s : %s", common.TempPath, err)
+	}
+	if err := common.WriteYaml(filepath.Join(absComposePath, "docker-compose.yaml"), c); err != nil {
+		logrus.Errorf("Unable to write docker compose file %s : %s", absComposePath, err)
 	}
 	return []translatortypes.PathMapping{{
 		Type:     translatortypes.DefaultPathMappingType,
-		SrcPath:  artifactsPath,
-		DestPath: destPath,
+		SrcPath:  absComposePath,
+		DestPath: composePath,
 	}}, nil
-
 }
 
 func (t *Compose) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) plantypes.Translator {
