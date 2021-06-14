@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/sshkeys"
@@ -46,18 +47,20 @@ const (
 // BuildConfig implements Translator interface
 type BuildConfig struct {
 	Config translatortypes.Translator
+	Env    environment.Environment
 }
 
 type BuildConfigConfig struct {
 }
 
-func (t *BuildConfig) Init(tc translatortypes.Translator) error {
+func (t *BuildConfig) Init(tc translatortypes.Translator, env environment.Environment) error {
 	t.Config = tc
+	t.Env = env
 	return nil
 }
 
-func (t *BuildConfig) GetConfig() translatortypes.Translator {
-	return t.Config
+func (t *BuildConfig) GetConfig() (translatortypes.Translator, environment.Environment) {
+	return t.Config, t.Env
 }
 
 func (t *BuildConfig) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
@@ -80,11 +83,11 @@ func (t *BuildConfig) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error)
 	return ts, nil
 }
 
-func (t *BuildConfig) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error) {
+func (t *BuildConfig) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan) ([]translatortypes.Patch, error) {
 	return nil, nil
 }
 
-func (t *BuildConfig) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) (pathMappings []translatortypes.PathMapping, err error) {
+func (t *BuildConfig) TranslateIR(ir irtypes.IR, plan plantypes.Plan) (pathMappings []translatortypes.PathMapping, err error) {
 	targetCluster, err := new(configuration.ClusterMDLoader).GetTargetClusterMetadataForPlan(plan)
 	if err != nil {
 		err := fmt.Errorf("unable to find target cluster : %+v", plan.Spec.TargetCluster)
@@ -96,12 +99,12 @@ func (t *BuildConfig) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutput
 		return nil, nil
 	}
 	apis := []apiresource.IAPIResource{&apiresource.BuildConfig{}, &apiresource.Storage{}}
-	tempDest := filepath.Join(tempOutputDir, common.DeployDir, common.CICDDir, "buildconfig")
+	tempDest := filepath.Join(t.Env.TempDir, common.DeployDir, common.CICDDir, "buildconfig")
 	logrus.Infof("Generating Tekton pipeline for CI/CD")
 	enhancedIR := t.SetupEnhancedIR(ir)
 	if files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, targetCluster); err == nil {
 		for _, f := range files {
-			if destPath, err := filepath.Rel(tempOutputDir, f); err != nil {
+			if destPath, err := filepath.Rel(t.Env.TempDir, f); err != nil {
 				logrus.Errorf("Invalid yaml path : %s", destPath)
 			} else {
 				pathMappings = append(pathMappings, translatortypes.PathMapping{

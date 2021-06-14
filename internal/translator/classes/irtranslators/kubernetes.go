@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/configuration"
@@ -36,18 +37,20 @@ const (
 // Kubernetes implements Translator interface
 type Kubernetes struct {
 	Config translatortypes.Translator
+	Env    environment.Environment
 }
 
 type KubernetesConfig struct {
 }
 
-func (t *Kubernetes) Init(tc translatortypes.Translator) error {
+func (t *Kubernetes) Init(tc translatortypes.Translator, e environment.Environment) error {
 	t.Config = tc
+	t.Env = e
 	return nil
 }
 
-func (t *Kubernetes) GetConfig() translatortypes.Translator {
-	return t.Config
+func (t *Kubernetes) GetConfig() (translatortypes.Translator, environment.Environment) {
+	return t.Config, t.Env
 }
 
 func (t *Kubernetes) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
@@ -70,11 +73,11 @@ func (t *Kubernetes) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error) 
 	return ts, nil
 }
 
-func (t *Kubernetes) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error) {
+func (t *Kubernetes) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan) ([]translatortypes.Patch, error) {
 	return nil, nil
 }
 
-func (t *Kubernetes) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) (pathMappings []translatortypes.PathMapping, err error) {
+func (t *Kubernetes) TranslateIR(ir irtypes.IR, plan plantypes.Plan) (pathMappings []translatortypes.PathMapping, err error) {
 	logrus.Debugf("Translating IR using Kubernetes translator")
 	targetCluster, err := new(configuration.ClusterMDLoader).GetTargetClusterMetadataForPlan(plan)
 	if err != nil {
@@ -82,13 +85,13 @@ func (t *Kubernetes) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputD
 		logrus.Errorf("%s", err)
 		return nil, err
 	}
-	tempDest := filepath.Join(tempOutputDir, common.DeployDir, "yamls")
+	tempDest := filepath.Join(t.Env.TempDir, common.DeployDir, "yamls")
 	logrus.Debugf("Starting Kubernetes transform")
 	logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 	apis := []apiresource.IAPIResource{&apiresource.Deployment{}, &apiresource.Storage{}, &apiresource.Service{}, &apiresource.ImageStream{}, &apiresource.NetworkPolicy{}}
 	if files, err := apiresource.TransformAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, targetCluster); err == nil {
 		for _, f := range files {
-			if destPath, err := filepath.Rel(tempOutputDir, f); err != nil {
+			if destPath, err := filepath.Rel(t.Env.TempDir, f); err != nil {
 				logrus.Errorf("Invalid yaml path : %s", destPath)
 			} else {
 				pathMappings = append(pathMappings, translatortypes.PathMapping{

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/configuration"
@@ -36,18 +37,20 @@ const (
 // Knative implements Translator interface
 type Knative struct {
 	Config translatortypes.Translator
+	Env    environment.Environment
 }
 
 type KnativeConfig struct {
 }
 
-func (t *Knative) Init(tc translatortypes.Translator) error {
+func (t *Knative) Init(tc translatortypes.Translator, env environment.Environment) error {
 	t.Config = tc
+	t.Env = env
 	return nil
 }
 
-func (t *Knative) GetConfig() translatortypes.Translator {
-	return t.Config
+func (t *Knative) GetConfig() (translatortypes.Translator, environment.Environment) {
+	return t.Config, t.Env
 }
 
 func (t *Knative) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
@@ -70,11 +73,11 @@ func (t *Knative) PlanDetect(plantypes.Plan) ([]plantypes.Translator, error) {
 	return ts, nil
 }
 
-func (t *Knative) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan, tempOutputDir string) ([]translatortypes.Patch, error) {
+func (t *Knative) TranslateService(serviceName string, translatorPlan plantypes.Translator, plan plantypes.Plan) ([]translatortypes.Patch, error) {
 	return nil, nil
 }
 
-func (t *Knative) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir string) (pathMappings []translatortypes.PathMapping, err error) {
+func (t *Knative) TranslateIR(ir irtypes.IR, plan plantypes.Plan) (pathMappings []translatortypes.PathMapping, err error) {
 	logrus.Debugf("Translating IR using Kubernetes translator")
 	targetCluster, err := new(configuration.ClusterMDLoader).GetTargetClusterMetadataForPlan(plan)
 	if err != nil {
@@ -82,13 +85,13 @@ func (t *Knative) TranslateIR(ir irtypes.IR, plan plantypes.Plan, tempOutputDir 
 		logrus.Errorf("%s", err)
 		return nil, err
 	}
-	tempDest := filepath.Join(tempOutputDir, common.DeployDir, "knative")
+	tempDest := filepath.Join(t.Env.TempDir, common.DeployDir, "knative")
 	logrus.Debugf("Starting Kubernetes transform")
 	logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 	apis := []apiresource.IAPIResource{&apiresource.KnativeService{}}
 	if files, err := apiresource.TransformAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, targetCluster); err == nil {
 		for _, f := range files {
-			if destPath, err := filepath.Rel(tempOutputDir, f); err != nil {
+			if destPath, err := filepath.Rel(t.Env.TempDir, f); err != nil {
 				logrus.Errorf("Invalid yaml path : %s", destPath)
 			} else {
 				pathMappings = append(pathMappings, translatortypes.PathMapping{

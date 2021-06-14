@@ -395,17 +395,6 @@ func processPathMapping(pm translatortypes.PathMapping, t Translator, templateCo
 			pm.SrcPath = filepath.Join(config.Spec.FilePath, pm.SrcPath)
 		} else {
 			pm.SrcPath = env.SyncOutput(pm.SrcPath)
-			newTempDir, err := ioutil.TempDir(common.TempPath, "default-*")
-			if err != nil {
-				logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
-				return pm, err
-			}
-			if err := filesystem.Replicate(pm.SrcPath, newTempDir); err == nil {
-				pm.SrcPath = newTempDir
-			} else {
-				logrus.Errorf("Error while copying sourcepath for %+v. Ignoring.", pm)
-				return pm, err
-			}
 		}
 		return pm, nil
 	}

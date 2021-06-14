@@ -22,6 +22,7 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/translator/classes"
+	"github.com/konveyor/move2kube/internal/translator/classes/irtranslators"
 	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -49,7 +50,7 @@ type Translator interface {
 }
 
 func init() {
-	translatorObjs := []Translator{new(classes.Compose)} //, new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig), new(classes.CNBContainerizer)}
+	translatorObjs := []Translator{new(classes.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig)} //, new(classes.CNBContainerizer)}
 	for _, tt := range translatorObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
