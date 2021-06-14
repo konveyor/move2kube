@@ -197,7 +197,7 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 			if err != nil {
 				logrus.Errorf("[%T] Failed for service %s : %s", t, sn, err)
 			} else {
-				s = postProcessTranslators(s, t)
+				s = postProcessKnownTranslators(s, t)
 				sts = postProcessTranslators(sts, t)
 				services[sn] = append(s, sts...)
 			}

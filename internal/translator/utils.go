@@ -446,6 +446,20 @@ func postProcessTranslators(translators []plantypes.Translator, t Translator) []
 	return translators
 }
 
+func postProcessKnownTranslators(translators []plantypes.Translator, t Translator) []plantypes.Translator {
+	for sti, st := range translators {
+		_, env := t.GetConfig()
+		srcPath := env.GetSourcePath()
+		err := plantypes.ChangePaths(&st, srcPath, env.DecodePath(srcPath))
+		if err != nil {
+			logrus.Errorf("Unable to encode of translator obj %+v. Ignoring : %s", t, err)
+			continue
+		}
+		translators[sti] = st
+	}
+	return translators
+}
+
 func preProcessTranslators(translators []plantypes.Translator, t Translator) []plantypes.Translator {
 	for sti, st := range translators {
 		_, env := t.GetConfig()

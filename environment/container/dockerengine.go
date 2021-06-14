@@ -263,7 +263,7 @@ func (e *dockerEngine) RemoveImage(image string) (err error) {
 func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error) {
 	if !e.pullImage(image) {
 		logrus.Debugf("Unable to pull image using docker : %s", image)
-		return "", false, fmt.Errorf("Unable to pull image")
+		return "", false, fmt.Errorf("unable to pull image")
 	}
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
@@ -340,7 +340,7 @@ func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, vol
 			logs = cast.ToString(b)
 		}
 		if status.StatusCode != 0 {
-			return logs, true, fmt.Errorf("Container execution terminated with error code : %d", status.StatusCode)
+			return logs, true, fmt.Errorf("container execution terminated with error code : %d", status.StatusCode)
 		}
 		return logs, true, nil
 	}

@@ -196,14 +196,14 @@ func (e *Environment) SyncOutput(path string) (outputPath string) {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return path
 	}
-	if e.Container.CID != "" {
+	if e.Container != nil && e.Container.CID != "" {
 		cengine := GetContainerEngine()
 		err = cengine.CopyDirsFromContainer(e.Container.CID, map[string]string{path: output})
 		if err != nil {
 			logrus.Errorf("Unable to copy paths to new container image : %s", err)
 		}
 		return output
-	} else if e.Container.PID != 0 {
+	} else if e.Container != nil && e.Container.PID != 0 {
 		nsp := filepath.Join("proc", fmt.Sprint(e.Container.PID), "root", path)
 		err = filesystem.Replicate(nsp, output)
 		if err != nil {

@@ -166,7 +166,7 @@ func writeDirToTar(w *io.PipeWriter, srcDir, basePath string) error {
 func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
 	reader := readDirAsTar(src, dst)
 	if reader == nil {
-		err := fmt.Errorf("Error during create tar archive from '%s'", src)
+		err := fmt.Errorf("error during create tar archive from '%s'", src)
 		logrus.Error(err)
 		return err
 	}
