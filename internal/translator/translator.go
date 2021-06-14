@@ -51,7 +51,7 @@ type Translator interface {
 }
 
 func init() {
-	translatorObjs := []Translator{new(classes.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig), new(classes.CNBContainerizer)}
+	translatorObjs := []Translator{new(classes.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig), new(classes.CNBContainerizer), new(classes.Executable)}
 	for _, tt := range translatorObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
