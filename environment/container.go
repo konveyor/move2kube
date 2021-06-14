@@ -17,6 +17,8 @@ limitations under the License.
 package environment
 
 import (
+	"fmt"
+
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/konveyor/move2kube/environment/container"
 	"github.com/sirupsen/logrus"
@@ -29,8 +31,8 @@ var (
 
 // Engine defines interface to manage containers
 type ContainerEngine interface {
-	// RunContainer runs a container
-	RunContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error)
+	// RunCmdInContainer runs a container
+	RunCmdInContainer(image string, cmd string, workingdir string) (stdout, stderr string, exitcode int, err error)
 	// InspectImage gets Inspect output for a container
 	InspectImage(image string) (dockertypes.ImageInspect, error)
 	CopyDirsIntoImage(image, newImageName string, paths map[string]string) (err error)
@@ -40,17 +42,22 @@ type ContainerEngine interface {
 	RemoveImage(image string) (err error)
 	CreateContainer(image string) (containerid string, err error)
 	StopAndRemoveContainer(containerID string) (err error)
+	// RunContainer runs a container from an image
+	RunContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error)
 }
 
-func initContainerEngine() {
-	workingEngine, err := container.NewDockerEngine()
+func initContainerEngine() (err error) {
+	workingEngine, err = container.NewDockerEngine()
 	if err != nil {
 		logrus.Debugf("Unable to use docker : %s", err)
-		workingEngine = nil
+		return err
 	}
 	if workingEngine == nil {
-		logrus.Errorf("No working container runtime available.")
+		err := fmt.Errorf("no working container runtime available")
+		logrus.Errorf("%s", err)
+		return err
 	}
+	return nil
 }
 
 // GetContainerEngine gets a working container engine

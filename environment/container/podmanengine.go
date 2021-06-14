@@ -25,6 +25,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//TOFIX: Support the interface
+
 type podmanEngine struct {
 	availableImages map[string]bool
 }

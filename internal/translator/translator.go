@@ -17,6 +17,7 @@ limitations under the License.
 package translator
 
 import (
+	"path/filepath"
 	"reflect"
 
 	"github.com/konveyor/move2kube/environment"
@@ -50,7 +51,7 @@ type Translator interface {
 }
 
 func init() {
-	translatorObjs := []Translator{new(classes.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig)} //, new(classes.CNBContainerizer)}
+	translatorObjs := []Translator{new(classes.Compose), new(irtranslators.Kubernetes), new(irtranslators.Knative), new(irtranslators.Tekton), new(irtranslators.BuildConfig), new(classes.CNBContainerizer)}
 	for _, tt := range translatorObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -96,7 +97,7 @@ func Init(assetsPath, sourcePath string) (err error) {
 			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
 		} else {
 			t := reflect.New(c).Interface().(Translator)
-			env, err := environment.NewEnvironment(tc.Name, sourcePath, nil)
+			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), nil)
 			if err != nil {
 				logrus.Errorf("Unable to create environment : %s", err)
 				return err
@@ -122,7 +123,7 @@ func InitTranslators(translatorToInit map[string]string, sourcePath string) erro
 			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
 		} else {
 			t := reflect.New(c).Interface().(Translator)
-			env, err := environment.NewEnvironment(tc.Name, sourcePath, nil)
+			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), nil)
 			if err != nil {
 				logrus.Errorf("Unable to create environment : %s", err)
 				return err
@@ -135,6 +136,15 @@ func InitTranslators(translatorToInit map[string]string, sourcePath string) erro
 		}
 	}
 	return nil
+}
+
+func Destroy() {
+	for _, t := range translators {
+		_, env := t.GetConfig()
+		if err := env.Destroy(); err != nil {
+			logrus.Errorf("Unable to destroy environment : %s", err)
+		}
+	}
 }
 
 func GetTranslators() map[string]Translator {

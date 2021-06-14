@@ -17,9 +17,11 @@ limitations under the License.
 package environment
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -32,10 +34,12 @@ import (
 
 type Environment struct {
 	Name      string
+	Context   string
 	Source    string
 	Paths     map[string]string
-	Container ContainerEnvironment
+	Container *ContainerEnvironment
 	TempDir   string
+	Children  []Environment
 }
 
 // Container stores container based execution information
@@ -57,11 +61,13 @@ type ContainerEnvironment struct {
 	Root          string
 }
 
-func NewEnvironment(name string, source string, container *Container) (env Environment, err error) {
+func NewEnvironment(name string, source string, context string, container *Container) (env Environment, err error) {
 	env = Environment{
-		Name:   name,
-		Source: source,
-		Paths:  map[string]string{},
+		Name:     name,
+		Source:   source,
+		Context:  context,
+		Paths:    map[string]string{},
+		Children: []Environment{},
 	}
 	env.TempDir, err = ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 	if err != nil {
@@ -74,7 +80,7 @@ func NewEnvironment(name string, source string, container *Container) (env Envir
 	}
 	env.Paths[source] = tempSrc
 	if container != nil {
-		containerEnvironment := ContainerEnvironment{
+		containerEnvironment := &ContainerEnvironment{
 			ImageName: container.Image,
 		}
 		envVariableName := common.MakeStringEnvNameCompliant(container.Image)
@@ -99,7 +105,10 @@ func NewEnvironment(name string, source string, container *Container) (env Envir
 		}
 		if containerEnvironment.PID == 0 && containerEnvironment.Root == "" {
 			cengine := GetContainerEngine()
-			newImageName := container.Image + env.Name + uniuri.NewLen(5)
+			if cengine == nil {
+				return env, fmt.Errorf("no working container runtime found")
+			}
+			newImageName := container.Image + strings.ToLower(env.Name+uniuri.NewLen(5))
 			err := cengine.CopyDirsIntoImage(container.Image, newImageName, env.Paths)
 			if err != nil {
 				logrus.Debugf("Unable to create new container image with new data")
@@ -127,7 +136,7 @@ func NewEnvironment(name string, source string, container *Container) (env Envir
 		}
 		env.Container = containerEnvironment
 	}
-	if env.Container.CID == "" {
+	if env.Container == nil || env.Container.CID == "" {
 		for sp, dp := range env.Paths {
 			if dp == "" {
 				dp, err = ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
@@ -135,7 +144,7 @@ func NewEnvironment(name string, source string, container *Container) (env Envir
 					logrus.Errorf("Unable to create temp dir : %s", err)
 				}
 			}
-			if env.Container.PID != 0 {
+			if env.Container != nil && env.Container.PID != 0 {
 				dp = filepath.Join("proc", fmt.Sprint(env.Container.PID), "root", dp)
 				env.Paths[sp] = dp
 			}
@@ -153,8 +162,12 @@ func NewEnvironment(name string, source string, container *Container) (env Envir
 	return env, nil
 }
 
+func (e *Environment) AddChild(env Environment) {
+	e.Children = append(e.Children, env)
+}
+
 func (e *Environment) Sync() error {
-	if e.Container.ImageWithData != "" {
+	if e.Container != nil && e.Container.ImageWithData != "" {
 		cengine := GetContainerEngine()
 		err := cengine.StopAndRemoveContainer(e.Container.CID)
 		if err != nil {
@@ -221,6 +234,11 @@ func (e *Environment) Destroy() error {
 			}
 		}
 	}
+	for _, env := range e.Children {
+		if err := env.Destroy(); err != nil {
+			logrus.Errorf("Unable to destroy environment : %s", err)
+		}
+	}
 	return nil
 }
 
@@ -254,4 +272,35 @@ func (e *Environment) DecodePath(envpath string) string {
 
 func (e *Environment) GetSourcePath() string {
 	return e.Source
+}
+
+func (e *Environment) Exec(cmd, workingDir string) (string, string, int, error) {
+	// TODO: Use working directory
+	if e.Container != nil {
+		if e.Container.CID != "" {
+			cengine := GetContainerEngine()
+			return cengine.RunCmdInContainer(e.Container.CID, cmd, "")
+		}
+		if e.Container.PID != 0 {
+			//TODO : Fix me
+			workingDir = filepath.Join("proc", fmt.Sprint(e.Container.PID), "root", workingDir)
+		} else if workingDir == "" && e.Container.Root != "" {
+			workingDir = e.Container.Root
+		}
+	}
+	var exitcode int
+	var outb, errb bytes.Buffer
+	execcmd := exec.Command(cmd)
+	execcmd.Dir = e.Context
+	execcmd.Dir = workingDir
+	execcmd.Stdout = &outb
+	execcmd.Stderr = &errb
+	err := execcmd.Run()
+	if err != nil {
+		logrus.Errorf("Error while running command %s : %s", cmd, err)
+		if exitError, ok := err.(*exec.ExitError); ok {
+			exitcode = exitError.ExitCode()
+		}
+	}
+	return outb.String(), errb.String(), exitcode, err
 }

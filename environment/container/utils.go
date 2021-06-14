@@ -162,3 +162,31 @@ func writeDirToTar(w *io.PipeWriter, srcDir, basePath string) error {
 		return nil
 	})
 }
+
+func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
+	reader := readDirAsTar(src, dst)
+	if reader == nil {
+		err := fmt.Errorf("Error during create tar archive from '%s'", src)
+		logrus.Error(err)
+		return err
+	}
+	defer reader.Close()
+	var clientErr, err error
+	doneChan := make(chan interface{})
+	pr, pw := io.Pipe()
+	go func() {
+		clientErr = cli.CopyToContainer(ctx, containerID, "/", pr, types.CopyToContainerOptions{})
+		close(doneChan)
+	}()
+	func() {
+		defer pw.Close()
+		var nBytesCopied int64
+		nBytesCopied, err = io.Copy(pw, reader)
+		logrus.Debugf("%d bytes copied into pipe as tar", nBytesCopied)
+	}()
+	<-doneChan
+	if err == nil {
+		err = clientErr
+	}
+	return err
+}
