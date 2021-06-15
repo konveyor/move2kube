@@ -76,18 +76,18 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 		logrus.Debugf("Planning dir translation - %s", path)
 		found := false
 		for _, t := range translators {
-			logrus.Debugf("[%T] Planning translation", t, path)
-			_, env := t.GetConfig()
+			config, env := t.GetConfig()
+			logrus.Debugf("[%s] Planning translation", config.Name, path)
 			env.Sync()
 			nservices, nunservices, err := t.DirectoryDetect(env.EncodePath(path))
 			if err != nil {
-				logrus.Warnf("[%T] Failed : %s", t, err)
+				logrus.Warnf("[%s] Failed : %s", config.Name, err)
 			} else {
 				nservices = postProcessServices(nservices, t)
 				nunservices = postProcessTranslators(nunservices, t)
 				services = plantypes.MergeServices(services, nservices)
 				unservices = append(unservices, nunservices...)
-				logrus.Debugf("[%T] Done", t)
+				logrus.Debugf("[%s] Done", config.Name)
 				if len(nservices) > 0 || len(nunservices) > 0 {
 					found = true
 					relpath, _ := filepath.Rel(inputPath, path)

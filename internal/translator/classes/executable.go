@@ -174,7 +174,7 @@ func (t *Executable) TranslateIR(ir irtypes.IR, plan plantypes.Plan) ([]translat
 func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (nameServices map[string]plantypes.Service, unservices []plantypes.Translator, err error) {
 	ncmd := environmenttypes.Command{
 		CMD:  cmd.CMD,
-		Args: []string{t.Env.EncodePath(t.Env.GetSourcePath())},
+		Args: []string{t.Env.EncodePath(t.Env.EncodePath(dir))},
 	}
 	stdout, stderr, exitcode, err := t.Env.Exec(ncmd, "")
 	if err != nil {
@@ -184,6 +184,7 @@ func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (na
 		logrus.Debugf("Detect did not succeed %s : %s : %d : %s", stdout, stderr, exitcode, err)
 		return nil, nil, nil
 	}
+	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d", t.TConfig.Name, t.Env.DecodePath(dir), stdout, stderr, exitcode)
 	stdout = strings.TrimSpace(stdout)
 	if strings.ToLower(t.ExecConfig.Type) == string(FullExecType) {
 		trans := PlanTranslators{}

@@ -18,6 +18,7 @@ package environment
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -290,9 +291,16 @@ func (e *Environment) Exec(cmd environmenttypes.Command, workingDir string) (str
 	execcmd.Stderr = &errb
 	err := execcmd.Run()
 	if err != nil {
-		logrus.Errorf("Error while running command %+v in %s : %s", cmd, workingDir, err)
-		if exitError, ok := err.(*exec.ExitError); ok {
-			exitcode = exitError.ExitCode()
+		var ee *exec.ExitError
+		var pe *os.PathError
+		if errors.As(err, &ee) {
+			exitcode = ee.ExitCode()
+			err = nil
+		} else if errors.As(err, &pe) {
+			logrus.Errorf("PathError during execution of command: %v", pe)
+			err = pe
+		} else {
+			logrus.Errorf("Generic error during execution of command: %v", err)
 		}
 	}
 	return outb.String(), errb.String(), exitcode, err

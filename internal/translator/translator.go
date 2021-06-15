@@ -189,21 +189,22 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 	logrus.Infof("[Named Services] Identified %d namedservices", len(services))
 	logrus.Infoln("Planning Service Augmentors")
 	for _, t := range translators {
-		logrus.Debugf("[%T] Planning translation", t)
+		config, _ := t.GetConfig()
+		logrus.Debugf("[%s] Planning translation", config.Name)
 		for sn, s := range services {
 			_, env := t.GetConfig()
 			env.Sync()
 			s = preProcessTranslators(s, t)
 			sts, err := t.ServiceAugmentDetect(sn, s)
 			if err != nil {
-				logrus.Errorf("[%T] Failed for service %s : %s", t, sn, err)
+				logrus.Errorf("[%s] Failed for service %s : %s", config.Name, sn, err)
 			} else {
 				s = postProcessKnownTranslators(s, t)
 				sts = postProcessTranslators(sts, t)
 				services[sn] = append(s, sts...)
 			}
 		}
-		logrus.Debugf("[%T] Done", t)
+		logrus.Debugf("[%s] Done", config.Name)
 	}
 	logrus.Infoln("Service Augmentors planning - done")
 	return
