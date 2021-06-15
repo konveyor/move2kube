@@ -34,7 +34,8 @@ import (
 func getTranslatorConfig(path string) (translatortypes.Translator, error) {
 	tc := translatortypes.Translator{
 		Spec: translatortypes.TranslatorSpec{
-			FilePath: path,
+			FilePath:     path,
+			TemplatesDir: "templates/",
 		},
 	}
 	if err := common.ReadMove2KubeYaml(path, &tc); err != nil {
@@ -83,13 +84,15 @@ func walkForServices(inputPath string, ts map[string]Translator, bservices map[s
 				logrus.Warnf("[%T] Failed : %s", t, err)
 			} else {
 				nservices = postProcessServices(nservices, t)
-				unservices = postProcessTranslators(unservices, t)
-				plantypes.MergeServices(services, nservices)
+				nunservices = postProcessTranslators(nunservices, t)
+				services = plantypes.MergeServices(services, nservices)
 				unservices = append(unservices, nunservices...)
-				if len(nservices) > 0 || len(unservices) > 0 {
-					found = true
-				}
 				logrus.Debugf("[%T] Done", t)
+				if len(nservices) > 0 || len(nunservices) > 0 {
+					found = true
+					relpath, _ := filepath.Rel(inputPath, path)
+					logrus.Infof("Found %d named services and %d unnamed translator success in %s", len(nservices), len(nunservices), relpath)
+				}
 			}
 		}
 		logrus.Debugf("Dir translation done - %s", path)
@@ -173,7 +176,6 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 		return services
 	}
 
-	// TODO: Have temporarily adopted naming logic from old Dockerfile containerizer. Validate the approach.
 	repoProjects := map[string][]project{}
 	for sp := range servicePaths {
 		repo, ok := basePathRepos[sp]
@@ -257,9 +259,9 @@ func bucketProjects(projects []project) map[string][]project {
 	for _, df := range projects {
 		parts := strings.Split(df.pathsuffix, string(filepath.Separator))
 		prefix := ""
-		if len(parts) == 1 {
+		if len(parts) == 0 {
 			prefix = ""
-		} else if len(parts) > 1 {
+		} else if len(parts) > 0 {
 			prefix = parts[0]
 		}
 		if pdfs, ok := nProjects[prefix]; !ok {
@@ -356,7 +358,7 @@ func processPathMapping(pm translatortypes.PathMapping, t Translator, templateCo
 		pm.SrcPath = env.SyncOutput(pm.SrcPath)
 		newTempDir, err := ioutil.TempDir(common.TempPath, "modifiedsource-*")
 		if err != nil {
-			logrus.Errorf("Unable to create temporary directory for templates in pathMapping %+v. Ingoring.", pm)
+			logrus.Errorf("Unable to create temporary directory in pathMapping %+v. Ingoring.", pm)
 			return pm, err
 		}
 		if srcPath != "" {
@@ -375,7 +377,7 @@ func processPathMapping(pm translatortypes.PathMapping, t Translator, templateCo
 		return pm, nil
 	case translatortypes.TemplatePathMappingType:
 		if !filepath.IsAbs(pm.SrcPath) {
-			pm.SrcPath = filepath.Join(config.Spec.FilePath, pm.SrcPath)
+			pm.SrcPath = filepath.Join(config.Spec.FilePath, config.Spec.TemplatesDir, pm.SrcPath)
 		}
 		pm.SrcPath = env.SyncOutput(pm.SrcPath)
 		newTempDir, err := ioutil.TempDir(common.TempPath, "templates-*")

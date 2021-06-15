@@ -25,6 +25,7 @@ import (
 	"github.com/konveyor/move2kube/internal/translator/classes"
 	"github.com/konveyor/move2kube/internal/translator/classes/irtranslators"
 	"github.com/konveyor/move2kube/qaengine"
+	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
@@ -97,7 +98,7 @@ func Init(assetsPath, sourcePath string) (err error) {
 			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
 		} else {
 			t := reflect.New(c).Interface().(Translator)
-			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), nil)
+			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), environmenttypes.Container{})
 			if err != nil {
 				logrus.Errorf("Unable to create environment : %s", err)
 				return err
@@ -123,7 +124,7 @@ func InitTranslators(translatorToInit map[string]string, sourcePath string) erro
 			logrus.Errorf("Unable to find Translator class %s in %+v", tc.Spec.Class, translatorTypes)
 		} else {
 			t := reflect.New(c).Interface().(Translator)
-			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), nil)
+			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), environmenttypes.Container{})
 			if err != nil {
 				logrus.Errorf("Unable to create environment : %s", err)
 				return err

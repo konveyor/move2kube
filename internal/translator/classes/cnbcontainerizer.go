@@ -19,6 +19,7 @@ package classes
 import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
+	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	translatortypes "github.com/konveyor/move2kube/types/translator"
@@ -52,7 +53,7 @@ func (t *CNBContainerizer) Init(tc translatortypes.Translator, env environment.E
 		return err
 	}
 
-	t.CNBEnv, err = environment.NewEnvironment(tc.Name, t.Env.GetSourcePath(), "", &environment.Container{
+	t.CNBEnv, err = environment.NewEnvironment(tc.Name, t.Env.GetSourcePath(), "", environmenttypes.Container{
 		Image: t.CNBConfig.BuilderImageName,
 	})
 	if err != nil {
@@ -71,7 +72,11 @@ func (t *CNBContainerizer) BaseDirectoryDetect(dir string) (namedServices map[st
 }
 
 func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Translator, err error) {
-	stdout, stderr, exitcode, err := t.CNBEnv.Exec("/cnb/lifecycle/detector "+t.CNBEnv.EncodePath(t.CNBEnv.GetSourcePath()), "")
+	cmd := environmenttypes.Command{
+		CMD:  "/cnb/lifecycle/detector",
+		Args: []string{t.CNBEnv.EncodePath(t.CNBEnv.GetSourcePath())},
+	}
+	stdout, stderr, exitcode, err := t.CNBEnv.Exec(cmd, "")
 	if err != nil {
 		logrus.Errorf("Detect failed %s : %s : %d : %s", stdout, stderr, exitcode, err)
 		return nil, nil, err

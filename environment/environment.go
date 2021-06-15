@@ -29,6 +29,7 @@ import (
 	"github.com/dchest/uniuri"
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/internal/common"
+	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,20 +38,9 @@ type Environment struct {
 	Context   string
 	Source    string
 	Paths     map[string]string
-	Container *ContainerEnvironment
+	Container ContainerEnvironment
 	TempDir   string
 	Children  []Environment
-}
-
-// Container stores container based execution information
-type Container struct {
-	Image          string         `yaml:"image"`
-	ContainerBuild ContainerBuild `yaml:"build"`
-}
-
-type ContainerBuild struct {
-	Dockerfile string `yaml:"dockerfile"` // Default : Look for Dockerfile in the same folder
-	Context    string `yaml:"context"`    // Default : Same folder as the yaml
 }
 
 type ContainerEnvironment struct {
@@ -61,7 +51,7 @@ type ContainerEnvironment struct {
 	Root          string
 }
 
-func NewEnvironment(name string, source string, context string, container *Container) (env Environment, err error) {
+func NewEnvironment(name string, source string, context string, container environmenttypes.Container) (env Environment, err error) {
 	env = Environment{
 		Name:     name,
 		Source:   source,
@@ -79,8 +69,8 @@ func NewEnvironment(name string, source string, context string, container *Conta
 		logrus.Errorf("Unable to create temp dir : %s", err)
 	}
 	env.Paths[source] = tempSrc
-	if container != nil {
-		containerEnvironment := &ContainerEnvironment{
+	if (container != environmenttypes.Container{}) {
+		containerEnvironment := ContainerEnvironment{
 			ImageName: container.Image,
 		}
 		envVariableName := common.MakeStringEnvNameCompliant(container.Image)
@@ -136,7 +126,7 @@ func NewEnvironment(name string, source string, context string, container *Conta
 		}
 		env.Container = containerEnvironment
 	}
-	if env.Container == nil || env.Container.CID == "" {
+	if env.Container.CID == "" {
 		for sp, dp := range env.Paths {
 			if dp == "" {
 				dp, err = ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
@@ -144,7 +134,8 @@ func NewEnvironment(name string, source string, context string, container *Conta
 					logrus.Errorf("Unable to create temp dir : %s", err)
 				}
 			}
-			if env.Container != nil && env.Container.PID != 0 {
+			if env.Container.PID != 0 {
+				logrus.Infof("Inside %+v", env.Container)
 				dp = filepath.Join("proc", fmt.Sprint(env.Container.PID), "root", dp)
 				env.Paths[sp] = dp
 			}
@@ -167,7 +158,7 @@ func (e *Environment) AddChild(env Environment) {
 }
 
 func (e *Environment) Sync() error {
-	if e.Container != nil && e.Container.ImageWithData != "" {
+	if e.Container.ImageWithData != "" {
 		cengine := GetContainerEngine()
 		err := cengine.StopAndRemoveContainer(e.Container.CID)
 		if err != nil {
@@ -196,14 +187,14 @@ func (e *Environment) SyncOutput(path string) (outputPath string) {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return path
 	}
-	if e.Container != nil && e.Container.CID != "" {
+	if e.Container.CID != "" {
 		cengine := GetContainerEngine()
 		err = cengine.CopyDirsFromContainer(e.Container.CID, map[string]string{path: output})
 		if err != nil {
 			logrus.Errorf("Unable to copy paths to new container image : %s", err)
 		}
 		return output
-	} else if e.Container != nil && e.Container.PID != 0 {
+	} else if e.Container.PID != 0 {
 		nsp := filepath.Join("proc", fmt.Sprint(e.Container.PID), "root", path)
 		err = filesystem.Replicate(nsp, output)
 		if err != nil {
@@ -274,9 +265,11 @@ func (e *Environment) GetSourcePath() string {
 	return e.Source
 }
 
-func (e *Environment) Exec(cmd, workingDir string) (string, string, int, error) {
-	// TODO: Use working directory
-	if e.Container != nil {
+func (e *Environment) Exec(cmd environmenttypes.Command, workingDir string) (string, string, int, error) {
+	if workingDir == "" {
+		workingDir = e.Context
+	}
+	if (e.Container != ContainerEnvironment{}) {
 		if e.Container.CID != "" {
 			cengine := GetContainerEngine()
 			return cengine.RunCmdInContainer(e.Container.CID, cmd, "")
@@ -290,14 +283,14 @@ func (e *Environment) Exec(cmd, workingDir string) (string, string, int, error) 
 	}
 	var exitcode int
 	var outb, errb bytes.Buffer
-	execcmd := exec.Command(cmd)
+	execcmd := exec.Command(cmd.CMD, cmd.Args...)
 	execcmd.Dir = e.Context
 	execcmd.Dir = workingDir
 	execcmd.Stdout = &outb
 	execcmd.Stderr = &errb
 	err := execcmd.Run()
 	if err != nil {
-		logrus.Errorf("Error while running command %s : %s", cmd, err)
+		logrus.Errorf("Error while running command %+v in %s : %s", cmd, workingDir, err)
 		if exitError, ok := err.(*exec.ExitError); ok {
 			exitcode = exitError.ExitCode()
 		}

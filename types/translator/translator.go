@@ -20,28 +20,6 @@ import (
 	"github.com/konveyor/move2kube/types"
 )
 
-/*
-1. If handler, use
-*/
-
-/*
-apiVersion: move2kube.konveyor.io/v1alpha1
-kind: Generator
-metadata:
-  name: m2k-java-containerizer
-spec:
-  class: Executable
-  mode: Container // Container, CustomResource, Service, Custom
-  detect: "detect.sh" // Analyse is called if detect is not present
-  analyse: "analyse.sh" // Should return a json
-  localEnv: "M2KCONTAINERIZER_ENV_AVAILABLE"
-  container:
-    image: "m2k-java-containerizer:latest"
-    build:
-      context: "."
-      dockerfile: Dockerfile
-*/
-
 const TranslatorKind = "Translator"
 
 type Mode string
@@ -62,10 +40,11 @@ type Translator struct {
 
 // TranslatorSpec stores the data
 type TranslatorSpec struct {
-	FilePath string      `yaml:"-"`
-	Mode     Mode        `yaml:"mode"`
-	Class    string      `yaml:"class"`
-	Config   interface{} `yaml:"config"`
+	FilePath     string      `yaml:"-"`
+	Mode         Mode        `yaml:"mode"`
+	Class        string      `yaml:"class"`
+	TemplatesDir string      `yaml:"templates"` //Relative to yaml directory or /
+	Config       interface{} `yaml:"config"`
 }
 
 // NewDockerfileContainerizer creates a new instance of DockerfileContainerizer

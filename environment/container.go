@@ -21,6 +21,7 @@ import (
 
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/konveyor/move2kube/environment/container"
+	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,7 +33,7 @@ var (
 // Engine defines interface to manage containers
 type ContainerEngine interface {
 	// RunCmdInContainer runs a container
-	RunCmdInContainer(image string, cmd string, workingdir string) (stdout, stderr string, exitcode int, err error)
+	RunCmdInContainer(image string, cmd environmenttypes.Command, workingdir string) (stdout, stderr string, exitcode int, err error)
 	// InspectImage gets Inspect output for a container
 	InspectImage(image string) (dockertypes.ImageInspect, error)
 	CopyDirsIntoImage(image, newImageName string, paths map[string]string) (err error)
@@ -43,7 +44,7 @@ type ContainerEngine interface {
 	CreateContainer(image string) (containerid string, err error)
 	StopAndRemoveContainer(containerID string) (err error)
 	// RunContainer runs a container from an image
-	RunContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error)
+	RunContainer(image string, cmd environmenttypes.Command, volsrc string, voldest string) (output string, containerStarted bool, err error)
 }
 
 func initContainerEngine() (err error) {

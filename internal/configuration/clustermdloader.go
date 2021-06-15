@@ -42,11 +42,6 @@ func (clusterMDLoader *ClusterMDLoader) UpdatePlan(plan *plantypes.Plan) error {
 			continue
 		}
 		plan.Spec.Configuration.TargetClusters[cm.Name] = filePath
-
-		// If we are targeting the default cluster type then change it to the custom cluster type the user provided.
-		if plan.Spec.TargetCluster.Type == common.DefaultClusterType {
-			plan.Spec.TargetCluster.Type = cm.Name
-		}
 	}
 	return nil
 }

@@ -6,4 +6,5 @@ spec:
   mode: "Container"
   class: "Executable"
   config:
-    directoryDetectCMD: "echo"
+    directoryDetectCMD: 
+      cmd: "./m2kdfdetect.sh"

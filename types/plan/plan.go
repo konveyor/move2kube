@@ -78,7 +78,7 @@ type TargetClusterType struct {
 // Translator stores translator option
 type Translator struct {
 	Mode                   string              `yaml:"mode" json:"mode"` // container, customresource, service, generic
-	Name                   string              `yaml:"name" json:"name"`
+	Name                   string              `yaml:"name" json:"translatorName"`
 	ArtifactTypes          []string            `yaml:"artifacttypes,omitempty" json:"artifacts,omitempty"`
 	ExclusiveArtifactTypes []string            `yaml:"exclusiveArtifactTypes,omitempty" json:"exclusiveArtifacts,omitempty"`
 	Config                 interface{}         `yaml:"config,omitempty" json:"config,omitempty"`

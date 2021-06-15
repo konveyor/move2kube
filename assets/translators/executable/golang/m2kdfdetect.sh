@@ -11,7 +11,6 @@
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
-<<<<<<< HEAD:internal/assets/dockerfiles/golang/m2kdfdetect.sh
 #   limitations under the License.
 
 # Takes as input the source directory and returns error if it is not fit
@@ -22,6 +21,3 @@ if [ ! "$found" -eq 1 ]; then
 fi
 
 echo '{"port": 8080, "app_name": "app-bin"}'
-=======
-#   limitations under the License.
->>>>>>> feat: Allow containerizers to run as container or locally depending on environment:internal/assets/dockerfiles/java/segments/dockerfile_license/Dockerfile

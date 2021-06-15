@@ -27,6 +27,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
@@ -53,7 +54,7 @@ func NewDockerEngine() (*dockerEngine, error) {
 		cli:             cli,
 		ctx:             ctx,
 	}
-	_, _, err = e.RunContainer(testimage, "", "", "")
+	_, _, err = e.RunContainer(testimage, environmenttypes.Command{}, "", "")
 	if err != nil {
 		logrus.Errorf("Unable to run test container : %s", err)
 	}
@@ -79,11 +80,13 @@ func (e *dockerEngine) pullImage(image string) bool {
 }
 
 // RunCmdInContainer executes a container
-func (e *dockerEngine) RunCmdInContainer(containerID string, cmd string, workingdir string) (stdout, stderr string, exitCode int, err error) {
+func (e *dockerEngine) RunCmdInContainer(containerID string, cmd environmenttypes.Command, workingdir string) (stdout, stderr string, exitCode int, err error) {
+	execcmd := []string{cmd.CMD}
+	execcmd = append(execcmd, cmd.Args...)
 	execConfig := types.ExecConfig{
 		AttachStdout: true,
 		AttachStderr: true,
-		Cmd:          []string{cmd},
+		Cmd:          execcmd,
 		WorkingDir:   workingdir,
 	}
 	cresp, err := e.cli.ContainerExecCreate(e.ctx, containerID, execConfig)
@@ -260,7 +263,7 @@ func (e *dockerEngine) RemoveImage(image string) (err error) {
 }
 
 // RunContainer executes a container
-func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error) {
+func (e *dockerEngine) RunContainer(image string, cmd environmenttypes.Command, volsrc string, voldest string) (output string, containerStarted bool, err error) {
 	if !e.pullImage(image) {
 		logrus.Debugf("Unable to pull image using docker : %s", image)
 		return "", false, fmt.Errorf("unable to pull image")
@@ -274,8 +277,9 @@ func (e *dockerEngine) RunContainer(image string, cmd string, volsrc string, vol
 	contconfig := &container.Config{
 		Image: image,
 	}
-	if cmd != "" {
-		contconfig.Cmd = []string{cmd}
+	if cmd.CMD != "" {
+		contconfig.Cmd = []string{cmd.CMD}
+		contconfig.Cmd = append(contconfig.Cmd, cmd.Args...)
 	}
 	if (volsrc == "" && voldest != "") || (volsrc != "" && voldest == "") {
 		logrus.Warnf("Either volume source (%s) or destination (%s) is empty. Ingoring volume mount.", volsrc, voldest)
