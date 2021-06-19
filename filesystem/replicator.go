@@ -42,10 +42,8 @@ func replicateProcessFileCallBack(sourceFilePath, destinationFilePath string, co
 	}
 	di, err := os.Stat(destinationFilePath)
 	if err == nil {
-		if err == nil && !(si.Mode().IsRegular() != di.Mode().IsRegular() || si.Size() != di.Size() || si.ModTime() != di.ModTime()) {
+		if !(si.Mode().IsRegular() != di.Mode().IsRegular() || si.Size() != di.Size() || si.ModTime() != di.ModTime()) {
 			return nil
-		} else if err != nil {
-			logrus.Errorf("Unable to compare files to check if files are same %s and %s. Copying normally : %s", sourceFilePath, destinationFilePath, err)
 		}
 	}
 	sourceReader, err := os.Open(sourceFilePath)

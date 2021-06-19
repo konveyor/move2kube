@@ -66,7 +66,7 @@ func TestReplicaPreprocessor(t *testing.T) {
 		svc1 := irtypes.Service{Name: svcname1, Replicas: 1}
 		svc2 := irtypes.Service{Name: svcname2, Replicas: 1}
 
-		ir := irtypes.NewIR("")
+		ir := irtypes.NewIR()
 		ir.Services[svcname1] = svc1
 		ir.Services[svcname2] = svc2
 		replicaPreprocessor := replicaPreprocessor{}
@@ -104,7 +104,7 @@ func TestReplicaPreprocessor(t *testing.T) {
 		svcname2 := "svcname2"
 		svc1 := irtypes.Service{Name: svcname1, Replicas: 1}
 		svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
-		ir := irtypes.NewIR("")
+		ir := irtypes.NewIR()
 		ir.Services[svcname1] = svc1
 		ir.Services[svcname2] = svc2
 		replicaPreprocessor := replicaPreprocessor{}
@@ -126,7 +126,7 @@ func getServicesWithMoreReplicasThanDefaultMinimumReplicas() irtypes.IR {
 	svcname2 := "svcname2"
 	svc1 := irtypes.Service{Name: svcname1, Replicas: 4}
 	svc2 := irtypes.Service{Name: svcname2, Replicas: 3}
-	ir := irtypes.NewIR("")
+	ir := irtypes.NewIR()
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 	return ir
@@ -137,7 +137,7 @@ func getIRWithServicesWithDefaultMinimumReplicas() irtypes.IR {
 	svcname2 := "svcname2"
 	svc1 := irtypes.Service{Name: svcname1, Replicas: 2}
 	svc2 := irtypes.Service{Name: svcname2, Replicas: 2}
-	ir := irtypes.NewIR("")
+	ir := irtypes.NewIR()
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 	return ir
@@ -148,7 +148,7 @@ func getExpectedIRWithModifiedReplicas() irtypes.IR {
 	svcname2 := "svcname2"
 	svc1 := irtypes.Service{Name: svcname1, Replicas: 2}
 	svc2 := irtypes.Service{Name: svcname2, Replicas: 4}
-	ir := irtypes.NewIR("")
+	ir := irtypes.NewIR()
 	ir.Services[svcname1] = svc1
 	ir.Services[svcname2] = svc2
 

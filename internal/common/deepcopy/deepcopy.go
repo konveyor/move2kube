@@ -22,8 +22,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Interface can be implemented by types to have custom deep copy logic.
-type Interface interface {
+// DeepCopyInterface can be implemented by types to have custom deep copy logic.
+type DeepCopyInterface interface {
 	DeepCopy() interface{}
 }
 
@@ -39,7 +39,7 @@ func copyRecursively(xV reflect.Value) reflect.Value {
 		return xV
 	}
 	if xV.CanInterface() {
-		if deepCopyAble, ok := xV.Interface().(Interface); ok {
+		if deepCopyAble, ok := xV.Interface().(DeepCopyInterface); ok {
 			yV := reflect.ValueOf(deepCopyAble.DeepCopy())
 			if !yV.IsValid() {
 				return xV

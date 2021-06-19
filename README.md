@@ -49,7 +49,7 @@ We also provide a UI version of Move2Kube
 
 ### Simple Usage
 
-`move2kube translate -s src` , where src is the folder containing the source artifacts.
+`move2kube transform -s src` , where src is the folder containing the source artifacts.
 
 ### Involved Usage
 

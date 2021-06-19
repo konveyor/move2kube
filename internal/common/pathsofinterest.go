@@ -29,13 +29,13 @@ const (
 	TempDirPrefix = types.AppNameShort + "-"
 	// AssetsDir defines the dir of the assets temp directory
 	AssetsDir = types.AppNameShort + "assets"
-	// TranslateDir defines the dir of the assets temp directory
-	TranslateDir = "translate"
+	// TransformDir defines the dir of the assets temp directory
+	TransformDir = "transform"
 
 	// ScriptsDir defines the directory where the output scripts are placed
 	ScriptsDir = "scripts"
-	// SourceDir defines the directory where the source files and folders are placed along with build scripts for each individual image
-	SourceDir = "source"
+	// DefaultSourceDir defines the directory where the source files and folders are placed along with build scripts for each individual image
+	DefaultSourceDir = "source"
 	// DeployDir defines the directory where the deployment artifacts are placed
 	DeployDir = "deploy"
 	// CICDDir defines the directory where the deployment artifacts are placed

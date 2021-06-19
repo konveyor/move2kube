@@ -20,7 +20,7 @@ import (
 	"os"
 	"strings"
 
-	collector "github.com/konveyor/move2kube/internal/collector"
+	collector "github.com/konveyor/move2kube/collector"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/sirupsen/logrus"
 )

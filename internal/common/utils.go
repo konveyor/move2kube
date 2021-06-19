@@ -358,7 +358,7 @@ func GetStringFromTemplate(tpl string, config interface{}) (string, error) {
 	var packageTemplate = template.Must(template.New("").Parse(tpl))
 	err := packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
-		logrus.Warnf("Unable to translate template %q to string using the data %v", tpl, config)
+		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)
 		return "", err
 	}
 	return tplbuffer.String(), nil
@@ -393,14 +393,30 @@ func GetClosestMatchingString(options []string, searchstring string) string {
 
 // MergeStringMaps merges two string maps
 func MergeStringMaps(map1 map[string]string, map2 map[string]string) map[string]string {
-	mergedmap := map[string]string{}
-	for k, v := range map1 {
-		mergedmap[k] = v
+	if map1 == nil {
+		return map2
+	}
+	if map2 == nil {
+		return map1
 	}
 	for k, v := range map2 {
-		mergedmap[k] = v
+		map1[k] = v
 	}
-	return mergedmap
+	return map1
+}
+
+// MergeStringSliceMaps merges two string slice maps
+func MergeStringSliceMaps(map1 map[string][]string, map2 map[string][]string) map[string][]string {
+	if map1 == nil {
+		return map2
+	}
+	if map2 == nil {
+		return map1
+	}
+	for k, v := range map2 {
+		map1[k] = MergeStringSlices(map1[k], v...)
+	}
+	return map1
 }
 
 // MakeFileNameCompliant returns a DNS-1123 standard string

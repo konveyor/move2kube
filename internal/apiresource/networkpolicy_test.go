@@ -41,7 +41,7 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("empty IR and empty supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		oldir := irtypes.NewIR("")
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		supKinds := []string{}
 		// Test
@@ -53,7 +53,7 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("empty IR and some supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		oldir := irtypes.NewIR("")
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		supKinds := []string{"NetworkPolicy"}
 		want := []runtime.Object{}
@@ -66,7 +66,7 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("IR with some services and empty supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		oldir := irtypes.NewIR("")
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
@@ -84,7 +84,7 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("IR with some services and but no acceptable supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		oldir := irtypes.NewIR("")
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
@@ -102,7 +102,7 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("IR with some services and no networks and some supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		oldir := irtypes.NewIR("")
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
@@ -121,7 +121,7 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("IR with some services and some networks and some supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		oldir := irtypes.NewIR("")
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"

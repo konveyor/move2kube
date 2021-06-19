@@ -51,8 +51,8 @@ const (
 	ConfigurationsFlag = "extensions"
 )
 
-//TranslateFlags to store values from command line paramters
-type TranslateFlags struct {
+//TransformFlags to store values from command line paramters
+type TransformFlags struct {
 	//IgnoreEnv tells us whether to use data collected from the local machine
 	IgnoreEnv bool
 	//Planfile is contains the path to the plan file
@@ -102,7 +102,7 @@ func CheckSourcePath(srcpath string) {
 func CheckOutputPath(outpath string, overwrite bool) {
 	fi, err := os.Stat(outpath)
 	if os.IsNotExist(err) {
-		logrus.Debugf("Translated artifacts will be written to %s", outpath)
+		logrus.Debugf("Transformed artifacts will be written to %s", outpath)
 		return
 	}
 	if err != nil {

@@ -19,7 +19,7 @@ package api
 import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/configuration"
-	"github.com/konveyor/move2kube/internal/translator"
+	"github.com/konveyor/move2kube/internal/transformer"
 	"github.com/konveyor/move2kube/qaengine"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
@@ -46,17 +46,20 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 			logrus.Infof("[%T] Done", l)
 		}
 	}
-	translator.Init(common.AssetsPath, inputPath)
-	ts := translator.GetTranslators()
+	transformer.Init(common.AssetsPath, inputPath)
+	ts := transformer.GetTransformers()
 	for tn, t := range ts {
 		config, _ := t.GetConfig()
-		p.Spec.Configuration.Translators[tn] = config.Spec.FilePath
+		p.Spec.Configuration.Transformers[tn] = config.Spec.FilePath
 	}
 	logrus.Infoln("Configuration loading done")
 
-	p.Spec.Services = translator.GetServices(p.Name, inputPath)
+	var err error
+	p.Spec.Services, err = transformer.GetServices(p.Name, inputPath)
+	if err != nil {
+		logrus.Errorf("Unable to create plan : %s", err)
+	}
 	logrus.Infof("No of services identified : %d", len(p.Spec.Services))
-	p.Spec.PlanTranslators, _ = translator.GetPlanTranslators(p)
 	return p
 }
 
@@ -64,106 +67,79 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 func CuratePlan(p plantypes.Plan) plantypes.Plan {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	modes := []string{}
-	translators := []string{}
+	transformers := []string{}
 	for s, st := range p.Spec.Services {
 		for _, t := range st {
 			if t.Mode == "" {
-				logrus.Warnf("Ignoring translator %+v for service %s due to empty mode", t, s)
+				logrus.Warnf("Ignoring transformer %+v for service %s due to empty mode", t, s)
 				continue
 			}
-			if _, ok := p.Spec.Configuration.Translators[t.Name]; !ok {
-				logrus.Debugf("Unable to find translator %s in configuration. Ignoring.", t.Name)
+			if _, ok := p.Spec.Configuration.Transformers[t.Name]; !ok {
+				logrus.Debugf("Unable to find transformer %s in configuration. Ignoring.", t.Name)
 				continue
 			}
 			if !common.IsStringPresent(modes, t.Mode) {
 				modes = append(modes, t.Mode)
 			}
-			if !common.IsStringPresent(translators, t.Name) {
-				translators = append(translators, t.Name)
+			if !common.IsStringPresent(transformers, t.Name) {
+				transformers = append(transformers, t.Name)
 			}
 		}
 	}
-	for _, t := range p.Spec.PlanTranslators {
-		if _, ok := p.Spec.Configuration.Translators[t.Name]; !ok {
-			logrus.Debugf("Unable to find translator %s in configuration. Ignoring.", t.Name)
-			continue
-		}
-		if !common.IsStringPresent(translators, t.Name) {
-			translators = append(translators, t.Name)
-		}
-	}
 	modes = qaengine.FetchMultiSelectAnswer(common.ConfigModesKey, "Choose modes to use:", []string{"Modes generally specify the deployment model"}, modes, modes)
-	translators = qaengine.FetchMultiSelectAnswer(common.ConfigTranslatorsKey, "Choose translators to use:", []string{"Translators are those that does the conversion"}, translators, translators)
-	uTranslators := []string{}
+	transformers = qaengine.FetchMultiSelectAnswer(common.ConfigTransformersKey, "Choose transformers to use:", []string{"Transformers are those that does the conversion"}, transformers, transformers)
 	for sn, st := range p.Spec.Services {
 		mode := ""
 		exclusiveArtifactTypes := []string{}
-		sTranslators := []plantypes.Translator{}
+		sTransformers := []plantypes.Transformer{}
 		for _, t := range st {
 			if mode == "" {
 				if t.Mode == "" {
-					logrus.Warnf("Ignoring translator %+v for service %s due to empty mode", t, sn)
+					logrus.Warnf("Ignoring transformer %+v for service %s due to empty mode", t, sn)
 					continue
 				}
 				if !common.IsStringPresent(modes, t.Mode) {
-					logrus.Debugf("Ignoring translator %+v for service %s due to deselected mode %s", t, sn, t.Mode)
+					logrus.Debugf("Ignoring transformer %+v for service %s due to deselected mode %s", t, sn, t.Mode)
 					continue
 				}
-				if !common.IsStringPresent(translators, t.Name) {
-					logrus.Debugf("Ignoring translator %+v for service %s due to deselected translator %s", t, sn, t.Mode)
+				if !common.IsStringPresent(transformers, t.Name) {
+					logrus.Debugf("Ignoring transformer %+v for service %s due to deselected transformer %s", t, sn, t.Mode)
 					continue
 				}
 				mode = t.Mode
 			} else if mode != t.Mode {
 				logrus.Debugf("Ingoring %+v for service %s due to differing mode", t, sn)
 			}
-			if !common.IsStringPresent(translators, t.Name) {
-				logrus.Debugf("Ignoring translator %+v for service %s due to deselected translator %s", t, sn, t.Mode)
+			if !common.IsStringPresent(transformers, t.Name) {
+				logrus.Debugf("Ignoring transformer %+v for service %s due to deselected transformer %s", t, sn, t.Mode)
 				continue
 			}
-			if !common.IsStringPresent(uTranslators, t.Name) {
-				uTranslators = append(translators, t.Name)
-			}
-			artifactsToUse := []string{}
+			artifactsToUse := []plantypes.ArtifactType{}
 			for _, at := range t.ArtifactTypes {
-				if common.IsStringPresent(exclusiveArtifactTypes, at) {
+				if common.IsStringPresent(exclusiveArtifactTypes, string(at)) {
 					continue
 				}
 				artifactsToUse = append(artifactsToUse, at)
 			}
+			if len(artifactsToUse) == 0 {
+				continue
+			}
 			t.ArtifactTypes = artifactsToUse
-			exclusiveArtifactTypes = append(exclusiveArtifactTypes, t.ExclusiveArtifactTypes...)
-			sTranslators = append(sTranslators, t)
+			for _, e := range t.ExclusiveArtifactTypes {
+				exclusiveArtifactTypes = append(exclusiveArtifactTypes, string(e))
+			}
+			sTransformers = append(sTransformers, t)
 		}
 		if mode != "" {
 			modes = append(modes, mode)
 		}
-		if len(sTranslators) == 0 {
-			logrus.Errorf("No translators selected for service %s. Ignoring.", sn)
+		if len(sTransformers) == 0 {
+			logrus.Errorf("No transformers selected for service %s. Ignoring.", sn)
 			continue
 		}
-		p.Spec.Services[sn] = sTranslators
+		p.Spec.Services[sn] = sTransformers
 	}
-	for _, t := range p.Spec.PlanTranslators {
-		if _, ok := p.Spec.Configuration.Translators[t.Name]; !ok {
-			logrus.Debugf("Unable to find translator %s in configuration. Ignoring.", t.Name)
-			continue
-		}
-		if !common.IsStringPresent(translators, t.Name) {
-			logrus.Debugf("Plan translator %s has been unselected. Ignoring.", t.Name)
-			continue
-		}
-		uTranslators = append(uTranslators, t.Name)
-	}
-	tcs := map[string]string{}
-	for _, tn := range uTranslators {
-		if t, ok := p.Spec.Configuration.Translators[tn]; ok {
-			tcs[tn] = t
-		} else {
-			logrus.Errorf("Unable to find configuration for translator %s", tn)
-		}
-	}
-	translator.InitTranslators(tcs, p.Spec.RootDir)
+	transformer.InitTransformers(p.Spec.Configuration.Transformers, p.Spec.RootDir, true)
 
 	// Choose cluster type to target
 	clusters := new(configuration.ClusterMDLoader).GetClusters(p)

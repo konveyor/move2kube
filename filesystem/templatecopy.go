@@ -110,7 +110,7 @@ func writeTemplateToFile(tpl string, config interface{}, writepath string, filem
 	var packageTemplate = template.Must(template.New("").Parse(tpl))
 	err := packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
-		logrus.Warnf("Unable to translate template %q to string using the data %v", tpl, config)
+		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)
 		return err
 	}
 	err = ioutil.WriteFile(writepath, tplbuffer.Bytes(), filemode)

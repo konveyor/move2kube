@@ -77,8 +77,8 @@ const (
 	ConfigStoragesKey = BaseKey + d + "storages"
 	//ConfigModesKey represents modes Key
 	ConfigModesKey = BaseKey + d + "modes"
-	//ConfigTranslatorsKey represents translators Key
-	ConfigTranslatorsKey = BaseKey + d + "translators"
+	//ConfigTransformersKey represents transformers Key
+	ConfigTransformersKey = BaseKey + d + "transformers"
 	//ConfigTargetKey represents Target Key
 	ConfigTargetKey = BaseKey + d + "target"
 	//ConfigRepoKey represents Repo Key
@@ -99,8 +99,8 @@ const (
 	ConfigRepoLoadPrivKey = ConfigRepoKeysKey + d + "load"
 	//ConfigRepoKeyPathsKey represents paths of keyfiles
 	ConfigRepoKeyPathsKey = ConfigRepoKeysKey + d + "paths"
-	//ConfigTranslatorTypesKey represents Translators type Key
-	ConfigTranslatorTypesKey = ConfigTranslatorsKey + d + "types"
+	//ConfigTransformerTypesKey represents Transformers type Key
+	ConfigTransformerTypesKey = ConfigTransformersKey + d + "types"
 	//ConfigIngressKey represents Ingress Key
 	ConfigIngressKey = ConfigTargetKey + d + "ingress"
 	//ConfigIngressHostKey represents Ingress host Key

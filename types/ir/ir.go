@@ -35,10 +35,8 @@ const (
 	CNBContainerBuildTypeValue   ContainerBuildTypeValue = "CNB"
 )
 
-// IR is the intermediate representation filled by source translators
+// IR is the intermediate representation filled by source transformers
 type IR struct {
-	Name            string
-	Path            string                    // Relative to output dir
 	ContainerImages map[string]ContainerImage // [imageName]
 	Services        map[string]Service
 	Storages        []Storage
@@ -266,10 +264,8 @@ func (c *ContainerImage) AddAccessedDirs(dirname string) {
 }
 
 // NewIR creates a new IR
-func NewIR(name string) IR {
-	ir := IR{
-		Name: name,
-	}
+func NewIR() IR {
+	ir := IR{}
 	ir.ContainerImages = make(map[string]ContainerImage)
 	ir.Services = make(map[string]Service)
 	ir.Storages = []Storage{}

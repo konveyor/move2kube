@@ -34,7 +34,7 @@ import (
 func ConvertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) (runtime.Object, error) {
 	newobj, err := convertToSupportedVersion(obj, clusterSpec)
 	if err != nil {
-		logrus.Debugf("Unable to translate object to a supported version : %s.", err)
+		logrus.Debugf("Unable to transform object to a supported version : %s.", err)
 		if obj.GetObjectKind().GroupVersionKind().Version == core.SchemeGroupVersion.Version {
 			newobj, err = ConvertToPreferredVersion(obj, clusterSpec)
 			if err != nil {
@@ -132,7 +132,7 @@ func ConvertToVersion(obj runtime.Object, dgv schema.GroupVersion) (newobj runti
 	if err == nil {
 		return newobj, nil
 	}
-	logrus.Debugf("Unable to do direct translation : %s", err)
+	logrus.Debugf("Unable to do direct transformation : %s", err)
 	akt := liasonscheme.AllKnownTypes()
 	for kt := range akt {
 		if kind != kt.Kind {

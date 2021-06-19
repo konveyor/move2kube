@@ -10,7 +10,7 @@ spec:
         - serviceName: nodejs
           serviceRelPath: /nodejs
           image: nodejs:latest
-          translationType: Containerize
+          transformationType: Containerize
           containerBuildType: NewDockerfile
           sourceType:
             - Directory
@@ -27,7 +27,7 @@ spec:
         - serviceName: nodejs
           serviceRelPath: /nodejs
           image: nodejs:latest
-          translationType: Containerize
+          transformationType: Containerize
           containerBuildType: S2I
           sourceType:
             - Directory
@@ -44,7 +44,7 @@ spec:
         - serviceName: nodejs
           serviceRelPath: /nodejs
           image: nodejs:latest
-          translationType: Containerize
+          transformationType: Containerize
           containerBuildType: CNB
           sourceType:
             - Directory
