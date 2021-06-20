@@ -1,7 +1,8 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Transformer
 metadata:
-  name: Kubernetes
+  name: Buildconfig
 spec:
   mode: "Container"
-  class: "Kubernetes"
+  class: "BuildConfig"
+  consumes: ["IR"]

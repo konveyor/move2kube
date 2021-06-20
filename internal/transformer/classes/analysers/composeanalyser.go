@@ -137,7 +137,8 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 			Name:     pConfig.PlanName,
 			Artifact: transformertypes.IRArtifactType,
 			Configs: map[plantypes.ConfigType]interface{}{
-				transformertypes.IRConfigType: ir,
+				transformertypes.IRConfigType:   ir,
+				transformertypes.PlanConfigType: pConfig,
 			},
 		}
 		artifactsCreated = append(artifactsCreated, p)

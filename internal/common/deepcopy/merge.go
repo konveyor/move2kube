@@ -142,12 +142,6 @@ func compare(xV reflect.Value, yV reflect.Value) bool {
 		logrus.Debugf("invalid value given to merge recursively value: %+v", xV)
 		return false
 	}
-	if xV.IsNil() {
-		return false
-	}
-	if yV.IsNil() {
-		return false
-	}
 	xT := xV.Type()
 	xK := xV.Kind()
 	yK := yV.Kind()

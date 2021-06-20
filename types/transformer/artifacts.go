@@ -16,7 +16,10 @@ limitations under the License.
 
 package transformer
 
-import plantypes "github.com/konveyor/move2kube/types/plan"
+import (
+	"github.com/konveyor/move2kube/types/collection"
+	plantypes "github.com/konveyor/move2kube/types/plan"
+)
 
 const (
 	ServiceArtifactType               plantypes.ArtifactType = "Service"
@@ -37,5 +40,6 @@ type ServiceConfig struct {
 }
 
 type PlanConfig struct {
-	PlanName string `yaml:"planName"`
+	PlanName      string                     `yaml:"planName"`
+	TargetCluster collection.ClusterMetadata `yaml:"cluster"`
 }

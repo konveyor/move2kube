@@ -49,7 +49,7 @@ type Transformer interface {
 }
 
 func init() {
-	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator)} //, new(irtransformers.Kubernetes), new(irtransformers.Knative), new(irtransformers.Tekton), new(irtransformers.BuildConfig), new(classes.CNBContainerizer), new(classes.Executable)}
+	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig)} //, new(classes.CNBContainerizer), new(classes.Executable)}
 	for _, tt := range transformerObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()

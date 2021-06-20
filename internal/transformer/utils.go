@@ -25,6 +25,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/deepcopy"
+	"github.com/konveyor/move2kube/internal/configuration"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
@@ -85,8 +86,14 @@ func getArtifactForTransformerPlan(serviceName string, t plantypes.Transformer, 
 	serviceConfig := transformertypes.ServiceConfig{
 		ServiceName: serviceName,
 	}
+	targetCluster, err := new(configuration.ClusterMDLoader).GetTargetClusterMetadataForPlan(p)
+	if err != nil {
+		err := fmt.Errorf("unable to find target cluster : %+v", p.Spec.TargetCluster)
+		logrus.Errorf("%s", err)
+	}
 	planConfig := transformertypes.PlanConfig{
-		PlanName: p.Name,
+		PlanName:      p.Name,
+		TargetCluster: targetCluster,
 	}
 	t.Configs[transformertypes.ServiceConfigType] = serviceConfig
 	t.Configs[transformertypes.PlanConfigType] = planConfig
