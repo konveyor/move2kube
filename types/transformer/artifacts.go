@@ -26,6 +26,7 @@ const (
 	ContainerBuildArtifactType        plantypes.ArtifactType = "ContainerBuild"
 	IRArtifactType                    plantypes.ArtifactType = "IR"
 	ContainerBuildSupportArtifactType plantypes.ArtifactType = "ContainerBuildSupport"
+	CNBMetadataArtifactType           plantypes.ArtifactType = "CNBMetadata"
 )
 
 const (
