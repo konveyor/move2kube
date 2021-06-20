@@ -19,6 +19,7 @@ package environment
 // Container stores container based execution information
 type Container struct {
 	Image          string         `yaml:"image"`
+	WorkingDir     string         `yaml:"workingDir,omitempty"`
 	ContainerBuild ContainerBuild `yaml:"build"`
 }
 

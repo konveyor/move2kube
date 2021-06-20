@@ -14,13 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package environment
+package container
 
 import (
 	"fmt"
 
 	dockertypes "github.com/docker/docker/api/types"
-	"github.com/konveyor/move2kube/environment/container"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	"github.com/sirupsen/logrus"
 )
@@ -36,6 +35,7 @@ type ContainerEngine interface {
 	RunCmdInContainer(image string, cmd environmenttypes.Command, workingdir string) (stdout, stderr string, exitcode int, err error)
 	// InspectImage gets Inspect output for a container
 	InspectImage(image string) (dockertypes.ImageInspect, error)
+	// TODO: Change paths from map to array
 	CopyDirsIntoImage(image, newImageName string, paths map[string]string) (err error)
 	CopyDirsIntoContainer(containerID string, paths map[string]string) (err error)
 	CopyDirsFromContainer(containerID string, paths map[string]string) (err error)
@@ -48,11 +48,12 @@ type ContainerEngine interface {
 }
 
 func initContainerEngine() (err error) {
-	workingEngine, err = container.NewDockerEngine()
+	workingEngine, err = NewDockerEngine()
 	if err != nil {
 		logrus.Debugf("Unable to use docker : %s", err)
 		return err
 	}
+	//TODO: Add Support for podman
 	if workingEngine == nil {
 		err := fmt.Errorf("no working container runtime available")
 		logrus.Errorf("%s", err)

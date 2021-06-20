@@ -81,12 +81,10 @@ func (e *dockerEngine) pullImage(image string) bool {
 
 // RunCmdInContainer executes a container
 func (e *dockerEngine) RunCmdInContainer(containerID string, cmd environmenttypes.Command, workingdir string) (stdout, stderr string, exitCode int, err error) {
-	execcmd := []string{cmd.CMD}
-	execcmd = append(execcmd, cmd.Args...)
 	execConfig := types.ExecConfig{
 		AttachStdout: true,
 		AttachStderr: true,
-		Cmd:          execcmd,
+		Cmd:          cmd,
 		WorkingDir:   workingdir,
 	}
 	cresp, err := e.cli.ContainerExecCreate(e.ctx, containerID, execConfig)
@@ -238,16 +236,24 @@ func (e *dockerEngine) CopyDirsFromContainer(containerID string, paths map[strin
 
 // BuildImage creates a container
 func (e *dockerEngine) BuildImage(image, context, dockerfile string) (err error) {
+	logrus.Infof("Building container image %s. This could take a few mins.", image)
 	reader := readDirAsTar(context, "")
 	resp, err := e.cli.ImageBuild(e.ctx, reader, types.ImageBuildOptions{
 		Dockerfile: dockerfile,
 		Tags:       []string{image},
 	})
 	if err != nil {
-		logrus.Debugf("Container creation failed with image %s with no volumes", image)
+		logrus.Infof("Image creation failed with image %s with no volumes : %s", image, err)
 		return err
 	}
 	defer resp.Body.Close()
+	response, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Errorf("Unable to read data from image build process : %s", err)
+		return err
+	}
+	logrus.Debugf("%s", response)
+	e.availableImages[image] = true
 	logrus.Debugf("Built image %s", image)
 	return nil
 }
@@ -276,10 +282,6 @@ func (e *dockerEngine) RunContainer(image string, cmd environmenttypes.Command, 
 	}
 	contconfig := &container.Config{
 		Image: image,
-	}
-	if cmd.CMD != "" {
-		contconfig.Cmd = []string{cmd.CMD}
-		contconfig.Cmd = append(contconfig.Cmd, cmd.Args...)
 	}
 	if (volsrc == "" && voldest != "") || (volsrc != "" && voldest == "") {
 		logrus.Warnf("Either volume source (%s) or destination (%s) is empty. Ingoring volume mount.", volsrc, voldest)

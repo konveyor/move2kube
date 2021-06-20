@@ -19,8 +19,11 @@ package environment
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
+	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/pathconverters"
@@ -66,7 +69,7 @@ func NewEnvironment(name string, source string, context string, container enviro
 		Children: []Environment{},
 		TempPath: tempPath,
 	}
-	/*	if container.Image != "" {
+	if container.Image != "" {
 		envVariableName := common.MakeStringEnvNameCompliant(container.Image)
 		// Check if image is part of the current environment.
 		// It will be set as environment variable with root as base path of move2kube
@@ -75,30 +78,30 @@ func NewEnvironment(name string, source string, context string, container enviro
 		for _, envvar := range envvars {
 			envvarpair := strings.SplitN(envvar, "=", 2)
 			if len(envvarpair) > 0 && envVariableName == container.Image && len(envvarpair) > 1 {
-				pid, err := strconv.Atoi(envvarpair[1])
+				_, err := strconv.Atoi(envvarpair[1])
 				if err != nil {
-					env.Env, err = NewLocal(name, source, envvarpair[1])
+					env.Env, err = NewLocal(name, source, envvarpair[1], tempPath)
 					if err != nil {
 						logrus.Errorf("Unable to create local environment : %s", err)
 					}
 					return env, err
-				} else {
+				} /*else {
 					env.Env, err = NewProcessSharedContainer(name, source, pid)
 					if err != nil {
 						logrus.Errorf("Unable to create process shared environment : %s", err)
 					}
 					return env, err
-				}
+				}*/
 			}
 		}
 		if env.Env == nil {
-			env.Env, err = NewPeerContainer(name, source, container)
+			env.Env, err = NewPeerContainer(name, source, context, tempPath, container)
 			if err != nil {
 				logrus.Errorf("Unable to create peer container environment : %s", err)
 			}
 			return env, err
 		}
-	}*/
+	}
 	env.Env, err = NewLocal(name, source, context, tempPath)
 	if err != nil {
 		logrus.Errorf("Unable to create peer container environment : %s", err)
