@@ -42,12 +42,6 @@ func mergeRecursively(xV reflect.Value, yV reflect.Value) reflect.Value {
 		logrus.Debugf("invalid value given to merge recursively value: %+v", xV)
 		return yV
 	}
-	if xV.IsNil() {
-		return yV
-	}
-	if yV.IsNil() {
-		return xV
-	}
 	xT := xV.Type()
 	xK := xV.Kind()
 	yK := yV.Kind()
@@ -98,14 +92,14 @@ func mergeRecursively(xV reflect.Value, yV reflect.Value) reflect.Value {
 	case reflect.Map:
 		nV := reflect.MakeMapWithSize(xT, xV.Len()+yV.Len())
 		for _, key := range xV.MapKeys() {
-			if yV.MapIndex(key).IsNil() {
+			if yV.MapIndex(key) == reflect.Zero(reflect.TypeOf(xV)).Interface() {
 				nV.SetMapIndex(copyRecursively(key), copyRecursively(xV.MapIndex(key)))
 				continue
 			}
 			nV.SetMapIndex(copyRecursively(key), mergeRecursively(xV.MapIndex(key), yV.MapIndex(key)))
 		}
 		for _, key := range yV.MapKeys() {
-			if xV.MapIndex(key).IsNil() {
+			if xV.MapIndex(key) == reflect.Zero(reflect.TypeOf(yV)).Interface() {
 				nV.SetMapIndex(copyRecursively(key), copyRecursively(yV.MapIndex(key)))
 				continue
 			}

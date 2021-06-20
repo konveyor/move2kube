@@ -199,7 +199,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			newPathMappings = *env.DownloadAndDecode(&newPathMappings).(*[]transformertypes.PathMapping)
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
-			artifacts = mergeArtifacts(newArtifacts)
+			artifacts = mergeArtifacts(append(artifacts, newArtifacts...))
 			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))
 			logrus.Infof("Transformer %s Done for service %s", transformer.Name, serviceName)
 		}
@@ -245,7 +245,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 		if len(newArtifactsCreated) == 0 {
 			break
 		}
-		newArtifactsToProcess = mergeArtifacts(updatedArtifacts(artifacts, newArtifactsCreated))
+		newArtifactsToProcess = mergeArtifacts(append(newArtifactsCreated, updatedArtifacts(artifacts, newArtifactsCreated)...))
 		artifacts = mergeArtifacts(append(artifacts, newArtifactsToProcess...))
 	}
 	return nil
