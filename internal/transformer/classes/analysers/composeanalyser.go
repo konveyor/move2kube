@@ -42,10 +42,6 @@ const (
 	dockerfileSourceArtifactType plantypes.PathType = "Dockerfile"
 )
 
-const (
-	ComposeArtifacts = "ComposeYamls"
-)
-
 // ComposeAnalyser implements Transformer interface
 type ComposeAnalyser struct {
 	Config transformertypes.Transformer
@@ -102,25 +98,15 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 			continue
 		}
 		var config ComposeConfig
-		cConfig, ok := a.Configs[ComposeServiceConfigType]
-		if !ok {
-			logrus.Errorf("Unable to find compose config in artifact %+v. Ignoring", a)
-			continue
-		}
-		err := common.GetObjFromInterface(cConfig, &config)
+		err := a.GetConfig(ComposeServiceConfigType, &config)
 		if err != nil {
-			logrus.Errorf("unable to load config for Transformer %+v into %T : %s", cConfig, config, err)
+			logrus.Errorf("unable to load config for Transformer into %T : %s", config, err)
 			continue
 		}
 		var pConfig transformertypes.PlanConfig
-		tempPConfig, ok := a.Configs[transformertypes.PlanConfigType]
-		if !ok {
-			logrus.Errorf("Unable to find plan config in artifact %+v. Ignoring", a)
-			continue
-		}
-		err = common.GetObjFromInterface(pConfig, &tempPConfig)
+		err = a.GetConfig(transformertypes.PlanConfigType, &pConfig)
 		if err != nil {
-			logrus.Errorf("unable to load config for Transformer %+v into %T : %s", tempPConfig, pConfig, err)
+			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
 			continue
 		}
 		ir := irtypes.NewIR()
@@ -148,7 +134,8 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 			}
 		}
 		p := transformertypes.Artifact{
-			Name: pConfig.PlanName,
+			Name:     pConfig.PlanName,
+			Artifact: transformertypes.IRArtifactType,
 			Configs: map[plantypes.ConfigType]interface{}{
 				transformertypes.IRConfigType: ir,
 			},
@@ -161,8 +148,8 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) plantypes.Transformer {
 	ct := plantypes.Transformer{
 		Mode:                   plantypes.ModeContainer,
-		ArtifactTypes:          []plantypes.ArtifactType{transformertypes.K8sServiceMetadataTargetArtifactType, transformertypes.ContainerBuildTargetArtifactType},
-		ExclusiveArtifactTypes: []plantypes.ArtifactType{transformertypes.K8sServiceMetadataTargetArtifactType, transformertypes.ContainerBuildTargetArtifactType},
+		ArtifactTypes:          []plantypes.ArtifactType{transformertypes.IRArtifactType, transformertypes.ContainerBuildArtifactType},
+		ExclusiveArtifactTypes: []plantypes.ArtifactType{transformertypes.IRArtifactType, transformertypes.ContainerBuildArtifactType},
 		Configs: map[plantypes.ConfigType]interface{}{
 			ComposeServiceConfigType: ComposeConfig{
 				ServiceName: serviceName,

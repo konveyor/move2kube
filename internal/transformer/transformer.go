@@ -24,6 +24,7 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/transformer/classes/analysers"
+	"github.com/konveyor/move2kube/internal/transformer/classes/generators"
 	"github.com/konveyor/move2kube/qaengine"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -48,7 +49,7 @@ type Transformer interface {
 }
 
 func init() {
-	transformerObjs := []Transformer{new(analysers.ComposeAnalyser)} //, new(irtransformers.Kubernetes), new(irtransformers.Knative), new(irtransformers.Tekton), new(irtransformers.BuildConfig), new(classes.CNBContainerizer), new(classes.Executable)}
+	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator)} //, new(irtransformers.Kubernetes), new(irtransformers.Knative), new(irtransformers.Tekton), new(irtransformers.BuildConfig), new(classes.CNBContainerizer), new(classes.Executable)}
 	for _, tt := range transformerObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -185,6 +186,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 	logrus.Infof("Iteration %d", iteration)
 	for serviceName, service := range plan.Spec.Services {
 		for _, transformer := range service {
+			logrus.Infof("Transformer %s for service %s", transformer.Name, serviceName)
 			t := transformers[transformer.Name]
 			_, env := t.GetConfig()
 			env.Reset()
@@ -198,13 +200,14 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
 			artifacts = mergeArtifacts(newArtifacts)
+			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))
+			logrus.Infof("Transformer %s Done for service %s", transformer.Name, serviceName)
 		}
 	}
 	err = processPathMappings(pathMappings, outputPath)
 	if err != nil {
 		logrus.Errorf("Unable to process path mappings")
 	}
-
 	newArtifactsToProcess := artifacts
 	for {
 		iteration += 1
@@ -222,15 +225,18 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			if len(artifactsToProcess) == 0 {
 				continue
 			}
+			logrus.Infof("Transformer %s", config.Name)
 			newPathMappings, newArtifacts, err := t.Transform(*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact), *env.Encode(&artifacts).(*[]transformertypes.Artifact))
 			if err != nil {
 				logrus.Errorf("Unable to transform artifacts using %s : %s", tn, err)
 				continue
 			}
-			newPathMappings = env.DownloadAndDecode(newPathMappings).([]transformertypes.PathMapping)
-			newArtifacts = env.DownloadAndDecode(newArtifacts).([]transformertypes.Artifact)
+			newPathMappings = *env.DownloadAndDecode(&newPathMappings).(*[]transformertypes.PathMapping)
+			newArtifacts = *env.DownloadAndDecode(&newArtifacts).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
 			newArtifactsCreated = append(newArtifactsCreated, newArtifacts...)
+			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))
+			logrus.Infof("Transformer %s Done", config.Name)
 		}
 		err = processPathMappings(pathMappings, outputPath)
 		if err != nil {

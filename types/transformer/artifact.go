@@ -17,7 +17,11 @@ limitations under the License.
 package transformer
 
 import (
+	"fmt"
+
+	"github.com/konveyor/move2kube/internal/common"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	"github.com/sirupsen/logrus"
 )
 
 type Artifact struct {
@@ -26,4 +30,19 @@ type Artifact struct {
 
 	Paths   map[plantypes.PathType][]string      `yaml:"paths,omitempty" json:"paths,omitempty" m2kpath:"normal"`
 	Configs map[plantypes.ConfigType]interface{} `yaml:"configs,omitempty" json:"config,omitempty"` // Could be IR or template config or any custom configuration
+}
+
+func (a *Artifact) GetConfig(configName plantypes.ConfigType, obj interface{}) (err error) {
+	cConfig, ok := a.Configs[configName]
+	if !ok {
+		err = fmt.Errorf("unable to find compose config in artifact %+v. Ignoring", a)
+		logrus.Errorf("%s", err)
+		return err
+	}
+	err = common.GetObjFromInterface(cConfig, obj)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", cConfig, obj, err)
+		return err
+	}
+	return nil
 }

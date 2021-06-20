@@ -19,10 +19,10 @@ package transformer
 import plantypes "github.com/konveyor/move2kube/types/plan"
 
 const (
-	ServiceArtifactType                     plantypes.ArtifactType = "Service"
-	ContainerBuildTargetArtifactType        plantypes.ArtifactType = "ContainerBuild"
-	K8sServiceMetadataTargetArtifactType    plantypes.ArtifactType = "KubernetesServiceMetadata"
-	ContainerBuildSupportTargetArtifactType plantypes.ArtifactType = "ContainerBuildSupport"
+	ServiceArtifactType               plantypes.ArtifactType = "Service"
+	ContainerBuildArtifactType        plantypes.ArtifactType = "ContainerBuild"
+	IRArtifactType                    plantypes.ArtifactType = "IR"
+	ContainerBuildSupportArtifactType plantypes.ArtifactType = "ContainerBuildSupport"
 )
 
 const (
