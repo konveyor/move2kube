@@ -44,8 +44,7 @@ func ReadPlan(path string) (Plan, error) {
 // WritePlan encodes the plan to yaml converting absolute paths to relative.
 func WritePlan(path string, plan Plan) error {
 	newPlan := deepcopy.DeepCopy(plan).(Plan)
-	logrus.Infof("%+v %s %s", newPlan, plan.Spec.RootDir, common.TempPath)
-	if err := pathconverters.ChangePaths(&plan, map[string]string{plan.Spec.RootDir: "", common.TempPath: ""}); err != nil {
+	if err := pathconverters.ChangePaths(&newPlan, map[string]string{plan.Spec.RootDir: "", common.TempPath: ""}); err != nil {
 		logrus.Errorf("Unable to convert plan to use relative paths : %s", err)
 		return err
 	}

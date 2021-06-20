@@ -766,7 +766,6 @@ func IsParent(child, parent string) bool {
 			return false
 		}
 	}
-	logrus.Infof("%s is parent of %s", parent, child)
 	return true
 }
 

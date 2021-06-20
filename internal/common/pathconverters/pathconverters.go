@@ -77,7 +77,7 @@ func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx conte
 }
 
 func process(value reflect.Value, ctx context) error {
-	logrus.Infof("type [%v] ctx [%v]\n", value.Type(), ctx)
+	logrus.Debugf("type [%v] ctx [%v]\n", value.Type(), ctx)
 	switch value.Kind() {
 	case reflect.String:
 		if !ctx.ShouldConvert {
@@ -188,8 +188,8 @@ func ChangePaths(obj interface{}, mapping map[string]string) (err error) {
 		}
 		return path, fmt.Errorf("unable to find proper root for %s", path)
 	}
-
-	return ProcessPaths(obj, function)
+	err = ProcessPaths(obj, function)
+	return err
 }
 
 func ProcessPaths(obj interface{}, processfunc func(string) (string, error)) (err error) {

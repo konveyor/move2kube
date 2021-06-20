@@ -61,10 +61,10 @@ func replicateProcessFileCallBack(sourceFilePath, destinationFilePath string, co
 		}
 		if mderr := os.MkdirAll(filepath.Dir(destinationFilePath), sdi.Mode()); mderr == nil {
 			destinationWriter, err = os.Create(destinationFilePath)
-		}
-		if err != nil {
-			logrus.Errorf("Unable to create destination file %s : %s", destinationFilePath, err)
-			return err
+			if err != nil {
+				logrus.Errorf("Unable to create destination file during replication %s : %s", destinationFilePath, err)
+				return err
+			}
 		}
 	}
 	defer destinationWriter.Close()

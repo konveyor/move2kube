@@ -153,8 +153,8 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 		if err != nil {
 			logrus.Errorf("[%s] Failed : %s", tn, err)
 		} else {
-			nservices = setTransformerInfoForServices(env.DownloadAndDecode(nservices).(map[string]plantypes.Service), config)
-			unservices = setTransformerInfoForTransformers(env.DownloadAndDecode(unservices).([]plantypes.Transformer), config)
+			nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]plantypes.Service), config)
+			unservices = setTransformerInfoForTransformers(*env.Decode(&unservices).(*[]plantypes.Transformer), config)
 			services = plantypes.MergeServices(services, nservices)
 			unservices = append(unservices, nunservices...)
 			logrus.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
@@ -222,7 +222,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			if len(artifactsToProcess) == 0 {
 				continue
 			}
-			newPathMappings, newArtifacts, err := t.Transform(env.Encode(artifactsToProcess).([]transformertypes.Artifact), env.Encode(artifacts).([]transformertypes.Artifact))
+			newPathMappings, newArtifacts, err := t.Transform(*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact), *env.Encode(&artifacts).(*[]transformertypes.Artifact))
 			if err != nil {
 				logrus.Errorf("Unable to transform artifacts using %s : %s", tn, err)
 				continue
@@ -278,8 +278,8 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 			if err != nil {
 				logrus.Warnf("[%s] Failed : %s", config.Name, err)
 			} else {
-				nservices = setTransformerInfoForServices(env.DownloadAndDecode(nservices).(map[string]plantypes.Service), config)
-				nunservices = setTransformerInfoForTransformers(env.DownloadAndDecode(nunservices).([]plantypes.Transformer), config)
+				nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]plantypes.Service), config)
+				nunservices = setTransformerInfoForTransformers(*env.Decode(&nunservices).(*[]plantypes.Transformer), config)
 				services = plantypes.MergeServices(services, nservices)
 				unservices = append(unservices, nunservices...)
 				logrus.Debugf("[%s] Done", config.Name)

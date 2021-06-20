@@ -129,7 +129,6 @@ func (e *Environment) Destroy() error {
 
 func (e *Environment) Encode(obj interface{}) interface{} {
 	function := func(path string) (string, error) {
-		logrus.Infof("Path to encode %s", path)
 		if path == "" {
 			return path, nil
 		}
@@ -139,8 +138,7 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 			return path, err
 		}
 		if common.IsParent(path, e.Source) {
-			logrus.Infof("Chaning Source of %s", path)
-			if rel, err := filepath.Rel(path, e.Source); err != nil {
+			if rel, err := filepath.Rel(e.Source, path); err != nil {
 				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Source, err)
 				return path, err
 			} else {
@@ -148,7 +146,7 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 			}
 		}
 		if common.IsParent(path, e.Context) {
-			if rel, err := filepath.Rel(path, e.Context); err != nil {
+			if rel, err := filepath.Rel(e.Context, path); err != nil {
 				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Source, err)
 				return path, err
 			} else {
@@ -157,7 +155,6 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 		}
 		return path, nil
 	}
-	logrus.Infof("Encoding in env %+v", obj)
 	if reflect.ValueOf(obj).Kind() == reflect.String {
 		val, err := function(obj.(string))
 		if err != nil {
@@ -165,16 +162,56 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 		}
 		return val
 	}
-	err := pathconverters.ProcessPaths(&obj, function)
+	err := pathconverters.ProcessPaths(obj, function)
 	if err != nil {
 		logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
 	}
-	logrus.Infof("Encoded Value %+v", obj)
+	return obj
+}
+
+func (e *Environment) Decode(obj interface{}) interface{} {
+	function := func(path string) (string, error) {
+		if path == "" {
+			return path, nil
+		}
+		if !filepath.IsAbs(path) {
+			err := fmt.Errorf("the input path %q is not an absolute path", path)
+			logrus.Errorf("%s", err)
+			return path, err
+		}
+		if common.IsParent(path, e.Env.GetSource()) {
+			if rel, err := filepath.Rel(e.Env.GetSource(), path); err != nil {
+				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Env.GetSource(), err)
+				return path, err
+			} else {
+				return filepath.Join(e.Source, rel), nil
+			}
+		}
+		if common.IsParent(path, e.Env.GetContext()) {
+			if rel, err := filepath.Rel(e.Env.GetContext(), path); err != nil {
+				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Env.GetContext(), err)
+				return path, err
+			} else {
+				return filepath.Join(e.Context, rel), nil
+			}
+		}
+		return path, nil
+	}
+	if reflect.ValueOf(obj).Kind() == reflect.String {
+		val, err := function(obj.(string))
+		if err != nil {
+			logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
+		}
+		return val
+	}
+	err := pathconverters.ProcessPaths(obj, function)
+	if err != nil {
+		logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
+	}
 	return obj
 }
 
 func (e *Environment) DownloadAndDecode(obj interface{}) interface{} {
-	logrus.Infof("%+v", obj)
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
@@ -191,7 +228,7 @@ func (e *Environment) DownloadAndDecode(obj interface{}) interface{} {
 		}
 		return outpath, nil
 	}
-	err := pathconverters.ProcessPaths(&obj, function)
+	err := pathconverters.ProcessPaths(obj, function)
 	if err != nil {
 		logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
 	}

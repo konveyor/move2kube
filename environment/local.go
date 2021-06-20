@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/types"
@@ -121,12 +122,20 @@ func (e *Local) Download(path string) (string, error) {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return path, err
 	}
+	if ps, err := os.Stat(path); err != nil {
+		logrus.Errorf("Unable to stat source : %s", path)
+		return "", err
+	} else {
+		if ps.Mode().IsRegular() {
+			output = filepath.Join(output, filepath.Base(path))
+		}
+	}
 	err = filesystem.Replicate(path, output)
 	if err != nil {
 		logrus.Errorf("Unable to replicate in syncoutput : %s", err)
 		return path, err
 	}
-	return path, nil
+	return output, nil
 }
 
 func (e *Local) GetContext() string {
@@ -134,6 +143,5 @@ func (e *Local) GetContext() string {
 }
 
 func (e *Local) GetSource() string {
-	logrus.Infof("Workspace source : %s", e.WorkspaceSource)
 	return e.WorkspaceSource
 }
