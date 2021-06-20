@@ -24,6 +24,7 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/transformer/classes/analysers"
+	"github.com/konveyor/move2kube/internal/transformer/classes/external"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators"
 	"github.com/konveyor/move2kube/qaengine"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
@@ -49,7 +50,7 @@ type Transformer interface {
 }
 
 func init() {
-	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig)} //, new(classes.CNBContainerizer), new(classes.Executable)}
+	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable)} //, new(classes.CNBContainerizer)}
 	for _, tt := range transformerObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -204,7 +205,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			logrus.Infof("Transformer %s Done for service %s", transformer.Name, serviceName)
 		}
 	}
-	err = processPathMappings(pathMappings, outputPath)
+	err = processPathMappings(pathMappings, plan.Spec.RootDir, outputPath)
 	if err != nil {
 		logrus.Errorf("Unable to process path mappings")
 	}
@@ -238,7 +239,10 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))
 			logrus.Infof("Transformer %s Done", config.Name)
 		}
-		err = processPathMappings(pathMappings, outputPath)
+		if err = os.RemoveAll(outputPath); err != nil {
+			logrus.Errorf("Unable to delete %s : %s", outputPath, err)
+		}
+		err = processPathMappings(pathMappings, plan.Spec.RootDir, outputPath)
 		if err != nil {
 			logrus.Errorf("Unable to process path mappings")
 		}
@@ -278,7 +282,7 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 		found := false
 		for _, t := range transformers {
 			config, env := t.GetConfig()
-			logrus.Debugf("[%s] Planning transformation", config.Name, path)
+			logrus.Debugf("[%s] Planning transformation in %s", config.Name, path)
 			env.Reset()
 			nservices, nunservices, err := t.DirectoryDetect(env.Encode(path).(string))
 			if err != nil {

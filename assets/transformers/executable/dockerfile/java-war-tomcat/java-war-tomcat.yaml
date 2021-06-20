@@ -4,11 +4,10 @@ metadata:
   name: Java-war-tomcat
 spec:
   mode: "Container"
-  class: "Executable"
+  class: "SimpleExecutable"
+  generates: 
+    - "Dockerfile"
+  exclusive: 
+    - "Dockerfile"
   config:
-    artifacts: 
-      - "ContainerBuild"
-    exclusiveArtifacts: 
-      - "ContainerBuild"
-    directoryDetectCMD: 
-      cmd: "./m2kdetect.sh"
+    directoryDetectCMD: ["./m2kdetect.sh"]

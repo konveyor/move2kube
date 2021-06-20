@@ -74,20 +74,18 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 				logrus.Warnf("Ignoring transformer %+v for service %s due to empty mode", t, s)
 				continue
 			}
-			if _, ok := p.Spec.Configuration.Transformers[t.Name]; !ok {
-				logrus.Debugf("Unable to find transformer %s in configuration. Ignoring.", t.Name)
-				continue
-			}
 			if !common.IsStringPresent(modes, t.Mode) {
 				modes = append(modes, t.Mode)
 			}
-			if !common.IsStringPresent(transformers, t.Name) {
-				transformers = append(transformers, t.Name)
-			}
+		}
+	}
+	for tn := range p.Spec.Configuration.Transformers {
+		if !common.IsStringPresent(transformers, tn) {
+			transformers = append(transformers, tn)
 		}
 	}
 	modes = qaengine.FetchMultiSelectAnswer(common.ConfigModesKey, "Choose modes to use:", []string{"Modes generally specify the deployment model"}, modes, modes)
-	transformers = qaengine.FetchMultiSelectAnswer(common.ConfigTransformersKey, "Choose transformers to use:", []string{"Transformers are those that does the conversion"}, transformers, transformers)
+	transformers = qaengine.FetchMultiSelectAnswer(common.ConfigTransformerTypesKey, "Select all transformer types that you are interested in:", []string{"Services that don't support any of the transformer types you are interested in will be ignored."}, transformers, transformers)
 	for sn, st := range p.Spec.Services {
 		mode := ""
 		exclusiveArtifactTypes := []string{}

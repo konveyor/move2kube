@@ -26,17 +26,22 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
-func processPathMappings(pms []transformertypes.PathMapping, outputPath string) error {
+func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputPath string) error {
 	//TODO: Merge path mappings before processing
-	copiedSrcDests := map[string]bool{}
+	copiedSourceDests := map[string]bool{}
+	copiedDefaultDests := map[string]bool{}
 	for _, pm := range pms {
 		switch strings.ToLower(string(pm.Type)) {
 		case strings.ToLower(string(transformertypes.SourcePathMappingType)):
-			if !copiedSrcDests[pm.DestPath] {
-				if err := filesystem.Merge(pm.SrcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
+			if !copiedSourceDests[pm.SrcPath+":"+pm.DestPath] {
+				srcPath := pm.SrcPath
+				if !filepath.IsAbs(pm.SrcPath) {
+					srcPath = filepath.Join(sourcePath, pm.SrcPath)
+				}
+				if err := filesystem.Merge(srcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
 					logrus.Errorf("Error while copying sourcepath for %+v", pm)
 				}
-				copiedSrcDests[pm.DestPath] = true
+				copiedSourceDests[pm.SrcPath+":"+pm.DestPath] = true
 			}
 		case strings.ToLower(string(transformertypes.ModifiedSourcePathMappingType)):
 			if err := filesystem.Merge(pm.SrcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
@@ -47,8 +52,11 @@ func processPathMappings(pms []transformertypes.PathMapping, outputPath string) 
 				logrus.Errorf("Error while copying sourcepath for %+v", pm)
 			}
 		default:
-			if err := filesystem.Merge(pm.SrcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
-				logrus.Errorf("Error while copying sourcepath for %+v", pm)
+			if !copiedDefaultDests[pm.SrcPath+":"+pm.DestPath] {
+				if err := filesystem.Merge(pm.SrcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
+					logrus.Errorf("Error while copying sourcepath for %+v", pm)
+				}
+				copiedDefaultDests[pm.SrcPath+":"+pm.DestPath] = true
 			}
 		}
 	}

@@ -27,6 +27,7 @@ import (
 
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/types"
+	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	"github.com/sirupsen/logrus"
 )
 
@@ -62,17 +63,17 @@ func NewLocal(name, source, context, tempPath string) (ei EnvironmentInstance, e
 
 func (e *Local) Reset() error {
 	if err := filesystem.Replicate(e.Context, e.WorkspaceContext); err != nil {
-		logrus.Errorf("Unable to copy contents to directory %s, dp: %s", e.Context, e.WorkspaceContext, err)
+		logrus.Errorf("Unable to copy contents to directory %s, %s : %s", e.Context, e.WorkspaceContext, err)
 		return err
 	}
 	if err := filesystem.Replicate(e.Source, e.WorkspaceSource); err != nil {
-		logrus.Errorf("Unable to copy contents to directory %s, dp: %s", e.Source, e.WorkspaceSource, err)
+		logrus.Errorf("Unable to copy contents to directory %s, %s : %s", e.Source, e.WorkspaceSource, err)
 		return err
 	}
 	return nil
 }
 
-func (e *Local) Exec(cmd []string) (string, string, int, error) {
+func (e *Local) Exec(cmd environmenttypes.Command) (string, string, int, error) {
 	var exitcode int
 	var outb, errb bytes.Buffer
 	var execcmd *exec.Cmd
@@ -83,8 +84,7 @@ func (e *Local) Exec(cmd []string) (string, string, int, error) {
 		logrus.Errorf("%s", err)
 		return "", "", 0, err
 	}
-	execcmd.Dir = e.Context
-	execcmd.Dir = e.Context
+	execcmd.Dir = e.WorkspaceContext
 	execcmd.Stdout = &outb
 	execcmd.Stderr = &errb
 	err := execcmd.Run()

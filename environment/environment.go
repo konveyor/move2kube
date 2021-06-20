@@ -62,6 +62,7 @@ func NewEnvironment(name string, source string, context string, container enviro
 	env = Environment{
 		Name:     name,
 		Source:   source,
+		Context:  context,
 		Children: []Environment{},
 		TempPath: tempPath,
 	}

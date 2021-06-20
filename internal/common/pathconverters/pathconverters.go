@@ -77,7 +77,7 @@ func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx conte
 }
 
 func process(value reflect.Value, ctx context) error {
-	logrus.Debugf("type [%v] ctx [%v]\n", value.Type(), ctx)
+	//logrus.Debugf("type [%v] ctx [%v]\n", value.Type(), ctx)
 	switch value.Kind() {
 	case reflect.String:
 		if !ctx.ShouldConvert {
@@ -143,7 +143,7 @@ func process(value reflect.Value, ctx context) error {
 			value.SetMapIndex(ctx.CurrentMapKey, reflect.ValueOf(s))
 		}
 	default:
-		logrus.Debugf("default. Actual kind:", value.Kind())
+		logrus.Debugf("default. Actual kind: %s", value.Kind())
 	}
 	return nil
 }

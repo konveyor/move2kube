@@ -29,5 +29,5 @@ type PathMapping struct {
 	Type           PathMappingType `yaml:"type,omitempty"` // Default - Normal copy
 	SrcPath        string          `yaml:"sourcePath" m2kplan:"normal"`
 	DestPath       string          `yaml:"destinationPath" m2kplan:"normal"` // Relative to output directory
-	TemplateConfig string          `yaml:"templateConfig"`
+	TemplateConfig interface{}     `yaml:"templateConfig"`
 }
