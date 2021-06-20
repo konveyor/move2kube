@@ -215,7 +215,7 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 	return obj
 }
 
-func (e *Environment) DownloadAndDecode(obj interface{}) interface{} {
+func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) interface{} {
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
@@ -224,6 +224,16 @@ func (e *Environment) DownloadAndDecode(obj interface{}) interface{} {
 			err := fmt.Errorf("the input path %q is not an absolute path", path)
 			logrus.Errorf("%s", err)
 			return path, err
+		}
+		if !downloadSource {
+			if common.IsParent(path, e.GetWorkspaceSource()) {
+				relPath, err := filepath.Rel(e.GetWorkspaceSource(), path)
+				if err != nil {
+					logrus.Errorf("Unable to convert source to rel path : %s", err)
+					return path, err
+				}
+				return filepath.Join(e.Source, relPath), nil
+			}
 		}
 		outpath, err := e.Env.Download(path)
 		if err != nil {
@@ -237,4 +247,8 @@ func (e *Environment) DownloadAndDecode(obj interface{}) interface{} {
 		logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
 	}
 	return obj
+}
+
+func (e *Environment) GetWorkspaceSource() string {
+	return e.Env.GetSource()
 }

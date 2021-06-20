@@ -197,8 +197,8 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 				logrus.Errorf("Unable to transform service %s using %s : %s", serviceName, transformer.Name, err)
 				continue
 			}
-			newPathMappings = *env.DownloadAndDecode(&newPathMappings).(*[]transformertypes.PathMapping)
-			newArtifacts = *env.DownloadAndDecode(&newArtifacts).(*[]transformertypes.Artifact)
+			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
+			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
 			artifacts = mergeArtifacts(append(artifacts, newArtifacts...))
 			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))
@@ -232,8 +232,8 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 				logrus.Errorf("Unable to transform artifacts using %s : %s", tn, err)
 				continue
 			}
-			newPathMappings = *env.DownloadAndDecode(&newPathMappings).(*[]transformertypes.PathMapping)
-			newArtifacts = *env.DownloadAndDecode(&newArtifacts).(*[]transformertypes.Artifact)
+			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
+			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
 			newArtifactsCreated = append(newArtifactsCreated, newArtifacts...)
 			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))

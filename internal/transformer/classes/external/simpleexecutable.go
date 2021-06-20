@@ -82,7 +82,7 @@ func (t *SimpleExecutable) Transform(newArtifacts []transformertypes.Artifact, o
 		if a.Artifact != transformertypes.ServiceArtifactType {
 			continue
 		}
-		relSrcPath, err := filepath.Rel(t.Env.Env.GetSource(), a.Paths[plantypes.ProjectPathSourceArtifact][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[plantypes.ProjectPathSourceArtifact][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[plantypes.ProjectPathSourceArtifact][0], err)
 		}

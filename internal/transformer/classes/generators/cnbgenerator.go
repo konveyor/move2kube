@@ -17,10 +17,14 @@ limitations under the License.
 package generators
 
 import (
+	"path/filepath"
+
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/transformer/classes/analysers"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/sirupsen/logrus"
 )
 
 // CNBGenerator implements Containerizer interface
@@ -50,14 +54,23 @@ func (t *CNBGenerator) DirectoryDetect(dir string) (namedServices map[string]pla
 func (t *CNBGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
-		c := a.Configs[transformertypes.TemplateConfigType].(analysers.CNBTemplateConfig)
-		c.ImageName = a.Configs[transformertypes.ServiceArtifactType].(transformertypes.ServiceConfig).ServiceName
-		pathMappings = []transformertypes.PathMapping{{
+		tc := analysers.CNBTemplateConfig{}
+		err := a.GetConfig(transformertypes.TemplateConfigType, &tc)
+		if err != nil {
+			logrus.Errorf("Unable to read CNB Template config : %s", err)
+		}
+		relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[plantypes.ProjectPathSourceArtifact][0])
+		if err != nil {
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[plantypes.ProjectPathSourceArtifact][0], err)
+		}
+		tc.ImageName = a.Configs[transformertypes.ServiceArtifactType].(transformertypes.ServiceConfig).ServiceName
+		cnbfilename := "buildcnb.sh"
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        "buildcnb.sh",
-			DestPath:       a.Paths[plantypes.ProjectPathSourceArtifact][0],
-			TemplateConfig: c,
-		}}
+			SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir, cnbfilename),
+			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath, cnbfilename),
+			TemplateConfig: tc,
+		})
 	}
 	return pathMappings, nil, nil
 }

@@ -41,7 +41,7 @@ type CNBContainerizerYamlConfig struct {
 
 type CNBTemplateConfig struct {
 	CNBBuilder string `json:"CNBBuilder"`
-	ImageName  string `json:"ImageName"`
+	ImageName  string `json:"ImageName,omitempty"`
 }
 
 func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
@@ -54,14 +54,15 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env environment
 		return err
 	}
 
-	t.CNBEnv, err = environment.NewEnvironment(tc.Name, t.Env.Source, "", environmenttypes.Container{
+	t.CNBEnv, err = environment.NewEnvironment(tc.Name, t.Env.GetWorkspaceSource(), "", environmenttypes.Container{
 		Image:      t.CNBConfig.BuilderImageName,
-		WorkingDir: string(filepath.Separator),
+		WorkingDir: filepath.Join(string(filepath.Separator), "tmp"),
 	})
 	if err != nil {
 		logrus.Errorf("Unable to create CNB environment : %s", err)
 		return err
 	}
+	t.Env.AddChild(t.CNBEnv)
 	return nil
 }
 
@@ -74,8 +75,9 @@ func (t *CNBContainerizer) BaseDirectoryDetect(dir string) (namedServices map[st
 }
 
 func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+	path := dir
 	cmd := environmenttypes.Command{
-		"/cnb/lifecycle/detector", "-app", t.CNBEnv.Encode(dir).(string)}
+		"/cnb/lifecycle/detector", "-app", t.CNBEnv.Encode(path).(string)}
 	stdout, stderr, exitcode, err := t.CNBEnv.Exec(cmd)
 	if err != nil {
 		logrus.Errorf("Detect failed %s : %s : %d : %s", stdout, stderr, exitcode, err)
