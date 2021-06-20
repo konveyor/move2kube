@@ -134,5 +134,6 @@ func (e *Local) GetContext() string {
 }
 
 func (e *Local) GetSource() string {
+	logrus.Infof("Workspace source : %s", e.WorkspaceSource)
 	return e.WorkspaceSource
 }

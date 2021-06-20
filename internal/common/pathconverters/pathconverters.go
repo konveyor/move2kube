@@ -77,7 +77,7 @@ func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx conte
 }
 
 func process(value reflect.Value, ctx context) error {
-	logrus.Debugf("type [%v] ctx [%v]\n", value.Type(), ctx)
+	logrus.Infof("type [%v] ctx [%v]\n", value.Type(), ctx)
 	switch value.Kind() {
 	case reflect.String:
 		if !ctx.ShouldConvert {

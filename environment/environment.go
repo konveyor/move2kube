@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/pathconverters"
@@ -128,6 +129,7 @@ func (e *Environment) Destroy() error {
 
 func (e *Environment) Encode(obj interface{}) interface{} {
 	function := func(path string) (string, error) {
+		logrus.Infof("Path to encode %s", path)
 		if path == "" {
 			return path, nil
 		}
@@ -137,6 +139,7 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 			return path, err
 		}
 		if common.IsParent(path, e.Source) {
+			logrus.Infof("Chaning Source of %s", path)
 			if rel, err := filepath.Rel(path, e.Source); err != nil {
 				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Source, err)
 				return path, err
@@ -154,14 +157,24 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 		}
 		return path, nil
 	}
-	err := pathconverters.ProcessPaths(obj, function)
+	logrus.Infof("Encoding in env %+v", obj)
+	if reflect.ValueOf(obj).Kind() == reflect.String {
+		val, err := function(obj.(string))
+		if err != nil {
+			logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
+		}
+		return val
+	}
+	err := pathconverters.ProcessPaths(&obj, function)
 	if err != nil {
 		logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
 	}
+	logrus.Infof("Encoded Value %+v", obj)
 	return obj
 }
 
 func (e *Environment) DownloadAndDecode(obj interface{}) interface{} {
+	logrus.Infof("%+v", obj)
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
@@ -178,7 +191,7 @@ func (e *Environment) DownloadAndDecode(obj interface{}) interface{} {
 		}
 		return outpath, nil
 	}
-	err := pathconverters.ProcessPaths(obj, function)
+	err := pathconverters.ProcessPaths(&obj, function)
 	if err != nil {
 		logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
 	}
