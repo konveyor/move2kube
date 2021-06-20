@@ -189,13 +189,13 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			_, env := t.GetConfig()
 			env.Reset()
 			a := getArtifactForTransformerPlan(serviceName, transformer, plan)
-			newPathMappings, newArtifacts, err := t.Transform([]transformertypes.Artifact{env.Encode(&a).(transformertypes.Artifact)}, env.Encode(&artifacts).([]transformertypes.Artifact))
+			newPathMappings, newArtifacts, err := t.Transform([]transformertypes.Artifact{*env.Encode(&a).(*transformertypes.Artifact)}, *env.Encode(&artifacts).(*[]transformertypes.Artifact))
 			if err != nil {
 				logrus.Errorf("Unable to transform service %s using %s : %s", serviceName, transformer.Name, err)
 				continue
 			}
-			newPathMappings = env.DownloadAndDecode(newPathMappings).([]transformertypes.PathMapping)
-			newArtifacts = env.DownloadAndDecode(newArtifacts).([]transformertypes.Artifact)
+			newPathMappings = *env.DownloadAndDecode(&newPathMappings).(*[]transformertypes.PathMapping)
+			newArtifacts = *env.DownloadAndDecode(&newArtifacts).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
 			artifacts = mergeArtifacts(newArtifacts)
 		}

@@ -68,9 +68,9 @@ type TargetClusterType struct {
 	Path string `yaml:"path,omitempty" m2kpath:"normal"`
 }
 
-type ArtifactType string
-type ConfigType string
-type PathType string
+type ArtifactType = string
+type ConfigType = string
+type PathType = string
 
 // Transformer stores transformer option
 type Transformer struct {

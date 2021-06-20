@@ -34,10 +34,15 @@ func ReadPlan(path string) (Plan, error) {
 		logrus.Errorf("Failed to load the plan file at path %q Error %q", path, err)
 		return plan, err
 	}
-	if err = pathconverters.MakePlanPathsAbsolute(&plan, plan.Spec.RootDir, common.AssetsPath); err != nil {
+	absRootDir, err := filepath.Abs(plan.Spec.RootDir)
+	if err != nil {
+		logrus.Errorf("Unable to convert rootDir to full path : %s", err)
 		return plan, err
 	}
-	plan.Spec.RootDir, err = filepath.Abs(plan.Spec.RootDir)
+	if err = pathconverters.MakePlanPathsAbsolute(&plan, absRootDir, common.TempPath); err != nil {
+		return plan, err
+	}
+	plan.Spec.RootDir = absRootDir
 	return plan, err
 }
 
