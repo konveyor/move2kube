@@ -10,8 +10,17 @@ nav_order: 2
 
 ## Bringing up Move2Kube all-in-one container
 
+**Stable Release**
    ```console
-   $ mkdir -p workspace && cd workspace
+   $ mkdir -p workspace 
+   $ cd workspace
+   $ docker run -p 8080:8080 -v "${PWD}:/workspace" -v /var/run/docker.sock:/var/run/docker.sock --rm -it quay.io/konveyor/move2kube-aio:release-0.2
+   ```
+
+**Latest** 
+   ```console
+   $ mkdir -p workspace
+   $ cd workspace
    $ docker run -p 8080:8080 -v "${PWD}:/workspace" -v /var/run/docker.sock:/var/run/docker.sock --rm -it quay.io/konveyor/move2kube-aio:latest
    ```
    Access the UI in `http://localhost:8080/`.
@@ -30,6 +39,10 @@ nav_order: 2
    ```
    Access the UI in `http://localhost:8080/`.
 
-For Helm chart and Operator checkout [Move2Kube Operator](https://github.com/konveyor/move2kube-operator).
+
+## Bringing up Move2Kube UI as Helm Chart  
+   Move2Kube can also be installed as a Helm Chart from [ArtifactHub](https://artifacthub.io/packages/helm/move2kube/move2kube/0.2.0-beta.0?modal=install)
+
+   Also, for Helm Chart and Operator checkout [Move2Kube Operator](https://github.com/konveyor/move2kube-operator).
 
 <br>
