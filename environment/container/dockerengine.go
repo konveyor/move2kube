@@ -154,7 +154,7 @@ func (e *dockerEngine) CreateContainer(image string) (containerid string, err er
 		Cmd:   []string{"sh", "-c", "tail -f /dev/null"},
 	}
 	logrus.Debugf("Error during container creation : %s", err)
-	resp, err := e.cli.ContainerCreate(e.ctx, contconfig, nil, nil, "")
+	resp, err := e.cli.ContainerCreate(e.ctx, contconfig, nil, nil, nil, "")
 	if err != nil {
 		logrus.Debugf("Container creation failed with image %s with no volumes", image)
 		return "", err
@@ -297,10 +297,10 @@ func (e *dockerEngine) RunContainer(image string, cmd environmenttypes.Command, 
 			},
 		}
 	}
-	resp, err := cli.ContainerCreate(ctx, contconfig, hostconfig, nil, "")
+	resp, err := cli.ContainerCreate(ctx, contconfig, hostconfig, nil, nil, "")
 	if err != nil {
 		logrus.Debugf("Error during container creation : %s", err)
-		resp, err = cli.ContainerCreate(ctx, contconfig, nil, nil, "")
+		resp, err = cli.ContainerCreate(ctx, contconfig, nil, nil, nil, "")
 		if err != nil {
 			logrus.Debugf("Container creation failed with image %s with no volumes", image)
 			return "", false, err
