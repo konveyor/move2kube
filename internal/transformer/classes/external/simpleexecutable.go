@@ -82,9 +82,9 @@ func (t *SimpleExecutable) Transform(newArtifacts []transformertypes.Artifact, o
 		if a.Artifact != transformertypes.ServiceArtifactType {
 			continue
 		}
-		relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[plantypes.ProjectPathSourceArtifact][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[plantypes.ProjectPathPathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[plantypes.ProjectPathSourceArtifact][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[plantypes.ProjectPathPathType][0], err)
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
@@ -120,7 +120,7 @@ func (t *SimpleExecutable) executeDetect(cmd environmenttypes.Command, dir strin
 		Mode:                   string(t.TConfig.Spec.Mode),
 		ArtifactTypes:          t.TConfig.Spec.Artifacts,
 		ExclusiveArtifactTypes: t.TConfig.Spec.ExclusiveArtifacts,
-		Paths:                  map[string][]string{plantypes.ProjectPathSourceArtifact: {dir}},
+		Paths:                  map[string][]string{plantypes.ProjectPathPathType: {dir}},
 		Configs:                map[plantypes.ConfigType]interface{}{transformertypes.TemplateConfigType: config},
 	}
 	return nil, []plantypes.Transformer{trans}, nil

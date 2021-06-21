@@ -33,3 +33,7 @@ func Transform(plan plantypes.Plan, outputPath string) {
 	}
 	logrus.Infof("Plan Transformation done")
 }
+
+func Destroy() {
+	transformer.Destroy()
+}

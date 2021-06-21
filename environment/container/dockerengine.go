@@ -260,7 +260,7 @@ func (e *dockerEngine) BuildImage(image, context, dockerfile string) (err error)
 
 // RemoveImage creates a container
 func (e *dockerEngine) RemoveImage(image string) (err error) {
-	_, err = e.cli.ImageRemove(e.ctx, image, types.ImageRemoveOptions{})
+	_, err = e.cli.ImageRemove(e.ctx, image, types.ImageRemoveOptions{Force: true})
 	if err != nil {
 		logrus.Debugf("Container deletion failed with image %s", image)
 		return err

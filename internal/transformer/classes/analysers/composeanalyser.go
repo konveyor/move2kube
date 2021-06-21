@@ -34,12 +34,10 @@ const (
 )
 
 const (
-	// composeFileSourceArtifactType defines the source artifact type of Docker compose
-	composeFileSourceArtifactType plantypes.PathType = "DockerCompose"
-	// imageInfoSourceArtifactType defines the source artifact type of image info
-	imageInfoSourceArtifactType plantypes.PathType = "ImageInfo"
-	// dockerfileSourceArtifactType defines the source artifact type of dockerfile
-	dockerfileSourceArtifactType plantypes.PathType = "Dockerfile"
+	// composeFilePathType defines the source artifact type of Docker compose
+	composeFilePathType plantypes.PathType = "DockerCompose"
+	// imageInfoPathType defines the source artifact type of image info
+	imageInfoPathType plantypes.PathType = "ImageInfo"
 )
 
 // ComposeAnalyser implements Transformer interface
@@ -110,7 +108,7 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 			continue
 		}
 		ir := irtypes.NewIR()
-		for _, path := range a.Paths[composeFileSourceArtifactType] {
+		for _, path := range a.Paths[composeFilePathType] {
 			logrus.Debugf("File %s being loaded from compose service : %s", path, config.ServiceName)
 			// Try v3 first and if it fails try v1v2
 			if cir, errV3 := new(compose.V3Loader).ConvertToIR(path, config.ServiceName); errV3 == nil {
@@ -123,7 +121,7 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 				logrus.Errorf("Unable to parse the docker compose file at path %s Error V3: %q Error V1V2: %q", path, errV3, errV1V2)
 			}
 		}
-		for _, path := range a.Paths[imageInfoSourceArtifactType] {
+		for _, path := range a.Paths[imageInfoPathType] {
 			imgMD := collecttypes.ImageInfo{}
 			if err := common.ReadMove2KubeYaml(path, &imgMD); err != nil {
 				logrus.Errorf("Failed to read image info yaml at path %s Error: %q", path, err)
@@ -156,13 +154,13 @@ func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string,
 				ServiceName: serviceName,
 			}},
 		Paths: map[plantypes.PathType][]string{
-			composeFileSourceArtifactType: {
+			composeFilePathType: {
 				composeFilePath,
 			},
 		},
 	}
 	if imagepath, ok := imageMetadataPaths[serviceImage]; ok {
-		ct.Paths[imageInfoSourceArtifactType] = common.MergeStringSlices(ct.Paths[imageInfoSourceArtifactType], imagepath)
+		ct.Paths[imageInfoPathType] = common.MergeStringSlices(ct.Paths[imageInfoPathType], imagepath)
 	}
 	logrus.Debugf("Found a docker compose service : %s", serviceName)
 	if relContextPath != "" {
@@ -179,8 +177,8 @@ func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string,
 			}
 		}
 		// Add reuse Dockerfile containerization option
-		ct.Paths[dockerfileSourceArtifactType] = common.MergeStringSlices(ct.Paths[dockerfileSourceArtifactType], dockerfilePath)
-		ct.Paths[plantypes.ProjectPathSourceArtifact] = common.MergeStringSlices(ct.Paths[plantypes.ProjectPathSourceArtifact], contextPath)
+		ct.Paths[transformertypes.DockerfilePathType] = common.MergeStringSlices(ct.Paths[transformertypes.DockerfilePathType], dockerfilePath)
+		ct.Paths[plantypes.ProjectPathPathType] = common.MergeStringSlices(ct.Paths[plantypes.ProjectPathPathType], contextPath)
 	}
 	return ct
 }

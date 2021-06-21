@@ -36,7 +36,7 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 	// Collate services by project path or shared common base dir
 	servicePaths := make(map[string][]plantypes.Transformer)
 	for _, st := range sts {
-		pps, ok := st.Paths[plantypes.ProjectPathSourceArtifact]
+		pps, ok := st.Paths[plantypes.ProjectPathPathType]
 		bpp := common.CleanAndFindCommonDirectory(pps)
 		if !ok {
 			paths := []string{}

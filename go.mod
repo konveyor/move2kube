@@ -23,6 +23,7 @@ require (
 	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/mikefarah/yq/v4 v4.9.6
 	github.com/mitchellh/mapstructure v1.4.1
+	github.com/moby/buildkit v0.8.3 // indirect
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/onsi/gomega v1.13.0 // indirect

@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	ProjectPathSourceArtifact = "ProjectPath"
+	ProjectPathPathType PathType = "ProjectPath"
 )
 
 // PlanKind is kind of plan file
