@@ -36,7 +36,6 @@ import (
 	policy "k8s.io/kubernetes/pkg/apis/policy"
 	rbac "k8s.io/kubernetes/pkg/apis/rbac"
 	scheduling "k8s.io/kubernetes/pkg/apis/scheduling"
-	settings "k8s.io/kubernetes/pkg/apis/settings"
 	storage "k8s.io/kubernetes/pkg/apis/storage"
 
 	admissionregistrationinstall "k8s.io/kubernetes/pkg/apis/admissionregistration/install"
@@ -57,7 +56,6 @@ import (
 	policyinstall "k8s.io/kubernetes/pkg/apis/policy/install"
 	rbacinstall "k8s.io/kubernetes/pkg/apis/rbac/install"
 	schedulinginstall "k8s.io/kubernetes/pkg/apis/scheduling/install"
-	settingsinstall "k8s.io/kubernetes/pkg/apis/settings/install"
 	storageinstall "k8s.io/kubernetes/pkg/apis/storage/install"
 
 	okdapi "github.com/openshift/api"
@@ -95,7 +93,6 @@ func init() {
 	policyinstall.Install(scheme)
 	rbacinstall.Install(scheme)
 	schedulinginstall.Install(scheme)
-	settingsinstall.Install(scheme)
 	storageinstall.Install(scheme)
 
 	must(apps.AddToScheme(liasonscheme))
@@ -115,7 +112,6 @@ func init() {
 	must(policy.AddToScheme(liasonscheme))
 	must(rbac.AddToScheme(liasonscheme))
 	must(scheduling.AddToScheme(liasonscheme))
-	must(settings.AddToScheme(liasonscheme))
 	must(storage.AddToScheme(liasonscheme))
 }
 
