@@ -48,7 +48,7 @@ const (
 	// OverwriteFlag is the name of the flag that lets you overwrite the output directory if it exists
 	OverwriteFlag = "overwrite"
 	// ConfigurationsFlag is the path to extensions directory
-	ConfigurationsFlag = "extensions"
+	ConfigurationsFlag = "configurations"
 )
 
 //TransformFlags to store values from command line paramters
