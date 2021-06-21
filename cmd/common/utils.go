@@ -130,7 +130,7 @@ func NormalizePaths(paths []string) ([]string, error) {
 	for _, path := range paths {
 		newPath, err := filepath.Abs(path)
 		if err != nil {
-			return newPaths, fmt.Errorf("Failed to make the path %s absolute. Error: %q", path, err)
+			return newPaths, fmt.Errorf("failed to make the path %s absolute. Error: %q", path, err)
 		}
 		finfo, err := os.Stat(newPath)
 		if err != nil {

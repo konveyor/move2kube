@@ -3,9 +3,15 @@ module github.com/konveyor/move2kube
 go 1.16
 
 require (
+	code.cloudfoundry.org/bytefmt v0.0.0-20210608160410-67692ebc98de // indirect
+	code.cloudfoundry.org/cli v7.1.0+incompatible // indirect
 	github.com/AlecAivazis/survey/v2 v2.2.12
 	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/PuerkitoBio/purell v1.1.1 // indirect
+	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible // indirect
+	github.com/cloudfoundry/bosh-utils v0.0.263 // indirect
 	github.com/containerd/containerd v1.5.1 // indirect
+	github.com/cppforlife/go-patch v0.2.0 // indirect
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/docker/cli v20.10.7+incompatible
 	github.com/docker/docker v20.10.7+incompatible
@@ -13,6 +19,7 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/go-cmp v0.5.6
 	github.com/gorilla/mux v1.8.0
+	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/mikefarah/yq/v4 v4.9.6
 	github.com/mitchellh/mapstructure v1.4.1
@@ -32,6 +39,8 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+	golang.org/x/oauth2 v0.0.0-20210413134643-5e61552d6c78 // indirect
+	google.golang.org/grpc v1.38.0 // indirect
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.21.2
