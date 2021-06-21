@@ -35,7 +35,7 @@ func main() {
 		Short: "Move2Kube creates all the resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.",
 		Long: `Move2Kube creates all resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.
 It supports translating from docker swarm/docker-compose, cloud foundry apps and even other non-containerized applications.
-Even if the app does not use any of the above, or even if it is not containerized it can still be transformd.
+Even if the app does not use any of the above, or even if it is not containerized it can still be transformed.
 
 For more documentation and support, visit https://move2kube.konveyor.io/
 `,

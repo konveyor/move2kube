@@ -135,10 +135,10 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		Services: map[string]irtypes.Service{},
 	}
 
-	//Secret volumes transformd to IR
+	//Secret volumes transformed to IR
 	ir.Storages = c.getSecretStorages(composeObject.Secrets)
 
-	//ConfigMap volumes transformd to IR
+	//ConfigMap volumes transformed to IR
 	ir.Storages = append(ir.Storages, c.getConfigStorages(composeObject.Configs)...)
 
 	for _, composeServiceConfig := range composeObject.Services {

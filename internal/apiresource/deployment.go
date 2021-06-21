@@ -385,8 +385,8 @@ func (d *Deployment) toPod(meta metav1.ObjectMeta, podspec core.PodSpec, restart
 	return &pod
 }
 
-//Volumes and volume mounts of all containers are transformd as follows:
-//1. Each container's volume mount list and corresponding volumes are transformd
+//Volumes and volume mounts of all containers are transformed as follows:
+//1. Each container's volume mount list and corresponding volumes are transformed
 //2. Unreferenced volumes are discarded
 func (d *Deployment) convertVolumesKindsByPolicy(podspec core.PodSpec, cluster collecttypes.ClusterMetadataSpec) core.PodSpec {
 	if podspec.Volumes == nil || len(podspec.Volumes) == 0 {
