@@ -23,10 +23,10 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
-	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	log "github.com/sirupsen/logrus"
+	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -40,9 +40,9 @@ const (
 // IAPIResource defines the interface to be defined for a new api resource
 type IAPIResource interface {
 	getSupportedKinds() []string
-	createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object
+	createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object
 	// Return nil if not supported
-	convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, enhancedIR irtypes.EnhancedIR) ([]runtime.Object, bool)
+	convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, enhancedIR irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool)
 }
 
 // APIResource defines functions that are reusable across the api resources
@@ -52,23 +52,14 @@ type APIResource struct {
 }
 
 // ConvertIRToObjects converts IR to a runtime objects
-func (o *APIResource) ConvertIRToObjects(ir irtypes.EnhancedIR) (newObjs, ignoredObjs []runtime.Object) {
-	ignoredResources := []runtime.Object{}
-	for _, obj := range ir.CachedObjects {
-		if obj == nil {
-			continue
-		}
-		if !o.loadResource(obj, ir.CachedObjects, ir) {
-			ignoredResources = append(ignoredResources, obj)
-		}
-	}
-	objs := o.createNewResources(ir, o.getClusterSupportedKinds(ir.TargetClusterSpec))
+func (o *APIResource) ConvertIRToObjects(ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) (newObjs []runtime.Object) {
+	objs := o.createNewResources(ir, o.getClusterSupportedKinds(targetCluster), targetCluster)
 	for _, obj := range objs {
-		if !o.loadResource(obj, objs, ir) {
-			log.Errorf("Object created seems to be of an incompatible type : %+v [Supported Types: %+v]", obj.GetObjectKind(), o.getSupportedKinds())
+		if !o.loadResource(obj, objs, ir, targetCluster) {
+			logrus.Errorf("Object created seems to be of an incompatible type : %+v [Supported Types: %+v]", obj.GetObjectKind(), o.getSupportedKinds())
 		}
 	}
-	return o.cachedobjs, ignoredResources
+	return o.cachedobjs
 }
 
 func (o *APIResource) isSupportedKind(obj runtime.Object) bool {
@@ -77,11 +68,11 @@ func (o *APIResource) isSupportedKind(obj runtime.Object) bool {
 }
 
 // loadResource returns false if it could not handle the resource.
-func (o *APIResource) loadResource(obj runtime.Object, otherobjs []runtime.Object, ir irtypes.EnhancedIR) bool {
+func (o *APIResource) loadResource(obj runtime.Object, otherobjs []runtime.Object, ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) bool {
 	if !o.isSupportedKind(obj) {
 		return false
 	}
-	supportedobjs, ok := o.convertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(ir.TargetClusterSpec), otherobjs, ir)
+	supportedobjs, ok := o.convertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(targetCluster), otherobjs, ir, targetCluster)
 	if !ok {
 		return false
 	}
@@ -151,16 +142,16 @@ func (*APIResource) getObjectID(obj runtime.Object) string {
 	k8sObjValue := reflect.ValueOf(obj).Elem()
 	objMeta, ok := k8sObjValue.FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
 	if !ok {
-		log.Errorf("Failed to retrieve object metadata")
+		logrus.Errorf("Failed to retrieve object metadata")
 	}
 	return objMeta.GetNamespace() + objMeta.GetName()
 }
 
-func (o *APIResource) getClusterSupportedKinds(cluster collecttypes.ClusterMetadataSpec) []string {
+func (o *APIResource) getClusterSupportedKinds(cluster collecttypes.ClusterMetadata) []string {
 	kinds := o.IAPIResource.getSupportedKinds()
 	supportedKinds := []string{}
 	for _, kind := range kinds {
-		if cluster.GetSupportedVersions(kind) != nil {
+		if cluster.Spec.GetSupportedVersions(kind) != nil {
 			supportedKinds = append(supportedKinds, kind)
 		}
 	}
@@ -177,27 +168,27 @@ func (o *APIResource) deepMerge(x, y runtime.Object) (runtime.Object, error) {
 	xGVK := x.GetObjectKind().GroupVersionKind()
 	yGVK := y.GetObjectKind().GroupVersionKind()
 	if xGVK.Kind != yGVK.Kind {
-		log.Errorf("Attempting to merge to different kinds : %s & %s", xGVK.Kind, yGVK.Kind)
+		logrus.Errorf("Attempting to merge to different kinds : %s & %s", xGVK.Kind, yGVK.Kind)
 	}
 	newx, err := k8sschema.ConvertToVersion(x, yGVK.GroupVersion())
 	if err != nil {
-		log.Errorf("Unable to convert version : %s. Will try to merge two different versions", err)
+		logrus.Errorf("Unable to convert version : %s. Will try to merge two different versions", err)
 	} else {
 		x = newx
 	}
 	xJSON, err := json.Marshal(x)
 	if err != nil {
-		log.Errorf("Merge failed. Failed to marshal the first object %v to json. Error: %q", x, err)
+		logrus.Errorf("Merge failed. Failed to marshal the first object %v to json. Error: %q", x, err)
 		return nil, err
 	}
 	yJSON, err := json.Marshal(y)
 	if err != nil {
-		log.Errorf("Merge failed. Failed to marshal the second object %v to json. Error: %q", y, err)
+		logrus.Errorf("Merge failed. Failed to marshal the second object %v to json. Error: %q", y, err)
 		return nil, err
 	}
 	mergedJSON, err := strategicpatch.StrategicMergePatch(xJSON, yJSON, x) // need to provide in reverse for proper ordering
 	if err != nil {
-		log.Errorf("Failed to merge the objects \n%s\n and \n%s\n Error: %q", xJSON, yJSON, err)
+		logrus.Errorf("Failed to merge the objects \n%s\n and \n%s\n Error: %q", xJSON, yJSON, err)
 		return nil, err
 	}
 	codecs := serializer.NewCodecFactory(k8sschema.GetSchema())
@@ -205,7 +196,7 @@ func (o *APIResource) deepMerge(x, y runtime.Object) (runtime.Object, error) {
 
 	if newGVK == nil || *newGVK != yGVK {
 		err := fmt.Errorf("the group version kind after merging is different from before merging. original: %v new: %v", yGVK, newGVK)
-		log.Error(err)
+		logrus.Error(err)
 		return obj, err
 	}
 	return obj, err

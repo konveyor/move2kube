@@ -20,7 +20,7 @@ import (
 	"runtime"
 
 	semver "github.com/Masterminds/semver/v3"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -77,12 +77,12 @@ type VersionInfo struct {
 func (v *VersionInfo) IsSameVersion() bool {
 	binaryversion, err := semver.NewVersion(GetVersion())
 	if err != nil {
-		log.Warnf("Unable to load current version of binary : %s", err)
+		logrus.Warnf("Unable to load current version of binary : %s", err)
 		return false
 	}
 	objversion, err := semver.NewVersion(v.Version)
 	if err != nil {
-		log.Warnf("Unable to load current version : %s", err)
+		logrus.Warnf("Unable to load current version : %s", err)
 		return false
 	}
 
@@ -92,9 +92,9 @@ func (v *VersionInfo) IsSameVersion() bool {
 		return true
 	}
 	if compare < 0 {
-		log.Warnf("The file version (%s) is newer than the binary version (%s).", objversion, binaryversion)
+		logrus.Warnf("The file version (%s) is newer than the binary version (%s).", objversion, binaryversion)
 	} else {
-		log.Warnf("The file version (%s) is older than the binary version (%s).", objversion, binaryversion)
+		logrus.Warnf("The file version (%s) is older than the binary version (%s).", objversion, binaryversion)
 	}
 	return false
 }

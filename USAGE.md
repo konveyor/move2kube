@@ -11,14 +11,14 @@ Move2Kube is a command-line tool that accelerates the process of re-platforming 
 
 ### One step Simple approach
 
-`move2kube translate -s src`
+`move2kube transform -s src`
 
 ### Two step involved approach
 
 1. _Plan_ : Place source code in a directory say `src` and generate a plan. For example, you can use the `samples` directory.
     `move2kube plan -s src`
-1. _Translate_ : In the same directory, invoke the below command.
-    `move2kube translate`
+1. _Transform_ : In the same directory, invoke the below command.
+    `move2kube transform`
 
 Note: If information about any runtime instance say cloud foundry or kubernetes cluster needs to be collected use `move2kube collect`. You can place the collected data in the `src` directory used in the plan.
 

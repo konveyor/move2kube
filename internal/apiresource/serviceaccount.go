@@ -18,8 +18,9 @@ package apiresource
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	log "github.com/sirupsen/logrus"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
+	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/sirupsen/logrus"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,7 +37,7 @@ func (*ServiceAccount) getSupportedKinds() []string {
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
-func (sa *ServiceAccount) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (sa *ServiceAccount) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	if common.IsStringPresent(supportedKinds, rbacv1.ServiceAccountKind) {
 		irresources := ir.ServiceAccounts
@@ -44,7 +45,7 @@ func (sa *ServiceAccount) createNewResources(ir irtypes.EnhancedIR, supportedKin
 			objs = append(objs, sa.createNewResource(irresource))
 		}
 	} else {
-		log.Errorf("Could not find a valid resource type in cluster to create a service account.")
+		logrus.Errorf("Could not find a valid resource type in cluster to create a service account.")
 	}
 	return objs
 }
@@ -63,7 +64,7 @@ func (*ServiceAccount) createNewResource(irserviceaccount irtypes.ServiceAccount
 }
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
-func (sa *ServiceAccount) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (sa *ServiceAccount) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	if common.IsStringPresent(sa.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}

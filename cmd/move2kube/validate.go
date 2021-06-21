@@ -19,8 +19,8 @@ package main
 import (
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/internal/move2kube"
-	log "github.com/sirupsen/logrus"
+	"github.com/konveyor/move2kube/api"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,9 +36,9 @@ type validateFlags struct {
 func validateHandler(flags validateFlags) {
 	artifactspath, err := filepath.Abs(flags.artifactspath)
 	if err != nil {
-		log.Fatalf("Failed to make the directory path %q absolute. Error: %q", artifactspath, err)
+		logrus.Fatalf("Failed to make the directory path %q absolute. Error: %q", artifactspath, err)
 	}
-	move2kube.PrintValidate(artifactspath)
+	api.PrintValidate(artifactspath)
 }
 
 func getValidateCommand() *cobra.Command {

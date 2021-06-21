@@ -1,8 +1,0 @@
-
-Thank you for installing {{ .Chart.Name }}. Your release is named {{ .Release.Name }}.
-{{ if .Values.ingresshost }}
-Your services are exposed in ingress at {{ .Release.Name }}-{{ .Values.ingresshost }}.
-{{ end }}
-To learn more about the release, try:
-  $ helm status {{ .Release.Name }}
-  $ helm get all {{ .Release.Name }}

@@ -18,9 +18,10 @@ package apiresource
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
 	"github.com/konveyor/move2kube/types"
-	log "github.com/sirupsen/logrus"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
+	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
@@ -41,20 +42,20 @@ func (d *NetworkPolicy) getSupportedKinds() []string {
 }
 
 // createNewResources converts ir to runtime objects
-func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	if !common.IsStringPresent(supportedKinds, networkPolicyKind) {
-		log.Errorf("Could not find a valid resource type in cluster to create a NetworkPolicy")
+		logrus.Errorf("Could not find a valid resource type in cluster to create a NetworkPolicy")
 		return nil
 	}
 
 	for _, service := range ir.Services {
 		// Create services depending on whether the service needs to be externally exposed
 		for _, net := range service.Networks {
-			log.Debugf("Network %s is detected at Source, shall be converted to equivalent NetworkPolicy at Destination", net)
+			logrus.Debugf("Network %s is detected at Source, shall be converted to equivalent NetworkPolicy at Destination", net)
 			obj, err := d.createNetworkPolicy(net)
 			if err != nil {
-				log.Warnf("Unable to create Network Policy for network %v for service %s : %s", net, service.Name, err)
+				logrus.Warnf("Unable to create Network Policy for network %v for service %s : %s", net, service.Name, err)
 				continue
 			}
 			objs = append(objs, obj)
@@ -64,7 +65,7 @@ func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds
 }
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (d *NetworkPolicy) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (d *NetworkPolicy) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	if common.IsStringPresent(d.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}

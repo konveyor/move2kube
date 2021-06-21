@@ -28,7 +28,7 @@ import (
 	"text/template"
 
 	"github.com/konveyor/move2kube/internal/common"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // Reads all non .go files in the current directory
@@ -90,16 +90,16 @@ func main() {
 	if len(os.Args) == 3 {
 		if os.Args[2] == "makemaps" {
 			if err := makeConstants(directory, maptemp); err != nil {
-				log.Fatalf("Error during code gen on directory %q with makemaps Error: %q", directory, err)
+				logrus.Fatalf("Error during code gen on directory %q with makemaps Error: %q", directory, err)
 			}
 		} else if os.Args[2] == "maketar" {
 			if err := makeTar(directory); err != nil {
-				log.Fatalf("Error during code gen on directory %q with maketar Error: %q", directory, err)
+				logrus.Fatalf("Error during code gen on directory %q with maketar Error: %q", directory, err)
 			}
 		}
 	} else {
 		if err := makeConstants(directory, conststemp); err != nil {
-			log.Fatalf("Error during code gen on directory %q with consts template Error: %q", directory, err)
+			logrus.Fatalf("Error during code gen on directory %q with consts template Error: %q", directory, err)
 		}
 	}
 }
@@ -107,10 +107,10 @@ func main() {
 func makeConstants(directory string, tplstr string) error {
 	files := map[string]string{}
 
-	log.Infof("Generating constants from %q", directory)
+	logrus.Infof("Generating constants from %q", directory)
 	fs, err := ioutil.ReadDir(directory)
 	if err != nil {
-		log.Errorf("Failed to read the directory %q Error: %q", directory, err)
+		logrus.Errorf("Failed to read the directory %q Error: %q", directory, err)
 		return err
 	}
 	for _, f := range fs {
@@ -122,7 +122,7 @@ func makeConstants(directory string, tplstr string) error {
 			currpath := filepath.Join(directory, file)
 			content, err := ioutil.ReadFile(currpath)
 			if err != nil {
-				log.Errorf("Failed to read the file at path %q Error: %q", currpath, err)
+				logrus.Errorf("Failed to read the file at path %q Error: %q", currpath, err)
 				return err
 			}
 			// Convert []byte to string
@@ -133,7 +133,7 @@ func makeConstants(directory string, tplstr string) error {
 	outputpath := filepath.Join(directory, "constants.go")
 	f, err := os.Create(outputpath)
 	if err != nil {
-		log.Errorf("Failed to create the file at path %q Error: %q", outputpath, err)
+		logrus.Errorf("Failed to create the file at path %q Error: %q", outputpath, err)
 		return err
 	}
 	defer f.Close()
@@ -142,7 +142,7 @@ func makeConstants(directory string, tplstr string) error {
 
 	absdirectory, err := filepath.Abs(directory)
 	if err != nil {
-		log.Errorf("Unable to resolve full path of directory %q : %q", absdirectory, err)
+		logrus.Errorf("Unable to resolve full path of directory %q : %q", absdirectory, err)
 		return err
 	}
 
@@ -154,7 +154,7 @@ func makeConstants(directory string, tplstr string) error {
 		Files:     files,
 	})
 	if err != nil {
-		log.Errorf("Failed to execute the template. Error: %q", err)
+		logrus.Errorf("Failed to execute the template. Error: %q", err)
 		return err
 	}
 	return nil
@@ -164,16 +164,16 @@ func makeTar(directory string) error {
 	outputpath := filepath.Join(directory, "constants.go")
 	f, err := os.Create(outputpath)
 	if err != nil {
-		log.Errorf("Failed to create the file at path %q Error: %q", outputpath, err)
+		logrus.Errorf("Failed to create the file at path %q Error: %q", outputpath, err)
 		return err
 	}
 	defer f.Close()
 
-	log.Infof("Generating tar from %q", directory)
+	logrus.Infof("Generating tar from %q", directory)
 
 	tarString, err := common.TarAsString(directory, []string{"constants.go", "assets.go"})
 	if err != nil {
-		log.Errorf("Error while creating tar : %q", err)
+		logrus.Errorf("Error while creating tar : %q", err)
 		return err
 	}
 
@@ -181,7 +181,7 @@ func makeTar(directory string) error {
 
 	absdirectory, err := filepath.Abs(directory)
 	if err != nil {
-		log.Errorf("Unable to resolve full path of directory %q : %q", absdirectory, err)
+		logrus.Errorf("Unable to resolve full path of directory %q : %q", absdirectory, err)
 		return err
 	}
 
@@ -193,7 +193,7 @@ func makeTar(directory string) error {
 		TarString: tarString,
 	})
 	if err != nil {
-		log.Errorf("Failed to execute the template. Error: %q", err)
+		logrus.Errorf("Failed to execute the template. Error: %q", err)
 		return err
 	}
 	return nil

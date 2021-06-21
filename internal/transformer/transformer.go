@@ -1,5 +1,5 @@
 /*
-Copyright IBM Corporation 2020
+Copyright IBM Corporation 2020, 2021
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,283 +14,304 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package transform
+package transformer
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
-	"strings"
 
-	"github.com/a8m/tree"
-	"github.com/a8m/tree/ostree"
-	"github.com/konveyor/move2kube/internal/apiresource"
+	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/k8sschema"
-	"github.com/konveyor/move2kube/internal/k8sschema/fixer"
-	"github.com/konveyor/move2kube/internal/starlark/gettransformdata"
-	"github.com/konveyor/move2kube/internal/starlark/runtransforms"
-	startypes "github.com/konveyor/move2kube/internal/starlark/types"
-	"github.com/konveyor/move2kube/internal/transformer/templates"
-	"github.com/konveyor/move2kube/internal/transformer/transformations"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
-	"github.com/otiai10/copy"
-	log "github.com/sirupsen/logrus"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/konveyor/move2kube/internal/transformer/classes/analysers"
+	"github.com/konveyor/move2kube/internal/transformer/classes/external"
+	"github.com/konveyor/move2kube/internal/transformer/classes/generators"
+	"github.com/konveyor/move2kube/qaengine"
+	environmenttypes "github.com/konveyor/move2kube/types/environment"
+	plantypes "github.com/konveyor/move2kube/types/plan"
+	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/sirupsen/logrus"
 )
 
-//go:generate go run  ../../scripts/generator/generator.go templates
+var (
+	transformerTypes map[string]reflect.Type = make(map[string]reflect.Type)
+	transformers     map[string]Transformer  = make(map[string]Transformer)
+)
 
-// Transformer translates intermediate representation to destination artifacts
+// Transformer interface defines transformer that transforms files and converts it to ir representation
 type Transformer interface {
-	// Transform translates intermediate representation to destination objects
-	Transform(ir irtypes.IR) error
-	// WriteObjects writes Transformed objects to filesystem. Also does some final transformations on the generated yamls.
-	WriteObjects(outputDirectory string, transformPaths []string) error
+	Init(tc transformertypes.Transformer, env environment.Environment) (err error)
+	GetConfig() (transformertypes.Transformer, environment.Environment)
+
+	BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error)
+	DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error)
+
+	Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error)
 }
 
-// Transform transforms the IR into runtime.Objects and write all the deployments artifacts to files.
-func Transform(ir irtypes.IR, outputPath string, transformPaths []string) error {
-	transformers := GetTransformers()
-	for _, transformer := range transformers {
-		if err := transformer.Transform(ir); err != nil {
-			log.Errorf("Error during translate. Error: %q", err)
-			return err
-		} else if err := transformer.WriteObjects(outputPath, transformPaths); err != nil {
-			log.Errorf("Unable to write objects Error: %q", err)
-			return err
+func init() {
+	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable), new(analysers.CNBContainerizer), new(generators.CNBGenerator)}
+	for _, tt := range transformerObjs {
+		t := reflect.TypeOf(tt).Elem()
+		tn := t.Name()
+		if ot, ok := transformerTypes[tn]; ok {
+			logrus.Errorf("Two transformer classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
+			continue
+		}
+		transformerTypes[tn] = t
+	}
+}
+
+func Init(assetsPath, sourcePath string) (err error) {
+	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
+	if err != nil {
+		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
+		return err
+	}
+	transformerFiles := make(map[string]string)
+	for _, filePath := range filePaths {
+		tc, err := getTransformerConfig(filePath)
+		if err != nil {
+			logrus.Debugf("Unable to load %s as Transformer config", filePath, err)
+			continue
+		}
+		transformerFiles[tc.Name] = filePath
+	}
+	InitTransformers(transformerFiles, sourcePath, false)
+	return nil
+}
+
+func InitTransformers(transformerToInit map[string]string, sourcePath string, warn bool) error {
+	transformerConfigs := make(map[string]transformertypes.Transformer)
+	for tn, tfilepath := range transformerToInit {
+		tc, err := getTransformerConfig(tfilepath)
+		if err != nil {
+			if warn {
+				logrus.Errorf("Unable to load %s as Transformer config", tfilepath, err)
+			} else {
+				logrus.Debugf("Unable to load %s as Transformer config", tfilepath, err)
+			}
+			continue
+		}
+		if ot, ok := transformerConfigs[tc.Name]; ok {
+			logrus.Errorf("Found two conflicting transformer Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath)
+			continue
+		}
+		if _, ok := transformerTypes[tc.Spec.Class]; ok {
+			transformerConfigs[tc.Name] = tc
+			continue
+		}
+		transformerConfigs[tn] = tc
+	}
+	tns := make([]string, 0)
+	for tn := range transformerConfigs {
+		tns = append(tns, tn)
+	}
+	transformerNames := qaengine.FetchMultiSelectAnswer(common.ConfigTransformerTypesKey, "Select all transformer types that you are interested in:", []string{"Services that don't support any of the transformer types you are interested in will be ignored."}, tns, tns)
+	for _, tn := range transformerNames {
+		tc := transformerConfigs[tn]
+		if c, ok := transformerTypes[tc.Spec.Class]; !ok {
+			logrus.Errorf("Unable to find Transformer class %s in %+v", tc.Spec.Class, transformerTypes)
+		} else {
+			t := reflect.New(c).Interface().(Transformer)
+			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), environmenttypes.Container{})
+			if err != nil {
+				logrus.Errorf("Unable to create environment : %s", err)
+				return err
+			}
+			if err := t.Init(tc, env); err != nil {
+				logrus.Errorf("Unable to initialize transformer %s : %s", tc.Name, err)
+			} else {
+				transformers[tn] = t
+			}
 		}
 	}
 	return nil
 }
 
-// GetTransformers returns all the transformers that can operate on the IR
-func GetTransformers() []Transformer {
-	return []Transformer{new(TektonTransformer), NewBuildconfigTransformer(), new(KnativeTransformer), NewK8sTransformer()}
+func Destroy() {
+	for _, t := range transformers {
+		_, env := t.GetConfig()
+		if err := env.Destroy(); err != nil {
+			logrus.Errorf("Unable to destroy environment : %s", err)
+		}
+	}
 }
 
-// ConvertIRToObjects converts IR to a runtime objects
-func convertIRToObjects(ir irtypes.EnhancedIR, apis []apiresource.IAPIResource) []runtime.Object {
-	targetObjs := []runtime.Object{}
-	ignoredObjs := ir.CachedObjects
-	for _, apiResource := range apis {
-		newObjs, ignoredResources := (&apiresource.APIResource{IAPIResource: apiResource}).ConvertIRToObjects(ir)
-		ignoredObjs = k8sschema.Intersection(ignoredObjs, ignoredResources)
-		targetObjs = append(targetObjs, newObjs...)
-	}
-	targetObjs = append(targetObjs, ignoredObjs...)
-	return targetObjs
+func GetTransformers() map[string]Transformer {
+	return transformers
 }
 
-// writeContainers returns true if any scripts were written
-func writeContainers(containers []irtypes.Container, outputPath, rootDir, registryURL, registryNamespace string) bool {
-	sourcePath := filepath.Join(outputPath, common.SourceDir)
-	log.Debugf("containersPath: %s", sourcePath)
-	if err := os.MkdirAll(sourcePath, common.DefaultDirectoryPermission); err != nil {
-		log.Errorf("Unable to create directory %s : %s", sourcePath, err)
-	}
-	scriptsPath := path.Join(outputPath, common.ScriptsDir)
-	if err := os.MkdirAll(scriptsPath, common.DefaultDirectoryPermission); err != nil {
-		log.Errorf("Unable to create directory %s : %s", scriptsPath, err)
-	}
-	log.Debugf("Total number of containers : %d", len(containers))
-	buildScripts := []string{}
-	dockerImages := []string{}
-	manualImages := []string{}
-	for _, container := range containers {
-		log.Debugf("Container : %t", container.New)
-		if !container.New {
-			continue
+func GetServices(prjName string, dir string) (services map[string]plantypes.Service, err error) {
+	services = make(map[string]plantypes.Service)
+	unservices := make([]plantypes.Transformer, 0)
+	logrus.Infoln("Planning Transformation - Base Directory")
+	logrus.Debugf("Transformers : %+v", transformers)
+	for tn, t := range transformers {
+		config, env := t.GetConfig()
+		env.Reset()
+		logrus.Infof("[%s] Planning transformation", tn)
+		nservices, nunservices, err := t.BaseDirectoryDetect(env.Encode(dir).(string))
+		if err != nil {
+			logrus.Errorf("[%s] Failed : %s", tn, err)
+		} else {
+			nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]plantypes.Service), config)
+			unservices = setTransformerInfoForTransformers(*env.Decode(&unservices).(*[]plantypes.Transformer), config)
+			services = plantypes.MergeServices(services, nservices)
+			unservices = append(unservices, nunservices...)
+			logrus.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
+			logrus.Infof("[%s] Done", tn)
 		}
-		if len(container.NewFiles) == 0 {
-			manualImages = append(manualImages, container.ImageNames...)
-		}
-		log.Debugf("New Container : %s", container.ImageNames[0])
-		dockerImages = append(dockerImages, container.ImageNames...)
-		for relPath, filecontents := range container.NewFiles {
-			writePath := filepath.Join(sourcePath, relPath)
-			directory := filepath.Dir(writePath)
-			if err := os.MkdirAll(directory, common.DefaultDirectoryPermission); err != nil {
-				log.Errorf("Unable to create directory %s : %s", directory, err)
+	}
+	logrus.Infof("[Base Directory] Identified %d namedservices and %d unnamedservices", len(services), len(unservices))
+	logrus.Infoln("Transformation planning - Base Directory done")
+	logrus.Infoln("Planning Transformation - Directory Walk")
+	nservices, nunservices, err := walkForServices(dir, transformers, services)
+	if err != nil {
+		logrus.Errorf("Transformation planning - Directory Walk failed : %s", err)
+	} else {
+		services = nservices
+		unservices = append(unservices, nunservices...)
+		logrus.Infoln("Transformation planning - Directory Walk done")
+	}
+	logrus.Infof("[Directory Walk] Identified %d namedservices and %d unnamedservices", len(services), len(unservices))
+	services = nameServices(prjName, services, unservices)
+	logrus.Infof("[Named Services] Identified %d namedservices", len(services))
+	return
+}
+
+func Transform(plan plantypes.Plan, outputPath string) (err error) {
+	artifacts := []transformertypes.Artifact{}
+	pathMappings := []transformertypes.PathMapping{}
+	iteration := 1
+	logrus.Infof("Iteration %d", iteration)
+	for serviceName, service := range plan.Spec.Services {
+		for _, transformer := range service {
+			logrus.Infof("Transformer %s for service %s", transformer.Name, serviceName)
+			t := transformers[transformer.Name]
+			_, env := t.GetConfig()
+			env.Reset()
+			a := getArtifactForTransformerPlan(serviceName, transformer, plan)
+			newPathMappings, newArtifacts, err := t.Transform([]transformertypes.Artifact{*env.Encode(&a).(*transformertypes.Artifact)}, *env.Encode(&artifacts).(*[]transformertypes.Artifact))
+			if err != nil {
+				logrus.Errorf("Unable to transform service %s using %s : %s", serviceName, transformer.Name, err)
 				continue
 			}
-			fileperm := common.DefaultFilePermission
-			if filepath.Ext(writePath) == ".sh" {
-				fileperm = common.DefaultExecutablePermission
-				buildScripts = append(buildScripts, filepath.Join(common.SourceDir, relPath))
+			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
+			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
+			pathMappings = append(pathMappings, newPathMappings...)
+			artifacts = mergeArtifacts(append(artifacts, newArtifacts...))
+			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))
+			logrus.Infof("Transformer %s Done for service %s", transformer.Name, serviceName)
+		}
+	}
+	err = processPathMappings(pathMappings, plan.Spec.RootDir, outputPath)
+	if err != nil {
+		logrus.Errorf("Unable to process path mappings")
+	}
+	newArtifactsToProcess := artifacts
+	for {
+		iteration += 1
+		newArtifactsCreated := []transformertypes.Artifact{}
+		logrus.Infof("Iteration %d", iteration)
+		for tn, t := range transformers {
+			config, env := t.GetConfig()
+			env.Reset()
+			artifactsToProcess := []transformertypes.Artifact{}
+			for _, na := range newArtifactsToProcess {
+				if common.IsStringPresent(config.Spec.ArtifactsToProcess, string(na.Artifact)) {
+					artifactsToProcess = append(artifactsToProcess, na)
+				}
 			}
-			log.Debugf("Writing at %s", writePath)
-			if err := ioutil.WriteFile(writePath, []byte(filecontents), fileperm); err != nil {
-				log.Warnf("Error writing to file at path %s Error: %q", writePath, err)
+			if len(artifactsToProcess) == 0 {
+				continue
+			}
+			logrus.Infof("Transformer %s", config.Name)
+			newPathMappings, newArtifacts, err := t.Transform(*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact), *env.Encode(&artifacts).(*[]transformertypes.Artifact))
+			if err != nil {
+				logrus.Errorf("Unable to transform artifacts using %s : %s", tn, err)
+				continue
+			}
+			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
+			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
+			pathMappings = append(pathMappings, newPathMappings...)
+			newArtifactsCreated = append(newArtifactsCreated, newArtifacts...)
+			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))
+			logrus.Infof("Transformer %s Done", config.Name)
+		}
+		if err = os.RemoveAll(outputPath); err != nil {
+			logrus.Errorf("Unable to delete %s : %s", outputPath, err)
+		}
+		err = processPathMappings(pathMappings, plan.Spec.RootDir, outputPath)
+		if err != nil {
+			logrus.Errorf("Unable to process path mappings")
+		}
+		if len(newArtifactsCreated) == 0 {
+			break
+		}
+		newArtifactsToProcess = mergeArtifacts(append(newArtifactsCreated, updatedArtifacts(artifacts, newArtifactsCreated)...))
+		artifacts = mergeArtifacts(append(artifacts, newArtifactsToProcess...))
+	}
+	return nil
+}
+
+func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string]plantypes.Service) (services map[string]plantypes.Service, unservices []plantypes.Transformer, err error) {
+	services = bservices
+	unservices = make([]plantypes.Transformer, 0)
+	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
+	knownProjectPaths := make([]string, 0)
+
+	err = filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			logrus.Warnf("Skipping path %q due to error. Error: %q", path, err)
+			return nil
+		}
+		if !info.IsDir() {
+			return nil
+		}
+		if common.IsStringPresent(knownProjectPaths, path) {
+			return filepath.SkipDir //TODO: Should we go inside the directory in this case?
+		}
+		if common.IsStringPresent(ignoreDirectories, path) {
+			if common.IsStringPresent(ignoreContents, path) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		logrus.Debugf("Planning dir transformation - %s", path)
+		found := false
+		for _, t := range transformers {
+			config, env := t.GetConfig()
+			logrus.Debugf("[%s] Planning transformation in %s", config.Name, path)
+			env.Reset()
+			nservices, nunservices, err := t.DirectoryDetect(env.Encode(path).(string))
+			if err != nil {
+				logrus.Warnf("[%s] Failed : %s", config.Name, err)
+			} else {
+				nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]plantypes.Service), config)
+				nunservices = setTransformerInfoForTransformers(*env.Decode(&nunservices).(*[]plantypes.Transformer), config)
+				services = plantypes.MergeServices(services, nservices)
+				unservices = append(unservices, nunservices...)
+				logrus.Debugf("[%s] Done", config.Name)
+				if len(nservices) > 0 || len(nunservices) > 0 {
+					found = true
+					relpath, _ := filepath.Rel(inputPath, path)
+					logrus.Infof("Found %d named services and %d unnamed transformer success in %s", len(nservices), len(nunservices), relpath)
+				}
 			}
 		}
-	}
-	// Write build scripts
-	if len(manualImages) > 0 {
-		writepath := filepath.Join(outputPath, "Manualimages.md")
-		err := common.WriteTemplateToFile(templates.Manualimages_md, struct {
-			Scripts []string
-		}{
-			Scripts: manualImages,
-		}, writepath, common.DefaultFilePermission)
-		if err != nil {
-			log.Errorf("Unable to create manual image : %s", err)
+		logrus.Debugf("Dir transformation done - %s", path)
+		if !found {
+			logrus.Debugf("No service found in directory %q", path)
+			if common.IsStringPresent(ignoreContents, path) {
+				return filepath.SkipDir
+			}
+			return nil
 		}
-	}
-
-	{
-		// write out the list of new files as a directory tree
-		treeBytes := bytes.Buffer{}
-		treeBufBytes := io.Writer(&treeBytes)
-		sourceTree := tree.New(sourcePath)
-		opts := &tree.Options{
-			Fs:      new(ostree.FS),
-			OutFile: treeBufBytes,
-		}
-		numDir, numFiles := sourceTree.Visit(opts)
-		log.Debugf("Visiting files in source/ . Found %d directories and %d files", numDir, numFiles)
-		sourceTree.Print(opts)
-		log.Debugf("%s", treeBytes.String())
-		newFiles := common.SourceDir + "/\n" + strings.Join(strings.Split(treeBytes.String(), "\n")[1:], "\n") // remove the first line containing source directory path
-		newFilesTextPath := filepath.Join(outputPath, "newfiles.txt")
-		if err := ioutil.WriteFile(newFilesTextPath, []byte(newFiles), common.DefaultFilePermission); err != nil {
-			log.Errorf("Faled to create a file at path %s . Error: %q", newFilesTextPath, err)
-		}
-	}
-
-	if len(buildScripts) > 0 {
-		buildScriptMap := map[string]string{}
-		for _, value := range buildScripts {
-			buildScriptDir, buildScriptFile := filepath.Split(value)
-			buildScriptMap[buildScriptFile] = buildScriptDir
-		}
-		log.Debugf("buildscripts %s", buildScripts)
-		log.Debugf("buildScriptMap %s", buildScriptMap)
-		writepath := filepath.Join(scriptsPath, "buildimages.sh")
-		if err := common.WriteTemplateToFile(templates.Buildimages_sh, buildScriptMap, writepath, common.DefaultExecutablePermission); err != nil {
-			log.Errorf("Unable to create script to build images : %s", err)
-		}
-
-		// copy all the sources into source/
-		sourcePath := filepath.Join(outputPath, common.SourceDir)
-		if err := os.MkdirAll(sourcePath, common.DefaultDirectoryPermission); err != nil {
-			log.Errorf("Failed to create the source directory at path %s . Error: %q", sourcePath, err)
-		} else if err := copy.Copy(rootDir, sourcePath); err != nil {
-			log.Errorf("Failed to copy the sources over to the folder at path %s Error: %q", sourcePath, err)
-		}
-	}
-	if len(dockerImages) > 0 {
-		writepath := filepath.Join(scriptsPath, "pushimages.sh")
-		err := common.WriteTemplateToFile(templates.Pushimages_sh, struct {
-			Images            []string
-			RegistryURL       string
-			RegistryNamespace string
-		}{
-			Images:            dockerImages,
-			RegistryURL:       registryURL,
-			RegistryNamespace: registryNamespace,
-		}, writepath, common.DefaultExecutablePermission)
-		if err != nil {
-			log.Errorf("Unable to create script to push images : %s", err)
-		}
-		return true
-	}
-	return false
-}
-
-func fixAndConvert(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool) (runtime.Object, error) {
-	fixedobj := fixer.Fix(obj)
-	return k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec, ignoreUnsupportedKinds)
-}
-
-// fixConvertAndTransformObjs runs fixers, converts to a supported version and runs transformations on the objects
-func fixConvertAndTransformObjs(objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool, transformPaths []string) ([]runtime.Object, error) {
-	// Fix and convert
-	fixedAndConvertedObjs := []runtime.Object{}
-	for _, obj := range objs {
-		fixedAndConvertedObj, err := fixAndConvert(obj, clusterSpec, ignoreUnsupportedKinds)
-		if err != nil {
-			log.Errorf("Failed to fix and convert the runtime.Object. Object:\n%+v\nError: %q", obj, err)
-			fixedAndConvertedObj = obj
-		}
-		fixedAndConvertedObjs = append(fixedAndConvertedObjs, fixedAndConvertedObj)
-	}
-	// Transform
-	// Transform - get the k8s resources
-	k8sResources := []startypes.K8sResourceT{}
-	for _, fixedAndConvertedObj := range fixedAndConvertedObjs {
-		k8sResource, err := gettransformdata.GetK8sResourceFromObject(fixedAndConvertedObj)
-		if err != nil {
-			log.Errorf("Failed to convert the object into a K8sResourceT. Object:\n%+v\nError: %q", fixedAndConvertedObj, err)
-			return nil, err
-		}
-		k8sResources = append(k8sResources, k8sResource)
-	}
-	// Transform - get the transforms
-	transforms, err := transformations.GetTransformsFromPathsUsingDefaults(transformPaths)
+		return filepath.SkipDir // Skip all subdirectories when base directory is a valid package
+	})
 	if err != nil {
-		log.Errorf("Failed to get the transformations. Error: %q", err)
-		return nil, err
+		logrus.Errorf("Error occurred while walking through the directory at path %q Error: %q", inputPath, err)
 	}
-	// Transform - run the transformations on the k8s resources
-	transformedK8sResources, err := runtransforms.ApplyTransforms(transforms, k8sResources)
-	if err != nil {
-		log.Errorf("Failed to apply the transformations. Error: %q", err)
-		return nil, err
-	}
-	fixedConvertedAndTransformedObjs := []runtime.Object{}
-	for i, transformedK8sResource := range transformedK8sResources {
-		fixedConvertedAndTransformedObj, err := gettransformdata.GetObjectFromK8sResource(transformedK8sResource, fixedAndConvertedObjs[i])
-		if err != nil {
-			log.Errorf("Failed to convert the K8sResourceT back into a runtime.Object. K8s resource:\n%+v\nObject:\n%+v\nError: %q", transformedK8sResource, fixedAndConvertedObjs[i], err)
-			fixedConvertedAndTransformedObj = fixedAndConvertedObjs[i]
-		}
-		fixedConvertedAndTransformedObjs = append(fixedConvertedAndTransformedObjs, fixedConvertedAndTransformedObj)
-	}
-	return fixedConvertedAndTransformedObjs, nil
-}
-
-// writeObjects writes the runtime objects to yaml files
-func writeObjects(outputPath string, objs []runtime.Object) ([]string, error) {
-	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
-		return nil, err
-	}
-	filesWritten := []string{}
-	for _, obj := range objs {
-		objYamlBytes, err := common.MarshalObjToYaml(obj)
-		if err != nil {
-			log.Errorf("failed to marshal the runtime.Object to yaml. Object:\n%+v\nError: %q", obj, err)
-			continue
-		}
-		yamlPath := filepath.Join(outputPath, getFilename(obj))
-		if err := ioutil.WriteFile(yamlPath, objYamlBytes, common.DefaultFilePermission); err != nil {
-			log.Errorf("failed to write the yaml to file at path %s . Error: %q", yamlPath, err)
-			continue
-		}
-		filesWritten = append(filesWritten, yamlPath)
-	}
-	return filesWritten, nil
-}
-
-func getFilename(obj runtime.Object) string {
-	val := reflect.ValueOf(obj).Elem()
-	typeMeta := val.FieldByName("TypeMeta").Interface().(metav1.TypeMeta)
-	objectMeta := val.FieldByName("ObjectMeta").Interface().(metav1.ObjectMeta)
-	return fmt.Sprintf("%s-%s.yaml", objectMeta.Name, strings.ToLower(typeMeta.Kind))
-}
-
-func writeTransformedObjects(outputPath string, objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, ignoreUnsupportedKinds bool, transformPaths []string) ([]string, error) {
-	fixedConvertedAndTransformedObjs, err := fixConvertAndTransformObjs(objs, clusterSpec, ignoreUnsupportedKinds, transformPaths)
-	if err != nil {
-		log.Errorf("Failed to fix, convert and transform objects. Error: %q", err)
-		return nil, err
-	}
-	return writeObjects(outputPath, fixedConvertedAndTransformedObjs)
+	return
 }

@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 
 	internalcommon "github.com/konveyor/move2kube/internal/common"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -31,8 +31,6 @@ const (
 	SourceFlag = "source"
 	// OutputFlag is the name of the flag that contains path to the output folder
 	OutputFlag = "output"
-	// QACacheFlag is the name of the flag that contains list of qacache files
-	QACacheFlag = "qacache"
 	// NameFlag is the name of the flag that contains the project name
 	NameFlag = "name"
 	// PlanFlag is the name of the flag that contains the path to the plan file
@@ -49,12 +47,12 @@ const (
 	PreSetFlag = "preset"
 	// OverwriteFlag is the name of the flag that lets you overwrite the output directory if it exists
 	OverwriteFlag = "overwrite"
-	// TransformsFlag is the name of the flag that lets you specify a list of paths to transformations scripts
-	TransformsFlag = "transforms"
+	// ConfigurationsFlag is the path to extensions directory
+	ConfigurationsFlag = "configurations"
 )
 
-//TranslateFlags to store values from command line paramters
-type TranslateFlags struct {
+//TransformFlags to store values from command line paramters
+type TransformFlags struct {
 	//IgnoreEnv tells us whether to use data collected from the local machine
 	IgnoreEnv bool
 	//Planfile is contains the path to the plan file
@@ -65,8 +63,6 @@ type TranslateFlags struct {
 	Srcpath string
 	//Name contains the project name
 	Name string
-	//Qacaches contains a list of qacache files
-	Qacaches []string
 	//Configs contains a list of config files
 	Configs []string
 	//Configs contains a list of key-value configs
@@ -77,28 +73,28 @@ type TranslateFlags struct {
 	Overwrite bool
 	//PreSets contains a list of preset configurations
 	PreSets []string
-	// TransformPaths contains a list of paths to starlark transformation scripts
-	TransformPaths []string
+	// ExtensionsPaths contains the path to the extensions directory
+	ConfigurationsPath string
 }
 
 // CheckSourcePath checks if the source path is an existing directory.
 func CheckSourcePath(srcpath string) {
 	fi, err := os.Stat(srcpath)
 	if os.IsNotExist(err) {
-		log.Fatalf("The given source directory %s does not exist. Error: %q", srcpath, err)
+		logrus.Fatalf("The given source directory %s does not exist. Error: %q", srcpath, err)
 	}
 	if err != nil {
-		log.Fatalf("Error while accessing the given source directory %s Error: %q", srcpath, err)
+		logrus.Fatalf("Error while accessing the given source directory %s Error: %q", srcpath, err)
 	}
 	if !fi.IsDir() {
-		log.Fatalf("The given source path %s is a file. Expected a directory. Exiting.", srcpath)
+		logrus.Fatalf("The given source path %s is a file. Expected a directory. Exiting.", srcpath)
 	}
 	pwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("Failed to get the current working directory. Error: %q", err)
+		logrus.Fatalf("Failed to get the current working directory. Error: %q", err)
 	}
 	if internalcommon.IsParent(pwd, srcpath) {
-		log.Fatalf("The given source directory %s is a parent of the current working directory.", srcpath)
+		logrus.Fatalf("The given source directory %s is a parent of the current working directory.", srcpath)
 	}
 }
 
@@ -106,26 +102,26 @@ func CheckSourcePath(srcpath string) {
 func CheckOutputPath(outpath string, overwrite bool) {
 	fi, err := os.Stat(outpath)
 	if os.IsNotExist(err) {
-		log.Debugf("Translated artifacts will be written to %s", outpath)
+		logrus.Debugf("Transformed artifacts will be written to %s", outpath)
 		return
 	}
 	if err != nil {
-		log.Fatalf("Error while accessing output directory at path %s Error: %q . Exiting", outpath, err)
+		logrus.Fatalf("Error while accessing output directory at path %s Error: %q . Exiting", outpath, err)
 	}
 	if !overwrite {
-		log.Fatalf("Output directory %s exists. Exiting", outpath)
+		logrus.Fatalf("Output directory %s exists. Exiting", outpath)
 	}
 	if !fi.IsDir() {
-		log.Fatalf("Output path %s is a file. Expected a directory. Exiting", outpath)
+		logrus.Fatalf("Output path %s is a file. Expected a directory. Exiting", outpath)
 	}
 	pwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("Failed to get the current working directory. Error: %q", err)
+		logrus.Fatalf("Failed to get the current working directory. Error: %q", err)
 	}
 	if internalcommon.IsParent(pwd, outpath) {
-		log.Fatalf("The given output directory %s is a parent of the current working directory.", outpath)
+		logrus.Fatalf("The given output directory %s is a parent of the current working directory.", outpath)
 	}
-	log.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
+	logrus.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
 }
 
 // NormalizePaths cleans the paths and makes them absolute
@@ -136,12 +132,12 @@ func NormalizePaths(paths []string) ([]string, error) {
 		if err != nil {
 			return newPaths, fmt.Errorf("Failed to make the path %s absolute. Error: %q", path, err)
 		}
-		finfo, err:= os.Stat(newPath)
+		finfo, err := os.Stat(newPath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				log.Errorf("The path %s does not exist.", newPath)
+				logrus.Errorf("The path %s does not exist.", newPath)
 			} else {
-				log.Errorf("Failed to access the path %s . Error: %q", newPath, err)
+				logrus.Errorf("Failed to access the path %s . Error: %q", newPath, err)
 			}
 			continue
 		}
@@ -149,7 +145,7 @@ func NormalizePaths(paths []string) ([]string, error) {
 			newPaths = append(newPaths, newPath)
 			continue
 		}
-		err = filepath.Walk(newPath, func(path string, info fs.FileInfo, err error) error{
+		err = filepath.Walk(newPath, func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
@@ -159,7 +155,7 @@ func NormalizePaths(paths []string) ([]string, error) {
 			return nil
 		})
 		if err != nil {
-			log.Warnf("Failed to walk through the files in the directory %s . Error: %q", newPath, err)
+			logrus.Warnf("Failed to walk through the files in the directory %s . Error: %q", newPath, err)
 		}
 	}
 	return newPaths, nil

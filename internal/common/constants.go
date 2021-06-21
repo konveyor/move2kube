@@ -18,7 +18,6 @@ package common
 
 import (
 	"os"
-	"path/filepath"
 
 	"github.com/konveyor/move2kube/types"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -26,27 +25,11 @@ import (
 
 const (
 	// DefaultProjectName represents the short app name
-	DefaultProjectName string = "myproject"
-	// DefaultPlanFile defines default name for plan file
-	DefaultPlanFile string = types.AppNameShort + ".plan"
-	// TempDirPrefix defines the prefix of the temp directory
-	TempDirPrefix string = types.AppNameShort + "-"
-	// AssetsDir defines the dir of the assets temp directory
-	AssetsDir string = types.AppNameShort + "assets"
-	// ScriptsDir defines the directory where the output scripts are placed
-	ScriptsDir string = "scripts"
-	// SourceDir defines the directory where the source files and folders are placed along with build scripts for each individual image
-	SourceDir string = "source"
-	// DeployDir defines the directory where the deployment artifacts are placed
-	DeployDir string = "deploy"
-	// HelmDir defines the directory where the helm charts are placed
-	HelmDir string = "helm-charts"
-	// OCTemplatesDir defines the directory where the openshift templates are placed
-	OCTemplatesDir string = "openshift-templates"
+	DefaultProjectName = "myproject"
 	// VolumePrefix defines the prefix to be used for volumes
-	VolumePrefix string = "vol"
+	VolumePrefix = "vol"
 	// DefaultStorageClassName defines the default storage class to be used
-	DefaultStorageClassName string = "default"
+	DefaultStorageClassName = "default"
 	// DefaultDirectoryPermission defines the default permission used when a directory is created
 	DefaultDirectoryPermission os.FileMode = 0755
 	// DefaultExecutablePermission defines the default permission used when an executable file is created
@@ -54,25 +37,25 @@ const (
 	// DefaultFilePermission defines the default permission used when a non-executable file is created
 	DefaultFilePermission os.FileMode = 0644
 	// DefaultRegistryURL points to the default registry url that will be used
-	DefaultRegistryURL string = "quay.io"
+	DefaultRegistryURL = "quay.io"
 	// ImagePullSecretPrefix is the prefix that will be prepended to pull secret name
-	ImagePullSecretPrefix string = "imagepullsecret"
+	ImagePullSecretPrefix = "imagepullsecret"
 	// QACacheFile defines the location of the QA cache file
-	QACacheFile string = types.AppNameShort + "qacache.yaml"
+	QACacheFile = types.AppNameShort + "qacache.yaml"
 	// ConfigFile defines the location of the config file
-	ConfigFile string = types.AppNameShort + "config.yaml"
+	ConfigFile = types.AppNameShort + "config.yaml"
 	// DefaultClusterType defines the default cluster type chosen by plan
-	DefaultClusterType string = "Kubernetes"
+	DefaultClusterType = "Kubernetes"
 	// IgnoreFilename is the name of the file containing the ignore rules and exceptions
-	IgnoreFilename string = "." + types.AppNameShort + "ignore"
+	IgnoreFilename = "." + types.AppNameShort + "ignore"
 	// ExposeSelector tag is used to annotate services that are externally exposed
-	ExposeSelector string = types.GroupName + "/service.expose"
+	ExposeSelector = types.GroupName + "/service.expose"
 	// AnnotationLabelValue represents the value when an annotation is valid
-	AnnotationLabelValue string = "true"
+	AnnotationLabelValue = "true"
 	// DefaultServicePort is the default port that will be added to a service.
 	DefaultServicePort = 8080
 	// TODOAnnotation is used to annotate with TODO tasks
-	TODOAnnotation string = types.GroupName + "/todo."
+	TODOAnnotation = types.GroupName + "/todo."
 )
 
 const (
@@ -92,8 +75,10 @@ const (
 	ConfigServicesKey = BaseKey + d + "services"
 	//ConfigStoragesKey represents Storages Key
 	ConfigStoragesKey = BaseKey + d + "storages"
-	//ConfigSourcesKey represents Sources Key
-	ConfigSourcesKey = BaseKey + d + "sources"
+	//ConfigModesKey represents modes Key
+	ConfigModesKey = BaseKey + d + "modes"
+	//ConfigTransformersKey represents transformers Key
+	ConfigTransformersKey = BaseKey + d + "transformers"
 	//ConfigTargetKey represents Target Key
 	ConfigTargetKey = BaseKey + d + "target"
 	//ConfigRepoKey represents Repo Key
@@ -114,8 +99,8 @@ const (
 	ConfigRepoLoadPrivKey = ConfigRepoKeysKey + d + "load"
 	//ConfigRepoKeyPathsKey represents paths of keyfiles
 	ConfigRepoKeyPathsKey = ConfigRepoKeysKey + d + "paths"
-	//ConfigSourceTypesKey represents source type Key
-	ConfigSourceTypesKey = ConfigSourcesKey + d + "types"
+	//ConfigTransformerTypesKey represents Transformers type Key
+	ConfigTransformerTypesKey = ConfigTransformersKey + d + "types"
 	//ConfigIngressKey represents Ingress Key
 	ConfigIngressKey = ConfigTargetKey + d + "ingress"
 	//ConfigIngressHostKey represents Ingress host Key
@@ -126,6 +111,8 @@ const (
 	ConfigTargetClusterTypeKey = ConfigTargetKey + d + "clustertype"
 	//ConfigImageRegistryKey represents image registry Key
 	ConfigImageRegistryKey = ConfigTargetKey + d + "imageregistry"
+	//ConfigVersionUpdate represents key which how to update versions
+	ConfigTargetExistingVersionUpdate = ConfigTargetKey + d + "existingversionupdate"
 	//ConfigImageRegistryURLKey represents image registry url Key
 	ConfigImageRegistryURLKey = ConfigImageRegistryKey + d + "url"
 	//ConfigImageRegistryNamespaceKey represents image registry namespace Key
@@ -155,8 +142,4 @@ var (
 	DefaultPVCSize, _ = resource.ParseQuantity("100Mi")
 	// IgnoreEnvironment indicates whether to ignore the current environment or not
 	IgnoreEnvironment = false
-	// TempPath defines where all app data get stored during execution
-	TempPath = TempDirPrefix + "temp"
-	// AssetsPath defines where all assets get stored during execution
-	AssetsPath = filepath.Join(TempPath, AssetsDir)
 )

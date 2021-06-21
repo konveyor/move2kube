@@ -26,7 +26,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	logging "gopkg.in/op/go-logging.v1"
 	"gopkg.in/yaml.v3"
@@ -52,13 +52,13 @@ var arrayIndexRegex = regexp.MustCompile(`^\[(\d+)\]$`)
 
 // Load loads and merges config files and strings
 func (c *Config) Load() (err error) {
-	log.Debugf("Config.Load")
+	logrus.Debugf("Config.Load")
 	yamlDatas := []string{}
 	// config files specified later override earlier config files
 	for _, configFile := range c.configFiles {
 		yamlData, err := ioutil.ReadFile(configFile)
 		if err != nil {
-			log.Errorf("Failed to read the config file %s Error: %q", configFile, err)
+			logrus.Errorf("Failed to read the config file %s Error: %q", configFile, err)
 			continue
 		}
 		yamlDatas = append(yamlDatas, string(yamlData))
@@ -67,20 +67,20 @@ func (c *Config) Load() (err error) {
 	// config strings specified later override earlier config strings
 	for i, configString := range c.configStrings {
 		if len(configString) == 0 {
-			log.Errorf("The %dth config string is empty", i)
+			logrus.Errorf("The %dth config string is empty", i)
 			continue
 		}
 		if !strings.HasPrefix(configString, common.Delim) {
 			// given move2kube.services change to .move2kube.services for yq parser.
 			configString = common.Delim + configString
 		}
-		log.Debugf("config store load configString: [%s]", configString)
+		logrus.Debugf("config store load configString: [%s]", configString)
 		yamlData, err := GenerateYAMLFromExpression(configString)
 		if err != nil {
-			log.Errorf("Unable to parse the config string %s Error: %q", configString, err)
+			logrus.Errorf("Unable to parse the config string %s Error: %q", configString, err)
 			continue
 		}
-		log.Debugf("after parsing the yamlData is:\n%s", yamlData)
+		logrus.Debugf("after parsing the yamlData is:\n%s", yamlData)
 		yamlDatas = append(yamlDatas, yamlData)
 	}
 	c.yamlMap, err = MergeYAMLDatasIntoMap(yamlDatas)
@@ -142,7 +142,7 @@ func (c *Config) specialGetSolution(p Problem) (Problem, error) {
 			continue
 		}
 		if _, ok := lastKeySegmentValue.(bool); !ok {
-			log.Debugf("Found key %s in the config but the corresponding value is not a boolean. Actual value %v is of type %T", newK, lastKeySegmentValue, lastKeySegmentValue)
+			logrus.Debugf("Found key %s in the config but the corresponding value is not a boolean. Actual value %v is of type %T", newK, lastKeySegmentValue, lastKeySegmentValue)
 			return p, noAns
 		}
 		atleastOneKeyHasLastSegment = true
@@ -183,21 +183,21 @@ func (c *Config) GetSolution(p Problem) (Problem, error) {
 
 // Write writes the config to disk
 func (c *Config) Write() error {
-	log.Debugf("Config.Write write the file out")
+	logrus.Debugf("Config.Write write the file out")
 	return common.WriteYaml(c.OutputPath, c.writeYamlMap)
 }
 
 // AddSolution adds a problem to the config
 func (c *Config) AddSolution(p Problem) error {
-	log.Debugf("Config.AddSolution the problem is:\n%+v", p)
+	logrus.Debugf("Config.AddSolution the problem is:\n%+v", p)
 	if p.Type == PasswordSolutionFormType {
 		err := fmt.Errorf("passwords will not be added to the config")
-		log.Debug(err)
+		logrus.Debug(err)
 		return err
 	}
 	if p.Answer == nil {
 		err := fmt.Errorf("unresolved problem. Not going to be added to config")
-		log.Warn(err)
+		logrus.Warn(err)
 		return err
 	}
 	if p.Type != MultiSelectSolutionFormType {
@@ -205,7 +205,7 @@ func (c *Config) AddSolution(p Problem) error {
 		set(p.ID, p.Answer, c.writeYamlMap)
 		err := c.Write()
 		if err != nil {
-			log.Errorf("Failed to write to the config file. Error: %q", err)
+			logrus.Errorf("Failed to write to the config file. Error: %q", err)
 		}
 		return err
 	}
@@ -234,7 +234,7 @@ func (c *Config) AddSolution(p Problem) error {
 	}
 	err := c.Write()
 	if err != nil {
-		log.Errorf("Failed to write to the config file. Error: %q", err)
+		logrus.Errorf("Failed to write to the config file. Error: %q", err)
 	}
 	return err
 }
@@ -246,7 +246,7 @@ func (c *Config) Get(key string) (value interface{}, ok bool) {
 
 // NewConfig creates a new config instance given config strings and paths to config files
 func NewConfig(outputPath string, configStrings, configFiles []string) (config *Config) {
-	log.Debug("NewConfig create a new config")
+	logrus.Debug("NewConfig create a new config")
 	return &Config{
 		configFiles:   configFiles,
 		configStrings: configStrings,
@@ -271,7 +271,7 @@ func getPrinterAndEvaluator(buffer *bytes.Buffer) (yqlib.Printer, yqlib.StreamEv
 // foo:
 //   bar: abc
 func GenerateYAMLFromExpression(expr string) (string, error) {
-	log.Debugf("GenerateYAMLFromExpression parsing the string [%s]", expr)
+	logrus.Debugf("GenerateYAMLFromExpression parsing the string [%s]", expr)
 	logging.SetBackend(new(nullLogBackend))
 	b := bytes.Buffer{}
 	printer, evaluator := getPrinterAndEvaluator(&b)
@@ -328,7 +328,7 @@ func MergeYAMLDatasIntoMap(yamlDatas []string) (mapT, error) {
 	vs := make([]interface{}, len(yamlDatas))
 	for i, yamlData := range yamlDatas {
 		if err := yaml.Unmarshal([]byte(yamlData), &vs[i]); err != nil {
-			log.Errorf("Error on unmarshalling the %dth yaml:\n%v\nError: %q", i, yamlData, err)
+			logrus.Errorf("Error on unmarshalling the %dth yaml:\n%v\nError: %q", i, yamlData, err)
 			return nil, err
 		}
 	}

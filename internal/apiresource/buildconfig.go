@@ -22,9 +22,10 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	okdbuildv1 "github.com/openshift/api/build/v1"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	giturls "github.com/whilp/git-urls"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,16 +46,16 @@ func (*BuildConfig) getSupportedKinds() []string {
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
-func (bc *BuildConfig) createNewResources(ir irtypes.EnhancedIR, _ []string) []runtime.Object {
+func (bc *BuildConfig) createNewResources(ir irtypes.EnhancedIR, _ []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	for _, irBuildConfig := range ir.BuildConfigs {
-		buildConfig := bc.createNewResource(irBuildConfig, ir)
+		buildConfig := bc.createNewResource(irBuildConfig, ir, targetCluster)
 		objs = append(objs, &buildConfig)
 	}
 	return objs
 }
 
-func (bc *BuildConfig) createNewResource(irBuildConfig irtypes.BuildConfig, ir irtypes.EnhancedIR) okdbuildv1.BuildConfig {
+func (bc *BuildConfig) createNewResource(irBuildConfig irtypes.BuildConfig, ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) okdbuildv1.BuildConfig {
 	/*
 		apiVersion: build.openshift.io/v1
 		kind: BuildConfig
@@ -97,22 +98,26 @@ func (bc *BuildConfig) createNewResource(irBuildConfig irtypes.BuildConfig, ir i
 }
 
 func (*BuildConfig) getBuildSource(irBuildConfig irtypes.BuildConfig, ir irtypes.EnhancedIR) okdbuildv1.BuildSource {
-	contextPath := contextPathPlaceholder
-	if irBuildConfig.RepoInfo.GitRepoDir != "" {
-		relDockerfilePath, err := filepath.Rel(irBuildConfig.RepoInfo.GitRepoDir, irBuildConfig.RepoInfo.TargetPath)
+	contextPath := irBuildConfig.ContainerBuild.ContextPath
+	_, repoDir, _, repoUrl, repoBranchName, err := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
+	if err != nil {
+		logrus.Debugf("Unable to identify git repo for %s : %s", irBuildConfig.ContainerBuild.ContextPath, err)
+	}
+	if repoDir != "" {
+		relDockerfilePath, err := filepath.Rel(repoDir, contextPath)
 		if err != nil {
-			log.Debugf("Failed to make the path %s relative to the path %s Error %q", irBuildConfig.RepoInfo.TargetPath, irBuildConfig.RepoInfo.GitRepoDir, err)
+			logrus.Debugf("Failed to make the path %s relative to the path %s Error %q", contextPath, repoDir, err)
 		} else {
 			contextPath = filepath.Dir(relDockerfilePath)
 		}
 	}
 	gitRepoURL := gitRepoURLPlaceholder
-	if irBuildConfig.RepoInfo.GitRepoURL != "" {
-		gitRepoURL = irBuildConfig.RepoInfo.GitRepoURL
+	if gitRepoURL != "" {
+		gitRepoURL = repoUrl
 	}
 	branchName := defaultGitRepoBranch
-	if irBuildConfig.RepoInfo.GitRepoBranch != "" {
-		branchName = irBuildConfig.RepoInfo.GitRepoBranch
+	if repoBranchName != "" {
+		branchName = repoBranchName
 	}
 	src := okdbuildv1.BuildSource{}
 	src.Type = okdbuildv1.BuildSourceGit
@@ -123,11 +128,15 @@ func (*BuildConfig) getBuildSource(irBuildConfig irtypes.BuildConfig, ir irtypes
 }
 
 func (*BuildConfig) getBuildStrategy(irBuildConfig irtypes.BuildConfig, ir irtypes.EnhancedIR) okdbuildv1.BuildStrategy {
+	_, repoDir, _, _, _, err := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
+	if err != nil {
+		logrus.Debugf("Unable to identify git repo for %s : %s", irBuildConfig.ContainerBuild.ContextPath, err)
+	}
 	dockerfilePath := dockerfilePathPlaceholder
-	if irBuildConfig.RepoInfo.GitRepoDir != "" {
-		relDockerfilePath, err := filepath.Rel(irBuildConfig.RepoInfo.GitRepoDir, irBuildConfig.RepoInfo.TargetPath)
+	if repoDir != "" {
+		relDockerfilePath, err := filepath.Rel(repoDir, irBuildConfig.ContainerBuild.ContextPath)
 		if err != nil {
-			log.Debugf("Failed to make the path %s relative to the path %s Error %q", irBuildConfig.RepoInfo.TargetPath, irBuildConfig.RepoInfo.GitRepoDir, err)
+			logrus.Debugf("Failed to make the path %s relative to the path %s Error %q", irBuildConfig.ContainerBuild.ContextPath, repoDir, err)
 		} else {
 			dockerfilePath = relDockerfilePath
 		}
@@ -140,12 +149,13 @@ func (*BuildConfig) getBuildStrategy(irBuildConfig irtypes.BuildConfig, ir irtyp
 
 func (bc *BuildConfig) getBuildTriggerPolicy(irBuildConfig irtypes.BuildConfig, ir irtypes.EnhancedIR) okdbuildv1.BuildTriggerPolicy {
 	webHookType := okdbuildv1.GenericWebHookBuildTriggerType
-	if irBuildConfig.RepoInfo.GitRepoURL != "" {
-		gitRepoURLObj, err := giturls.Parse(irBuildConfig.RepoInfo.GitRepoURL)
+	_, _, _, repoUrl, _, _ := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
+	if repoUrl != "" {
+		gitRepoURLObj, err := giturls.Parse(repoUrl)
 		if err != nil {
-			log.Warnf("Failed to parse git repo url %s Error: %q", irBuildConfig.RepoInfo.GitRepoURL, err)
+			logrus.Warnf("Failed to parse git repo url %s Error: %q", repoUrl, err)
 		} else if gitRepoURLObj.Hostname() == "" {
-			log.Warnf("Successfully parsed git repo url %s but the host name is empty: %+v", irBuildConfig.RepoInfo.GitRepoURL, gitRepoURLObj)
+			logrus.Warnf("Successfully parsed git repo url %s but the host name is empty: %+v", repoUrl, gitRepoURLObj)
 		} else {
 			webHookType = bc.getWebHookType(gitRepoURLObj.Hostname())
 		}
@@ -160,7 +170,7 @@ func (bc *BuildConfig) getBuildTriggerPolicy(irBuildConfig irtypes.BuildConfig, 
 	case okdbuildv1.BitbucketWebHookBuildTriggerType:
 		policy.BitbucketWebHook = &webHookTrigger
 	default:
-		log.Warnf("the git repo is not on github, gitlab or bitbucket. Using generic webhook")
+		logrus.Warnf("the git repo is not on github, gitlab or bitbucket. Using generic webhook")
 		policy.GenericWebHook = &webHookTrigger
 	}
 	return policy
@@ -175,13 +185,13 @@ func (*BuildConfig) getWebHookType(gitDomain string) okdbuildv1.BuildTriggerType
 	case strings.Contains(gitDomain, "bitbucket"):
 		return okdbuildv1.BitbucketWebHookBuildTriggerType
 	default:
-		log.Debugf("The git repo %s is not on github, gitlab or bitbucket. Defaulting to generic web hook trigger", gitDomain)
+		logrus.Debugf("The git repo %s is not on github, gitlab or bitbucket. Defaulting to generic web hook trigger", gitDomain)
 		return okdbuildv1.GenericWebHookBuildTriggerType
 	}
 }
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
-func (bc *BuildConfig) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (bc *BuildConfig) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	if common.IsStringPresent(bc.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}

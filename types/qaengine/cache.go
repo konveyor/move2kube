@@ -21,7 +21,7 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // QACacheKind defines kind of QA Cache
@@ -56,7 +56,7 @@ func NewCache(file string) (cache *Cache) {
 func (cache *Cache) Load() error {
 	c := Cache{}
 	if err := common.ReadMove2KubeYaml(cache.Spec.file, &c); err != nil {
-		log.Errorf("Unable to load the cache file at path %s Error: %q", cache.Spec.file, err)
+		logrus.Errorf("Unable to load the cache file at path %s Error: %q", cache.Spec.file, err)
 		return err
 	}
 	cache.merge(c)
@@ -67,7 +67,7 @@ func (cache *Cache) Load() error {
 func (cache *Cache) Write() error {
 	err := common.WriteYaml(cache.Spec.file, cache)
 	if err != nil {
-		log.Warnf("Unable to write cache : %s", err)
+		logrus.Warnf("Unable to write cache : %s", err)
 	}
 	return err
 }
@@ -76,18 +76,18 @@ func (cache *Cache) Write() error {
 func (cache *Cache) AddSolution(p Problem) error {
 	if p.Type == PasswordSolutionFormType {
 		err := fmt.Errorf("passwords are not added to the cache")
-		log.Debug(err)
+		logrus.Debug(err)
 		return err
 	}
 	if p.Answer == nil {
 		err := fmt.Errorf("unresolved problem. Not going to be added to cache")
-		log.Warn(err)
+		logrus.Warn(err)
 		return err
 	}
 	added := false
 	for i, cp := range cache.Spec.Problems {
 		if cp.ID == p.ID {
-			log.Debugf("A solution already exists in cache for [%s], rewriting", p.Desc)
+			logrus.Debugf("A solution already exists in cache for [%s], rewriting", p.Desc)
 			cache.Spec.Problems[i] = p
 			added = true
 			break
@@ -97,7 +97,7 @@ func (cache *Cache) AddSolution(p Problem) error {
 		cache.Spec.Problems = append(cache.Spec.Problems, p)
 	}
 	if err := cache.Write(); err != nil {
-		log.Errorf("Failed to write to the cache file. Error: %q", err)
+		logrus.Errorf("Failed to write to the cache file. Error: %q", err)
 		return err
 	}
 	return nil
@@ -106,7 +106,7 @@ func (cache *Cache) AddSolution(p Problem) error {
 // GetSolution reads a solution for the problem
 func (cache *Cache) GetSolution(p Problem) (Problem, error) {
 	if p.Answer != nil {
-		log.Warnf("Problem already solved.")
+		logrus.Warnf("Problem already solved.")
 		return p, nil
 	}
 	for _, cp := range cache.Spec.Problems {
@@ -123,7 +123,7 @@ func (cache *Cache) merge(c Cache) {
 		found := false
 		for _, op := range cache.Spec.Problems {
 			if op.matches(p) {
-				log.Warnf("There are two or more answers for %s in cache. Ignoring latter ones.", p.Desc)
+				logrus.Warnf("There are two or more answers for %s in cache. Ignoring latter ones.", p.Desc)
 				found = true
 				break
 			}

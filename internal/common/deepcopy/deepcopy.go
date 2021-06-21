@@ -19,11 +19,11 @@ package deepcopy
 import (
 	"reflect"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
-// Interface can be implemented by types to have custom deep copy logic.
-type Interface interface {
+// DeepCopyInterface can be implemented by types to have custom deep copy logic.
+type DeepCopyInterface interface {
 	DeepCopy() interface{}
 }
 
@@ -35,11 +35,11 @@ func DeepCopy(x interface{}) interface{} {
 
 func copyRecursively(xV reflect.Value) reflect.Value {
 	if !xV.IsValid() {
-		log.Debugf("invalid value given to copy recursively value: %+v", xV)
+		logrus.Debugf("invalid value given to copy recursively value: %+v", xV)
 		return xV
 	}
 	if xV.CanInterface() {
-		if deepCopyAble, ok := xV.Interface().(Interface); ok {
+		if deepCopyAble, ok := xV.Interface().(DeepCopyInterface); ok {
 			yV := reflect.ValueOf(deepCopyAble.DeepCopy())
 			if !yV.IsValid() {
 				return xV
@@ -98,7 +98,7 @@ func copyRecursively(xV reflect.Value) reflect.Value {
 		}
 		return yV
 	default:
-		log.Debugf("unsupported for deep copy kind: %+v type: %+v value: %+v", xK, xT, xV)
+		logrus.Debugf("unsupported for deep copy kind: %+v type: %+v value: %+v", xK, xT, xV)
 		return xV
 	}
 }

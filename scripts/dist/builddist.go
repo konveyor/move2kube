@@ -29,7 +29,7 @@ import (
 	"regexp"
 
 	"github.com/konveyor/move2kube/internal/common"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -111,10 +111,10 @@ func findDistDirs() []string {
 		return filepath.SkipDir
 	})
 	if err != nil {
-		log.Fatalf("Failed to walk through the current working directory. Error: %q", err)
+		logrus.Fatalf("Failed to walk through the current working directory. Error: %q", err)
 	}
 	if len(distDirs) == 0 {
-		log.Fatal("Failed to find the directories containing the build output.")
+		logrus.Fatal("Failed to find the directories containing the build output.")
 	}
 	return distDirs
 }
@@ -124,83 +124,83 @@ func createArchives(distDirs []string) {
 	extraFilesDir := filepath.Join("files", "*")
 	extraFiles, err := filepath.Glob(extraFilesDir)
 	if err != nil {
-		log.Fatalf("Failed to get the files in the directory at path %q Error %q", extraFilesDir, err)
+		logrus.Fatalf("Failed to get the files in the directory at path %q Error %q", extraFilesDir, err)
 	}
 	if err := os.MkdirAll(outputDir, common.DefaultDirectoryPermission); err != nil {
-		log.Fatalf("Failed to make the output directory at path %s Error: %q", outputDir, err)
+		logrus.Fatalf("Failed to make the output directory at path %s Error: %q", outputDir, err)
 	}
-	log.Debugf("Generating output in directory at path %s", outputDir)
+	logrus.Debugf("Generating output in directory at path %s", outputDir)
 
-	log.Debug("tempDir:", tempDir)
-	log.Debug("extraFiles:", extraFiles)
+	logrus.Debug("tempDir:", tempDir)
+	logrus.Debug("extraFiles:", extraFiles)
 
 	for _, distDir := range distDirs {
-		log.Debug("Remove and remake the temporary directory.")
+		logrus.Debug("Remove and remake the temporary directory.")
 		if err := os.RemoveAll(tempDir); err != nil {
-			log.Fatalf("Failed to remove the temporary directory at path %q Error: %q", tempDir, err)
+			logrus.Fatalf("Failed to remove the temporary directory at path %q Error: %q", tempDir, err)
 		}
 		if err := os.Mkdir(tempDir, common.DefaultDirectoryPermission); err != nil {
-			log.Fatalf("Failed to make the temporary directory at path %q Error: %q", tempDir, err)
+			logrus.Fatalf("Failed to make the temporary directory at path %q Error: %q", tempDir, err)
 		}
 
-		log.Debug("Copy the files over.")
+		logrus.Debug("Copy the files over.")
 		buildArtifacts, err := filepath.Glob(filepath.Join(distDir, "*"))
 		if err != nil {
-			log.Fatalf("Failed to get the files in the build directory at path %q Error %q", distDir, err)
+			logrus.Fatalf("Failed to get the files in the build directory at path %q Error %q", distDir, err)
 		}
-		log.Debug("buildArtifacts:", buildArtifacts)
+		logrus.Debug("buildArtifacts:", buildArtifacts)
 		if err := copy(buildArtifacts, tempDir); err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		if err := copy(extraFiles, tempDir); err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 
-		log.Debug("Name and make the archives.")
+		logrus.Debug("Name and make the archives.")
 		osArch := filepath.Base(distDir)
 		tarArchiveName := fmt.Sprintf("%s-%s-%s.tar.gz", binName, version, osArch)
 		tarArchivePath := filepath.Join(outputDir, tarArchiveName)
-		log.Debug("osArch:", osArch)
-		log.Debug("tarArchivePath:", tarArchivePath)
+		logrus.Debug("osArch:", osArch)
+		logrus.Debug("tarArchivePath:", tarArchivePath)
 		if err := createTar(tempDir, tarArchivePath); err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		zipArchiveName := fmt.Sprintf("%s-%s-%s.zip", binName, version, osArch)
 		zipArchivePath := filepath.Join(outputDir, zipArchiveName)
-		log.Debug("zipArchivePath:", zipArchivePath)
+		logrus.Debug("zipArchivePath:", zipArchivePath)
 		if err := createZip(tempDir, zipArchivePath); err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 
-		log.Debug("Calculate and write the checksums to files.")
+		logrus.Debug("Calculate and write the checksums to files.")
 		if err := sha256sum(tarArchivePath, filepath.Join(outputDir, tarArchiveName+checksumSuffix)); err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 		if err := sha256sum(zipArchivePath, filepath.Join(outputDir, zipArchiveName+checksumSuffix)); err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 	}
 
-	log.Debug("Cleanup the temporary directory.")
+	logrus.Debug("Cleanup the temporary directory.")
 	if err := os.RemoveAll(tempDir); err != nil {
-		log.Warnf("Failed to remove the temporary directory at path %q Error: %q", tempDir, err)
+		logrus.Warnf("Failed to remove the temporary directory at path %q Error: %q", tempDir, err)
 	}
 }
 
 func createDistributions() {
-	log.Infof("Creating archive files for distribution.")
+	logrus.Infof("Creating archive files for distribution.")
 
-	log.Debug("BINNAME:", binName)
-	log.Debug("VERSION:", version)
+	logrus.Debug("BINNAME:", binName)
+	logrus.Debug("VERSION:", version)
 
-	log.Debug("Find the directories containing the build output.")
+	logrus.Debug("Find the directories containing the build output.")
 	distDirs := findDistDirs()
-	log.Debug("distDirs:", distDirs)
+	logrus.Debug("distDirs:", distDirs)
 
-	log.Debug("Create the archives.")
+	logrus.Debug("Create the archives.")
 	createArchives(distDirs)
 
-	log.Infof("Done!")
+	logrus.Infof("Done!")
 }
 
 func main() {
@@ -210,7 +210,7 @@ func main() {
 		}
 	}
 
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	rootCmd := &cobra.Command{
 		Use:   "go run builddist.go",
@@ -225,6 +225,6 @@ func main() {
 	must(rootCmd.MarkFlagRequired("version"))
 
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatal("Error:", err)
+		logrus.Fatal("Error:", err)
 	}
 }

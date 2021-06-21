@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // SolutionFormType is the type that defines different types of solutions possible
@@ -91,13 +91,13 @@ func (p *Problem) SetAnswer(ansI interface{}) error {
 		filteredAns := []string{}
 		for _, a := range ans {
 			if !common.IsStringPresent(p.Options, a) {
-				log.Debugf("No matching value in options for %s. Ignoring.", a)
+				logrus.Debugf("No matching value in options for %s. Ignoring.", a)
 				continue
 			}
 			filteredAns = append(filteredAns, a)
 		}
 		p.Answer = filteredAns
-		log.Debugf("Answering multiselect question %s with %+v", p.ID, p.Answer)
+		logrus.Debugf("Answering multiselect question %s with %+v", p.ID, p.Answer)
 	default:
 		return fmt.Errorf("unsupported QA problem type %+v", p.Type)
 	}
@@ -117,7 +117,7 @@ func (p *Problem) matchString(str1 string, str2 string) bool {
 	}
 	r, err := regexp.MatchString(str1, str2)
 	if err != nil {
-		log.Debugf("Unable to compile string %s : %s", str1, err)
+		logrus.Debugf("Unable to compile string %s : %s", str1, err)
 		return false
 	}
 	return r

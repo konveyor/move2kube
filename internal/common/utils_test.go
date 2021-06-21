@@ -26,11 +26,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types/info"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func TestGetFilesByExt(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("get files by extension when the path doesn't exist", func(t *testing.T) {
 		path1 := "foobar"
@@ -140,7 +140,7 @@ func TestGetFilesByName(t *testing.T) {
 }
 
 func TestYamlAttrPresent(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("get attribute from non existent path", func(t *testing.T) {
 		path1 := "foobar"
@@ -177,7 +177,7 @@ func TestYamlAttrPresent(t *testing.T) {
 }
 
 func TestGetImageNameAndTag(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("get imagename and tag", func(t *testing.T) {
 		wantImageName := "getting-started"
@@ -212,7 +212,7 @@ func (*givesYamlError) MarshalYAML() (interface{}, error) {
 }
 
 func TestWriteYaml(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("write some data to an invalid path", func(t *testing.T) {
 		path1 := "/this/does/not/exist/foobar.yaml"
@@ -249,7 +249,7 @@ func TestWriteYaml(t *testing.T) {
 }
 
 func TestReadYaml(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("read some data from non existent path", func(t *testing.T) {
 		path1 := "foobar"
@@ -329,7 +329,7 @@ func (*givesJSONError) MarshalJSON() ([]byte, error) {
 }
 
 func TestWriteJSON(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("write some data to an invalid path", func(t *testing.T) {
 		path1 := "/this/does/not/exist/foobar.json"
@@ -352,7 +352,7 @@ func TestWriteJSON(t *testing.T) {
 		if yamldata, err := ioutil.ReadFile(path1); err != nil {
 			t.Fatal("Failed to read the file we just wrote. Error:", err)
 		} else if yamldatastr := string(yamldata); yamldatastr != want {
-			//log.Errorf("%q", yamldatastr)
+			//logrus.Errorf("%q", yamldatastr)
 			t.Fatal("Failed to encode the data to json properly. Expected:", want, "Actual:", yamldatastr)
 		}
 	})
@@ -367,7 +367,7 @@ func TestWriteJSON(t *testing.T) {
 }
 
 func TestReadJSON(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("read some data from non existent path", func(t *testing.T) {
 		path1 := "foobar"
@@ -445,7 +445,7 @@ func TestReadJSON(t *testing.T) {
 }
 
 func TestNormalizeForFilename(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct{ name, in, out string }{
 		{"normalize an invalid filename", "foobar%${/2\n\tinv.json.yaml.", "2-inv.json.yaml-d65d80a1c389718f"},
@@ -465,7 +465,7 @@ func TestNormalizeForFilename(t *testing.T) {
 }
 
 func TestNormalizeForServiceName(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct{ name, in, out string }{
 		// {"normalize an invalid service name", "foobar%${/2\n\tinv.website.registration.", "foobar%${/2\n\tinv-website-registration-"}, // TODO: does this edge case have to be handled?
@@ -484,7 +484,7 @@ func TestNormalizeForServiceName(t *testing.T) {
 }
 
 func TestIsStringPresent(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct {
 		name    string
@@ -510,7 +510,7 @@ func TestIsStringPresent(t *testing.T) {
 }
 
 func TestIsIntPresent(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct {
 		name    string
@@ -538,7 +538,7 @@ func TestIsIntPresent(t *testing.T) {
 }
 
 func TestMergeStringSlices(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct {
 		name   string
@@ -553,7 +553,7 @@ func TestMergeStringSlices(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			merged := common.MergeStringSlices(tc.inArr1, tc.inArr2)
+			merged := common.MergeStringSlices(tc.inArr1, tc.inArr2...)
 			if !cmp.Equal(merged, tc.out) {
 				t.Fatalf("Failed to merge the arrays properly. Array1: %v Array2: %v Difference:\n%s", tc.inArr1, tc.inArr2, cmp.Diff(tc.out, merged))
 			}
@@ -562,7 +562,7 @@ func TestMergeStringSlices(t *testing.T) {
 }
 
 func TestMergeIntSlices(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct {
 		name   string
@@ -586,7 +586,7 @@ func TestMergeIntSlices(t *testing.T) {
 }
 
 func TestGetStringFromTemplate(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct {
 		name   string
@@ -634,74 +634,8 @@ func TestGetStringFromTemplate(t *testing.T) {
 	}
 }
 
-func TestWriteTemplateToFile(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
-
-	tcs := []struct {
-		name   string
-		inTmpl string
-		inData interface{}
-		outStr string
-		outErr bool
-	}{
-		{"fill an empty template with an empty string", "", "", "", false},
-		{"fill an empty template with an empty struct with no fields", "", struct{}{}, "", false},
-		{"fill an empty template with an empty struct", "", struct {
-			Name string
-			ID   int
-		}{}, "", false},
-		{"fill an empty template with a filled struct", "", struct {
-			Name string
-			ID   int
-		}{"foobar", 42}, "", false},
-		{"fill a template with an empty struct with no fields", "Hello! My name is {{.Name}} and my ID is {{.ID}}", struct{}{}, "", true},
-		{"fill a template with an empty struct", "Hello! My name is {{.Name}} and my ID is {{.ID}}", struct {
-			Name string
-			ID   int
-		}{}, "Hello! My name is  and my ID is 0", false},
-		{"fill a template with a filled struct", "Hello! My name is {{.Name}} and my ID is {{.ID}}", struct {
-			Name string
-			ID   int
-		}{"foobar", 42}, "Hello! My name is foobar and my ID is 42", false},
-	}
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			path := t.TempDir() + "test1.go"
-			err := common.WriteTemplateToFile(tc.inTmpl, tc.inData, path, os.ModePerm)
-			if !tc.outErr {
-				if err != nil {
-					t.Fatalf("Got an error while trying to fill the tempate %q with the data %v and write it to the path %q. Expected: %q Actual: Error: %v", tc.inTmpl, tc.inData, path, tc.outStr, err)
-				}
-				filledBytes, err := ioutil.ReadFile(path)
-				if err != nil {
-					t.Fatalf("Failed to read the file %q that we just wrote.", path)
-				}
-				if filled := string(filledBytes); filled != tc.outStr {
-					t.Fatalf("Failed to fill the tempate %q with the data %v properly. Expected: %q Actual: %v", tc.inTmpl, tc.inData, tc.outStr, filled)
-				}
-			} else {
-				if err == nil {
-					t.Fatalf("Should not have succeeded in filling the tempate %q with the data %v. Expected an error.", tc.inTmpl, tc.inData)
-				}
-			}
-		})
-	}
-	t.Run("try to write filled template when the path doesn't exist", func(t *testing.T) {
-		inTmpl := "Hello! My name is {{.Name}} and my ID is {{.ID}}"
-		inData := struct {
-			Name string
-			ID   int
-		}{"foobar", 42}
-		path := "/this/path/does/not/exist/foobar"
-		err := common.WriteTemplateToFile(inTmpl, inData, path, os.ModePerm)
-		if err == nil {
-			t.Fatalf("Should not have succeeded in writing to the path %q since it doesn't exit. Expected an error.", path)
-		}
-	})
-}
-
 func TestGetClosestMatchingString(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct {
 		name    string
@@ -725,7 +659,7 @@ func TestGetClosestMatchingString(t *testing.T) {
 }
 
 func TestMergeStringMaps(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	type mss = map[string]string
 	tcs := []struct {
@@ -750,7 +684,7 @@ func TestMergeStringMaps(t *testing.T) {
 }
 
 func TestMakeFileNameCompliant(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct {
 		name string
@@ -775,7 +709,7 @@ func TestMakeFileNameCompliant(t *testing.T) {
 }
 
 func TestCleanAndFindCommonDirectory(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct {
 		name string
@@ -803,7 +737,7 @@ func TestCleanAndFindCommonDirectory(t *testing.T) {
 }
 
 func TestFindCommonDirectory(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct {
 		name string
@@ -826,7 +760,7 @@ func TestFindCommonDirectory(t *testing.T) {
 }
 
 func TestUniqueStrings(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	tcs := []struct {
 		name string

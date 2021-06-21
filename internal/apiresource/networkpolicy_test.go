@@ -21,8 +21,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
-	plantypes "github.com/konveyor/move2kube/types/plan"
+	"github.com/konveyor/move2kube/types/collection"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -41,12 +41,11 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("empty IR and empty supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		plan := plantypes.NewPlan()
-		oldir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		supKinds := []string{}
 		// Test
-		actual := netPolicy.createNewResources(ir, supKinds)
+		actual := netPolicy.createNewResources(ir, supKinds, collection.ClusterMetadata{})
 		if actual != nil {
 			t.Fatal("Should not have created any objects since IR is empty. Actual:", actual)
 		}
@@ -54,13 +53,12 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("empty IR and some supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		plan := plantypes.NewPlan()
-		oldir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		supKinds := []string{"NetworkPolicy"}
 		want := []runtime.Object{}
 		// Test
-		actual := netPolicy.createNewResources(ir, supKinds)
+		actual := netPolicy.createNewResources(ir, supKinds, collection.ClusterMetadata{})
 		if !cmp.Equal(actual, want) {
 			t.Fatalf("Should not have created any objects since IR is empty. Differences:\n%s", cmp.Diff(want, actual))
 		}
@@ -68,8 +66,7 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("IR with some services and empty supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		plan := plantypes.NewPlan()
-		oldir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
@@ -79,7 +76,7 @@ func TestCreateNewResources(t *testing.T) {
 		}
 		supKinds := []string{}
 		// Test
-		actual := netPolicy.createNewResources(ir, supKinds)
+		actual := netPolicy.createNewResources(ir, supKinds, collection.ClusterMetadata{})
 		if actual != nil {
 			t.Fatal("Should not have created any object since the supported kinds is empty. Actual:", actual)
 		}
@@ -87,8 +84,7 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("IR with some services and but no acceptable supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		plan := plantypes.NewPlan()
-		oldir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
@@ -98,7 +94,7 @@ func TestCreateNewResources(t *testing.T) {
 		}
 		supKinds := []string{"Pod", "Secret"}
 		// Test
-		actual := netPolicy.createNewResources(ir, supKinds)
+		actual := netPolicy.createNewResources(ir, supKinds, collection.ClusterMetadata{})
 		if actual != nil {
 			t.Fatal("Should not have created any object since the supported kinds are valid for NetworkPolicy. Actual:", actual)
 		}
@@ -106,8 +102,7 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("IR with some services and no networks and some supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		plan := plantypes.NewPlan()
-		oldir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
@@ -118,7 +113,7 @@ func TestCreateNewResources(t *testing.T) {
 		supKinds := []string{"NetworkPolicy"}
 		want := []runtime.Object{}
 		// Test
-		actual := netPolicy.createNewResources(ir, supKinds)
+		actual := netPolicy.createNewResources(ir, supKinds, collection.ClusterMetadata{})
 		if !cmp.Equal(actual, want) {
 			t.Fatalf("Should not have created any objects since the services don't have networks. Differences:\n%s", cmp.Diff(want, actual))
 		}
@@ -126,8 +121,7 @@ func TestCreateNewResources(t *testing.T) {
 	t.Run("IR with some services and some networks and some supported kinds", func(t *testing.T) {
 		// Setup
 		netPolicy := NetworkPolicy{}
-		plan := plantypes.NewPlan()
-		oldir := irtypes.NewIR(plan)
+		oldir := irtypes.NewIR()
 		ir := irtypes.NewEnhancedIRFromIR(oldir)
 		svc1Name := "svc1"
 		svc2Name := "svc2"
@@ -158,7 +152,7 @@ func TestCreateNewResources(t *testing.T) {
 			want = append(want, &wantNetPols[i])
 		}
 		// Test
-		actual := netPolicy.createNewResources(ir, supKinds)
+		actual := netPolicy.createNewResources(ir, supKinds, collection.ClusterMetadata{})
 		if len(actual) != len(want) {
 			t.Fatalf("Expected %d resources to be created. Actual no. of resources %d. Actual list %v", len(want), len(actual), actual)
 		}
@@ -190,7 +184,7 @@ func TestConvertToClusterSupportedKinds(t *testing.T) {
 		otherObjs := []runtime.Object{}
 		supKinds := []string{}
 		// Test
-		_, ok := netPolicy.convertToClusterSupportedKinds(obj, supKinds, otherObjs, ir)
+		_, ok := netPolicy.convertToClusterSupportedKinds(obj, supKinds, otherObjs, ir, collection.ClusterMetadata{})
 		if ok {
 			t.Fatal("Should have failed since supported kinds is empty.")
 		}
@@ -204,7 +198,7 @@ func TestConvertToClusterSupportedKinds(t *testing.T) {
 		otherObjs := []runtime.Object{}
 		supKinds := []string{}
 		// Test
-		_, ok := netPolicy.convertToClusterSupportedKinds(obj, supKinds, otherObjs, ir)
+		_, ok := netPolicy.convertToClusterSupportedKinds(obj, supKinds, otherObjs, ir, collection.ClusterMetadata{})
 		if !ok {
 			t.Fatal("Should have failed since supported kinds is empty.")
 		}
@@ -218,7 +212,7 @@ func TestConvertToClusterSupportedKinds(t *testing.T) {
 		otherObjs := []runtime.Object{}
 		supKinds := []string{"Pod", "NetworkPolicy", "Secret"}
 		// Test
-		_, ok := netPolicy.convertToClusterSupportedKinds(obj, supKinds, otherObjs, ir)
+		_, ok := netPolicy.convertToClusterSupportedKinds(obj, supKinds, otherObjs, ir, collection.ClusterMetadata{})
 		if ok {
 			t.Fatal("Should have failed since the object is not a valid network policy.")
 		}
@@ -233,7 +227,7 @@ func TestConvertToClusterSupportedKinds(t *testing.T) {
 		supKinds := []string{"Pod", "NetworkPolicy", "Secret"}
 		want := []runtime.Object{helperCreateNetworkPolicy("net1")}
 		// Test
-		actual, ok := netPolicy.convertToClusterSupportedKinds(obj, supKinds, otherObjs, ir)
+		actual, ok := netPolicy.convertToClusterSupportedKinds(obj, supKinds, otherObjs, ir, collection.ClusterMetadata{})
 		if !ok {
 			t.Fatal("Failed to convert to cluster supported kind, Function returned false. Actual:", actual)
 		}

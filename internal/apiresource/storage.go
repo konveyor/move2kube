@@ -18,9 +18,9 @@ package apiresource
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
-	irtypes "github.com/konveyor/move2kube/internal/types"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
-	log "github.com/sirupsen/logrus"
+	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -36,7 +36,7 @@ func (s *Storage) getSupportedKinds() []string {
 }
 
 // createNewResources converts IR objects to runtime objects
-func (s *Storage) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string) []runtime.Object {
+func (s *Storage) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
 	for _, stObj := range ir.Storages {
 		if stObj.StorageType == irtypes.ConfigMapKind {
@@ -53,7 +53,7 @@ func (s *Storage) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 }
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
-func (s *Storage) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR) ([]runtime.Object, bool) {
+func (s *Storage) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	if common.IsStringPresent(s.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}
@@ -116,7 +116,7 @@ func (s *Storage) createPVC(st irtypes.Storage) *core.PersistentVolumeClaim {
 		Spec: st.PersistentVolumeClaimSpec,
 	}
 
-	log.Debugf("%+v", st.PersistentVolumeClaimSpec)
+	logrus.Debugf("%+v", st.PersistentVolumeClaimSpec)
 	return pvc
 }
 
@@ -187,7 +187,7 @@ func convertVolumeBySupportedKind(volume core.Volume, cluster collecttypes.Clust
 		//PVC -> Empty (If PVC not available)
 		if cluster.GetSupportedVersions(string(irtypes.PVCKind)) == nil {
 			vEmpty := convertPVCVolumeToEmptyVolume(volume)
-			log.Warnf("PVC not supported in target cluster. Defaulting volume [%s] to emptyDir", volume.Name)
+			logrus.Warnf("PVC not supported in target cluster. Defaulting volume [%s] to emptyDir", volume.Name)
 			return *vEmpty
 
 		}
@@ -196,7 +196,7 @@ func convertVolumeBySupportedKind(volume core.Volume, cluster collecttypes.Clust
 	if volume.VolumeSource.HostPath != nil || volume.VolumeSource.EmptyDir != nil {
 		return volume
 	}
-	log.Warnf("Unsupported storage type (volume) detected")
+	logrus.Warnf("Unsupported storage type (volume) detected")
 
 	return core.Volume{}
 }

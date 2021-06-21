@@ -29,7 +29,7 @@ import (
 	"testing"
 
 	"github.com/konveyor/move2kube/internal/common"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 // myFileInfo is used to hold the part of the expected outputs for each testcase
@@ -50,7 +50,7 @@ func newMyFileInfo(f os.FileInfo) myFileInfo {
 func myUnTarForTesting(tarstring string, myfinfos []myFileInfo, contents []string) error {
 	val, err := base64.StdEncoding.DecodeString(tarstring)
 	if err != nil {
-		log.Errorf("Unable to decode tarstring : %s", err)
+		logrus.Errorf("Unable to decode tarstring : %s", err)
 	}
 	tr := tar.NewReader(bytes.NewReader(val))
 	expectedTotal := len(myfinfos)
@@ -91,7 +91,7 @@ func myUnTarForTesting(tarstring string, myfinfos []myFileInfo, contents []strin
 }
 
 func TestTarAsString(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("tar as string when the path doesn't exist", func(t *testing.T) {
 		if _, err := common.TarAsString("foobar", []string{}); err == nil {
@@ -241,7 +241,7 @@ func TestTarAsString(t *testing.T) {
 }
 
 func TestUnTarString(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 
 	testdatadir := "testdata/datafortestingtar/untarstring.json"
 	testdata := map[string]string{}
