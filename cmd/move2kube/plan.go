@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	move2kube "github.com/konveyor/move2kube/api"
+	"github.com/konveyor/move2kube/api"
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/qaengine"
@@ -82,11 +82,12 @@ func planHandler(flags planFlags) {
 	}
 	qaengine.StartEngine(true, 0, true)
 	qaengine.SetupConfigFile("", flags.setconfigs, flags.configs, flags.preSets)
-	p := move2kube.CreatePlan(srcpath, configurationsPath, name)
+	p := api.CreatePlan(srcpath, configurationsPath, name)
 	if err = plantypes.WritePlan(planfile, p); err != nil {
 		logrus.Errorf("Unable to write plan file (%s) : %s", planfile, err)
 		return
 	}
+	api.Destroy()
 	logrus.Infof("Plan can be found at [%s].", planfile)
 }
 

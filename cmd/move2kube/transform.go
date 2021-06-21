@@ -140,6 +140,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	p = api.CuratePlan(p)
 	api.Transform(p, flags.Outpath)
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.Outpath)
+	api.Destroy()
 }
 
 func getTransformCommand() *cobra.Command {

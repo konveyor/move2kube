@@ -95,6 +95,9 @@ func getArtifactForTransformerPlan(serviceName string, t plantypes.Transformer, 
 		PlanName:      p.Name,
 		TargetCluster: targetCluster,
 	}
+	if t.Configs == nil {
+		t.Configs = make(map[string]interface{})
+	}
 	t.Configs[transformertypes.ServiceConfigType] = serviceConfig
 	t.Configs[transformertypes.PlanConfigType] = planConfig
 	artifact := transformertypes.Artifact{

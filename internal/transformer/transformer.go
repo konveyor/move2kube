@@ -34,6 +34,7 @@ import (
 )
 
 var (
+	initialized                              = false
 	transformerTypes map[string]reflect.Type = make(map[string]reflect.Type)
 	transformers     map[string]Transformer  = make(map[string]Transformer)
 )
@@ -50,7 +51,7 @@ type Transformer interface {
 }
 
 func init() {
-	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable), new(analysers.CNBContainerizer), new(generators.CNBGenerator), new(analysers.CloudFoundry)}
+	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable), new(analysers.CNBContainerizer), new(generators.CNBGenerator), new(analysers.CloudFoundry), new(analysers.DockerfileDetector)}
 	for _, tt := range transformerObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -82,6 +83,9 @@ func Init(assetsPath, sourcePath string) (err error) {
 }
 
 func InitTransformers(transformerToInit map[string]string, sourcePath string, warn bool) error {
+	if initialized {
+		return nil
+	}
 	transformerConfigs := make(map[string]transformertypes.Transformer)
 	for tn, tfilepath := range transformerToInit {
 		tc, err := getTransformerConfig(tfilepath)
@@ -126,6 +130,7 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, wa
 			}
 		}
 	}
+	initialized = true
 	return nil
 }
 
@@ -156,10 +161,12 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 			logrus.Errorf("[%s] Failed : %s", tn, err)
 		} else {
 			nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]plantypes.Service), config)
-			unservices = setTransformerInfoForTransformers(*env.Decode(&unservices).(*[]plantypes.Transformer), config)
+			nunservices = setTransformerInfoForTransformers(*env.Decode(&nunservices).(*[]plantypes.Transformer), config)
 			services = plantypes.MergeServices(services, nservices)
 			unservices = append(unservices, nunservices...)
-			logrus.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
+			if len(nservices) > 0 || len(nunservices) > 0 {
+				logrus.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
+			}
 			logrus.Infof("[%s] Done", tn)
 		}
 	}

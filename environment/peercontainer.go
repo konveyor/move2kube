@@ -115,15 +115,14 @@ func (e *PeerContainer) Exec(cmd environmenttypes.Command) (string, string, int,
 
 func (e *PeerContainer) Destroy() error {
 	cengine := container.GetContainerEngine()
-	err := cengine.RemoveImage(e.ImageWithData)
-	if err != nil {
-		logrus.Errorf("Unable to delete image %s : %s", e.ImageWithData, err)
-	}
-	err = cengine.StopAndRemoveContainer(e.CID)
+	err := cengine.StopAndRemoveContainer(e.CID)
 	if err != nil {
 		logrus.Errorf("Unable to stop and remove container %s : %s", e.CID, err)
 	}
-
+	err = cengine.RemoveImage(e.ImageWithData)
+	if err != nil {
+		logrus.Errorf("Unable to delete image %s : %s", e.ImageWithData, err)
+	}
 	return nil
 }
 

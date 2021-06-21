@@ -59,9 +59,9 @@ func (t *CNBGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 		if err != nil {
 			logrus.Errorf("Unable to read CNB Template config : %s", err)
 		}
-		relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[plantypes.ProjectPathSourceArtifact][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[plantypes.ProjectPathPathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[plantypes.ProjectPathSourceArtifact][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[plantypes.ProjectPathPathType][0], err)
 		}
 		tc.ImageName = a.Configs[transformertypes.ServiceArtifactType].(transformertypes.ServiceConfig).ServiceName
 		cnbfilename := "buildcnb.sh"

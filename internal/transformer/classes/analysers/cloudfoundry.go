@@ -123,8 +123,8 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string
 						ServiceName: applicationName,
 					}},
 				Paths: map[plantypes.PathType][]string{
-					CfManifestArtifactType:              {filePath},
-					plantypes.ProjectPathSourceArtifact: {fullbuilddirectory},
+					CfManifestArtifactType:        {filePath},
+					plantypes.ProjectPathPathType: {fullbuilddirectory},
 				},
 			}
 			_, appinstance := getCfInstanceApp(cfInstanceApps, applicationName)

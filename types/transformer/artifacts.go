@@ -27,6 +27,7 @@ const (
 	IRArtifactType                    plantypes.ArtifactType = "IR"
 	ContainerBuildSupportArtifactType plantypes.ArtifactType = "ContainerBuildSupport"
 	CNBMetadataArtifactType           plantypes.ArtifactType = "CNBMetadata"
+	DockerfileArtifactType            plantypes.ArtifactType = "Dockerfile"
 )
 
 const (
@@ -34,6 +35,11 @@ const (
 	PlanConfigType     plantypes.ConfigType = "Plan"
 	TemplateConfigType plantypes.ConfigType = "Template"
 	IRConfigType       plantypes.ConfigType = "IR"
+)
+
+const (
+	// DockerfilePathType defines the source artifact type of dockerfile
+	DockerfilePathType plantypes.PathType = "Dockerfile"
 )
 
 type ServiceConfig struct {
