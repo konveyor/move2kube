@@ -117,7 +117,7 @@ function get_next_non_patch_release(data: releaseInfoT): releaseT {
     if (semver.prerelease(data.next.prerelease)![0] === "rc") {
         const obj = semver.parse(data.next.prerelease)!;
         const branch_name = `release-${obj.major}.${obj.minor}`;
-        return { tag: get_major_minor_patch(data.next.prerelease), prev_tag: data.current.release + "-beta.0", commit_ref: branch_name };
+        return { tag: "v" + get_major_minor_patch(data.next.prerelease), prev_tag: data.current.release + "-beta.0", commit_ref: branch_name };
     } else if (semver.prerelease(data.next.prerelease)![0] === "beta") {
         return { error: "cannot go from beta to release. do a rc release first.", tag: '', prev_tag: '', commit_ref: '' };
     }

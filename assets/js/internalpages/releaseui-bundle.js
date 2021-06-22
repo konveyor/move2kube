@@ -1,190 +1,4 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-// shim for using process in browser
-var process = module.exports = {};
-
-// cached from whatever global is present so that test runners that stub it
-// don't break things.  But we need to wrap it in a try catch in case it is
-// wrapped in strict mode code which doesn't define any globals.  It's inside a
-// function because try/catches deoptimize in certain engines.
-
-var cachedSetTimeout;
-var cachedClearTimeout;
-
-function defaultSetTimout() {
-    throw new Error('setTimeout has not been defined');
-}
-function defaultClearTimeout () {
-    throw new Error('clearTimeout has not been defined');
-}
-(function () {
-    try {
-        if (typeof setTimeout === 'function') {
-            cachedSetTimeout = setTimeout;
-        } else {
-            cachedSetTimeout = defaultSetTimout;
-        }
-    } catch (e) {
-        cachedSetTimeout = defaultSetTimout;
-    }
-    try {
-        if (typeof clearTimeout === 'function') {
-            cachedClearTimeout = clearTimeout;
-        } else {
-            cachedClearTimeout = defaultClearTimeout;
-        }
-    } catch (e) {
-        cachedClearTimeout = defaultClearTimeout;
-    }
-} ())
-function runTimeout(fun) {
-    if (cachedSetTimeout === setTimeout) {
-        //normal enviroments in sane situations
-        return setTimeout(fun, 0);
-    }
-    // if setTimeout wasn't available but was latter defined
-    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
-        cachedSetTimeout = setTimeout;
-        return setTimeout(fun, 0);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedSetTimeout(fun, 0);
-    } catch(e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-            return cachedSetTimeout.call(null, fun, 0);
-        } catch(e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-            return cachedSetTimeout.call(this, fun, 0);
-        }
-    }
-
-
-}
-function runClearTimeout(marker) {
-    if (cachedClearTimeout === clearTimeout) {
-        //normal enviroments in sane situations
-        return clearTimeout(marker);
-    }
-    // if clearTimeout wasn't available but was latter defined
-    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
-        cachedClearTimeout = clearTimeout;
-        return clearTimeout(marker);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedClearTimeout(marker);
-    } catch (e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-            return cachedClearTimeout.call(null, marker);
-        } catch (e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-            return cachedClearTimeout.call(this, marker);
-        }
-    }
-
-
-
-}
-var queue = [];
-var draining = false;
-var currentQueue;
-var queueIndex = -1;
-
-function cleanUpNextTick() {
-    if (!draining || !currentQueue) {
-        return;
-    }
-    draining = false;
-    if (currentQueue.length) {
-        queue = currentQueue.concat(queue);
-    } else {
-        queueIndex = -1;
-    }
-    if (queue.length) {
-        drainQueue();
-    }
-}
-
-function drainQueue() {
-    if (draining) {
-        return;
-    }
-    var timeout = runTimeout(cleanUpNextTick);
-    draining = true;
-
-    var len = queue.length;
-    while(len) {
-        currentQueue = queue;
-        queue = [];
-        while (++queueIndex < len) {
-            if (currentQueue) {
-                currentQueue[queueIndex].run();
-            }
-        }
-        queueIndex = -1;
-        len = queue.length;
-    }
-    currentQueue = null;
-    draining = false;
-    runClearTimeout(timeout);
-}
-
-process.nextTick = function (fun) {
-    var args = new Array(arguments.length - 1);
-    if (arguments.length > 1) {
-        for (var i = 1; i < arguments.length; i++) {
-            args[i - 1] = arguments[i];
-        }
-    }
-    queue.push(new Item(fun, args));
-    if (queue.length === 1 && !draining) {
-        runTimeout(drainQueue);
-    }
-};
-
-// v8 likes predictible objects
-function Item(fun, array) {
-    this.fun = fun;
-    this.array = array;
-}
-Item.prototype.run = function () {
-    this.fun.apply(null, this.array);
-};
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-process.version = ''; // empty string to avoid regexp issues
-process.versions = {};
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-process.prependListener = noop;
-process.prependOnceListener = noop;
-
-process.listeners = function (name) { return [] }
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-};
-
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-process.umask = function() { return 0; };
-
-},{}],2:[function(require,module,exports){
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -314,7 +128,7 @@ function get_next_non_patch_release(data) {
     if (semver.prerelease(data.next.prerelease)[0] === "rc") {
         const obj = semver.parse(data.next.prerelease);
         const branch_name = `release-${obj.major}.${obj.minor}`;
-        return { tag: get_major_minor_patch(data.next.prerelease), prev_tag: data.current.release + "-beta.0", commit_ref: branch_name };
+        return { tag: "v" + get_major_minor_patch(data.next.prerelease), prev_tag: data.current.release + "-beta.0", commit_ref: branch_name };
     }
     else if (semver.prerelease(data.next.prerelease)[0] === "beta") {
         return { error: "cannot go from beta to release. do a rc release first.", tag: '', prev_tag: '', commit_ref: '' };
@@ -538,7 +352,7 @@ function main() {
 }
 on_document_ready(() => main().catch(console.error));
 
-},{"@octokit/rest":12,"semver":21}],3:[function(require,module,exports){
+},{"@octokit/rest":11,"semver":21}],2:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -589,7 +403,7 @@ const createTokenAuth = function createTokenAuth(token) {
 exports.createTokenAuth = createTokenAuth;
 
 
-},{}],4:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -766,7 +580,7 @@ Octokit.plugins = [];
 exports.Octokit = Octokit;
 
 
-},{"@octokit/auth-token":3,"@octokit/graphql":6,"@octokit/request":11,"before-after-hook":13,"universal-user-agent":22}],5:[function(require,module,exports){
+},{"@octokit/auth-token":2,"@octokit/graphql":5,"@octokit/request":10,"before-after-hook":12,"universal-user-agent":22}],4:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -1158,7 +972,7 @@ const endpoint = withDefaults(null, DEFAULTS);
 exports.endpoint = endpoint;
 
 
-},{"is-plain-object":18,"universal-user-agent":22}],6:[function(require,module,exports){
+},{"is-plain-object":17,"universal-user-agent":22}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -1276,7 +1090,7 @@ exports.graphql = graphql$1;
 exports.withCustomRequest = withCustomRequest;
 
 
-},{"@octokit/request":11,"universal-user-agent":22}],7:[function(require,module,exports){
+},{"@octokit/request":10,"universal-user-agent":22}],6:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -1422,7 +1236,7 @@ exports.paginateRest = paginateRest;
 exports.paginatingEndpoints = paginatingEndpoints;
 
 
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -1454,7 +1268,7 @@ requestLog.VERSION = VERSION;
 exports.requestLog = requestLog;
 
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -2693,7 +2507,7 @@ exports.legacyRestEndpointMethods = legacyRestEndpointMethods;
 exports.restEndpointMethods = restEndpointMethods;
 
 
-},{}],10:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -2750,7 +2564,7 @@ class RequestError extends Error {
 exports.RequestError = RequestError;
 
 
-},{"deprecation":17,"once":20}],11:[function(require,module,exports){
+},{"deprecation":16,"once":19}],10:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -2900,7 +2714,7 @@ const request = withDefaults(endpoint.endpoint, {
 exports.request = request;
 
 
-},{"@octokit/endpoint":5,"@octokit/request-error":10,"is-plain-object":18,"node-fetch":19,"universal-user-agent":22}],12:[function(require,module,exports){
+},{"@octokit/endpoint":4,"@octokit/request-error":9,"is-plain-object":17,"node-fetch":18,"universal-user-agent":22}],11:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -2919,7 +2733,7 @@ const Octokit = core.Octokit.plugin(pluginRequestLog.requestLog, pluginRestEndpo
 exports.Octokit = Octokit;
 
 
-},{"@octokit/core":4,"@octokit/plugin-paginate-rest":7,"@octokit/plugin-request-log":8,"@octokit/plugin-rest-endpoint-methods":9}],13:[function(require,module,exports){
+},{"@octokit/core":3,"@octokit/plugin-paginate-rest":6,"@octokit/plugin-request-log":7,"@octokit/plugin-rest-endpoint-methods":8}],12:[function(require,module,exports){
 var register = require('./lib/register')
 var addHook = require('./lib/add')
 var removeHook = require('./lib/remove')
@@ -2978,7 +2792,7 @@ module.exports.Hook = Hook
 module.exports.Singular = Hook.Singular
 module.exports.Collection = Hook.Collection
 
-},{"./lib/add":14,"./lib/register":15,"./lib/remove":16}],14:[function(require,module,exports){
+},{"./lib/add":13,"./lib/register":14,"./lib/remove":15}],13:[function(require,module,exports){
 module.exports = addHook;
 
 function addHook(state, kind, name, hook) {
@@ -3026,7 +2840,7 @@ function addHook(state, kind, name, hook) {
   });
 }
 
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 module.exports = register;
 
 function register(state, name, method, options) {
@@ -3055,7 +2869,7 @@ function register(state, name, method, options) {
   });
 }
 
-},{}],16:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 module.exports = removeHook;
 
 function removeHook(state, name, method) {
@@ -3076,7 +2890,7 @@ function removeHook(state, name, method) {
   state.registry[name].splice(index, 1);
 }
 
-},{}],17:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -3098,7 +2912,7 @@ class Deprecation extends Error {
 
 exports.Deprecation = Deprecation;
 
-},{}],18:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -3138,7 +2952,7 @@ function isPlainObject(o) {
 
 exports.isPlainObject = isPlainObject;
 
-},{}],19:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 (function (global){(function (){
 "use strict";
 
@@ -3166,7 +2980,7 @@ exports.Headers = global.Headers;
 exports.Request = global.Request;
 exports.Response = global.Response;
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],20:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var wrappy = require('wrappy')
 module.exports = wrappy(once)
 module.exports.strict = wrappy(onceStrict)
@@ -3210,7 +3024,193 @@ function onceStrict (fn) {
   return f
 }
 
-},{"wrappy":23}],21:[function(require,module,exports){
+},{"wrappy":23}],20:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],21:[function(require,module,exports){
 (function (process){(function (){
 exports = module.exports = SemVer
 
@@ -4810,7 +4810,7 @@ function coerce (version, options) {
 }
 
 }).call(this)}).call(this,require('_process'))
-},{"_process":1}],22:[function(require,module,exports){
+},{"_process":20}],22:[function(require,module,exports){
 (function (process){(function (){
 'use strict';
 
@@ -4832,7 +4832,7 @@ exports.getUserAgent = getUserAgent;
 
 
 }).call(this)}).call(this,require('_process'))
-},{"_process":1}],23:[function(require,module,exports){
+},{"_process":20}],23:[function(require,module,exports){
 // Returns a wrapper function that returns a wrapped callback
 // The wrapper function should do some stuff, and return a
 // presumably different callback function.
@@ -4867,4 +4867,4 @@ function wrappy (fn, cb) {
   }
 }
 
-},{}]},{},[2]);
+},{}]},{},[1]);
