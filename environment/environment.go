@@ -28,6 +28,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/pathconverters"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
+	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,6 +44,8 @@ type Environment struct {
 	Source  string
 	Context string
 
+	RelTemplatesDir string
+
 	TempPath string
 }
 
@@ -56,18 +59,19 @@ type EnvironmentInstance interface {
 	GetContext() string
 }
 
-func NewEnvironment(name string, source string, context string, container environmenttypes.Container) (env Environment, err error) {
+func NewEnvironment(name string, source string, context string, relTemplatesDir string, container environmenttypes.Container) (env Environment, err error) {
 	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return env, err
 	}
 	env = Environment{
-		Name:     name,
-		Source:   source,
-		Context:  context,
-		Children: []Environment{},
-		TempPath: tempPath,
+		Name:            name,
+		Source:          source,
+		Context:         context,
+		RelTemplatesDir: relTemplatesDir,
+		Children:        []Environment{},
+		TempPath:        tempPath,
 	}
 	if container.Image != "" {
 		envVariableName := common.MakeStringEnvNameCompliant(container.Image)
@@ -221,9 +225,8 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 			return path, nil
 		}
 		if !filepath.IsAbs(path) {
-			err := fmt.Errorf("the input path %q is not an absolute path", path)
-			logrus.Errorf("%s", err)
-			return path, err
+			logrus.Debugf("the input path %q is not an absolute path", path)
+			return path, nil
 		}
 		if !downloadSource {
 			if common.IsParent(path, e.GetWorkspaceSource()) {
@@ -249,6 +252,36 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 	return obj
 }
 
+func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMapping) []transformertypes.PathMapping {
+	for pmi, pm := range pathMappings {
+		if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
+			pathMappings[pmi].SrcPath = filepath.Join(e.GetWorkspaceContext(), e.RelTemplatesDir, pm.SrcPath)
+		}
+
+		// Process destination Path
+		destPathSplit := strings.SplitN(pm.DestPath, ":", 2)
+		relPath := ""
+		destPath := pm.DestPath
+		if len(destPathSplit) > 1 {
+			relPath = destPathSplit[0]
+			destPath = destPathSplit[1]
+		}
+		if filepath.IsAbs(destPath) {
+			dp, err := filepath.Rel(e.GetWorkspaceSource(), destPath)
+			if err != nil {
+				logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
+				continue
+			}
+			pathMappings[pmi].DestPath = filepath.Join(relPath, dp)
+		}
+	}
+	return pathMappings
+}
+
 func (e *Environment) GetWorkspaceSource() string {
 	return e.Env.GetSource()
+}
+
+func (e *Environment) GetWorkspaceContext() string {
+	return e.Env.GetContext()
 }

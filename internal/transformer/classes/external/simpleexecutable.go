@@ -29,6 +29,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	TransformConfigType plantypes.ConfigType = "TransformConfig"
+)
+
 // Executable implements Containerizer interface
 type SimpleExecutable struct {
 	TConfig    transformertypes.Transformer
@@ -36,9 +40,15 @@ type SimpleExecutable struct {
 	Env        environment.Environment
 }
 
+type TransformConfig struct {
+	PathMappings []transformertypes.PathMapping `json:"pathMappings,omitempty"`
+	Artifacts    []transformertypes.Artifact    `json:"artifacts,omitempty"`
+}
+
 type ExecutableYamlConfig struct {
 	BaseDirectoryDetectCMD environmenttypes.Command   `yaml:"baseDetectCMD"`
 	DirectoryDetectCMD     environmenttypes.Command   `yaml:"directoryDetectCMD"`
+	TransformCMD           environmenttypes.Command   `yaml:"transformCMD"`
 	Container              environmenttypes.Container `yaml:"container,omitempty"`
 }
 
@@ -50,7 +60,7 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.TConfig.Spec.Config, t.ExecConfig, err)
 		return err
 	}
-	t.Env, err = environment.NewEnvironment(env.Name, env.Source, env.Context, t.ExecConfig.Container)
+	t.Env, err = environment.NewEnvironment(env.Name, env.Source, env.Context, tc.Spec.TemplatesDir, t.ExecConfig.Container)
 	if err != nil {
 		logrus.Errorf("Unable to create Exec environment : %s", err)
 		return err
@@ -82,20 +92,32 @@ func (t *SimpleExecutable) Transform(newArtifacts []transformertypes.Artifact, o
 		if a.Artifact != transformertypes.ServiceArtifactType {
 			continue
 		}
-		relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[plantypes.ProjectPathPathType][0])
-		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[plantypes.ProjectPathPathType][0], err)
+		if t.ExecConfig.TransformCMD == nil {
+			relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[plantypes.ProjectPathPathType][0])
+			if err != nil {
+				logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[plantypes.ProjectPathPathType][0], err)
+			}
+			var config interface{}
+			if a.Configs != nil {
+				config = a.Configs[transformertypes.TemplateConfigType]
+			}
+			pathMappings = append(pathMappings, transformertypes.PathMapping{
+				Type:           transformertypes.TemplatePathMappingType,
+				SrcPath:        filepath.Join(t.Env.Context, t.Env.RelTemplatesDir),
+				DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
+				TemplateConfig: config,
+			}, transformertypes.PathMapping{
+				Type:     transformertypes.SourcePathMappingType,
+				SrcPath:  "",
+				DestPath: common.DefaultSourceDir,
+			})
+		} else {
+			path := ""
+			if a.Paths != nil && a.Paths[plantypes.ProjectPathPathType] != nil {
+				path = a.Paths[plantypes.ProjectPathPathType][0]
+			}
+			return t.executeTransform(t.ExecConfig.TransformCMD, path)
 		}
-		pathMappings = append(pathMappings, transformertypes.PathMapping{
-			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),
-			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
-			TemplateConfig: a.Configs[transformertypes.TemplateConfigType],
-		}, transformertypes.PathMapping{
-			Type:     transformertypes.SourcePathMappingType,
-			SrcPath:  "",
-			DestPath: common.DefaultSourceDir,
-		})
 	}
 	return pathMappings, nil, nil
 }
@@ -111,17 +133,40 @@ func (t *SimpleExecutable) executeDetect(cmd environmenttypes.Command, dir strin
 	}
 	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d", t.TConfig.Name, t.Env.Decode(dir), stdout, stderr, exitcode)
 	stdout = strings.TrimSpace(stdout)
-	config := map[string]interface{}{}
-	err = json.Unmarshal([]byte(stdout), &config)
-	if err != nil {
-		logrus.Debugf("Error in unmarshalling json %s: %s.", stdout, err)
-	}
 	trans := plantypes.Transformer{
 		Mode:                   string(t.TConfig.Spec.Mode),
 		ArtifactTypes:          t.TConfig.Spec.Artifacts,
 		ExclusiveArtifactTypes: t.TConfig.Spec.ExclusiveArtifacts,
 		Paths:                  map[string][]string{plantypes.ProjectPathPathType: {dir}},
-		Configs:                map[plantypes.ConfigType]interface{}{transformertypes.TemplateConfigType: config},
+		Configs:                map[plantypes.ConfigType]interface{}{},
+	}
+	var config map[string]interface{}
+	if stdout != "" {
+		config = map[string]interface{}{}
+		err = json.Unmarshal([]byte(stdout), &config)
+		if err != nil {
+			logrus.Debugf("Error in unmarshalling json %s: %s.", stdout, err)
+		}
+		trans.Configs[transformertypes.TemplateConfigType] = config
 	}
 	return nil, []plantypes.Transformer{trans}, nil
+}
+
+func (t *SimpleExecutable) executeTransform(cmd environmenttypes.Command, dir string) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
+	stdout, stderr, exitcode, err := t.Env.Exec(append(cmd, dir))
+	if err != nil {
+		logrus.Errorf("Transform failed %s : %s : %d : %s", stdout, stderr, exitcode, err)
+		return nil, nil, err
+	} else if exitcode != 0 {
+		logrus.Debugf("Transform did not succeed %s : %s : %d : %s", stdout, stderr, exitcode, err)
+		return nil, nil, nil
+	}
+	logrus.Debugf("%s Transform succeeded in %s : %s, %s, %d", t.TConfig.Name, t.Env.Decode(dir), stdout, stderr, exitcode)
+	stdout = strings.TrimSpace(stdout)
+	var config TransformConfig
+	err = json.Unmarshal([]byte(stdout), &config)
+	if err != nil {
+		logrus.Errorf("Error in unmarshalling json %s: %s.", stdout, err)
+	}
+	return config.PathMappings, config.Artifacts, nil
 }

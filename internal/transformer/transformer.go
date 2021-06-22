@@ -118,7 +118,7 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, wa
 			logrus.Errorf("Unable to find Transformer class %s in %+v", tc.Spec.Class, transformerTypes)
 		} else {
 			t := reflect.New(c).Interface().(Transformer)
-			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), environmenttypes.Container{})
+			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), tc.Spec.TemplatesDir, environmenttypes.Container{})
 			if err != nil {
 				logrus.Errorf("Unable to create environment : %s", err)
 				return err
@@ -204,6 +204,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 				logrus.Errorf("Unable to transform service %s using %s : %s", serviceName, transformer.Name, err)
 				continue
 			}
+			newPathMappings = env.ProcessPathMappings(newPathMappings)
 			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
@@ -239,6 +240,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 				logrus.Errorf("Unable to transform artifacts using %s : %s", tn, err)
 				continue
 			}
+			newPathMappings = env.ProcessPathMappings(newPathMappings)
 			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)

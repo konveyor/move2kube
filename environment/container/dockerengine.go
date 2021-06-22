@@ -153,7 +153,6 @@ func (e *dockerEngine) CreateContainer(image string) (containerid string, err er
 		Image: image,
 		Cmd:   []string{"sh", "-c", "tail -f /dev/null"},
 	}
-	logrus.Debugf("Error during container creation : %s", err)
 	resp, err := e.cli.ContainerCreate(e.ctx, contconfig, nil, nil, nil, "")
 	if err != nil {
 		logrus.Debugf("Container creation failed with image %s with no volumes", image)
@@ -225,7 +224,7 @@ func (e *dockerEngine) CopyDirsIntoContainer(containerID string, paths map[strin
 // CopyDirsFromContainer creates a container
 func (e *dockerEngine) CopyDirsFromContainer(containerID string, paths map[string]string) (err error) {
 	for sp, dp := range paths {
-		err = copyFromContainer(e.ctx, containerID, sp, dp)
+		err = copyFromContainer(e.ctx, e.cli, containerID, sp, dp)
 		if err != nil {
 			logrus.Debugf("Container data copy failed for image %s with volume %s:%s : %s", containerID, sp, dp, err)
 			return err

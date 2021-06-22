@@ -19,7 +19,6 @@ package environment
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -131,14 +130,6 @@ func (e *PeerContainer) Download(path string) (string, error) {
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return path, err
-	}
-	if ps, err := os.Stat(path); err != nil {
-		logrus.Errorf("Unable to stat source : %s", path)
-		return "", err
-	} else {
-		if ps.Mode().IsRegular() {
-			output = filepath.Join(output, filepath.Base(path))
-		}
 	}
 	cengine := container.GetContainerEngine()
 	err = cengine.CopyDirsFromContainer(e.CID, map[string]string{path: output})
