@@ -12,3 +12,4 @@ bin/
 coverage.txt
 .vscode/
 _dist/
+vendor/
