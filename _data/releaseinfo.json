@@ -1,18 +1,18 @@
 {
     "current": {
-        "release": "v0.1.0",
-        "release_url": "https://github.com/konveyor/move2kube/releases/tag/v0.1.0",
-        "prerelease": "v0.1.0-rc.1",
-        "prerelease_url": "https://github.com/konveyor/move2kube/releases/tag/v0.1.0-rc.1"
-    },
-    "next": {
+        "release": "0.2.0",
+        "release_url": "https://github.com/konveyor/move2kube/releases/tag/0.2.0",
         "prerelease": "v0.2.0-rc.0",
         "prerelease_url": "https://github.com/konveyor/move2kube/releases/tag/v0.2.0-rc.0"
+    },
+    "next": {
+        "prerelease": null,
+        "prerelease_url": null
     },
     "next_next": {
         "prerelease": null,
         "prerelease_url": null
     },
-    "next_release_is_minor": true,
+    "next_release_is_minor": false,
     "next_next_release_is_minor": false
 }
