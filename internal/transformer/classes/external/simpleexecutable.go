@@ -60,7 +60,7 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.TConfig.Spec.Config, t.ExecConfig, err)
 		return err
 	}
-	t.Env, err = environment.NewEnvironment(env.Name, env.Source, env.Context, t.ExecConfig.Container)
+	t.Env, err = environment.NewEnvironment(env.Name, env.Source, env.Context, tc.Spec.TemplatesDir, t.ExecConfig.Container)
 	if err != nil {
 		logrus.Errorf("Unable to create Exec environment : %s", err)
 		return err
@@ -103,7 +103,7 @@ func (t *SimpleExecutable) Transform(newArtifacts []transformertypes.Artifact, o
 			}
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:           transformertypes.TemplatePathMappingType,
-				SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),
+				SrcPath:        filepath.Join(t.Env.Context, t.Env.RelTemplatesDir),
 				DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
 				TemplateConfig: config,
 			}, transformertypes.PathMapping{

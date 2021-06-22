@@ -16,7 +16,7 @@ limitations under the License.
 
 package transformer
 
-type PathMappingType string
+type PathMappingType = string
 
 const (
 	DefaultPathMappingType        PathMappingType = "Default"    // Normal Copy with overwrite

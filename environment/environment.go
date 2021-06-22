@@ -44,6 +44,8 @@ type Environment struct {
 	Source  string
 	Context string
 
+	RelTemplatesDir string
+
 	TempPath string
 }
 
@@ -57,18 +59,19 @@ type EnvironmentInstance interface {
 	GetContext() string
 }
 
-func NewEnvironment(name string, source string, context string, container environmenttypes.Container) (env Environment, err error) {
+func NewEnvironment(name string, source string, context string, relTemplatesDir string, container environmenttypes.Container) (env Environment, err error) {
 	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return env, err
 	}
 	env = Environment{
-		Name:     name,
-		Source:   source,
-		Context:  context,
-		Children: []Environment{},
-		TempPath: tempPath,
+		Name:            name,
+		Source:          source,
+		Context:         context,
+		RelTemplatesDir: relTemplatesDir,
+		Children:        []Environment{},
+		TempPath:        tempPath,
 	}
 	if container.Image != "" {
 		envVariableName := common.MakeStringEnvNameCompliant(container.Image)
@@ -249,8 +252,13 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 	return obj
 }
 
-func (e *Environment) ProcessPathMappingDestPath(pathMappings []transformertypes.PathMapping) []transformertypes.PathMapping {
+func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMapping) []transformertypes.PathMapping {
 	for pmi, pm := range pathMappings {
+		if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
+			pathMappings[pmi].SrcPath = filepath.Join(e.GetWorkspaceContext(), e.RelTemplatesDir, pm.SrcPath)
+		}
+
+		// Process destination Path
 		destPathSplit := strings.SplitN(pm.DestPath, ":", 2)
 		relPath := ""
 		destPath := pm.DestPath
@@ -272,4 +280,8 @@ func (e *Environment) ProcessPathMappingDestPath(pathMappings []transformertypes
 
 func (e *Environment) GetWorkspaceSource() string {
 	return e.Env.GetSource()
+}
+
+func (e *Environment) GetWorkspaceContext() string {
+	return e.Env.GetContext()
 }
