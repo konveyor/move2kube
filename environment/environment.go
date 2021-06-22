@@ -28,6 +28,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/pathconverters"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
+	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -246,6 +247,27 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 		logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
 	}
 	return obj
+}
+
+func (e *Environment) ProcessPathMappingDestPath(pathMappings []transformertypes.PathMapping) []transformertypes.PathMapping {
+	for pmi, pm := range pathMappings {
+		destPathSplit := strings.SplitN(pm.DestPath, ":", 2)
+		relPath := ""
+		destPath := pm.DestPath
+		if len(destPathSplit) > 1 {
+			relPath = destPathSplit[0]
+			destPath = destPathSplit[1]
+		}
+		if filepath.IsAbs(destPath) {
+			dp, err := filepath.Rel(e.GetWorkspaceSource(), destPath)
+			if err != nil {
+				logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
+				continue
+			}
+			pathMappings[pmi].DestPath = filepath.Join(relPath, dp)
+		}
+	}
+	return pathMappings
 }
 
 func (e *Environment) GetWorkspaceSource() string {

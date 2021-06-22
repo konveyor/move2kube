@@ -72,7 +72,10 @@ func copyFromContainer(ctx context.Context, cli *client.Client, containerID stri
 		Exists: true,
 		IsDir:  stat.Mode.IsDir(),
 	}
-	return archive.CopyTo(content, copyInfo, destPath)
+	preArchive := content
+	_, srcBase := archive.SplitPathDirEntry(copyInfo.Path)
+	preArchive = archive.RebaseArchiveEntries(content, srcBase, "")
+	return archive.CopyTo(preArchive, copyInfo, destPath)
 }
 
 func readDirAsTar(srcDir, basePath string) io.ReadCloser {

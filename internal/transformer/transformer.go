@@ -204,6 +204,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 				logrus.Errorf("Unable to transform service %s using %s : %s", serviceName, transformer.Name, err)
 				continue
 			}
+			newPathMappings = env.ProcessPathMappingDestPath(newPathMappings)
 			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
@@ -239,6 +240,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 				logrus.Errorf("Unable to transform artifacts using %s : %s", tn, err)
 				continue
 			}
+			newPathMappings = env.ProcessPathMappingDestPath(newPathMappings)
 			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
