@@ -25,7 +25,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/docker/cli/cli/command"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
@@ -61,13 +60,8 @@ func copyDirToContainer(ctx context.Context, cli *client.Client, containerID, sr
 	return err
 }
 
-func copyFromContainer(ctx context.Context, containerID string, containerPath, destPath string) (err error) {
-	cli, err := command.NewDockerCli()
-	if err != nil {
-		logrus.Errorf("Unable to create new docker cli : %s", err)
-		return err
-	}
-	content, stat, err := cli.Client().CopyFromContainer(ctx, containerID, containerPath)
+func copyFromContainer(ctx context.Context, cli *client.Client, containerID string, containerPath, destPath string) (err error) {
+	content, stat, err := cli.CopyFromContainer(ctx, containerID, containerPath)
 	if err != nil {
 		logrus.Errorf("Unable to copy from container : %s", err)
 		return err

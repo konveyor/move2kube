@@ -221,9 +221,8 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 			return path, nil
 		}
 		if !filepath.IsAbs(path) {
-			err := fmt.Errorf("the input path %q is not an absolute path", path)
-			logrus.Errorf("%s", err)
-			return path, err
+			logrus.Debugf("the input path %q is not an absolute path", path)
+			return path, nil
 		}
 		if !downloadSource {
 			if common.IsParent(path, e.GetWorkspaceSource()) {
