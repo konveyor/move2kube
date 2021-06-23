@@ -192,7 +192,7 @@ class SegmentIntegrator():
         output["pathMappings"].append(
             {
                 "type": "template",
-                "sourcePath": "'${PWD}'/templates/",
+                "sourcePath": "/m2k/templates/",
                 "destinationPath": "abc/",
                 "templateConfig": params
             }
