@@ -11,26 +11,3 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-.vscode
-demo_tmp
-sample_tmp
-work_dir
-m2k
-m2k_bin
-colleted_md
-.DS_Store
-_dist
-bin
-.m2k
-coverage.txt
-.jekyll-cache/
-_site/
-node_modules
-
-# brew bottling creates .brew_home directory
-# add this to avoid git tree start becoming dirty
-.brew_home/
-
-__pycache__/
-*.pyc
