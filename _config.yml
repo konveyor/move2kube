@@ -102,6 +102,7 @@ color_scheme: konveyor
 gtm_container_id: GTM-TKPDMS3
 
 plugins:
+  - jekyll-remote-theme
   - jekyll-seo-tag
 
 compress_html:

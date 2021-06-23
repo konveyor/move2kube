@@ -40,10 +40,6 @@ GEM
       jekyll (>= 3.8, < 5.0)
     jekyll-watch (2.2.1)
       listen (~> 3.0)
-    just-the-docs (0.3.3)
-      jekyll (>= 3.8.5)
-      jekyll-seo-tag (~> 2.0)
-      rake (>= 12.3.1, < 13.1.0)
     kramdown (2.3.1)
       rexml
     kramdown-parser-gfm (1.1.0)
@@ -76,7 +72,8 @@ PLATFORMS
 
 DEPENDENCIES
   jekyll-remote-theme
-  just-the-docs
+  jekyll-seo-tag
+  rake
   webrick (~> 1.7)
 
 BUNDLED WITH
