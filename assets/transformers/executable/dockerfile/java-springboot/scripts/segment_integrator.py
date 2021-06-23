@@ -158,10 +158,44 @@ class SegmentIntegrator():
                 full_template.append("\n")
 
         # save
-        output_path = "./"  # TODO: parameterize?  
-        with open(os.path.join(output_path, "Dockerfile-full_template"), "w") as f:
+        output_path = "./templates/"  
+        with open(os.path.join(output_path, "Dockerfile"), "w") as f:
             for l in full_template:
                 f.write(l)
         
-    def get_json_output(self):
-        return json.dumps(self.segments)
+    #def get_json_output(self):
+    #    return json.dumps(self.segments)
+
+
+    def get_params(self):
+
+        params =  {}
+        for i in self.segments["segments"]: 
+            for k,v  in i.items():
+                if k != "segment_id":
+                    params[k]= v
+
+        return params
+
+    def get_output_for_transformer(self):
+
+        params = self.get_params()
+
+        output = {}
+        output["pathMappings"]=[] 
+        output["pathMappings"].append(  {
+                "type": "source",
+                "sourcePath": "",
+                "destinationPath": "source/"
+            })
+
+        output["pathMappings"].append(
+            {
+                "type": "template",
+                "sourcePath": "'${PWD}'/templates/",
+                "destinationPath": "abc/",
+                "templateConfig": params
+            }
+        )
+        
+        return output

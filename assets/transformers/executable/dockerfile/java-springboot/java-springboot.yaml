@@ -11,6 +11,7 @@ spec:
     - "Dockerfile"
   config:
     directoryDetectCMD: ["./m2kdetect.sh"]
+    transformCMD: ["./m2ktransform.sh"]
     container:
       image: m2kjava-springbootdf
       build:

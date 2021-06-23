@@ -14,6 +14,7 @@
 
 import ipdb
 import argparse
+import json
 
 from framework_detector import FrameworkDetector
 from framework_parameter_extractor import (FrameworkParameterExtractor, 
@@ -88,27 +89,38 @@ def main(args):
     pcf = PCFExtractor(captured_data)
     pcf_params = pcf.extract()
     
-    # ---------------------
-    # Segments Integrator
-    # ---------------------
-    si = SegmentIntegrator(
-            framework_params,
-            server_params,
-            metadata, 
-            pcf_params, 
-            build_type="maven")
-    
-    si.construct_segment_list()
-    json_output = si.get_json_output()
+    if args.mode == "detect":
 
-    si.persist_full_template()
+        if "springboot" in framework_params:
+            print("valid")
+        else:
+            print("invalid")
 
-    # Print result as a json output
-    # -----------------------------
-    print(json_output)
+    elif args.mode =="transform":
+
+        # ---------------------
+        # Segments Integrator
+        # ---------------------
+        si = SegmentIntegrator(
+                framework_params,
+                server_params,
+                metadata, 
+                pcf_params, 
+                build_type="maven")
+        
+        si.construct_segment_list()
+        si.persist_full_template()
+        
+        # Print result as a json output
+        # -----------------------------
+        print(json.dumps(si.get_output_for_transformer()))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+
+    parser.add_argument("--mode", type=str, 
+        default="")
+    
     parser.add_argument("--app_path", type=str, 
         default="Absolute path of the original application")
     parser.add_argument("--output_path", type=str, 

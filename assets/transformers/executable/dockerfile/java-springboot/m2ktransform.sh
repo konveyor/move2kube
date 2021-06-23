@@ -128,11 +128,4 @@ fi
 
 # calling python 
 abspath=$(realpath $content_folder)
-#python3 scripts/lib.py --app_path $(echo $abspath) --output_path $(echo $output_path) --basename $(echo $basename) --input_type $(echo $input_type)
-output_detection=$(python3 scripts/run.py --mode detect --app_path $(echo $abspath) --output_path $(echo $output_path) --basename $(echo $basename) --input_type $(echo $input_type))
-
-if [[ $output_detection == "valid" ]]; then
-	echo "{ app : valid }"
-else
-	exit 1
-fi
+python3 scripts/run.py --mode transform --app_path $(echo $abspath) --output_path $(echo $output_path) --basename $(echo $basename) --input_type $(echo $input_type)
