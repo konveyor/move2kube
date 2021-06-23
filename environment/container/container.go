@@ -32,7 +32,7 @@ var (
 // Engine defines interface to manage containers
 type ContainerEngine interface {
 	// RunCmdInContainer runs a container
-	RunCmdInContainer(image string, cmd environmenttypes.Command, workingdir string) (stdout, stderr string, exitcode int, err error)
+	RunCmdInContainer(image string, cmd environmenttypes.Command, workingdir string, env []string) (stdout, stderr string, exitcode int, err error)
 	// InspectImage gets Inspect output for a container
 	InspectImage(image string) (dockertypes.ImageInspect, error)
 	// TODO: Change paths from map to array

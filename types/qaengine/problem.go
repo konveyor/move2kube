@@ -19,9 +19,11 @@ package qaengine
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/types/qaengine/qagrpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -57,6 +59,72 @@ type Problem struct {
 	Options []string         `yaml:"options,omitempty" json:"options,omitempty"`
 	Default interface{}      `yaml:"default,omitempty" json:"default,omitempty"`
 	Answer  interface{}      `yaml:"answer,omitempty" json:"answer,omitempty"`
+}
+
+func NewProblem(p *qagrpc.Problem) (prob Problem, err error) {
+	defaults, err := ArrayToInterface(p.Default, SolutionFormType(p.Type))
+	if err != nil {
+		logrus.Errorf("Unable to convert defaults : %s", err)
+		return prob, err
+	}
+	return Problem{
+		ID:      p.Id,
+		Type:    SolutionFormType(p.Type),
+		Desc:    p.Description,
+		Hints:   p.Hints,
+		Options: p.Options,
+		Default: defaults,
+	}, nil
+}
+
+func InterfaceToArray(ansI interface{}, problemType SolutionFormType) (ans []string, err error) {
+	if ansI == nil {
+		return nil, fmt.Errorf("the answer is nil")
+	}
+	switch problemType {
+	case InputSolutionFormType, PasswordSolutionFormType, MultilineSolutionFormType, SelectSolutionFormType:
+		ans, ok := ansI.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected answer to be string. Actual value %+v is of type %T", ansI, ansI)
+		}
+		return []string{ans}, nil
+	case ConfirmSolutionFormType:
+		ans, ok := ansI.(bool)
+		if !ok {
+			return nil, fmt.Errorf("expected answer to be bool. Actual value %+v is of type %T", ansI, ansI)
+		}
+		return []string{strconv.FormatBool(ans)}, nil
+	case MultiSelectSolutionFormType:
+		ans, err := common.ConvertInterfaceToSliceOfStrings(ansI)
+		if err != nil {
+			return nil, fmt.Errorf("expected answer to be an array of strings. Error: %q", err)
+		}
+		return ans, nil
+	default:
+		return nil, fmt.Errorf("unsupported QA problem type %+v", problemType)
+	}
+}
+
+func ArrayToInterface(ans []string, problemType SolutionFormType) (ansI interface{}, err error) {
+	if ansI == nil {
+		return nil, nil
+	}
+	switch problemType {
+	case InputSolutionFormType, PasswordSolutionFormType, MultilineSolutionFormType, SelectSolutionFormType:
+		if len(ans) == 0 {
+			return "", nil
+		}
+		return ans[0], nil
+	case ConfirmSolutionFormType:
+		if len(ans) == 0 {
+			return false, nil
+		}
+		return strconv.ParseBool(ans[0])
+	case MultiSelectSolutionFormType:
+		return ans, nil
+	default:
+		return nil, fmt.Errorf("unsupported QA problem type %+v", problemType)
+	}
 }
 
 // SetAnswer sets the answer

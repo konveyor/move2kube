@@ -80,12 +80,13 @@ func (e *dockerEngine) pullImage(image string) bool {
 }
 
 // RunCmdInContainer executes a container
-func (e *dockerEngine) RunCmdInContainer(containerID string, cmd environmenttypes.Command, workingdir string) (stdout, stderr string, exitCode int, err error) {
+func (e *dockerEngine) RunCmdInContainer(containerID string, cmd environmenttypes.Command, workingdir string, env []string) (stdout, stderr string, exitCode int, err error) {
 	execConfig := types.ExecConfig{
 		AttachStdout: true,
 		AttachStderr: true,
 		Cmd:          cmd,
 		WorkingDir:   workingdir,
+		Env:          env,
 	}
 	cresp, err := e.cli.ContainerExecCreate(e.ctx, containerID, execConfig)
 	if err != nil {

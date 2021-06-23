@@ -118,7 +118,7 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, wa
 			logrus.Errorf("Unable to find Transformer class %s in %+v", tc.Spec.Class, transformerTypes)
 		} else {
 			t := reflect.New(c).Interface().(Transformer)
-			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), tc.Spec.TemplatesDir, environmenttypes.Container{})
+			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), tc.Spec.TemplatesDir, nil, environmenttypes.Container{})
 			if err != nil {
 				logrus.Errorf("Unable to create environment : %s", err)
 				return err
