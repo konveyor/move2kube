@@ -19,6 +19,7 @@ package environment
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"path/filepath"
 	"strings"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/konveyor/move2kube/types"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 const (
@@ -41,17 +43,20 @@ type PeerContainer struct {
 	WorkspaceSource  string
 	WorkspaceContext string
 
+	GRPCQAReceiver net.Addr
+
 	ImageName     string
 	ImageWithData string
 	CID           string // A started instance of ImageWithData
 }
 
-func NewPeerContainer(name, source, context, tempPath string, c environmenttypes.Container) (ei EnvironmentInstance, err error) {
+func NewPeerContainer(name, source, context, tempPath string, grpcQAReceiver net.Addr, c environmenttypes.Container) (ei EnvironmentInstance, err error) {
 	peerContainer := &PeerContainer{
-		Name:      name,
-		Source:    source,
-		TempPath:  tempPath,
-		ImageName: c.Image,
+		Name:           name,
+		Source:         source,
+		TempPath:       tempPath,
+		ImageName:      c.Image,
+		GRPCQAReceiver: grpcQAReceiver,
 	}
 	peerContainer.TempPath = tempPath
 	if c.WorkingDir != "" {
@@ -109,7 +114,13 @@ func (e *PeerContainer) Reset() error {
 
 func (e *PeerContainer) Exec(cmd environmenttypes.Command) (string, string, int, error) {
 	cengine := container.GetContainerEngine()
-	return cengine.RunCmdInContainer(e.CID, cmd, e.WorkspaceContext)
+	envs := []string{}
+	if e.GRPCQAReceiver != nil {
+		hostname := getIP()
+		port := cast.ToString(e.GRPCQAReceiver.(*net.TCPAddr).Port)
+		envs = append(envs, GRPCEnvName+"="+hostname+":"+port)
+	}
+	return cengine.RunCmdInContainer(e.CID, cmd, e.WorkspaceContext, envs)
 }
 
 func (e *PeerContainer) Destroy() error {

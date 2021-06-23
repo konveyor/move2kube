@@ -18,11 +18,13 @@ package external
 
 import (
 	"encoding/json"
+	"net"
 	"path/filepath"
 	"strings"
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/qaengine"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -46,6 +48,7 @@ type TransformConfig struct {
 }
 
 type ExecutableYamlConfig struct {
+	EnableQA               bool                       `yaml:"enableQA"`
 	BaseDirectoryDetectCMD environmenttypes.Command   `yaml:"baseDetectCMD"`
 	DirectoryDetectCMD     environmenttypes.Command   `yaml:"directoryDetectCMD"`
 	TransformCMD           environmenttypes.Command   `yaml:"transformCMD"`
@@ -60,7 +63,15 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.TConfig.Spec.Config, t.ExecConfig, err)
 		return err
 	}
-	t.Env, err = environment.NewEnvironment(env.Name, env.Source, env.Context, tc.Spec.TemplatesDir, t.ExecConfig.Container)
+	var qaRPCReceiverAddr net.Addr = nil
+	if t.ExecConfig.EnableQA {
+		qaRPCReceiverAddr, err = qaengine.StartGRPCReceiverAddress()
+		if err != nil {
+			logrus.Errorf("Unable to start QA RPC Receiver engine : %s", err)
+			logrus.Infof("Starting transformer that requires QA without QA.")
+		}
+	}
+	t.Env, err = environment.NewEnvironment(env.Name, env.Source, env.Context, tc.Spec.TemplatesDir, qaRPCReceiverAddr, t.ExecConfig.Container)
 	if err != nil {
 		logrus.Errorf("Unable to create Exec environment : %s", err)
 		return err

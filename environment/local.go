@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,13 +40,16 @@ type Local struct {
 
 	WorkspaceSource  string
 	WorkspaceContext string
+
+	GRPCQAReceiver net.Addr
 }
 
-func NewLocal(name, source, context, tempPath string) (ei EnvironmentInstance, err error) {
+func NewLocal(name, source, context, tempPath string, grpcQAReceiver net.Addr) (ei EnvironmentInstance, err error) {
 	local := &Local{
-		Name:    name,
-		Source:  source,
-		Context: context,
+		Name:           name,
+		Source:         source,
+		Context:        context,
+		GRPCQAReceiver: grpcQAReceiver,
 	}
 	local.TempPath = tempPath
 	local.WorkspaceContext, err = ioutil.TempDir(local.TempPath, types.AppNameShort)
@@ -87,6 +91,10 @@ func (e *Local) Exec(cmd environmenttypes.Command) (string, string, int, error) 
 	execcmd.Dir = e.WorkspaceContext
 	execcmd.Stdout = &outb
 	execcmd.Stderr = &errb
+	execcmd.Env = os.Environ()
+	if e.GRPCQAReceiver != nil {
+		execcmd.Env = append(execcmd.Env, GRPCEnvName+"="+e.GRPCQAReceiver.String())
+	}
 	err := execcmd.Run()
 	if err != nil {
 		var ee *exec.ExitError

@@ -18,6 +18,7 @@ package qaengine
 
 import (
 	"fmt"
+	"net"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -33,8 +34,9 @@ type Engine interface {
 }
 
 var (
-	engines     []Engine
-	writeStores []qatypes.Store
+	engines      []Engine
+	writeStores  []qatypes.Store
+	grpcReceiver net.Addr
 )
 
 // StartEngine starts the QA Engines
@@ -48,6 +50,18 @@ func StartEngine(qaskip bool, qaport int, qadisablecli bool) {
 		e = NewHTTPRESTEngine(qaport)
 	}
 	AddEngine(e)
+}
+
+func StartGRPCReceiverAddress() (net.Addr, error) {
+	if grpcReceiver == nil {
+		var err error
+		grpcReceiver, err = StartGRPCReceiver()
+		if err != nil {
+			logrus.Errorf("Unable to start GRPC Receiver : %s", err)
+			return nil, err
+		}
+	}
+	return grpcReceiver, nil
 }
 
 // AddEngine appends an engine to the engines slice

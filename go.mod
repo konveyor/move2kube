@@ -4,11 +4,10 @@ go 1.16
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20210608160410-67692ebc98de // indirect
-	code.cloudfoundry.org/cli v7.1.0+incompatible // indirect
+	code.cloudfoundry.org/cli v7.1.0+incompatible
 	github.com/AlecAivazis/survey/v2 v2.2.12
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/PuerkitoBio/purell v1.1.1 // indirect
-	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible // indirect
+	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.263 // indirect
 	github.com/containerd/containerd v1.5.1 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
@@ -19,14 +18,11 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/go-cmp v0.5.6
 	github.com/gorilla/mux v1.8.0
-	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/mikefarah/yq/v4 v4.9.6
 	github.com/mitchellh/mapstructure v1.4.1
-	github.com/moby/buildkit v0.8.3 // indirect
+	github.com/moby/buildkit v0.8.3
 	github.com/moby/sys/mount v0.2.0 // indirect
-	github.com/onsi/ginkgo v1.16.4 // indirect
-	github.com/onsi/gomega v1.13.0 // indirect
 	github.com/openshift/api v0.0.0-20210621070332-ea13be50ba2d
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
@@ -36,12 +32,11 @@ require (
 	github.com/spf13/viper v1.8.0
 	github.com/tektoncd/pipeline v0.25.0
 	github.com/tektoncd/triggers v0.14.2
-	github.com/theupdateframework/notary v0.7.0 // indirect
 	github.com/whilp/git-urls v1.0.0
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
-	golang.org/x/oauth2 v0.0.0-20210413134643-5e61552d6c78 // indirect
-	google.golang.org/grpc v1.38.0 // indirect
+	google.golang.org/grpc v1.38.0
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.21.2
@@ -49,7 +44,6 @@ require (
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	k8s.io/kubernetes v1.21.2
 	knative.dev/serving v0.23.1
-	vbom.ml/util/sortorder v1.0.2 // indirect
 )
 
 replace (
@@ -82,5 +76,4 @@ replace (
 	k8s.io/metrics => k8s.io/metrics v0.21.2
 	k8s.io/mount-utils => k8s.io/mount-utils v0.21.2
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.19.4
-	vbom.ml/util/sortorder => github.com/fvbommel/sortorder v1.0.2
 )

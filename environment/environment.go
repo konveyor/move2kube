@@ -19,6 +19,7 @@ package environment
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -34,6 +35,7 @@ import (
 
 const (
 	workspaceDir = "workspace"
+	GRPCEnvName  = "GRPC_RECEIVER"
 )
 
 type Environment struct {
@@ -59,7 +61,7 @@ type EnvironmentInstance interface {
 	GetContext() string
 }
 
-func NewEnvironment(name string, source string, context string, relTemplatesDir string, container environmenttypes.Container) (env Environment, err error) {
+func NewEnvironment(name string, source string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, container environmenttypes.Container) (env Environment, err error) {
 	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
@@ -84,7 +86,7 @@ func NewEnvironment(name string, source string, context string, relTemplatesDir 
 			if len(envvarpair) > 0 && envVariableName == container.Image && len(envvarpair) > 1 {
 				_, err := strconv.Atoi(envvarpair[1])
 				if err != nil {
-					env.Env, err = NewLocal(name, source, envvarpair[1], tempPath)
+					env.Env, err = NewLocal(name, source, envvarpair[1], tempPath, grpcQAReceiver)
 					if err != nil {
 						logrus.Errorf("Unable to create local environment : %s", err)
 					}
@@ -99,14 +101,14 @@ func NewEnvironment(name string, source string, context string, relTemplatesDir 
 			}
 		}
 		if env.Env == nil {
-			env.Env, err = NewPeerContainer(name, source, context, tempPath, container)
+			env.Env, err = NewPeerContainer(name, source, context, tempPath, grpcQAReceiver, container)
 			if err != nil {
 				logrus.Errorf("Unable to create peer container environment : %s", err)
 			}
 			return env, err
 		}
 	}
-	env.Env, err = NewLocal(name, source, context, tempPath)
+	env.Env, err = NewLocal(name, source, context, tempPath, grpcQAReceiver)
 	if err != nil {
 		logrus.Errorf("Unable to create peer container environment : %s", err)
 	}
