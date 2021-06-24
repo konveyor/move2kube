@@ -1,10 +1,10 @@
 {
-  "name": "just-the-docs",
+  "name": "move2kube-website",
   "version": "0.3.0",
-  "description": "A modern Jekyll theme for documentation",
-  "repository": "pmarsceill/just-the-docs",
-  "license": "MIT",
-  "bugs": "https://github.com/pmarsceill/just-the-docs/issues",
+  "description": "This repository holds the code that generates the Move2Kube Project's web page https://movekube.konveyor.io/",
+  "repository": "https://github.com/konveyor/move2kube",
+  "license": "Apache-2.0",
+  "bugs": "https://github.com/konveyor/move2kube/issues",
   "devDependencies": {
     "@octokit/types": "^6.1.2",
     "@primer/css": "^14.4.0",
