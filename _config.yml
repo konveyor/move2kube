@@ -16,13 +16,10 @@
 remote_theme: pmarsceill/just-the-docs
 title: Konveyor MoveKube
 description: A tool that accelerates the process of re-platforming to Kubernetes
-baseurl: "/" # the subpath of your site, e.g. /blog
-url: "" #"konveyor.github.io/move2kube" # the base hostname & protocol for your site, e.g. http://example.com
-github:
-  repository_url: https://www.github.com/konveyor/move2kube/
-  repository_name: Move2Kube
+# baseurl: "/" # the subpath of your site, e.g. /blog
+# url: "" #"konveyor.github.io/move2kube" # the base hostname & protocol for your site, e.g. http://example.com
 permalink: pretty
-exclude: ["node_modules/", "*.gemspec", "*.gem", "Gemfile", "Gemfile.lock", "package.json", "package-lock.json",  "script/", "LICENSE.txt", "lib/", "bin/", "README.md", "Rakefile"]
+exclude: ["node_modules/", "*.gem", "Gemfile", "Gemfile.lock", "package.json", "package-lock.json",  "script/", "LICENSE.txt", "bin/", "README.md", "vendor/"]
 
 # Set a path/url to a logo that will be displayed instead of the title
 logo: "/assets/images/konveyor-logo-move2kube-darkbg.png"
@@ -100,10 +97,6 @@ color_scheme: konveyor
 
 # Google Tag Manager
 gtm_container_id: GTM-TKPDMS3
-
-plugins:
-  - jekyll-remote-theme
-  - jekyll-seo-tag
 
 compress_html:
   clippings: all
