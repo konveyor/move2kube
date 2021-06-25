@@ -1,3 +1,5 @@
 ipdb
 pyyaml
 xmltodict
+grpcio
+grpcio-tools

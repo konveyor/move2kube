@@ -10,6 +10,7 @@ spec:
   exclusive: 
     - "Dockerfile"
   config:
+    enableQA: true
     directoryDetectCMD: ["./m2kdetect.sh"]
     transformCMD: ["./m2ktransform.sh"]
     container:
