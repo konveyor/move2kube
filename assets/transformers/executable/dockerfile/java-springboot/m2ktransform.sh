@@ -126,6 +126,22 @@ if [[ $gradle_lines  -gt 0 ]];then
 	cd $root_path
 fi
 
+# temporary
+#/grpcurl -plaintext -d @ ${M2KQA_GRPC_SERVER} qagrpc.QAEngine/FetchAnswer <<EOM
+# {
+#  "id": "move2kube.xyz",
+#  "type": "MultiSelect",
+#  "description": "desc",
+#  "hints": [],
+#  "options": ["a","b"],
+#  "default": []
+# } 
+#EOM
+
+# calling qa
+
+python3 scripts/run_fetchanswer.py
+
 # calling python 
 abspath=$(realpath $content_folder)
 python3 scripts/run.py --mode transform --app_path $(echo $abspath) --output_path $(echo $output_path) --basename $(echo $basename) --input_type $(echo $input_type)

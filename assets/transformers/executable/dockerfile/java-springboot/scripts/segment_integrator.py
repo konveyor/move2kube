@@ -159,6 +159,11 @@ class SegmentIntegrator():
 
         # save
         output_path = "./templates/"  
+
+        import os
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+
         with open(os.path.join(output_path, "Dockerfile"), "w") as f:
             for l in full_template:
                 f.write(l)

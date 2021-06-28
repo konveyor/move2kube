@@ -85,3 +85,8 @@ RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 RUN python3 get-pip.py
 
 RUN pip install -r /m2k/requirements.txt
+
+# temporary
+# RUN curl -L https://github.com/fullstorydev/grpcurl/releases/download/v1.8.1/grpcurl_1.8.1_linux_x86_64.tar.gz > grpcurl.tar.gz \
+# && tar -xzf grpcurl.tar.gz \
+# && rm grpcurl.tar.gz
