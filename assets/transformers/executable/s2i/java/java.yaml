@@ -6,8 +6,10 @@ spec:
   mode: "Container"
   class: "SimpleExecutable"
   generates: 
-    - "Dockerfile"
+    - "ContainerBuild"
+    - "S2IBuilder"
   exclusive: 
-    - "Dockerfile"
+    - "ContainerBuild"
+    - "S2IBuilder"
   config:
     directoryDetectCMD: ["./m2kdetect.sh"]

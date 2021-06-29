@@ -5,3 +5,11 @@ metadata:
 spec:
   mode: "Container"
   class: "ComposeAnalyser"
+  generates: 
+    - "ContainerBuild"
+    - "IR"
+    - "Dockerfile"
+  exclusive: 
+    - "ContainerBuild"
+    - "IR"
+    - "Dockerfile"

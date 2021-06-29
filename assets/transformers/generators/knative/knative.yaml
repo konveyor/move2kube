@@ -5,4 +5,7 @@ metadata:
 spec:
   mode: "Container"
   class: "Knative"
-  consumes: ["IR"]
+  consumes:
+    - "IR"
+  generates:
+    - "KubernetesYamls"
