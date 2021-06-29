@@ -18,10 +18,8 @@ package plan
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/common/pathconverters"
 	"github.com/konveyor/move2kube/types"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/sirupsen/logrus"
 )
 
 // PlanKind is kind of plan file
@@ -106,16 +104,4 @@ func MergeServices(s1 map[string]Service, s2 map[string]Service) map[string]Serv
 		s1[s2n] = append(s1[s2n], s2t...)
 	}
 	return s1
-}
-
-// SetRootDir changes the root directory of the plan.
-// The `rootDir` must be an cleaned absolute path.
-func (plan *Plan) SetRootDir(rootDir string) error {
-	err := pathconverters.ChangePaths(plan, map[string]string{plan.Spec.RootDir: rootDir})
-	if err != nil {
-		logrus.Errorf("Unable to set new root dir for Plan : %s", err)
-		return err
-	}
-	plan.Spec.RootDir = rootDir
-	return nil
 }
