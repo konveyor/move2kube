@@ -73,7 +73,7 @@ func Init(assetsPath, sourcePath string) (err error) {
 	for _, filePath := range filePaths {
 		tc, err := getTransformerConfig(filePath)
 		if err != nil {
-			logrus.Debugf("Unable to load %s as Transformer config", filePath, err)
+			logrus.Debugf("Unable to load %s as Transformer config : %s", filePath, err)
 			continue
 		}
 		transformerFiles[tc.Name] = filePath
@@ -91,15 +91,14 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, wa
 		tc, err := getTransformerConfig(tfilepath)
 		if err != nil {
 			if warn {
-				logrus.Errorf("Unable to load %s as Transformer config", tfilepath, err)
+				logrus.Errorf("Unable to load %s as Transformer config : %s", tfilepath, err)
 			} else {
-				logrus.Debugf("Unable to load %s as Transformer config", tfilepath, err)
+				logrus.Debugf("Unable to load %s as Transformer config : %s", tfilepath, err)
 			}
 			continue
 		}
 		if ot, ok := transformerConfigs[tc.Name]; ok {
-			logrus.Errorf("Found two conflicting transformer Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath)
-			continue
+			logrus.Errorf("Found two conflicting transformer Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath, ot.Spec.FilePath)
 		}
 		if _, ok := transformerTypes[tc.Spec.Class]; ok {
 			transformerConfigs[tc.Name] = tc

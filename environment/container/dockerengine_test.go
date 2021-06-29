@@ -19,7 +19,6 @@ package container
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,7 +27,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("normal use case", func(t *testing.T) {
 		provider, _ := NewDockerEngine()
-		image := "cloudfoundry/cnb:cflinuxfs3"
+		image := "quay.io/konveyor/move2kube"
 
 		// Test
 		if !provider.pullImage(image) {
@@ -38,19 +37,17 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("normal use case where we get result from cache", func(t *testing.T) {
 		provider, _ := NewDockerEngine()
-		image := "cloudfoundry/cnb:cflinuxfs3"
-		want := map[string]bool{}
-		want[image] = true
+		image := "quay.io/konveyor/move2kube"
 
 		// Test
 		if !provider.pullImage(image) {
-			t.Fatalf("Failed to find the builder %q locally and/or pull it.", image)
+			t.Fatalf("Failed to find the image %q locally and/or pull it.", image)
 		}
-		if !cmp.Equal(provider.availableImages, want) {
-			t.Fatalf("Failed to add the builder %q to the list of available builders. Difference:\n%s", image, cmp.Diff(want, provider.availableImages))
+		if !provider.availableImages[image] {
+			t.Fatalf("Failed to add the image %q to the list of available images", image)
 		}
 		if !provider.pullImage(image) {
-			t.Fatalf("Failed to find the builder %q locally and/or pull it.", image)
+			t.Fatalf("Failed to find the image %q locally and/or pull it.", image)
 		}
 	})
 
@@ -58,7 +55,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 		provider, _ := NewDockerEngine()
 		image := "this/doesnotexist:foobar"
 		if provider.pullImage(image) {
-			t.Fatalf("Should not have succeeded. The builder image %q does not exist", image)
+			t.Fatalf("Should not have succeeded. The image %q does not exist", image)
 		}
 	})
 }
