@@ -1,0 +1,2 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: QACache

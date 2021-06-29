@@ -1,0 +1,9 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Packaging
+spec:
+  paths:
+    - src: "."
+      out: "."
+  parameterizerRefs:
+    - p1
+    - p2

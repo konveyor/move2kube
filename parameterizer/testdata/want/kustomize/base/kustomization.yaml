@@ -1,0 +1,4 @@
+resources:
+  - dep-v1.yaml
+  - dep-v1beta1.yaml
+  - namespace-v1.yaml

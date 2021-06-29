@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    openshift.io/node-selector: type=gpu-node,region=east
+    openshift.io/sa.scc.mcs: s0:c17,c14
+    openshift.io/sa.scc.supplemental-groups: 1000300000/10000
+    openshift.io/sa.scc.uid-range: 1000300000/10000
+  creationTimestamp: 2019-06-10T14:39:45Z
+  labels:
+    openshift.io/run-level: "0"
+  name: demo
+  resourceVersion: "401885"
+  selfLink: /api/v1/namespaces/openshift-kube-apiserver
+  uid: 96ecc54b-8b8d-11e9-9f54-0a9ae641edd0
+spec:
+  finalizers:
+    - kubernetes
+status:
+  phase: Active

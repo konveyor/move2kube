@@ -1,0 +1,37 @@
+
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+    annotations:
+        openshift.io/node-selector: {{ index .Values "Deployment" "extensions/v1beta1" "javaspringapp" "metadata" "annotations" "openshift.io/node-selector" }}
+    name: javaspringapp
+spec:
+    replicas: {{ index .Values "common" "replicas" }}
+    template:
+        metadata:
+            labels:
+                app: javaspringapp-selector
+        spec:
+            containers:
+                - image: {{ index .Values "imageregistry" "url" }}/{{ index .Values "imageregistry" "namespace" }}/{{ index .Values "services" "javaspringapp" "containers" "apicontainer" "image" "name" }}:{{ index .Values "services" "javaspringapp" "containers" "apicontainer" "image" "tag" }}
+                  name: apicontainer
+                  readinessProbe:
+                    httpGet:
+                        path: /health
+                        port: 8080
+                    initialDelaySeconds: 20
+                  resources:
+                    limits:
+                        cpu: 100m
+                        memory: 100Mi
+                - image: {{ index .Values "imageregistry" "url" }}/{{ index .Values "imageregistry" "namespace" }}/{{ index .Values "services" "javaspringapp" "containers" "mysqlcontainer" "image" "name" }}:{{ index .Values "services" "javaspringapp" "containers" "mysqlcontainer" "image" "tag" }}
+                  name: mysqlcontainer
+                  ports:
+                    - containerPort: 3306
+                  resources:
+                    limits:
+                        cpu: 500m
+                        memory: 2Gi
+
+...
