@@ -98,7 +98,11 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		p = api.CreatePlan(flags.Srcpath, flags.ConfigurationsPath, flags.Name)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.Planfile)
-		if p, err = plan.ReadPlan(flags.Planfile); err != nil {
+		rootDir := ""
+		if cmd.Flags().Changed(cmdcommon.SourceFlag) {
+			rootDir = flags.Srcpath
+		}
+		if p, err = plan.ReadPlan(flags.Planfile, rootDir); err != nil {
 			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.Planfile, err)
 		}
 		if len(p.Spec.Services) == 0 {
@@ -107,11 +111,6 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		if cmd.Flags().Changed(cmdcommon.NameFlag) {
 			p.Name = flags.Name
-		}
-		if cmd.Flags().Changed(cmdcommon.SourceFlag) {
-			if err := p.SetRootDir(flags.Srcpath); err != nil {
-				logrus.Fatalf("Failed to set the root directory to %q Error: %q", flags.Srcpath, err)
-			}
 		}
 		if cmd.Flags().Changed(cmdcommon.ConfigurationsFlag) {
 			if flags.ConfigurationsPath != "" {

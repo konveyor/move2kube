@@ -27,12 +27,15 @@ import (
 )
 
 // ReadPlan decodes the plan from yaml converting relative paths to absolute.
-func ReadPlan(path string) (Plan, error) {
+func ReadPlan(path string, rootDir string) (Plan, error) {
 	plan := Plan{}
 	var err error
 	if err = common.ReadMove2KubeYaml(path, &plan); err != nil {
 		logrus.Errorf("Failed to load the plan file at path %q Error %q", path, err)
 		return plan, err
+	}
+	if rootDir != "" {
+		plan.Spec.RootDir = rootDir
 	}
 	absRootDir, err := filepath.Abs(plan.Spec.RootDir)
 	if err != nil {
