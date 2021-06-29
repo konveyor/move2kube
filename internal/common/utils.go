@@ -19,6 +19,7 @@ package common
 import (
 	"bytes"
 	"crypto/sha256"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"hash/crc64"
@@ -564,7 +565,7 @@ func FindCommonDirectory(paths []string) string {
 }
 
 // CreateAssetsData creates an assets directory and dumps the assets data into it
-func CreateAssetsData(assetsTar string) (assetsPath string, tempPath string, err error) {
+func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath string, tempPath string, err error) {
 	// Return the absolute version of existing asset paths.
 	tempPath, err = filepath.Abs(TempPath)
 	if err != nil {
@@ -590,11 +591,10 @@ func CreateAssetsData(assetsTar string) (assetsPath string, tempPath string, err
 		logrus.Errorf("Unable to create the assets directory at path %q Error: %q", assetsPath, err)
 		return "", "", err
 	}
-	if err := UnTarString(assetsTar, assetsPath); err != nil {
+	if err := CopyEmbedFSToDir(assetsFS, ".", assetsPath, permissions); err != nil {
 		logrus.Errorf("Unable to untar the assets into the assets directory at path %q Error: %q", assetsPath, err)
 		return "", "", err
 	}
-
 	return assetsPath, tempPath, nil
 }
 
@@ -614,7 +614,7 @@ func CopyConfigurationsAssetsData(configurationsPath string) (err error) {
 		logrus.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
 		return err
 	}
-	configurationsAssetsPath := filepath.Join(assetsPath, "configurations")
+	configurationsAssetsPath := filepath.Join(assetsPath, "custom")
 
 	// Create the subdirectory and copy the assets into it.
 	if err = os.MkdirAll(configurationsAssetsPath, DefaultDirectoryPermission); err != nil {
@@ -627,6 +627,58 @@ func CopyConfigurationsAssetsData(configurationsPath string) (err error) {
 	}
 
 	return nil
+}
+
+// CopyEmbedFSToDir converts a string into a directory
+func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[string]int) (err error) {
+	f, err := embedFS.Open(source)
+	if err != nil {
+		logrus.Errorf("Error while reading embedded file : %s", err)
+		return err
+	}
+	finfo, err := f.Stat()
+	if err != nil {
+		logrus.Errorf("Error while reading stat of embedded file : %s", err)
+		return err
+	}
+	if finfo != nil && !finfo.Mode().IsDir() {
+		permission, ok := permissions[source]
+		if !ok {
+			logrus.Errorf("Permission missing for file %s. Do `make generate` to update permissions file.", dest)
+		}
+		df, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.FileMode(permission))
+		if err != nil {
+			logrus.Errorf("Error while opening temp dest assets file : %s", err)
+			return err
+		}
+		defer df.Close()
+		size, err := io.Copy(df, f)
+		if err != nil {
+			logrus.Errorf("Error while copying embedded file : %s", err)
+			return err
+		}
+		if size != finfo.Size() {
+			return fmt.Errorf("size mismatch: Wrote %d, Expected %d", size, finfo.Size())
+		}
+		return nil
+	}
+	if err := os.MkdirAll(dest, DefaultDirectoryPermission); err != nil {
+		return err
+	}
+	dirEntries, err := embedFS.ReadDir(source)
+	if err != nil {
+		logrus.Errorf("Error while trying to read directory : %s", err)
+		return err
+	}
+	for _, de := range dirEntries {
+		CopyEmbedFSToDir(embedFS, filepath.Join(source, de.Name()), filepath.Join(dest, removeDollarPrefixFromName(de.Name())), permissions)
+	}
+	return nil
+}
+
+func removeDollarPrefixFromName(name string) string {
+	exp := regexp.MustCompile("^$([._])")
+	return exp.ReplaceAllString(name, "${1}")
 }
 
 // CheckAndCopyConfigurations checks if the extensions path is an existing directory and copies to assets

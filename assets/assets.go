@@ -16,4 +16,12 @@
 
 package assets
 
-//go:generate go run ../scripts/generator/generator.go . maketar
+import "embed"
+
+//go:generate go run ../scripts/generator/persistpermissions.go inbuilt/ filepermissions.yaml
+
+//go:embed inbuilt/*
+var AssetsDir embed.FS
+
+//go:embed filepermissions.yaml
+var AssetFilePermissions string
