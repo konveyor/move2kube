@@ -7,7 +7,5 @@ spec:
   class: "DockerfileDetector"
   generates: 
     - "ContainerBuild"
-    - "Dockerfile"
   exclusive: 
     - "ContainerBuild"
-    - "Dockerfile"

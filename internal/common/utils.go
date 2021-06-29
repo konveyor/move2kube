@@ -677,8 +677,8 @@ func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[str
 }
 
 func removeDollarPrefixFromName(name string) string {
-	exp := regexp.MustCompile("^$([._])")
-	return exp.ReplaceAllString(name, "${1}")
+	exp := regexp.MustCompile(`^\$([._])`)
+	return exp.ReplaceAllString(name, "$1")
 }
 
 // CheckAndCopyConfigurations checks if the extensions path is an existing directory and copies to assets

@@ -5,7 +5,5 @@ metadata:
 spec:
   mode: "Container"
   class: "CNBGenerator"
-  generates: 
-    - "ContainerBuildScript"
   consumes: 
     - "CNBMetadata"
