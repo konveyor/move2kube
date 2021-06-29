@@ -4,8 +4,10 @@ metadata:
   name: DockerfileDetector
 spec:
   mode: "Container"
+  class: "DockerfileDetector"
   generates: 
+    - "ContainerBuild"
     - "Dockerfile"
   exclusive: 
+    - "ContainerBuild"
     - "Dockerfile"
-  class: "DockerfileDetector"

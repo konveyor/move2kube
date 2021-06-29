@@ -1,18 +1,18 @@
 /*
-Copyright IBM Corporation 2021
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ *  Copyright IBM Corporation 2021
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 
 package generators
 
@@ -30,6 +30,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -74,17 +75,17 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArt
 	logrus.Debugf("Translating IR using Buildconfig transformer")
 	pathMappings = []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
-		if a.Artifact != transformertypes.IRArtifactType {
+		if a.Artifact != irtypes.IRArtifactType {
 			continue
 		}
 		var ir irtypes.IR
-		err := a.GetConfig(transformertypes.IRConfigType, &ir)
+		err := a.GetConfig(irtypes.IRConfigType, &ir)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
-		var pC transformertypes.PlanConfig
-		err = a.GetConfig(transformertypes.PlanConfigType, &pC)
+		var pC artifacts.PlanConfig
+		err = a.GetConfig(artifacts.PlanConfigType, &pC)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", pC, err)
 			continue

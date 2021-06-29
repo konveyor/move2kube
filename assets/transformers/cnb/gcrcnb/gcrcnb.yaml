@@ -5,5 +5,11 @@ metadata:
 spec:
   mode: "Container"
   class: "CNBContainerizer"
+  generates: 
+    - "ContainerBuild"
+    - "IR"
+    - "CNBMetadata"
+  exclusive: 
+    - "ContainerBuild"
   config:
-    cnbbuilderimage: "gcr.io/buildpacks/builder"
+    CNBBuilder: "gcr.io/buildpacks/builder"

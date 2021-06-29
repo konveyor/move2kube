@@ -1,18 +1,18 @@
 /*
-Copyright IBM Corporation 2020
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ *  Copyright IBM Corporation 2020, 2021
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 
 package analysers
 
@@ -25,6 +25,7 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	dockerparser "github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/sirupsen/logrus"
 )
@@ -68,8 +69,8 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[
 				ArtifactTypes:          t.Config.Spec.Artifacts,
 				ExclusiveArtifactTypes: t.Config.Spec.ExclusiveArtifacts,
 				Paths: map[string][]string{
-					plantypes.ProjectPathPathType:       {filepath.Dir(path)},
-					transformertypes.DockerfilePathType: {path},
+					artifacts.ProjectPathPathType: {filepath.Dir(path)},
+					artifacts.DockerfilePathType:  {path},
 				},
 			}
 			ts = append(ts, trans)
@@ -89,24 +90,24 @@ func (t *DockerfileDetector) DirectoryDetect(dir string) (namedServices map[stri
 func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != transformertypes.ServiceArtifactType {
+		if a.Artifact != artifacts.ServiceArtifactType {
 			continue
 		}
-		var pConfig transformertypes.PlanConfig
-		err := a.GetConfig(transformertypes.PlanConfigType, &pConfig)
+		var pConfig artifacts.PlanConfig
+		err := a.GetConfig(artifacts.PlanConfigType, &pConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
 			continue
 		}
-		var sConfig transformertypes.ServiceConfig
-		err = a.GetConfig(transformertypes.ServiceConfigType, &sConfig)
+		var sConfig artifacts.ServiceConfig
+		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
 		p := transformertypes.Artifact{
 			Name:     sConfig.ServiceName,
-			Artifact: transformertypes.DockerfileArtifactType,
+			Artifact: artifacts.DockerfileArtifactType,
 			Paths:    a.Paths,
 		}
 		artifactsCreated = append(artifactsCreated, p)

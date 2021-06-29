@@ -5,4 +5,7 @@ metadata:
 spec:
   mode: "Container"
   class: "ComposeGenerator"
-  consumes: ["IR"]
+  generates: 
+    - "DockerCompose"
+  consumes: 
+    - "IR"

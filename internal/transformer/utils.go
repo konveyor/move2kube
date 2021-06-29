@@ -1,18 +1,18 @@
 /*
-Copyright IBM Corporation 2021
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ *  Copyright IBM Corporation 2021
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 
 package transformer
 
@@ -28,6 +28,7 @@ import (
 	"github.com/konveyor/move2kube/internal/configuration"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
@@ -83,7 +84,7 @@ func getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContent
 }
 
 func getArtifactForTransformerPlan(serviceName string, t plantypes.Transformer, p plantypes.Plan) transformertypes.Artifact {
-	serviceConfig := transformertypes.ServiceConfig{
+	serviceConfig := artifacts.ServiceConfig{
 		ServiceName: serviceName,
 	}
 	targetCluster, err := new(configuration.ClusterMDLoader).GetTargetClusterMetadataForPlan(p)
@@ -91,18 +92,18 @@ func getArtifactForTransformerPlan(serviceName string, t plantypes.Transformer, 
 		err := fmt.Errorf("unable to find target cluster : %+v", p.Spec.TargetCluster)
 		logrus.Errorf("%s", err)
 	}
-	planConfig := transformertypes.PlanConfig{
+	planConfig := artifacts.PlanConfig{
 		PlanName:      p.Name,
 		TargetCluster: targetCluster,
 	}
 	if t.Configs == nil {
 		t.Configs = make(map[string]interface{})
 	}
-	t.Configs[transformertypes.ServiceConfigType] = serviceConfig
-	t.Configs[transformertypes.PlanConfigType] = planConfig
+	t.Configs[artifacts.ServiceConfigType] = serviceConfig
+	t.Configs[artifacts.PlanConfigType] = planConfig
 	artifact := transformertypes.Artifact{
 		Name:     serviceName,
-		Artifact: transformertypes.ServiceArtifactType,
+		Artifact: artifacts.ServiceArtifactType,
 		Paths:    t.Paths,
 		Configs:  t.Configs,
 	}
@@ -152,7 +153,7 @@ func mergeArtifact(a transformertypes.Artifact, b transformertypes.Artifact) (c 
 	}
 }
 
-func mergeConfigs(configs1 map[plantypes.ConfigType]interface{}, configs2 map[plantypes.ConfigType]interface{}) map[plantypes.ConfigType]interface{} {
+func mergeConfigs(configs1 map[transformertypes.ConfigType]interface{}, configs2 map[transformertypes.ConfigType]interface{}) map[transformertypes.ConfigType]interface{} {
 	if configs1 == nil {
 		return configs2
 	}
@@ -170,7 +171,7 @@ func mergeConfigs(configs1 map[plantypes.ConfigType]interface{}, configs2 map[pl
 }
 
 // mergePathSliceMaps merges two string slice maps
-func mergePathSliceMaps(map1 map[plantypes.PathType][]string, map2 map[plantypes.PathType][]string) map[plantypes.PathType][]string {
+func mergePathSliceMaps(map1 map[transformertypes.PathType][]string, map2 map[transformertypes.PathType][]string) map[transformertypes.PathType][]string {
 	if map1 == nil {
 		return map2
 	}

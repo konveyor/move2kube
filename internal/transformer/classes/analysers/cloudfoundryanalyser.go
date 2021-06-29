@@ -1,18 +1,18 @@
 /*
-Copyright IBM Corporation 2021
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ *  Copyright IBM Corporation 2021
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 
 package analysers
 
@@ -31,32 +31,17 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
-const (
-	// CfManifestArtifactType defines the source artifact type of cf manifest
-	CfManifestArtifactType plantypes.PathType = "CfManifest"
-	// CfRunningManifestArtifactType defines the source artifact type of a manifest of a running instance
-	CfRunningManifestArtifactType plantypes.PathType = "CfRunningManifest"
-)
-
-const (
-	CloudFoundryConfigType plantypes.ConfigType = "CloudFoundryService"
-)
-
 // CloudFoundry implements Transformer interface
 type CloudFoundry struct {
 	Config transformertypes.Transformer
 	Env    environment.Environment
-}
-
-type CloudFoundryConfig struct {
-	ServiceName string `yaml:"serviceName,omitempty"`
-	ImageName   string `yaml:"imageName,omitempty"`
 }
 
 func (t *CloudFoundry) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
@@ -116,15 +101,15 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string
 			}
 			ct := plantypes.Transformer{
 				Mode:                   plantypes.ModeContainer,
-				ArtifactTypes:          []plantypes.ArtifactType{transformertypes.IRArtifactType},
-				ExclusiveArtifactTypes: []plantypes.ArtifactType{transformertypes.IRArtifactType},
-				Configs: map[plantypes.ConfigType]interface{}{
-					CloudFoundryConfigType: CloudFoundryConfig{
+				ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType},
+				ExclusiveArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType},
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.CloudFoundryConfigType: artifacts.CloudFoundryConfig{
 						ServiceName: applicationName,
 					}},
-				Paths: map[plantypes.PathType][]string{
-					CfManifestArtifactType:        {filePath},
-					plantypes.ProjectPathPathType: {fullbuilddirectory},
+				Paths: map[transformertypes.PathType][]string{
+					artifacts.CfManifestPathType:  {filePath},
+					artifacts.ProjectPathPathType: {fullbuilddirectory},
 				},
 			}
 			_, appinstance := getCfInstanceApp(cfInstanceApps, applicationName)
@@ -133,11 +118,11 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string
 				if dockerImageName == "" {
 					dockerImageName = appinstance.DockerImage
 				}
-				ct.ArtifactTypes = append(ct.ArtifactTypes, transformertypes.ContainerBuildArtifactType)
-				ct.ExclusiveArtifactTypes = append(ct.ArtifactTypes, transformertypes.ContainerBuildArtifactType)
-				ctConfig := ct.Configs[CloudFoundryConfigType].(CloudFoundryConfig)
+				ct.ArtifactTypes = append(ct.ArtifactTypes, artifacts.ContainerBuildArtifactType)
+				ct.ExclusiveArtifactTypes = append(ct.ArtifactTypes, artifacts.ContainerBuildArtifactType)
+				ctConfig := ct.Configs[artifacts.CloudFoundryConfigType].(artifacts.CloudFoundryConfig)
 				ctConfig.ImageName = dockerImageName
-				ct.Configs[CloudFoundryConfigType] = ctConfig
+				ct.Configs[artifacts.CloudFoundryConfigType] = ctConfig
 				continue
 			}
 			namedServices[applicationName] = []plantypes.Transformer{ct}
@@ -153,23 +138,23 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (namedServices map[string]pla
 func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != transformertypes.ServiceArtifactType {
+		if a.Artifact != artifacts.ServiceArtifactType {
 			continue
 		}
-		var config CloudFoundryConfig
-		err := a.GetConfig(CloudFoundryConfigType, &config)
+		var config artifacts.CloudFoundryConfig
+		err := a.GetConfig(artifacts.CloudFoundryConfigType, &config)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", config, err)
 			continue
 		}
-		var pConfig transformertypes.PlanConfig
-		err = a.GetConfig(transformertypes.PlanConfigType, &pConfig)
+		var pConfig artifacts.PlanConfig
+		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
 			continue
 		}
-		var sConfig transformertypes.ServiceConfig
-		err = a.GetConfig(transformertypes.ServiceConfigType, &sConfig)
+		var sConfig artifacts.ServiceConfig
+		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
@@ -178,7 +163,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldAr
 		ir := irtypes.NewIR()
 		logrus.Debugf("Transforming %s", config.ServiceName)
 		var cfinstanceapp collecttypes.CfApplication
-		if runninginstancefile, ok := a.Paths[CfRunningManifestArtifactType]; ok {
+		if runninginstancefile, ok := a.Paths[artifacts.CfRunningManifestPathType]; ok {
 			var err error
 			cfinstanceapp, err = getCfAppInstance(runninginstancefile[0], config.ServiceName)
 			if err != nil {
@@ -186,7 +171,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			}
 		}
 
-		if paths, ok := a.Paths[CfManifestArtifactType]; ok {
+		if paths, ok := a.Paths[artifacts.CfManifestPathType]; ok {
 			path := paths[0] // TODO: what about the rest of the manifests?
 			applications, _, err := t.readApplicationManifest(path, config.ServiceName)
 			if err != nil {
@@ -241,10 +226,10 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldAr
 		}
 		artifactsCreated = append(artifactsCreated, transformertypes.Artifact{
 			Name:     pConfig.PlanName,
-			Artifact: transformertypes.IRArtifactType,
-			Configs: map[plantypes.ConfigType]interface{}{
-				transformertypes.IRConfigType:   ir,
-				transformertypes.PlanConfigType: pConfig,
+			Artifact: irtypes.IRArtifactType,
+			Configs: map[transformertypes.ConfigType]interface{}{
+				irtypes.IRConfigType:     ir,
+				artifacts.PlanConfigType: pConfig,
 			},
 		})
 	}
