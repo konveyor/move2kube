@@ -24,6 +24,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
@@ -54,7 +55,12 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 	rootCmd.AddCommand(getTransformCommand())
 	rootCmd.AddCommand(getValidateCommand())
 
-	assetsPath, tempPath, err := common.CreateAssetsData(assets.Tar)
+	assetsFilePermissions := map[string]int{}
+	err := yaml.Unmarshal([]byte(assets.AssetFilePermissions), &assetsFilePermissions)
+	if err != nil {
+		logrus.Fatalf("Unable to convert permissions : %s", err)
+	}
+	assetsPath, tempPath, err := common.CreateAssetsData(assets.AssetsDir, assetsFilePermissions)
 	if err != nil {
 		logrus.Fatalf("Unable to create the assets directory. Error: %q", err)
 	}
