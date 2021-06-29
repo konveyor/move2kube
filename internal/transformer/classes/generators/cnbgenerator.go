@@ -66,6 +66,9 @@ func (t *CNBGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 		tc.ImageName = a.Configs[artifacts.ServiceArtifactType].(artifacts.ServiceConfig).ServiceName
 		cnbfilename := "buildcnb.sh"
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:     transformertypes.SourcePathMappingType,
+			DestPath: common.DefaultSourceDir,
+		}, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
 			SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir, cnbfilename),
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath, cnbfilename),

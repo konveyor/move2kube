@@ -7,6 +7,5 @@ spec:
   class: "CloudFoundry"
   generates: 
     - "ContainerBuild"
-    - "IR"
   exclusive: 
     - "ContainerBuild"

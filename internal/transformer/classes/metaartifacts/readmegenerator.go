@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package generators
+package metaartifacts
 
 import (
 	"path/filepath"
@@ -28,34 +28,34 @@ import (
 )
 
 // ContainerPushScripts implements Transformer interface
-type ContainerImagePushScript struct {
+type ReadMeGenerator struct {
 	TConfig transformertypes.Transformer
 	Env     environment.Environment
 }
 
-func (t *ContainerImagePushScript) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *ReadMeGenerator) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
 	return nil
 }
 
-func (t *ContainerImagePushScript) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *ReadMeGenerator) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.TConfig, t.Env
 }
 
-func (t *ContainerImagePushScript) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ReadMeGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
-func (t *ContainerImagePushScript) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ReadMeGenerator) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
-func (t *ContainerImagePushScript) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *ReadMeGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	images := []string{}
 	for _, a := range newArtifacts {
-		if a.Artifact == artifacts.NewImageArtifactType {
+		if a.Artifact == artifacts.ImagePushScriptArtifactType {
 			image := artifacts.NewImage{}
 			err := a.GetConfig(artifacts.NewImageConfigType, &image)
 			if err != nil {

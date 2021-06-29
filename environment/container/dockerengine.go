@@ -65,7 +65,7 @@ func (e *dockerEngine) pullImage(image string) bool {
 	if a, ok := e.availableImages[image]; ok {
 		return a
 	}
-	logrus.Infof("Pulling Container image %s. This could take a few mins.", image)
+	logrus.Infof("Pulling container image %s. This could take a few mins.", image)
 	out, err := e.cli.ImagePull(e.ctx, image, types.ImagePullOptions{})
 	if err != nil {
 		logrus.Debugf("Unable to pull image %s : %s", image, err)

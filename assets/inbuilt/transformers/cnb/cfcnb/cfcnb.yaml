@@ -7,8 +7,6 @@ spec:
   class: "CNBContainerizer"
   generates: 
     - "ContainerBuild"
-    - "IR"
-    - "CNBMetadata"
   exclusive: 
     - "ContainerBuild"
   config:
