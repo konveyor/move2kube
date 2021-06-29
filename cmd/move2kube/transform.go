@@ -152,10 +152,11 @@ func getTransformCommand() *cobra.Command {
 
 	flags := transformFlags{}
 	transformCmd := &cobra.Command{
-		Use:   "transform",
-		Short: "Transform using move2kube plan",
-		Long:  "Transform artifacts using move2kube plan",
-		Run:   func(cmd *cobra.Command, _ []string) { transformHandler(cmd, flags) },
+		Use:        "transform",
+		Short:      "Transform using move2kube plan",
+		Long:       "Transform artifacts using move2kube plan",
+		Run:        func(cmd *cobra.Command, _ []string) { transformHandler(cmd, flags) },
+		SuggestFor: []string{"translate"},
 	}
 
 	// Basic options
