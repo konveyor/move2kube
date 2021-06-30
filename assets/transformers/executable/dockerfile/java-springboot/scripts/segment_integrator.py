@@ -11,6 +11,9 @@ from mappings import (java_versions_mapping,
                     process_consolidated_images
                     )
 
+from grpc_qa import GRPCClient
+import fetchanswer_pb2 as pb2
+
 class SegmentIntegrator():
 
     def __init__(self,
@@ -28,6 +31,8 @@ class SegmentIntegrator():
         self.build_type       = build_type
         
         self.segments = {}
+
+        self.params = None
 
     def construct_segment_list(self):
 
@@ -172,7 +177,7 @@ class SegmentIntegrator():
     #    return json.dumps(self.segments)
 
 
-    def get_params(self):
+    def set_params(self):
 
         params =  {}
         for i in self.segments["segments"]: 
@@ -180,11 +185,12 @@ class SegmentIntegrator():
                 if k != "segment_id":
                     params[k]= v
 
-        return params
+        self.params = params
+        #return params
 
     def get_output_for_transformer(self):
 
-        params = self.get_params()
+        params = self.params
 
         output = {}
         output["pathMappings"]=[] 
@@ -202,5 +208,51 @@ class SegmentIntegrator():
                 "templateConfig": params
             }
         )
-        
         return output
+
+    def ask_additional_questions(self):
+        # here we define conditions based on ambiguity 
+        # on the parameters found during the analysis phase
+
+        additional_questions = []
+
+        # case 1:
+        # if there are more than one port AND ?  
+        # - > ask the user to choose one
+
+        params = self.params
+        if params  == None:
+            print("Error")
+
+        # test : lets artificially inject an additional port
+        params["port"] = params["port"] + [8888]
+        params["port"] = [str(i) for i in params["port"]]
+
+        if len(params["port"]) > 1:
+            
+            # generate an adhoc problem for this 
+            problem = pb2.Problem(
+                id = "disambiguate-ports_port",
+                type= "Multi",
+                hints = [],
+                options = params["port"],
+                default= []
+            )
+            additional_questions.append(problem)
+
+
+        # ask
+        if len(additional_questions) > 0:
+
+            # load a client
+            #client = GRPCClient()
+            for question in additional_questions:
+                response = client.get_answer(question)
+                
+                # edit the params
+                # get param id
+                q_id = question.id
+                q_id, param_id = q_id.split("_")
+                ipdb.set_trace()
+
+                self.params[param_id] = response

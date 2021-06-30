@@ -109,7 +109,9 @@ def main(args):
                 build_type="maven")
         
         si.construct_segment_list()
+        si.set_params()
         si.persist_full_template()
+        si.ask_additional_questions()
         
         # Print result as a json output
         # -----------------------------

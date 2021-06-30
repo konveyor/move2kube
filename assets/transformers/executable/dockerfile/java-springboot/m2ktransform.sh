@@ -140,7 +140,7 @@ fi
 
 # calling qa
 
-python3 scripts/run_fetchanswer.py
+#python3 scripts/run_fetchanswer.py
 
 # calling python 
 abspath=$(realpath $content_folder)
