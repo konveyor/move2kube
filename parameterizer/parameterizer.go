@@ -237,7 +237,7 @@ func Top(srcDir string, packDir string, outDir string) ([]string, error) {
 				templ := map[string]interface{}{
 					"apiVersion": "template.openshift.io/v1",
 					"kind":       "Template",
-					"metadata":   metav1.ObjectMeta{Name: common.MakeStringDNSNameCompliant("myproject-template")},
+					"metadata":   metav1.ObjectMeta{Name: common.MakeStringDNSNameCompliant(common.DefaultProjectName + "-template")},
 					"objects":    newKs,
 					"parameters": singleSet,
 				}
