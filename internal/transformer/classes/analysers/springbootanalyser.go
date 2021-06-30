@@ -176,7 +176,7 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 
 		var outputPath = filepath.Join(t.Env.TempPath,"Dockerfile.template")
 
-		ioutil.WriteFile(outputPath, strLicense+strEmbedded, 0644)
+		ioutil.WriteFile(outputPath, append(strLicense,strEmbedded...), 0644)
 
 		tConfig := SpringbootTemplateConfig{ Ports:[]int{50,100} }
 
