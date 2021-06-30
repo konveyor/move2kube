@@ -95,7 +95,7 @@ func Top(srcDir string, packDir string, outDir string) ([]string, error) {
 				// helm chart with multiple values.yaml
 				helmChartName := path.HelmChartName
 				if helmChartName == "" {
-					helmChartName = "myproject"
+					helmChartName = common.DefaultProjectName
 				}
 				namedValues := map[string]types.HelmValuesT{}
 				helmChartDir := filepath.Join(cleanOutDir, path.Helm, helmChartName)
