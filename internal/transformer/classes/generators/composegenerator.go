@@ -29,10 +29,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	ComposeArtifacts = "ComposeYamls"
-)
-
 // ComposeGenerator implements Transformer interface
 type ComposeGenerator struct {
 	Config transformertypes.Transformer
@@ -48,6 +44,7 @@ type composeObj struct {
 	Configs  map[string]composetypes.ConfigObjConfig `yaml:",omitempty"`
 }
 
+// Init Initializes the transformer
 func (t *ComposeGenerator) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
@@ -59,14 +56,17 @@ func (t *ComposeGenerator) GetConfig() (transformertypes.Transformer, environmen
 	return t.Config, t.Env
 }
 
+// BaseDirectoryDetect executes detect in base directory
 func (t *ComposeGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// DirectoryDetect executes detect in each sub directory
 func (t *ComposeGenerator) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// Transform transforms the artifacts
 func (t *ComposeGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	pathMappings = []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {

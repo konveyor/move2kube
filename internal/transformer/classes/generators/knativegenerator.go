@@ -29,19 +29,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	KnativeArtifacts = "KnativeYamls"
-)
-
 // Knative implements Transformer interface
 type Knative struct {
 	Config transformertypes.Transformer
 	Env    environment.Environment
 }
 
-type KnativeConfig struct {
-}
-
+// Init Initializes the transformer
 func (t *Knative) Init(tc transformertypes.Transformer, env environment.Environment) error {
 	t.Config = tc
 	t.Env = env
@@ -53,14 +47,17 @@ func (t *Knative) GetConfig() (transformertypes.Transformer, environment.Environ
 	return t.Config, t.Env
 }
 
+// BaseDirectoryDetect runs detect in base directory
 func (t *Knative) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// DirectoryDetect runs detect in each sub directory
 func (t *Knative) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// Transform transforms the artifacts
 func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	logrus.Debugf("Translating IR using Kubernetes transformer")
 	pathMappings = []transformertypes.PathMapping{}

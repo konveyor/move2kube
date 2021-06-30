@@ -27,7 +27,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ContainerPushScripts implements Transformer interface
+// ReadMeGenerator implements Transformer interface
 type ReadMeGenerator struct {
 	TConfig transformertypes.Transformer
 	Env     environment.Environment
@@ -55,6 +55,7 @@ func (t *ReadMeGenerator) DirectoryDetect(dir string) (namedServices map[string]
 	return nil, nil, nil
 }
 
+// Transform transforms the artifacts
 func (t *ReadMeGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	images := []string{}

@@ -30,6 +30,7 @@ const (
 	ModifiedSourcePathMappingType PathMappingType = "SourceDiff" // Source path becomes relative to source directory
 )
 
+// PathMapping is the mapping between source and intermediate files and output files
 type PathMapping struct {
 	Type           PathMappingType `yaml:"type,omitempty" json:"type,omitempty"` // Default - Normal copy
 	SrcPath        string          `yaml:"sourcePath" json:"sourcePath" m2kpath:"normal"`

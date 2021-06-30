@@ -68,6 +68,7 @@ func (clusterMDLoader *ClusterMDLoader) GetClusters(plan plantypes.Plan) map[str
 	return clusters
 }
 
+// GetClusterMetadata returns the Cluster Metadata
 func (*ClusterMDLoader) GetClusterMetadata(path string) (collecttypes.ClusterMetadata, error) {
 	cm := collecttypes.ClusterMetadata{}
 	if err := common.ReadMove2KubeYaml(path, &cm); err != nil {
@@ -82,16 +83,17 @@ func (*ClusterMDLoader) GetClusterMetadata(path string) (collecttypes.ClusterMet
 	return cm, nil
 }
 
-func (c *ClusterMDLoader) GetTargetClusterMetadataForPlan(plan plantypes.Plan) (targetCluster collecttypes.ClusterMetadata, err error) {
+// GetTargetClusterMetadataForPlan returns the target cluster metadata for a plan
+func (clusterMDLoader *ClusterMDLoader) GetTargetClusterMetadataForPlan(plan plantypes.Plan) (targetCluster collecttypes.ClusterMetadata, err error) {
 	if plan.Spec.TargetCluster.Path != "" {
-		targetCluster, err = c.GetClusterMetadata(plan.Spec.TargetCluster.Path)
+		targetCluster, err = clusterMDLoader.GetClusterMetadata(plan.Spec.TargetCluster.Path)
 		if err != nil {
 			logrus.Errorf("Unable to load cluster metadata from %s : %s", plan.Spec.TargetCluster.Path, err)
 			return targetCluster, err
 		}
 	} else if plan.Spec.TargetCluster.Type != "" {
 		var ok bool
-		targetCluster, ok = c.GetClusters(plan)[plan.Spec.TargetCluster.Type]
+		targetCluster, ok = clusterMDLoader.GetClusters(plan)[plan.Spec.TargetCluster.Type]
 		if !ok {
 			err = fmt.Errorf("unable to load cluster metadata from %s", plan.Spec.TargetCluster.Type)
 			logrus.Errorf("%s", err)

@@ -48,7 +48,7 @@ type ContainerEngine interface {
 }
 
 func initContainerEngine() (err error) {
-	workingEngine, err = NewDockerEngine()
+	workingEngine, err = newDockerEngine()
 	if err != nil {
 		logrus.Debugf("Unable to use docker : %s", err)
 		return err

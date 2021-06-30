@@ -152,10 +152,12 @@ func (e *Local) Download(path string) (string, error) {
 	return output, nil
 }
 
+// GetContext returns the context of Local
 func (e *Local) GetContext() string {
 	return e.WorkspaceContext
 }
 
+// GetSource returns the source of Local
 func (e *Local) GetSource() string {
 	return e.WorkspaceSource
 }

@@ -80,5 +80,6 @@ func StartGRPCReceiver() (addr net.Addr, err error) {
 		}
 	}(listener)
 	logrus.Info("Started QA GPRC Receiver engine on: " + listener.Addr().String())
-	return listener.Addr(), nil
+	grpcReceiver = listener.Addr()
+	return grpcReceiver, nil
 }

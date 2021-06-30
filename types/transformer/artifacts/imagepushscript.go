@@ -21,9 +21,11 @@ import (
 )
 
 const (
+	// ImagePushScriptArtifactType represents the image push script artifact type
 	ImagePushScriptArtifactType transformertypes.ArtifactType = "ImagePushScript"
 )
 
 const (
+	// ImagePushScriptPathType represents the image push script path type
 	ImagePushScriptPathType transformertypes.PathType = "ImagePushScript"
 )

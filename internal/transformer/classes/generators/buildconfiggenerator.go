@@ -36,7 +36,8 @@ import (
 )
 
 const (
-	BuildConfigArtifacts = "BuildConfigYamls"
+	// BuildConfigArtifacts stores the BuildConfig Artifact Name
+	BuildConfigArtifacts transformertypes.ArtifactType = "BuildConfigYamls"
 )
 
 const (
@@ -50,9 +51,7 @@ type BuildConfig struct {
 	Env    environment.Environment
 }
 
-type BuildConfigConfig struct {
-}
-
+// Init initializes the transformer
 func (t *BuildConfig) Init(tc transformertypes.Transformer, env environment.Environment) error {
 	t.Config = tc
 	t.Env = env
@@ -64,14 +63,17 @@ func (t *BuildConfig) GetConfig() (transformertypes.Transformer, environment.Env
 	return t.Config, t.Env
 }
 
+// BaseDirectoryDetect runs detect in base directory
 func (t *BuildConfig) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// DirectoryDetect runs detect in each sub directory
 func (t *BuildConfig) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// Transform transforms the artifacts
 func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	logrus.Debugf("Translating IR using Buildconfig transformer")
 	pathMappings = []transformertypes.PathMapping{}
@@ -98,7 +100,7 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArt
 		apis := []apiresource.IAPIResource{&apiresource.BuildConfig{}, &apiresource.Storage{}}
 		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, common.CICDDir, "buildconfig")
 		logrus.Infof("Generating Tekton pipeline for CI/CD")
-		enhancedIR := t.SetupEnhancedIR(ir, pC.PlanName)
+		enhancedIR := t.setupEnhancedIR(ir, pC.PlanName)
 		if files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, pC.TargetCluster); err == nil {
 			for _, f := range files {
 				if destPath, err := filepath.Rel(t.Env.TempPath, f); err != nil {
@@ -120,8 +122,8 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArt
 	return pathMappings, nil, nil
 }
 
-// SetupEnhancedIR return enhanced IR used by BuildConfig
-func (t *BuildConfig) SetupEnhancedIR(oldir irtypes.IR, planName string) irtypes.EnhancedIR {
+// setupEnhancedIR return enhanced IR used by BuildConfig
+func (t *BuildConfig) setupEnhancedIR(oldir irtypes.IR, planName string) irtypes.EnhancedIR {
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.

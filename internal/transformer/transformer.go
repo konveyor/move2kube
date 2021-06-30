@@ -65,6 +65,7 @@ func init() {
 	}
 }
 
+// Init initializes the transformers
 func Init(assetsPath, sourcePath string) (err error) {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
@@ -84,6 +85,7 @@ func Init(assetsPath, sourcePath string) (err error) {
 	return nil
 }
 
+// InitTransformers initializes a subset of transformers
 func InitTransformers(transformerToInit map[string]string, sourcePath string, warn bool) error {
 	if initialized {
 		return nil
@@ -135,6 +137,7 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, wa
 	return nil
 }
 
+// Destroy destroys the transformers
 func Destroy() {
 	for _, t := range transformers {
 		_, env := t.GetConfig()
@@ -144,10 +147,12 @@ func Destroy() {
 	}
 }
 
+// GetTransformers returns the list of initialized transformers
 func GetTransformers() map[string]Transformer {
 	return transformers
 }
 
+// GetServices returns the list of services detected in a directory
 func GetServices(prjName string, dir string) (services map[string]plantypes.Service, err error) {
 	services = make(map[string]plantypes.Service)
 	unservices := make([]plantypes.Transformer, 0)
@@ -188,6 +193,7 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 	return
 }
 
+// Transform transforms as per the plan
 func Transform(plan plantypes.Plan, outputPath string) (err error) {
 	artifacts := []transformertypes.Artifact{}
 	pathMappings := []transformertypes.PathMapping{}
@@ -220,7 +226,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 	}
 	newArtifactsToProcess := artifacts
 	for {
-		iteration += 1
+		iteration++
 		newArtifactsCreated := []transformertypes.Artifact{}
 		logrus.Infof("Iteration %d", iteration)
 		for tn, t := range transformers {

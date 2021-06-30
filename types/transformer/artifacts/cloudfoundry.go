@@ -28,6 +28,7 @@ const (
 )
 
 const (
+	// CloudFoundryConfigType represents the cloud foundry service configuration
 	CloudFoundryConfigType transformertypes.ConfigType = "CloudFoundryService"
 )
 

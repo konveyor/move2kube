@@ -91,6 +91,7 @@ type ContainerImage struct {
 	Build        ContainerBuild
 }
 
+// ContainerBuild stores information about the container build
 type ContainerBuild struct {
 	ContainerBuildType ContainerBuildTypeValue                      `yaml:"-"`
 	ContextPath        string                                       `yaml:"-"`
@@ -244,6 +245,7 @@ func (c *ContainerImage) Merge(newc ContainerImage) bool {
 	return true
 }
 
+// Merge merges two container build structs
 func (c *ContainerBuild) Merge(newc ContainerBuild) bool {
 	if c.ContainerBuildType == "" {
 		c = &newc

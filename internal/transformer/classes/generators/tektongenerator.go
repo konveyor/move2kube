@@ -57,37 +57,35 @@ const (
 	baseTektonTriggersAdminRoleBindingName = "tekton-triggers-admin"
 )
 
-const (
-	TektonArtifacts = "TektonYamls"
-)
-
 // Tekton implements Transformer interface
 type Tekton struct {
 	Config transformertypes.Transformer
 	Env    environment.Environment
 }
 
-type TektonConfig struct {
-}
-
+// Init Initializes the transformer
 func (t *Tekton) Init(tc transformertypes.Transformer, env environment.Environment) error {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
+// GetConfig returns the configuration
 func (t *Tekton) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.Config, t.Env
 }
 
+// BaseDirectoryDetect runs detect in base input directory
 func (t *Tekton) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// DirectoryDetect runs detect in each subdirectory
 func (t *Tekton) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// Transform transforms artifacts understood by the transformer
 func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	logrus.Debugf("Translating IR using Kubernetes transformer")
 	pathMappings = []transformertypes.PathMapping{}
@@ -119,7 +117,7 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 		}
 		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, common.CICDDir, "tekton")
 		logrus.Infof("Generating Tekton pipeline for CI/CD")
-		enhancedIR := t.SetupEnhancedIR(ir, pC.PlanName)
+		enhancedIR := t.setupEnhancedIR(ir, pC.PlanName)
 		if files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, pC.TargetCluster); err == nil {
 			for _, f := range files {
 				if destPath, err := filepath.Rel(t.Env.TempPath, f); err != nil {
@@ -141,8 +139,8 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 	return pathMappings, nil, nil
 }
 
-// SetupEnhancedIR returns EnhancedIR containing Tekton components
-func (t *Tekton) SetupEnhancedIR(oldir irtypes.IR, name string) irtypes.EnhancedIR {
+// setupEnhancedIR returns EnhancedIR containing Tekton components
+func (t *Tekton) setupEnhancedIR(oldir irtypes.IR, name string) irtypes.EnhancedIR {
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.

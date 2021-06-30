@@ -36,6 +36,7 @@ type DockerfileDetector struct {
 	Env    environment.Environment
 }
 
+// Init Initializes the transformer
 func (t *DockerfileDetector) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
@@ -47,6 +48,7 @@ func (t *DockerfileDetector) GetConfig() (transformertypes.Transformer, environm
 	return t.Config, t.Env
 }
 
+// BaseDirectoryDetect runs detect in base directory
 func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	ts := []plantypes.Transformer{}
 	if info, err := os.Stat(dir); os.IsNotExist(err) {
@@ -66,7 +68,7 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[
 		}
 		if isdf, _ := isDockerFile(path); isdf {
 			trans := plantypes.Transformer{
-				Mode:                   string(t.Config.Spec.Mode),
+				Mode:                   t.Config.Spec.Mode,
 				ArtifactTypes:          t.Config.Spec.Artifacts,
 				ExclusiveArtifactTypes: t.Config.Spec.ExclusiveArtifacts,
 				Paths: map[string][]string{
@@ -84,10 +86,12 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[
 	return nil, ts, nil
 }
 
+// DirectoryDetect runs detect in each sub directory
 func (t *DockerfileDetector) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// Transform transforms the artifacts
 func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {

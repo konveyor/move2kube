@@ -231,6 +231,7 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 	return obj
 }
 
+// DownloadAndDecode downloads and decodes the data from the paths in the object
 func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) interface{} {
 	function := func(path string) (string, error) {
 		if path == "" {

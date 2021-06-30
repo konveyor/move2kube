@@ -32,9 +32,11 @@ import (
 )
 
 const (
+	// DefaultWorkspaceDir is the default workspace directory
 	DefaultWorkspaceDir = "workspace"
 )
 
+// PeerContainer is supports spawning peer containers to run the environment
 type PeerContainer struct {
 	Name     string
 	Source   string
@@ -50,6 +52,7 @@ type PeerContainer struct {
 	CID           string // A started instance of ImageWithData
 }
 
+// NewPeerContainer creates an instance of peer container based environment
 func NewPeerContainer(name, source, context, tempPath string, grpcQAReceiver net.Addr, c environmenttypes.Container) (ei EnvironmentInstance, err error) {
 	peerContainer := &PeerContainer{
 		Name:           name,
@@ -97,6 +100,7 @@ func NewPeerContainer(name, source, context, tempPath string, grpcQAReceiver net
 	return peerContainer, nil
 }
 
+// Reset resets the PeerContainer environment
 func (e *PeerContainer) Reset() error {
 	cengine := container.GetContainerEngine()
 	err := cengine.StopAndRemoveContainer(e.CID)
@@ -112,6 +116,7 @@ func (e *PeerContainer) Reset() error {
 	return nil
 }
 
+// Exec executes a command in the container
 func (e *PeerContainer) Exec(cmd environmenttypes.Command) (string, string, int, error) {
 	cengine := container.GetContainerEngine()
 	envs := []string{}
@@ -123,6 +128,7 @@ func (e *PeerContainer) Exec(cmd environmenttypes.Command) (string, string, int,
 	return cengine.RunCmdInContainer(e.CID, cmd, e.WorkspaceContext, envs)
 }
 
+// Destroy destroys the container instance
 func (e *PeerContainer) Destroy() error {
 	cengine := container.GetContainerEngine()
 	err := cengine.StopAndRemoveContainer(e.CID)
@@ -136,6 +142,7 @@ func (e *PeerContainer) Destroy() error {
 	return nil
 }
 
+// Download downloads the path to outside the environment
 func (e *PeerContainer) Download(path string) (string, error) {
 	output, err := ioutil.TempDir(e.TempPath, "*")
 	if err != nil {
@@ -151,10 +158,12 @@ func (e *PeerContainer) Download(path string) (string, error) {
 	return output, nil
 }
 
+// GetContext returns the context within the PeerContainer environment
 func (e *PeerContainer) GetContext() string {
 	return e.WorkspaceContext
 }
 
+// GetSource returns the source path within the PeerContainer environment
 func (e *PeerContainer) GetSource() string {
 	return e.WorkspaceSource
 }

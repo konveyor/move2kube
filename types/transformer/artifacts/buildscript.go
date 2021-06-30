@@ -20,6 +20,8 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
+// ImageBuildScriptArtifactType represents the image build script artifact type
 const ImageBuildScriptArtifactType transformertypes.ArtifactType = "ImageBuildScript"
 
+// ImageBuildScriptPathType represents the image build script path type
 const ImageBuildScriptPathType transformertypes.PathType = "ImageBuildScript"
