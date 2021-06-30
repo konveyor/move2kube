@@ -112,7 +112,7 @@ func (p *processor) processDirectory(source, destination string) error {
 		destPath := filepath.Join(destination, eN)
 		delete(destEntryNames, eN)
 		if err := p.process(sourcePath, destPath); err != nil {
-			logrus.Errorf("Error during replication : %s", err)
+			logrus.Errorf("Error during processing : %s", err)
 		}
 	}
 	for deN := range destEntryNames {
