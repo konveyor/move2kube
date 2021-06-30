@@ -133,7 +133,8 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 			modes = append(modes, mode)
 		}
 		if len(sTransformers) == 0 {
-			logrus.Errorf("No transformers selected for service %s. Ignoring.", sn)
+			logrus.Warnf("No transformers selected for service %s. Ignoring.", sn)
+			delete(p.Spec.Services, sn)
 			continue
 		}
 		p.Spec.Services[sn] = sTransformers
