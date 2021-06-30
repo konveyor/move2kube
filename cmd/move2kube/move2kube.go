@@ -54,6 +54,7 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 	rootCmd.AddCommand(getPlanCommand())
 	rootCmd.AddCommand(getTransformCommand())
 	rootCmd.AddCommand(getValidateCommand())
+	rootCmd.AddCommand(getParameterizeCommand())
 
 	assetsFilePermissions := map[string]int{}
 	err := yaml.Unmarshal([]byte(assets.AssetFilePermissions), &assetsFilePermissions)

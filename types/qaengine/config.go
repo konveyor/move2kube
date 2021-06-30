@@ -344,8 +344,7 @@ func getIndex(key string) (int, bool) {
 	if matches == nil {
 		return 0, false
 	}
-	match := matches[1]
-	idx, err := cast.ToIntE(string(match))
+	idx, err := cast.ToIntE(string(matches[1]))
 	if err != nil || idx < 0 {
 		return 0, false
 	}

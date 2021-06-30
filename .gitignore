@@ -31,3 +31,6 @@ node_modules
 # brew bottling creates .brew_home directory
 # add this to avoid git tree start becoming dirty
 .brew_home/
+.bundle/
+vendor/
+.ruby-version

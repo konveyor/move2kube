@@ -51,27 +51,27 @@ const (
 	ConfigurationsFlag = "configurations"
 )
 
-//TransformFlags to store values from command line paramters
+// TransformFlags to store values from command line parameters
 type TransformFlags struct {
-	//IgnoreEnv tells us whether to use data collected from the local machine
+	// IgnoreEnv tells us whether to use data collected from the local machine
 	IgnoreEnv bool
-	//Planfile is contains the path to the plan file
+	// Planfile is contains the path to the plan file
 	Planfile string
-	//Outpath contains the path to the output folder
+	// Outpath contains the path to the output folder
 	Outpath string
-	//SourceFlag contains path to the source folder
+	// SourceFlag contains path to the source folder
 	Srcpath string
-	//Name contains the project name
+	// Name contains the project name
 	Name string
-	//Configs contains a list of config files
+	// Configs contains a list of config files
 	Configs []string
-	//Configs contains a list of key-value configs
+	// Configs contains a list of key-value configs
 	Setconfigs []string
-	//Qaskip lets you skip all the question answers
+	// Qaskip lets you skip all the question answers
 	Qaskip bool
 	// Overwrite lets you overwrite the output directory if it exists
 	Overwrite bool
-	//PreSets contains a list of preset configurations
+	// PreSets contains a list of preset configurations
 	PreSets []string
 	// ExtensionsPaths contains the path to the extensions directory
 	ConfigurationsPath string
@@ -125,7 +125,9 @@ func CheckOutputPath(outpath string, overwrite bool) {
 }
 
 // NormalizePaths cleans the paths and makes them absolute
-func NormalizePaths(paths []string) ([]string, error) {
+// If any of the paths are directories it will walk through
+// them collecting paths to file having a particular set of extensions
+func NormalizePaths(paths []string, extensions []string) ([]string, error) {
 	newPaths := []string{}
 	for _, path := range paths {
 		newPath, err := filepath.Abs(path)
@@ -149,7 +151,7 @@ func NormalizePaths(paths []string) ([]string, error) {
 			if err != nil {
 				return err
 			}
-			if !info.IsDir() && filepath.Ext(path) == ".star" {
+			if !info.IsDir() && internalcommon.IsStringPresent(extensions, filepath.Ext(path)) {
 				newPaths = append(newPaths, path)
 			}
 			return nil
