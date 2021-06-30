@@ -52,18 +52,6 @@ func StartEngine(qaskip bool, qaport int, qadisablecli bool) {
 	AddEngine(e)
 }
 
-func StartGRPCReceiverAddress() (net.Addr, error) {
-	if grpcReceiver == nil {
-		var err error
-		grpcReceiver, err = StartGRPCReceiver()
-		if err != nil {
-			logrus.Errorf("Unable to start GRPC Receiver : %s", err)
-			return nil, err
-		}
-	}
-	return grpcReceiver, nil
-}
-
 // AddEngine appends an engine to the engines slice
 func AddEngine(e Engine) {
 	if err := e.StartEngine(); err != nil {

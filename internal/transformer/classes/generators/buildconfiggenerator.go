@@ -59,6 +59,7 @@ func (t *BuildConfig) Init(tc transformertypes.Transformer, env environment.Envi
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *BuildConfig) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.Config, t.Env
 }

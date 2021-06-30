@@ -26,9 +26,10 @@ import (
 const PlanKind types.Kind = "Plan"
 
 const (
+	// ModeContainer represents container mode
 	ModeContainer = "Container"
-	ModeOperator  = "Operator"
-	ModeService   = "Service"
+	// ModeService represents service mode
+	ModeService = "Service"
 )
 
 // Plan defines the format of plan
@@ -38,6 +39,7 @@ type Plan struct {
 	Spec             Spec `yaml:"spec,omitempty"`
 }
 
+// Service is the type that stores a plan service
 type Service []Transformer
 
 // Spec stores the data about the plan
@@ -51,6 +53,7 @@ type Spec struct {
 	Configuration Configuration     `yaml:"configuration,omitempty"`
 }
 
+// Configuration stores all configurations related to the plan
 type Configuration struct {
 	Transformers   map[string]string `yaml:"transformers,omitempty" m2kpath:"normal"`   //[name]filepath
 	TargetClusters map[string]string `yaml:"targetClusters,omitempty" m2kpath:"normal"` //[clustername]filepath

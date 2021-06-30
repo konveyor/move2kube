@@ -36,7 +36,7 @@ const (
 	TransformConfigType transformertypes.ConfigType = "TransformConfig"
 )
 
-// Executable implements Containerizer interface
+// SimpleExecutable implements transformer interface and is used to write simple external transformers
 type SimpleExecutable struct {
 	TConfig    transformertypes.Transformer
 	ExecConfig ExecutableYamlConfig
@@ -48,6 +48,7 @@ type TransformConfig struct {
 	Artifacts    []transformertypes.Artifact    `json:"artifacts,omitempty"`
 }
 
+// ExecutableYamlConfig is the format of executable yaml config
 type ExecutableYamlConfig struct {
 	EnableQA               bool                       `yaml:"enableQA"`
 	BaseDirectoryDetectCMD environmenttypes.Command   `yaml:"baseDetectCMD"`
@@ -66,7 +67,7 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment
 	}
 	var qaRPCReceiverAddr net.Addr = nil
 	if t.ExecConfig.EnableQA {
-		qaRPCReceiverAddr, err = qaengine.StartGRPCReceiverAddress()
+		qaRPCReceiverAddr, err = qaengine.StartGRPCReceiver()
 		if err != nil {
 			logrus.Errorf("Unable to start QA RPC Receiver engine : %s", err)
 			logrus.Infof("Starting transformer that requires QA without QA.")
@@ -80,6 +81,7 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *SimpleExecutable) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.TConfig, t.Env
 }

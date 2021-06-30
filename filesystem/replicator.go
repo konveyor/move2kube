@@ -24,6 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Replicate replicates the source directory into destination
 func Replicate(source, destination string) error {
 	options := options{
 		processFileCallBack: replicateProcessFileCallBack,

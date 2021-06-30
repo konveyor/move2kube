@@ -62,6 +62,7 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env environment
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *CNBContainerizer) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.TConfig, t.Env
 }

@@ -48,6 +48,7 @@ func (t *Knative) Init(tc transformertypes.Transformer, env environment.Environm
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *Knative) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.Config, t.Env
 }

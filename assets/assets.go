@@ -20,8 +20,10 @@ import "embed"
 
 //go:generate go run ../scripts/generator/persistpermissions.go inbuilt/ filepermissions.yaml
 
+//AssetsDir is the embedded inbuilt assets directory
 //go:embed inbuilt/*
 var AssetsDir embed.FS
 
+//AssetFilePermissions is embedded file having permissions information for the assets
 //go:embed filepermissions.yaml
 var AssetFilePermissions string

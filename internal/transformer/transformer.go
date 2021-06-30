@@ -43,6 +43,7 @@ var (
 // Transformer interface defines transformer that transforms files and converts it to ir representation
 type Transformer interface {
 	Init(tc transformertypes.Transformer, env environment.Environment) (err error)
+	// GetConfig returns the transformer config
 	GetConfig() (transformertypes.Transformer, environment.Environment)
 
 	BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error)

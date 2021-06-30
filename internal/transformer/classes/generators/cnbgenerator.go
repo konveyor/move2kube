@@ -39,6 +39,7 @@ func (t *CNBGenerator) Init(tc transformertypes.Transformer, env environment.Env
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *CNBGenerator) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.TConfig, t.Env
 }

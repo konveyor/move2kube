@@ -29,7 +29,7 @@ var (
 	workingEngine ContainerEngine
 )
 
-// Engine defines interface to manage containers
+// ContainerEngine defines interface to manage containers
 type ContainerEngine interface {
 	// RunCmdInContainer runs a container
 	RunCmdInContainer(image string, cmd environmenttypes.Command, workingdir string, env []string) (stdout, stderr string, exitcode int, err error)

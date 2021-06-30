@@ -24,6 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Merge copies and merges data into destination directory
 func Merge(source, destination string) error {
 	options := options{
 		processFileCallBack: mergeProcessFileCallBack,
@@ -44,9 +45,8 @@ func mergeProcessFileCallBack(sourceFilePath, destinationFilePath string, config
 	if err == nil {
 		if !(si.Mode().IsRegular() != di.Mode().IsRegular() || si.Size() != di.Size() || si.ModTime() != di.ModTime()) {
 			return nil
-		} else {
-			logrus.Warnf("Overwriting file : %s with %s", destinationFilePath, sourceFilePath)
 		}
+		logrus.Warnf("Overwriting file : %s with %s", destinationFilePath, sourceFilePath)
 	}
 	sourceReader, err := os.Open(sourceFilePath)
 	if err != nil {

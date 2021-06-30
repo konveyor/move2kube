@@ -1045,6 +1045,7 @@ func getGitRemoteByName(remotes []*git.Remote, remoteName string) *git.Remote {
 	return nil
 }
 
+// GetObjFromInterface loads from map[string]interface{} to struct
 func GetObjFromInterface(obj interface{}, loadinto interface{}) error {
 	decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Metadata: nil,
@@ -1054,8 +1055,7 @@ func GetObjFromInterface(obj interface{}, loadinto interface{}) error {
 	if err := decoder.Decode(obj); err != nil {
 		logrus.Errorf("Unable to load obj %+v into %T : %s", obj, loadinto, err)
 		return err
-	} else {
-		logrus.Debugf("Object Loaded is %+v", loadinto)
 	}
+	logrus.Debugf("Object Loaded is %+v", loadinto)
 	return nil
 }

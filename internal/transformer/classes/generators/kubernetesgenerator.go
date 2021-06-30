@@ -48,6 +48,7 @@ func (t *Kubernetes) Init(tc transformertypes.Transformer, e environment.Environ
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *Kubernetes) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.Config, t.Env
 }

@@ -42,6 +42,7 @@ func (t *DockerfileDetector) Init(tc transformertypes.Transformer, env environme
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *DockerfileDetector) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.Config, t.Env
 }

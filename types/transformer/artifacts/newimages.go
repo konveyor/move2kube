@@ -20,8 +20,10 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
+// NewImageArtifactType represents New Image Artifact Type
 const NewImageArtifactType transformertypes.ArtifactType = "NewImage"
 
+// NewImageConfigType represents New Image Config type
 const NewImageConfigType transformertypes.ConfigType = "NewImage"
 
 type NewImage struct {

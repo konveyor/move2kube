@@ -50,6 +50,7 @@ func (t *CloudFoundry) Init(tc transformertypes.Transformer, env environment.Env
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *CloudFoundry) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.Config, t.Env
 }

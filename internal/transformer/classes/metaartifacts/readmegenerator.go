@@ -33,20 +33,24 @@ type ReadMeGenerator struct {
 	Env     environment.Environment
 }
 
+// Init initializes the translator
 func (t *ReadMeGenerator) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
 	return nil
 }
 
+// GetConfig returns the config of the transformer
 func (t *ReadMeGenerator) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.TConfig, t.Env
 }
 
+// BaseDirectoryDetect executes detect in base directory
 func (t *ReadMeGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// DirectoryDetect executes detect in directories respecting the m2kignore
 func (t *ReadMeGenerator) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }

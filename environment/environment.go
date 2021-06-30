@@ -34,14 +34,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	workspaceDir = "workspace"
-)
+const workspaceDir = "workspace"
 
-var (
-	GRPCEnvName = strings.ToUpper(types.AppNameShort) + "QA_GRPC_SERVER"
-)
+// GRPCEnvName represents the environment variable name used to pass the GRPC server information to the transformers
+var GRPCEnvName = strings.ToUpper(types.AppNameShort) + "QA_GRPC_SERVER"
 
+// Environment is used to manage EnvironmentInstances
 type Environment struct {
 	Name     string
 	Env      EnvironmentInstance
@@ -55,6 +53,7 @@ type Environment struct {
 	TempPath string
 }
 
+// EnvironmentInstance represents a actual instance of an environment which the Environment manages
 type EnvironmentInstance interface {
 	Reset() error
 	Download(envpath string) (outpath string, err error)
@@ -65,6 +64,7 @@ type EnvironmentInstance interface {
 	GetContext() string
 }
 
+// NewEnvironment creates a new environment
 func NewEnvironment(name string, source string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, container environmenttypes.Container) (env Environment, err error) {
 	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 	if err != nil {
@@ -119,18 +119,22 @@ func NewEnvironment(name string, source string, context string, relTemplatesDir 
 	return env, err
 }
 
+// AddChild adds a child to the environment
 func (e *Environment) AddChild(env Environment) {
 	e.Children = append(e.Children, env)
 }
 
+// Reset resets an environment
 func (e *Environment) Reset() error {
 	return e.Env.Reset()
 }
 
+// Exec executes an executable within the environment
 func (e *Environment) Exec(cmd []string) (string, string, int, error) {
 	return e.Env.Exec(cmd)
 }
 
+// Destroy destroys all artifacts specific to the environment
 func (e *Environment) Destroy() error {
 	e.Env.Destroy()
 	for _, env := range e.Children {
@@ -141,6 +145,7 @@ func (e *Environment) Destroy() error {
 	return nil
 }
 
+// Encode encodes all paths in the obj to be relevant to the environment
 func (e *Environment) Encode(obj interface{}) interface{} {
 	function := func(path string) (string, error) {
 		if path == "" {
@@ -152,20 +157,20 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 			return path, err
 		}
 		if common.IsParent(path, e.Source) {
-			if rel, err := filepath.Rel(e.Source, path); err != nil {
+			rel, err := filepath.Rel(e.Source, path)
+			if err != nil {
 				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Source, err)
 				return path, err
-			} else {
-				return filepath.Join(e.Env.GetSource(), rel), nil
 			}
+			return filepath.Join(e.Env.GetSource(), rel), nil
 		}
 		if common.IsParent(path, e.Context) {
-			if rel, err := filepath.Rel(e.Context, path); err != nil {
+			rel, err := filepath.Rel(e.Context, path)
+			if err != nil {
 				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Source, err)
 				return path, err
-			} else {
-				return filepath.Join(e.Env.GetContext(), rel), nil
 			}
+			return filepath.Join(e.Env.GetContext(), rel), nil
 		}
 		return path, nil
 	}
@@ -183,6 +188,7 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 	return obj
 }
 
+// Decode decodes all paths in the passed obj
 func (e *Environment) Decode(obj interface{}) interface{} {
 	function := func(path string) (string, error) {
 		if path == "" {
@@ -194,20 +200,20 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 			return path, err
 		}
 		if common.IsParent(path, e.Env.GetSource()) {
-			if rel, err := filepath.Rel(e.Env.GetSource(), path); err != nil {
+			rel, err := filepath.Rel(e.Env.GetSource(), path)
+			if err != nil {
 				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Env.GetSource(), err)
 				return path, err
-			} else {
-				return filepath.Join(e.Source, rel), nil
 			}
+			return filepath.Join(e.Source, rel), nil
 		}
 		if common.IsParent(path, e.Env.GetContext()) {
-			if rel, err := filepath.Rel(e.Env.GetContext(), path); err != nil {
+			rel, err := filepath.Rel(e.Env.GetContext(), path)
+			if err != nil {
 				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Env.GetContext(), err)
 				return path, err
-			} else {
-				return filepath.Join(e.Context, rel), nil
 			}
+			return filepath.Join(e.Context, rel), nil
 		}
 		return path, nil
 	}
@@ -258,6 +264,7 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 	return obj
 }
 
+// ProcessPathMappings post processes the paths in the path mappings
 func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMapping) []transformertypes.PathMapping {
 	for pmi, pm := range pathMappings {
 		if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
@@ -284,10 +291,12 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 	return pathMappings
 }
 
+// GetWorkspaceSource returns the source path within the environment
 func (e *Environment) GetWorkspaceSource() string {
 	return e.Env.GetSource()
 }
 
+// GetWorkspaceContext returns the context path within the environment
 func (e *Environment) GetWorkspaceContext() string {
 	return e.Env.GetContext()
 }

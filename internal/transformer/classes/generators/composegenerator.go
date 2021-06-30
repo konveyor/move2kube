@@ -54,6 +54,7 @@ func (t *ComposeGenerator) Init(tc transformertypes.Transformer, env environment
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *ComposeGenerator) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.Config, t.Env
 }

@@ -16,12 +16,17 @@
 
 package transformer
 
+// PathMappingType refers to the Path Mapping type
 type PathMappingType = string
 
 const (
-	DefaultPathMappingType        PathMappingType = "Default"    // Normal Copy with overwrite
-	TemplatePathMappingType       PathMappingType = "Template"   // Source path when relative, is relative to yaml file location
-	SourcePathMappingType         PathMappingType = "Source"     // Source path becomes relative to source directory
+	// DefaultPathMappingType allows normal copy with overwrite
+	DefaultPathMappingType PathMappingType = "Default" // Normal Copy with overwrite
+	// TemplatePathMappingType allows copy of source to destination and applying of template
+	TemplatePathMappingType PathMappingType = "Template" // Source path when relative, is relative to yaml file location
+	// SourcePathMappingType allows for copying of source directory to another directory
+	SourcePathMappingType PathMappingType = "Source" // Source path becomes relative to source directory
+	// ModifiedSourcePathMappingType allows for copying of deltas wrt source
 	ModifiedSourcePathMappingType PathMappingType = "SourceDiff" // Source path becomes relative to source directory
 )
 

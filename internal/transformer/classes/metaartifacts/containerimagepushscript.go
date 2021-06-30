@@ -39,6 +39,7 @@ func (t *ContainerImagePushScript) Init(tc transformertypes.Transformer, env env
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *ContainerImagePushScript) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.TConfig, t.Env
 }

@@ -54,7 +54,11 @@ func (s *server) FetchAnswer(ctx context.Context, prob *qagrpc.Problem) (a *qagr
 	return a, err
 }
 
+// StartGRPCReceiver starts the GRPC receiver for QA Engine
 func StartGRPCReceiver() (addr net.Addr, err error) {
+	if grpcReceiver != nil {
+		return grpcReceiver, nil
+	}
 	port, err := freeport.GetFreePort()
 	if err != nil {
 		return addr, fmt.Errorf("unable to find a free port : %s", err)
