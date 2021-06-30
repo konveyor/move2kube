@@ -1,0 +1,6 @@
+
+FROM ABCD
+COPY --from=build_base /app/target/*.jar app.jar
+{{range $port := .Ports}}EXPOSE {{$port}}
+{{end}}
+CMD ["java", "-Xmx200m", "-jar", "/app.jar"]

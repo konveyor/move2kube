@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"io/ioutil"
 	"github.com/konveyor/move2kube/environment"
-	//"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common"
 	//"github.com/konveyor/move2kube/internal/transformer/classes/analysers/compose"
 	//collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
@@ -52,6 +52,11 @@ type SpringbootAnalyser struct {
 type SpringbootConfig struct {
 	ServiceName string `yaml:"serviceName,omitempty"`
 }
+
+type SpringbootTemplateConfig struct {
+	Ports []int 
+}
+
 
 func (t *SpringbootAnalyser) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.Config = tc
@@ -95,7 +100,6 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 					}
 
 
-					
 					ct := plantypes.Transformer{
 						Mode:                   plantypes.ModeContainer,
 						ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
@@ -118,9 +122,6 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 					return map[string]plantypes.Service {filepath.Base(dir):[]plantypes.Transformer{ct}}, nil, nil
 				}
 
-				
-
-				
 			}
 		}
 
@@ -130,7 +131,68 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 
 func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	
-	return nil, nil, nil
+
+	pathMappings := []transformertypes.PathMapping{}
+	for _, a := range newArtifacts {
+		if a.Artifact != artifacts.ServiceArtifactType {
+			continue
+		}
+
+		relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		if err != nil {
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+		}
+		
+		var pConfig artifacts.PlanConfig
+		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
+			continue
+		}
+		var sConfig SpringbootConfig
+		err = a.GetConfig(SpringbootServiceConfigType, &sConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+			continue
+		}
+
+		var seConfig artifacts.ServiceConfig
+		err = a.GetConfig(artifacts.ServiceConfigType, &seConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", seConfig, err)
+			continue
+		}
+
+
+		strLicense , err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir,"Dockerfile.license"))
+		if err !=nil{
+			return nil, nil, err
+		}
+
+		strEmbedded , err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir,"Dockerfile.springboot-embedded"))
+		if err !=nil{
+			return nil, nil, err
+		}
+
+		var outputPath = filepath.Join(t.Env.TempPath,"Dockerfile.template")
+
+		ioutil.WriteFile(outputPath, strLicense+strEmbedded, 0644)
+
+		tConfig := SpringbootTemplateConfig{ Ports:[]int{50,100} }
+
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:           transformertypes.TemplatePathMappingType,
+			SrcPath:        outputPath,
+			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath,"Docklefile."+seConfig.ServiceName),
+			TemplateConfig: tConfig,
+		}, transformertypes.PathMapping{
+			Type:     transformertypes.SourcePathMappingType,
+			SrcPath:  "",
+			DestPath: common.DefaultSourceDir,
+		})
+		
+	}
+	return pathMappings, nil, nil
 }
 
 
