@@ -20,10 +20,13 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
+// ServiceArtifactType stores the service artifact type name
 const ServiceArtifactType transformertypes.ArtifactType = "Service"
 
+// ServiceConfigType stores service config type name
 const ServiceConfigType transformertypes.ConfigType = "Service"
 
+// ServiceConfig stores config related to service
 type ServiceConfig struct {
 	ServiceName string `yaml:"serviceName"`
 }

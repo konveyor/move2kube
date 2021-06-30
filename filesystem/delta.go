@@ -36,6 +36,7 @@ type generateDeltaConfig struct {
 	destinationDirectory string
 }
 
+// GenerateDelta generates Delta between source and destination
 func GenerateDelta(source, destination, store string) error {
 	options := options{
 		processFileCallBack: generateDeltaProcessFileCallBack,

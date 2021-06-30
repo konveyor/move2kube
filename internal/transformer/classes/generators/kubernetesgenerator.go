@@ -29,37 +29,35 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	K8sArtifacts = "KubernetesYamls"
-)
-
 // Kubernetes implements Transformer interface
 type Kubernetes struct {
 	Config transformertypes.Transformer
 	Env    environment.Environment
 }
 
-type KubernetesConfig struct {
-}
-
+// Init Initializes the transformer
 func (t *Kubernetes) Init(tc transformertypes.Transformer, e environment.Environment) error {
 	t.Config = tc
 	t.Env = e
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *Kubernetes) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.Config, t.Env
 }
 
+// BaseDirectoryDetect runs detect in base directory
 func (t *Kubernetes) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// DirectoryDetect runs detect in each subdirectory
 func (t *Kubernetes) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// Transform transforms artifacts
 func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	logrus.Debugf("Translating IR using Kubernetes transformer")
 	pathMappings = []transformertypes.PathMapping{}

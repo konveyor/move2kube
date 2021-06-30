@@ -21,9 +21,11 @@ import (
 )
 
 const (
+	// ContainerBuildArtifactType represents the container build artifact type
 	ContainerBuildArtifactType transformertypes.ArtifactType = "ContainerBuild"
 )
 
 const (
+	// ContainerConfigType represents container config type
 	ContainerConfigType transformertypes.ConfigType = "Container"
 )

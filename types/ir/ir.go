@@ -30,13 +30,19 @@ import (
 	networking "k8s.io/kubernetes/pkg/apis/networking"
 )
 
+// IRArtifactType represents artifact type of IR
 const IRArtifactType transformertypes.ArtifactType = "IR"
+
+// IRConfigType represents config type of IR
 const IRConfigType transformertypes.ConfigType = "IR"
 
 const (
+	// DockerfileContainerBuildType represents dockerfile container build type
 	DockerfileContainerBuildType ContainerBuildTypeValue = "Dockerfile"
-	S2IContainerBuildTypeValue   ContainerBuildTypeValue = "S2I"
-	CNBContainerBuildTypeValue   ContainerBuildTypeValue = "CNB"
+	// S2IContainerBuildTypeValue represents s2i container build type
+	S2IContainerBuildTypeValue ContainerBuildTypeValue = "S2I"
+	// CNBContainerBuildTypeValue represents CNB container build type
+	CNBContainerBuildTypeValue ContainerBuildTypeValue = "CNB"
 )
 
 // IR is the intermediate representation filled by source transformers
@@ -71,7 +77,10 @@ type ServiceToPodPortForwarding struct {
 	PodPort     Port
 }
 
+// ContainerBuildTypeValue stores the container build type
 type ContainerBuildTypeValue string
+
+// ContainerBuildArtifactTypeValue stores the container build artifact type
 type ContainerBuildArtifactTypeValue string
 
 // ContainerImage defines images that need to be built or reused.
@@ -82,6 +91,7 @@ type ContainerImage struct {
 	Build        ContainerBuild
 }
 
+// ContainerBuild stores information about the container build
 type ContainerBuild struct {
 	ContainerBuildType ContainerBuildTypeValue                      `yaml:"-"`
 	ContextPath        string                                       `yaml:"-"`
@@ -235,6 +245,7 @@ func (c *ContainerImage) Merge(newc ContainerImage) bool {
 	return true
 }
 
+// Merge merges two container build structs
 func (c *ContainerBuild) Merge(newc ContainerBuild) bool {
 	if c.ContainerBuildType == "" {
 		c = &newc

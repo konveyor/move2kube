@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// TransformAndPersist transforms IR to yamls and writes to filesystem
 func TransformAndPersist(ir irtypes.EnhancedIR, outputPath string, apis []IAPIResource, targetCluster collecttypes.ClusterMetadata) (files []string, err error) {
 	targetObjs := []runtime.Object{}
 	for _, apiResource := range apis {
@@ -49,12 +50,12 @@ func TransformAndPersist(ir irtypes.EnhancedIR, outputPath string, apis []IAPIRe
 	if err != nil {
 		logrus.Errorf("Failed to fix, convert and transform the objects. Error: %q", err)
 	}
-	if filesWritten, err := writeObjects(outputPath, convertedObjs); err != nil {
+	filesWritten, err := writeObjects(outputPath, convertedObjs)
+	if err != nil {
 		logrus.Errorf("Failed to write the transformed objects to the directory at path %s . Error: %q", outputPath, err)
 		return nil, err
-	} else {
-		return filesWritten, nil
 	}
+	return filesWritten, nil
 }
 
 // writeObjects writes the runtime objects to yaml files

@@ -28,10 +28,13 @@ type MapT = map[string]interface{}
 // K8sResourceT is a k8s resource
 type K8sResourceT = MapT
 
+// PatchOpT has Patch
 type PatchOpT string
 
+// ParamTargetT has Param Target
 type ParamTargetT string
 
+// HelmValuesT has Helm Values
 type HelmValuesT map[string]interface{}
 
 // PackagingFileT is the file format for the packaging
@@ -103,7 +106,7 @@ type ParameterT struct {
 type ParameterValueT struct {
 	Envs         []string          `yaml:"envs,omitempty" json:"envs,omitempty"`
 	Kind         string            `yaml:"kind,omitempty" json:"kind,omitempty"`
-	ApiVersion   string            `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
+	APIVersion   string            `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
 	MetadataName string            `yaml:"metadataName,omitempty" json:"metadataName,omitempty"`
 	Custom       map[string]string `yaml:"custom,omitempty" json:"custom,omitempty"`
 	Value        string            `yaml:"value" json:"value"`

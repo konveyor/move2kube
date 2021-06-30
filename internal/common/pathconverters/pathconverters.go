@@ -148,6 +148,7 @@ func process(value reflect.Value, ctx context) error {
 	return nil
 }
 
+// MakePlanPathsAbsolute converts all paths in a plan to absolute path from relative path
 func MakePlanPathsAbsolute(obj interface{}, sourcePath, assetsPath string) (err error) {
 	function := func(relPath string) (string, error) {
 		if relPath == "" {
@@ -166,6 +167,7 @@ func MakePlanPathsAbsolute(obj interface{}, sourcePath, assetsPath string) (err 
 	return ProcessPaths(obj, function)
 }
 
+// ChangePaths changes paths which are based out of one root to another root
 func ChangePaths(obj interface{}, mapping map[string]string) (err error) {
 	function := func(path string) (string, error) {
 		if path == "" {
@@ -178,12 +180,12 @@ func ChangePaths(obj interface{}, mapping map[string]string) (err error) {
 		}
 		for src, dest := range mapping {
 			if common.IsParent(path, src) {
-				if rel, err := filepath.Rel(src, path); err != nil {
+				rel, err := filepath.Rel(src, path)
+				if err != nil {
 					err := fmt.Errorf("unable to make path (%s) relative to root (%s)", path, src)
 					return path, err
-				} else {
-					return filepath.Join(dest, rel), nil
 				}
+				return filepath.Join(dest, rel), nil
 			}
 		}
 		return path, fmt.Errorf("unable to find proper root for %s", path)
@@ -192,6 +194,7 @@ func ChangePaths(obj interface{}, mapping map[string]string) (err error) {
 	return err
 }
 
+// ProcessPaths calls the process function for each path in an object
 func ProcessPaths(obj interface{}, processfunc func(string) (string, error)) (err error) {
 	ctx := context{
 		Convert: processfunc,

@@ -20,12 +20,15 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
+// CNBMetadataArtifactType is the name of the CNB artifact type
 const CNBMetadataArtifactType transformertypes.ArtifactType = "CNBMetadata"
 
+// CNBMetadataConfigType is the name of the CNB config type
 const CNBMetadataConfigType transformertypes.ConfigType = "CNBMetadata"
 
 // ProjectPath will be used as context
 
+// CNBMetadataConfig stores the configurations related to CNB
 type CNBMetadataConfig struct {
 	CNBBuilder string `json:"CNBBuilder" yaml:"CNBBuilder"`
 	ImageName  string `json:"ImageName,omitempty" yaml:"ImageName,omitempty"`

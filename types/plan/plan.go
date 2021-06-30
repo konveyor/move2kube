@@ -25,12 +25,6 @@ import (
 // PlanKind is kind of plan file
 const PlanKind types.Kind = "Plan"
 
-const (
-	ModeContainer = "Container"
-	ModeOperator  = "Operator"
-	ModeService   = "Service"
-)
-
 // Plan defines the format of plan
 type Plan struct {
 	types.TypeMeta   `yaml:",inline"`
@@ -38,6 +32,7 @@ type Plan struct {
 	Spec             Spec `yaml:"spec,omitempty"`
 }
 
+// Service is the type that stores a plan service
 type Service []Transformer
 
 // Spec stores the data about the plan
@@ -51,6 +46,7 @@ type Spec struct {
 	Configuration Configuration     `yaml:"configuration,omitempty"`
 }
 
+// Configuration stores all configurations related to the plan
 type Configuration struct {
 	Transformers   map[string]string `yaml:"transformers,omitempty" m2kpath:"normal"`   //[name]filepath
 	TargetClusters map[string]string `yaml:"targetClusters,omitempty" m2kpath:"normal"` //[clustername]filepath
@@ -65,7 +61,7 @@ type TargetClusterType struct {
 
 // Transformer stores transformer option
 type Transformer struct {
-	Mode                   string                                      `yaml:"mode" json:"mode"` // container, customresource, service, generic
+	Mode                   transformertypes.Mode                       `yaml:"mode" json:"mode"` // container, customresource, service, generic
 	Name                   string                                      `yaml:"name" json:"transformerName"`
 	ArtifactTypes          []transformertypes.ArtifactType             `yaml:"generates,omitempty" json:"artifacts,omitempty"`
 	ExclusiveArtifactTypes []transformertypes.ArtifactType             `yaml:"exclusive,omitempty" json:"exclusiveArtifacts,omitempty"`
@@ -96,6 +92,7 @@ func NewPlan() Plan {
 	return plan
 }
 
+// MergeServices merges two service maps
 func MergeServices(s1 map[string]Service, s2 map[string]Service) map[string]Service {
 	if s1 == nil {
 		return s2

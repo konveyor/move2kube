@@ -20,6 +20,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
+// DockerfileArtifactType represents the Dockerfile artifact type
 const DockerfileArtifactType transformertypes.ArtifactType = "Dockerfile"
 
 // DockerfilePathType defines the source artifact type of dockerfile

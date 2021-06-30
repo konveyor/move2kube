@@ -99,7 +99,7 @@ func (bc *BuildConfig) createNewResource(irBuildConfig irtypes.BuildConfig, ir i
 
 func (*BuildConfig) getBuildSource(irBuildConfig irtypes.BuildConfig, ir irtypes.EnhancedIR) okdbuildv1.BuildSource {
 	contextPath := irBuildConfig.ContainerBuild.ContextPath
-	_, repoDir, _, repoUrl, repoBranchName, err := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
+	_, repoDir, _, repoURL, repoBranchName, err := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
 	if err != nil {
 		logrus.Debugf("Unable to identify git repo for %s : %s", irBuildConfig.ContainerBuild.ContextPath, err)
 	}
@@ -113,7 +113,7 @@ func (*BuildConfig) getBuildSource(irBuildConfig irtypes.BuildConfig, ir irtypes
 	}
 	gitRepoURL := gitRepoURLPlaceholder
 	if gitRepoURL != "" {
-		gitRepoURL = repoUrl
+		gitRepoURL = repoURL
 	}
 	branchName := defaultGitRepoBranch
 	if repoBranchName != "" {
@@ -149,13 +149,13 @@ func (*BuildConfig) getBuildStrategy(irBuildConfig irtypes.BuildConfig, ir irtyp
 
 func (bc *BuildConfig) getBuildTriggerPolicy(irBuildConfig irtypes.BuildConfig, ir irtypes.EnhancedIR) okdbuildv1.BuildTriggerPolicy {
 	webHookType := okdbuildv1.GenericWebHookBuildTriggerType
-	_, _, _, repoUrl, _, _ := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
-	if repoUrl != "" {
-		gitRepoURLObj, err := giturls.Parse(repoUrl)
+	_, _, _, repoURL, _, _ := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
+	if repoURL != "" {
+		gitRepoURLObj, err := giturls.Parse(repoURL)
 		if err != nil {
-			logrus.Warnf("Failed to parse git repo url %s Error: %q", repoUrl, err)
+			logrus.Warnf("Failed to parse git repo url %s Error: %q", repoURL, err)
 		} else if gitRepoURLObj.Hostname() == "" {
-			logrus.Warnf("Successfully parsed git repo url %s but the host name is empty: %+v", repoUrl, gitRepoURLObj)
+			logrus.Warnf("Successfully parsed git repo url %s but the host name is empty: %+v", repoURL, gitRepoURLObj)
 		} else {
 			webHookType = bc.getWebHookType(gitRepoURLObj.Hostname())
 		}

@@ -33,21 +33,24 @@ import (
 )
 
 const (
+	// TransformConfigType stores the config type representing transform
 	TransformConfigType transformertypes.ConfigType = "TransformConfig"
 )
 
-// Executable implements Containerizer interface
+// SimpleExecutable implements transformer interface and is used to write simple external transformers
 type SimpleExecutable struct {
 	TConfig    transformertypes.Transformer
 	ExecConfig ExecutableYamlConfig
 	Env        environment.Environment
 }
 
+// TransformConfig defines the type of config for Simpleexecutable
 type TransformConfig struct {
 	PathMappings []transformertypes.PathMapping `json:"pathMappings,omitempty"`
 	Artifacts    []transformertypes.Artifact    `json:"artifacts,omitempty"`
 }
 
+// ExecutableYamlConfig is the format of executable yaml config
 type ExecutableYamlConfig struct {
 	EnableQA               bool                       `yaml:"enableQA"`
 	BaseDirectoryDetectCMD environmenttypes.Command   `yaml:"baseDetectCMD"`
@@ -56,6 +59,7 @@ type ExecutableYamlConfig struct {
 	Container              environmenttypes.Container `yaml:"container,omitempty"`
 }
 
+// Init Initializes the transformer
 func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.TConfig = tc
 	t.ExecConfig = ExecutableYamlConfig{}
@@ -66,7 +70,7 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment
 	}
 	var qaRPCReceiverAddr net.Addr = nil
 	if t.ExecConfig.EnableQA {
-		qaRPCReceiverAddr, err = qaengine.StartGRPCReceiverAddress()
+		qaRPCReceiverAddr, err = qaengine.StartGRPCReceiver()
 		if err != nil {
 			logrus.Errorf("Unable to start QA RPC Receiver engine : %s", err)
 			logrus.Infof("Starting transformer that requires QA without QA.")
@@ -80,10 +84,12 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *SimpleExecutable) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.TConfig, t.Env
 }
 
+// BaseDirectoryDetect runs detect in base directory
 func (t *SimpleExecutable) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	if t.ExecConfig.BaseDirectoryDetectCMD == nil {
 		return nil, nil, nil
@@ -91,6 +97,7 @@ func (t *SimpleExecutable) BaseDirectoryDetect(dir string) (namedServices map[st
 	return t.executeDetect(t.ExecConfig.BaseDirectoryDetectCMD, dir)
 }
 
+// DirectoryDetect runs detect in each sub directory
 func (t *SimpleExecutable) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	if t.ExecConfig.DirectoryDetectCMD == nil {
 		return nil, nil, nil
@@ -98,6 +105,7 @@ func (t *SimpleExecutable) DirectoryDetect(dir string) (namedServices map[string
 	return t.executeDetect(t.ExecConfig.DirectoryDetectCMD, dir)
 }
 
+// Transform transforms the artifacts
 func (t *SimpleExecutable) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	pathMappings = []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
@@ -146,7 +154,7 @@ func (t *SimpleExecutable) executeDetect(cmd environmenttypes.Command, dir strin
 	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d", t.TConfig.Name, t.Env.Decode(dir), stdout, stderr, exitcode)
 	stdout = strings.TrimSpace(stdout)
 	trans := plantypes.Transformer{
-		Mode:                   string(t.TConfig.Spec.Mode),
+		Mode:                   t.TConfig.Spec.Mode,
 		ArtifactTypes:          t.TConfig.Spec.Artifacts,
 		ExclusiveArtifactTypes: t.TConfig.Spec.ExclusiveArtifacts,
 		Paths:                  map[string][]string{artifacts.ProjectPathPathType: {dir}},

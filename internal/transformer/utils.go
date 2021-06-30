@@ -148,9 +148,8 @@ func mergeArtifact(a transformertypes.Artifact, b transformertypes.Artifact) (c 
 			Configs:  mergeConfigs(a.Configs, b.Configs),
 		}
 		return c, true
-	} else {
-		return c, false
 	}
+	return c, false
 }
 
 func mergeConfigs(configs1 map[transformertypes.ConfigType]interface{}, configs2 map[transformertypes.ConfigType]interface{}) map[transformertypes.ConfigType]interface{} {
@@ -188,7 +187,7 @@ func setTransformerInfoForServices(services map[string]plantypes.Service, t tran
 	for sn, s := range services {
 		for sti, st := range s {
 			st.Name = t.Name
-			st.Mode = string(t.Spec.Mode)
+			st.Mode = t.Spec.Mode
 			services[sn][sti] = st
 		}
 	}
@@ -198,7 +197,7 @@ func setTransformerInfoForServices(services map[string]plantypes.Service, t tran
 func setTransformerInfoForTransformers(transformers []plantypes.Transformer, t transformertypes.Transformer) []plantypes.Transformer {
 	for ti, tr := range transformers {
 		tr.Name = t.Name
-		tr.Mode = string(t.Spec.Mode)
+		tr.Mode = t.Spec.Mode
 		transformers[ti] = tr
 	}
 	return transformers

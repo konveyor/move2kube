@@ -61,6 +61,7 @@ type Problem struct {
 	Answer  interface{}      `yaml:"answer,omitempty" json:"answer,omitempty"`
 }
 
+// NewProblem creates a new problem object from a GRPC problem
 func NewProblem(p *qagrpc.Problem) (prob Problem, err error) {
 	defaults, err := ArrayToInterface(p.Default, SolutionFormType(p.Type))
 	if err != nil {
@@ -77,6 +78,7 @@ func NewProblem(p *qagrpc.Problem) (prob Problem, err error) {
 	}, nil
 }
 
+// InterfaceToArray converts the answer interface to array
 func InterfaceToArray(ansI interface{}, problemType SolutionFormType) (ans []string, err error) {
 	if ansI == nil {
 		return nil, fmt.Errorf("the answer is nil")
@@ -105,6 +107,7 @@ func InterfaceToArray(ansI interface{}, problemType SolutionFormType) (ans []str
 	}
 }
 
+// ArrayToInterface converts the answer array to interface
 func ArrayToInterface(ans []string, problemType SolutionFormType) (ansI interface{}, err error) {
 	if ansI == nil {
 		return nil, nil

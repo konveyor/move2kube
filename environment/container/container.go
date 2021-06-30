@@ -29,7 +29,7 @@ var (
 	workingEngine ContainerEngine
 )
 
-// Engine defines interface to manage containers
+// ContainerEngine defines interface to manage containers
 type ContainerEngine interface {
 	// RunCmdInContainer runs a container
 	RunCmdInContainer(image string, cmd environmenttypes.Command, workingdir string, env []string) (stdout, stderr string, exitcode int, err error)
@@ -48,7 +48,7 @@ type ContainerEngine interface {
 }
 
 func initContainerEngine() (err error) {
-	workingEngine, err = NewDockerEngine()
+	workingEngine, err = newDockerEngine()
 	if err != nil {
 		logrus.Debugf("Unable to use docker : %s", err)
 		return err
