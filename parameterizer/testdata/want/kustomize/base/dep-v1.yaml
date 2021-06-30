@@ -1,0 +1,31 @@
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    annotations:
+        openshift.io/node-selector: type=gpu-node,region=east
+    labels:
+        app: nginx
+    name: nginx
+spec:
+    replicas: 3
+    selector:
+        matchLabels:
+            app: nginx
+    template:
+        metadata:
+            labels:
+                app: nginx
+        spec:
+            containers:
+                - image: quay.io/konveyor/nginx:1.14.2
+                  name: webcontainer
+                  ports:
+                    - containerPort: 80
+                  resources:
+                    limits:
+                        cpu: 100m
+                        memory: 100Mi
+
+...

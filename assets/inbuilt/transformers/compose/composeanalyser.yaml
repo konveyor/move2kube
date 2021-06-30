@@ -1,0 +1,15 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: ComposeAnalyser
+spec:
+  mode: "Container"
+  class: "ComposeAnalyser"
+  generates: 
+    - "ContainerBuild"
+    - "IR"
+    - "Dockerfile"
+  exclusive: 
+    - "ContainerBuild"
+    - "IR"
+    - "Dockerfile"

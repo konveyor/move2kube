@@ -30,6 +30,7 @@ PKG        := ./...
 LDFLAGS    := -w -s
 
 SRC        = $(shell find . -type f -name '*.go' -print)
+ASSETS     = $(shell find assets -type f -name '*' -print)
 ARCH       = $(shell uname -p)
 GIT_COMMIT = $(shell git rev-parse HEAD)
 GIT_SHA    = $(shell git rev-parse --short HEAD)
@@ -57,7 +58,7 @@ LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.buildmetadata=${VERSION_
 
 LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.gitCommit=${GIT_COMMIT}
 LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.gitTreeState=${GIT_DIRTY}
-#LDFLAGS += -extldflags "-static"
+LDFLAGS += -extldflags "-static"
 
 # HELP
 # This will output the help for each task
@@ -71,7 +72,7 @@ help: ## This help.
 build: get $(BINDIR)/$(BINNAME) ## Build go code
 	@printf "\033[32m-------------------------------------\n BUILD SUCCESS\n-------------------------------------\033[0m\n"
 
-$(BINDIR)/$(BINNAME): $(SRC)
+$(BINDIR)/$(BINNAME): $(SRC) $(ASSETS)
 	go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd/${BINNAME}
 ifeq ($(HAS_UPX),true)
 	@echo 'upx detected. compressing binary...'

@@ -1,5 +1,0 @@
-{{- range $key, $value := . }}
-{{- if and (ne $key "builder") (ne $key "image_name") (ne $key "port") }}
-{{ $key }}={{ $value }}
-{{- end }}
-{{- end }}

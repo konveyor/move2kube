@@ -1,18 +1,18 @@
 /*
-Copyright IBM Corporation 2020
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ *  Copyright IBM Corporation 2021
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 
 package main
 
@@ -98,7 +98,11 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		p = api.CreatePlan(flags.Srcpath, flags.ConfigurationsPath, flags.Name)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.Planfile)
-		if p, err = plan.ReadPlan(flags.Planfile); err != nil {
+		rootDir := ""
+		if cmd.Flags().Changed(cmdcommon.SourceFlag) {
+			rootDir = flags.Srcpath
+		}
+		if p, err = plan.ReadPlan(flags.Planfile, rootDir); err != nil {
 			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.Planfile, err)
 		}
 		if len(p.Spec.Services) == 0 {
@@ -107,11 +111,6 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		if cmd.Flags().Changed(cmdcommon.NameFlag) {
 			p.Name = flags.Name
-		}
-		if cmd.Flags().Changed(cmdcommon.SourceFlag) {
-			if err := p.SetRootDir(flags.Srcpath); err != nil {
-				logrus.Fatalf("Failed to set the root directory to %q Error: %q", flags.Srcpath, err)
-			}
 		}
 		if cmd.Flags().Changed(cmdcommon.ConfigurationsFlag) {
 			if flags.ConfigurationsPath != "" {
@@ -153,10 +152,11 @@ func getTransformCommand() *cobra.Command {
 
 	flags := transformFlags{}
 	transformCmd := &cobra.Command{
-		Use:   "transform",
-		Short: "Transform using move2kube plan",
-		Long:  "Transform artifacts using move2kube plan",
-		Run:   func(cmd *cobra.Command, _ []string) { transformHandler(cmd, flags) },
+		Use:        "transform",
+		Short:      "Transform using move2kube plan",
+		Long:       "Transform artifacts using move2kube plan",
+		Run:        func(cmd *cobra.Command, _ []string) { transformHandler(cmd, flags) },
+		SuggestFor: []string{"translate"},
 	}
 
 	// Basic options

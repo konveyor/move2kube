@@ -1,18 +1,18 @@
 /*
-Copyright IBM Corporation 2020
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ *  Copyright IBM Corporation 2021
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 
 package analysers
 
@@ -24,6 +24,7 @@ import (
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,12 +37,7 @@ type CNBContainerizer struct {
 }
 
 type CNBContainerizerYamlConfig struct {
-	BuilderImageName string `yaml:"cnbbuilderimage"`
-}
-
-type CNBTemplateConfig struct {
-	CNBBuilder string `json:"CNBBuilder"`
-	ImageName  string `json:"ImageName,omitempty"`
+	BuilderImageName string `yaml:"CNBBuilder"`
 }
 
 func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
@@ -88,25 +84,25 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 	}
 	trans := plantypes.Transformer{
 		Mode:                   plantypes.ModeContainer,
-		ArtifactTypes:          []string{transformertypes.ContainerBuildArtifactType},
-		ExclusiveArtifactTypes: []string{transformertypes.ContainerBuildArtifactType},
-		Paths:                  map[string][]string{plantypes.ProjectPathPathType: {dir}},
-		Configs: map[string]interface{}{transformertypes.TemplateConfigType: CNBTemplateConfig{
+		ArtifactTypes:          []string{artifacts.ContainerBuildArtifactType},
+		ExclusiveArtifactTypes: []string{artifacts.ContainerBuildArtifactType},
+		Paths:                  map[string][]string{artifacts.ProjectPathPathType: {dir}},
+		Configs: map[string]interface{}{artifacts.CNBMetadataConfigType: artifacts.CNBMetadataConfig{
 			CNBBuilder: t.CNBConfig.BuilderImageName,
 		}},
 	}
 	return nil, []plantypes.Transformer{trans}, nil
 }
 
-func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
-	artifacts := []transformertypes.Artifact{}
+func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (tPathMappings []transformertypes.PathMapping, tArtifacts []transformertypes.Artifact, err error) {
+	tArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		artifacts = append(artifacts, transformertypes.Artifact{
+		tArtifacts = append(tArtifacts, transformertypes.Artifact{
 			Name:     a.Name,
-			Artifact: transformertypes.CNBMetadataArtifactType,
+			Artifact: artifacts.CNBMetadataArtifactType,
 			Paths:    a.Paths,
 			Configs:  a.Configs,
 		})
 	}
-	return nil, artifacts, nil
+	return nil, tArtifacts, nil
 }

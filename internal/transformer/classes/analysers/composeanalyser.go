@@ -1,18 +1,18 @@
 /*
-Copyright IBM Corporation 2021
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ *  Copyright IBM Corporation 2021
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 
 package analysers
 
@@ -21,23 +21,24 @@ import (
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/transformer/classes/compose"
+	"github.com/konveyor/move2kube/internal/transformer/classes/analysers/compose"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	ComposeServiceConfigType plantypes.ConfigType = "ComposeService"
+	ComposeServiceConfigType transformertypes.ConfigType = "ComposeService"
 )
 
 const (
 	// composeFilePathType defines the source artifact type of Docker compose
-	composeFilePathType plantypes.PathType = "DockerCompose"
+	composeFilePathType transformertypes.PathType = "DockerCompose"
 	// imageInfoPathType defines the source artifact type of image info
-	imageInfoPathType plantypes.PathType = "ImageInfo"
+	imageInfoPathType transformertypes.PathType = "ImageInfo"
 )
 
 // ComposeAnalyser implements Transformer interface
@@ -92,7 +93,7 @@ func (t *ComposeAnalyser) DirectoryDetect(dir string) (namedServices map[string]
 func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != transformertypes.ServiceArtifactType {
+		if a.Artifact != artifacts.ServiceArtifactType {
 			continue
 		}
 		var config ComposeConfig
@@ -101,8 +102,8 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 			logrus.Errorf("unable to load config for Transformer into %T : %s", config, err)
 			continue
 		}
-		var pConfig transformertypes.PlanConfig
-		err = a.GetConfig(transformertypes.PlanConfigType, &pConfig)
+		var pConfig artifacts.PlanConfig
+		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
 			continue
@@ -133,10 +134,10 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 		}
 		p := transformertypes.Artifact{
 			Name:     pConfig.PlanName,
-			Artifact: transformertypes.IRArtifactType,
-			Configs: map[plantypes.ConfigType]interface{}{
-				transformertypes.IRConfigType:   ir,
-				transformertypes.PlanConfigType: pConfig,
+			Artifact: irtypes.IRArtifactType,
+			Configs: map[transformertypes.ConfigType]interface{}{
+				irtypes.IRConfigType:     ir,
+				artifacts.PlanConfigType: pConfig,
 			},
 		}
 		artifactsCreated = append(artifactsCreated, p)
@@ -147,13 +148,13 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) plantypes.Transformer {
 	ct := plantypes.Transformer{
 		Mode:                   plantypes.ModeContainer,
-		ArtifactTypes:          []plantypes.ArtifactType{transformertypes.IRArtifactType, transformertypes.ContainerBuildArtifactType},
-		ExclusiveArtifactTypes: []plantypes.ArtifactType{transformertypes.IRArtifactType, transformertypes.ContainerBuildArtifactType},
-		Configs: map[plantypes.ConfigType]interface{}{
+		ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
+		ExclusiveArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
+		Configs: map[transformertypes.ConfigType]interface{}{
 			ComposeServiceConfigType: ComposeConfig{
 				ServiceName: serviceName,
 			}},
-		Paths: map[plantypes.PathType][]string{
+		Paths: map[transformertypes.PathType][]string{
 			composeFilePathType: {
 				composeFilePath,
 			},
@@ -177,8 +178,8 @@ func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string,
 			}
 		}
 		// Add reuse Dockerfile containerization option
-		ct.Paths[transformertypes.DockerfilePathType] = common.MergeStringSlices(ct.Paths[transformertypes.DockerfilePathType], dockerfilePath)
-		ct.Paths[plantypes.ProjectPathPathType] = common.MergeStringSlices(ct.Paths[plantypes.ProjectPathPathType], contextPath)
+		ct.Paths[artifacts.DockerfilePathType] = common.MergeStringSlices(ct.Paths[artifacts.DockerfilePathType], dockerfilePath)
+		ct.Paths[artifacts.ProjectPathPathType] = common.MergeStringSlices(ct.Paths[artifacts.ProjectPathPathType], contextPath)
 	}
 	return ct
 }

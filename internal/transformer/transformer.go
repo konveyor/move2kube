@@ -1,18 +1,18 @@
 /*
-Copyright IBM Corporation 2020, 2021
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ *  Copyright IBM Corporation 2020, 2021
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 
 package transformer
 
@@ -26,6 +26,7 @@ import (
 	"github.com/konveyor/move2kube/internal/transformer/classes/analysers"
 	"github.com/konveyor/move2kube/internal/transformer/classes/external"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators"
+	"github.com/konveyor/move2kube/internal/transformer/classes/metaartifacts"
 	"github.com/konveyor/move2kube/qaengine"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -51,7 +52,7 @@ type Transformer interface {
 }
 
 func init() {
-	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable), new(analysers.CNBContainerizer), new(generators.CNBGenerator), new(analysers.CloudFoundry), new(analysers.DockerfileDetector)}
+	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable), new(analysers.CNBContainerizer), new(generators.CNBGenerator), new(analysers.CloudFoundry), new(analysers.DockerfileDetector), new(metaartifacts.ContainerImagePushScript), new(analysers.SpringbootAnalyser)}
 	for _, tt := range transformerObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -73,7 +74,7 @@ func Init(assetsPath, sourcePath string) (err error) {
 	for _, filePath := range filePaths {
 		tc, err := getTransformerConfig(filePath)
 		if err != nil {
-			logrus.Debugf("Unable to load %s as Transformer config", filePath, err)
+			logrus.Debugf("Unable to load %s as Transformer config : %s", filePath, err)
 			continue
 		}
 		transformerFiles[tc.Name] = filePath
@@ -91,15 +92,14 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, wa
 		tc, err := getTransformerConfig(tfilepath)
 		if err != nil {
 			if warn {
-				logrus.Errorf("Unable to load %s as Transformer config", tfilepath, err)
+				logrus.Errorf("Unable to load %s as Transformer config : %s", tfilepath, err)
 			} else {
-				logrus.Debugf("Unable to load %s as Transformer config", tfilepath, err)
+				logrus.Debugf("Unable to load %s as Transformer config : %s", tfilepath, err)
 			}
 			continue
 		}
 		if ot, ok := transformerConfigs[tc.Name]; ok {
-			logrus.Errorf("Found two conflicting transformer Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath)
-			continue
+			logrus.Errorf("Found two conflicting transformer Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath, ot.Spec.FilePath)
 		}
 		if _, ok := transformerTypes[tc.Spec.Class]; ok {
 			transformerConfigs[tc.Name] = tc

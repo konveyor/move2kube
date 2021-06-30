@@ -1,9 +1,0 @@
-apiVersion: move2kube.konveyor.io/v1alpha1
-kind: Transformer
-metadata:
-  name: CNBContainerizer
-spec:
-  mode: "Container"
-  class: "CNBContainerizer"
-  config:
-    cnbbuilderimage: "cloudfoundry/cnb:cflinuxfs3"

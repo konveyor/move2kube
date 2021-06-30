@@ -1,0 +1,12 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: Java-Springboot
+spec:
+  mode: "Container"
+  class: "SpringbootAnalyser"
+  generates: 
+    - "IR"
+    - "ContainerBuild"
+  exclusive: 
+    - "ContainerBuild"

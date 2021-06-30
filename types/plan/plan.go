@@ -1,30 +1,25 @@
 /*
-Copyright IBM Corporation 2020
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ *  Copyright IBM Corporation 2021
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 
 package plan
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/common/pathconverters"
 	"github.com/konveyor/move2kube/types"
-	"github.com/sirupsen/logrus"
-)
-
-const (
-	ProjectPathPathType PathType = "ProjectPath"
+	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
 // PlanKind is kind of plan file
@@ -68,18 +63,14 @@ type TargetClusterType struct {
 	Path string `yaml:"path,omitempty" m2kpath:"normal"`
 }
 
-type ArtifactType = string
-type ConfigType = string
-type PathType = string
-
 // Transformer stores transformer option
 type Transformer struct {
-	Mode                   string                     `yaml:"mode" json:"mode"` // container, customresource, service, generic
-	Name                   string                     `yaml:"name" json:"transformerName"`
-	ArtifactTypes          []ArtifactType             `yaml:"generates,omitempty" json:"artifacts,omitempty"`
-	ExclusiveArtifactTypes []ArtifactType             `yaml:"exclusive,omitempty" json:"exclusiveArtifacts,omitempty"`
-	Paths                  map[PathType][]string      `yaml:"paths,omitempty" json:"paths,omitempty" m2kpath:"normal"`
-	Configs                map[ConfigType]interface{} `yaml:"config,omitempty" json:"config,omitempty"`
+	Mode                   string                                      `yaml:"mode" json:"mode"` // container, customresource, service, generic
+	Name                   string                                      `yaml:"name" json:"transformerName"`
+	ArtifactTypes          []transformertypes.ArtifactType             `yaml:"generates,omitempty" json:"artifacts,omitempty"`
+	ExclusiveArtifactTypes []transformertypes.ArtifactType             `yaml:"exclusive,omitempty" json:"exclusiveArtifacts,omitempty"`
+	Paths                  map[transformertypes.PathType][]string      `yaml:"paths,omitempty" json:"paths,omitempty" m2kpath:"normal"`
+	Configs                map[transformertypes.ConfigType]interface{} `yaml:"config,omitempty" json:"config,omitempty"`
 }
 
 // NewPlan creates a new plan
@@ -113,16 +104,4 @@ func MergeServices(s1 map[string]Service, s2 map[string]Service) map[string]Serv
 		s1[s2n] = append(s1[s2n], s2t...)
 	}
 	return s1
-}
-
-// SetRootDir changes the root directory of the plan.
-// The `rootDir` must be an cleaned absolute path.
-func (plan *Plan) SetRootDir(rootDir string) error {
-	err := pathconverters.ChangePaths(plan, map[string]string{plan.Spec.RootDir: rootDir})
-	if err != nil {
-		logrus.Errorf("Unable to set new root dir for Plan : %s", err)
-		return err
-	}
-	plan.Spec.RootDir = rootDir
-	return nil
 }

@@ -1,0 +1,12 @@
+- op: replace
+  path: /spec/replicas
+  value: 10
+- op: replace
+  path: /spec/template/spec/containers/0/image
+  value: nginx-allenvs
+- op: replace
+  path: /spec/template/spec/containers/0/name
+  value: webcontainer
+- op: replace
+  path: /metadata/annotations/openshift.io~1node-selector
+  value: type=gpu-node,region=east

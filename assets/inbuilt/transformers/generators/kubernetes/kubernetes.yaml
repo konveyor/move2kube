@@ -1,0 +1,11 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: Kubernetes
+spec:
+  mode: "Container"
+  class: "Kubernetes"
+  consumes:
+    - "IR"
+  generates:
+    - "KubernetesYamls"
