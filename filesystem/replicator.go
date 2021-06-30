@@ -17,9 +17,7 @@
 package filesystem
 
 import (
-	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/sirupsen/logrus"
 )
@@ -47,44 +45,7 @@ func replicateProcessFileCallBack(sourceFilePath, destinationFilePath string, co
 			return nil
 		}
 	}
-	sourceReader, err := os.Open(sourceFilePath)
-	if err != nil {
-		logrus.Errorf("Unable to open file %s : %s", sourceFilePath, err)
-		return err
-	}
-	defer sourceReader.Close()
-	destinationWriter, err := os.Create(destinationFilePath)
-	if err != nil {
-		sdi, err := os.Stat(filepath.Dir(sourceFilePath))
-		if err != nil {
-			logrus.Errorf("Unable to stat parent dir of %s : %s", sourceFilePath, err)
-			return err
-		}
-		if mderr := os.MkdirAll(filepath.Dir(destinationFilePath), sdi.Mode()); mderr == nil {
-			destinationWriter, err = os.Create(destinationFilePath)
-			if err != nil {
-				logrus.Errorf("Unable to create destination file during replication %s : %s", destinationFilePath, err)
-				return err
-			}
-		}
-	}
-	defer destinationWriter.Close()
-	_, err = io.Copy(destinationWriter, sourceReader)
-	if err != nil {
-		logrus.Errorf("Unable to copy file %s to %s : %s", sourceFilePath, destinationFilePath, err)
-		return err
-	}
-	err = destinationWriter.Sync()
-	if err != nil {
-		logrus.Errorf("Unable to sync file %s to %s : %s", sourceFilePath, destinationFilePath, err)
-		return err
-	}
-	err = os.Chmod(destinationFilePath, si.Mode())
-	if err != nil {
-		logrus.Errorf("Unable to copy permissions in file %s : %s", destinationFilePath, err)
-		return err
-	}
-	return nil
+	return copyFile(sourceFilePath, destinationFilePath)
 }
 
 func replicateAdditionCallBack(source, destination string, config interface{}) error {

@@ -17,7 +17,6 @@
 package filesystem
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 
@@ -72,29 +71,7 @@ func generateDeltaProcessFileCallBack(sourceFilePath, destinationFilePath string
 			logrus.Errorf("Unable to compare files to check if files are same %s and %s. Marking as modification: %s", sourceFilePath, destinationFilePath, err)
 		}
 	}
-	sourceReader, err := os.Open(sourceFilePath)
-	if err != nil {
-		logrus.Errorf("Unable to open file %s : %s", sourceFilePath, err)
-		return err
-	}
-	defer sourceReader.Close()
-	destinationWriter, err := os.Create(modifiedFilePath)
-	if err != nil {
-		logrus.Errorf("Unable to create destination file")
-		return err
-	}
-	defer destinationWriter.Close()
-	_, err = io.Copy(sourceReader, destinationWriter)
-	if err != nil {
-		logrus.Errorf("Unable to copy file %s to %s : %s", sourceFilePath, modifiedFilePath, err)
-		return err
-	}
-	err = os.Chmod(destinationFilePath, si.Mode())
-	if err != nil {
-		logrus.Errorf("Unable to copy permissions in file %s : %s", destinationFilePath, err)
-		return err
-	}
-	return nil
+	return copyFile(sourceFilePath, modifiedFilePath)
 }
 
 func generateDeltaAdditionCallBack(source, destination string, config interface{}) error {
