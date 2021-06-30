@@ -42,6 +42,7 @@ var (
 	templateInnerParametersRegex = regexp.MustCompile(`\$\([^)]+\)`)
 )
 
+// Top does the parameterization
 func Top(srcDir string, packDir string, outDir string) ([]string, error) {
 	cleanSrcDir, err := filepath.Abs(srcDir)
 	if err != nil {
@@ -331,7 +332,7 @@ func doesMatchEnv(p types.ParameterValueT, env, kind, apiVersion, metadataName s
 	if p.Kind != "" && p.Kind != kind {
 		return false
 	}
-	if p.ApiVersion != "" && p.ApiVersion != apiVersion {
+	if p.APIVersion != "" && p.APIVersion != apiVersion {
 		return false
 	}
 	if p.MetadataName != "" && p.MetadataName != metadataName {
