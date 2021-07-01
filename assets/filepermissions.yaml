@@ -79,6 +79,7 @@
 "inbuilt/transformers/java-springboot/segments/dockerfile_war_liberty/Dockerfile" : 0644
 "inbuilt/transformers/java-springboot/segments/dockerfile_war_tomcat/Dockerfile" : 0644
 "inbuilt/transformers/java-springboot/templates/Dockerfile.license" : 0644
+"inbuilt/transformers/java-springboot/templates/Dockerfile.maven-build" : 0644
 "inbuilt/transformers/java-springboot/templates/Dockerfile.springboot-embedded" : 0644
 "inbuilt/transformers/scriptsgenerator/containerpushscripts/containerpushscripts.yaml" : 0644
 "inbuilt/transformers/scriptsgenerator/containerpushscripts/templates/pushimages.bat" : 0755

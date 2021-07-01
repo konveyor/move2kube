@@ -18,11 +18,14 @@ package analysers
 
 import (
 	"encoding/xml"
-	"github.com/creekorful/mvnparser"
-	"path/filepath"
 	"io/ioutil"
+	"path/filepath"
+	"strings"
+
+	"github.com/creekorful/mvnparser"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
+
 	//"github.com/konveyor/move2kube/internal/transformer/classes/analysers/compose"
 	//collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
@@ -54,9 +57,25 @@ type SpringbootConfig struct {
 }
 
 type SpringbootTemplateConfig struct {
-	Ports []int 
+	Ports       []int
+	JavaVersion string
 }
 
+type Application struct {
+	Name string `yaml:"name"`
+}
+type SpringSpec struct {
+	Application Application `yaml:"application"`
+}
+
+type SpringBootSpec struct {
+	SpringSpec SpringSpec `yaml:"spring"`
+	ServerSpec ServerSpec `yaml:"server"`
+}
+
+type ServerSpec struct {
+	Port int `yaml:"port"`
+}
 
 func (t *SpringbootAnalyser) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.Config = tc
@@ -69,68 +88,71 @@ func (t *SpringbootAnalyser) GetConfig() (transformertypes.Transformer, environm
 }
 
 func (t *SpringbootAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
-	
+
 	return nil, nil, nil
 }
 
 func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
-	
+
 	destEntries, err := ioutil.ReadDir(dir)
-		if err != nil {
-			logrus.Errorf("Unable to process directory %s : %s", dir, err)
-		} else {
-			for _, de := range destEntries {
-				if de.Name() == "pom.xml"{
+	if err != nil {
+		logrus.Errorf("Unable to process directory %s : %s", dir, err)
+	} else {
+		for _, de := range destEntries {
+			if de.Name() == "pom.xml" {
 
-					// filled with previously declared xml 
-					pomStr,err := ioutil.ReadFile(filepath.Join(dir,de.Name() ))
-					if err != nil{
-						return nil,nil,err
-					}
-					
-					// Load project from string
-					var project mvnparser.MavenProject
-					if err := xml.Unmarshal([]byte(pomStr), &project); err != nil {
-						logrus.Errorf("unable to unmarshal pom file. Reason: %s", err)
-						return nil, nil, err
-					}
-					
-					if len(project.Modules) != 0{
-						return nil, nil, nil
-					}
-
-
-					ct := plantypes.Transformer{
-						Mode:                   plantypes.ModeContainer,
-						ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
-						ExclusiveArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-						Configs: map[transformertypes.ConfigType]interface{}{
-							SpringbootServiceConfigType: SpringbootConfig{
-								ServiceName: filepath.Base(dir),
-							}},
-						Paths: map[transformertypes.PathType][]string{
-							mavenPomXML: {
-							filepath.Join(dir, "pom.xml"),
-							},
-							artifacts.ProjectPathPathType: {dir},
-
-						},
-					}
-
-					
-
-					return map[string]plantypes.Service {filepath.Base(dir):[]plantypes.Transformer{ct}}, nil, nil
+				// filled with previously declared xml
+				pomStr, err := ioutil.ReadFile(filepath.Join(dir, de.Name()))
+				if err != nil {
+					return nil, nil, err
 				}
 
+				// Load project from string
+				var project mvnparser.MavenProject
+				if err := xml.Unmarshal([]byte(pomStr), &project); err != nil {
+					logrus.Errorf("unable to unmarshal pom file. Reason: %s", err)
+					return nil, nil, err
+				}
+
+				// Dont process if this is a root pom and there are submodules
+				if len(project.Modules) != 0 {
+					return nil, nil, nil
+				}
+
+				// Check if at least there is one springboot dependency
+				isSpringboot := false
+				for _, dependency := range project.Dependencies {
+					if strings.Contains(dependency.GroupId, "org.springframework.boot") {
+						isSpringboot = true
+					}
+				}
+				if !isSpringboot {
+					return nil, nil, nil
+				}
+
+				ct := plantypes.Transformer{
+					Mode:                   plantypes.ModeContainer,
+					ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
+					ExclusiveArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+					Configs: map[transformertypes.ConfigType]interface{}{
+						SpringbootServiceConfigType: SpringbootConfig{
+							ServiceName: filepath.Base(dir),
+						}},
+					Paths: map[transformertypes.PathType][]string{
+						mavenPomXML: {
+							filepath.Join(dir, "pom.xml"),
+						},
+						artifacts.ProjectPathPathType: {dir},
+					},
+				}
+				return map[string]plantypes.Service{filepath.Base(dir): []plantypes.Transformer{ct}}, nil, nil
 			}
 		}
-
-	
+	}
 	return nil, nil, nil
 }
 
 func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
-	
 
 	pathMappings := []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
@@ -142,7 +164,7 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
 		}
-		
+
 		var pConfig artifacts.PlanConfig
 		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
 		if err != nil {
@@ -163,37 +185,63 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 			continue
 		}
 
-
-		strLicense , err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir,"Dockerfile.license"))
-		if err !=nil{
+		// License
+		strLicense, err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir, "Dockerfile.license"))
+		if err != nil {
 			return nil, nil, err
 		}
 
-		strEmbedded , err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir,"Dockerfile.springboot-embedded"))
-		if err !=nil{
+		// Build
+		strBuild, err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir, "Dockerfile.maven-build"))
+		if err != nil {
 			return nil, nil, err
 		}
 
-		var outputPath = filepath.Join(t.Env.TempPath,"Dockerfile.template")
+		// Runtime
+		strEmbedded, err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir, "Dockerfile.springboot-embedded"))
+		if err != nil {
+			return nil, nil, err
+		}
 
-		ioutil.WriteFile(outputPath, append(strLicense,strEmbedded...), 0644)
+		var outputPath = filepath.Join(t.Env.TempPath, "Dockerfile.template")
 
-		tConfig := SpringbootTemplateConfig{ Ports:[]int{50,100} }
+		template := string(strLicense) + "\n" + string(strBuild) + "\n" + string(strEmbedded)
+
+		err = ioutil.WriteFile(outputPath, []byte(template), 0644)
+		if err != nil {
+			logrus.Errorf("error:", err)
+		}
+
+		dir := a.Paths[artifacts.ProjectPathPathType][0]
+
+		// capture port and app name
+		var stc SpringbootTemplateConfig
+		yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
+		if err != nil {
+			logrus.Errorf("Cannot get yaml files", err)
+
+		}
+		for _, path := range yamlpaths {
+			sb := SpringBootSpec{}
+			if err := common.ReadYaml(path, &sb); err != nil {
+				continue
+			}
+
+			stc.Ports = []int{sb.ServerSpec.Port}
+			break
+		}
 
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
 			SrcPath:        outputPath,
-			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath,"Docklefile."+seConfig.ServiceName),
-			TemplateConfig: tConfig,
+			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile."+seConfig.ServiceName),
+			TemplateConfig: stc,
 		}, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
 			SrcPath:  "",
 			DestPath: common.DefaultSourceDir,
 		})
-		
+
 	}
 	return pathMappings, nil, nil
 }
-
-
-
