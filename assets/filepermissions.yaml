@@ -26,7 +26,6 @@
 "inbuilt/transformers/compose/composeanalyser.yaml" : 0644
 "inbuilt/transformers/compose/composegenerator.yaml" : 0644
 "inbuilt/transformers/dockerfiledetector/dockerfiledetector.yaml" : 0644
-"inbuilt/transformers/executable/.DS_Store" : 0644
 "inbuilt/transformers/executable/dockerfile/django/django.yaml" : 0644
 "inbuilt/transformers/executable/dockerfile/django/m2kdetect.sh" : 0755
 "inbuilt/transformers/executable/dockerfile/django/templates/Dockerfile" : 0644
