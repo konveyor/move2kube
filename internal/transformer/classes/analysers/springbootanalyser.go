@@ -95,7 +95,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	// filled with previously declared xml
 	pomStr, err := ioutil.ReadFile(filepath.Join(dir, pomXML))
 	if err != nil {
-		logrus.Errorf("Could not read the pom.xml file", err)
+		logrus.Errorf("Could not read the pom.xml file: %s", err)
 		return nil, nil, err
 	}
 
@@ -230,7 +230,7 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 
 		err = ioutil.WriteFile(outputPath, []byte(template), 0644)
 		if err != nil {
-			logrus.Errorf("error:", err)
+			logrus.Errorf("Could not write the single generated Dockerfile template: %s", err)
 		}
 
 		port := 8080
