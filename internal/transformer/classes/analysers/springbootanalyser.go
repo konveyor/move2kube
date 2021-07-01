@@ -36,7 +36,7 @@ import (
 const pomXML string = "pom.xml"
 
 const (
-	SpringbootServiceConfigType transformertypes.ConfigType = "SpringbootService"
+	springbootServiceConfigType transformertypes.ConfigType = "SpringbootService"
 )
 
 const (
@@ -50,30 +50,36 @@ type SpringbootAnalyser struct {
 	Env    environment.Environment
 }
 
+// SpringbootConfig defines SpringbootConfig properties
 type SpringbootConfig struct {
 	ServiceName string `yaml:"serviceName,omitempty"`
 	Ports       []int  `yaml:"ports,omitempty"`
 }
 
+// SpringbootTemplateConfig defines SpringbootTemplateConfig properties
 type SpringbootTemplateConfig struct {
 	Port        int
 	JavaVersion string
 }
 
+// Init Initializes the transformer
 func (t *SpringbootAnalyser) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *SpringbootAnalyser) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.Config, t.Env
 }
 
+// BaseDirectoryDetect runs detect in base directory
 func (t *SpringbootAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// DirectoryDetect runs detect in each sub directory
 func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	destEntries, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -161,7 +167,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
 		ExclusiveArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 		Configs: map[transformertypes.ConfigType]interface{}{
-			SpringbootServiceConfigType: SpringbootConfig{
+			springbootServiceConfigType: SpringbootConfig{
 				ServiceName: appName,
 				Ports:       ports,
 			}},
@@ -174,6 +180,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	return map[string]plantypes.Service{appName: []plantypes.Transformer{ct}}, nil, nil
 }
 
+// Transform transforms the artifacts
 func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
@@ -193,7 +200,7 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 			continue
 		}
 		var sConfig SpringbootConfig
-		err = a.GetConfig(SpringbootServiceConfigType, &sConfig)
+		err = a.GetConfig(springbootServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue

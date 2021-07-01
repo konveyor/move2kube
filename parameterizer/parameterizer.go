@@ -499,8 +499,8 @@ func parameterizeFilter(envs []string, k types.K8sResourceT, p types.Parameteriz
 			}
 		}
 		// empty apiVersion matches all apiVersions
-		if filter.ApiVersion != "" {
-			re, err := regexp.Compile("^" + filter.ApiVersion + "$")
+		if filter.APIVersion != "" {
+			re, err := regexp.Compile("^" + filter.APIVersion + "$")
 			if err != nil {
 				return false, err
 			}

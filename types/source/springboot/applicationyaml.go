@@ -16,18 +16,23 @@
 
 package springboot
 
+// SpringApplicationYaml defines SpringApplicationYaml properties
 type SpringApplicationYaml struct {
 	Spring Spring `yaml:"spring,omitempty"`
 	Server Server `yaml:"server,omitempty"`
 }
 
+// Server defines Server properties
 type Server struct {
 	Port int `yaml:"port,omitempty"`
 }
 
+// Spring defines Spring properties
 type Spring struct {
 	SpringApplication SpringApplication `yaml:"application,omitempty"`
 }
+
+// SpringApplication defines SpringApplication properties
 type SpringApplication struct {
 	Name string `yaml:"name,omitempty"`
 }
