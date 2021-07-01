@@ -34,6 +34,7 @@ func Transform(plan plantypes.Plan, outputPath string) {
 	logrus.Infof("Plan Transformation done")
 }
 
+// Destroy destroys the tranformer
 func Destroy() {
 	transformer.Destroy()
 }

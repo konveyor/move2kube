@@ -32,6 +32,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Local manages a local machine environment
 type Local struct {
 	Name     string
 	Source   string
@@ -44,6 +45,7 @@ type Local struct {
 	GRPCQAReceiver net.Addr
 }
 
+// NewLocal creates a new Local environment
 func NewLocal(name, source, context, tempPath string, grpcQAReceiver net.Addr) (ei EnvironmentInstance, err error) {
 	local := &Local{
 		Name:           name,
@@ -65,6 +67,7 @@ func NewLocal(name, source, context, tempPath string, grpcQAReceiver net.Addr) (
 	return local, nil
 }
 
+// Reset resets the environment to fresh state
 func (e *Local) Reset() error {
 	if err := filesystem.Replicate(e.Context, e.WorkspaceContext); err != nil {
 		logrus.Errorf("Unable to copy contents to directory %s, %s : %s", e.Context, e.WorkspaceContext, err)
@@ -77,6 +80,7 @@ func (e *Local) Reset() error {
 	return nil
 }
 
+// Exec executes an executable within the environment
 func (e *Local) Exec(cmd environmenttypes.Command) (string, string, int, error) {
 	var exitcode int
 	var outb, errb bytes.Buffer
@@ -112,6 +116,7 @@ func (e *Local) Exec(cmd environmenttypes.Command) (string, string, int, error) 
 	return outb.String(), errb.String(), exitcode, err
 }
 
+// Destroy destroys all artifacts specific to the environment
 func (e *Local) Destroy() error {
 	err := os.RemoveAll(e.WorkspaceSource)
 	if err != nil {
@@ -124,19 +129,20 @@ func (e *Local) Destroy() error {
 	return nil
 }
 
+// Download downloads the path to outside the environment
 func (e *Local) Download(path string) (string, error) {
 	output, err := ioutil.TempDir(e.TempPath, "*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return path, err
 	}
-	if ps, err := os.Stat(path); err != nil {
+	ps, err := os.Stat(path)
+	if err != nil {
 		logrus.Errorf("Unable to stat source : %s", path)
 		return "", err
-	} else {
-		if ps.Mode().IsRegular() {
-			output = filepath.Join(output, filepath.Base(path))
-		}
+	}
+	if ps.Mode().IsRegular() {
+		output = filepath.Join(output, filepath.Base(path))
 	}
 	err = filesystem.Replicate(path, output)
 	if err != nil {
@@ -146,10 +152,12 @@ func (e *Local) Download(path string) (string, error) {
 	return output, nil
 }
 
+// GetContext returns the context of Local
 func (e *Local) GetContext() string {
 	return e.WorkspaceContext
 }
 
+// GetSource returns the source of Local
 func (e *Local) GetSource() string {
 	return e.WorkspaceSource
 }

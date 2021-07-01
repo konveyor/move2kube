@@ -42,7 +42,8 @@ type dockerEngine struct {
 	ctx             context.Context
 }
 
-func NewDockerEngine() (*dockerEngine, error) {
+// newDockerEngine creates a new docker engine instance
+func newDockerEngine() (*dockerEngine, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {

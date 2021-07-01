@@ -23,6 +23,7 @@ type Container struct {
 	ContainerBuild ContainerBuild `yaml:"build"`
 }
 
+// ContainerBuild stores container build information
 type ContainerBuild struct {
 	Dockerfile string `yaml:"dockerfile"` // Default : Look for Dockerfile in the same folder
 	Context    string `yaml:"context"`    // Default : Same folder as the yaml

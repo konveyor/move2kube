@@ -16,4 +16,5 @@
 
 package environment
 
+// Command type stores information about a command
 type Command = []string

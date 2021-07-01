@@ -26,6 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TemplateCopy copies a directory to another and applies a template config on all files in the directory
 func TemplateCopy(source, destination string, config interface{}) error {
 	options := options{
 		processFileCallBack: templateCopyProcessFileCallBack,

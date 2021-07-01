@@ -33,24 +33,29 @@ type ContainerImagePushScript struct {
 	Env     environment.Environment
 }
 
+// Init Initializes the transformer
 func (t *ContainerImagePushScript) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *ContainerImagePushScript) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.TConfig, t.Env
 }
 
+// BaseDirectoryDetect runs detect in base directory
 func (t *ContainerImagePushScript) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// DirectoryDetect runs detect in each sub directory
 func (t *ContainerImagePushScript) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// Transform transforms the artifacts
 func (t *ContainerImagePushScript) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	images := []string{}

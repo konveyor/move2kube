@@ -11,8 +11,8 @@ spec:
     - "ContainerBuild"
   config:
     directoryDetectCMD: ["./m2kdetect.sh"]
-    container:
-      image: m2kgolangdf
-      build:
-        dockerfile: Dockerfile
-        context: .
+    #container:
+    #  image: m2kgolangdf
+    #  build:
+    #    dockerfile: Dockerfile
+    #    context: .

@@ -26,7 +26,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
 
 	t.Run("normal use case", func(t *testing.T) {
-		provider, _ := NewDockerEngine()
+		provider, _ := newDockerEngine()
 		image := "quay.io/konveyor/move2kube"
 
 		// Test
@@ -36,7 +36,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	})
 
 	t.Run("normal use case where we get result from cache", func(t *testing.T) {
-		provider, _ := NewDockerEngine()
+		provider, _ := newDockerEngine()
 		image := "quay.io/konveyor/move2kube"
 
 		// Test
@@ -52,7 +52,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	})
 
 	t.Run("check for a non existent image", func(t *testing.T) {
-		provider, _ := NewDockerEngine()
+		provider, _ := newDockerEngine()
 		image := "this/doesnotexist:foobar"
 		if provider.pullImage(image) {
 			t.Fatalf("Should not have succeeded. The image %q does not exist", image)

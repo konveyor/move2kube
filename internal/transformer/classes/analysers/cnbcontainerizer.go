@@ -36,10 +36,12 @@ type CNBContainerizer struct {
 	CNBEnv    environment.Environment
 }
 
+// CNBContainerizerYamlConfig represents the configuration of the CNBBuilder
 type CNBContainerizerYamlConfig struct {
 	BuilderImageName string `yaml:"CNBBuilder"`
 }
 
+// Init Initializes the transformer
 func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
@@ -62,14 +64,17 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env environment
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *CNBContainerizer) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.TConfig, t.Env
 }
 
+// BaseDirectoryDetect runs detect in base directory
 func (t *CNBContainerizer) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// DirectoryDetect runs detect in each sub directory
 func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	path := dir
 	cmd := environmenttypes.Command{
@@ -83,7 +88,7 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 		return nil, nil, nil
 	}
 	trans := plantypes.Transformer{
-		Mode:                   plantypes.ModeContainer,
+		Mode:                   transformertypes.ModeContainer,
 		ArtifactTypes:          []string{artifacts.ContainerBuildArtifactType},
 		ExclusiveArtifactTypes: []string{artifacts.ContainerBuildArtifactType},
 		Paths:                  map[string][]string{artifacts.ProjectPathPathType: {dir}},
@@ -94,6 +99,7 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 	return nil, []plantypes.Transformer{trans}, nil
 }
 
+// Transform transforms the artifacts
 func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (tPathMappings []transformertypes.PathMapping, tArtifacts []transformertypes.Artifact, err error) {
 	tArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {

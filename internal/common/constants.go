@@ -111,7 +111,7 @@ const (
 	ConfigTargetClusterTypeKey = ConfigTargetKey + d + "clustertype"
 	//ConfigImageRegistryKey represents image registry Key
 	ConfigImageRegistryKey = ConfigTargetKey + d + "imageregistry"
-	//ConfigVersionUpdate represents key which how to update versions
+	//ConfigTargetExistingVersionUpdate represents key which how to update versions
 	ConfigTargetExistingVersionUpdate = ConfigTargetKey + d + "existingversionupdate"
 	//ConfigImageRegistryURLKey represents image registry url Key
 	ConfigImageRegistryURLKey = ConfigImageRegistryKey + d + "url"

@@ -28,9 +28,11 @@ const (
 )
 
 const (
+	// CloudFoundryConfigType represents the cloud foundry service configuration
 	CloudFoundryConfigType transformertypes.ConfigType = "CloudFoundryService"
 )
 
+// CloudFoundryConfig stores the configurations
 type CloudFoundryConfig struct {
 	ServiceName string `yaml:"serviceName,omitempty"`
 	ImageName   string `yaml:"imageName,omitempty"`

@@ -44,16 +44,19 @@ type CloudFoundry struct {
 	Env    environment.Environment
 }
 
+// Init Initializes the transformer
 func (t *CloudFoundry) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
+// GetConfig returns the transformer config
 func (t *CloudFoundry) GetConfig() (transformertypes.Transformer, environment.Environment) {
 	return t.Config, t.Env
 }
 
+// BaseDirectoryDetect runs detect in base directory
 func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	namedServices = map[string]plantypes.Service{}
 
@@ -100,7 +103,7 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string
 				applicationName = strings.TrimSuffix(basename, filepath.Ext(basename))
 			}
 			ct := plantypes.Transformer{
-				Mode:                   plantypes.ModeContainer,
+				Mode:                   transformertypes.ModeContainer,
 				ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType},
 				ExclusiveArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType},
 				Configs: map[transformertypes.ConfigType]interface{}{
@@ -131,10 +134,12 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string
 	return namedServices, nil, nil
 }
 
+// DirectoryDetect runs detect in each sub directory
 func (t *CloudFoundry) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
+// Transform transforms the artifacts
 func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {

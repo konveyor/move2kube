@@ -40,6 +40,7 @@ var (
 	stripHelmQuotesRegex = regexp.MustCompile(`'({{.+}})'`)
 )
 
+// RT has Key, Value and Matches
 type RT struct {
 	Key     []string
 	Value   interface{}
