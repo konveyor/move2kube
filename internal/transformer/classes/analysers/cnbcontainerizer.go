@@ -103,6 +103,22 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (tPathMappings []transformertypes.PathMapping, tArtifacts []transformertypes.Artifact, err error) {
 	tArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
+		var sConfig artifacts.ServiceConfig
+		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+			continue
+		}
+		var cConfig artifacts.CNBMetadataConfig
+		err = a.GetConfig(artifacts.CNBMetadataConfigType, &cConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", cConfig, err)
+			continue
+		}
+		if cConfig.ImageName == "" {
+			cConfig.ImageName = sConfig.ServiceName
+		}
+		a.Configs[artifacts.CNBMetadataConfigType] = cConfig
 		tArtifacts = append(tArtifacts, transformertypes.Artifact{
 			Name:     a.Name,
 			Artifact: artifacts.CNBMetadataArtifactType,

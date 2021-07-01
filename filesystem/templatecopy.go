@@ -119,5 +119,10 @@ func writeTemplateToFile(tpl string, config interface{}, writepath string, filem
 		logrus.Warnf("Error writing file at %s : %s", writepath, err)
 		return err
 	}
+	err = os.Chmod(writepath, filemode)
+	if err != nil {
+		logrus.Warnf("Error writing changing permissions at %s : %s", writepath, err)
+		return err
+	}
 	return nil
 }
