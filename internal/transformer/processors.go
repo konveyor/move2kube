@@ -27,33 +27,34 @@ import (
 )
 
 func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputPath string) error {
-	//TODO: Merge path mappings before processing
 	copiedSourceDests := map[string]bool{}
-	copiedDefaultDests := map[string]bool{}
 	for _, pm := range pms {
-		switch strings.ToLower(string(pm.Type)) {
-		case strings.ToLower(string(transformertypes.SourcePathMappingType)):
-			if !copiedSourceDests[pm.SrcPath+":"+pm.DestPath] {
-				srcPath := pm.SrcPath
-				if !filepath.IsAbs(pm.SrcPath) {
-					srcPath = filepath.Join(sourcePath, pm.SrcPath)
-				}
-				if err := filesystem.Merge(srcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
-					logrus.Errorf("Error while copying sourcepath for %+v", pm)
-				}
-				copiedSourceDests[pm.SrcPath+":"+pm.DestPath] = true
+		if strings.EqualFold(pm.Type, transformertypes.SourcePathMappingType) && !copiedSourceDests[pm.SrcPath+":"+pm.DestPath] {
+			srcPath := pm.SrcPath
+			if !filepath.IsAbs(pm.SrcPath) {
+				srcPath = filepath.Join(sourcePath, pm.SrcPath)
 			}
-		case strings.ToLower(string(transformertypes.ModifiedSourcePathMappingType)):
-			if err := filesystem.Merge(pm.SrcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
+			if err := filesystem.Merge(srcPath, filepath.Join(outputPath, pm.DestPath), true); err != nil {
 				logrus.Errorf("Error while copying sourcepath for %+v", pm)
 			}
-		case strings.ToLower(string(transformertypes.TemplatePathMappingType)):
+			copiedSourceDests[pm.SrcPath+":"+pm.DestPath] = true
+		}
+	}
+	copiedDefaultDests := map[string]bool{}
+	for _, pm := range pms {
+		switch strings.ToLower(pm.Type) {
+		case strings.ToLower(transformertypes.SourcePathMappingType):
+		case strings.ToLower(transformertypes.ModifiedSourcePathMappingType):
+			if err := filesystem.Merge(pm.SrcPath, filepath.Join(outputPath, pm.DestPath), false); err != nil {
+				logrus.Errorf("Error while copying sourcepath for %+v", pm)
+			}
+		case strings.ToLower(transformertypes.TemplatePathMappingType):
 			if err := filesystem.TemplateCopy(pm.SrcPath, filepath.Join(outputPath, pm.DestPath), pm.TemplateConfig); err != nil {
 				logrus.Errorf("Error while copying sourcepath for %+v", pm)
 			}
 		default:
 			if !copiedDefaultDests[pm.SrcPath+":"+pm.DestPath] {
-				if err := filesystem.Merge(pm.SrcPath, filepath.Join(outputPath, pm.DestPath)); err != nil {
+				if err := filesystem.Merge(pm.SrcPath, filepath.Join(outputPath, pm.DestPath), true); err != nil {
 					logrus.Errorf("Error while copying sourcepath for %+v", pm)
 				}
 				copiedDefaultDests[pm.SrcPath+":"+pm.DestPath] = true
