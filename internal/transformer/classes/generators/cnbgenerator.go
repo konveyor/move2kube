@@ -58,6 +58,7 @@ func (t *CNBGenerator) DirectoryDetect(dir string) (namedServices map[string]pla
 // Transform transforms the artifacts
 func (t *CNBGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
+	newartifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		tc := artifacts.CNBMetadataConfig{}
 		err := a.GetConfig(artifacts.CNBMetadataConfigType, &tc)
@@ -79,6 +80,15 @@ func (t *CNBGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath, cnbfilename),
 			TemplateConfig: tc,
 		})
+		newartifacts = append(newartifacts, transformertypes.Artifact{
+			Name:     tc.ImageName,
+			Artifact: artifacts.NewImageArtifactType,
+			Configs: map[string]interface{}{
+				artifacts.NewImageConfigType: artifacts.NewImage{
+					ImageName: tc.ImageName,
+				},
+			},
+		})
 	}
-	return pathMappings, nil, nil
+	return pathMappings, newartifacts, nil
 }
