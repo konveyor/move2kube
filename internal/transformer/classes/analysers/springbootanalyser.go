@@ -26,8 +26,6 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 
-	//"github.com/konveyor/move2kube/internal/transformer/classes/analysers/compose"
-	//collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -40,10 +38,7 @@ const (
 )
 
 const (
-	// composeFilePathType defines the source artifact type of Docker compose
 	mavenPomXML transformertypes.PathType = "MavenPomXML"
-	// imageInfoPathType defines the source artifact type of image info
-	//imageInfoPathType transformertypes.PathType = "ImageInfo"
 )
 
 // SpringbootAnalyser implements Transformer interface

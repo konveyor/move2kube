@@ -1,7 +1,0 @@
-
-FROM registry.access.redhat.com/ubi8/ubi:latest AS build_base
-RUN yum install -y {{ .java_version}}
-RUN yum install -y maven
-COPY . /app
-WORKDIR /app
-RUN mvn install
