@@ -22,6 +22,7 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	plantypes "github.com/konveyor/move2kube/types/plan"
+	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -31,6 +32,12 @@ import (
 type ContainerImagePushScript struct {
 	TConfig transformertypes.Transformer
 	Env     environment.Environment
+}
+
+type ImagePushTemplateConfig struct {
+	RegistryURL       string
+	RegistryNamespace string
+	Images            []string
 }
 
 // Init Initializes the transformer
@@ -58,7 +65,7 @@ func (t *ContainerImagePushScript) DirectoryDetect(dir string) (namedServices ma
 // Transform transforms the artifacts
 func (t *ContainerImagePushScript) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
-	images := []string{}
+	ipt := ImagePushTemplateConfig{}
 	for _, a := range newArtifacts {
 		if a.Artifact == artifacts.NewImageArtifactType {
 			image := artifacts.NewImage{}
@@ -66,17 +73,22 @@ func (t *ContainerImagePushScript) Transform(newArtifacts []transformertypes.Art
 			if err != nil {
 				logrus.Errorf("Unable to read Image config : %s", err)
 			}
-			if !common.IsStringPresent(images, image.ImageName) {
-				images = append(images, image.ImageName)
+			if !common.IsStringPresent(ipt.Images, image.ImageName) {
+				ipt.Images = append(ipt.Images, image.ImageName)
 			}
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:           transformertypes.TemplatePathMappingType,
-				SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),
-				DestPath:       common.ScriptsDir,
-				TemplateConfig: images,
-			})
 		}
 	}
+	if len(ipt.Images) == 0 {
+		return nil, nil, nil
+	}
+	ipt.RegistryURL = commonqa.ImageRegistry()
+	ipt.RegistryNamespace = commonqa.ImageRegistryNamespace("defaultns")
+	pathMappings = append(pathMappings, transformertypes.PathMapping{
+		Type:           transformertypes.TemplatePathMappingType,
+		SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),
+		DestPath:       common.ScriptsDir,
+		TemplateConfig: ipt,
+	})
 	artifacts := []transformertypes.Artifact{{
 		Name:     "ImagePushScript",
 		Artifact: artifacts.ImagePushScriptArtifactType,
