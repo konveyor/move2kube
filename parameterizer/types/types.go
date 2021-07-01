@@ -88,7 +88,7 @@ type ParameterizerT struct {
 // FilterT is used to choose the k8s resources that the parameterizer should be applied on
 type FilterT struct {
 	Kind       string   `yaml:"kind,omitempty" json:"kind,omitempty"`
-	ApiVersion string   `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
+	APIVersion string   `yaml:"apiVersion,omitempty" json:"apiVersion,omitempty"`
 	Name       string   `yaml:"name,omitempty" json:"name,omitempty"`
 	Envs       []string `yaml:"envs,omitempty" json:"envs,omitempty"`
 }
