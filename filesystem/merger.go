@@ -23,12 +23,13 @@ import (
 )
 
 // Merge copies and merges data into destination directory
-func Merge(source, destination string) error {
+func Merge(source, destination string, warnOnOverwrite bool) error {
 	options := options{
 		processFileCallBack: mergeProcessFileCallBack,
 		additionCallBack:    mergeAdditionCallBack,
 		deletionCallBack:    mergeDeletionCallBack,
 		mismatchCallBack:    mergeDeletionCallBack,
+		config:              warnOnOverwrite,
 	}
 	return newProcessor(options).process(source, destination)
 }
@@ -44,7 +45,11 @@ func mergeProcessFileCallBack(sourceFilePath, destinationFilePath string, config
 		if !(si.Mode().IsRegular() != di.Mode().IsRegular() || si.Size() != di.Size() || si.ModTime() != di.ModTime()) {
 			return nil
 		}
-		logrus.Warnf("Overwriting file : %s with %s", destinationFilePath, sourceFilePath)
+		if config.(bool) {
+			logrus.Warnf("Overwriting file : %s with %s", destinationFilePath, sourceFilePath)
+		} else {
+			logrus.Debugf("Overwriting file : %s with %s", destinationFilePath, sourceFilePath)
+		}
 	}
 	return copyFile(sourceFilePath, destinationFilePath)
 }
