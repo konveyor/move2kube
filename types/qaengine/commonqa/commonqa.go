@@ -25,6 +25,7 @@ import (
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 )
 
+// ImageRegistry returns Image Registry URL
 func ImageRegistry() string {
 	registryList := []string{qatypes.OtherAnswer}
 	registryAuthList := map[string]string{} //Registry url and auth
@@ -61,6 +62,7 @@ func ImageRegistry() string {
 	return qaengine.FetchSelectAnswer(common.ConfigImageRegistryURLKey, "Enter the URL of the image registry : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList)
 }
 
+// ImageRegistryNamespace returns Image Registry Namespace
 func ImageRegistryNamespace(def string) string {
 	return qaengine.FetchStringAnswer(common.ConfigImageRegistryNamespaceKey, "Enter the namespace where the new images should be pushed : ", []string{"Ex : " + def}, def)
 }

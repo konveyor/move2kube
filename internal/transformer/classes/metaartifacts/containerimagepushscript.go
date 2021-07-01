@@ -34,6 +34,7 @@ type ContainerImagePushScript struct {
 	Env     environment.Environment
 }
 
+// ImagePushTemplateConfig represents template config used by ImagePush script
 type ImagePushTemplateConfig struct {
 	RegistryURL       string
 	RegistryNamespace string
