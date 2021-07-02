@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
@@ -35,9 +36,10 @@ import (
 )
 
 var (
-	initialized                              = false
-	transformerTypes map[string]reflect.Type = make(map[string]reflect.Type)
-	transformers     map[string]Transformer  = make(map[string]Transformer)
+	initialized                                     = false
+	transformerTypes        map[string]reflect.Type = make(map[string]reflect.Type)
+	transformers            map[string]Transformer  = make(map[string]Transformer)
+	defaultIgnoreDirRegexps                         = []*regexp.Regexp{regexp.MustCompile("[.].*")}
 )
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
@@ -284,6 +286,11 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 		}
 		if !info.IsDir() {
 			return nil
+		}
+		for _, dirRegExp := range defaultIgnoreDirRegexps {
+			if dirRegExp.Match([]byte(filepath.Base(path))) {
+				return filepath.SkipDir
+			}
 		}
 		if common.IsStringPresent(knownProjectPaths, path) {
 			return filepath.SkipDir //TODO: Should we go inside the directory in this case?
