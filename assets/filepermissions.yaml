@@ -17,7 +17,6 @@
 "inbuilt/clusters/kubernetes.yaml" : 0644
 "inbuilt/clusters/openshift.yaml" : 0644
 "inbuilt/configs/dc.yaml" : 0644
-"inbuilt/transformers/.DS_Store" : 0644
 "inbuilt/transformers/cloudfoundry/cloudfoundry.yaml" : 0644
 "inbuilt/transformers/cnb/cfcnb/cfcnb.yaml" : 0644
 "inbuilt/transformers/cnb/cnbgenerator/cnbgenerator.yaml" : 0644
@@ -27,7 +26,6 @@
 "inbuilt/transformers/compose/composeanalyser/composeanalyser.yaml" : 0644
 "inbuilt/transformers/compose/composegenerator/composegenerator.yaml" : 0644
 "inbuilt/transformers/dockerfiledetector/dockerfiledetector.yaml" : 0644
-"inbuilt/transformers/executable/.DS_Store" : 0644
 "inbuilt/transformers/executable/dockerfile/django/django.yaml" : 0644
 "inbuilt/transformers/executable/dockerfile/django/m2kdetect.sh" : 0755
 "inbuilt/transformers/executable/dockerfile/django/templates/Dockerfile" : 0644
@@ -68,7 +66,6 @@
 "inbuilt/transformers/executable/dockerfile/rust/m2kdetect.sh" : 0755
 "inbuilt/transformers/executable/dockerfile/rust/rust.yaml" : 0644
 "inbuilt/transformers/executable/dockerfile/rust/templates/Dockerfile" : 0644
-"inbuilt/transformers/executable/s2i/.DS_Store" : 0644
 "inbuilt/transformers/executable/s2i/golang/golang.yaml" : 0644
 "inbuilt/transformers/executable/s2i/golang/m2kdetect.sh" : 0755
 "inbuilt/transformers/executable/s2i/golang/templates/$.s2i/environment" : 0644

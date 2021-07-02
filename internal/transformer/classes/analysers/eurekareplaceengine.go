@@ -29,8 +29,6 @@ import (
 	 "github.com/konveyor/move2kube/types/source/maven"
 	 "github.com/konveyor/move2kube/environment"
 	 "github.com/konveyor/move2kube/internal/common"
-	 //"github.com/konveyor/move2kube/internal/transformer/classes/analysers/compose"
-	 //collecttypes "github.com/konveyor/move2kube/types/collection"
 	 irtypes "github.com/konveyor/move2kube/types/ir"
 	 plantypes "github.com/konveyor/move2kube/types/plan"
 	 transformertypes "github.com/konveyor/move2kube/types/transformer"

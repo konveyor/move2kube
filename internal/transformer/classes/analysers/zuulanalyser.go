@@ -17,14 +17,8 @@
 package analysers
 
 import (
-	//  "encoding/xml"
-	//  "github.com/creekorful/mvnparser"
-	//  "path/filepath"
-	//  "io/ioutil"
 	 "github.com/konveyor/move2kube/environment"
 	 "github.com/konveyor/move2kube/internal/common"
-	 //"github.com/konveyor/move2kube/internal/transformer/classes/analysers/compose"
-	 //collecttypes "github.com/konveyor/move2kube/types/collection"
 	 irtypes "github.com/konveyor/move2kube/types/ir"
 	 plantypes "github.com/konveyor/move2kube/types/plan"
 	 transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -115,8 +109,6 @@ func (t *ZuulAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string
 
 // DirectoryDetect runs detect in each sub directory
 func (t *ZuulAnalyser) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
-
-	 
 	 return nil, nil, nil
 }
  
