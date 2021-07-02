@@ -63,6 +63,9 @@
 "inbuilt/transformers/executable/dockerfile/ruby/m2kdetect.sh" : 0755
 "inbuilt/transformers/executable/dockerfile/ruby/ruby.yaml" : 0644
 "inbuilt/transformers/executable/dockerfile/ruby/templates/Dockerfile" : 0644
+"inbuilt/transformers/executable/dockerfile/rust/m2kdetect.sh" : 0755
+"inbuilt/transformers/executable/dockerfile/rust/rust.yaml" : 0644
+"inbuilt/transformers/executable/dockerfile/rust/templates/Dockerfile" : 0644
 "inbuilt/transformers/executable/s2i/golang/golang.yaml" : 0644
 "inbuilt/transformers/executable/s2i/golang/m2kdetect.sh" : 0755
 "inbuilt/transformers/executable/s2i/golang/templates/$.s2i/environment" : 0644
