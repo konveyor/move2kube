@@ -53,6 +53,10 @@ const (
 	 JavaWithEureka transformertypes.PathType = "JavaWithEureka"
 	 // PropertiesWithEureka defines path type
 	 PropertiesWithEureka transformertypes.PathType = "PropertiesWithEureka"
+	 // PropertiesWithConfig defines path type
+	 PropertiesWithConfig transformertypes.PathType = "PropertiesWithConfig"
+	 // ConfigServerURL defines environment variable name
+	 ConfigServerURL string = "${CONFIG_SERVER_URL}"
 )
  
 // EurekaReplaceEngine implements Transformer interface
@@ -119,6 +123,8 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 		var javaWithFeign []string
 		var javaWithEureka []string
 		var propertiesWithEureka []string
+		var propertiesWithConfig []string
+
 		 if err != nil {
 			 logrus.Errorf("Unable to process directory %s : %s", dir, err)
 		 } else {
@@ -182,10 +188,15 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 								for _, n1 := range n.Content {
 									if n1.Value == "eureka" {
 										propertiesWithEureka = append(propertiesWithEureka, path)
-										break
+									}
+									for _, n2 := range n1.Content {
+										if n2.Value == "config" {
+											propertiesWithConfig = append(propertiesWithConfig, path)
+										}
 									}
 								}
 							}
+
 						}
 
 						// record java files
@@ -223,6 +234,7 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 					javaWithFeign = removeDuplicateValues(javaWithFeign)
 					javaWithEureka = removeDuplicateValues(javaWithEureka)
 					propertiesWithEureka = removeDuplicateValues(propertiesWithEureka)
+					propertiesWithConfig = removeDuplicateValues(propertiesWithConfig)
 					transformerpaths := map[transformertypes.PathType][]string{}
 					
 					if len(pomWithEureka) > 0 {
@@ -237,7 +249,9 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 					if len(propertiesWithEureka) > 0 {
 						transformerpaths[PropertiesWithEureka] = propertiesWithEureka
 					}
-
+					if len(propertiesWithConfig) > 0 {
+						transformerpaths[PropertiesWithConfig] = propertiesWithConfig
+					}
 					ct := plantypes.Transformer{
 						Mode:                   transformertypes.ModeContainer,
 						ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
@@ -289,6 +303,7 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 		javaWithFeign := a.Paths[JavaWithFeign]
 		javaWithEureka := a.Paths[JavaWithEureka]
 		propertiesWithEureka := a.Paths[PropertiesWithEureka]
+		propertiesWithConfig := a.Paths[PropertiesWithConfig]
 
 		for _, path := range pomWithEureka {
 			// filled with previously declared xml 
@@ -399,8 +414,9 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 								servicename = keyvalue[1][1:len(keyvalue[1])-1]
 							}
 						}
-						feignclients = append(feignclients, (servicename+"_url"))
-						eachline = eachline + ", url = \"${" + servicename+"_url"+ "}\")"
+						servicename = strings.ToUpper(servicename)
+						feignclients = append(feignclients, (servicename+"_URL"))
+						eachline = eachline + ", url = \"${" + servicename+"_URL"+ "}\")"
 					}
 					
 					modifiedtxtlines = append(modifiedtxtlines, eachline)
@@ -430,8 +446,7 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 					for index, n1 := range n.Content {
 						if n1.Value == "eureka" {
 							eurekaNodeIndex = index
-							n.Content = append(n.Content[:eurekaNodeIndex], n.Content[eurekaNodeIndex+1:]...)
-							break
+							n.Content = append(n.Content[:eurekaNodeIndex], n.Content[eurekaNodeIndex+2:]...)
 						}
 					}
 				}
@@ -448,13 +463,35 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 				for _, n := range t.Content {
 					for _, f := range feignclients {
 						envvar := "${"+ f + "}"
-						logrus.Infof("%s", envvar)
 						n.Content = append(n.Content, buildNode(f, envvar)...)
 					}
 				}
 				out, _ := yaml.Marshal(&t)
 				_ = ioutil.WriteFile(path, out, 0644)
 
+		}
+		for _, path := range propertiesWithConfig {
+			// access config through url (remove eureka)
+				t := yaml.Node{}
+				sourceYaml,_ := ioutil.ReadFile(path)
+				_ = yaml.Unmarshal(sourceYaml, &t)
+				insert := false
+				for _, n := range t.Content {
+					for _, n1 := range n.Content {
+						for _, n2 := range n1.Content {
+							if insert {
+								n2.Content = append(n2.Content, buildNode("uri", ConfigServerURL)...)
+								break
+							}
+							if n2.Value == "config" {
+								insert = true
+							}
+						}
+					}
+				}
+
+				out, _ := yaml.Marshal(&t)
+				_ = ioutil.WriteFile(path, out, 0644)
 		}
 
 
