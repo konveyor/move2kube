@@ -11,7 +11,6 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.263 // indirect
 	github.com/containerd/containerd v1.5.1 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
-	github.com/creekorful/mvnparser v1.4.0
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/docker/cli v20.10.7+incompatible
 	github.com/docker/docker v20.10.7+incompatible
@@ -33,6 +32,7 @@ require (
 	github.com/spf13/viper v1.8.0
 	github.com/tektoncd/pipeline v0.25.0
 	github.com/tektoncd/triggers v0.14.2
+	github.com/vifraa/gopom v0.1.0 // indirect
 	github.com/whilp/git-urls v1.0.0
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e

@@ -17,6 +17,7 @@
 "inbuilt/clusters/kubernetes.yaml" : 0644
 "inbuilt/clusters/openshift.yaml" : 0644
 "inbuilt/configs/dc.yaml" : 0644
+"inbuilt/transformers/.DS_Store" : 0644
 "inbuilt/transformers/cloudfoundry/cloudfoundry.yaml" : 0644
 "inbuilt/transformers/cnb/cfcnb/cfcnb.yaml" : 0644
 "inbuilt/transformers/cnb/cnbgenerator/cnbgenerator.yaml" : 0644
@@ -26,6 +27,7 @@
 "inbuilt/transformers/compose/composeanalyser/composeanalyser.yaml" : 0644
 "inbuilt/transformers/compose/composegenerator/composegenerator.yaml" : 0644
 "inbuilt/transformers/dockerfiledetector/dockerfiledetector.yaml" : 0644
+"inbuilt/transformers/executable/.DS_Store" : 0644
 "inbuilt/transformers/executable/dockerfile/django/django.yaml" : 0644
 "inbuilt/transformers/executable/dockerfile/django/m2kdetect.sh" : 0755
 "inbuilt/transformers/executable/dockerfile/django/templates/Dockerfile" : 0644
@@ -66,6 +68,7 @@
 "inbuilt/transformers/executable/dockerfile/rust/m2kdetect.sh" : 0755
 "inbuilt/transformers/executable/dockerfile/rust/rust.yaml" : 0644
 "inbuilt/transformers/executable/dockerfile/rust/templates/Dockerfile" : 0644
+"inbuilt/transformers/executable/s2i/.DS_Store" : 0644
 "inbuilt/transformers/executable/s2i/golang/golang.yaml" : 0644
 "inbuilt/transformers/executable/s2i/golang/m2kdetect.sh" : 0755
 "inbuilt/transformers/executable/s2i/golang/templates/$.s2i/environment" : 0644
@@ -88,10 +91,12 @@
 "inbuilt/transformers/generators/knative/knative.yaml" : 0644
 "inbuilt/transformers/generators/kubernetes/kubernetes.yaml" : 0644
 "inbuilt/transformers/generators/tekton/tekton.yaml" : 0644
-"inbuilt/transformers/java-springboot/java-springboot.yaml" : 0644
-"inbuilt/transformers/java-springboot/templates/Dockerfile.license" : 0644
-"inbuilt/transformers/java-springboot/templates/Dockerfile.maven-build" : 0644
-"inbuilt/transformers/java-springboot/templates/Dockerfile.springboot-embedded" : 0644
 "inbuilt/transformers/scriptsgenerator/containerpushscripts/containerpushscripts.yaml" : 0644
 "inbuilt/transformers/scriptsgenerator/containerpushscripts/templates/pushimages.bat" : 0755
 "inbuilt/transformers/scriptsgenerator/containerpushscripts/templates/pushimages.sh" : 0755
+"inbuilt/transformers/springboot/eurekareplaceengine/eureka.yaml" : 0644
+"inbuilt/transformers/springboot/java-springboot/java-springboot.yaml" : 0644
+"inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.license" : 0644
+"inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.maven-build" : 0644
+"inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.springboot-embedded" : 0644
+"inbuilt/transformers/springboot/zuul/zuulanalyser.yaml" : 0644
