@@ -23,17 +23,17 @@ import (
 
 // Pom defines pom.xml data
 type Pom struct {
-	XMLName                xml.Name               `xml:"project,omitempty"`
-	ModelVersion           string                 `xml:"modelVersion,omitempty"`
+	XMLName                xml.Name                `xml:"project,omitempty"`
+	ModelVersion           string                  `xml:"modelVersion,omitempty"`
 	Parent                 *Parent                 `xml:"parent,omitempty"`
-	GroupID                string                 `xml:"groupId,omitempty"`
-	ArtifactID             string                 `xml:"artifactId,omitempty"`
-	Version                string                 `xml:"version,omitempty"`
-	Packaging              string                 `xml:"packaging,omitempty"`
-	Name                   string                 `xml:"name,omitempty"`
-	Description            string                 `xml:"description,omitempty"`
-	URL                    string                 `xml:"url,omitempty"`
-	InceptionYear          string                 `xml:"inceptionYear,omitempty"`
+	GroupID                string                  `xml:"groupId,omitempty"`
+	ArtifactID             string                  `xml:"artifactId,omitempty"`
+	Version                string                  `xml:"version,omitempty"`
+	Packaging              string                  `xml:"packaging,omitempty"`
+	Name                   string                  `xml:"name,omitempty"`
+	Description            string                  `xml:"description,omitempty"`
+	URL                    string                  `xml:"url,omitempty"`
+	InceptionYear          string                  `xml:"inceptionYear,omitempty"`
 	Organization           *Organization           `xml:"organization,omitempty"`
 	Licenses               *[]License              `xml:"licenses>license,omitempty"`
 	Developers             *[]Developer            `xml:"developers>developer,omitempty"`
@@ -85,20 +85,20 @@ func (p *Properties) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err e
 
 // MarshalXML marshals XML
 func (entries Entries) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-    tokens := []xml.Token{start}
-    for key, value := range entries {
-        t := xml.StartElement{Name: xml.Name{"", key}}
-        tokens = append(tokens, t, xml.CharData(value), xml.EndElement{t.Name})
-    }
-    tokens = append(tokens, xml.EndElement{start.Name})
-    for _, t := range tokens {
-        err := e.EncodeToken(t)
-        if err != nil {
-            return err
-        }
-    }
-    // flush to ensure tokens are written
-    return e.Flush()
+	tokens := []xml.Token{start}
+	for key, value := range entries {
+		t := xml.StartElement{Name: xml.Name{Space: "", Local: key}}
+		tokens = append(tokens, t, xml.CharData(value), xml.EndElement{Name: t.Name})
+	}
+	tokens = append(tokens, xml.EndElement{Name: start.Name})
+	for _, t := range tokens {
+		err := e.EncodeToken(t)
+		if err != nil {
+			return err
+		}
+	}
+	// flush to ensure tokens are written
+	return e.Flush()
 }
 
 // Parent defines a pom.xml parent
@@ -131,7 +131,7 @@ type Developer struct {
 	URL             string     `xml:"url,omitempty"`
 	Organization    string     `xml:"organization,omitempty"`
 	OrganizationURL string     `xml:"organizationUrl,omitempty"`
-	Roles           *[]string   `xml:"roles>role,omitempty"`
+	Roles           *[]string  `xml:"roles>role,omitempty"`
 	Timezone        string     `xml:"timezone,omitempty"`
 	Properties      Properties `xml:"properties,omitempty"`
 }
@@ -143,18 +143,18 @@ type Contributor struct {
 	URL             string     `xml:"url,omitempty"`
 	Organization    string     `xml:"organization,omitempty"`
 	OrganizationURL string     `xml:"organizationUrl,omitempty"`
-	Roles           *[]string   `xml:"roles>role,omitempty"`
+	Roles           *[]string  `xml:"roles>role,omitempty"`
 	Timezone        string     `xml:"timezone,omitempty"`
 	Properties      Properties `xml:"properties,omitempty"`
 }
 
 // MailingList defines a pom.xml MailingList
 type MailingList struct {
-	Name          string   `xml:"name,omitempty"`
-	Subscribe     string   `xml:"subscribe,omitempty"`
-	Unsubscribe   string   `xml:"unsubscribe,omitempty"`
-	Post          string   `xml:"post,omitempty"`
-	Archive       string   `xml:"archive,omitempty"`
+	Name          string    `xml:"name,omitempty"`
+	Subscribe     string    `xml:"subscribe,omitempty"`
+	Unsubscribe   string    `xml:"unsubscribe,omitempty"`
+	Post          string    `xml:"post,omitempty"`
+	Archive       string    `xml:"archive,omitempty"`
 	OtherArchives *[]string `xml:"otherArchives>otherArchive,omitempty"`
 }
 
@@ -227,15 +227,15 @@ type DependencyManagement struct {
 
 // Dependency defines a pom.xml Dependency
 type Dependency struct {
-	GroupID    string      `xml:"groupId,omitempty"`
-	ArtifactID string      `xml:"artifactId,omitempty"`
-	Version    string      `xml:"version,omitempty"`
-	Type       string      `xml:"type,omitempty"`
-	Classifier string      `xml:"classifier,omitempty"`
-	Scope      string      `xml:"scope,omitempty"`
-	SystemPath string      `xml:"systemPath,omitempty"`
+	GroupID    string       `xml:"groupId,omitempty"`
+	ArtifactID string       `xml:"artifactId,omitempty"`
+	Version    string       `xml:"version,omitempty"`
+	Type       string       `xml:"type,omitempty"`
+	Classifier string       `xml:"classifier,omitempty"`
+	Scope      string       `xml:"scope,omitempty"`
+	SystemPath string       `xml:"systemPath,omitempty"`
 	Exclusions *[]Exclusion `xml:"exclusions>exclusion,omitempty"`
-	Optional   string      `xml:"optional,omitempty"`
+	Optional   string       `xml:"optional,omitempty"`
 }
 
 // Exclusion defines a pom.xml Exclusion
@@ -246,13 +246,13 @@ type Exclusion struct {
 
 // Repository defines a pom.xml Repository
 type Repository struct {
-	UniqueVersion bool             `xml:"uniqueVersion,omitempty"`
+	UniqueVersion bool              `xml:"uniqueVersion,omitempty"`
 	Releases      *RepositoryPolicy `xml:"releases,omitempty"`
 	Snapshots     *RepositoryPolicy `xml:"snapshots,omitempty"`
-	ID            string           `xml:"id,omitempty"`
-	Name          string           `xml:"name,omitempty"`
-	URL           string           `xml:"url,omitempty"`
-	Layout        string           `xml:"layout,omitempty"`
+	ID            string            `xml:"id,omitempty"`
+	Name          string            `xml:"name,omitempty"`
+	URL           string            `xml:"url,omitempty"`
+	Layout        string            `xml:"layout,omitempty"`
 }
 
 // RepositoryPolicy defines a pom.xml RepositoryPolicy
@@ -266,19 +266,19 @@ type RepositoryPolicy struct {
 type PluginRepository struct {
 	Releases  *RepositoryPolicy `xml:"releases,omitempty"`
 	Snapshots *RepositoryPolicy `xml:"snapshots,omitempty"`
-	ID        string           `xml:"id,omitempty"`
-	Name      string           `xml:"name,omitempty"`
-	URL       string           `xml:"url,omitempty"`
-	Layout    string           `xml:"layout,omitempty"`
+	ID        string            `xml:"id,omitempty"`
+	Name      string            `xml:"name,omitempty"`
+	URL       string            `xml:"url,omitempty"`
+	Layout    string            `xml:"layout,omitempty"`
 }
 
 // BuildBase defines a pom.xml BuildBase
 type BuildBase struct {
-	DefaultGoal      string           `xml:"defaultGoal,omitempty"`
+	DefaultGoal      string            `xml:"defaultGoal,omitempty"`
 	Resources        *[]Resource       `xml:"resources>resource,omitempty"`
 	TestResources    *[]Resource       `xml:"testResources>testResource,omitempty"`
-	Directory        string           `xml:"directory,omitempty"`
-	FinalName        string           `xml:"finalName,omitempty"`
+	Directory        string            `xml:"directory,omitempty"`
+	FinalName        string            `xml:"finalName,omitempty"`
 	Filters          *[]string         `xml:"filters>filter,omitempty"`
 	PluginManagement *PluginManagement `xml:"pluginManagement,omitempty"`
 	Plugins          *[]Plugin         `xml:"plugins>plugin,omitempty"`
@@ -286,11 +286,11 @@ type BuildBase struct {
 
 // Build defines a pom.xml Build
 type Build struct {
-	SourceDirectory       string      `xml:"sourceDirectory,omitempty"`
-	ScriptSourceDirectory string      `xml:"scriptSourceDirectory,omitempty"`
-	TestSourceDirectory   string      `xml:"testSourceDirectory,omitempty"`
-	OutputDirectory       string      `xml:"outputDirectory,omitempty"`
-	TestOutputDirectory   string      `xml:"testOutputDirectory,omitempty"`
+	SourceDirectory       string       `xml:"sourceDirectory,omitempty"`
+	ScriptSourceDirectory string       `xml:"scriptSourceDirectory,omitempty"`
+	TestSourceDirectory   string       `xml:"testSourceDirectory,omitempty"`
+	OutputDirectory       string       `xml:"outputDirectory,omitempty"`
+	TestOutputDirectory   string       `xml:"testOutputDirectory,omitempty"`
 	Extensions            *[]Extension `xml:"extensions>extension,omitempty"`
 	BuildBase
 }
@@ -304,9 +304,9 @@ type Extension struct {
 
 // Resource defines a pom.xml Resource
 type Resource struct {
-	TargetPath string   `xml:"targetPath,omitempty"`
-	Filtering  string   `xml:"filtering,omitempty"`
-	Directory  string   `xml:"directory,omitempty"`
+	TargetPath string    `xml:"targetPath,omitempty"`
+	Filtering  string    `xml:"filtering,omitempty"`
+	Directory  string    `xml:"directory,omitempty"`
 	Includes   *[]string `xml:"includes>include,omitempty"`
 	Excludes   *[]string `xml:"excludes>exclude,omitempty"`
 }
@@ -318,49 +318,49 @@ type PluginManagement struct {
 
 // Plugin defines a pom.xml Plugin
 type Plugin struct {
-	GroupID      string            `xml:"groupId,omitempty"`
-	ArtifactID   string            `xml:"artifactId,omitempty"`
-	Version      string            `xml:"version,omitempty"`
-	Extensions   string            `xml:"extensions,omitempty"`
+	GroupID      string             `xml:"groupId,omitempty"`
+	ArtifactID   string             `xml:"artifactId,omitempty"`
+	Version      string             `xml:"version,omitempty"`
+	Extensions   string             `xml:"extensions,omitempty"`
 	Executions   *[]PluginExecution `xml:"executions>execution,omitempty"`
 	Dependencies *[]Dependency      `xml:"dependencies>dependency,omitempty"`
-	Inherited    string            `xml:"inherited,omitempty"`
+	Inherited    string             `xml:"inherited,omitempty"`
 }
 
 // PluginExecution defines a pom.xml PluginExecution
 type PluginExecution struct {
-	ID        string   `xml:"id,omitempty"`
-	Phase     string   `xml:"phase,omitempty"`
+	ID        string    `xml:"id,omitempty"`
+	Phase     string    `xml:"phase,omitempty"`
 	Goals     *[]string `xml:"goals>goal,omitempty"`
-	Inherited string   `xml:"inherited,omitempty"`
+	Inherited string    `xml:"inherited,omitempty"`
 }
 
 // Reporting defines a pom.xml Reporting
 type Reporting struct {
-	ExcludeDefaults string            `xml:"excludeDefaults,omitempty"`
-	OutputDirectory string            `xml:"outputDirectory,omitempty"`
+	ExcludeDefaults string             `xml:"excludeDefaults,omitempty"`
+	OutputDirectory string             `xml:"outputDirectory,omitempty"`
 	Plugins         *[]ReportingPlugin `xml:"plugins>plugin,omitempty"`
 }
 
 // ReportingPlugin defines a pom.xml ReportingPlugin
 type ReportingPlugin struct {
-	GroupID    string      `xml:"groupId,omitempty"`
-	ArtifactID string      `xml:"artifactId,omitempty"`
-	Version    string      `xml:"version,omitempty"`
-	Inherited  string      `xml:"inherited,omitempty"`
+	GroupID    string       `xml:"groupId,omitempty"`
+	ArtifactID string       `xml:"artifactId,omitempty"`
+	Version    string       `xml:"version,omitempty"`
+	Inherited  string       `xml:"inherited,omitempty"`
 	ReportSets *[]ReportSet `xml:"reportSets>reportSet,omitempty"`
 }
 
 // ReportSet defines a pom.xml ReportSet
 type ReportSet struct {
-	ID        string   `xml:"id,omitempty"`
+	ID        string    `xml:"id,omitempty"`
 	Reports   *[]string `xml:"reports>report,omitempty"`
-	Inherited string   `xml:"inherited,omitempty"`
+	Inherited string    `xml:"inherited,omitempty"`
 }
 
 // Profile defines a pom.xml Profile
 type Profile struct {
-	ID                     string                 `xml:"id,omitempty"`
+	ID                     string                  `xml:"id,omitempty"`
 	Activation             *Activation             `xml:"activation,omitempty"`
 	Build                  *BuildBase              `xml:"build,omitempty"`
 	Modules                *[]string               `xml:"modules>module,omitempty"`
@@ -375,8 +375,8 @@ type Profile struct {
 
 // Activation defines a pom.xml Activation
 type Activation struct {
-	ActiveByDefault bool               `xml:"activeByDefault,omitempty"`
-	JDK             string             `xml:"jdk,omitempty"`
+	ActiveByDefault bool                `xml:"activeByDefault,omitempty"`
+	JDK             string              `xml:"jdk,omitempty"`
 	OS              *ActivationOS       `xml:"os,omitempty"`
 	Property        *ActivationProperty `xml:"property,omitempty"`
 	File            *ActivationFile     `xml:"file,omitempty"`

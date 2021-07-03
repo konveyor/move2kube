@@ -66,38 +66,37 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 			continue
 		}
 		var ir irtypes.IR
-		err := a.GetConfig(irtypes.IRConfigType, &ir)
-		if err != nil {
+		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
 		var pC artifacts.PlanConfig
-		err = a.GetConfig(artifacts.PlanConfigType, &pC)
-		if err != nil {
+		if err = a.GetConfig(artifacts.PlanConfigType, &pC); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", pC, err)
 			continue
 		}
 		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, "yamls")
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
-		apis := []apiresource.IAPIResource{&apiresource.Deployment{}, &apiresource.Storage{}, &apiresource.Service{}, &apiresource.ImageStream{}, &apiresource.NetworkPolicy{}}
-		if files, err := apiresource.TransformAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, pC.TargetCluster); err == nil {
-			for _, f := range files {
-				if destPath, err := filepath.Rel(t.Env.TempPath, f); err != nil {
-					logrus.Errorf("Invalid yaml path : %s", destPath)
-				} else {
-					pathMappings = append(pathMappings, transformertypes.PathMapping{
-						Type:     transformertypes.DefaultPathMappingType,
-						SrcPath:  f,
-						DestPath: destPath,
-					})
-				}
-			}
-			logrus.Debugf("Total transformed objects : %d", len(files))
-		} else {
+		apis := []apiresource.IAPIResource{new(apiresource.Deployment), new(apiresource.Storage), new(apiresource.Service), new(apiresource.ImageStream), new(apiresource.NetworkPolicy)}
+		files, err := apiresource.TransformAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, pC.TargetCluster)
+		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err
 		}
+		for _, f := range files {
+			destPath, err := filepath.Rel(t.Env.TempPath, f)
+			if err != nil {
+				logrus.Errorf("Invalid yaml path : %s", destPath)
+				continue
+			}
+			pathMappings = append(pathMappings, transformertypes.PathMapping{
+				Type:     transformertypes.DefaultPathMappingType,
+				SrcPath:  f,
+				DestPath: destPath,
+			})
+		}
+		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
 	return pathMappings, nil, nil
 }

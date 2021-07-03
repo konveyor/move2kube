@@ -76,7 +76,7 @@ type EurekaConfig struct {
 }
 
 func removeDuplicateValues(Slice []string) []string {
-	keys := make(map[string]bool)
+	keys := map[string]bool{}
 	list := []string{}
 	for _, entry := range Slice {
 		if _, value := keys[entry]; !value {

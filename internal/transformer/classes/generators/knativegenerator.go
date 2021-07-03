@@ -81,23 +81,24 @@ func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, oldArtifac
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 		apis := []apiresource.IAPIResource{&apiresource.KnativeService{}}
-		if files, err := apiresource.TransformAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, pC.TargetCluster); err == nil {
-			for _, f := range files {
-				if destPath, err := filepath.Rel(t.Env.TempPath, f); err != nil {
-					logrus.Errorf("Invalid yaml path : %s", destPath)
-				} else {
-					pathMappings = append(pathMappings, transformertypes.PathMapping{
-						Type:     transformertypes.DefaultPathMappingType,
-						SrcPath:  f,
-						DestPath: destPath,
-					})
-				}
-			}
-			logrus.Debugf("Total transformed objects : %d", len(files))
-		} else {
+		files, err := apiresource.TransformAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, pC.TargetCluster)
+		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err
 		}
+		for _, f := range files {
+			destPath, err := filepath.Rel(t.Env.TempPath, f)
+			if err != nil {
+				logrus.Errorf("Invalid yaml path : %s", destPath)
+				continue
+			}
+			pathMappings = append(pathMappings, transformertypes.PathMapping{
+				Type:     transformertypes.DefaultPathMappingType,
+				SrcPath:  f,
+				DestPath: destPath,
+			})
+		}
+		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
 	return pathMappings, nil, nil
 }

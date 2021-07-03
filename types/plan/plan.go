@@ -81,11 +81,11 @@ func NewPlan() Plan {
 			Name: common.DefaultProjectName,
 		},
 		Spec: Spec{
-			Services:      make(map[string]Service),
+			Services:      map[string]Service{},
 			TargetCluster: TargetClusterType{Type: common.DefaultClusterType},
 			Configuration: Configuration{
-				Transformers:   make(map[string]string),
-				TargetClusters: make(map[string]string),
+				Transformers:   map[string]string{},
+				TargetClusters: map[string]string{},
 			},
 		},
 	}

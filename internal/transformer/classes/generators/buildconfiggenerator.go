@@ -82,14 +82,12 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArt
 			continue
 		}
 		var ir irtypes.IR
-		err := a.GetConfig(irtypes.IRConfigType, &ir)
-		if err != nil {
+		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
 		var pC artifacts.PlanConfig
-		err = a.GetConfig(artifacts.PlanConfigType, &pC)
-		if err != nil {
+		if err := a.GetConfig(artifacts.PlanConfigType, &pC); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", pC, err)
 			continue
 		}
@@ -97,7 +95,7 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArt
 			logrus.Debugf("BuildConfig was not found on the target cluster.")
 			return nil, nil, nil
 		}
-		apis := []apiresource.IAPIResource{&apiresource.BuildConfig{}, &apiresource.Storage{}}
+		apis := []apiresource.IAPIResource{new(apiresource.BuildConfig), new(apiresource.Storage)}
 		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, common.CICDDir, "buildconfig")
 		logrus.Infof("Generating Tekton pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, pC.PlanName)

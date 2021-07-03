@@ -96,7 +96,7 @@ func (t *ComposeGenerator) Transform(newArtifacts []transformertypes.Artifact, o
 					})
 					exposedPort++
 				}
-				env := make(composetypes.MappingWithEquals)
+				env := composetypes.MappingWithEquals{}
 				for _, e := range container.Env {
 					env[e.Name] = &e.Value
 				}
