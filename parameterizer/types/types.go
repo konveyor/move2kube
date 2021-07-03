@@ -22,11 +22,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MapT is the most common map type
-type MapT = map[string]interface{}
-
 // K8sResourceT is a k8s resource
-type K8sResourceT = MapT
+type K8sResourceT = map[string]interface{}
 
 // PatchOpT has Patch
 type PatchOpT string
