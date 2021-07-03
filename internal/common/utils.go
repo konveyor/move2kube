@@ -1059,3 +1059,17 @@ func GetObjFromInterface(obj interface{}, loadinto interface{}) error {
 	logrus.Debugf("Object Loaded is %+v", loadinto)
 	return nil
 }
+
+// GetMapInterfaceFromObj converts a struct to map[string]interface{} using yaml marshaller
+func GetMapInterfaceFromObj(obj interface{}) (mapobj interface{}, err error) {
+	objbytes, err := yaml.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+	mapobj = map[string]interface{}{}
+	err = yaml.Unmarshal(objbytes, &mapobj)
+	if err != nil {
+		return nil, err
+	}
+	return mapobj, nil
+}

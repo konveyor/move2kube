@@ -328,7 +328,7 @@ func GetInfoFromK8sResource(k8sResource types.K8sResourceT) (kind string, apiVer
 func getNameFromMetadata(metadataI interface{}) (string, error) {
 	metadata, ok := metadataI.(map[interface{}]interface{})
 	if !ok {
-		metadata, ok := metadataI.(types.MapT)
+		metadata, ok := metadataI.(map[string]interface{})
 		if !ok {
 			return "", fmt.Errorf("expected metadata to be of map type. Actual value %+v is of type %T", metadataI, metadataI)
 		}

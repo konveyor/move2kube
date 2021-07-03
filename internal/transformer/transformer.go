@@ -55,7 +55,7 @@ type Transformer interface {
 }
 
 func init() {
-	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable), new(analysers.CNBContainerizer), new(generators.CNBGenerator), new(analysers.CloudFoundry), new(analysers.DockerfileDetector), new(metaartifacts.ContainerImagePushScript), new(analysers.SpringbootAnalyser), new(analysers.ZuulAnalyser), new(analysers.EurekaReplaceEngine)}
+	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable), new(analysers.CNBContainerizer), new(generators.CNBGenerator), new(analysers.CloudFoundry), new(analysers.DockerfileDetector), new(metaartifacts.ContainerImagePushScript), new(analysers.SpringbootAnalyser), new(analysers.ZuulAnalyser), new(analysers.EurekaReplaceEngine), new(external.Starlark), new(generators.S2IGenerator)}
 	for _, tt := range transformerObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -68,7 +68,7 @@ func init() {
 }
 
 // Init initializes the transformers
-func Init(assetsPath, sourcePath string) (err error) {
+func Init(assetsPath, sourcePath string, projName string) (err error) {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
 		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
@@ -83,12 +83,12 @@ func Init(assetsPath, sourcePath string) (err error) {
 		}
 		transformerFiles[tc.Name] = filePath
 	}
-	InitTransformers(transformerFiles, sourcePath, false)
+	InitTransformers(transformerFiles, sourcePath, projName, false)
 	return nil
 }
 
 // InitTransformers initializes a subset of transformers
-func InitTransformers(transformerToInit map[string]string, sourcePath string, warn bool) error {
+func InitTransformers(transformerToInit map[string]string, sourcePath string, projName string, warn bool) error {
 	if initialized {
 		return nil
 	}
@@ -123,7 +123,7 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, wa
 			logrus.Errorf("Unable to find Transformer class %s in %+v", tc.Spec.Class, transformerTypes)
 		} else {
 			t := reflect.New(c).Interface().(Transformer)
-			env, err := environment.NewEnvironment(tc.Name, sourcePath, filepath.Dir(tc.Spec.FilePath), tc.Spec.TemplatesDir, nil, environmenttypes.Container{})
+			env, err := environment.NewEnvironment(tc.Name, projName, sourcePath, filepath.Dir(tc.Spec.FilePath), tc.Spec.TemplatesDir, nil, environmenttypes.Container{})
 			if err != nil {
 				logrus.Errorf("Unable to create environment : %s", err)
 				return err

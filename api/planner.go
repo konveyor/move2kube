@@ -47,7 +47,7 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 			logrus.Infof("[%T] Done", l)
 		}
 	}
-	transformer.Init(common.AssetsPath, inputPath)
+	transformer.Init(common.AssetsPath, inputPath, p.Name)
 	ts := transformer.GetTransformers()
 	for tn, t := range ts {
 		config, _ := t.GetConfig()
@@ -139,7 +139,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 		}
 		p.Spec.Services[sn] = sTransformers
 	}
-	transformer.InitTransformers(p.Spec.Configuration.Transformers, p.Spec.RootDir, true)
+	transformer.InitTransformers(p.Spec.Configuration.Transformers, p.Spec.RootDir, p.Name, true)
 
 	// Choose cluster type to target
 	clusters := new(configuration.ClusterMDLoader).GetClusters(p)

@@ -41,9 +41,10 @@ var GRPCEnvName = strings.ToUpper(types.AppNameShort) + "QA_GRPC_SERVER"
 
 // Environment is used to manage EnvironmentInstances
 type Environment struct {
-	Name     string
-	Env      EnvironmentInstance
-	Children []Environment
+	Name        string
+	ProjectName string
+	Env         EnvironmentInstance
+	Children    []Environment
 
 	Source  string
 	Context string
@@ -65,7 +66,7 @@ type EnvironmentInstance interface {
 }
 
 // NewEnvironment creates a new environment
-func NewEnvironment(name string, source string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, container environmenttypes.Container) (env Environment, err error) {
+func NewEnvironment(name string, projectName string, source string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, container environmenttypes.Container) (env Environment, err error) {
 	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
@@ -73,6 +74,7 @@ func NewEnvironment(name string, source string, context string, relTemplatesDir 
 	}
 	env = Environment{
 		Name:            name,
+		ProjectName:     projectName,
 		Source:          source,
 		Context:         context,
 		RelTemplatesDir: relTemplatesDir,
@@ -242,8 +244,8 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 			return path, nil
 		}
 		if !downloadSource {
-			if common.IsParent(path, e.GetWorkspaceSource()) {
-				relPath, err := filepath.Rel(e.GetWorkspaceSource(), path)
+			if common.IsParent(path, e.GetEnvironmentSource()) {
+				relPath, err := filepath.Rel(e.GetEnvironmentSource(), path)
 				if err != nil {
 					logrus.Errorf("Unable to convert source to rel path : %s", err)
 					return path, err
@@ -269,7 +271,7 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMapping) []transformertypes.PathMapping {
 	for pmi, pm := range pathMappings {
 		if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
-			pathMappings[pmi].SrcPath = filepath.Join(e.GetWorkspaceContext(), e.RelTemplatesDir, pm.SrcPath)
+			pathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
 		}
 
 		// Process destination Path
@@ -281,7 +283,7 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 			destPath = destPathSplit[1]
 		}
 		if filepath.IsAbs(destPath) {
-			dp, err := filepath.Rel(e.GetWorkspaceSource(), destPath)
+			dp, err := filepath.Rel(e.GetEnvironmentSource(), destPath)
 			if err != nil {
 				logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
 				continue
@@ -292,12 +294,17 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 	return pathMappings
 }
 
-// GetWorkspaceSource returns the source path within the environment
-func (e *Environment) GetWorkspaceSource() string {
+// GetEnvironmentSource returns the source path within the environment
+func (e *Environment) GetEnvironmentSource() string {
 	return e.Env.GetSource()
 }
 
-// GetWorkspaceContext returns the context path within the environment
-func (e *Environment) GetWorkspaceContext() string {
+// GetEnvironmentContext returns the context path within the environment
+func (e *Environment) GetEnvironmentContext() string {
 	return e.Env.GetContext()
+}
+
+// GetProjectName returns the project name
+func (e *Environment) GetProjectName() string {
+	return e.ProjectName
 }

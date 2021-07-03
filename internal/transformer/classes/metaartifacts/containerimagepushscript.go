@@ -83,7 +83,7 @@ func (t *ContainerImagePushScript) Transform(newArtifacts []transformertypes.Art
 		return nil, nil, nil
 	}
 	ipt.RegistryURL = commonqa.ImageRegistry()
-	ipt.RegistryNamespace = commonqa.ImageRegistryNamespace("defaultns")
+	ipt.RegistryNamespace = commonqa.ImageRegistryNamespace(t.Env.ProjectName)
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
 		SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),

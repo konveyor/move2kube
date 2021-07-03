@@ -76,7 +76,7 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment
 			logrus.Infof("Starting transformer that requires QA without QA.")
 		}
 	}
-	t.Env, err = environment.NewEnvironment(env.Name, env.Source, env.Context, tc.Spec.TemplatesDir, qaRPCReceiverAddr, t.ExecConfig.Container)
+	t.Env, err = environment.NewEnvironment(env.Name, env.ProjectName, env.Source, env.Context, tc.Spec.TemplatesDir, qaRPCReceiverAddr, t.ExecConfig.Container)
 	if err != nil {
 		logrus.Errorf("Unable to create Exec environment : %s", err)
 		return err
@@ -113,7 +113,7 @@ func (t *SimpleExecutable) Transform(newArtifacts []transformertypes.Artifact, o
 			continue
 		}
 		if t.ExecConfig.TransformCMD == nil {
-			relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[artifacts.ProjectPathPathType][0])
+			relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 			if err != nil {
 				logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
 			}

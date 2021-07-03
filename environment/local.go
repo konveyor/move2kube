@@ -52,6 +52,7 @@ func NewLocal(name, source, context, tempPath string, grpcQAReceiver net.Addr) (
 		Source:         source,
 		Context:        context,
 		GRPCQAReceiver: grpcQAReceiver,
+		TempPath:       tempPath,
 	}
 	local.TempPath = tempPath
 	local.WorkspaceContext, err = ioutil.TempDir(local.TempPath, types.AppNameShort)

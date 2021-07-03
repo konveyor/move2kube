@@ -482,7 +482,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 		},
 	}
 
-	ingressName := "ingress"
+	ingressName := ir.Name
 	ingress := networking.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       common.IngressKind,
