@@ -22,12 +22,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/creekorful/mvnparser"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	springboot "github.com/konveyor/move2kube/types/source/springboot"
+	"github.com/konveyor/move2kube/types/source/springboot"
+	"github.com/konveyor/move2kube/types/source/maven"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -105,23 +105,23 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		return nil, nil, err
 	}
 
-	// Load project from string
-	var project mvnparser.MavenProject
-	if err := xml.Unmarshal([]byte(pomStr), &project); err != nil {
+	// Load pom from string
+	var pom maven.Pom
+	if err := xml.Unmarshal([]byte(pomStr), &pom); err != nil {
 		logrus.Errorf("unable to unmarshal pom file. Reason: %s", err)
 		return nil, nil, err
 	}
 
 	// Dont process if this is a root pom and there are submodules
-	if len(project.Modules) != 0 {
+	if pom.Modules != nil && len(*(pom.Modules)) != 0 {
 		logrus.Debugf("Ignoring pom at %s as it has modules", dir)
 		return nil, nil, nil
 	}
 
 	// Check if at least there is one springboot dependency
 	isSpringboot := false
-	for _, dependency := range project.Dependencies {
-		if strings.Contains(dependency.GroupId, "org.springframework.boot") {
+	for _, dependency := range *pom.Dependencies {
+		if strings.Contains(dependency.GroupID, "org.springframework.boot") {
 			isSpringboot = true
 		}
 	}

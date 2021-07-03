@@ -11,7 +11,6 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.263 // indirect
 	github.com/containerd/containerd v1.5.1 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
-	github.com/creekorful/mvnparser v1.4.0
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/docker/cli v20.10.7+incompatible
 	github.com/docker/docker v20.10.7+incompatible
