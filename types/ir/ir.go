@@ -47,6 +47,7 @@ const (
 
 // IR is the intermediate representation filled by source transformers
 type IR struct {
+	Name            string
 	ContainerImages map[string]ContainerImage // [imageName]
 	Services        map[string]Service
 	Storages        []Storage

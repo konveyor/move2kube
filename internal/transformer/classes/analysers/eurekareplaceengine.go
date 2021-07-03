@@ -518,7 +518,7 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 
 		// for every pomWithEureka file copy to destination
 		for _, path := range pomWithEureka {
-			relPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), path)
+			relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), path)
 			if err != nil {
 				logrus.Errorf("Unable to convert source path %s to be relative : %s", path, err)
 			}
@@ -531,7 +531,7 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 
 		// for every javaWithEureka file copy to destination
 		for _, path := range javaWithEureka {
-			relPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), path)
+			relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), path)
 			if err != nil {
 				logrus.Errorf("Unable to convert source path %s to be relative : %s", path, err)
 			}
@@ -544,7 +544,7 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 
 		// for every javaWithFeign file copy to destination
 		for _, path := range javaWithFeign {
-			relPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), path)
+			relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), path)
 			if err != nil {
 				logrus.Errorf("Unable to convert source path %s to be relative : %s", path, err)
 			}
@@ -557,7 +557,7 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 
 		// for every propertiesWithEureka file copy to destination
 		for _, path := range propertiesWithEureka {
-			relPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), path)
+			relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), path)
 			if err != nil {
 				logrus.Errorf("Unable to convert source path %s to be relative : %s", path, err)
 			}

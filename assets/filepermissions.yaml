@@ -67,6 +67,9 @@
 "inbuilt/transformers/dockerfile/rust/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfiledetector/dockerfiledetector.yaml" : 0644
 "inbuilt/transformers/generators/buildconfig/buildconfig.yaml" : 0644
+"inbuilt/transformers/generators/containerpushscripts/containerpushscripts.yaml" : 0644
+"inbuilt/transformers/generators/containerpushscripts/templates/pushimages.bat" : 0755
+"inbuilt/transformers/generators/containerpushscripts/templates/pushimages.sh" : 0755
 "inbuilt/transformers/generators/knative/knative.yaml" : 0644
 "inbuilt/transformers/generators/kubernetes/kubernetes.yaml" : 0644
 "inbuilt/transformers/generators/tekton/tekton.yaml" : 0644
@@ -91,9 +94,6 @@
 "inbuilt/transformers/s2i/ruby/m2kdetect.sh" : 0755
 "inbuilt/transformers/s2i/ruby/ruby.yaml" : 0644
 "inbuilt/transformers/s2i/ruby/templates/$.s2i/environment" : 0644
-"inbuilt/transformers/scriptsgenerator/containerpushscripts/containerpushscripts.yaml" : 0644
-"inbuilt/transformers/scriptsgenerator/containerpushscripts/templates/pushimages.bat" : 0755
-"inbuilt/transformers/scriptsgenerator/containerpushscripts/templates/pushimages.sh" : 0755
 "inbuilt/transformers/springboot/eurekareplaceengine/eureka.yaml" : 0644
 "inbuilt/transformers/springboot/java-springboot/java-springboot.yaml" : 0644
 "inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.license" : 0644

@@ -70,6 +70,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
+		ir.Name = a.Name
 		var pC artifacts.PlanConfig
 		if err = a.GetConfig(artifacts.PlanConfigType, &pC); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", pC, err)

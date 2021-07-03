@@ -65,7 +65,7 @@ func (t *CNBGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 		if err != nil {
 			logrus.Errorf("Unable to read CNB Template config : %s", err)
 		}
-		relSrcPath, err := filepath.Rel(t.Env.GetWorkspaceSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
 		}
