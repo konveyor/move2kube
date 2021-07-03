@@ -26,8 +26,8 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	"github.com/konveyor/move2kube/types/source/springboot"
 	"github.com/konveyor/move2kube/types/source/maven"
+	"github.com/konveyor/move2kube/types/source/springboot"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -120,6 +120,10 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 
 	// Check if at least there is one springboot dependency
 	isSpringboot := false
+	if pom.Dependencies == nil {
+		logrus.Debugf("Ignoring pom at %s as does not contain any dependencies", dir)
+		return nil, nil, nil
+	}
 	for _, dependency := range *pom.Dependencies {
 		if strings.Contains(dependency.GroupID, "org.springframework.boot") {
 			isSpringboot = true
