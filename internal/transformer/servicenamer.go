@@ -50,11 +50,7 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 				continue
 			}
 		}
-		if ts, ok := servicePaths[bpp]; ok {
-			servicePaths[bpp] = append(ts, st)
-		} else {
-			servicePaths[bpp] = []plantypes.Transformer{st}
-		}
+		servicePaths[bpp] = append(servicePaths[bpp], st)
 	}
 	// Find if base dir is a git repo, and has only one service or many services
 	gitRepoNames := map[string][]string{} // [repoName][]basePath
