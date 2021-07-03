@@ -37,8 +37,8 @@ import (
 
 var (
 	initialized                                     = false
-	transformerTypes        map[string]reflect.Type = make(map[string]reflect.Type)
-	transformers            map[string]Transformer  = make(map[string]Transformer)
+	transformerTypes        map[string]reflect.Type = map[string]reflect.Type{}
+	transformers            map[string]Transformer  = map[string]Transformer{}
 	defaultIgnoreDirRegexps                         = []*regexp.Regexp{regexp.MustCompile("[.].*")}
 )
 
@@ -74,7 +74,7 @@ func Init(assetsPath, sourcePath string) (err error) {
 		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
 		return err
 	}
-	transformerFiles := make(map[string]string)
+	transformerFiles := map[string]string{}
 	for _, filePath := range filePaths {
 		tc, err := getTransformerConfig(filePath)
 		if err != nil {
@@ -92,7 +92,7 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, wa
 	if initialized {
 		return nil
 	}
-	transformerConfigs := make(map[string]transformertypes.Transformer)
+	transformerConfigs := map[string]transformertypes.Transformer{}
 	for tn, tfilepath := range transformerToInit {
 		tc, err := getTransformerConfig(tfilepath)
 		if err != nil {
@@ -112,7 +112,7 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, wa
 		}
 		transformerConfigs[tn] = tc
 	}
-	tns := make([]string, 0)
+	tns := []string{}
 	for tn := range transformerConfigs {
 		tns = append(tns, tn)
 	}
@@ -156,8 +156,8 @@ func GetTransformers() map[string]Transformer {
 
 // GetServices returns the list of services detected in a directory
 func GetServices(prjName string, dir string) (services map[string]plantypes.Service, err error) {
-	services = make(map[string]plantypes.Service)
-	unservices := make([]plantypes.Transformer, 0)
+	services = map[string]plantypes.Service{}
+	unservices := []plantypes.Transformer{}
 	logrus.Infoln("Planning Transformation - Base Directory")
 	logrus.Debugf("Transformers : %+v", transformers)
 	for tn, t := range transformers {
@@ -275,9 +275,9 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 
 func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string]plantypes.Service) (services map[string]plantypes.Service, unservices []plantypes.Transformer, err error) {
 	services = bservices
-	unservices = make([]plantypes.Transformer, 0)
+	unservices = []plantypes.Transformer{}
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
-	knownProjectPaths := make([]string, 0)
+	knownProjectPaths := []string{}
 
 	err = filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

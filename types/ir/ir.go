@@ -281,8 +281,8 @@ func (c *ContainerImage) AddAccessedDirs(dirname string) {
 // NewIR creates a new IR
 func NewIR() IR {
 	ir := IR{}
-	ir.ContainerImages = make(map[string]ContainerImage)
-	ir.Services = make(map[string]Service)
+	ir.ContainerImages = map[string]ContainerImage{}
+	ir.Services = map[string]Service{}
 	ir.Storages = []Storage{}
 	return ir
 }

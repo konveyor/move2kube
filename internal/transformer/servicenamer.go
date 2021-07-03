@@ -21,10 +21,9 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/sirupsen/logrus"
-
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/sirupsen/logrus"
 )
 
 type project struct {
@@ -35,7 +34,7 @@ type project struct {
 func nameServices(projName string, nServices map[string]plantypes.Service, sts []plantypes.Transformer) (services map[string]plantypes.Service) {
 	services = nServices
 	// Collate services by project path or shared common base dir
-	servicePaths := make(map[string][]plantypes.Transformer)
+	servicePaths := map[string][]plantypes.Transformer{}
 	for _, st := range sts {
 		pps, ok := st.Paths[artifacts.ProjectPathPathType]
 		bpp := common.CleanAndFindCommonDirectory(pps)
@@ -51,15 +50,11 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 				continue
 			}
 		}
-		if ts, ok := servicePaths[bpp]; ok {
-			servicePaths[bpp] = append(ts, st)
-		} else {
-			servicePaths[bpp] = []plantypes.Transformer{st}
-		}
+		servicePaths[bpp] = append(servicePaths[bpp], st)
 	}
 	// Find if base dir is a git repo, and has only one service or many services
-	gitRepoNames := make(map[string][]string) // [repoName][]basePath
-	basePathRepos := make(map[string]string)
+	gitRepoNames := map[string][]string{} // [repoName][]basePath
+	basePathRepos := map[string]string{}
 	for sp := range servicePaths {
 		repoName, _, _, repoURL, _, err := common.GatherGitInfo(sp)
 		if err != nil {

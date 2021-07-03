@@ -94,47 +94,47 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 			continue
 		}
 		var ir irtypes.IR
-		err := a.GetConfig(irtypes.IRConfigType, &ir)
-		if err != nil {
+		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
 		var pC artifacts.PlanConfig
-		err = a.GetConfig(artifacts.PlanConfigType, &pC)
-		if err != nil {
+		if err := a.GetConfig(artifacts.PlanConfigType, &pC); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", pC, err)
 			continue
 		}
-		apis := []apiresource.IAPIResource{&apiresource.Service{},
-			&apiresource.ServiceAccount{},
-			&apiresource.RoleBinding{},
-			&apiresource.Role{},
-			&apiresource.Storage{},
-			&apiresource.EventListener{},
-			&apiresource.TriggerBinding{},
-			&apiresource.TriggerTemplate{},
-			&apiresource.Pipeline{},
+		apis := []apiresource.IAPIResource{
+			new(apiresource.Service),
+			new(apiresource.ServiceAccount),
+			new(apiresource.RoleBinding),
+			new(apiresource.Role),
+			new(apiresource.Storage),
+			new(apiresource.EventListener),
+			new(apiresource.TriggerBinding),
+			new(apiresource.TriggerTemplate),
+			new(apiresource.Pipeline),
 		}
 		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, common.CICDDir, "tekton")
 		logrus.Infof("Generating Tekton pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, pC.PlanName)
-		if files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, pC.TargetCluster); err == nil {
-			for _, f := range files {
-				if destPath, err := filepath.Rel(t.Env.TempPath, f); err != nil {
-					logrus.Errorf("Invalid yaml path : %s", destPath)
-				} else {
-					pathMappings = append(pathMappings, transformertypes.PathMapping{
-						Type:     transformertypes.DefaultPathMappingType,
-						SrcPath:  f,
-						DestPath: destPath,
-					})
-				}
-			}
-			logrus.Debugf("Total transformed objects : %d", len(files))
-		} else {
+		files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, pC.TargetCluster)
+		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err
 		}
+		for _, f := range files {
+			destPath, err := filepath.Rel(t.Env.TempPath, f)
+			if err != nil {
+				logrus.Errorf("Invalid yaml path : %s", destPath)
+				continue
+			}
+			pathMappings = append(pathMappings, transformertypes.PathMapping{
+				Type:     transformertypes.DefaultPathMappingType,
+				SrcPath:  f,
+				DestPath: destPath,
+			})
+		}
+		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
 	return pathMappings, nil, nil
 }

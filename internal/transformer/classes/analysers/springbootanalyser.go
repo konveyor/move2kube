@@ -181,7 +181,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 			applicationFilePath:           validSpringbootFiles,
 		},
 	}
-	return map[string]plantypes.Service{appName: []plantypes.Transformer{ct}}, nil, nil
+	return map[string]plantypes.Service{appName: {ct}}, nil, nil
 }
 
 // Transform transforms the artifacts
