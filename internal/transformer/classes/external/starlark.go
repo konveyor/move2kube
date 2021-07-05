@@ -46,7 +46,7 @@ const (
 	qaFunctionName           = "query"
 	sourceDirVarName         = "source_dir"
 	contextDirVarName        = "context_dir"
-	templateDirVarName       = "template_reldir"
+	templatesRelDirVarName   = "templates_reldir"
 	transformerConfigVarName = "config"
 	projectVarName           = "project"
 
@@ -112,7 +112,7 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env environment.Environ
 		logrus.Errorf("Unable to load source : %s", err)
 		return err
 	}
-	t.StarGlobals[templateDirVarName], err = starutil.Marshal(env.RelTemplatesDir)
+	t.StarGlobals[templatesRelDirVarName], err = starutil.Marshal(env.RelTemplatesDir)
 	if err != nil {
 		logrus.Errorf("Unable to load source : %s", err)
 		return err
@@ -410,10 +410,9 @@ func (t *Starlark) getStarlarkFSExists() *starlark.Builtin {
 		if err != nil {
 			if os.IsNotExist(err) {
 				return starlark.Bool(false), nil
-			} else {
-				logrus.Errorf("Unable to check if file exists : %s", err)
-				return starlark.Bool(false), err
 			}
+			logrus.Errorf("Unable to check if file exists : %s", err)
+			return starlark.Bool(false), err
 		}
 		return starlark.Bool(true), nil
 	})
@@ -437,7 +436,7 @@ func (t *Starlark) getStarlarkFSRead() *starlark.Builtin {
 	})
 }
 
-func (lfs *Starlark) getStarlarkFSReadDir() *starlark.Builtin {
+func (t *Starlark) getStarlarkFSReadDir() *starlark.Builtin {
 	return starlark.NewBuiltin(fsreadFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var path string
 		if err := starlark.UnpackPositionalArgs(fsreadFnName, args, kwargs, 1, &path); err != nil {
@@ -455,7 +454,7 @@ func (lfs *Starlark) getStarlarkFSReadDir() *starlark.Builtin {
 	})
 }
 
-func (lfs *Starlark) getStarlarkFSPathJoin() *starlark.Builtin {
+func (t *Starlark) getStarlarkFSPathJoin() *starlark.Builtin {
 	return starlark.NewBuiltin(fspathjoinFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var pathelems []string
 		if err := starlark.UnpackPositionalArgs(fspathjoinFnName, args, kwargs, 2, &pathelems); err != nil {
