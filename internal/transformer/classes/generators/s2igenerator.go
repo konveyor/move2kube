@@ -21,10 +21,12 @@ import (
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // S2IGenerator implements Transformer interface
@@ -60,8 +62,8 @@ func (t *S2IGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 	pathMappings := []transformertypes.PathMapping{}
 	newartifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		tc := artifacts.S2IMetadataConfig{}
-		err := a.GetConfig(artifacts.S2IMetadataConfigType, &tc)
+		s2iConfig := artifacts.S2IMetadataConfig{}
+		err := a.GetConfig(artifacts.S2IMetadataConfigType, &s2iConfig)
 		if err != nil {
 			logrus.Errorf("Unable to read S2I Template config : %s", err)
 		}
@@ -69,13 +71,43 @@ func (t *S2IGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
 		}
+		var pConfig artifacts.PlanConfig
+		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
+			continue
+		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
-		tc.ImageName = sConfig.ServiceName
+		if s2iConfig.ImageName == "" {
+			s2iConfig.ImageName = sConfig.ServiceName
+		}
+		ir := irtypes.NewIR()
+		ir.Name = pConfig.PlanName
+		container := irtypes.NewContainer()
+		container.AddExposedPort(common.DefaultServicePort)
+		ir.AddContainer(s2iConfig.ImageName, container)
+		serviceContainer := core.Container{Name: sConfig.ServiceName}
+		serviceContainer.Image = s2iConfig.ImageName
+		irService := irtypes.NewServiceWithName(sConfig.ServiceName)
+		serviceContainerPorts := []core.ContainerPort{}
+		for _, port := range container.ExposedPorts {
+			// Add the port to the k8s pod.
+			serviceContainerPort := core.ContainerPort{ContainerPort: int32(port)}
+			serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
+			// Forward the port on the k8s service to the k8s pod.
+			podPort := irtypes.Port{Number: int32(port)}
+			servicePort := podPort
+			irService.AddPortForwarding(servicePort, podPort)
+		}
+		serviceContainer.Ports = serviceContainerPorts
+		irService.Containers = []core.Container{serviceContainer}
+		ir.Services[sConfig.ServiceName] = irService
+
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
 			DestPath: common.DefaultSourceDir,
@@ -83,14 +115,14 @@ func (t *S2IGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			Type:           transformertypes.TemplatePathMappingType,
 			SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
-			TemplateConfig: tc,
+			TemplateConfig: s2iConfig,
 		})
 		newartifacts = append(newartifacts, transformertypes.Artifact{
-			Name:     tc.ImageName,
+			Name:     s2iConfig.ImageName,
 			Artifact: artifacts.NewImageArtifactType,
 			Configs: map[string]interface{}{
 				artifacts.NewImageConfigType: artifacts.NewImage{
-					ImageName: tc.ImageName,
+					ImageName: s2iConfig.ImageName,
 				},
 			},
 		})

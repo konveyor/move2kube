@@ -115,7 +115,16 @@ func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact,
 			Artifact: artifacts.DockerfileArtifactType,
 			Paths:    a.Paths,
 		}
-		artifactsCreated = append(artifactsCreated, p)
+		ni := transformertypes.Artifact{
+			Name:     sConfig.ServiceName,
+			Artifact: artifacts.NewImageArtifactType,
+			Configs: map[string]interface{}{
+				artifacts.NewImageConfigType: artifacts.NewImage{
+					ImageName: sConfig.ServiceName,
+				},
+			},
+		}
+		artifactsCreated = append(artifactsCreated, p, ni)
 	}
 	return nil, artifactsCreated, nil
 }

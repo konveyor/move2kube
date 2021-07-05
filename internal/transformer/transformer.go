@@ -27,7 +27,6 @@ import (
 	"github.com/konveyor/move2kube/internal/transformer/classes/analysers"
 	"github.com/konveyor/move2kube/internal/transformer/classes/external"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators"
-	"github.com/konveyor/move2kube/internal/transformer/classes/metaartifacts"
 	"github.com/konveyor/move2kube/qaengine"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -55,7 +54,7 @@ type Transformer interface {
 }
 
 func init() {
-	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable), new(analysers.CNBContainerizer), new(generators.CNBGenerator), new(analysers.CloudFoundry), new(analysers.DockerfileDetector), new(metaartifacts.ContainerImagePushScript), new(analysers.SpringbootAnalyser), new(analysers.ZuulAnalyser), new(analysers.EurekaReplaceEngine), new(external.Starlark), new(generators.S2IGenerator)}
+	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable), new(analysers.CNBContainerizer), new(generators.CNBGenerator), new(analysers.CloudFoundry), new(analysers.DockerfileDetector), new(generators.ContainerImagePushScript), new(generators.DockerfileImageBuildScript), new(analysers.SpringbootAnalyser), new(analysers.ZuulAnalyser), new(analysers.EurekaReplaceEngine), new(external.Starlark), new(generators.S2IGenerator)}
 	for _, tt := range transformerObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
