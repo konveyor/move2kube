@@ -64,9 +64,9 @@ type Transformer struct {
 	Mode                   transformertypes.Mode                       `yaml:"mode" json:"mode"` // container, customresource, service, generic
 	Name                   string                                      `yaml:"transformerName" json:"transformerName"`
 	ArtifactTypes          []transformertypes.ArtifactType             `yaml:"generates,omitempty" json:"generates,omitempty"`
-	ExclusiveArtifactTypes []transformertypes.ArtifactType             `yaml:"exclusive,omitempty" json:"exclusive,omitempty"`
+	ExclusiveArtifactTypes []transformertypes.ArtifactType             `yaml:"exclusives,omitempty" json:"exclusives,omitempty"`
 	Paths                  map[transformertypes.PathType][]string      `yaml:"paths,omitempty" json:"paths,omitempty" m2kpath:"normal"`
-	Configs                map[transformertypes.ConfigType]interface{} `yaml:"config,omitempty" json:"config,omitempty"`
+	Configs                map[transformertypes.ConfigType]interface{} `yaml:"configs,omitempty" json:"configs,omitempty"`
 }
 
 // NewPlan creates a new plan
