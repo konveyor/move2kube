@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/environment/container"
 	"github.com/konveyor/move2kube/internal/common"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	irtypes "github.com/konveyor/move2kube/types/ir"
@@ -59,8 +60,11 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env environment
 		WorkingDir: filepath.Join(string(filepath.Separator), "tmp"),
 	})
 	if err != nil {
-		logrus.Errorf("Unable to create CNB environment : %s", err)
-		return err
+		if !container.IsDisabled() {
+			logrus.Errorf("Unable to create CNB environment : %s", err)
+			return err
+		}
+		return &transformertypes.TransformerDisabledError{Err: err}
 	}
 	t.Env.AddChild(t.CNBEnv)
 	return nil

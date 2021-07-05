@@ -128,7 +128,11 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, pr
 				return err
 			}
 			if err := t.Init(tc, env); err != nil {
-				logrus.Errorf("Unable to initialize transformer %s : %s", tc.Name, err)
+				if _, ok := err.(*transformertypes.TransformerDisabledError); ok {
+					logrus.Debugf("Unable to initialize transformer %s : %s", tc.Name, err)
+				} else {
+					logrus.Errorf("Unable to initialize transformer %s : %s", tc.Name, err)
+				}
 			} else {
 				transformers[tn] = t
 			}

@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/konveyor/move2kube/environment/container"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/deepcopy"
 	"github.com/konveyor/move2kube/internal/common/pathconverters"
@@ -67,7 +68,7 @@ type EnvironmentInstance interface {
 }
 
 // NewEnvironment creates a new environment
-func NewEnvironment(name string, projectName string, source string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, container environmenttypes.Container) (env Environment, err error) {
+func NewEnvironment(name string, projectName string, source string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, c environmenttypes.Container) (env Environment, err error) {
 	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
@@ -82,15 +83,15 @@ func NewEnvironment(name string, projectName string, source string, context stri
 		Children:        []Environment{},
 		TempPath:        tempPath,
 	}
-	if container.Image != "" {
-		envVariableName := common.MakeStringEnvNameCompliant(container.Image)
+	if c.Image != "" {
+		envVariableName := common.MakeStringEnvNameCompliant(c.Image)
 		// Check if image is part of the current environment.
 		// It will be set as environment variable with root as base path of move2kube
 		// When running in a process shared environment the environment variable will point to the base pid of the container for the image
 		envvars := os.Environ()
 		for _, envvar := range envvars {
 			envvarpair := strings.SplitN(envvar, "=", 2)
-			if len(envvarpair) > 0 && envVariableName == container.Image && len(envvarpair) > 1 {
+			if len(envvarpair) > 0 && envVariableName == c.Image && len(envvarpair) > 1 {
 				_, err := strconv.Atoi(envvarpair[1])
 				if err != nil {
 					env.Env, err = NewLocal(name, source, envvarpair[1], tempPath, grpcQAReceiver)
@@ -108,8 +109,8 @@ func NewEnvironment(name string, projectName string, source string, context stri
 			}
 		}
 		if env.Env == nil {
-			env.Env, err = NewPeerContainer(name, source, context, tempPath, grpcQAReceiver, container)
-			if err != nil {
+			env.Env, err = NewPeerContainer(name, source, context, tempPath, grpcQAReceiver, c)
+			if err != nil && !container.IsDisabled() {
 				logrus.Errorf("Unable to create peer container environment : %s", err)
 			}
 			return env, err
@@ -117,7 +118,7 @@ func NewEnvironment(name string, projectName string, source string, context stri
 	}
 	env.Env, err = NewLocal(name, source, context, tempPath, grpcQAReceiver)
 	if err != nil {
-		logrus.Errorf("Unable to create peer container environment : %s", err)
+		logrus.Errorf("Unable to create Local environment : %s", err)
 	}
 	return env, err
 }

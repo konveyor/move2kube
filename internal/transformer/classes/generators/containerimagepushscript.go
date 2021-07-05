@@ -93,7 +93,8 @@ func (t *ContainerImagePushScript) Transform(newArtifacts []transformertypes.Art
 	/*artifacts := []transformertypes.Artifact{{
 		Name:     artifacts.ImagePushScriptArtifactType,
 		Artifact: artifacts.ImagePushScriptArtifactType,
-		Paths:    map[string][]string{artifacts.ImagePushScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages")}},
+		Paths: map[string][]string{artifacts.ImagePushShScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.sh")},
+			artifacts.ImagePushBatScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.bat")}},
 	}}*/
 	return pathMappings, nil, nil
 }

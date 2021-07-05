@@ -77,6 +77,8 @@ const (
 	ConfigStoragesKey = BaseKey + d + "storages"
 	//ConfigModesKey represents modes Key
 	ConfigModesKey = BaseKey + d + "modes"
+	//ConfigSpawmContainersKey represents modes Key
+	ConfigSpawmContainersKey = BaseKey + d + "spawncontainers"
 	//ConfigTransformersKey represents transformers Key
 	ConfigTransformersKey = BaseKey + d + "transformers"
 	//ConfigTargetKey represents Target Key

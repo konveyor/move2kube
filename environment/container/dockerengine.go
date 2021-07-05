@@ -58,8 +58,9 @@ func newDockerEngine() (*dockerEngine, error) {
 	_, _, err = e.RunContainer(testimage, environmenttypes.Command{}, "", "")
 	if err != nil {
 		logrus.Errorf("Unable to run test container : %s", err)
+		return nil, err
 	}
-	return e, err
+	return e, nil
 }
 
 func (e *dockerEngine) pullImage(image string) bool {

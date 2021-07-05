@@ -20,12 +20,15 @@ import (
 	"fmt"
 
 	dockertypes "github.com/docker/docker/api/types"
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/qaengine"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	"github.com/sirupsen/logrus"
 )
 
 var (
 	inited        bool
+	disabled      bool
 	workingEngine ContainerEngine
 )
 
@@ -65,8 +68,16 @@ func initContainerEngine() (err error) {
 // GetContainerEngine gets a working container engine
 func GetContainerEngine() ContainerEngine {
 	if !inited {
-		initContainerEngine()
+		disabled = !qaengine.FetchBoolAnswer(common.ConfigSpawmContainersKey, "Allow spawing containers?", []string{"If this setting is set to false, those transformers that rely on containers will not work."}, false)
+		if !disabled {
+			initContainerEngine()
+		}
 		inited = true
 	}
 	return workingEngine
+}
+
+// IsDisabled returns whether the container environment is disabled
+func IsDisabled() bool {
+	return disabled
 }
