@@ -16,8 +16,10 @@
 
 package transformer
 
+// TransformerDisabledError indicates that the transformer had been intentionally disabled
 type TransformerDisabledError struct {
 	Err error
 }
 
+// Error implements the interface required for Error
 func (e *TransformerDisabledError) Error() string { return "Transformer Disabled : " + e.Err.Error() }
