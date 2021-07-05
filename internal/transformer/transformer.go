@@ -67,7 +67,7 @@ func init() {
 }
 
 // Init initializes the transformers
-func Init(assetsPath, sourcePath string, projName string) (err error) {
+func Init(assetsPath, sourcePath, outputPath, projName string) (err error) {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
 		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
@@ -82,12 +82,12 @@ func Init(assetsPath, sourcePath string, projName string) (err error) {
 		}
 		transformerFiles[tc.Name] = filePath
 	}
-	InitTransformers(transformerFiles, sourcePath, projName, false)
+	InitTransformers(transformerFiles, sourcePath, outputPath, projName, false)
 	return nil
 }
 
 // InitTransformers initializes a subset of transformers
-func InitTransformers(transformerToInit map[string]string, sourcePath string, projName string, warn bool) error {
+func InitTransformers(transformerToInit map[string]string, sourcePath string, outputPath, projName string, warn bool) error {
 	if initialized {
 		return nil
 	}
@@ -122,7 +122,7 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, pr
 			logrus.Errorf("Unable to find Transformer class %s in %+v", tc.Spec.Class, transformerTypes)
 		} else {
 			t := reflect.New(c).Interface().(Transformer)
-			env, err := environment.NewEnvironment(tc.Name, projName, sourcePath, filepath.Dir(tc.Spec.FilePath), tc.Spec.TemplatesDir, nil, environmenttypes.Container{})
+			env, err := environment.NewEnvironment(tc.Name, projName, sourcePath, outputPath, filepath.Dir(tc.Spec.FilePath), tc.Spec.TemplatesDir, nil, environmenttypes.Container{})
 			if err != nil {
 				logrus.Errorf("Unable to create environment : %s", err)
 				return err

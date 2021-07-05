@@ -49,6 +49,7 @@ type Environment struct {
 	Children    []Environment
 
 	Source  string
+	Output  string
 	Context string
 
 	RelTemplatesDir string
@@ -60,6 +61,7 @@ type Environment struct {
 type EnvironmentInstance interface {
 	Reset() error
 	Download(envpath string) (outpath string, err error)
+	Upload(outpath string) (envpath string, err error)
 	Exec(cmd []string) (string, string, int, error)
 	Destroy() error
 
@@ -68,7 +70,7 @@ type EnvironmentInstance interface {
 }
 
 // NewEnvironment creates a new environment
-func NewEnvironment(name string, projectName string, source string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, c environmenttypes.Container) (env Environment, err error) {
+func NewEnvironment(name string, projectName string, source string, output string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, c environmenttypes.Container) (env Environment, err error) {
 	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
@@ -78,6 +80,7 @@ func NewEnvironment(name string, projectName string, source string, context stri
 		Name:            name,
 		ProjectName:     projectName,
 		Source:          source,
+		Output:          output,
 		Context:         context,
 		RelTemplatesDir: relTemplatesDir,
 		Children:        []Environment{},
@@ -157,9 +160,8 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 			return path, nil
 		}
 		if !filepath.IsAbs(path) {
-			err := fmt.Errorf("the input path %q is not an absolute path", path)
-			logrus.Errorf("%s", err)
-			return path, err
+			envOutputPath, err := e.Env.Upload(filepath.Join(e.Output, path))
+			return filepath.Join(envOutputPath, path), err
 		}
 		if common.IsParent(path, e.Source) {
 			rel, err := filepath.Rel(e.Source, path)
@@ -177,7 +179,7 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 			}
 			return filepath.Join(e.Env.GetContext(), rel), nil
 		}
-		return path, nil
+		return e.Env.Upload(path)
 	}
 	if reflect.ValueOf(obj).Kind() == reflect.String {
 		val, err := function(obj.(string))

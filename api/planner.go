@@ -27,7 +27,7 @@ import (
 )
 
 //CreatePlan creates the plan from all planners
-func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.Plan {
+func CreatePlan(inputPath, outputPath string, configurationsPath, prjName string) plantypes.Plan {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	p := plantypes.NewPlan()
 	p.Name = prjName
@@ -47,7 +47,7 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 			logrus.Infof("[%T] Done", l)
 		}
 	}
-	transformer.Init(common.AssetsPath, inputPath, p.Name)
+	transformer.Init(common.AssetsPath, inputPath, outputPath, p.Name)
 	ts := transformer.GetTransformers()
 	for tn, t := range ts {
 		config, _ := t.GetConfig()
@@ -65,7 +65,7 @@ func CreatePlan(inputPath string, configurationsPath, prjName string) plantypes.
 }
 
 // CuratePlan allows curation the plan with the qa engine
-func CuratePlan(p plantypes.Plan) plantypes.Plan {
+func CuratePlan(p plantypes.Plan, outputPath string) plantypes.Plan {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	modes := []string{}
 	transformers := []string{}
@@ -141,7 +141,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 		p.Spec.Services[sn] = sTransformers
 		serviceNames = append(serviceNames, sn)
 	}
-	transformer.InitTransformers(p.Spec.Configuration.Transformers, p.Spec.RootDir, p.Name, true)
+	transformer.InitTransformers(p.Spec.Configuration.Transformers, p.Spec.RootDir, outputPath, p.Name, true)
 
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
 	planServices := map[string]plantypes.Service{}
