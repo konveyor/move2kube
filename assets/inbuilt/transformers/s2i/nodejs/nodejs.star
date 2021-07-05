@@ -40,16 +40,11 @@ def transform(new_artifacts, old_artifacts):
             "paths": a["paths"],
             "configs": a["configs"]
         }
-        spm = {
-            "type": "Source",
-            "destinationPath": "source"
-        }
         pm = {
             "type": "Template",
-            "destinationPath": "source"
+            "destinationPath": fs.pathjoin("source", ":"+a["paths"]["ProjectPath"][0])
         }
         generated_artifacts.append(na)
-        path_mappings.append(spm)
         path_mappings.append(pm)
     return {
         "pathMappings": path_mappings,

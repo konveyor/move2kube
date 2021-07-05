@@ -456,11 +456,11 @@ func (t *Starlark) getStarlarkFSReadDir() *starlark.Builtin {
 
 func (t *Starlark) getStarlarkFSPathJoin() *starlark.Builtin {
 	return starlark.NewBuiltin(fspathjoinFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-		var pathelems []string
-		if err := starlark.UnpackPositionalArgs(fspathjoinFnName, args, kwargs, 2, &pathelems); err != nil {
+		var pathelem1, pathelem2 string
+		if err := starlark.UnpackPositionalArgs(fspathjoinFnName, args, kwargs, 2, &pathelem1, &pathelem2); err != nil {
 			return nil, err
 		}
-		path := filepath.Join(pathelems...)
+		path := filepath.Join(pathelem1, pathelem2)
 		return starutil.Marshal(path)
 	})
 }

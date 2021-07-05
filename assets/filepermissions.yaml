@@ -28,6 +28,10 @@
 "inbuilt/transformers/dockerfile/django/django.yaml" : 0644
 "inbuilt/transformers/dockerfile/django/m2kdetect.sh" : 0755
 "inbuilt/transformers/dockerfile/django/templates/Dockerfile" : 0644
+"inbuilt/transformers/dockerfile/dockerfiledetector/dockerfiledetector.yaml" : 0644
+"inbuilt/transformers/dockerfile/dockerimagebuildscript/docckerfilebuildscriptgenerator.yaml" : 0644
+"inbuilt/transformers/dockerfile/dockerimagebuildscript/templates/builddockerimages.bat" : 0755
+"inbuilt/transformers/dockerfile/dockerimagebuildscript/templates/builddockerimages.sh" : 0755
 "inbuilt/transformers/dockerfile/golang/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/golang/golang.yaml" : 0644
 "inbuilt/transformers/dockerfile/golang/m2kdetect.sh" : 0755
@@ -65,7 +69,6 @@
 "inbuilt/transformers/dockerfile/rust/m2kdetect.sh" : 0755
 "inbuilt/transformers/dockerfile/rust/rust.yaml" : 0644
 "inbuilt/transformers/dockerfile/rust/templates/Dockerfile" : 0644
-"inbuilt/transformers/dockerfiledetector/dockerfiledetector.yaml" : 0644
 "inbuilt/transformers/generators/buildconfig/buildconfig.yaml" : 0644
 "inbuilt/transformers/generators/containerpushscripts/containerpushscripts.yaml" : 0644
 "inbuilt/transformers/generators/containerpushscripts/templates/pushimages.bat" : 0755

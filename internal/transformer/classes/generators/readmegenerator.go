@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package metaartifacts
+package generators
 
 import (
 	"path/filepath"

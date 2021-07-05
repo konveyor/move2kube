@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/common/deepcopy"
 	"github.com/konveyor/move2kube/internal/common/pathconverters"
 	"github.com/konveyor/move2kube/types"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
@@ -149,6 +150,7 @@ func (e *Environment) Destroy() error {
 
 // Encode encodes all paths in the obj to be relevant to the environment
 func (e *Environment) Encode(obj interface{}) interface{} {
+	dupobj := deepcopy.DeepCopy(obj)
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
@@ -183,15 +185,16 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 		}
 		return val
 	}
-	err := pathconverters.ProcessPaths(obj, function)
+	err := pathconverters.ProcessPaths(dupobj, function)
 	if err != nil {
-		logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
+		logrus.Errorf("Unable to process paths for obj %+v : %s", dupobj, err)
 	}
-	return obj
+	return dupobj
 }
 
 // Decode decodes all paths in the passed obj
 func (e *Environment) Decode(obj interface{}) interface{} {
+	dupobj := deepcopy.DeepCopy(obj)
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
@@ -219,22 +222,23 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 		}
 		return path, nil
 	}
-	if reflect.ValueOf(obj).Kind() == reflect.String {
-		val, err := function(obj.(string))
+	if reflect.ValueOf(dupobj).Kind() == reflect.String {
+		val, err := function(dupobj.(string))
 		if err != nil {
 			logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
 		}
 		return val
 	}
-	err := pathconverters.ProcessPaths(obj, function)
+	err := pathconverters.ProcessPaths(dupobj, function)
 	if err != nil {
-		logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
+		logrus.Errorf("Unable to process paths for obj %+v : %s", dupobj, err)
 	}
-	return obj
+	return dupobj
 }
 
 // DownloadAndDecode downloads and decodes the data from the paths in the object
 func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) interface{} {
+	dupobj := deepcopy.DeepCopy(obj)
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
@@ -260,18 +264,19 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 		}
 		return outpath, nil
 	}
-	err := pathconverters.ProcessPaths(obj, function)
+	err := pathconverters.ProcessPaths(dupobj, function)
 	if err != nil {
-		logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
+		logrus.Errorf("Unable to process paths for obj %+v : %s", dupobj, err)
 	}
-	return obj
+	return dupobj
 }
 
 // ProcessPathMappings post processes the paths in the path mappings
 func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMapping) []transformertypes.PathMapping {
-	for pmi, pm := range pathMappings {
+	dupPathMappings := deepcopy.DeepCopy(pathMappings).([]transformertypes.PathMapping)
+	for pmi, pm := range dupPathMappings {
 		if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
-			pathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
+			dupPathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
 		}
 
 		// Process destination Path
@@ -288,10 +293,10 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 				logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
 				continue
 			}
-			pathMappings[pmi].DestPath = filepath.Join(relPath, dp)
+			dupPathMappings[pmi].DestPath = filepath.Join(relPath, dp)
 		}
 	}
-	return pathMappings
+	return dupPathMappings
 }
 
 // GetEnvironmentSource returns the source path within the environment

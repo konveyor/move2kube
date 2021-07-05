@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package metaartifacts
+package generators
 
 import (
 	"path/filepath"
@@ -90,10 +90,10 @@ func (t *ContainerImagePushScript) Transform(newArtifacts []transformertypes.Art
 		DestPath:       common.ScriptsDir,
 		TemplateConfig: ipt,
 	})
-	artifacts := []transformertypes.Artifact{{
-		Name:     "ImagePushScript",
+	/*artifacts := []transformertypes.Artifact{{
+		Name:     artifacts.ImagePushScriptArtifactType,
 		Artifact: artifacts.ImagePushScriptArtifactType,
-		Paths:    map[string][]string{artifacts.ImagePushScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.sh")}},
-	}}
-	return pathMappings, artifacts, nil
+		Paths:    map[string][]string{artifacts.ImagePushScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages")}},
+	}}*/
+	return pathMappings, nil, nil
 }

@@ -22,10 +22,12 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // CNBContainerizer implements Containerizer interface
@@ -109,6 +111,12 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
+		var pConfig artifacts.PlanConfig
+		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
+			continue
+		}
 		var cConfig artifacts.CNBMetadataConfig
 		err = a.GetConfig(artifacts.CNBMetadataConfigType, &cConfig)
 		if err != nil {
@@ -119,11 +127,38 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			cConfig.ImageName = sConfig.ServiceName
 		}
 		a.Configs[artifacts.CNBMetadataConfigType] = cConfig
+		ir := irtypes.NewIR()
+		ir.Name = pConfig.PlanName
+		container := irtypes.NewContainer()
+		container.AddExposedPort(common.DefaultServicePort)
+		ir.AddContainer(cConfig.ImageName, container)
+		serviceContainer := core.Container{Name: sConfig.ServiceName}
+		serviceContainer.Image = cConfig.ImageName
+		irService := irtypes.NewServiceWithName(sConfig.ServiceName)
+		serviceContainerPorts := []core.ContainerPort{}
+		for _, port := range container.ExposedPorts {
+			// Add the port to the k8s pod.
+			serviceContainerPort := core.ContainerPort{ContainerPort: int32(port)}
+			serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
+			// Forward the port on the k8s service to the k8s pod.
+			podPort := irtypes.Port{Number: int32(port)}
+			servicePort := podPort
+			irService.AddPortForwarding(servicePort, podPort)
+		}
+		serviceContainer.Ports = serviceContainerPorts
+		irService.Containers = []core.Container{serviceContainer}
+		ir.Services[sConfig.ServiceName] = irService
 		tArtifacts = append(tArtifacts, transformertypes.Artifact{
 			Name:     a.Name,
 			Artifact: artifacts.CNBMetadataArtifactType,
 			Paths:    a.Paths,
 			Configs:  a.Configs,
+		}, transformertypes.Artifact{
+			Name:     pConfig.PlanName,
+			Artifact: irtypes.IRArtifactType,
+			Configs: map[string]interface{}{
+				irtypes.IRConfigType: ir,
+			},
 		})
 	}
 	return nil, tArtifacts, nil
