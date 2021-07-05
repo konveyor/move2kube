@@ -34,6 +34,17 @@ type project struct {
 func nameServices(projName string, nServices map[string]plantypes.Service, sts []plantypes.Transformer) (services map[string]plantypes.Service) {
 	services = nServices
 	// Collate services by project path or shared common base dir
+	knownServicePaths := map[string]string{} //[path]name
+	for sn, s := range nServices {
+		for _, st := range s {
+			if pps, ok := st.Paths[artifacts.ProjectPathPathType]; ok {
+				for _, pp := range pps {
+					knownServicePaths[pp] = sn
+				}
+			}
+		}
+	}
+	// Collate services by project path or shared common base dir
 	servicePaths := map[string][]plantypes.Transformer{}
 	for _, st := range sts {
 		pps, ok := st.Paths[artifacts.ProjectPathPathType]
@@ -50,7 +61,16 @@ func nameServices(projName string, nServices map[string]plantypes.Service, sts [
 				continue
 			}
 		}
-		servicePaths[bpp] = append(servicePaths[bpp], st)
+		found := false
+		for kpp, sn := range knownServicePaths {
+			if common.IsParent(bpp, kpp) {
+				services[sn] = append(services[sn], st)
+				found = true
+			}
+		}
+		if !found {
+			servicePaths[bpp] = append(servicePaths[bpp], st)
+		}
 	}
 	// Find if base dir is a git repo, and has only one service or many services
 	gitRepoNames := map[string][]string{} // [repoName][]basePath

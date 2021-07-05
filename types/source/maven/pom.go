@@ -68,7 +68,7 @@ func (p *Properties) UnmarshalXML(d *xml.Decoder, start xml.StartElement) (err e
 	type entry struct {
 		XMLName xml.Name
 		Key     string `xml:"name,attr,omitempty"`
-		Value   string `xml:",chardata,omitempty"`
+		Value   string `xml:"chardata,omitempty"`
 	}
 	e := entry{}
 	p.Entries = map[string]string{}
