@@ -266,9 +266,9 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 					transformerpaths[PropertiesWithConfig] = propertiesWithConfig
 				}
 				ct := plantypes.Transformer{
-					Mode:                   transformertypes.ModeContainer,
-					ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
-					ExclusiveArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+					Mode:              transformertypes.ModeContainer,
+					ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
+					BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 					Configs: map[transformertypes.ConfigType]interface{}{
 						EurekaConfigType: ec,
 					},

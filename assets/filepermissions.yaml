@@ -82,7 +82,7 @@
 "inbuilt/transformers/s2i/java/java.yaml" : 0644
 "inbuilt/transformers/s2i/java/m2kdetect.sh" : 0755
 "inbuilt/transformers/s2i/java/templates/$.s2i/environment" : 0644
-"inbuilt/transformers/s2i/nodejs/m2kdetect.sh" : 0755
+"inbuilt/transformers/s2i/nodejs/nodejs.star" : 0644
 "inbuilt/transformers/s2i/nodejs/nodejs.yaml" : 0644
 "inbuilt/transformers/s2i/nodejs/templates/$.s2i/environment" : 0644
 "inbuilt/transformers/s2i/php/m2kdetect.sh" : 0755

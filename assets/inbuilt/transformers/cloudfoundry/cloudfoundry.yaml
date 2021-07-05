@@ -7,5 +7,5 @@ spec:
   class: "CloudFoundry"
   generates: 
     - "ContainerBuild"
-  exclusive: 
+  generatedBases: 
     - "ContainerBuild"

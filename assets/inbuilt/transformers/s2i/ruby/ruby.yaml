@@ -7,7 +7,7 @@ spec:
   class: "SimpleExecutable"
   generates: 
     - "ContainerBuild"
-  exclusive: 
+  generatedBases: 
     - "ContainerBuild"
   config:
     directoryDetectCMD: ["./m2kdetect.sh"]

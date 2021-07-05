@@ -103,9 +103,9 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string
 				applicationName = strings.TrimSuffix(basename, filepath.Ext(basename))
 			}
 			ct := plantypes.Transformer{
-				Mode:                   transformertypes.ModeContainer,
-				ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType},
-				ExclusiveArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType},
+				Mode:              transformertypes.ModeContainer,
+				ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType},
+				BaseArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType},
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.CloudFoundryConfigType: artifacts.CloudFoundryConfig{
 						ServiceName: applicationName,
@@ -122,7 +122,7 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string
 					dockerImageName = appinstance.DockerImage
 				}
 				ct.ArtifactTypes = append(ct.ArtifactTypes, artifacts.ContainerBuildArtifactType)
-				ct.ExclusiveArtifactTypes = append(ct.ArtifactTypes, artifacts.ContainerBuildArtifactType)
+				ct.BaseArtifactTypes = append(ct.ArtifactTypes, artifacts.ContainerBuildArtifactType)
 				ctConfig := ct.Configs[artifacts.CloudFoundryConfigType].(artifacts.CloudFoundryConfig)
 				ctConfig.ImageName = dockerImageName
 				ct.Configs[artifacts.CloudFoundryConfigType] = ctConfig

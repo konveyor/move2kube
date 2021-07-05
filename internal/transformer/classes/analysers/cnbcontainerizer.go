@@ -88,10 +88,10 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 		return nil, nil, nil
 	}
 	trans := plantypes.Transformer{
-		Mode:                   transformertypes.ModeContainer,
-		ArtifactTypes:          []string{artifacts.ContainerBuildArtifactType},
-		ExclusiveArtifactTypes: []string{artifacts.ContainerBuildArtifactType},
-		Paths:                  map[string][]string{artifacts.ProjectPathPathType: {dir}},
+		Mode:              transformertypes.ModeContainer,
+		ArtifactTypes:     []string{artifacts.ContainerBuildArtifactType},
+		BaseArtifactTypes: []string{artifacts.ContainerBuildArtifactType},
+		Paths:             map[string][]string{artifacts.ProjectPathPathType: {dir}},
 		Configs: map[string]interface{}{artifacts.CNBMetadataConfigType: artifacts.CNBMetadataConfig{
 			CNBBuilder: t.CNBConfig.BuilderImageName,
 		}},

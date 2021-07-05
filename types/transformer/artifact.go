@@ -55,7 +55,7 @@ type Artifact struct {
 func (a *Artifact) GetConfig(configName ConfigType, obj interface{}) (err error) {
 	cConfig, ok := a.Configs[configName]
 	if !ok {
-		err = fmt.Errorf("unable to find compose config in artifact %+v. Ignoring", a)
+		err = fmt.Errorf("unable to find %s config in artifact %+v. Ignoring", configName, a)
 		logrus.Errorf("%s", err)
 		return err
 	}

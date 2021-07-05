@@ -17,13 +17,17 @@
 package external
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/types"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -31,6 +35,7 @@ import (
 	starutil "github.com/qri-io/starlib/util"
 	"github.com/sirupsen/logrus"
 	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 )
 
 const (
@@ -39,10 +44,17 @@ const (
 	transformFnName           = "transform"
 
 	qaFunctionName           = "query"
-	sourceDirVarName         = "source"
-	contextDirVarName        = "context"
+	sourceDirVarName         = "source_dir"
+	contextDirVarName        = "context_dir"
+	templatesRelDirVarName   = "templates_reldir"
 	transformerConfigVarName = "config"
 	projectVarName           = "project"
+
+	// fs Function Names
+	fsexistsFnName   = "exists"
+	fsreadFnName     = "read"
+	fsreaddirFnName  = "readdir"
+	fspathjoinFnName = "pathjoin"
 )
 
 // Starlark implements transformer interface and is used to write simple external transformers
@@ -75,7 +87,6 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env environment.Environ
 	}
 	t.StarThread = &starlark.Thread{Name: tc.Name}
 	t.setDefaultGlobals()
-	t.StarGlobals[qaFunctionName] = starlark.NewBuiltin(qaFunctionName, t.query)
 	tcmapobj, err := common.GetMapInterfaceFromObj(tc)
 	if err != nil {
 		logrus.Errorf("Unable to conver transformer config to map[string]interface{}")
@@ -97,6 +108,11 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env environment.Environ
 		return err
 	}
 	t.StarGlobals[sourceDirVarName], err = starutil.Marshal(env.GetEnvironmentSource())
+	if err != nil {
+		logrus.Errorf("Unable to load source : %s", err)
+		return err
+	}
+	t.StarGlobals[templatesRelDirVarName], err = starutil.Marshal(env.RelTemplatesDir)
 	if err != nil {
 		logrus.Errorf("Unable to load source : %s", err)
 		return err
@@ -137,7 +153,7 @@ func (t *Starlark) DirectoryDetect(dir string) (namedServices map[string]plantyp
 // TransformOutput structure is the data format for receiving data from starlark transform functions
 type TransformOutput struct {
 	PathMappings     []transformertypes.PathMapping `yaml:"pathMappings,omitempty" json:"pathMappings,omitempty"`
-	CreatedArtifacts []transformertypes.Artifact    `yaml:"createdArtifacts,omitempty" json:"createdArtifacts,omitempty"`
+	CreatedArtifacts []transformertypes.Artifact    `yaml:"artifacts,omitempty" json:"artifacts,omitempty"`
 }
 
 // Transform transforms the artifacts
@@ -209,45 +225,53 @@ func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (nameService
 	return detectOutput.NamedServices, detectOutput.UnNamedServices, nil
 }
 
-func (t *Starlark) query(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	argDictValue := &starlark.Dict{}
-	if err := starlark.UnpackPositionalArgs(qaFunctionName, args, kwargs, 1, &argDictValue); err != nil {
-		return starlark.None, fmt.Errorf("invalid args provided to '%s'. Expected a single dict argument. Error: %q", qaFunctionName, err)
-	}
-	argI, err := starutil.Unmarshal(argDictValue)
-	if err != nil {
-		return starlark.None, fmt.Errorf("failed to unmarshal the argument provided to '%s'. Expected a single dict argument. Error: %q", qaFunctionName, err)
-	}
-	prob := qatypes.Problem{}
-	err = common.GetObjFromInterface(argI, &prob)
-	if err != nil {
-		logrus.Errorf("Unable to convert interface %+v to problem %T : %s", argI, prob, err)
-		return starlark.None, err
-	}
-	// key
-	if prob.ID == "" {
-		return starlark.None, fmt.Errorf("the key 'id' is missing from the question object %+v", argI)
-	}
-	if !strings.HasPrefix(prob.ID, common.BaseKey) {
-		prob.ID = common.BaseKey + common.Delim + prob.ID
-	}
-	// type
-	if prob.Type == "" {
-		prob.Type = qatypes.InputSolutionFormType
-	}
-	resolved, err := qaengine.FetchAnswer(prob)
-	if err != nil {
-		logrus.Fatalf("failed to ask the question. Error: %q", err)
-	}
-	answerValue, err := starutil.Marshal(resolved.Answer)
-	if err != nil {
-		return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", resolved.Answer, resolved.Answer, err)
-	}
-	return answerValue, err
+func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
+	return starlark.NewBuiltin(qaFunctionName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		argDictValue := &starlark.Dict{}
+		if err := starlark.UnpackPositionalArgs(qaFunctionName, args, kwargs, 1, &argDictValue); err != nil {
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Expected a single dict argument. Error: %q", qaFunctionName, err)
+		}
+		argI, err := starutil.Unmarshal(argDictValue)
+		if err != nil {
+			return starlark.None, fmt.Errorf("failed to unmarshal the argument provided to '%s'. Expected a single dict argument. Error: %q", qaFunctionName, err)
+		}
+		prob := qatypes.Problem{}
+		err = common.GetObjFromInterface(argI, &prob)
+		if err != nil {
+			logrus.Errorf("Unable to convert interface %+v to problem %T : %s", argI, prob, err)
+			return starlark.None, err
+		}
+		// key
+		if prob.ID == "" {
+			return starlark.None, fmt.Errorf("the key 'id' is missing from the question object %+v", argI)
+		}
+		if !strings.HasPrefix(prob.ID, common.BaseKey) {
+			prob.ID = common.BaseKey + common.Delim + prob.ID
+		}
+		// type
+		if prob.Type == "" {
+			prob.Type = qatypes.InputSolutionFormType
+		}
+		resolved, err := qaengine.FetchAnswer(prob)
+		if err != nil {
+			logrus.Fatalf("failed to ask the question. Error: %q", err)
+		}
+		answerValue, err := starutil.Marshal(resolved.Answer)
+		if err != nil {
+			return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", resolved.Answer, resolved.Answer, err)
+		}
+		return answerValue, err
+	})
 }
 
 func (t *Starlark) setDefaultGlobals() {
 	t.StarGlobals = starlark.StringDict{}
+	t.addStarlibModules()
+	t.addFSModules()
+	t.addAppModules()
+}
+
+func (t *Starlark) addStarlibModules() {
 	t.addModules("encoding/json")
 	t.addModules("math")
 	t.addModules("time")
@@ -261,6 +285,27 @@ func (t *Starlark) setDefaultGlobals() {
 	t.addModules("encoding/yaml")
 	t.addModules("geo")
 	t.addModules("hash")
+}
+
+func (t *Starlark) addFSModules() {
+	t.StarGlobals["fs"] = &starlarkstruct.Module{
+		Name: "fs",
+		Members: starlark.StringDict{
+			fsexistsFnName:   t.getStarlarkFSExists(),
+			fsreadFnName:     t.getStarlarkFSRead(),
+			fsreaddirFnName:  t.getStarlarkFSReadDir(),
+			fspathjoinFnName: t.getStarlarkFSPathJoin(),
+		},
+	}
+}
+
+func (t *Starlark) addAppModules() {
+	t.StarGlobals[types.AppNameShort] = &starlarkstruct.Module{
+		Name: types.AppNameShort,
+		Members: starlark.StringDict{
+			qaFunctionName: t.getStarlarkQuery(),
+		},
+	}
 }
 
 func (t *Starlark) addModules(modName string) {
@@ -353,4 +398,69 @@ func (t *Starlark) loadTransformFn() (err error) {
 	}
 	t.transformFn = fn
 	return nil
+}
+
+func (t *Starlark) getStarlarkFSExists() *starlark.Builtin {
+	return starlark.NewBuiltin(qaFunctionName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var path string
+		if err := starlark.UnpackPositionalArgs(fsexistsFnName, args, kwargs, 1, &path); err != nil {
+			return nil, err
+		}
+		_, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return starlark.Bool(false), nil
+			}
+			logrus.Errorf("Unable to check if file exists : %s", err)
+			return starlark.Bool(false), err
+		}
+		return starlark.Bool(true), nil
+	})
+}
+
+func (t *Starlark) getStarlarkFSRead() *starlark.Builtin {
+	return starlark.NewBuiltin(fsreadFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var path string
+		if err := starlark.UnpackPositionalArgs(fsreadFnName, args, kwargs, 1, &path); err != nil {
+			return nil, err
+		}
+		fileBytes, err := ioutil.ReadFile(path)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return starlark.None, nil
+			}
+
+			return nil, err
+		}
+		return starlark.String(fileBytes), nil
+	})
+}
+
+func (t *Starlark) getStarlarkFSReadDir() *starlark.Builtin {
+	return starlark.NewBuiltin(fsreadFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var path string
+		if err := starlark.UnpackPositionalArgs(fsreadFnName, args, kwargs, 1, &path); err != nil {
+			return nil, err
+		}
+		fileInfos, err := ioutil.ReadDir(path)
+		if err != nil {
+			return nil, err
+		}
+		var result []string
+		for _, fileInfo := range fileInfos {
+			result = append(result, fileInfo.Name())
+		}
+		return starutil.Marshal(result)
+	})
+}
+
+func (t *Starlark) getStarlarkFSPathJoin() *starlark.Builtin {
+	return starlark.NewBuiltin(fspathjoinFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var pathelems []string
+		if err := starlark.UnpackPositionalArgs(fspathjoinFnName, args, kwargs, 2, &pathelems); err != nil {
+			return nil, err
+		}
+		path := filepath.Join(pathelems...)
+		return starutil.Marshal(path)
+	})
 }
