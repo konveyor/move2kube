@@ -9,7 +9,7 @@ spec:
     - "ContainerBuild"
     - "IR"
     - "Dockerfile"
-  exclusive: 
+  generatedBases: 
     - "ContainerBuild"
     - "IR"
     - "Dockerfile"

@@ -8,5 +8,5 @@ spec:
   generates: 
     - "IR"
     - "ContainerBuild"
-  exclusive: 
+  generatedBases: 
     - "ContainerBuild"

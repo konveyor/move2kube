@@ -167,9 +167,9 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	}
 
 	ct := plantypes.Transformer{
-		Mode:                   transformertypes.ModeContainer,
-		ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
-		ExclusiveArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+		Mode:              transformertypes.ModeContainer,
+		ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
+		BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 		Configs: map[transformertypes.ConfigType]interface{}{
 			springbootServiceConfigType: SpringbootConfig{
 				ServiceName: appName,

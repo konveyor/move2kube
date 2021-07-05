@@ -7,7 +7,7 @@ spec:
   class: "CNBContainerizer"
   generates: 
     - "ContainerBuild"
-  exclusive: 
+  generatedBases: 
     - "ContainerBuild"
   config:
     CNBBuilder: "gcr.io/buildpacks/builder"

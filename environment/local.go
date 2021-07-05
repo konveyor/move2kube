@@ -64,6 +64,7 @@ func NewLocal(name, source, context, tempPath string, grpcQAReceiver net.Addr) (
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 	}
+
 	local.Reset()
 	return local, nil
 }

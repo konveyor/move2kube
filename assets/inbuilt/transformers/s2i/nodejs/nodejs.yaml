@@ -4,10 +4,10 @@ metadata:
   name: Nodejs-s2i
 spec:
   mode: "Container"
-  class: "SimpleExecutable"
+  class: "Starlark"
   generates: 
     - "ContainerBuild"
-  exclusive: 
+  generatedBases: 
     - "ContainerBuild"
   config:
-    directoryDetectCMD: ["./m2kdetect.sh"]
+    starFile: "nodejs.star"

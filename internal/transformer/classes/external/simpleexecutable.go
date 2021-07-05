@@ -154,11 +154,11 @@ func (t *SimpleExecutable) executeDetect(cmd environmenttypes.Command, dir strin
 	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d", t.TConfig.Name, t.Env.Decode(dir), stdout, stderr, exitcode)
 	stdout = strings.TrimSpace(stdout)
 	trans := plantypes.Transformer{
-		Mode:                   t.TConfig.Spec.Mode,
-		ArtifactTypes:          t.TConfig.Spec.Artifacts,
-		ExclusiveArtifactTypes: t.TConfig.Spec.ExclusiveArtifacts,
-		Paths:                  map[string][]string{artifacts.ProjectPathPathType: {dir}},
-		Configs:                map[transformertypes.ConfigType]interface{}{},
+		Mode:              t.TConfig.Spec.Mode,
+		ArtifactTypes:     t.TConfig.Spec.Artifacts,
+		BaseArtifactTypes: t.TConfig.Spec.GeneratedBaseArtifacts,
+		Paths:             map[string][]string{artifacts.ProjectPathPathType: {dir}},
+		Configs:           map[transformertypes.ConfigType]interface{}{},
 	}
 	var config map[string]interface{}
 	if stdout != "" {

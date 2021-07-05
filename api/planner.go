@@ -85,11 +85,12 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 			transformers = append(transformers, tn)
 		}
 	}
+	serviceNames := []string{}
 	modes = qaengine.FetchMultiSelectAnswer(common.ConfigModesKey, "Choose modes to use:", []string{"Modes generally specify the deployment model"}, modes, modes)
 	transformers = qaengine.FetchMultiSelectAnswer(common.ConfigTransformerTypesKey, "Select all transformer types that you are interested in:", []string{"Services that don't support any of the transformer types you are interested in will be ignored."}, transformers, transformers)
 	for sn, st := range p.Spec.Services {
 		mode := ""
-		exclusiveArtifactTypes := []string{}
+		baseArtifactTypes := []string{}
 		sTransformers := []plantypes.Transformer{}
 		for _, t := range st {
 			if mode == "" {
@@ -115,7 +116,7 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 			}
 			artifactsToUse := []transformertypes.ArtifactType{}
 			for _, at := range t.ArtifactTypes {
-				if common.IsStringPresent(exclusiveArtifactTypes, string(at)) {
+				if common.IsStringPresent(t.BaseArtifactTypes, string(at)) && common.IsStringPresent(baseArtifactTypes, string(at)) {
 					continue
 				}
 				artifactsToUse = append(artifactsToUse, at)
@@ -124,8 +125,8 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 				continue
 			}
 			t.ArtifactTypes = artifactsToUse
-			for _, e := range t.ExclusiveArtifactTypes {
-				exclusiveArtifactTypes = append(exclusiveArtifactTypes, string(e))
+			for _, e := range t.BaseArtifactTypes {
+				baseArtifactTypes = append(baseArtifactTypes, string(e))
 			}
 			sTransformers = append(sTransformers, t)
 		}
@@ -138,8 +139,16 @@ func CuratePlan(p plantypes.Plan) plantypes.Plan {
 			continue
 		}
 		p.Spec.Services[sn] = sTransformers
+		serviceNames = append(serviceNames, sn)
 	}
 	transformer.InitTransformers(p.Spec.Configuration.Transformers, p.Spec.RootDir, p.Name, true)
+
+	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
+	planServices := map[string]plantypes.Service{}
+	for _, s := range selectedServices {
+		planServices[s] = p.Spec.Services[s]
+	}
+	p.Spec.Services = planServices
 
 	// Choose cluster type to target
 	clusters := new(configuration.ClusterMDLoader).GetClusters(p)

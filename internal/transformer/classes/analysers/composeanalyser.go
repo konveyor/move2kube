@@ -154,9 +154,9 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 
 func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) plantypes.Transformer {
 	ct := plantypes.Transformer{
-		Mode:                   transformertypes.ModeContainer,
-		ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
-		ExclusiveArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
+		Mode:              transformertypes.ModeContainer,
+		ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
+		BaseArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
 		Configs: map[transformertypes.ConfigType]interface{}{
 			ComposeServiceConfigType: ComposeConfig{
 				ServiceName: serviceName,

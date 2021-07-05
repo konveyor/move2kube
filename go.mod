@@ -26,8 +26,6 @@ require (
 	github.com/openshift/api v0.0.0-20210621070332-ea13be50ba2d
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
-	github.com/qri-io/starlib v0.5.0 
-	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.8.0
