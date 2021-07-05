@@ -158,6 +158,18 @@ func (e *PeerContainer) Download(path string) (string, error) {
 	return output, nil
 }
 
+// Upload uploads the path from outside the environment into it
+func (e *PeerContainer) Upload(outpath string) (envpath string, err error) {
+	envpath = "/var/tmp/" + uniuri.NewLen(5) + "/" + filepath.Base(outpath)
+	cengine := container.GetContainerEngine()
+	err = cengine.CopyDirsIntoContainer(e.CID, map[string]string{outpath: envpath})
+	if err != nil {
+		logrus.Errorf("Unable to copy data from container : %s", err)
+		return outpath, err
+	}
+	return envpath, nil
+}
+
 // GetContext returns the context within the PeerContainer environment
 func (e *PeerContainer) GetContext() string {
 	return e.WorkspaceContext

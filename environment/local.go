@@ -154,6 +154,29 @@ func (e *Local) Download(path string) (string, error) {
 	return output, nil
 }
 
+// Upload uploads the path from outside the environment into it
+func (e *Local) Upload(outpath string) (envpath string, err error) {
+	envpath, err = ioutil.TempDir(e.TempPath, "*")
+	if err != nil {
+		logrus.Errorf("Unable to create temp dir : %s", err)
+		return outpath, err
+	}
+	ps, err := os.Stat(outpath)
+	if err != nil {
+		logrus.Errorf("Unable to stat source : %s", outpath)
+		return "", err
+	}
+	if ps.Mode().IsRegular() {
+		envpath = filepath.Join(envpath, filepath.Base(outpath))
+	}
+	err = filesystem.Replicate(outpath, envpath)
+	if err != nil {
+		logrus.Errorf("Unable to replicate in syncoutput : %s", err)
+		return outpath, err
+	}
+	return envpath, nil
+}
+
 // GetContext returns the context of Local
 func (e *Local) GetContext() string {
 	return e.WorkspaceContext

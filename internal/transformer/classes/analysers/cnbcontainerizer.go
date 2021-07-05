@@ -55,7 +55,7 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env environment
 		return err
 	}
 
-	t.CNBEnv, err = environment.NewEnvironment(tc.Name, t.Env.ProjectName, t.Env.GetEnvironmentSource(), "", "", nil, environmenttypes.Container{
+	t.CNBEnv, err = environment.NewEnvironment(tc.Name, t.Env.ProjectName, t.Env.GetEnvironmentSource(), "", "", "", nil, environmenttypes.Container{
 		Image:      t.CNBConfig.BuilderImageName,
 		WorkingDir: filepath.Join(string(filepath.Separator), "tmp"),
 	})

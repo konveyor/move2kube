@@ -82,7 +82,7 @@ func planHandler(flags planFlags) {
 	}
 	qaengine.StartEngine(true, 0, true)
 	qaengine.SetupConfigFile("", flags.setconfigs, flags.configs, flags.preSets)
-	p := api.CreatePlan(srcpath, configurationsPath, name)
+	p := api.CreatePlan(srcpath, "", configurationsPath, name)
 	if err = plantypes.WritePlan(planfile, p); err != nil {
 		logrus.Errorf("Unable to write plan file (%s) : %s", planfile, err)
 		return

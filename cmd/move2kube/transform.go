@@ -95,7 +95,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 
 		logrus.Debugf("Creating a new plan.")
-		p = api.CreatePlan(flags.Srcpath, flags.ConfigurationsPath, flags.Name)
+		p = api.CreatePlan(flags.Srcpath, flags.Outpath, flags.ConfigurationsPath, flags.Name)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.Planfile)
 		rootDir := ""
@@ -136,7 +136,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 			logrus.Warnf("Failed to write the stores to disk. Error: %q", err)
 		}
 	}
-	p = api.CuratePlan(p)
+	p = api.CuratePlan(p, flags.Outpath)
 	api.Transform(p, flags.Outpath)
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.Outpath)
 	api.Destroy()
