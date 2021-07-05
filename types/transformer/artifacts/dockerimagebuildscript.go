@@ -26,6 +26,8 @@ const (
 )
 
 const (
-	// DockerImageBuildScriptPathType represents the image push script path type
-	DockerImageBuildScriptPathType transformertypes.PathType = "DockerImageBuildScript"
+	// DockerImageBuildShScriptPathType represents the image push script path type
+	DockerImageBuildShScriptPathType transformertypes.PathType = "DockerImageBuildShScript"
+	// DockerImageBuildBatScriptPathType represents the image push script path type
+	DockerImageBuildBatScriptPathType transformertypes.PathType = "DockerImageBuildBatScript"
 )

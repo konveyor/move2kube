@@ -14,20 +14,10 @@
  *  limitations under the License.
  */
 
-package artifacts
+package transformer
 
-import (
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-)
+type TransformerDisabledError struct {
+	Err error
+}
 
-const (
-	// ImagePushScriptArtifactType represents the image push script artifact type
-	ImagePushScriptArtifactType transformertypes.ArtifactType = "ImagePushScript"
-)
-
-const (
-	// ImagePushShScriptPathType represents the image push script path type
-	ImagePushShScriptPathType transformertypes.PathType = "ImagePushShScript"
-	// ImagePushBatScriptPathType represents the image push script path type
-	ImagePushBatScriptPathType transformertypes.PathType = "ImagePushBatScript"
-)
+func (e *TransformerDisabledError) Error() string { return "Transformer Disabled : " + e.Err.Error() }

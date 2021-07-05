@@ -77,10 +77,5 @@ func (t *ReadMeGenerator) Transform(newArtifacts []transformertypes.Artifact, ol
 			})
 		}
 	}
-	artifacts := []transformertypes.Artifact{{
-		Name:     "ImagePushScript",
-		Artifact: artifacts.ImagePushScriptArtifactType,
-		Paths:    map[string][]string{artifacts.ImagePushScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.sh")}},
-	}}
-	return pathMappings, artifacts, nil
+	return pathMappings, nil, nil
 }
