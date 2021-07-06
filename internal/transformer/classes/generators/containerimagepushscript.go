@@ -31,7 +31,7 @@ import (
 // ContainerImagePushScript implements Transformer interface
 type ContainerImagePushScript struct {
 	TConfig transformertypes.Transformer
-	Env     environment.Environment
+	Env     *environment.Environment
 }
 
 // ImagePushTemplateConfig represents template config used by ImagePush script
@@ -42,14 +42,14 @@ type ImagePushTemplateConfig struct {
 }
 
 // Init Initializes the transformer
-func (t *ContainerImagePushScript) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *ContainerImagePushScript) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *ContainerImagePushScript) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *ContainerImagePushScript) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.TConfig, t.Env
 }
 
@@ -90,11 +90,11 @@ func (t *ContainerImagePushScript) Transform(newArtifacts []transformertypes.Art
 		DestPath:       common.ScriptsDir,
 		TemplateConfig: ipt,
 	})
-	/*artifacts := []transformertypes.Artifact{{
+	artifacts := []transformertypes.Artifact{{
 		Name:     artifacts.ImagePushScriptArtifactType,
 		Artifact: artifacts.ImagePushScriptArtifactType,
 		Paths: map[string][]string{artifacts.ImagePushShScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.sh")},
 			artifacts.ImagePushBatScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.bat")}},
-	}}*/
-	return pathMappings, nil, nil
+	}}
+	return pathMappings, artifacts, nil
 }

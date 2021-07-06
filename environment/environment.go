@@ -46,11 +46,13 @@ type Environment struct {
 	Name        string
 	ProjectName string
 	Env         EnvironmentInstance
-	Children    []Environment
+	Children    []*Environment
 
 	Source  string
 	Output  string
 	Context string
+
+	CurrEnvOutputBasePath string
 
 	RelTemplatesDir string
 
@@ -70,20 +72,20 @@ type EnvironmentInstance interface {
 }
 
 // NewEnvironment creates a new environment
-func NewEnvironment(name string, projectName string, source string, output string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, c environmenttypes.Container) (env Environment, err error) {
+func NewEnvironment(name string, projectName string, source string, output string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, c environmenttypes.Container) (env *Environment, err error) {
 	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return env, err
 	}
-	env = Environment{
+	env = &Environment{
 		Name:            name,
 		ProjectName:     projectName,
 		Source:          source,
 		Output:          output,
 		Context:         context,
 		RelTemplatesDir: relTemplatesDir,
-		Children:        []Environment{},
+		Children:        []*Environment{},
 		TempPath:        tempPath,
 	}
 	if c.Image != "" {
@@ -127,12 +129,13 @@ func NewEnvironment(name string, projectName string, source string, output strin
 }
 
 // AddChild adds a child to the environment
-func (e *Environment) AddChild(env Environment) {
+func (e *Environment) AddChild(env *Environment) {
 	e.Children = append(e.Children, env)
 }
 
 // Reset resets an environment
 func (e *Environment) Reset() error {
+	e.CurrEnvOutputBasePath = ""
 	return e.Env.Reset()
 }
 
@@ -160,8 +163,11 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 			return path, nil
 		}
 		if !filepath.IsAbs(path) {
-			envOutputPath, err := e.Env.Upload(filepath.Join(e.Output, path))
-			return filepath.Join(envOutputPath, path), err
+			var err error
+			if e.CurrEnvOutputBasePath == "" {
+				e.CurrEnvOutputBasePath, err = e.Env.Upload(e.Output)
+			}
+			return filepath.Join(e.CurrEnvOutputBasePath, path), err
 		}
 		if common.IsParent(path, e.Source) {
 			rel, err := filepath.Rel(e.Source, path)
@@ -310,6 +316,11 @@ func (e *Environment) GetEnvironmentSource() string {
 // GetEnvironmentContext returns the context path within the environment
 func (e *Environment) GetEnvironmentContext() string {
 	return e.Env.GetContext()
+}
+
+// GetEnvironmentOutput returns the output path within the environment
+func (e *Environment) GetEnvironmentOutput() string {
+	return e.CurrEnvOutputBasePath
 }
 
 // GetProjectName returns the project name

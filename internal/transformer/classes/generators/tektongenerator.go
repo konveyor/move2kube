@@ -60,18 +60,18 @@ const (
 // Tekton implements Transformer interface
 type Tekton struct {
 	Config transformertypes.Transformer
-	Env    environment.Environment
+	Env    *environment.Environment
 }
 
 // Init Initializes the transformer
-func (t *Tekton) Init(tc transformertypes.Transformer, env environment.Environment) error {
+func (t *Tekton) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the configuration
-func (t *Tekton) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *Tekton) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 

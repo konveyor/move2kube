@@ -33,18 +33,18 @@ import (
 // DockerfileDetector implements the Transformer interface
 type DockerfileDetector struct {
 	Config transformertypes.Transformer
-	Env    environment.Environment
+	Env    *environment.Environment
 }
 
 // Init Initializes the transformer
-func (t *DockerfileDetector) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *DockerfileDetector) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *DockerfileDetector) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *DockerfileDetector) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 

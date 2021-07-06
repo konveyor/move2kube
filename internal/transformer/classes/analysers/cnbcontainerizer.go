@@ -35,8 +35,8 @@ import (
 type CNBContainerizer struct {
 	TConfig   transformertypes.Transformer
 	CNBConfig CNBContainerizerYamlConfig
-	Env       environment.Environment
-	CNBEnv    environment.Environment
+	Env       *environment.Environment
+	CNBEnv    *environment.Environment
 }
 
 // CNBContainerizerYamlConfig represents the configuration of the CNBBuilder
@@ -45,7 +45,7 @@ type CNBContainerizerYamlConfig struct {
 }
 
 // Init Initializes the transformer
-func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
 	t.CNBConfig = CNBContainerizerYamlConfig{}
@@ -71,7 +71,7 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env environment
 }
 
 // GetConfig returns the transformer config
-func (t *CNBContainerizer) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *CNBContainerizer) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.TConfig, t.Env
 }
 

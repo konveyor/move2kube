@@ -43,9 +43,9 @@ var (
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
 type Transformer interface {
-	Init(tc transformertypes.Transformer, env environment.Environment) (err error)
+	Init(tc transformertypes.Transformer, env *environment.Environment) (err error)
 	// GetConfig returns the transformer config
-	GetConfig() (transformertypes.Transformer, environment.Environment)
+	GetConfig() (transformertypes.Transformer, *environment.Environment)
 
 	BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error)
 	DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error)
@@ -54,7 +54,30 @@ type Transformer interface {
 }
 
 func init() {
-	transformerObjs := []Transformer{new(analysers.ComposeAnalyser), new(generators.ComposeGenerator), new(generators.Kubernetes), new(generators.Knative), new(generators.Tekton), new(generators.BuildConfig), new(external.SimpleExecutable), new(analysers.CNBContainerizer), new(generators.CNBGenerator), new(analysers.CloudFoundry), new(analysers.DockerfileDetector), new(generators.ContainerImagePushScript), new(generators.DockerfileImageBuildScript), new(analysers.SpringbootAnalyser), new(analysers.ZuulAnalyser), new(analysers.EurekaReplaceEngine), new(external.Starlark), new(generators.S2IGenerator)}
+	transformerObjs := []Transformer{
+		new(analysers.ComposeAnalyser),
+		new(analysers.CNBContainerizer),
+		new(analysers.CloudFoundry),
+		new(analysers.DockerfileDetector),
+		new(analysers.SpringbootAnalyser),
+		new(analysers.ZuulAnalyser),
+		new(analysers.EurekaReplaceEngine),
+
+		new(generators.ComposeGenerator),
+		new(generators.Kubernetes),
+		new(generators.Knative),
+		new(generators.Tekton),
+		new(generators.BuildConfig),
+		new(generators.CNBGenerator),
+		new(generators.S2IGenerator),
+		new(generators.DockerfileImageBuildScript),
+		new(generators.ContainerImagePushScript),
+		new(generators.ContainerImagesBuildScript),
+		new(generators.ReadMeGenerator),
+
+		new(external.Starlark),
+		new(external.SimpleExecutable),
+	}
 	for _, tt := range transformerObjs {
 		t := reflect.TypeOf(tt).Elem()
 		tn := t.Name()
@@ -79,6 +102,9 @@ func Init(assetsPath, sourcePath, outputPath, projName string) (err error) {
 		if err != nil {
 			logrus.Debugf("Unable to load %s as Transformer config : %s", filePath, err)
 			continue
+		}
+		if otc, ok := transformerFiles[tc.Name]; ok {
+			logrus.Warnf("Duplicate transformer configs with same name %s found. Ignoring %s in favor of %s", otc, filePath)
 		}
 		transformerFiles[tc.Name] = filePath
 	}
@@ -246,7 +272,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			if len(artifactsToProcess) == 0 {
 				continue
 			}
-			logrus.Infof("Transformer %s", config.Name)
+			logrus.Infof("Transformer %s processing %d artifacts", config.Name, len(artifactsToProcess))
 			newPathMappings, newArtifacts, err := t.Transform(*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact), *env.Encode(&artifacts).(*[]transformertypes.Artifact))
 			if err != nil {
 				logrus.Errorf("Unable to transform artifacts using %s : %s", tn, err)

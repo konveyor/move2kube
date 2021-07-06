@@ -45,7 +45,7 @@ const (
 // ComposeAnalyser implements Transformer interface
 type ComposeAnalyser struct {
 	Config transformertypes.Transformer
-	Env    environment.Environment
+	Env    *environment.Environment
 }
 
 // ComposeConfig stores the config for compose service
@@ -54,14 +54,14 @@ type ComposeConfig struct {
 }
 
 // Init Initializes the transformer
-func (t *ComposeAnalyser) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *ComposeAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the config
-func (t *ComposeAnalyser) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *ComposeAnalyser) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 

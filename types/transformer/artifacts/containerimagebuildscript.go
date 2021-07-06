@@ -21,13 +21,13 @@ import (
 )
 
 const (
-	// DockerImageBuildScriptArtifactType represents the image push script artifact type
-	DockerImageBuildScriptArtifactType transformertypes.ArtifactType = "DockerImageBuildScript"
+	// ContainerImageBuildScriptArtifactType represents the image push script artifact type
+	ContainerImageBuildScriptArtifactType transformertypes.ArtifactType = "ContainerImageBuildScript"
 )
 
 const (
-	// DockerImageBuildShScriptPathType represents the image push script path type
-	DockerImageBuildShScriptPathType transformertypes.PathType = "DockerImageBuildShScript"
-	// DockerImageBuildBatScriptPathType represents the image push script path type
-	DockerImageBuildBatScriptPathType transformertypes.PathType = "DockerImageBuildBatScript"
+	// ContainerImageBuildShScriptPathType represents the image push script path type
+	ContainerImageBuildShScriptPathType transformertypes.PathType = "ContainerImageBuildShScript"
+	// ContainerImageBuildBatScriptPathType represents the image push script path type
+	ContainerImageBuildBatScriptPathType transformertypes.PathType = "ContainerImageBuildBatScript"
 )

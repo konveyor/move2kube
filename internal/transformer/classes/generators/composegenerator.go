@@ -32,7 +32,7 @@ import (
 // ComposeGenerator implements Transformer interface
 type ComposeGenerator struct {
 	Config transformertypes.Transformer
-	Env    environment.Environment
+	Env    *environment.Environment
 }
 
 type composeObj struct {
@@ -45,14 +45,14 @@ type composeObj struct {
 }
 
 // Init Initializes the transformer
-func (t *ComposeGenerator) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *ComposeGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *ComposeGenerator) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *ComposeGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 

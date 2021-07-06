@@ -66,7 +66,7 @@ var (
 // EurekaReplaceEngine implements Transformer interface
 type EurekaReplaceEngine struct {
 	Config transformertypes.Transformer
-	Env    environment.Environment
+	Env    *environment.Environment
 }
 
 // EurekaConfig defines spring boot properties
@@ -102,14 +102,14 @@ func buildNode(key, value string) []*yaml.Node {
 }
 
 // Init Initializes the transformer
-func (t *EurekaReplaceEngine) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *EurekaReplaceEngine) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *EurekaReplaceEngine) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *EurekaReplaceEngine) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 

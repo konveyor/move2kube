@@ -30,7 +30,7 @@ import (
 // DockerfileImageBuildScript implements Transformer interface
 type DockerfileImageBuildScript struct {
 	TConfig transformertypes.Transformer
-	Env     environment.Environment
+	Env     *environment.Environment
 }
 
 // DockerfileImageBuildScriptTemplateConfig represents template config used by ImagePush script
@@ -41,14 +41,14 @@ type DockerfileImageBuildScriptTemplateConfig struct {
 }
 
 // Init Initializes the transformer
-func (t *DockerfileImageBuildScript) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *DockerfileImageBuildScript) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *DockerfileImageBuildScript) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *DockerfileImageBuildScript) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.TConfig, t.Env
 }
 
@@ -93,10 +93,10 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 		TemplateConfig: dfs,
 	})
 	artifacts := []transformertypes.Artifact{{
-		Name:     artifacts.DockerImageBuildScriptArtifactType,
-		Artifact: artifacts.DockerImageBuildScriptArtifactType,
-		Paths: map[string][]string{artifacts.DockerImageBuildShScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.sh")},
-			artifacts.DockerImageBuildBatScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.bat")}},
+		Name:     artifacts.ContainerImageBuildScriptArtifactType,
+		Artifact: artifacts.ContainerImageBuildScriptArtifactType,
+		Paths: map[string][]string{artifacts.ContainerImageBuildShScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.sh")},
+			artifacts.ContainerImageBuildBatScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.bat")}},
 	}}
 	return pathMappings, artifacts, nil
 }
