@@ -32,6 +32,7 @@ import (
 )
 
 const (
+	// DockerfileImageNameConfigType stores the imagename for the dockerfile
 	DockerfileImageNameConfigType transformertypes.ArtifactType = "DockerfileImageName"
 )
 
@@ -41,6 +42,7 @@ type DockerfileDetector struct {
 	Env    *environment.Environment
 }
 
+// DockerfileImageName is the struct storing the ImageName for the dockerfile
 type DockerfileImageName struct {
 	ImageName string
 }
