@@ -84,7 +84,7 @@ func (t *S2IGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			continue
 		}
 		if s2iConfig.ImageName == "" {
-			s2iConfig.ImageName = sConfig.ServiceName
+			s2iConfig.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
 		ir := irtypes.NewIR()
 		ir.Name = pConfig.PlanName

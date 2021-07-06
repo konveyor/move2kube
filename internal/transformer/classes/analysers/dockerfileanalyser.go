@@ -23,6 +23,7 @@ import (
 	"regexp"
 
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/internal/common"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -120,7 +121,7 @@ func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact,
 			Artifact: artifacts.NewImageArtifactType,
 			Configs: map[string]interface{}{
 				artifacts.NewImageConfigType: artifacts.NewImage{
-					ImageName: sConfig.ServiceName,
+					ImageName: common.MakeStringContainerImageNameCompliant(sConfig.ServiceName),
 				},
 			},
 		}

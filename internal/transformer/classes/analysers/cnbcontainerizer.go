@@ -128,7 +128,7 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			continue
 		}
 		if cConfig.ImageName == "" {
-			cConfig.ImageName = sConfig.ServiceName
+			cConfig.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
 		a.Configs[artifacts.CNBMetadataConfigType] = cConfig
 		ir := irtypes.NewIR()
