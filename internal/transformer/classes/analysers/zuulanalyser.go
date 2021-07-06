@@ -17,34 +17,34 @@
 package analysers
 
 import (
-	 "github.com/konveyor/move2kube/environment"
-	 "github.com/konveyor/move2kube/internal/common"
-	 irtypes "github.com/konveyor/move2kube/types/ir"
-	 plantypes "github.com/konveyor/move2kube/types/plan"
-	 transformertypes "github.com/konveyor/move2kube/types/transformer"
-	 "github.com/konveyor/move2kube/types/transformer/artifacts"
-	 "github.com/sirupsen/logrus"
+	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/internal/common"
+	irtypes "github.com/konveyor/move2kube/types/ir"
+	plantypes "github.com/konveyor/move2kube/types/plan"
+	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/sirupsen/logrus"
 )
- 
+
 const (
-	 // ZuulServiceConfigType defines config type
-	 ZuulServiceConfigType transformertypes.ConfigType = "ZuulService"
+	// ZuulServiceConfigType defines config type
+	ZuulServiceConfigType transformertypes.ConfigType = "ZuulService"
 )
- 
+
 const (
-	 // ZuulSpringBootFile defines path type
-	 ZuulSpringBootFile transformertypes.PathType = "SpringBootFile"
+	// ZuulSpringBootFile defines path type
+	ZuulSpringBootFile transformertypes.PathType = "SpringBootFile"
 )
- 
+
 // ZuulAnalyser implements Transformer interface
 type ZuulAnalyser struct {
-	 Config transformertypes.Transformer
-	 Env    environment.Environment
+	Config transformertypes.Transformer
+	Env    *environment.Environment
 }
- 
+
 // ZuulConfig defines service expose url path
 type ZuulConfig struct {
-	 ServiceRelativePath string `yaml:"serviceRelativePath,omitempty"`
+	ServiceRelativePath string `yaml:"serviceRelativePath,omitempty"`
 }
 
 // ZuulSpec defines zuul specification
@@ -58,39 +58,39 @@ type Zuul struct {
 }
 
 // Init Initializes the transformer
-func (t *ZuulAnalyser) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
-	 t.Config = tc
-	 t.Env = env
-	 return nil
+func (t *ZuulAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+	t.Config = tc
+	t.Env = env
+	return nil
 }
- 
+
 // GetConfig returns the transformer config
-func (t *ZuulAnalyser) GetConfig() (transformertypes.Transformer, environment.Environment) {
-	 return t.Config, t.Env
+func (t *ZuulAnalyser) GetConfig() (transformertypes.Transformer, *environment.Environment) {
+	return t.Config, t.Env
 }
- 
+
 // BaseDirectoryDetect runs detect in base directory
 func (t *ZuulAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	namedServices = map[string]plantypes.Service{}
-	 yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
-	 if err != nil {
-		 logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
-		 return nil, nil, err
-	 }
-	 for _, path := range yamlpaths {
-		 z := Zuul{}
-		 if err := common.ReadYaml(path, &z); err != nil || z.ZuulSpec.RouteSpec == nil{
-			 continue
-		 }
+	yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
+	if err != nil {
+		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
+		return nil, nil, err
+	}
+	for _, path := range yamlpaths {
+		z := Zuul{}
+		if err := common.ReadYaml(path, &z); err != nil || z.ZuulSpec.RouteSpec == nil {
+			continue
+		}
 
-		 for servicename, routepath := range z.ZuulSpec.RouteSpec {
+		for servicename, routepath := range z.ZuulSpec.RouteSpec {
 
 			// TODO: routepath (ant style) to regex
 
 			routepath = routepath[:len(routepath)-2]
 			ct := plantypes.Transformer{
-				Mode:                   transformertypes.ModeContainer,
-				ArtifactTypes:          []transformertypes.ArtifactType{irtypes.IRArtifactType},
+				Mode:          transformertypes.ModeContainer,
+				ArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType},
 				Configs: map[transformertypes.ConfigType]interface{}{
 					ZuulServiceConfigType: ZuulConfig{
 						ServiceRelativePath: routepath,
@@ -102,16 +102,16 @@ func (t *ZuulAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string
 				},
 			}
 			namedServices[servicename] = append(namedServices[servicename], ct)
-		 }
-	 }
-	 return namedServices, nil, nil
+		}
+	}
+	return namedServices, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
 func (t *ZuulAnalyser) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
-	 return nil, nil, nil
+	return nil, nil, nil
 }
- 
+
 // Transform transforms the artifacts
 func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
@@ -140,15 +140,15 @@ func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldAr
 
 		ir := irtypes.NewIR()
 		logrus.Debugf("Transforming %s", sConfig.ServiceName)
-		serviceConfig := irtypes.Service{Name: sConfig.ServiceName, ServiceRelPath: config.ServiceRelativePath, Annotations: map[string]string{common.ExposeSelector: common.AnnotationLabelValue} }
+		serviceConfig := irtypes.Service{Name: sConfig.ServiceName, ServiceRelPath: config.ServiceRelativePath, Annotations: map[string]string{common.ExposeSelector: common.AnnotationLabelValue}}
 		ir.Services[sConfig.ServiceName] = serviceConfig
 		artifactsCreated = append(artifactsCreated, transformertypes.Artifact{
-		Name:     pConfig.PlanName,
-		Artifact: irtypes.IRArtifactType,
-		Configs: map[transformertypes.ConfigType]interface{}{
-			irtypes.IRConfigType:     ir,
-			artifacts.PlanConfigType: pConfig,
-		},
+			Name:     pConfig.PlanName,
+			Artifact: irtypes.IRArtifactType,
+			Configs: map[transformertypes.ConfigType]interface{}{
+				irtypes.IRConfigType:     ir,
+				artifacts.PlanConfigType: pConfig,
+			},
 		})
 	}
 	return nil, artifactsCreated, nil

@@ -32,18 +32,18 @@ import (
 // Knative implements Transformer interface
 type Knative struct {
 	Config transformertypes.Transformer
-	Env    environment.Environment
+	Env    *environment.Environment
 }
 
 // Init Initializes the transformer
-func (t *Knative) Init(tc transformertypes.Transformer, env environment.Environment) error {
+func (t *Knative) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *Knative) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *Knative) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 

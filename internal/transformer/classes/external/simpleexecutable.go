@@ -41,7 +41,7 @@ const (
 type SimpleExecutable struct {
 	TConfig    transformertypes.Transformer
 	ExecConfig ExecutableYamlConfig
-	Env        environment.Environment
+	Env        *environment.Environment
 }
 
 // TransformConfig defines the type of config for Simpleexecutable
@@ -60,7 +60,7 @@ type ExecutableYamlConfig struct {
 }
 
 // Init Initializes the transformer
-func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.TConfig = tc
 	t.ExecConfig = ExecutableYamlConfig{}
 	err = common.GetObjFromInterface(t.TConfig.Spec.Config, &t.ExecConfig)
@@ -85,7 +85,7 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env environment
 }
 
 // GetConfig returns the transformer config
-func (t *SimpleExecutable) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *SimpleExecutable) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.TConfig, t.Env
 }
 

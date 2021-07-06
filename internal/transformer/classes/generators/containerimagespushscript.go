@@ -28,10 +28,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ContainerImagePushScript implements Transformer interface
-type ContainerImagePushScript struct {
+// ContainerImagesPushScript implements Transformer interface
+type ContainerImagesPushScript struct {
 	TConfig transformertypes.Transformer
-	Env     environment.Environment
+	Env     *environment.Environment
 }
 
 // ImagePushTemplateConfig represents template config used by ImagePush script
@@ -42,29 +42,29 @@ type ImagePushTemplateConfig struct {
 }
 
 // Init Initializes the transformer
-func (t *ContainerImagePushScript) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *ContainerImagesPushScript) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *ContainerImagePushScript) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *ContainerImagesPushScript) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.TConfig, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *ContainerImagePushScript) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ContainerImagesPushScript) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *ContainerImagePushScript) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ContainerImagesPushScript) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return nil, nil, nil
 }
 
 // Transform transforms the artifacts
-func (t *ContainerImagePushScript) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	ipt := ImagePushTemplateConfig{}
 	for _, a := range newArtifacts {
@@ -90,11 +90,11 @@ func (t *ContainerImagePushScript) Transform(newArtifacts []transformertypes.Art
 		DestPath:       common.ScriptsDir,
 		TemplateConfig: ipt,
 	})
-	/*artifacts := []transformertypes.Artifact{{
-		Name:     artifacts.ImagePushScriptArtifactType,
-		Artifact: artifacts.ImagePushScriptArtifactType,
-		Paths: map[string][]string{artifacts.ImagePushShScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.sh")},
-			artifacts.ImagePushBatScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.bat")}},
-	}}*/
-	return pathMappings, nil, nil
+	artifacts := []transformertypes.Artifact{{
+		Name:     artifacts.ContainerImagesPushScriptArtifactType,
+		Artifact: artifacts.ContainerImagesPushScriptArtifactType,
+		Paths: map[string][]string{artifacts.ContainerImagesPushShScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.sh")},
+			artifacts.ContainerImagesPushBatScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.bat")}},
+	}}
+	return pathMappings, artifacts, nil
 }

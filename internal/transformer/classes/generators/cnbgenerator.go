@@ -30,18 +30,18 @@ import (
 // CNBGenerator implements Transformer interface
 type CNBGenerator struct {
 	TConfig transformertypes.Transformer
-	Env     environment.Environment
+	Env     *environment.Environment
 }
 
 // Init Initializes the transformer
-func (t *CNBGenerator) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *CNBGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *CNBGenerator) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *CNBGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.TConfig, t.Env
 }
 
@@ -86,6 +86,13 @@ func (t *CNBGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 				artifacts.NewImageConfigType: artifacts.NewImage{
 					ImageName: tc.ImageName,
 				},
+			},
+		}, transformertypes.Artifact{
+			Name:     tc.ImageName,
+			Artifact: artifacts.ContainerImageBuildScriptArtifactType,
+			Paths: map[string][]string{
+				artifacts.ContainerImageBuildShScriptPathType:  {filepath.Join(common.DefaultSourceDir, relSrcPath, "cnbbuild.sh")},
+				artifacts.ContainerImageBuildBatScriptPathType: {filepath.Join(common.DefaultSourceDir, relSrcPath, "cnbbuild.bat")},
 			},
 		})
 	}

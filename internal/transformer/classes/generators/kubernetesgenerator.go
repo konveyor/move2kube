@@ -32,18 +32,18 @@ import (
 // Kubernetes implements Transformer interface
 type Kubernetes struct {
 	Config transformertypes.Transformer
-	Env    environment.Environment
+	Env    *environment.Environment
 }
 
 // Init Initializes the transformer
-func (t *Kubernetes) Init(tc transformertypes.Transformer, e environment.Environment) error {
+func (t *Kubernetes) Init(tc transformertypes.Transformer, e *environment.Environment) error {
 	t.Config = tc
 	t.Env = e
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *Kubernetes) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *Kubernetes) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 

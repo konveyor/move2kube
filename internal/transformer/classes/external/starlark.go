@@ -63,7 +63,7 @@ type Starlark struct {
 	StarConfig  StarYamlConfig
 	StarThread  *starlark.Thread
 	StarGlobals starlark.StringDict
-	Env         environment.Environment
+	Env         *environment.Environment
 
 	baseDetectFn *starlark.Function
 	detectFn     *starlark.Function
@@ -76,7 +76,7 @@ type StarYamlConfig struct {
 }
 
 // Init Initializes the transformer
-func (t *Starlark) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
 	t.StarConfig = StarYamlConfig{}
@@ -130,7 +130,7 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env environment.Environ
 }
 
 // GetConfig returns the transformer config
-func (t *Starlark) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *Starlark) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.TConfig, t.Env
 }
 

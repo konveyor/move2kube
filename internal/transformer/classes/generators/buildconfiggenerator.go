@@ -48,18 +48,18 @@ const (
 // BuildConfig implements Transformer interface
 type BuildConfig struct {
 	Config transformertypes.Transformer
-	Env    environment.Environment
+	Env    *environment.Environment
 }
 
 // Init initializes the transformer
-func (t *BuildConfig) Init(tc transformertypes.Transformer, env environment.Environment) error {
+func (t *BuildConfig) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *BuildConfig) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *BuildConfig) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 

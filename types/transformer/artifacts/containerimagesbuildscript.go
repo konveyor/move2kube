@@ -21,13 +21,13 @@ import (
 )
 
 const (
-	// ImagePushScriptArtifactType represents the image push script artifact type
-	ImagePushScriptArtifactType transformertypes.ArtifactType = "ImagePushScript"
+	// ContainerImagesBuildScriptArtifactType represents the image push script artifact type
+	ContainerImagesBuildScriptArtifactType transformertypes.ArtifactType = "ContainerImagesBuildScript"
 )
 
 const (
-	// ImagePushShScriptPathType represents the image push script path type
-	ImagePushShScriptPathType transformertypes.PathType = "ImagePushShScript"
-	// ImagePushBatScriptPathType represents the image push script path type
-	ImagePushBatScriptPathType transformertypes.PathType = "ImagePushBatScript"
+	// ContainerImagesBuildShScriptPathType represents the image push script path type
+	ContainerImagesBuildShScriptPathType transformertypes.PathType = "ContainerImagesBuildShScript"
+	// ContainerImagesBuildBatScriptPathType represents the image push script path type
+	ContainerImagesBuildBatScriptPathType transformertypes.PathType = "ContainerImagesBuildBatScript"
 )

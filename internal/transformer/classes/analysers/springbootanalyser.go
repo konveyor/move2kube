@@ -47,7 +47,7 @@ const (
 // SpringbootAnalyser implements Transformer interface
 type SpringbootAnalyser struct {
 	Config transformertypes.Transformer
-	Env    environment.Environment
+	Env    *environment.Environment
 }
 
 // SpringbootConfig defines SpringbootConfig properties
@@ -63,14 +63,14 @@ type SpringbootTemplateConfig struct {
 }
 
 // Init Initializes the transformer
-func (t *SpringbootAnalyser) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *SpringbootAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *SpringbootAnalyser) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *SpringbootAnalyser) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 

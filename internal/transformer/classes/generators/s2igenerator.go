@@ -32,18 +32,18 @@ import (
 // S2IGenerator implements Transformer interface
 type S2IGenerator struct {
 	TConfig transformertypes.Transformer
-	Env     environment.Environment
+	Env     *environment.Environment
 }
 
 // Init Initializes the transformer
-func (t *S2IGenerator) Init(tc transformertypes.Transformer, env environment.Environment) (err error) {
+func (t *S2IGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.TConfig = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *S2IGenerator) GetConfig() (transformertypes.Transformer, environment.Environment) {
+func (t *S2IGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.TConfig, t.Env
 }
 
@@ -124,6 +124,13 @@ func (t *S2IGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 				artifacts.NewImageConfigType: artifacts.NewImage{
 					ImageName: s2iConfig.ImageName,
 				},
+			},
+		}, transformertypes.Artifact{
+			Name:     s2iConfig.ImageName,
+			Artifact: artifacts.ContainerImageBuildScriptArtifactType,
+			Paths: map[string][]string{
+				artifacts.ContainerImageBuildShScriptPathType:  {filepath.Join(common.DefaultSourceDir, relSrcPath, "s2ibuild.sh")},
+				artifacts.ContainerImageBuildBatScriptPathType: {filepath.Join(common.DefaultSourceDir, relSrcPath, "s2ibuild.bat")},
 			},
 		})
 	}
