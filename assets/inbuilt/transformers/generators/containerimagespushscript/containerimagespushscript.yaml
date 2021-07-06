@@ -8,4 +8,4 @@ spec:
   generates: 
     - "ContainerImagesPushScript"
   consumes: 
-    - "NewImage"
+    - "NewImages"

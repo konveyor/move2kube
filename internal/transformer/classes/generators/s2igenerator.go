@@ -118,11 +118,11 @@ func (t *S2IGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			TemplateConfig: s2iConfig,
 		})
 		newartifacts = append(newartifacts, transformertypes.Artifact{
-			Name:     s2iConfig.ImageName,
-			Artifact: artifacts.NewImageArtifactType,
+			Name:     t.Env.ProjectName,
+			Artifact: artifacts.NewImagesArtifactType,
 			Configs: map[string]interface{}{
-				artifacts.NewImageConfigType: artifacts.NewImage{
-					ImageName: s2iConfig.ImageName,
+				artifacts.NewImagesConfigType: artifacts.NewImages{
+					ImageNames: []string{s2iConfig.ImageName},
 				},
 			},
 		}, transformertypes.Artifact{

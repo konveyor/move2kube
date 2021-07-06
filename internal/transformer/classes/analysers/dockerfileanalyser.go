@@ -31,10 +31,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	// DockerfileImageNameConfigType stores the imagename for the dockerfile
+	DockerfileImageNameConfigType transformertypes.ArtifactType = "DockerfileImageName"
+)
+
 // DockerfileDetector implements the Transformer interface
 type DockerfileDetector struct {
 	Config transformertypes.Transformer
 	Env    *environment.Environment
+}
+
+// DockerfileImageName is the struct storing the ImageName for the dockerfile
+type DockerfileImageName struct {
+	ImageName string
 }
 
 // Init Initializes the transformer
@@ -111,21 +121,21 @@ func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact,
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
+		sImageName := DockerfileImageName{}
+		err = a.GetConfig(DockerfileImageNameConfigType, &sImageName)
+		if err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+		}
+		imageName := common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
+		if sImageName.ImageName != "" {
+			imageName = sImageName.ImageName
+		}
 		p := transformertypes.Artifact{
-			Name:     sConfig.ServiceName,
+			Name:     imageName,
 			Artifact: artifacts.DockerfileArtifactType,
 			Paths:    a.Paths,
 		}
-		ni := transformertypes.Artifact{
-			Name:     sConfig.ServiceName,
-			Artifact: artifacts.NewImageArtifactType,
-			Configs: map[string]interface{}{
-				artifacts.NewImageConfigType: artifacts.NewImage{
-					ImageName: common.MakeStringContainerImageNameCompliant(sConfig.ServiceName),
-				},
-			},
-		}
-		artifactsCreated = append(artifactsCreated, p, ni)
+		artifactsCreated = append(artifactsCreated, p)
 	}
 	return nil, artifactsCreated, nil
 }

@@ -6,6 +6,6 @@ spec:
   mode: "Container"
   class: "ReadMeGenerator"
   consumes: 
-    - "ImagePushScript"
-    - "ImageBuildScript"
+    - "ContainerImagesPushScript"
+    - "ContainerImagesBuildScript"
     - "KubernetesYamls"

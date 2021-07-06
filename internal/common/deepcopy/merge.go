@@ -30,7 +30,7 @@ type MergeInterface interface {
 // Merge returns a merge of x and y.
 // Supports everything except Chan, Func and UnsafePointer.
 func Merge(x interface{}, y interface{}) interface{} {
-	return mergeRecursively(reflect.ValueOf(x), reflect.ValueOf(y)).Interface()
+	return mergeRecursively(reflect.ValueOf(DeepCopy(x)), reflect.ValueOf(DeepCopy(y))).Interface()
 }
 
 func mergeRecursively(xV reflect.Value, yV reflect.Value) reflect.Value {
