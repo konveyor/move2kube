@@ -68,15 +68,13 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 	pathMappings := []transformertypes.PathMapping{}
 	ipt := ImagePushTemplateConfig{}
 	for _, a := range newArtifacts {
-		if a.Artifact == artifacts.NewImageArtifactType {
-			image := artifacts.NewImage{}
-			err := a.GetConfig(artifacts.NewImageConfigType, &image)
+		if a.Artifact == artifacts.NewImagesArtifactType {
+			images := artifacts.NewImages{}
+			err := a.GetConfig(artifacts.NewImagesConfigType, &images)
 			if err != nil {
 				logrus.Errorf("Unable to read Image config : %s", err)
 			}
-			if !common.IsStringPresent(ipt.Images, image.ImageName) {
-				ipt.Images = append(ipt.Images, image.ImageName)
-			}
+			ipt.Images = common.MergeStringSlices(ipt.Images, images.ImageNames...)
 		}
 	}
 	if len(ipt.Images) == 0 {

@@ -82,11 +82,11 @@ func (t *CNBGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			TemplateConfig: tc,
 		})
 		newartifacts = append(newartifacts, transformertypes.Artifact{
-			Name:     tc.ImageName,
-			Artifact: artifacts.NewImageArtifactType,
+			Name:     t.Env.ProjectName,
+			Artifact: artifacts.NewImagesArtifactType,
 			Configs: map[string]interface{}{
-				artifacts.NewImageConfigType: artifacts.NewImage{
-					ImageName: tc.ImageName,
+				artifacts.NewImagesConfigType: artifacts.NewImages{
+					ImageNames: []string{tc.ImageName},
 				},
 			},
 		}, transformertypes.Artifact{

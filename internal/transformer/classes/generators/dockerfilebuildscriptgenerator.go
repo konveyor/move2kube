@@ -66,21 +66,32 @@ func (t *DockerfileImageBuildScript) DirectoryDetect(dir string) (namedServices 
 func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	dfs := []DockerfileImageBuildScriptTemplateConfig{}
+	nartifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact == artifacts.DockerfileArtifactType {
-			for _, path := range a.Paths[artifacts.DockerfilePathType] {
-				relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), filepath.Dir(path))
-				if err != nil {
-					logrus.Errorf("Unable to make path relative : %s", err)
-					continue
-				}
-				df := DockerfileImageBuildScriptTemplateConfig{
-					ImageName:      a.Name,
-					Context:        filepath.Join(common.DefaultSourceDir, relPath),
-					DockerfileName: filepath.Base(path),
-				}
-				dfs = append(dfs, df)
+		if a.Artifact != artifacts.DockerfileArtifactType {
+			continue
+		}
+		for _, path := range a.Paths[artifacts.DockerfilePathType] {
+			relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), filepath.Dir(path))
+			if err != nil {
+				logrus.Errorf("Unable to make path relative : %s", err)
+				continue
 			}
+			df := DockerfileImageBuildScriptTemplateConfig{
+				ImageName:      a.Name,
+				Context:        filepath.Join(common.DefaultSourceDir, relPath),
+				DockerfileName: filepath.Base(path),
+			}
+			dfs = append(dfs, df)
+			nartifacts = append(nartifacts, transformertypes.Artifact{
+				Name:     t.Env.ProjectName,
+				Artifact: artifacts.NewImagesArtifactType,
+				Configs: map[string]interface{}{
+					artifacts.NewImagesConfigType: artifacts.NewImages{
+						ImageNames: []string{a.Name},
+					},
+				},
+			})
 		}
 	}
 	if len(dfs) == 0 {
@@ -92,11 +103,11 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 		DestPath:       common.ScriptsDir,
 		TemplateConfig: dfs,
 	})
-	artifacts := []transformertypes.Artifact{{
+	nartifacts = append(nartifacts, transformertypes.Artifact{
 		Name:     artifacts.ContainerImageBuildScriptArtifactType,
 		Artifact: artifacts.ContainerImageBuildScriptArtifactType,
 		Paths: map[string][]string{artifacts.ContainerImageBuildShScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.sh")},
 			artifacts.ContainerImageBuildBatScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.bat")}},
-	}}
-	return pathMappings, artifacts, nil
+	})
+	return pathMappings, nartifacts, nil
 }
