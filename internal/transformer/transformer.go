@@ -104,7 +104,7 @@ func Init(assetsPath, sourcePath, outputPath, projName string) (err error) {
 			continue
 		}
 		if otc, ok := transformerFiles[tc.Name]; ok {
-			logrus.Warnf("Duplicate transformer configs with same name %s found. Ignoring %s in favor of %s", otc, filePath)
+			logrus.Warnf("Duplicate transformer configs with same name %s found. Ignoring %s in favor of %s", tc.Name, otc, filePath)
 		}
 		transformerFiles[tc.Name] = filePath
 	}
