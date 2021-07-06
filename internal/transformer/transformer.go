@@ -71,7 +71,7 @@ func init() {
 		new(generators.CNBGenerator),
 		new(generators.S2IGenerator),
 		new(generators.DockerfileImageBuildScript),
-		new(generators.ContainerImagePushScript),
+		new(generators.ContainerImagesPushScript),
 		new(generators.ContainerImagesBuildScript),
 		new(generators.ReadMeGenerator),
 
