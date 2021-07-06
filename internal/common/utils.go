@@ -528,6 +528,17 @@ func MakeStringDNSNameCompliant(s string) string {
 	return name
 }
 
+// MakeStringContainerImageNameCompliant makes the string into a valid image name.
+func MakeStringContainerImageNameCompliant(s string) string {
+	name := strings.ToLower(s)
+	name = regexp.MustCompile(`[^a-z0-9-.:]`).ReplaceAllLiteralString(name, "-")
+	start, end := name[0], name[len(name)-1]
+	if start == '-' || start == '.' || end == '-' || end == '.' {
+		logrus.Debugf("The first and/or last characters of the string %q are not alphanumeric.", s)
+	}
+	return name
+}
+
 // MakeStringDNSSubdomainNameCompliant makes the string a valid DNS subdomain name.
 // See https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
 // 1. contain no more than 253 characters

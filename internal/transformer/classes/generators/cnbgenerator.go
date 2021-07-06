@@ -69,7 +69,9 @@ func (t *CNBGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
 		}
-		tc.ImageName = a.Configs[artifacts.ServiceArtifactType].(artifacts.ServiceConfig).ServiceName
+		if tc.ImageName == "" {
+			tc.ImageName = common.MakeStringContainerImageNameCompliant(a.Configs[artifacts.ServiceArtifactType].(artifacts.ServiceConfig).ServiceName)
+		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
 			DestPath: common.DefaultSourceDir,
