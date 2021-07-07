@@ -19,6 +19,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/api"
 	cmdcommon "github.com/konveyor/move2kube/cmd/common"
@@ -87,13 +88,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
-		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
-		qaengine.SetupConfigFile(filepath.Join(flags.Outpath, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
-		qaengine.SetupWriteCacheFile(filepath.Join(flags.Outpath, common.QACacheFile))
-		if err := qaengine.WriteStoresToDisk(); err != nil {
-			logrus.Warnf("Failed to write the stores to disk. Error: %q", err)
-		}
-
+		startQA(flags)
 		logrus.Debugf("Creating a new plan.")
 		p = api.CreatePlan(flags.Srcpath, flags.Outpath, flags.ConfigurationsPath, flags.Name)
 	} else {
@@ -129,12 +124,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
 		}
-		qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
-		qaengine.SetupConfigFile(filepath.Join(flags.Outpath, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
-		qaengine.SetupWriteCacheFile(filepath.Join(flags.Outpath, common.QACacheFile))
-		if err := qaengine.WriteStoresToDisk(); err != nil {
-			logrus.Warnf("Failed to write the stores to disk. Error: %q", err)
-		}
+		startQA(flags)
 	}
 	p = api.CuratePlan(p, flags.Outpath)
 	api.Transform(p, flags.Outpath)
@@ -165,6 +155,8 @@ func getTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringVarP(&flags.Srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory to transform. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
 	transformCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	transformCmd.Flags().StringVarP(&flags.Name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
+	transformCmd.Flags().StringVar(&flags.ConfigOut, cmdcommon.ConfigOutFlag, ".", "Specify config file output location")
+	transformCmd.Flags().StringVar(&flags.QACacheOut, cmdcommon.QACacheOutFlag, ".", "Specify cache file output location")
 	transformCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
 	transformCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
 	transformCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
@@ -182,4 +174,47 @@ func getTransformCommand() *cobra.Command {
 	must(transformCmd.Flags().MarkHidden(qaportFlag))
 
 	return transformCmd
+}
+
+func startQA(flags transformFlags) {
+	qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
+	if flags.ConfigOut == "" {
+		qaengine.SetupConfigFile("", flags.Setconfigs, flags.Configs, flags.PreSets)
+	} else {
+		if flags.ConfigOut == "." {
+			qaengine.SetupConfigFile(common.ConfigFile, flags.Setconfigs, flags.Configs, flags.PreSets)
+		} else if fi, err := os.Stat(flags.ConfigOut); err == nil {
+			if fi.IsDir() {
+				qaengine.SetupConfigFile(filepath.Join(flags.ConfigOut, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
+			} else {
+				qaengine.SetupConfigFile(flags.ConfigOut, flags.Setconfigs, flags.Configs, flags.PreSets)
+			}
+		} else if strings.Contains(filepath.Base(flags.ConfigOut), ".") {
+			os.MkdirAll(filepath.Dir(flags.ConfigOut), common.DefaultDirectoryPermission)
+			qaengine.SetupConfigFile(flags.ConfigOut, flags.Setconfigs, flags.Configs, flags.PreSets)
+		} else {
+			os.MkdirAll(flags.ConfigOut, common.DefaultDirectoryPermission)
+			qaengine.SetupConfigFile(filepath.Join(flags.ConfigOut, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
+		}
+	}
+	if flags.QACacheOut != "" {
+		if flags.QACacheOut == "." {
+			qaengine.SetupWriteCacheFile(common.QACacheFile)
+		} else if fi, err := os.Stat(flags.QACacheOut); err == nil {
+			if fi.IsDir() {
+				qaengine.SetupWriteCacheFile(filepath.Join(flags.QACacheOut, common.QACacheFile))
+			} else {
+				qaengine.SetupWriteCacheFile(flags.QACacheOut)
+			}
+		} else if strings.Contains(filepath.Base(flags.QACacheOut), ".") {
+			os.MkdirAll(filepath.Dir(flags.QACacheOut), common.DefaultDirectoryPermission)
+			qaengine.SetupWriteCacheFile(flags.QACacheOut)
+		} else {
+			os.MkdirAll(flags.QACacheOut, common.DefaultDirectoryPermission)
+			qaengine.SetupWriteCacheFile(filepath.Join(flags.QACacheOut, common.QACacheFile))
+		}
+	}
+	if err := qaengine.WriteStoresToDisk(); err != nil {
+		logrus.Warnf("Failed to write the stores to disk. Error: %q", err)
+	}
 }

@@ -33,59 +33,31 @@ type ingressPreprocessor struct {
 // customize modifies image paths and secret
 func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 	if len(ir.Services) == 0 {
-		logrus.Debugf("No services to optimize")
+		logrus.Debugf("No services")
 		return ir, nil
 	}
 
-	// Obtain a listing of services.
-	serviceNames := []string{}
-	exposedServiceNames := []string{}
-	for serviceName, service := range ir.Services {
-		serviceNames = append(serviceNames, serviceName)
-		if service.ServiceRelPath != "" {
-			exposedServiceNames = append(exposedServiceNames, serviceName)
-		}
-	}
-
-	exposedServiceNames = qaengine.FetchMultiSelectAnswer(common.ConfigServicesExposeKey, "Select all services that should be exposed:", []string{"Exposed services will be reachable from outside the cluster."}, exposedServiceNames, serviceNames)
-	if len(exposedServiceNames) == 0 {
-		logrus.Debugf("User deselected all services. Not exposing anything.")
-		return ir, nil
-	}
-
-	for _, exposedServiceName := range exposedServiceNames {
-		key := common.ConfigServicesKey + common.Delim + `"` + exposedServiceName + `"` + common.Delim + "urlpath"
-		message := fmt.Sprintf("What URL/path should we expose the service %s on?", exposedServiceName)
-		hints := []string{"By default we expose the service on /<service name>:"}
-		exposedServiceRelPath := "/" + exposedServiceName
-		if len(exposedServiceNames) == 1 {
-			hints = []string{"Since there's only one exposed service, the default path is /"}
-			exposedServiceRelPath = "/"
-		}
-		exposedServiceRelPath = qaengine.FetchStringAnswer(key, message, hints, exposedServiceRelPath)
-		logrus.Debugf("Exposing service %s on path %s", exposedServiceName, exposedServiceRelPath)
-
-		exposedServiceRelPath = opt.normalizeServiceRelPath(exposedServiceRelPath)
-
-		tempService := ir.Services[exposedServiceName]
+	for sn := range ir.Services {
+		key := common.ConfigServicesKey + common.Delim + `"` + sn + `"` + common.Delim + "urlpath"
+		message := fmt.Sprintf("What URL/path should we expose the service %s on?", sn)
+		hints := []string{"Enter empty string to not expose the service"}
+		exposedServiceRelPath := "/" + sn
+		exposedServiceRelPath = strings.TrimSpace(qaengine.FetchStringAnswer(key, message, hints, exposedServiceRelPath))
+		logrus.Debugf("Exposing service %s on path %s", sn, exposedServiceRelPath)
+		tempService := ir.Services[sn]
 		tempService.ServiceRelPath = exposedServiceRelPath
+		if exposedServiceRelPath != "" && !strings.HasPrefix(exposedServiceRelPath, "/") {
+			exposedServiceRelPath = "/" + exposedServiceRelPath
+		}
 		if tempService.Annotations == nil {
 			tempService.Annotations = map[string]string{}
 		}
-		tempService.Annotations[common.ExposeSelector] = common.AnnotationLabelValue
-		ir.Services[exposedServiceName] = tempService
+		if exposedServiceRelPath != "" {
+			tempService.Annotations[common.ExposeSelector] = common.AnnotationLabelValue
+		} else {
+			delete(tempService.Annotations, common.ExposeSelector)
+		}
+		ir.Services[sn] = tempService
 	}
-
 	return ir, nil
-}
-
-func (opt *ingressPreprocessor) normalizeServiceRelPath(exposedServiceRelPath string) string {
-	exposedServiceRelPath = strings.TrimSpace(exposedServiceRelPath)
-	if len(exposedServiceRelPath) == 0 {
-		logrus.Warnf("User gave an empty service path. Assuming it should be exposed on /")
-	}
-	if !strings.HasPrefix(exposedServiceRelPath, "/") {
-		exposedServiceRelPath = "/" + exposedServiceRelPath
-	}
-	return exposedServiceRelPath
 }
