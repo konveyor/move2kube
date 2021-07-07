@@ -67,28 +67,60 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 	pathMappings := []transformertypes.PathMapping{}
 	dfs := []DockerfileImageBuildScriptTemplateConfig{}
 	nartifacts := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
+	processedImages := map[string]bool{}
+	for _, a := range append(newArtifacts, oldArtifacts...) {
 		if a.Artifact != artifacts.DockerfileArtifactType {
 			continue
 		}
+		sImageName := artifacts.DockerfileImageName{}
+		err := a.GetConfig(artifacts.DockerfileImageNameConfigType, &sImageName)
+		if err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+		}
+		if sImageName.ImageName == "" {
+			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(a.Name)
+		}
+		if processedImages[sImageName.ImageName] {
+			continue
+		}
+		processedImages[sImageName.ImageName] = true
 		for _, path := range a.Paths[artifacts.DockerfilePathType] {
-			relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), filepath.Dir(path))
-			if err != nil {
-				logrus.Errorf("Unable to make path relative : %s", err)
-				continue
+			relPath := filepath.Dir(path)
+			if common.IsParent(path, t.Env.GetEnvironmentSource()) {
+				relPath, err = filepath.Rel(t.Env.GetEnvironmentSource(), filepath.Dir(path))
+				if err != nil {
+					logrus.Errorf("Unable to make path relative : %s", err)
+					continue
+				}
+				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
+					ImageName:      sImageName.ImageName,
+					Context:        filepath.Join(common.DefaultSourceDir, relPath),
+					DockerfileName: filepath.Base(path),
+				})
+			} else if common.IsParent(path, t.Env.GetEnvironmentOutput()) {
+				relPath, err = filepath.Rel(t.Env.GetEnvironmentOutput(), filepath.Dir(path))
+				if err != nil {
+					logrus.Errorf("Unable to make path relative : %s", err)
+					continue
+				}
+				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
+					ImageName:      sImageName.ImageName,
+					Context:        relPath,
+					DockerfileName: filepath.Base(path),
+				})
+			} else {
+				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
+					ImageName:      sImageName.ImageName,
+					Context:        filepath.Join(common.DefaultSourceDir, relPath),
+					DockerfileName: filepath.Base(path),
+				})
 			}
-			df := DockerfileImageBuildScriptTemplateConfig{
-				ImageName:      a.Name,
-				Context:        filepath.Join(common.DefaultSourceDir, relPath),
-				DockerfileName: filepath.Base(path),
-			}
-			dfs = append(dfs, df)
 			nartifacts = append(nartifacts, transformertypes.Artifact{
 				Name:     t.Env.ProjectName,
 				Artifact: artifacts.NewImagesArtifactType,
 				Configs: map[string]interface{}{
 					artifacts.NewImagesConfigType: artifacts.NewImages{
-						ImageNames: []string{a.Name},
+						ImageNames: []string{sImageName.ImageName},
 					},
 				},
 			})

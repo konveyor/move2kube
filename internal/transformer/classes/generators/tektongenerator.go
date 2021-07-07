@@ -30,7 +30,6 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
@@ -98,11 +97,6 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
-		var pC artifacts.PlanConfig
-		if err := a.GetConfig(artifacts.PlanConfigType, &pC); err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", pC, err)
-			continue
-		}
 		apis := []apiresource.IAPIResource{
 			new(apiresource.Service),
 			new(apiresource.ServiceAccount),
@@ -116,8 +110,8 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 		}
 		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, common.CICDDir, "tekton")
 		logrus.Infof("Generating Tekton pipeline for CI/CD")
-		enhancedIR := t.setupEnhancedIR(ir, pC.PlanName)
-		files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, pC.TargetCluster)
+		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
+		files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, t.Env.TargetCluster)
 		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err

@@ -25,3 +25,18 @@ const DockerfileArtifactType transformertypes.ArtifactType = "Dockerfile"
 
 // DockerfilePathType defines the source artifact type of dockerfile
 const DockerfilePathType transformertypes.PathType = "Dockerfile"
+
+const (
+	// DockerfileImageNameConfigType stores the imagename for the dockerfile
+	DockerfileImageNameConfigType transformertypes.ConfigType = "DockerfileImageName"
+)
+
+// DockerfileImageName is the struct storing the ImageName for the dockerfile
+type DockerfileImageName struct {
+	ImageName string
+}
+
+const (
+	// DockerfileTemplateConfigConfigType stores the imagename for the dockerfile
+	DockerfileTemplateConfigConfigType transformertypes.ConfigType = "DockerfileTemplateConfig"
+)

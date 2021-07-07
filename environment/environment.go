@@ -31,6 +31,7 @@ import (
 	"github.com/konveyor/move2kube/internal/common/deepcopy"
 	"github.com/konveyor/move2kube/internal/common/pathconverters"
 	"github.com/konveyor/move2kube/types"
+	"github.com/konveyor/move2kube/types/collection"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
@@ -43,20 +44,19 @@ var GRPCEnvName = strings.ToUpper(types.AppNameShort) + "QA_GRPC_SERVER"
 
 // Environment is used to manage EnvironmentInstances
 type Environment struct {
-	Name        string
-	ProjectName string
-	Env         EnvironmentInstance
-	Children    []*Environment
+	Name     string
+	Env      EnvironmentInstance
+	Children []*Environment
 
-	Source  string
-	Output  string
-	Context string
+	ProjectName   string
+	TargetCluster collection.ClusterMetadata
 
+	Source                string
+	Output                string
+	Context               string
 	CurrEnvOutputBasePath string
-
-	RelTemplatesDir string
-
-	TempPath string
+	RelTemplatesDir       string
+	TempPath              string
 }
 
 // EnvironmentInstance represents a actual instance of an environment which the Environment manages
@@ -72,7 +72,7 @@ type EnvironmentInstance interface {
 }
 
 // NewEnvironment creates a new environment
-func NewEnvironment(name string, projectName string, source string, output string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, c environmenttypes.Container) (env *Environment, err error) {
+func NewEnvironment(name string, projectName string, targetCluster collection.ClusterMetadata, source string, output string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, c environmenttypes.Container) (env *Environment, err error) {
 	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
@@ -81,6 +81,7 @@ func NewEnvironment(name string, projectName string, source string, output strin
 	env = &Environment{
 		Name:            name,
 		ProjectName:     projectName,
+		TargetCluster:   targetCluster,
 		Source:          source,
 		Output:          output,
 		Context:         context,
@@ -213,21 +214,29 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 			logrus.Errorf("%s", err)
 			return path, err
 		}
-		if common.IsParent(path, e.Env.GetSource()) {
-			rel, err := filepath.Rel(e.Env.GetSource(), path)
+		if common.IsParent(path, e.GetEnvironmentSource()) {
+			rel, err := filepath.Rel(e.GetEnvironmentSource(), path)
 			if err != nil {
-				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Env.GetSource(), err)
+				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.GetEnvironmentSource(), err)
 				return path, err
 			}
 			return filepath.Join(e.Source, rel), nil
 		}
-		if common.IsParent(path, e.Env.GetContext()) {
-			rel, err := filepath.Rel(e.Env.GetContext(), path)
+		if common.IsParent(path, e.GetEnvironmentContext()) {
+			rel, err := filepath.Rel(e.GetEnvironmentContext(), path)
 			if err != nil {
-				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.Env.GetContext(), err)
+				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.GetEnvironmentContext(), err)
 				return path, err
 			}
 			return filepath.Join(e.Context, rel), nil
+		}
+		if common.IsParent(path, e.GetEnvironmentOutput()) {
+			rel, err := filepath.Rel(e.GetEnvironmentOutput(), path)
+			if err != nil {
+				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.GetEnvironmentOutput(), err)
+				return path, err
+			}
+			return rel, nil
 		}
 		return path, nil
 	}
@@ -265,6 +274,14 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 				}
 				return filepath.Join(e.Source, relPath), nil
 			}
+		}
+		if common.IsParent(path, e.GetEnvironmentOutput()) {
+			relPath, err := filepath.Rel(e.GetEnvironmentOutput(), path)
+			if err != nil {
+				logrus.Errorf("Unable to convert source to rel path : %s", err)
+				return path, err
+			}
+			return relPath, nil
 		}
 		outpath, err := e.Env.Download(path)
 		if err != nil {

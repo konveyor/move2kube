@@ -55,7 +55,7 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environmen
 		return err
 	}
 
-	t.CNBEnv, err = environment.NewEnvironment(tc.Name, t.Env.ProjectName, t.Env.GetEnvironmentSource(), "", "", "", nil, environmenttypes.Container{
+	t.CNBEnv, err = environment.NewEnvironment(tc.Name, t.Env.GetProjectName(), t.Env.TargetCluster, t.Env.GetEnvironmentSource(), "", "", "", nil, environmenttypes.Container{
 		Image:      t.CNBConfig.BuilderImageName,
 		WorkingDir: filepath.Join(string(filepath.Separator), "tmp"),
 	})
@@ -115,12 +115,6 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
-		var pConfig artifacts.PlanConfig
-		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
-			continue
-		}
 		var cConfig artifacts.CNBMetadataConfig
 		err = a.GetConfig(artifacts.CNBMetadataConfigType, &cConfig)
 		if err != nil {
@@ -132,7 +126,7 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 		}
 		a.Configs[artifacts.CNBMetadataConfigType] = cConfig
 		ir := irtypes.NewIR()
-		ir.Name = pConfig.PlanName
+		ir.Name = t.Env.GetProjectName()
 		container := irtypes.NewContainer()
 		container.AddExposedPort(common.DefaultServicePort)
 		ir.AddContainer(cConfig.ImageName, container)
@@ -158,7 +152,7 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			Paths:    a.Paths,
 			Configs:  a.Configs,
 		}, transformertypes.Artifact{
-			Name:     pConfig.PlanName,
+			Name:     t.Env.GetProjectName(),
 			Artifact: irtypes.IRArtifactType,
 			Configs: map[string]interface{}{
 				irtypes.IRConfigType: ir,

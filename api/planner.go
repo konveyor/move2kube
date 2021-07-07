@@ -47,7 +47,11 @@ func CreatePlan(inputPath, outputPath string, configurationsPath, prjName string
 			logrus.Infof("[%T] Done", l)
 		}
 	}
-	transformer.Init(common.AssetsPath, inputPath, outputPath, p.Name)
+	tc, err := (&configuration.ClusterMDLoader{}).GetTargetClusterMetadataForPlan(p)
+	if err != nil {
+		logrus.Errorf("Unable to load cluster metadata : %s", err)
+	}
+	transformer.Init(common.AssetsPath, inputPath, tc, outputPath, p.Name)
 	ts := transformer.GetTransformers()
 	for tn, t := range ts {
 		config, _ := t.GetConfig()
@@ -55,7 +59,6 @@ func CreatePlan(inputPath, outputPath string, configurationsPath, prjName string
 	}
 	logrus.Infoln("Configuration loading done")
 
-	var err error
 	p.Spec.Services, err = transformer.GetServices(p.Name, inputPath)
 	if err != nil {
 		logrus.Errorf("Unable to create plan : %s", err)
@@ -141,7 +144,11 @@ func CuratePlan(p plantypes.Plan, outputPath string) plantypes.Plan {
 		p.Spec.Services[sn] = sTransformers
 		serviceNames = append(serviceNames, sn)
 	}
-	transformer.InitTransformers(p.Spec.Configuration.Transformers, p.Spec.RootDir, outputPath, p.Name, true)
+	tc, err := (&configuration.ClusterMDLoader{}).GetTargetClusterMetadataForPlan(p)
+	if err != nil {
+		logrus.Errorf("Unable to load cluster metadata : %s", err)
+	}
+	transformer.InitTransformers(p.Spec.Configuration.Transformers, tc, p.Spec.RootDir, outputPath, p.Name, true)
 
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
 	planServices := map[string]plantypes.Service{}

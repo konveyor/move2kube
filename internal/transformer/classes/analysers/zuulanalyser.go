@@ -125,12 +125,6 @@ func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			logrus.Errorf("unable to load config for Transformer into %T : %s", config, err)
 			continue
 		}
-		var pConfig artifacts.PlanConfig
-		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
-			continue
-		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
@@ -143,11 +137,10 @@ func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldAr
 		serviceConfig := irtypes.Service{Name: sConfig.ServiceName, ServiceRelPath: config.ServiceRelativePath, Annotations: map[string]string{common.ExposeSelector: common.AnnotationLabelValue}}
 		ir.Services[sConfig.ServiceName] = serviceConfig
 		artifactsCreated = append(artifactsCreated, transformertypes.Artifact{
-			Name:     pConfig.PlanName,
+			Name:     t.Env.GetProjectName(),
 			Artifact: irtypes.IRArtifactType,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				irtypes.IRConfigType:     ir,
-				artifacts.PlanConfigType: pConfig,
+				irtypes.IRConfigType: ir,
 			},
 		})
 	}

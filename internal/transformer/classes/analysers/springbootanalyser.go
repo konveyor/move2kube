@@ -196,13 +196,6 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
 		}
-
-		var pConfig artifacts.PlanConfig
-		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
-			continue
-		}
 		var sConfig SpringbootConfig
 		err = a.GetConfig(springbootServiceConfigType, &sConfig)
 		if err != nil {

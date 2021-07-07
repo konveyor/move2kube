@@ -27,7 +27,9 @@ import (
 	"github.com/konveyor/move2kube/internal/transformer/classes/analysers"
 	"github.com/konveyor/move2kube/internal/transformer/classes/external"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators"
+	"github.com/konveyor/move2kube/internal/transformer/classes/generators/dockerfilegenerators"
 	"github.com/konveyor/move2kube/qaengine"
+	collectiontypes "github.com/konveyor/move2kube/types/collection"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -62,6 +64,7 @@ func init() {
 		new(analysers.SpringbootAnalyser),
 		new(analysers.ZuulAnalyser),
 		new(analysers.EurekaReplaceEngine),
+		new(analysers.DockerfileParser),
 
 		new(generators.ComposeGenerator),
 		new(generators.Kubernetes),
@@ -74,6 +77,8 @@ func init() {
 		new(generators.ContainerImagesPushScript),
 		new(generators.ContainerImagesBuildScript),
 		new(generators.ReadMeGenerator),
+
+		new(dockerfilegenerators.NodejsDockerfileGenerator),
 
 		new(external.Starlark),
 		new(external.SimpleExecutable),
@@ -90,7 +95,7 @@ func init() {
 }
 
 // Init initializes the transformers
-func Init(assetsPath, sourcePath, outputPath, projName string) (err error) {
+func Init(assetsPath, sourcePath string, targetCluster collectiontypes.ClusterMetadata, outputPath, projName string) (err error) {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
 		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
@@ -108,12 +113,12 @@ func Init(assetsPath, sourcePath, outputPath, projName string) (err error) {
 		}
 		transformerFiles[tc.Name] = filePath
 	}
-	InitTransformers(transformerFiles, sourcePath, outputPath, projName, false)
+	InitTransformers(transformerFiles, targetCluster, sourcePath, outputPath, projName, false)
 	return nil
 }
 
 // InitTransformers initializes a subset of transformers
-func InitTransformers(transformerToInit map[string]string, sourcePath string, outputPath, projName string, warn bool) error {
+func InitTransformers(transformerToInit map[string]string, targetCluster collectiontypes.ClusterMetadata, sourcePath string, outputPath, projName string, warn bool) error {
 	if initialized {
 		return nil
 	}
@@ -148,7 +153,7 @@ func InitTransformers(transformerToInit map[string]string, sourcePath string, ou
 			logrus.Errorf("Unable to find Transformer class %s in %+v", tc.Spec.Class, transformerTypes)
 		} else {
 			t := reflect.New(c).Interface().(Transformer)
-			env, err := environment.NewEnvironment(tc.Name, projName, sourcePath, outputPath, filepath.Dir(tc.Spec.FilePath), tc.Spec.TemplatesDir, nil, environmenttypes.Container{})
+			env, err := environment.NewEnvironment(tc.Name, projName, targetCluster, sourcePath, outputPath, filepath.Dir(tc.Spec.FilePath), tc.Spec.TemplatesDir, nil, environmenttypes.Container{})
 			if err != nil {
 				logrus.Errorf("Unable to create environment : %s", err)
 				return err
