@@ -38,7 +38,7 @@ type Service []Transformer
 // Spec stores the data about the plan
 type Spec struct {
 	RootDir           string `yaml:"rootDir"`
-	ConfigurationsDir string `yaml:"configurationsDir,omitempty"`
+	CustomizationsDir string `yaml:"customizationsDir,omitempty"`
 
 	Services map[string]Service `yaml:"services"` //[servicename]
 

@@ -27,14 +27,14 @@ import (
 )
 
 //CreatePlan creates the plan from all planners
-func CreatePlan(inputPath, outputPath string, configurationsPath, prjName string) plantypes.Plan {
+func CreatePlan(inputPath, outputPath string, customizationsPath, prjName string) plantypes.Plan {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	p := plantypes.NewPlan()
 	p.Name = prjName
 	p.Spec.RootDir = inputPath
-	p.Spec.ConfigurationsDir = configurationsPath
-	if configurationsPath != "" {
-		common.CheckAndCopyConfigurations(configurationsPath)
+	p.Spec.CustomizationsDir = customizationsPath
+	if customizationsPath != "" {
+		common.CheckAndCopyCustomizations(customizationsPath)
 	}
 	logrus.Infoln("Loading Configuration")
 	configurationLoaders := configuration.GetLoaders()

@@ -677,15 +677,15 @@ func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath
 	return assetsPath, tempPath, nil
 }
 
-// CopyConfigurationsAssetsData copies an extensions to the assets directory
-func CopyConfigurationsAssetsData(configurationsPath string) (err error) {
-	if configurationsPath == "" {
+// CopyCustomizationsAssetsData copies an customizations to the assets directory
+func CopyCustomizationsAssetsData(customizationsPath string) (err error) {
+	if customizationsPath == "" {
 		return nil
 	}
-	// Return the absolute version of extensions directory.
-	configurationsPath, err = filepath.Abs(configurationsPath)
+	// Return the absolute version of customizations directory.
+	customizationsPath, err = filepath.Abs(customizationsPath)
 	if err != nil {
-		logrus.Errorf("Unable to make the extensions directory path %q absolute. Error: %q", configurationsPath, err)
+		logrus.Errorf("Unable to make the customizations directory path %q absolute. Error: %q", customizationsPath, err)
 		return err
 	}
 	assetsPath, err := filepath.Abs(AssetsPath)
@@ -693,15 +693,15 @@ func CopyConfigurationsAssetsData(configurationsPath string) (err error) {
 		logrus.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
 		return err
 	}
-	configurationsAssetsPath := filepath.Join(assetsPath, "custom")
+	customizationsAssetsPath := filepath.Join(assetsPath, "custom")
 
 	// Create the subdirectory and copy the assets into it.
-	if err = os.MkdirAll(configurationsAssetsPath, DefaultDirectoryPermission); err != nil {
-		logrus.Errorf("Unable to create the custom assets directory at path %q Error: %q", configurationsAssetsPath, err)
+	if err = os.MkdirAll(customizationsAssetsPath, DefaultDirectoryPermission); err != nil {
+		logrus.Errorf("Unable to create the custom assets directory at path %q Error: %q", customizationsAssetsPath, err)
 		return err
 	}
-	if err = filesystem.Replicate(configurationsPath, configurationsAssetsPath); err != nil {
-		logrus.Errorf("Failed to copy the extensions %s over to the directory at path %s Error: %q", configurationsPath, configurationsAssetsPath, err)
+	if err = filesystem.Replicate(customizationsPath, customizationsAssetsPath); err != nil {
+		logrus.Errorf("Failed to copy the customizations %s over to the directory at path %s Error: %q", customizationsPath, customizationsAssetsPath, err)
 		return err
 	}
 
@@ -762,34 +762,34 @@ func removeDollarPrefixFromHiddenDir(name string) string {
 	return name
 }
 
-// CheckAndCopyConfigurations checks if the extensions path is an existing directory and copies to assets
-func CheckAndCopyConfigurations(configurationsPath string) {
-	if configurationsPath == "" {
+// CheckAndCopyCustomizations checks if the customizations path is an existing directory and copies to assets
+func CheckAndCopyCustomizations(customizationsPath string) {
+	if customizationsPath == "" {
 		return
 	}
-	configurationsPath, err := filepath.Abs(configurationsPath)
+	customizationsPath, err := filepath.Abs(customizationsPath)
 	if err != nil {
-		logrus.Fatalf("Unable to make the extensions directory path %q absolute. Error: %q", configurationsPath, err)
+		logrus.Fatalf("Unable to make the customizations directory path %q absolute. Error: %q", customizationsPath, err)
 	}
-	fi, err := os.Stat(configurationsPath)
+	fi, err := os.Stat(customizationsPath)
 	if os.IsNotExist(err) {
-		logrus.Fatalf("The given extensions directory %s does not exist. Error: %q", configurationsPath, err)
+		logrus.Fatalf("The given customizations directory %s does not exist. Error: %q", customizationsPath, err)
 	}
 	if err != nil {
-		logrus.Fatalf("Error while accessing the given extensions directory %s Error: %q", configurationsPath, err)
+		logrus.Fatalf("Error while accessing the given customizations directory %s Error: %q", customizationsPath, err)
 	}
 	if !fi.IsDir() {
-		logrus.Fatalf("The given extensions path %s is a file. Expected a directory. Exiting.", configurationsPath)
+		logrus.Fatalf("The given customizations path %s is a file. Expected a directory. Exiting.", customizationsPath)
 	}
 	pwd, err := os.Getwd()
 	if err != nil {
 		logrus.Fatalf("Failed to get the current working directory. Error: %q", err)
 	}
-	if IsParent(pwd, configurationsPath) {
-		logrus.Fatalf("The given extensions directory %s is a parent of the current working directory.", configurationsPath)
+	if IsParent(pwd, customizationsPath) {
+		logrus.Fatalf("The given customizations directory %s is a parent of the current working directory.", customizationsPath)
 	}
-	if err = CopyConfigurationsAssetsData(configurationsPath); err != nil {
-		logrus.Fatalf("Unable to copy extensions data : %s", err)
+	if err = CopyCustomizationsAssetsData(customizationsPath); err != nil {
+		logrus.Fatalf("Unable to copy customizations data : %s", err)
 	}
 }
 
