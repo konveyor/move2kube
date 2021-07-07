@@ -51,8 +51,8 @@ const (
 	PreSetFlag = "preset"
 	// OverwriteFlag is the name of the flag that lets you overwrite the output directory if it exists
 	OverwriteFlag = "overwrite"
-	// ConfigurationsFlag is the path to extensions directory
-	ConfigurationsFlag = "configurations"
+	// CustomizationsFlag is the path to customizations directory
+	CustomizationsFlag = "customizations"
 )
 
 // TransformFlags to store values from command line parameters
@@ -81,8 +81,8 @@ type TransformFlags struct {
 	Overwrite bool
 	// PreSets contains a list of preset configurations
 	PreSets []string
-	// ExtensionsPaths contains the path to the extensions directory
-	ConfigurationsPath string
+	// CustomizationsPaths contains the path to the customizations directory
+	CustomizationsPath string
 }
 
 // CheckSourcePath checks if the source path is an existing directory.

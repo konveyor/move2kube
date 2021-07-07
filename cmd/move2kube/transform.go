@@ -90,7 +90,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags)
 		logrus.Debugf("Creating a new plan.")
-		p = api.CreatePlan(flags.Srcpath, flags.Outpath, flags.ConfigurationsPath, flags.Name)
+		p = api.CreatePlan(flags.Srcpath, flags.Outpath, flags.CustomizationsPath, flags.Name)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.Planfile)
 		rootDir := ""
@@ -107,15 +107,15 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if cmd.Flags().Changed(cmdcommon.NameFlag) {
 			p.Name = flags.Name
 		}
-		if cmd.Flags().Changed(cmdcommon.ConfigurationsFlag) {
-			if flags.ConfigurationsPath != "" {
-				p.Spec.ConfigurationsDir = flags.ConfigurationsPath
+		if cmd.Flags().Changed(cmdcommon.CustomizationsFlag) {
+			if flags.CustomizationsPath != "" {
+				p.Spec.CustomizationsDir = flags.CustomizationsPath
 			}
 		}
 
 		// Global settings
 		cmdcommon.CheckSourcePath(p.Spec.RootDir)
-		common.CheckAndCopyConfigurations(p.Spec.ConfigurationsDir)
+		common.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)
 		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
 		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
 		if p.Spec.RootDir == flags.Outpath || common.IsParent(flags.Outpath, p.Spec.RootDir) || common.IsParent(p.Spec.RootDir, flags.Outpath) {
@@ -160,7 +160,7 @@ func getTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
 	transformCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
 	transformCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
-	transformCmd.Flags().StringVarP(&flags.ConfigurationsPath, cmdcommon.ConfigurationsFlag, "c", "", "Specify directory where configurations are stored.")
+	transformCmd.Flags().StringVarP(&flags.CustomizationsPath, cmdcommon.CustomizationsFlag, "c", "", "Specify directory where customizations are stored.")
 
 	// Advanced options
 	transformCmd.Flags().BoolVar(&flags.IgnoreEnv, cmdcommon.IgnoreEnvFlag, false, "Ignore data from local machine.")

@@ -35,7 +35,7 @@ type planFlags struct {
 	planfile           string
 	srcpath            string
 	name               string
-	configurationsPath string
+	customizationsPath string
 	//Configs contains a list of config files
 	configs []string
 	//Configs contains a list of key-value configs
@@ -50,7 +50,7 @@ func planHandler(flags planFlags) {
 	planfile := flags.planfile
 	srcpath := flags.srcpath
 	name := flags.name
-	configurationsPath := flags.configurationsPath
+	customizationsPath := flags.customizationsPath
 
 	planfile, err = filepath.Abs(planfile)
 	if err != nil {
@@ -82,7 +82,7 @@ func planHandler(flags planFlags) {
 	}
 	qaengine.StartEngine(true, 0, true)
 	qaengine.SetupConfigFile("", flags.setconfigs, flags.configs, flags.preSets)
-	p := api.CreatePlan(srcpath, "", configurationsPath, name)
+	p := api.CreatePlan(srcpath, "", customizationsPath, name)
 	if err = plantypes.WritePlan(planfile, p); err != nil {
 		logrus.Errorf("Unable to write plan file (%s) : %s", planfile, err)
 		return
@@ -110,7 +110,7 @@ func getPlanCommand() *cobra.Command {
 	planCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", ".", "Specify source directory.")
 	planCmd.Flags().StringVarP(&flags.planfile, cmdcommon.PlanFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
 	planCmd.Flags().StringVarP(&flags.name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	planCmd.Flags().StringVarP(&flags.configurationsPath, cmdcommon.ConfigurationsFlag, "c", "", "Specify directory where configurations are stored.")
+	planCmd.Flags().StringVarP(&flags.customizationsPath, cmdcommon.CustomizationsFlag, "c", "", "Specify directory where customizations are stored.")
 	planCmd.Flags().StringSliceVarP(&flags.configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
 	planCmd.Flags().StringSliceVarP(&flags.preSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
 	planCmd.Flags().StringArrayVarP(&flags.setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")

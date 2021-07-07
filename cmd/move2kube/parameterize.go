@@ -34,8 +34,8 @@ type parameterizeFlags struct {
 	Outpath string
 	// SourceFlag contains path to the source folder
 	Srcpath string
-	// ConfigurationsPath contains path to the pack folder
-	ConfigurationsPath string
+	// CustomizationsPath contains path to the pack folder
+	CustomizationsPath string
 	// Overwrite: if the output folder exists then it will be overwritten
 	Overwrite bool
 	// qadisablecli: part of hidden flags, used to select http server engine for QA
@@ -54,8 +54,8 @@ func parameterizeHandler(_ *cobra.Command, flags parameterizeFlags) {
 	if flags.Outpath, err = filepath.Abs(flags.Outpath); err != nil {
 		logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.Outpath, err)
 	}
-	if flags.ConfigurationsPath, err = filepath.Abs(flags.ConfigurationsPath); err != nil {
-		logrus.Fatalf("Failed to make the pack directory path %q absolute. Error: %q", flags.ConfigurationsPath, err)
+	if flags.CustomizationsPath, err = filepath.Abs(flags.CustomizationsPath); err != nil {
+		logrus.Fatalf("Failed to make the pack directory path %q absolute. Error: %q", flags.CustomizationsPath, err)
 	}
 
 	cmdcommon.CheckSourcePath(flags.Srcpath)
@@ -75,7 +75,7 @@ func parameterizeHandler(_ *cobra.Command, flags parameterizeFlags) {
 		logrus.Warnf("Failed to write the config and/or cache to disk. Error: %q", err)
 	}
 	// Parameterization
-	filesWritten, err := parameterizer.Top(flags.Srcpath, flags.ConfigurationsPath, flags.Outpath)
+	filesWritten, err := parameterizer.Top(flags.Srcpath, flags.CustomizationsPath, flags.Outpath)
 	if err != nil {
 		logrus.Fatalf("Failed to apply all the parameterizations. Error: %q", err)
 	}
@@ -102,7 +102,7 @@ func getParameterizeCommand() *cobra.Command {
 	// Basic options
 	parameterizeCmd.Flags().StringVarP(&flags.Srcpath, cmdcommon.SourceFlag, "s", "", "Specify the directory containing the source code to parameterize.")
 	parameterizeCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", "", "Specify the directory where the output should be written.")
-	parameterizeCmd.Flags().StringVarP(&flags.ConfigurationsPath, cmdcommon.ConfigurationsFlag, "c", "", "Specify directory where configurations are stored.")
+	parameterizeCmd.Flags().StringVarP(&flags.CustomizationsPath, cmdcommon.CustomizationsFlag, "c", "", "Specify directory where customizations are stored.")
 	parameterizeCmd.Flags().BoolVar(&flags.Overwrite, cmdcommon.OverwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
 
 	// Hidden options
@@ -112,7 +112,7 @@ func getParameterizeCommand() *cobra.Command {
 
 	must(parameterizeCmd.MarkFlagRequired(cmdcommon.SourceFlag))
 	must(parameterizeCmd.MarkFlagRequired(cmdcommon.OutputFlag))
-	must(parameterizeCmd.MarkFlagRequired(cmdcommon.ConfigurationsFlag))
+	must(parameterizeCmd.MarkFlagRequired(cmdcommon.CustomizationsFlag))
 
 	must(parameterizeCmd.Flags().MarkHidden(qadisablecliFlag))
 	must(parameterizeCmd.Flags().MarkHidden(qaportFlag))
