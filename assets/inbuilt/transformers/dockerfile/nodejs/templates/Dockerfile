@@ -15,5 +15,7 @@
 FROM registry.access.redhat.com/ubi8/nodejs-12
 ADD . .
 RUN npm install
-EXPOSE {{ .port }}
+{{- range $port := .Ports }}
+EXPOSE {{ $port }}
+{{- end }}
 CMD npm run -d start

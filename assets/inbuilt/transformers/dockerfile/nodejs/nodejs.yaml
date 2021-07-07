@@ -1,13 +1,11 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Transformer
 metadata:
-  name: Nodejs
+  name: Nodejs-Dockerfile
 spec:
   mode: "Container"
-  class: "SimpleExecutable"
+  class: "NodejsDockerfileGenerator"
   generates: 
     - "ContainerBuild"
   generatedBases: 
     - "ContainerBuild"
-  config:
-    directoryDetectCMD: ["./m2kdetect.sh"]

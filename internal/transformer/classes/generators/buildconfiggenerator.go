@@ -30,7 +30,6 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -86,20 +85,15 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArt
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
-		var pC artifacts.PlanConfig
-		if err := a.GetConfig(artifacts.PlanConfigType, &pC); err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", pC, err)
-			continue
-		}
-		if !(len(pC.TargetCluster.Spec.GetSupportedVersions("BuildConfig")) > 0) {
+		if !(len(t.Env.TargetCluster.Spec.GetSupportedVersions("BuildConfig")) > 0) {
 			logrus.Debugf("BuildConfig was not found on the target cluster.")
 			return nil, nil, nil
 		}
 		apis := []apiresource.IAPIResource{new(apiresource.BuildConfig), new(apiresource.Storage)}
 		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, common.CICDDir, "buildconfig")
 		logrus.Infof("Generating Tekton pipeline for CI/CD")
-		enhancedIR := t.setupEnhancedIR(ir, pC.PlanName)
-		if files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, pC.TargetCluster); err == nil {
+		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
+		if files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, t.Env.TargetCluster); err == nil {
 			for _, f := range files {
 				if destPath, err := filepath.Rel(t.Env.TempPath, f); err != nil {
 					logrus.Errorf("Invalid yaml path : %s", destPath)

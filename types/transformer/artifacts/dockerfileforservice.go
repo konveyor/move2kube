@@ -17,15 +17,8 @@
 package artifacts
 
 import (
-	"github.com/konveyor/move2kube/types/collection"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
-// PlanConfigType stores the config type name for plan info
-const PlanConfigType transformertypes.ConfigType = "Plan"
-
-// PlanConfig stores the Plan configuration
-type PlanConfig struct {
-	PlanName      string                     `yaml:"planName"`
-	TargetCluster collection.ClusterMetadata `yaml:"cluster"`
-}
+// DockerfileArtifactType represents the Dockerfile artifact type
+const DockerfileForServiceArtifactType transformertypes.ArtifactType = "DockerfileForService"

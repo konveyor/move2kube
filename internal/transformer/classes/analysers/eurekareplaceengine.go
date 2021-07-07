@@ -291,15 +291,8 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 		if a.Artifact != artifacts.ServiceArtifactType {
 			continue
 		}
-
-		var pConfig artifacts.PlanConfig
-		err := a.GetConfig(artifacts.PlanConfigType, &pConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
-			continue
-		}
 		var sConfig EurekaConfig
-		err = a.GetConfig(EurekaConfigType, &sConfig)
+		err := a.GetConfig(EurekaConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue

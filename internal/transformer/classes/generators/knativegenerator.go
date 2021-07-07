@@ -25,7 +25,6 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
@@ -71,17 +70,11 @@ func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, oldArtifac
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
-		var pC artifacts.PlanConfig
-		err = a.GetConfig(artifacts.PlanConfigType, &pC)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", pC, err)
-			continue
-		}
 		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, "knative")
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 		apis := []apiresource.IAPIResource{&apiresource.KnativeService{}}
-		files, err := apiresource.TransformAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, pC.TargetCluster)
+		files, err := apiresource.TransformAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, t.Env.TargetCluster)
 		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err

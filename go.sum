@@ -443,6 +443,8 @@ github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e h1:FQdRViao
 github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e/go.mod h1:PXmcacyJB/pJjSxEl15IU6rEIKXrhZQRzsr0UTkgNNs=
 github.com/cloudfoundry/socks5-proxy v0.2.11 h1:2sZhLrjNG3V3r4FFDn3XvPBBeUz9ipZ2lHsDlIZpZgg=
 github.com/cloudfoundry/socks5-proxy v0.2.11/go.mod h1:S0h1z8GNHIUZ8+veT5KvQlGgXwVRW5YIKnCTiIR4rB4=
+github.com/cloudrecipes/packagejson v1.0.0 h1:f6InIxXWQ9/u1XNk7pX2BeUIw7IOYZS5B26o685XbZk=
+github.com/cloudrecipes/packagejson v1.0.0/go.mod h1:ZENm9DGj5m+2WMImPunZuW3Qn2Ljw/0kHOP4BcWhrrA=
 github.com/clusterhq/flocker-go v0.0.0-20160920122132-2b8b7259d313 h1:eIHD9GNM3Hp7kcRW5mvcz7WTR3ETeoYYKwpgA04kaXE=
 github.com/clusterhq/flocker-go v0.0.0-20160920122132-2b8b7259d313/go.mod h1:P1wt9Z3DP8O6W3rvwCt0REIlshg1InHImaLW0t3ObY0=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=

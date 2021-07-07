@@ -109,12 +109,6 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 			logrus.Errorf("unable to load config for Transformer into %T : %s", config, err)
 			continue
 		}
-		var pConfig artifacts.PlanConfig
-		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
-			continue
-		}
 		ir := irtypes.NewIR()
 		for _, path := range a.Paths[composeFilePathType] {
 			logrus.Debugf("File %s being loaded from compose service : %s", path, config.ServiceName)
@@ -140,11 +134,10 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 			}
 		}
 		p := transformertypes.Artifact{
-			Name:     pConfig.PlanName,
+			Name:     t.Env.GetProjectName(),
 			Artifact: irtypes.IRArtifactType,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				irtypes.IRConfigType:     ir,
-				artifacts.PlanConfigType: pConfig,
+				irtypes.IRConfigType: ir,
 			},
 		}
 		artifactsCreated = append(artifactsCreated, p)

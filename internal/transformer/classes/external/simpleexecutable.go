@@ -76,7 +76,7 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env *environmen
 			logrus.Infof("Starting transformer that requires QA without QA.")
 		}
 	}
-	t.Env, err = environment.NewEnvironment(env.Name, env.ProjectName, env.Source, env.Output, env.Context, tc.Spec.TemplatesDir, qaRPCReceiverAddr, t.ExecConfig.Container)
+	t.Env, err = environment.NewEnvironment(env.Name, env.ProjectName, env.TargetCluster, env.Source, env.Output, env.Context, tc.Spec.TemplatesDir, qaRPCReceiverAddr, t.ExecConfig.Container)
 	if err != nil {
 		logrus.Errorf("Unable to create Exec environment : %s", err)
 		return err

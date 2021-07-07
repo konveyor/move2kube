@@ -31,20 +31,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	// DockerfileImageNameConfigType stores the imagename for the dockerfile
-	DockerfileImageNameConfigType transformertypes.ArtifactType = "DockerfileImageName"
-)
-
 // DockerfileDetector implements the Transformer interface
 type DockerfileDetector struct {
 	Config transformertypes.Transformer
 	Env    *environment.Environment
-}
-
-// DockerfileImageName is the struct storing the ImageName for the dockerfile
-type DockerfileImageName struct {
-	ImageName string
 }
 
 // Init Initializes the transformer
@@ -109,33 +99,38 @@ func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact,
 		if a.Artifact != artifacts.ServiceArtifactType {
 			continue
 		}
-		var pConfig artifacts.PlanConfig
-		err := a.GetConfig(artifacts.PlanConfigType, &pConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
-			continue
-		}
 		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		err := a.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
-		sImageName := DockerfileImageName{}
-		err = a.GetConfig(DockerfileImageNameConfigType, &sImageName)
+		sImageName := artifacts.DockerfileImageName{}
+		err = a.GetConfig(artifacts.DockerfileImageNameConfigType, &sImageName)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
-		imageName := common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
-		if sImageName.ImageName != "" {
-			imageName = sImageName.ImageName
+		if sImageName.ImageName == "" {
+			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
 		p := transformertypes.Artifact{
-			Name:     imageName,
+			Name:     sImageName.ImageName,
 			Artifact: artifacts.DockerfileArtifactType,
 			Paths:    a.Paths,
+			Configs: map[string]interface{}{
+				artifacts.DockerfileImageNameConfigType: sImageName,
+			},
 		}
-		artifactsCreated = append(artifactsCreated, p)
+		dfs := transformertypes.Artifact{
+			Name:     sConfig.ServiceName,
+			Artifact: artifacts.DockerfileForServiceArtifactType,
+			Paths:    a.Paths,
+			Configs: map[string]interface{}{
+				artifacts.DockerfileImageNameConfigType: sImageName,
+				artifacts.ServiceConfigType:             sConfig,
+			},
+		}
+		artifactsCreated = append(artifactsCreated, p, dfs)
 	}
 	return nil, artifactsCreated, nil
 }

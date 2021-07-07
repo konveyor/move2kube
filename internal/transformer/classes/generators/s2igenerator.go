@@ -71,12 +71,6 @@ func (t *S2IGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
 		}
-		var pConfig artifacts.PlanConfig
-		err = a.GetConfig(artifacts.PlanConfigType, &pConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", pConfig, err)
-			continue
-		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
@@ -87,7 +81,7 @@ func (t *S2IGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			s2iConfig.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
 		ir := irtypes.NewIR()
-		ir.Name = pConfig.PlanName
+		ir.Name = t.Env.GetProjectName()
 		container := irtypes.NewContainer()
 		container.AddExposedPort(common.DefaultServicePort)
 		ir.AddContainer(s2iConfig.ImageName, container)
