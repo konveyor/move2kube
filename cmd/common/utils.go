@@ -39,6 +39,10 @@ const (
 	IgnoreEnvFlag = "ignoreenv"
 	// QASkipFlag is the name of the flag that lets you skip all the question answers
 	QASkipFlag = "qaskip"
+	// ConfigOutFlag is the name of the flag that will point the location to output the config file
+	ConfigOutFlag = "configout"
+	// QACacheOutFlag is the name of the flag that will point the location to output the cache file
+	QACacheOutFlag = "qacacheout"
 	// ConfigFlag is the name of the flag that contains list of config files
 	ConfigFlag = "config"
 	// SetConfigFlag is the name of the flag that contains list of key-value configs
@@ -63,6 +67,10 @@ type TransformFlags struct {
 	Srcpath string
 	// Name contains the project name
 	Name string
+	// ConfigOut contains the location to output the config
+	ConfigOut string
+	// QACacheOut contains the location to output the cache
+	QACacheOut string
 	// Configs contains a list of config files
 	Configs []string
 	// Configs contains a list of key-value configs
