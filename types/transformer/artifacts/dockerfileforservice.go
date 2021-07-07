@@ -20,5 +20,5 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
-// DockerfileArtifactType represents the Dockerfile artifact type
+// DockerfileForServiceArtifactType represents the Dockerfile artifact type with service information for populating IR
 const DockerfileForServiceArtifactType transformertypes.ArtifactType = "DockerfileForService"
