@@ -5,7 +5,7 @@ entries:
     appVersion: v0.2.0
     created: "2021-06-21T23:29:42.097331822Z"
     description: A generated Helm Chart for move2kube
-    digest: b268afc6f8bc07a527d81bc9494dedd3c138eec4a987e4e9037670328e335221
+    digest: af8fdf344190a2953595dd2dc26b205d76ef1bce9267b3dfdd616b92d5a217ef
     keywords:
     - move2kube
     name: move2kube
