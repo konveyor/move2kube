@@ -36,7 +36,8 @@ type ContainerImagesBuildScript struct {
 // ImageBuildTemplateConfig represents template config used by ImagePush script
 type ImageBuildTemplateConfig struct {
 	BuildScriptName string
-	Path            string
+	PathToSlash     string
+	PathFromSlash   string
 }
 
 // Init Initializes the transformer
@@ -76,7 +77,8 @@ func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.A
 				}
 				shScripts = append(shScripts, ImageBuildTemplateConfig{
 					BuildScriptName: filepath.Base(shScript),
-					Path:            relPath,
+					PathToSlash:     filepath.ToSlash(relPath),
+					PathFromSlash:   filepath.FromSlash(relPath),
 				})
 			}
 			for _, batScript := range a.Paths[artifacts.ContainerImageBuildBatScriptPathType] {
@@ -87,7 +89,8 @@ func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.A
 				}
 				batScripts = append(batScripts, ImageBuildTemplateConfig{
 					BuildScriptName: filepath.Base(batScript),
-					Path:            relPath,
+					PathToSlash:     filepath.ToSlash(relPath),
+					PathFromSlash:   filepath.FromSlash(relPath),
 				})
 			}
 		}
