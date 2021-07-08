@@ -35,9 +35,10 @@ type DockerfileImageBuildScript struct {
 
 // DockerfileImageBuildScriptTemplateConfig represents template config used by ImagePush script
 type DockerfileImageBuildScriptTemplateConfig struct {
-	DockerfileName string
-	ImageName      string
-	Context        string
+	DockerfileName   string
+	ImageName        string
+	ContextToSlash   string
+	ContextFromSlash string
 }
 
 // Init Initializes the transformer
@@ -93,9 +94,10 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 					continue
 				}
 				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:      sImageName.ImageName,
-					Context:        filepath.Join(common.DefaultSourceDir, relPath),
-					DockerfileName: filepath.Base(path),
+					ImageName:        sImageName.ImageName,
+					ContextToSlash:   filepath.ToSlash(filepath.Join(common.DefaultSourceDir, relPath)),
+					ContextFromSlash: filepath.FromSlash(filepath.Join(common.DefaultSourceDir, relPath)),
+					DockerfileName:   filepath.Base(path),
 				})
 			} else if common.IsParent(path, t.Env.GetEnvironmentOutput()) {
 				relPath, err = filepath.Rel(t.Env.GetEnvironmentOutput(), filepath.Dir(path))
@@ -104,15 +106,17 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 					continue
 				}
 				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:      sImageName.ImageName,
-					Context:        relPath,
-					DockerfileName: filepath.Base(path),
+					ImageName:        sImageName.ImageName,
+					ContextToSlash:   filepath.ToSlash(relPath),
+					ContextFromSlash: filepath.FromSlash(relPath),
+					DockerfileName:   filepath.Base(path),
 				})
 			} else {
 				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:      sImageName.ImageName,
-					Context:        filepath.Join(common.DefaultSourceDir, relPath),
-					DockerfileName: filepath.Base(path),
+					ImageName:        sImageName.ImageName,
+					ContextToSlash:   filepath.ToSlash(filepath.Join(common.DefaultSourceDir, relPath)),
+					ContextFromSlash: filepath.FromSlash(filepath.Join(common.DefaultSourceDir, relPath)),
+					DockerfileName:   filepath.Base(path),
 				})
 			}
 			nartifacts = append(nartifacts, transformertypes.Artifact{
