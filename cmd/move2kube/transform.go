@@ -19,12 +19,9 @@ package main
 import (
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/konveyor/move2kube/api"
-	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -32,103 +29,110 @@ import (
 )
 
 type transformFlags struct {
-	cmdcommon.TransformFlags
-	qadisablecli bool
-	qaport       int
+	qaflags
+	// ignoreEnv tells us whether to use data collected from the local machine
+	ignoreEnv bool
+	// planfile is contains the path to the plan file
+	planfile string
+	// outpath contains the path to the output folder
+	outpath string
+	// SourceFlag contains path to the source folder
+	srcpath string
+	// name contains the project name
+	name string
+	// overwrite lets you overwrite the output directory if it exists
+	overwrite bool
+	// CustomizationsPaths contains the path to the customizations directory
+	customizationsPath string
 }
-
-const (
-	qadisablecliFlag = "qadisablecli"
-	qaportFlag       = "qaport"
-)
 
 func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	// Setup
 	var err error
 
-	if flags.Planfile, err = filepath.Abs(flags.Planfile); err != nil {
-		logrus.Fatalf("Failed to make the plan file path %q absolute. Error: %q", flags.Planfile, err)
+	if flags.planfile, err = filepath.Abs(flags.planfile); err != nil {
+		logrus.Fatalf("Failed to make the plan file path %q absolute. Error: %q", flags.planfile, err)
 	}
-	if flags.Srcpath != "" {
-		if flags.Srcpath, err = filepath.Abs(flags.Srcpath); err != nil {
-			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.Srcpath, err)
+	if flags.srcpath != "" {
+		if flags.srcpath, err = filepath.Abs(flags.srcpath); err != nil {
+			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.srcpath, err)
 		}
 	}
-	if flags.Outpath, err = filepath.Abs(flags.Outpath); err != nil {
-		logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.Outpath, err)
+	if flags.outpath, err = filepath.Abs(flags.outpath); err != nil {
+		logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.outpath, err)
 	}
 
 	// Global settings
-	common.IgnoreEnvironment = flags.IgnoreEnv
+	common.IgnoreEnvironment = flags.ignoreEnv
 	// Global settings
 
 	// Parameter cleaning and curate plan
 	var p plan.Plan
-	fi, err := os.Stat(flags.Planfile)
+	fi, err := os.Stat(flags.planfile)
 	if err == nil && fi.IsDir() {
-		flags.Planfile = filepath.Join(flags.Planfile, common.DefaultPlanFile)
-		_, err = os.Stat(flags.Planfile)
+		flags.planfile = filepath.Join(flags.planfile, common.DefaultPlanFile)
+		_, err = os.Stat(flags.planfile)
 	}
 	if err != nil {
 		logrus.Debugf("No plan file found.")
-		if cmd.Flags().Changed(cmdcommon.PlanFlag) {
-			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.Planfile, err)
+		if cmd.Flags().Changed(planFlag) {
+			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.planfile, err)
 		}
-		if !cmd.Flags().Changed(cmdcommon.SourceFlag) {
+		if !cmd.Flags().Changed(sourceFlag) {
 			logrus.Fatalf("Invalid usage. Must specify either path to a plan file or path to directory containing source code.")
 		}
 
 		// Global settings
-		cmdcommon.CheckSourcePath(flags.Srcpath)
-		flags.Outpath = filepath.Join(flags.Outpath, flags.Name)
-		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
-		if flags.Srcpath == flags.Outpath || common.IsParent(flags.Outpath, flags.Srcpath) || common.IsParent(flags.Srcpath, flags.Outpath) {
-			logrus.Fatalf("The source path %s and output path %s overlap.", flags.Srcpath, flags.Outpath)
+		checkSourcePath(flags.srcpath)
+		flags.outpath = filepath.Join(flags.outpath, flags.name)
+		checkOutputPath(flags.outpath, flags.overwrite)
+		if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
+			logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
 		}
-		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
-			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
+		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
+			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
 		}
-		startQA(flags)
+		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
-		p = api.CreatePlan(flags.Srcpath, flags.Outpath, flags.CustomizationsPath, flags.Name)
+		p = api.CreatePlan(flags.srcpath, flags.outpath, flags.customizationsPath, flags.name)
 	} else {
-		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.Planfile)
+		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.planfile)
 		rootDir := ""
-		if cmd.Flags().Changed(cmdcommon.SourceFlag) {
-			rootDir = flags.Srcpath
+		if cmd.Flags().Changed(sourceFlag) {
+			rootDir = flags.srcpath
 		}
-		if p, err = plan.ReadPlan(flags.Planfile, rootDir); err != nil {
-			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.Planfile, err)
+		if p, err = plan.ReadPlan(flags.planfile, rootDir); err != nil {
+			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.planfile, err)
 		}
 		if len(p.Spec.Services) == 0 {
 			logrus.Debugf("Plan : %+v", p)
 			logrus.Fatalf("Failed to find any services. Aborting.")
 		}
-		if cmd.Flags().Changed(cmdcommon.NameFlag) {
-			p.Name = flags.Name
+		if cmd.Flags().Changed(nameFlag) {
+			p.Name = flags.name
 		}
-		if cmd.Flags().Changed(cmdcommon.CustomizationsFlag) {
-			if flags.CustomizationsPath != "" {
-				p.Spec.CustomizationsDir = flags.CustomizationsPath
+		if cmd.Flags().Changed(customizationsFlag) {
+			if flags.customizationsPath != "" {
+				p.Spec.CustomizationsDir = flags.customizationsPath
 			}
 		}
 
 		// Global settings
-		cmdcommon.CheckSourcePath(p.Spec.RootDir)
+		checkSourcePath(p.Spec.RootDir)
 		common.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)
-		flags.Outpath = filepath.Join(flags.Outpath, p.Name)
-		cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
-		if p.Spec.RootDir == flags.Outpath || common.IsParent(flags.Outpath, p.Spec.RootDir) || common.IsParent(p.Spec.RootDir, flags.Outpath) {
-			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.RootDir, flags.Outpath)
+		flags.outpath = filepath.Join(flags.outpath, p.Name)
+		checkOutputPath(flags.outpath, flags.overwrite)
+		if p.Spec.RootDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.RootDir) || common.IsParent(p.Spec.RootDir, flags.outpath) {
+			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.RootDir, flags.outpath)
 		}
-		if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
-			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
+		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
+			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
 		}
-		startQA(flags)
+		startQA(flags.qaflags)
 	}
-	p = api.CuratePlan(p, flags.Outpath)
-	api.Transform(p, flags.Outpath)
-	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.Outpath)
+	p = api.CuratePlan(p, flags.outpath)
+	api.Transform(p, flags.outpath)
+	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
 	api.Destroy()
 }
 
@@ -150,71 +154,28 @@ func getTransformCommand() *cobra.Command {
 	}
 
 	// Basic options
-	transformCmd.Flags().StringVarP(&flags.Planfile, cmdcommon.PlanFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
-	transformCmd.Flags().BoolVar(&flags.Overwrite, cmdcommon.OverwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
-	transformCmd.Flags().StringVarP(&flags.Srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory to transform. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
-	transformCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
-	transformCmd.Flags().StringVarP(&flags.Name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	transformCmd.Flags().StringVar(&flags.ConfigOut, cmdcommon.ConfigOutFlag, ".", "Specify config file output location")
-	transformCmd.Flags().StringVar(&flags.QACacheOut, cmdcommon.QACacheOutFlag, ".", "Specify cache file output location")
-	transformCmd.Flags().StringSliceVarP(&flags.Configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
-	transformCmd.Flags().StringSliceVarP(&flags.PreSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
-	transformCmd.Flags().StringArrayVarP(&flags.Setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
-	transformCmd.Flags().StringVarP(&flags.CustomizationsPath, cmdcommon.CustomizationsFlag, "c", "", "Specify directory where customizations are stored.")
+	transformCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
+	transformCmd.Flags().BoolVar(&flags.overwrite, overwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
+	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory to transform. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
+	transformCmd.Flags().StringVarP(&flags.outpath, outputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
+	transformCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
+	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location")
+	transformCmd.Flags().StringVar(&flags.qaCacheOut, qaCacheOutFlag, ".", "Specify cache file output location")
+	transformCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations")
+	transformCmd.Flags().StringSliceVarP(&flags.preSets, preSetFlag, "r", []string{}, "Specify preset config to use")
+	transformCmd.Flags().StringArrayVarP(&flags.setconfigs, setConfigFlag, "k", []string{}, "Specify config key-value pairs")
+	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored.")
 
 	// Advanced options
-	transformCmd.Flags().BoolVar(&flags.IgnoreEnv, cmdcommon.IgnoreEnvFlag, false, "Ignore data from local machine.")
+	transformCmd.Flags().BoolVar(&flags.ignoreEnv, ignoreEnvFlag, false, "Ignore data from local machine.")
 
 	// Hidden options
 	transformCmd.Flags().BoolVar(&flags.qadisablecli, qadisablecliFlag, false, "Enable/disable the QA Cli sub-system. Without this system, you will have to use the REST API to interact.")
-	transformCmd.Flags().BoolVar(&flags.Qaskip, cmdcommon.QASkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
+	transformCmd.Flags().BoolVar(&flags.qaskip, qaSkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 	transformCmd.Flags().IntVar(&flags.qaport, qaportFlag, 0, "Port for the QA service. By default it chooses a random free port.")
 
 	must(transformCmd.Flags().MarkHidden(qadisablecliFlag))
 	must(transformCmd.Flags().MarkHidden(qaportFlag))
 
 	return transformCmd
-}
-
-func startQA(flags transformFlags) {
-	qaengine.StartEngine(flags.Qaskip, flags.qaport, flags.qadisablecli)
-	if flags.ConfigOut == "" {
-		qaengine.SetupConfigFile("", flags.Setconfigs, flags.Configs, flags.PreSets)
-	} else {
-		if flags.ConfigOut == "." {
-			qaengine.SetupConfigFile(common.ConfigFile, flags.Setconfigs, flags.Configs, flags.PreSets)
-		} else if fi, err := os.Stat(flags.ConfigOut); err == nil {
-			if fi.IsDir() {
-				qaengine.SetupConfigFile(filepath.Join(flags.ConfigOut, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
-			} else {
-				qaengine.SetupConfigFile(flags.ConfigOut, flags.Setconfigs, flags.Configs, flags.PreSets)
-			}
-		} else if strings.Contains(filepath.Base(flags.ConfigOut), ".") {
-			os.MkdirAll(filepath.Dir(flags.ConfigOut), common.DefaultDirectoryPermission)
-			qaengine.SetupConfigFile(flags.ConfigOut, flags.Setconfigs, flags.Configs, flags.PreSets)
-		} else {
-			os.MkdirAll(flags.ConfigOut, common.DefaultDirectoryPermission)
-			qaengine.SetupConfigFile(filepath.Join(flags.ConfigOut, common.ConfigFile), flags.Setconfigs, flags.Configs, flags.PreSets)
-		}
-	}
-	if flags.QACacheOut != "" {
-		if flags.QACacheOut == "." {
-			qaengine.SetupWriteCacheFile(common.QACacheFile)
-		} else if fi, err := os.Stat(flags.QACacheOut); err == nil {
-			if fi.IsDir() {
-				qaengine.SetupWriteCacheFile(filepath.Join(flags.QACacheOut, common.QACacheFile))
-			} else {
-				qaengine.SetupWriteCacheFile(flags.QACacheOut)
-			}
-		} else if strings.Contains(filepath.Base(flags.QACacheOut), ".") {
-			os.MkdirAll(filepath.Dir(flags.QACacheOut), common.DefaultDirectoryPermission)
-			qaengine.SetupWriteCacheFile(flags.QACacheOut)
-		} else {
-			os.MkdirAll(flags.QACacheOut, common.DefaultDirectoryPermission)
-			qaengine.SetupWriteCacheFile(filepath.Join(flags.QACacheOut, common.QACacheFile))
-		}
-	}
-	if err := qaengine.WriteStoresToDisk(); err != nil {
-		logrus.Warnf("Failed to write the stores to disk. Error: %q", err)
-	}
 }

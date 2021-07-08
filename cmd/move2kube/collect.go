@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/api"
-	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -81,8 +80,8 @@ func getCollectCommand() *cobra.Command {
 	}
 
 	collectCmd.Flags().StringVarP(&flags.annotations, "annotations", "a", "", "Specify annotations to select collector subset.")
-	collectCmd.Flags().StringVarP(&flags.outpath, cmdcommon.OutputFlag, "o", ".", "Specify output directory for collect.")
-	collectCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", "", "Specify source directory for the artifacts to be considered while collecting.")
+	collectCmd.Flags().StringVarP(&flags.outpath, outputFlag, "o", ".", "Specify output directory for collect.")
+	collectCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory for the artifacts to be considered while collecting.")
 
 	return collectCmd
 }

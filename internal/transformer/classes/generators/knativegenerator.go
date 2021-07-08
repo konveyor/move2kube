@@ -25,6 +25,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
@@ -60,6 +61,7 @@ func (t *Knative) DirectoryDetect(dir string) (namedServices map[string]plantype
 func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	logrus.Debugf("Translating IR using Kubernetes transformer")
 	pathMappings = []transformertypes.PathMapping{}
+	createdArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		if a.Artifact != irtypes.IRArtifactType {
 			continue
@@ -70,7 +72,8 @@ func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, oldArtifac
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
-		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, "knative")
+		deployKnativeDir := filepath.Join(common.DeployDir, "knative")
+		tempDest := filepath.Join(t.Env.TempPath, deployKnativeDir)
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 		apis := []apiresource.IAPIResource{&apiresource.KnativeService{}}
@@ -91,7 +94,15 @@ func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, oldArtifac
 				DestPath: destPath,
 			})
 		}
+		na := transformertypes.Artifact{
+			Name:     t.Config.Name,
+			Artifact: artifacts.KubernetesYamlsArtifactType,
+			Paths: map[transformertypes.PathType][]string{
+				artifacts.KubernetesYamlsPathType: {deployKnativeDir},
+			},
+		}
+		createdArtifacts = append(createdArtifacts, na)
 		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
-	return pathMappings, nil, nil
+	return pathMappings, createdArtifacts, nil
 }

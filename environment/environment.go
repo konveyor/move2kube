@@ -301,6 +301,13 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMapping) []transformertypes.PathMapping {
 	dupPathMappings := deepcopy.DeepCopy(pathMappings).([]transformertypes.PathMapping)
 	for pmi, pm := range dupPathMappings {
+		if filepath.IsAbs(pm.SrcPath) && common.IsParent(pm.SrcPath, e.GetEnvironmentOutput()) {
+			var err error
+			dupPathMappings[pmi].SrcPath, err = e.Env.Download(pm.SrcPath)
+			if err != nil {
+				logrus.Errorf("Error while processing path mappings : %s", err)
+			}
+		}
 		if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
 			dupPathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
 		}

@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package parameterizer_test
+package api_test
 
 import (
 	"io/ioutil"
@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/konveyor/move2kube/parameterizer"
+	"github.com/konveyor/move2kube/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,7 +39,7 @@ func TestGettingAndParameterizingResources(t *testing.T) {
 	k8sResourcesPath := filepath.Join(baseDir, "k8s-resources")
 	outputPath := t.TempDir()
 
-	filesWritten, err := parameterizer.Top(k8sResourcesPath, parameterizersPath, outputPath)
+	filesWritten, err := api.Parameterize(k8sResourcesPath, parameterizersPath, outputPath)
 	if err != nil {
 		t.Fatalf("Failed to apply all the parameterizations. Error: %q", err)
 	}

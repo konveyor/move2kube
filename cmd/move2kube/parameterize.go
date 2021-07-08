@@ -20,67 +20,54 @@ import (
 	"os"
 	"path/filepath"
 
-	cmdcommon "github.com/konveyor/move2kube/cmd/common"
+	"github.com/konveyor/move2kube/api"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/parameterizer"
-	"github.com/konveyor/move2kube/qaengine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 type parameterizeFlags struct {
-	// Outpath contains the path to the output folder
-	Outpath string
+	// outpath contains the path to the output folder
+	outpath string
 	// SourceFlag contains path to the source folder
-	Srcpath string
-	// CustomizationsPath contains path to the pack folder
-	CustomizationsPath string
-	// Overwrite: if the output folder exists then it will be overwritten
-	Overwrite bool
-	// qadisablecli: part of hidden flags, used to select http server engine for QA
-	qadisablecli bool
-	// qaskip: used to select the default engine for QA
-	qaskip bool
-	// qaport: part of hidden flags, used to select the port on which the http server engine listens
-	qaport int
+	srcpath string
+	// customizationsPath contains path to the pack folder
+	customizationsPath string
+	// overwrite: if the output folder exists then it will be overwritten
+	overwrite bool
+	qaflags
 }
 
 func parameterizeHandler(_ *cobra.Command, flags parameterizeFlags) {
 	var err error
-	if flags.Srcpath, err = filepath.Abs(flags.Srcpath); err != nil {
-		logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.Srcpath, err)
+	if flags.srcpath, err = filepath.Abs(flags.srcpath); err != nil {
+		logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.srcpath, err)
 	}
-	if flags.Outpath, err = filepath.Abs(flags.Outpath); err != nil {
-		logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.Outpath, err)
+	if flags.outpath, err = filepath.Abs(flags.outpath); err != nil {
+		logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.outpath, err)
 	}
-	if flags.CustomizationsPath, err = filepath.Abs(flags.CustomizationsPath); err != nil {
-		logrus.Fatalf("Failed to make the pack directory path %q absolute. Error: %q", flags.CustomizationsPath, err)
-	}
-
-	cmdcommon.CheckSourcePath(flags.Srcpath)
-	cmdcommon.CheckOutputPath(flags.Outpath, flags.Overwrite)
-	if flags.Srcpath == flags.Outpath || common.IsParent(flags.Outpath, flags.Srcpath) || common.IsParent(flags.Srcpath, flags.Outpath) {
-		logrus.Fatalf("The source path %s and output path %s overlap.", flags.Srcpath, flags.Outpath)
-	}
-	if err := os.MkdirAll(flags.Outpath, common.DefaultDirectoryPermission); err != nil {
-		logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.Outpath, err)
+	if flags.customizationsPath, err = filepath.Abs(flags.customizationsPath); err != nil {
+		logrus.Fatalf("Failed to make the pack directory path %q absolute. Error: %q", flags.customizationsPath, err)
 	}
 
-	// Initialize the QA engine
-	qaengine.StartEngine(flags.qaskip, flags.qaport, flags.qadisablecli)
-	qaengine.SetupConfigFile(filepath.Join(flags.Outpath, common.ConfigFile), []string{}, []string{}, []string{})
-	qaengine.SetupWriteCacheFile(filepath.Join(flags.Outpath, common.QACacheFile))
-	if err := qaengine.WriteStoresToDisk(); err != nil {
-		logrus.Warnf("Failed to write the config and/or cache to disk. Error: %q", err)
+	checkSourcePath(flags.srcpath)
+	checkOutputPath(flags.outpath, flags.overwrite)
+	if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
+		logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
 	}
+	if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
+		logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
+	}
+	startQA(flags.qaflags)
+
 	// Parameterization
-	filesWritten, err := parameterizer.Top(flags.Srcpath, flags.CustomizationsPath, flags.Outpath)
+	filesWritten, err := api.Parameterize(flags.srcpath, flags.customizationsPath, flags.outpath)
 	if err != nil {
 		logrus.Fatalf("Failed to apply all the parameterizations. Error: %q", err)
 	}
 	logrus.Debugf("filesWritten: %+v", filesWritten)
-	logrus.Infof("Parameterized artifacts can be found at [%s].", flags.Outpath)
+	logrus.Infof("Parameterized artifacts can be found at [%s].", flags.outpath)
 }
 
 func getParameterizeCommand() *cobra.Command {
@@ -100,19 +87,21 @@ func getParameterizeCommand() *cobra.Command {
 	}
 
 	// Basic options
-	parameterizeCmd.Flags().StringVarP(&flags.Srcpath, cmdcommon.SourceFlag, "s", "", "Specify the directory containing the source code to parameterize.")
-	parameterizeCmd.Flags().StringVarP(&flags.Outpath, cmdcommon.OutputFlag, "o", "", "Specify the directory where the output should be written.")
-	parameterizeCmd.Flags().StringVarP(&flags.CustomizationsPath, cmdcommon.CustomizationsFlag, "c", "", "Specify directory where customizations are stored.")
-	parameterizeCmd.Flags().BoolVar(&flags.Overwrite, cmdcommon.OverwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
+	parameterizeCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify the directory containing the source code to parameterize.")
+	parameterizeCmd.Flags().StringVarP(&flags.outpath, outputFlag, "o", "", "Specify the directory where the output should be written.")
+	parameterizeCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored.")
+	parameterizeCmd.Flags().BoolVar(&flags.overwrite, overwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
+	parameterizeCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location")
+	parameterizeCmd.Flags().StringVar(&flags.qaCacheOut, qaCacheOutFlag, ".", "Specify cache file output location")
 
 	// Hidden options
 	parameterizeCmd.Flags().BoolVar(&flags.qadisablecli, qadisablecliFlag, false, "Enable/disable the QA Cli sub-system. Without this system, you will have to use the REST API to interact.")
-	parameterizeCmd.Flags().BoolVar(&flags.qaskip, cmdcommon.QASkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
+	parameterizeCmd.Flags().BoolVar(&flags.qaskip, qaSkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 	parameterizeCmd.Flags().IntVar(&flags.qaport, qaportFlag, 0, "Port for the QA service. By default it chooses a random free port.")
 
-	must(parameterizeCmd.MarkFlagRequired(cmdcommon.SourceFlag))
-	must(parameterizeCmd.MarkFlagRequired(cmdcommon.OutputFlag))
-	must(parameterizeCmd.MarkFlagRequired(cmdcommon.CustomizationsFlag))
+	must(parameterizeCmd.MarkFlagRequired(sourceFlag))
+	must(parameterizeCmd.MarkFlagRequired(outputFlag))
+	must(parameterizeCmd.MarkFlagRequired(customizationsFlag))
 
 	must(parameterizeCmd.Flags().MarkHidden(qadisablecliFlag))
 	must(parameterizeCmd.Flags().MarkHidden(qaportFlag))

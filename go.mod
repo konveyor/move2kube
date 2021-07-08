@@ -9,7 +9,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.263 // indirect
-	github.com/cloudrecipes/packagejson v1.0.0 // indirect
+	github.com/cloudrecipes/packagejson v1.0.0
 	github.com/containerd/containerd v1.5.1 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5

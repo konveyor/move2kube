@@ -20,13 +20,8 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
-// DockerfileArtifactType represents the Dockerfile artifact type
-const DockerfileArtifactType transformertypes.ArtifactType = "Dockerfile"
+// KubernetesYamlsArtifactType is the name of the Kubernetes artifact type
+const KubernetesYamlsArtifactType transformertypes.ArtifactType = "KubernetesYamls"
 
-// DockerfilePathType defines the source artifact type of dockerfile
-const DockerfilePathType transformertypes.PathType = "Dockerfile"
-
-const (
-	// DockerfileTemplateConfigConfigType stores the imagename for the dockerfile
-	DockerfileTemplateConfigConfigType transformertypes.ConfigType = "DockerfileTemplateConfig"
-)
+// KubernetesYamlsPathType is points to the kubernetes Yamls
+const KubernetesYamlsPathType transformertypes.PathType = "KubernetesYamls"

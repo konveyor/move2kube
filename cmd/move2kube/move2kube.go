@@ -20,7 +20,6 @@ import (
 	"os"
 
 	"github.com/konveyor/move2kube/assets"
-	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -49,7 +48,7 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 	}
 
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
-	rootCmd.AddCommand(cmdcommon.GetVersionCommand())
+	rootCmd.AddCommand(GetVersionCommand())
 	rootCmd.AddCommand(getCollectCommand())
 	rootCmd.AddCommand(getPlanCommand())
 	rootCmd.AddCommand(getTransformCommand())

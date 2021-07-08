@@ -30,6 +30,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
@@ -88,6 +89,7 @@ func (t *Tekton) DirectoryDetect(dir string) (namedServices map[string]plantypes
 func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	logrus.Debugf("Translating IR using Kubernetes transformer")
 	pathMappings = []transformertypes.PathMapping{}
+	createdArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		if a.Artifact != irtypes.IRArtifactType {
 			continue
@@ -108,7 +110,8 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 			new(apiresource.TriggerTemplate),
 			new(apiresource.Pipeline),
 		}
-		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, common.CICDDir, "tekton")
+		deployCICDDir := filepath.Join(common.DeployDir, common.CICDDir, "tekton")
+		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Infof("Generating Tekton pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
 		files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, t.Env.TargetCluster)
@@ -128,9 +131,17 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 				DestPath: destPath,
 			})
 		}
+		a := transformertypes.Artifact{
+			Name:     t.Config.Name,
+			Artifact: artifacts.KubernetesYamlsArtifactType,
+			Paths: map[transformertypes.PathType][]string{
+				artifacts.KubernetesYamlsPathType: {deployCICDDir},
+			},
+		}
+		createdArtifacts = append(createdArtifacts, a)
 		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
-	return pathMappings, nil, nil
+	return pathMappings, createdArtifacts, nil
 }
 
 // setupEnhancedIR returns EnhancedIR containing Tekton components

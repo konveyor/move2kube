@@ -26,6 +26,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
@@ -61,6 +62,7 @@ func (t *Kubernetes) DirectoryDetect(dir string) (namedServices map[string]plant
 func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	logrus.Debugf("Translating IR using Kubernetes transformer")
 	pathMappings = []transformertypes.PathMapping{}
+	createdArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		if a.Artifact != irtypes.IRArtifactType {
 			continue
@@ -77,7 +79,8 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 		} else {
 			ir = preprocessedIR
 		}
-		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, "yamls")
+		deployYamlsDir := filepath.Join(common.DeployDir, "yamls")
+		tempDest := filepath.Join(t.Env.TempPath, deployYamlsDir)
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 		apis := []apiresource.IAPIResource{new(apiresource.Deployment), new(apiresource.Storage), new(apiresource.Service), new(apiresource.ImageStream), new(apiresource.NetworkPolicy)}
@@ -98,7 +101,15 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 				DestPath: destPath,
 			})
 		}
+		na := transformertypes.Artifact{
+			Name:     t.Config.Name,
+			Artifact: artifacts.KubernetesYamlsArtifactType,
+			Paths: map[transformertypes.PathType][]string{
+				artifacts.KubernetesYamlsPathType: {deployYamlsDir},
+			},
+		}
+		createdArtifacts = append(createdArtifacts, na)
 		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
-	return pathMappings, nil, nil
+	return pathMappings, createdArtifacts, nil
 }

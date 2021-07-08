@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/api"
-	cmdcommon "github.com/konveyor/move2kube/cmd/common"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/qaengine"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -107,15 +106,15 @@ func getPlanCommand() *cobra.Command {
 		Run:   func(*cobra.Command, []string) { planHandler(flags) },
 	}
 
-	planCmd.Flags().StringVarP(&flags.srcpath, cmdcommon.SourceFlag, "s", ".", "Specify source directory.")
-	planCmd.Flags().StringVarP(&flags.planfile, cmdcommon.PlanFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
-	planCmd.Flags().StringVarP(&flags.name, cmdcommon.NameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	planCmd.Flags().StringVarP(&flags.customizationsPath, cmdcommon.CustomizationsFlag, "c", "", "Specify directory where customizations are stored.")
-	planCmd.Flags().StringSliceVarP(&flags.configs, cmdcommon.ConfigFlag, "f", []string{}, "Specify config file locations")
-	planCmd.Flags().StringSliceVarP(&flags.preSets, cmdcommon.PreSetFlag, "r", []string{}, "Specify preset config to use")
-	planCmd.Flags().StringArrayVarP(&flags.setconfigs, cmdcommon.SetConfigFlag, "k", []string{}, "Specify config key-value pairs")
+	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", ".", "Specify source directory.")
+	planCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
+	planCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
+	planCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored.")
+	planCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations")
+	planCmd.Flags().StringSliceVarP(&flags.preSets, preSetFlag, "r", []string{}, "Specify preset config to use")
+	planCmd.Flags().StringArrayVarP(&flags.setconfigs, setConfigFlag, "k", []string{}, "Specify config key-value pairs")
 
-	must(planCmd.MarkFlagRequired(cmdcommon.SourceFlag))
+	must(planCmd.MarkFlagRequired(sourceFlag))
 
 	return planCmd
 }

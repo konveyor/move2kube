@@ -73,8 +73,8 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 		if a.Artifact != artifacts.DockerfileArtifactType {
 			continue
 		}
-		sImageName := artifacts.DockerfileImageName{}
-		err := a.GetConfig(artifacts.DockerfileImageNameConfigType, &sImageName)
+		sImageName := artifacts.ImageName{}
+		err := a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}

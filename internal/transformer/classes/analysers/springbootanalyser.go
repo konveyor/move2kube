@@ -187,6 +187,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 // Transform transforms the artifacts
 func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
+	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		if a.Artifact != artifacts.ServiceArtifactType {
 			continue
@@ -202,12 +203,19 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
-
 		var seConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &seConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", seConfig, err)
 			continue
+		}
+		sImageName := artifacts.ImageName{}
+		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		if err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+		}
+		if sImageName.ImageName == "" {
+			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(a.Name)
 		}
 
 		// License
@@ -242,10 +250,11 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 			port = sConfig.Ports[0]
 		}
 
+		dfp := filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile")
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
 			SrcPath:        outputPath,
-			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile."+seConfig.ServiceName),
+			DestPath:       dfp,
 			TemplateConfig: SpringbootTemplateConfig{Port: port},
 		}, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
@@ -253,6 +262,27 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 			DestPath: common.DefaultSourceDir,
 		})
 
+		p := transformertypes.Artifact{
+			Name:     sImageName.ImageName,
+			Artifact: artifacts.DockerfileArtifactType,
+			Paths: map[string][]string{
+				artifacts.ProjectPathPathType: {filepath.Dir(dfp)},
+				artifacts.DockerfilePathType:  {dfp},
+			},
+			Configs: map[string]interface{}{
+				artifacts.ImageNameConfigType: sImageName,
+			},
+		}
+		dfs := transformertypes.Artifact{
+			Name:     sConfig.ServiceName,
+			Artifact: artifacts.DockerfileForServiceArtifactType,
+			Paths:    a.Paths,
+			Configs: map[string]interface{}{
+				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ServiceConfigType:   sConfig,
+			},
+		}
+		createdArtifacts = append(createdArtifacts, p, dfs)
 	}
-	return pathMappings, nil, nil
+	return pathMappings, createdArtifacts, nil
 }
