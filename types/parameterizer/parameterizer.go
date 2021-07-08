@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package types
+package parameterizer
 
 import (
 	"github.com/konveyor/move2kube/internal/common"
@@ -43,6 +43,7 @@ type PackagingFileT struct {
 
 // PackagingSpecT is the spec inside the packaging file
 type PackagingSpecT struct {
+	FilePath          string               `yaml:"-" json:"-"`
 	Paths             []PackagingSpecPathT `yaml:"paths" json:"paths"`
 	ParameterizerRefs []string             `yaml:"parameterizerRefs,omitempty" json:"parameterizerRefs,omitempty"`
 	Parameterizers    []ParameterizerT     `yaml:"parameterizers,omitempty" json:"parameterizers,omitempty"`
@@ -55,7 +56,7 @@ type PackagingSpecPathT struct {
 	Helm          string   `yaml:"helm,omitempty" json:"helm,omitempty"`
 	HelmChartName string   `yaml:"helmChartName,omitempty" json:"helmChartName,omitempty"`
 	Kustomize     string   `yaml:"kustomize,omitempty" json:"kustomize,omitempty"`
-	OCTemplates   string   `yaml:"ocTemplates,omitempty" json:"ocTemplates,omitempty"`
+	OCTemplates   string   `yaml:"openshiftTemplates,omitempty" json:"openshiftTemplates,omitempty"`
 	Envs          []string `yaml:"envs,omitempty" json:"envs,omitempty"`
 }
 
@@ -158,8 +159,8 @@ const (
 	TargetHelm ParamTargetT = "helm"
 	// TargetKustomize is used when the target is the parameterization of Kustomize
 	TargetKustomize ParamTargetT = "kustomize"
-	// TargetOCTemplates is used when the target is the parameterization of OCTemplates
-	TargetOCTemplates ParamTargetT = "octemplates"
+	// TargetOCTemplates is used when the target is the parameterization of Openshift Templates
+	TargetOCTemplates ParamTargetT = "openshifttemplates"
 	// ParamQuesIDPrefix is used as a prefix when the key is not specified in the questions in a parameterizer
 	ParamQuesIDPrefix = common.BaseKey + common.Delim + "parameterization"
 )

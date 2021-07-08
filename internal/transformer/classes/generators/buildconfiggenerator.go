@@ -30,6 +30,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -76,6 +77,7 @@ func (t *BuildConfig) DirectoryDetect(dir string) (namedServices map[string]plan
 func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	logrus.Debugf("Translating IR using Buildconfig transformer")
 	pathMappings = []transformertypes.PathMapping{}
+	createdArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		if a.Artifact != irtypes.IRArtifactType {
 			continue
@@ -90,28 +92,37 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArt
 			return nil, nil, nil
 		}
 		apis := []apiresource.IAPIResource{new(apiresource.BuildConfig), new(apiresource.Storage)}
-		tempDest := filepath.Join(t.Env.TempPath, common.DeployDir, common.CICDDir, "buildconfig")
+		deployCICDDir := filepath.Join(common.DeployDir, common.CICDDir, "buildconfig")
+		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Infof("Generating Tekton pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
-		if files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, t.Env.TargetCluster); err == nil {
-			for _, f := range files {
-				if destPath, err := filepath.Rel(t.Env.TempPath, f); err != nil {
-					logrus.Errorf("Invalid yaml path : %s", destPath)
-				} else {
-					pathMappings = append(pathMappings, transformertypes.PathMapping{
-						Type:     transformertypes.DefaultPathMappingType,
-						SrcPath:  f,
-						DestPath: destPath,
-					})
-				}
-			}
-			logrus.Debugf("Total transformed objects : %d", len(files))
-		} else {
+		files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, t.Env.TargetCluster)
+		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err
 		}
+		for _, f := range files {
+			if destPath, err := filepath.Rel(t.Env.TempPath, f); err != nil {
+				logrus.Errorf("Invalid yaml path : %s", destPath)
+			} else {
+				pathMappings = append(pathMappings, transformertypes.PathMapping{
+					Type:     transformertypes.DefaultPathMappingType,
+					SrcPath:  f,
+					DestPath: destPath,
+				})
+			}
+		}
+		a := transformertypes.Artifact{
+			Name:     t.Config.Name,
+			Artifact: artifacts.KubernetesYamlsArtifactType,
+			Paths: map[transformertypes.PathType][]string{
+				artifacts.KubernetesYamlsPathType: {deployCICDDir},
+			},
+		}
+		createdArtifacts = append(createdArtifacts, a)
+		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
-	return pathMappings, nil, nil
+	return pathMappings, createdArtifacts, nil
 }
 
 // setupEnhancedIR return enhanced IR used by BuildConfig

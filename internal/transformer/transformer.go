@@ -76,6 +76,7 @@ func init() {
 		new(generators.DockerfileImageBuildScript),
 		new(generators.ContainerImagesPushScript),
 		new(generators.ContainerImagesBuildScript),
+		new(generators.Parameterizer),
 		new(generators.ReadMeGenerator),
 
 		new(dockerfilegenerators.NodejsDockerfileGenerator),

@@ -14,19 +14,29 @@
  *  limitations under the License.
  */
 
-package artifacts
+package main
 
 import (
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"fmt"
+
+	api "github.com/konveyor/move2kube/api"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-// DockerfileArtifactType represents the Dockerfile artifact type
-const DockerfileArtifactType transformertypes.ArtifactType = "Dockerfile"
+// GetVersionCommand returns the version
+func GetVersionCommand() *cobra.Command {
+	viper.AutomaticEnv()
 
-// DockerfilePathType defines the source artifact type of dockerfile
-const DockerfilePathType transformertypes.PathType = "Dockerfile"
+	long := false
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the version information",
+		Long:  "Print the version information",
+		Run:   func(*cobra.Command, []string) { fmt.Println(api.GetVersion(long)) },
+	}
 
-const (
-	// DockerfileTemplateConfigConfigType stores the imagename for the dockerfile
-	DockerfileTemplateConfigConfigType transformertypes.ConfigType = "DockerfileTemplateConfig"
-)
+	versionCmd.Flags().BoolVarP(&long, "long", "l", false, "print the version details")
+
+	return versionCmd
+}

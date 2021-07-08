@@ -72,8 +72,8 @@ func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, o
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sConfig, err)
 		}
-		sImageName := artifacts.DockerfileImageName{}
-		err = a.GetConfig(artifacts.DockerfileImageNameConfigType, &sImageName)
+		sImageName := artifacts.ImageName{}
+		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}

@@ -44,8 +44,8 @@ func transform(tc transformertypes.Transformer, env *environment.Environment, ne
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
-		sImageName := artifacts.DockerfileImageName{}
-		err = a.GetConfig(artifacts.DockerfileImageNameConfigType, &sImageName)
+		sImageName := artifacts.ImageName{}
+		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
@@ -69,7 +69,7 @@ func transform(tc transformertypes.Transformer, env *environment.Environment, ne
 			Artifact: artifacts.DockerfileArtifactType,
 			Paths:    paths,
 			Configs: map[string]interface{}{
-				artifacts.DockerfileImageNameConfigType: sImageName,
+				artifacts.ImageNameConfigType: sImageName,
 			},
 		}
 		dfs := transformertypes.Artifact{
@@ -77,8 +77,8 @@ func transform(tc transformertypes.Transformer, env *environment.Environment, ne
 			Artifact: artifacts.DockerfileForServiceArtifactType,
 			Paths:    a.Paths,
 			Configs: map[string]interface{}{
-				artifacts.DockerfileImageNameConfigType: sImageName,
-				artifacts.ServiceConfigType:             sConfig,
+				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ServiceConfigType:   sConfig,
 			},
 		}
 		artifactsCreated = append(artifactsCreated, p, dfs)

@@ -14,29 +14,18 @@
  *  limitations under the License.
  */
 
-package common
+package artifacts
 
 import (
-	"fmt"
-
-	api "github.com/konveyor/move2kube/api"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
-// GetVersionCommand returns the version
-func GetVersionCommand() *cobra.Command {
-	viper.AutomaticEnv()
+const (
+	// ImageNameConfigType stores the imagename
+	ImageNameConfigType transformertypes.ConfigType = "ImageName"
+)
 
-	long := false
-	versionCmd := &cobra.Command{
-		Use:   "version",
-		Short: "Print the version information",
-		Long:  "Print the version information",
-		Run:   func(*cobra.Command, []string) { fmt.Println(api.GetVersion(long)) },
-	}
-
-	versionCmd.Flags().BoolVarP(&long, "long", "l", false, "print the version details")
-
-	return versionCmd
+// ImageName is the struct storing the ImageName
+type ImageName struct {
+	ImageName string `yaml:"imageName" json:"imageName"`
 }

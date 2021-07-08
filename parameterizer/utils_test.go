@@ -14,14 +14,14 @@
  *  limitations under the License.
  */
 
-package common_test
+package parameterizer_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/konveyor/move2kube/parameterizer/common"
+	"github.com/konveyor/move2kube/parameterizer"
 )
 
 func TestGetSubKeys(t *testing.T) {
@@ -34,7 +34,7 @@ func TestGetSubKeys(t *testing.T) {
 	}
 	for i, testcase := range testcases {
 		t.Run(fmt.Sprintf("test case %d", i), func(t *testing.T) {
-			subKeys := common.GetSubKeys(testcase.input)
+			subKeys := parameterizer.GetSubKeys(testcase.input)
 			if len(subKeys) != len(testcase.want) {
 				t.Fatalf("failed to get the correct number of subkeys. Expected %+v Actual %+v", testcase.want, subKeys)
 			}
@@ -79,13 +79,13 @@ func TestGet2(t *testing.T) {
 			},
 		},
 	}
-	want := []common.RT{
+	want := []parameterizer.RT{
 		{Key: []string{"contain ers", "[0]", "ports", "[0]"}, Value: map[string]interface{}{"name": "port1", "number": 8000}, Matches: map[string]string{"containerName": "nginx", "portName": "port1"}},
 		{Key: []string{"contain ers", "[0]", "ports", "[1]"}, Value: map[string]interface{}{"name": "port2", "number": 8080}, Matches: map[string]string{"containerName": "nginx", "portName": "port2"}},
 		{Key: []string{"contain ers", "[2]", "ports", "[0]"}, Value: map[string]interface{}{"name": "port1", "number": 1000}, Matches: map[string]string{"containerName": "nginx", "portName": "port1"}},
 		{Key: []string{"contain ers", "[2]", "ports", "[1]"}, Value: map[string]interface{}{"name": "port2", "number": 1080}, Matches: map[string]string{"containerName": "nginx", "portName": "port2"}},
 	}
-	results, err := common.GetAll(key, resource)
+	results, err := parameterizer.GetAll(key, resource)
 	if err != nil {
 		t.Fatalf("failed to get the values for the key %s Error: %q", key, err)
 	}
