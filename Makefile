@@ -16,7 +16,7 @@ GO_VERSION  ?= $(shell go run ./scripts/detectgoversion/detect.go 2>/dev/null ||
 BINNAME     ?= move2kube
 BINDIR      := $(CURDIR)/bin
 DISTDIR		:= $(CURDIR)/_dist
-TARGETS     := darwin/amd64 linux/amd64
+TARGETS     := darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64
 REGISTRYNS  := quay.io/konveyor
 
 GOPATH        = $(shell go env GOPATH)
