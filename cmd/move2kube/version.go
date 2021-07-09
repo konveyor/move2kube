@@ -19,7 +19,7 @@ package main
 import (
 	"fmt"
 
-	api "github.com/konveyor/move2kube/api"
+	api "github.com/konveyor/move2kube/lib"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

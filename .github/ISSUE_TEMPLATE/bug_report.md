@@ -24,8 +24,8 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Version [e.g. 22]. Move2Kube version should return it.
+ - OS: [e.g. RHEL]
+ - Version [e.g. 22]. `move2kube version` should return it.
 
 **Additional context**
 Add any other context about the problem here.

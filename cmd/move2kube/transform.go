@@ -20,8 +20,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/api"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/lib"
 	"github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -94,7 +94,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
-		p = api.CreatePlan(flags.srcpath, flags.outpath, flags.customizationsPath, flags.name)
+		p = lib.CreatePlan(flags.srcpath, flags.outpath, flags.customizationsPath, flags.name)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.planfile)
 		rootDir := ""
@@ -130,10 +130,10 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 	}
-	p = api.CuratePlan(p, flags.outpath)
-	api.Transform(p, flags.outpath)
+	p = lib.CuratePlan(p, flags.outpath)
+	lib.Transform(p, flags.outpath)
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
-	api.Destroy()
+	lib.Destroy()
 }
 
 func getTransformCommand() *cobra.Command {

@@ -19,7 +19,7 @@ package main
 import (
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/api"
+	"github.com/konveyor/move2kube/lib"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -38,7 +38,7 @@ func validateHandler(flags validateFlags) {
 	if err != nil {
 		logrus.Fatalf("Failed to make the directory path %q absolute. Error: %q", artifactspath, err)
 	}
-	api.PrintValidate(artifactspath)
+	lib.PrintValidate(artifactspath)
 }
 
 func getValidateCommand() *cobra.Command {

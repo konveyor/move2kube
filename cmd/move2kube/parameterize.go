@@ -20,8 +20,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/api"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/lib"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -62,7 +62,7 @@ func parameterizeHandler(_ *cobra.Command, flags parameterizeFlags) {
 	startQA(flags.qaflags)
 
 	// Parameterization
-	filesWritten, err := api.Parameterize(flags.srcpath, flags.customizationsPath, flags.outpath)
+	filesWritten, err := lib.Parameterize(flags.srcpath, flags.customizationsPath, flags.outpath)
 	if err != nil {
 		logrus.Fatalf("Failed to apply all the parameterizations. Error: %q", err)
 	}
