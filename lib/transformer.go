@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package api
+package lib
 
 import (
 	"github.com/konveyor/move2kube/internal/common"

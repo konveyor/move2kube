@@ -96,7 +96,7 @@ func SetupWriteCacheFile(writeCachePath string) {
 func SetupConfigFile(writeConfigFile string, configStrings, configFiles, presets []string) {
 	presetPaths := []string{}
 	for _, preset := range presets {
-		presetPath := filepath.Join(common.AssetsPath, "configs", preset+".yaml")
+		presetPath := filepath.Join(common.AssetsPath, "inbuilt", "presets", preset+".yaml")
 		presetPaths = append(presetPaths, presetPath)
 	}
 	configFiles = append(presetPaths, configFiles...)

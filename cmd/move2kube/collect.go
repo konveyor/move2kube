@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/konveyor/move2kube/api"
+	"github.com/konveyor/move2kube/lib"
 	"github.com/konveyor/move2kube/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -61,9 +61,9 @@ func collectHandler(flags collectFlags) {
 	}
 	outpath = filepath.Join(filepath.Clean(outpath), types.AppNameShort+"_collect")
 	if annotations == "" {
-		api.Collect(srcpath, outpath, []string{})
+		lib.Collect(srcpath, outpath, []string{})
 	} else {
-		api.Collect(srcpath, outpath, strings.Split(annotations, ","))
+		lib.Collect(srcpath, outpath, strings.Split(annotations, ","))
 	}
 	logrus.Infof("Collect Output in [%s]. Copy this directory into the source directory to be used for planning.", outpath)
 }
