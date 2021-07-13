@@ -29,7 +29,6 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/konveyor/move2kube/types/source/maven"
 	"github.com/konveyor/move2kube/types/source/springboot"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -114,12 +113,12 @@ func (t *EurekaReplaceEngine) GetConfig() (transformertypes.Transformer, *enviro
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *EurekaReplaceEngine) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *EurekaReplaceEngine) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	destEntries, err := ioutil.ReadDir(dir)
 	var ec EurekaConfig
 	var pomWithEureka []string
@@ -265,7 +264,7 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 				if len(propertiesWithConfig) > 0 {
 					transformerpaths[PropertiesWithConfig] = propertiesWithConfig
 				}
-				ct := plantypes.Transformer{
+				ct := transformertypes.TransformerPlan{
 					Mode:              transformertypes.ModeContainer,
 					ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
 					BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -274,7 +273,7 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 					},
 					Paths: transformerpaths,
 				}
-				return map[string]plantypes.Service{ec.ServiceName: []plantypes.Transformer{ct}}, nil, nil
+				return map[string]transformertypes.ServicePlan{ec.ServiceName: []transformertypes.TransformerPlan{ct}}, nil, nil
 			}
 
 		}

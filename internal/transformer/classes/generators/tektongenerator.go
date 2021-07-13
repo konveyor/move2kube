@@ -28,7 +28,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common/sshkeys"
 	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -76,12 +75,12 @@ func (t *Tekton) GetConfig() (transformertypes.Transformer, *environment.Environ
 }
 
 // BaseDirectoryDetect runs detect in base input directory
-func (t *Tekton) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Tekton) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each subdirectory
-func (t *Tekton) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Tekton) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 

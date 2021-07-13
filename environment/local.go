@@ -34,10 +34,7 @@ import (
 
 // Local manages a local machine environment
 type Local struct {
-	Name     string
-	Source   string
-	Context  string
-	TempPath string
+	EnvInfo
 
 	WorkspaceSource  string
 	WorkspaceContext string
@@ -46,15 +43,11 @@ type Local struct {
 }
 
 // NewLocal creates a new Local environment
-func NewLocal(name, source, context, tempPath string, grpcQAReceiver net.Addr) (ei EnvironmentInstance, err error) {
+func NewLocal(envInfo EnvInfo, grpcQAReceiver net.Addr) (ei EnvironmentInstance, err error) {
 	local := &Local{
-		Name:           name,
-		Source:         source,
-		Context:        context,
+		EnvInfo:        envInfo,
 		GRPCQAReceiver: grpcQAReceiver,
-		TempPath:       tempPath,
 	}
-	local.TempPath = tempPath
 	local.WorkspaceContext, err = ioutil.TempDir(local.TempPath, types.AppNameShort)
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
@@ -97,10 +90,7 @@ func (e *Local) Exec(cmd environmenttypes.Command) (string, string, int, error) 
 	execcmd.Dir = e.WorkspaceContext
 	execcmd.Stdout = &outb
 	execcmd.Stderr = &errb
-	execcmd.Env = os.Environ()
-	if e.GRPCQAReceiver != nil {
-		execcmd.Env = append(execcmd.Env, GRPCEnvName+"="+e.GRPCQAReceiver.String())
-	}
+	execcmd.Env = e.getEnv()
 	err := execcmd.Run()
 	if err != nil {
 		var ee *exec.ExitError
@@ -185,4 +175,12 @@ func (e *Local) GetContext() string {
 // GetSource returns the source of Local
 func (e *Local) GetSource() string {
 	return e.WorkspaceSource
+}
+
+func (e *Local) getEnv() []string {
+	environ := os.Environ()
+	if e.GRPCQAReceiver != nil {
+		environ = append(environ, GRPCEnvName+"="+e.GRPCQAReceiver.String())
+	}
+	return environ
 }

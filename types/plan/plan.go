@@ -32,15 +32,12 @@ type Plan struct {
 	Spec             Spec `yaml:"spec,omitempty"`
 }
 
-// Service is the type that stores a plan service
-type Service []Transformer
-
 // Spec stores the data about the plan
 type Spec struct {
 	RootDir           string `yaml:"rootDir"`
 	CustomizationsDir string `yaml:"customizationsDir,omitempty"`
 
-	Services map[string]Service `yaml:"services"` //[servicename]
+	Services map[string]transformertypes.ServicePlan `yaml:"services"` //[servicename]
 
 	TargetCluster TargetClusterType `yaml:"targetCluster,omitempty"`
 	Configuration Configuration     `yaml:"configuration,omitempty"`
@@ -59,16 +56,6 @@ type TargetClusterType struct {
 	Path string `yaml:"path,omitempty" m2kpath:"normal"`
 }
 
-// Transformer stores transformer option
-type Transformer struct {
-	Mode              transformertypes.Mode                       `yaml:"mode" json:"mode"` // container, customresource, service, generic
-	Name              string                                      `yaml:"transformerName" json:"transformerName"`
-	ArtifactTypes     []transformertypes.ArtifactType             `yaml:"generates,omitempty" json:"generates,omitempty"`
-	BaseArtifactTypes []transformertypes.ArtifactType             `yaml:"generatedBases,omitempty" json:"generatedBases,omitempty"`
-	Paths             map[transformertypes.PathType][]string      `yaml:"paths,omitempty" json:"paths,omitempty" m2kpath:"normal"`
-	Configs           map[transformertypes.ConfigType]interface{} `yaml:"configs,omitempty" json:"configs,omitempty"`
-}
-
 // NewPlan creates a new plan
 // Sets the version and optionally fills in some default values
 func NewPlan() Plan {
@@ -81,7 +68,7 @@ func NewPlan() Plan {
 			Name: common.DefaultProjectName,
 		},
 		Spec: Spec{
-			Services:      map[string]Service{},
+			Services:      map[string]transformertypes.ServicePlan{},
 			TargetCluster: TargetClusterType{Type: common.DefaultClusterType},
 			Configuration: Configuration{
 				Transformers:   map[string]string{},
@@ -93,7 +80,7 @@ func NewPlan() Plan {
 }
 
 // MergeServices merges two service maps
-func MergeServices(s1 map[string]Service, s2 map[string]Service) map[string]Service {
+func MergeServices(s1 map[string]transformertypes.ServicePlan, s2 map[string]transformertypes.ServicePlan) map[string]transformertypes.ServicePlan {
 	if s1 == nil {
 		return s2
 	}

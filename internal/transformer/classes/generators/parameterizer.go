@@ -22,7 +22,6 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/parameterizer"
 	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -47,12 +46,12 @@ func (t *Parameterizer) GetConfig() (transformertypes.Transformer, *environment.
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *Parameterizer) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Parameterizer) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each subdirectory
-func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 

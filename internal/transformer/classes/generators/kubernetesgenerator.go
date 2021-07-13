@@ -24,7 +24,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/irpreprocessor"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -49,12 +48,12 @@ func (t *Kubernetes) GetConfig() (transformertypes.Transformer, *environment.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *Kubernetes) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Kubernetes) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each subdirectory
-func (t *Kubernetes) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Kubernetes) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 

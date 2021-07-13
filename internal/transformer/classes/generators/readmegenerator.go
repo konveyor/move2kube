@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/environment"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
@@ -43,12 +42,12 @@ func (t *ReadMeGenerator) GetConfig() (transformertypes.Transformer, *environmen
 }
 
 // BaseDirectoryDetect executes detect in base directory
-func (t *ReadMeGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ReadMeGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect executes detect in directories respecting the m2kignore
-func (t *ReadMeGenerator) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ReadMeGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 

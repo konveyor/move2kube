@@ -23,7 +23,6 @@ import (
 
 	"github.com/cloudrecipes/packagejson"
 	"github.com/konveyor/move2kube/environment"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -48,12 +47,12 @@ func (t *NodejsDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *NodejsDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *NodejsDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	packagejsondata, err := os.ReadFile(filepath.Join(dir, "package.json"))
 	if err != nil {
 		return nil, nil, nil
@@ -67,8 +66,8 @@ func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (namedServices m
 		err = fmt.Errorf("unable to get project name of nodejs project at %s. Ignoring", dir)
 		return nil, nil, err
 	}
-	namedServices = map[string]plantypes.Service{
-		p.Name: []plantypes.Transformer{{
+	namedServices = map[string]transformertypes.ServicePlan{
+		p.Name: []transformertypes.TransformerPlan{{
 			Mode:              t.Config.Spec.Mode,
 			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},

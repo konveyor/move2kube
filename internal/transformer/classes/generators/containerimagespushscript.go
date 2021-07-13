@@ -21,7 +21,6 @@ import (
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -54,12 +53,12 @@ func (t *ContainerImagesPushScript) GetConfig() (transformertypes.Transformer, *
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *ContainerImagesPushScript) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ContainerImagesPushScript) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *ContainerImagesPushScript) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ContainerImagesPushScript) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 

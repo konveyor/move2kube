@@ -20,7 +20,6 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -70,8 +69,8 @@ func (t *ZuulAnalyser) GetConfig() (transformertypes.Transformer, *environment.E
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *ZuulAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
-	namedServices = map[string]plantypes.Service{}
+func (t *ZuulAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+	namedServices = map[string]transformertypes.ServicePlan{}
 	yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
 	if err != nil {
 		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
@@ -88,7 +87,7 @@ func (t *ZuulAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string
 			// TODO: routepath (ant style) to regex
 
 			routepath = routepath[:len(routepath)-2]
-			ct := plantypes.Transformer{
+			ct := transformertypes.TransformerPlan{
 				Mode:          transformertypes.ModeContainer,
 				ArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType},
 				Configs: map[transformertypes.ConfigType]interface{}{
@@ -108,7 +107,7 @@ func (t *ZuulAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *ZuulAnalyser) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ZuulAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 

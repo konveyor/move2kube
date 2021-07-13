@@ -24,7 +24,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -54,8 +53,13 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environmen
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.TConfig.Spec.Config, t.CNBConfig, err)
 		return err
 	}
-
-	t.CNBEnv, err = environment.NewEnvironment(tc.Name, t.Env.GetProjectName(), t.Env.TargetCluster, t.Env.GetEnvironmentSource(), "", "", "", nil, environmenttypes.Container{
+	envInfo := environment.EnvInfo{
+		Name:          tc.Name,
+		ProjectName:   t.Env.GetProjectName(),
+		TargetCluster: t.Env.TargetCluster,
+		Source:        t.Env.GetEnvironmentSource(),
+	}
+	t.CNBEnv, err = environment.NewEnvironment(envInfo, nil, environmenttypes.Container{
 		Image:      t.CNBConfig.BuilderImageName,
 		WorkingDir: filepath.Join(string(filepath.Separator), "tmp"),
 	})
@@ -76,12 +80,12 @@ func (t *CNBContainerizer) GetConfig() (transformertypes.Transformer, *environme
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *CNBContainerizer) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *CNBContainerizer) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	path := dir
 	cmd := environmenttypes.Command{
 		"/cnb/lifecycle/detector", "-app", t.CNBEnv.Encode(path).(string)}
@@ -93,7 +97,7 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 		logrus.Debugf("Detect did not succeed %s : %s : %d : %s", stdout, stderr, exitcode, err)
 		return nil, nil, nil
 	}
-	trans := plantypes.Transformer{
+	trans := transformertypes.TransformerPlan{
 		Mode:              transformertypes.ModeContainer,
 		ArtifactTypes:     []string{artifacts.ContainerBuildArtifactType},
 		BaseArtifactTypes: []string{artifacts.ContainerBuildArtifactType},
@@ -102,7 +106,7 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 			CNBBuilder: t.CNBConfig.BuilderImageName,
 		}},
 	}
-	return nil, []plantypes.Transformer{trans}, nil
+	return nil, []transformertypes.TransformerPlan{trans}, nil
 }
 
 // Transform transforms the artifacts

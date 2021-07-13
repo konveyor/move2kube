@@ -16,7 +16,7 @@
 FROM registry.access.redhat.com/ubi8/ubi:latest AS build_base
 WORKDIR /temp
 
-RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm 
+RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 RUN dnf install -y git make upx
 ENV GOPATH=/go
 RUN mkdir -p $GOPATH/src $GOPATH/bin && chmod -R 777 $GOPATH

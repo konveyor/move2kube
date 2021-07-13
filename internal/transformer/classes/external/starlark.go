@@ -28,7 +28,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/types"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/qri-io/starlib"
@@ -43,14 +42,15 @@ const (
 	directoryDetectFnName     = "directory_detect"
 	transformFnName           = "transform"
 
-	qaFunctionName           = "query"
 	sourceDirVarName         = "source_dir"
 	contextDirVarName        = "context_dir"
 	templatesRelDirVarName   = "templates_reldir"
 	transformerConfigVarName = "config"
 	projectVarName           = "project"
 
-	// fs Function Names
+	// Function names
+	qaFnName = "query"
+	// fs package
 	fsexistsFnName   = "exists"
 	fsreadFnName     = "read"
 	fsreaddirFnName  = "readdir"
@@ -135,12 +135,12 @@ func (t *Starlark) GetConfig() (transformertypes.Transformer, *environment.Envir
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *Starlark) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Starlark) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return t.executeDetect(t.baseDetectFn, dir)
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *Starlark) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Starlark) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return t.executeDetect(t.detectFn, dir)
 }
 
@@ -176,7 +176,7 @@ func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, oldArtifa
 		logrus.Errorf("Unable to unmarshal starlark function result : %s", err)
 		return nil, nil, err
 	}
-	transformOutput := TransformOutput{}
+	transformOutput := transformertypes.TransformOutput{}
 	err = common.GetObjFromInterface(valI, &transformOutput)
 	if err != nil {
 		logrus.Errorf("unable to load result for Transformer %+v into %T : %s", valI, transformOutput, err)
@@ -185,7 +185,7 @@ func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, oldArtifa
 	return transformOutput.PathMappings, transformOutput.CreatedArtifacts, nil
 }
 
-func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (nameServices map[string]plantypes.Service, unservices []plantypes.Transformer, err error) {
+func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (nameServices map[string]transformertypes.ServicePlan, unservices []transformertypes.TransformerPlan, err error) {
 	if fn == nil {
 		return nil, nil, nil
 	}
@@ -204,7 +204,7 @@ func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (nameService
 		logrus.Errorf("Unable to unmarshal starlark function result : %s", err)
 		return nil, nil, err
 	}
-	detectOutput := DetectOutput{}
+	detectOutput := transformertypes.DetectOutput{}
 	err = common.GetObjFromInterface(valI, &detectOutput)
 	if err != nil {
 		logrus.Errorf("unable to load result for Transformer %+v into %T : %s", valI, detectOutput, err)
@@ -214,14 +214,14 @@ func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (nameService
 }
 
 func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
-	return starlark.NewBuiltin(qaFunctionName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.NewBuiltin(qaFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		argDictValue := &starlark.Dict{}
-		if err := starlark.UnpackPositionalArgs(qaFunctionName, args, kwargs, 1, &argDictValue); err != nil {
-			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Expected a single dict argument. Error: %q", qaFunctionName, err)
+		if err := starlark.UnpackPositionalArgs(qaFnName, args, kwargs, 1, &argDictValue); err != nil {
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Expected a single dict argument. Error: %q", qaFnName, err)
 		}
 		argI, err := starutil.Unmarshal(argDictValue)
 		if err != nil {
-			return starlark.None, fmt.Errorf("failed to unmarshal the argument provided to '%s'. Expected a single dict argument. Error: %q", qaFunctionName, err)
+			return starlark.None, fmt.Errorf("failed to unmarshal the argument provided to '%s'. Expected a single dict argument. Error: %q", qaFnName, err)
 		}
 		prob := qatypes.Problem{}
 		err = common.GetObjFromInterface(argI, &prob)
@@ -291,7 +291,7 @@ func (t *Starlark) addAppModules() {
 	t.StarGlobals[types.AppNameShort] = &starlarkstruct.Module{
 		Name: types.AppNameShort,
 		Members: starlark.StringDict{
-			qaFunctionName: t.getStarlarkQuery(),
+			qaFnName: t.getStarlarkQuery(),
 		},
 	}
 }
@@ -389,7 +389,7 @@ func (t *Starlark) loadTransformFn() (err error) {
 }
 
 func (t *Starlark) getStarlarkFSExists() *starlark.Builtin {
-	return starlark.NewBuiltin(qaFunctionName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.NewBuiltin(qaFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var path string
 		if err := starlark.UnpackPositionalArgs(fsexistsFnName, args, kwargs, 1, &path); err != nil {
 			return nil, err
