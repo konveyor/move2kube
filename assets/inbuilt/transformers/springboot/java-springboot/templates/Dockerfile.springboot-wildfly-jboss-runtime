@@ -1,0 +1,5 @@
+
+FROM {{ .AppServerImage}}
+EXPOSE {{.Port}}
+# Copy the war file to the deployments folder
+COPY --from=build_base  /app/target/XXXXXXXX YYYYYYYYYYYYYYY/ZZZZZZZZZZZ

@@ -1,5 +1,5 @@
 
-FROM openjdk:8
+FROM {{.JavaRuntimeImage}}
 COPY --from=build_base /app/target/*.jar app.jar
 EXPOSE {{.Port}}
 CMD ["java", "-Xmx200m", "-jar", "/app.jar"]
