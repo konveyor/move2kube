@@ -18,8 +18,10 @@ package external
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/konveyor/move2kube/environment"
@@ -44,15 +46,10 @@ type SimpleExecutable struct {
 	Env        *environment.Environment
 }
 
-// TransformConfig defines the type of config for Simpleexecutable
-type TransformConfig struct {
-	PathMappings []transformertypes.PathMapping `json:"pathMappings,omitempty"`
-	Artifacts    []transformertypes.Artifact    `json:"artifacts,omitempty"`
-}
-
 // ExecutableYamlConfig is the format of executable yaml config
 type ExecutableYamlConfig struct {
 	EnableQA               bool                       `yaml:"enableQA"`
+	Platforms              []string                   `yaml:"platforms"`
 	BaseDirectoryDetectCMD environmenttypes.Command   `yaml:"baseDetectCMD"`
 	DirectoryDetectCMD     environmenttypes.Command   `yaml:"directoryDetectCMD"`
 	TransformCMD           environmenttypes.Command   `yaml:"transformCMD"`
@@ -75,6 +72,11 @@ func (t *SimpleExecutable) Init(tc transformertypes.Transformer, env *environmen
 			logrus.Errorf("Unable to start QA RPC Receiver engine : %s", err)
 			logrus.Infof("Starting transformer that requires QA without QA.")
 		}
+	}
+	if !common.IsStringPresent(t.ExecConfig.Platforms, runtime.GOOS) && t.ExecConfig.Container.Image == "" {
+		err := fmt.Errorf("platform %s not supported by transformer %s", runtime.GOOS, tc.Name)
+		logrus.Errorf("%s", err)
+		return err
 	}
 	t.Env, err = environment.NewEnvironment(env.Name, env.ProjectName, env.TargetCluster, env.Source, env.Output, env.Context, tc.Spec.TemplatesDir, qaRPCReceiverAddr, t.ExecConfig.Container)
 	if err != nil {
@@ -155,8 +157,8 @@ func (t *SimpleExecutable) executeDetect(cmd environmenttypes.Command, dir strin
 	stdout = strings.TrimSpace(stdout)
 	trans := plantypes.Transformer{
 		Mode:              t.TConfig.Spec.Mode,
-		ArtifactTypes:     t.TConfig.Spec.Artifacts,
-		BaseArtifactTypes: t.TConfig.Spec.GeneratedBaseArtifacts,
+		ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+		BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 		Paths:             map[string][]string{artifacts.ProjectPathPathType: {dir}},
 		Configs:           map[transformertypes.ConfigType]interface{}{},
 	}
@@ -183,10 +185,10 @@ func (t *SimpleExecutable) executeTransform(cmd environmenttypes.Command, dir st
 	}
 	logrus.Debugf("%s Transform succeeded in %s : %s, %s, %d", t.TConfig.Name, t.Env.Decode(dir), stdout, stderr, exitcode)
 	stdout = strings.TrimSpace(stdout)
-	var config TransformConfig
-	err = json.Unmarshal([]byte(stdout), &config)
+	var output TransformOutput
+	err = json.Unmarshal([]byte(stdout), &output)
 	if err != nil {
 		logrus.Errorf("Error in unmarshalling json %s: %s.", stdout, err)
 	}
-	return config.PathMappings, config.Artifacts, nil
+	return output.PathMappings, output.CreatedArtifacts, nil
 }

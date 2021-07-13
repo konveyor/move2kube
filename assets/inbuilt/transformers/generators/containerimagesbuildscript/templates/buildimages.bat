@@ -13,7 +13,7 @@
 ::  limitations under the License.
 
 {{range $buildscript := . }}
-cd {{ $buildscript.PathFromSlash }}
+pushd {{ $buildscript.PathFromSlash }}
 {{ $buildscript.BuildScriptName }}
-cd -
+popd
 {{end}}

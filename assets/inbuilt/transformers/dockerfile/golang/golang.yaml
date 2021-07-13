@@ -5,12 +5,9 @@ metadata:
 spec:
   mode: "Container"
   class: "SimpleExecutable"
-  generates: 
-    - "ContainerBuild"
-  generatedBases: 
-    - "ContainerBuild"
   config:
     directoryDetectCMD: ["./m2kdetect.sh"]
+    platforms: ["linux", "darwin"]
     #container:
     #  image: m2kgolangdf
     #  build:

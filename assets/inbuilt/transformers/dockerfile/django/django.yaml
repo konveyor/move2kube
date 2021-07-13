@@ -11,3 +11,4 @@ spec:
     - "ContainerBuild"
   config:
     directoryDetectCMD: ["./m2kdetect.sh"]
+    platforms: ["linux", "darwin"]
