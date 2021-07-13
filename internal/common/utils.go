@@ -710,7 +710,7 @@ func CopyCustomizationsAssetsData(customizationsPath string) (err error) {
 
 // CopyEmbedFSToDir converts a string into a directory
 func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[string]int) (err error) {
-	f, err := embedFS.Open(source)
+	f, err := embedFS.Open(filepath.ToSlash(source))
 	if err != nil {
 		logrus.Errorf("Error while reading embedded file : %s", err)
 		return err
@@ -721,7 +721,7 @@ func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[str
 		return err
 	}
 	if finfo != nil && !finfo.Mode().IsDir() {
-		permission, ok := permissions[source]
+		permission, ok := permissions[filepath.FromSlash(source)]
 		if !ok {
 			logrus.Errorf("Permission missing for file %s. Do `make generate` to update permissions file.", dest)
 		}
@@ -744,7 +744,7 @@ func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[str
 	if err := os.MkdirAll(dest, DefaultDirectoryPermission); err != nil {
 		return err
 	}
-	dirEntries, err := embedFS.ReadDir(source)
+	dirEntries, err := embedFS.ReadDir(filepath.ToSlash(source))
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory : %s", err)
 		return err

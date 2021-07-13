@@ -70,8 +70,8 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[
 		if isdf, _ := isDockerFile(path); isdf {
 			trans := plantypes.Transformer{
 				Mode:              t.Config.Spec.Mode,
-				ArtifactTypes:     t.Config.Spec.Artifacts,
-				BaseArtifactTypes: t.Config.Spec.GeneratedBaseArtifacts,
+				ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType, artifacts.DockerfileArtifactType},
+				BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 				Paths: map[string][]string{
 					artifacts.ProjectPathPathType: {filepath.Dir(path)},
 					artifacts.DockerfilePathType:  {path},
@@ -95,6 +95,7 @@ func (t *DockerfileDetector) DirectoryDetect(dir string) (namedServices map[stri
 // Transform transforms the artifacts
 func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
+	pathMappings := []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
 		if a.Artifact != artifacts.ServiceArtifactType {
 			continue
@@ -113,6 +114,10 @@ func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact,
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:     transformertypes.SourcePathMappingType,
+			DestPath: common.DefaultSourceDir,
+		})
 		p := transformertypes.Artifact{
 			Name:     sImageName.ImageName,
 			Artifact: artifacts.DockerfileArtifactType,
@@ -132,7 +137,7 @@ func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact,
 		}
 		artifactsCreated = append(artifactsCreated, p, dfs)
 	}
-	return nil, artifactsCreated, nil
+	return pathMappings, artifactsCreated, nil
 }
 
 func isDockerFile(path string) (isDockerfile bool, err error) {

@@ -134,12 +134,6 @@ func (t *Starlark) GetConfig() (transformertypes.Transformer, *environment.Envir
 	return t.TConfig, t.Env
 }
 
-// DetectOutput structure is the data format for receiving data from starlark detect functions
-type DetectOutput struct {
-	NamedServices   map[string]plantypes.Service `yaml:"namedServices,omitempty" json:"namedServices,omitempty"`
-	UnNamedServices []plantypes.Transformer      `yaml:"unnamedServices,omitempty" json:"unnamedServices,omitempty"`
-}
-
 // BaseDirectoryDetect runs detect in base directory
 func (t *Starlark) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return t.executeDetect(t.baseDetectFn, dir)
@@ -148,12 +142,6 @@ func (t *Starlark) BaseDirectoryDetect(dir string) (namedServices map[string]pla
 // DirectoryDetect runs detect in each sub directory
 func (t *Starlark) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
 	return t.executeDetect(t.detectFn, dir)
-}
-
-// TransformOutput structure is the data format for receiving data from starlark transform functions
-type TransformOutput struct {
-	PathMappings     []transformertypes.PathMapping `yaml:"pathMappings,omitempty" json:"pathMappings,omitempty"`
-	CreatedArtifacts []transformertypes.Artifact    `yaml:"artifacts,omitempty" json:"artifacts,omitempty"`
 }
 
 // Transform transforms the artifacts

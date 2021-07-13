@@ -16,7 +16,7 @@
 
 "inbuilt/clusters/kubernetes.yaml" : 0644
 "inbuilt/clusters/openshift.yaml" : 0644
-"inbuilt/configs/dc.yaml" : 0644
+"inbuilt/presets/dc.yaml" : 0644
 "inbuilt/transformers/cloudfoundry/cloudfoundry.yaml" : 0644
 "inbuilt/transformers/cnb/cfcnb/cfcnb.yaml" : 0644
 "inbuilt/transformers/cnb/cnbgenerator/cnbgenerator.yaml" : 0644
