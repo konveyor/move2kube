@@ -59,6 +59,8 @@ type SpringbootConfig struct {
 	ApplicationServerImage string
 	JavaBuildImage         string
 	JavaRuntimeImage       string
+	AppFile                string
+	DeploymentFile         string
 }
 
 // SpringbootTemplateConfig defines SpringbootTemplateConfig properties
@@ -67,6 +69,8 @@ type SpringbootTemplateConfig struct {
 	JavaBuildImage   string
 	JavaRuntimeImage string
 	AppServerImage   string
+	AppFile          string
+	DeploymentFile   string
 }
 
 // For loading map
@@ -237,13 +241,11 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	var appServerCandidateImages []Image
 
 	if appServer != "" {
-
 		if javaVersion == "" { // default case
 			javaVersion = "1.8"
 		}
 
 		mappingPath := filepath.Join(t.Env.Context, "mappings/java2images_tags_amd64.json")
-
 		var appServers AppServers
 		java2ImagesMappging, err := ioutil.ReadFile(mappingPath)
 		if err != nil {
@@ -309,6 +311,40 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		javaRuntimeImage = val
 	}
 
+	// Get app file
+	appFile := ""
+	if pom.Name != "" {
+		appFile = pom.Name
+	} else {
+		if pom.ArtifactID != "" {
+			appFile = pom.ArtifactID
+		}
+	}
+	if appFile != "" {
+		if pom.Version != "" {
+			appFile = appFile + "-" + pom.Version
+		}
+
+		if pom.Packaging != "" {
+			appFile = appFile + "." + pom.Packaging
+		} else {
+			appFile = appFile + ".jar"
+		}
+	}
+
+	// Get deployment file
+	deploymentFile := ""
+	if pom.ArtifactID != "" {
+		deploymentFile = pom.ArtifactID
+	}
+	if deploymentFile != "" {
+		if pom.Packaging != "" {
+			deploymentFile = deploymentFile + "." + pom.Packaging
+		} else {
+			deploymentFile = deploymentFile + ".jar"
+		}
+	}
+
 	// Collect application.yml/yaml files
 	appfiles, err := common.GetFilesByName(dir, []string{"application.yaml", "application.yml"})
 	if err != nil {
@@ -354,6 +390,8 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 				ApplicationServerImage: appServerImage,
 				JavaBuildImage:         javaBuildImage,
 				JavaRuntimeImage:       javaRuntimeImage,
+				AppFile:                appFile,
+				DeploymentFile:         deploymentFile,
 			}},
 		Paths: map[transformertypes.PathType][]string{
 			mavenPomXML:                   {filepath.Join(dir, pomXML)},
@@ -444,7 +482,10 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 				JavaRuntimeImage: sConfig.JavaRuntimeImage,
 				JavaBuildImage:   sConfig.JavaBuildImage,
 				AppServerImage:   sConfig.ApplicationServerImage,
-				Port:             port},
+				Port:             port,
+				AppFile:          sConfig.AppFile,
+				DeploymentFile:   sConfig.DeploymentFile,
+			},
 		}, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
 			SrcPath:  "",
