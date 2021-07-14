@@ -40,15 +40,23 @@ const workspaceDir = "workspace"
 
 var (
 	// GRPCEnvName represents the environment variable name used to pass the GRPC server information to the transformers
-	GRPCEnvName            = strings.ToUpper(types.AppNameShort) + "_QA_GRPC_SERVER"
-	ProjectNameEnvName     = strings.ToUpper(types.AppNameShort) + "_PROJECT_NAME"
-	SourceEnvName          = strings.ToUpper(types.AppNameShort) + "_SOURCE"
-	OutputEnvName          = strings.ToUpper(types.AppNameShort) + "_OUTPUT"
-	ContextEnvName         = strings.ToUpper(types.AppNameShort) + "_CONTEXT"
-	CurrOutputEnvName      = strings.ToUpper(types.AppNameShort) + "_CURRENT_OUTPUT"
+	GRPCEnvName = strings.ToUpper(types.AppNameShort) + "_QA_GRPC_SERVER"
+	// ProjectNameEnvName stores the project name
+	ProjectNameEnvName = strings.ToUpper(types.AppNameShort) + "_PROJECT_NAME"
+	// SourceEnvName stores the source path
+	SourceEnvName = strings.ToUpper(types.AppNameShort) + "_SOURCE"
+	// OutputEnvName stores the output path
+	OutputEnvName = strings.ToUpper(types.AppNameShort) + "_OUTPUT"
+	// ContextEnvName stores the context
+	ContextEnvName = strings.ToUpper(types.AppNameShort) + "_CONTEXT"
+	// CurrOutputEnvName stores the location of output from the previous iteration
+	CurrOutputEnvName = strings.ToUpper(types.AppNameShort) + "_CURRENT_OUTPUT"
+	// RelTemplatesDirEnvName stores the rel templates directory
 	RelTemplatesDirEnvName = strings.ToUpper(types.AppNameShort) + "_RELATIVE_TEMPLATES_DIR"
-	TempPathEnvName        = strings.ToUpper(types.AppNameShort) + "_TEMP"
-	EnvNameEnvName         = strings.ToUpper(types.AppNameShort) + "_ENV_NAME"
+	// TempPathEnvName stores the temp path
+	TempPathEnvName = strings.ToUpper(types.AppNameShort) + "_TEMP"
+	// EnvNameEnvName stores the environment name
+	EnvNameEnvName = strings.ToUpper(types.AppNameShort) + "_ENV_NAME"
 )
 
 // Environment is used to manage EnvironmentInstances

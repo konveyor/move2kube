@@ -421,7 +421,7 @@ func MergeIntSlices(slice1 []int, slice2 []int) []int {
 	return slice1
 }
 
-// MergeIntSlices merges two int slices
+// MergeInt32Slices merges two int slices
 func MergeInt32Slices(slice1 []int32, slice2 []int32) []int32 {
 	for _, item := range slice2 {
 		if !IsInt32Present(slice1, item) {
@@ -431,7 +431,7 @@ func MergeInt32Slices(slice1 []int32, slice2 []int32) []int32 {
 	return slice1
 }
 
-// IsIntPresent checks if a value is present in a slice
+// IsInt32Present checks if a value is present in a slice
 func IsInt32Present(list []int32, value int32) bool {
 	for _, val := range list {
 		if val == value {
