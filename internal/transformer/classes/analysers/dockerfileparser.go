@@ -141,7 +141,7 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 	serviceContainer.Ports = serviceContainerPorts
 	irService.Containers = []core.Container{serviceContainer}
 	if t.isWindowsContainer(df) {
-		irService.Annotations[common.WindowsAnnotation] = common.AnnotationLabelValue
+		irService.Annotations = map[string]string{common.WindowsAnnotation: common.AnnotationLabelValue}
 	}
 	irService.NodeSelector = map[string]string{"kubernetes.io/os": "windows"}
 	irService.Tolerations = []core.Toleration{{
