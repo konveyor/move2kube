@@ -50,6 +50,8 @@ const (
 	IgnoreFilename = "." + types.AppNameShort + "ignore"
 	// ExposeSelector tag is used to annotate services that are externally exposed
 	ExposeSelector = types.GroupName + "/service.expose"
+	// WindowsAnnotation tag is used tag a service to run on windows nodes
+	WindowsAnnotation = types.GroupName + "/containertype.windows"
 	// AnnotationLabelValue represents the value when an annotation is valid
 	AnnotationLabelValue = "true"
 	// DefaultServicePort is the default port that will be added to a service.

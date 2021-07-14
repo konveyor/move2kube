@@ -66,3 +66,8 @@ func ImageRegistry() string {
 func ImageRegistryNamespace(def string) string {
 	return qaengine.FetchStringAnswer(common.ConfigImageRegistryNamespaceKey, "Enter the namespace where the new images should be pushed : ", []string{"Ex : " + def}, def)
 }
+
+// IngressHost returns Ingress host
+func IngressHost(defaulthost string) string {
+	return qaengine.FetchStringAnswer(common.ConfigIngressHostKey, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaulthost)
+}
