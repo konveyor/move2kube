@@ -19,6 +19,7 @@ package irpreprocessor
 import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 //mergePreprocessor implements Optimizer interface
@@ -33,6 +34,11 @@ func (opt *mergePreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		service.ServiceToPodPortForwardings = []irtypes.ServiceToPodPortForwarding{}
 		for _, pf := range pfs {
 			service.AddPortForwarding(pf.ServicePort, pf.PodPort, pf.ServiceRelPath)
+		}
+		for _, c := range service.Containers {
+			for _, p := range c.Ports {
+				service.AddPortForwarding(networking.ServiceBackendPort{Number: p.ContainerPort}, networking.ServiceBackendPort{Number: p.ContainerPort}, "")
+			}
 		}
 		ir.Services[serviceName] = service
 	}

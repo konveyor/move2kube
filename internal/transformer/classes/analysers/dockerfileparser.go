@@ -19,6 +19,7 @@ package analysers
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
@@ -139,6 +140,15 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 	}
 	serviceContainer.Ports = serviceContainerPorts
 	irService.Containers = []core.Container{serviceContainer}
+	if t.isWindowsContainer(df) {
+		irService.Annotations = map[string]string{common.WindowsAnnotation: common.AnnotationLabelValue}
+	}
+	irService.NodeSelector = map[string]string{"kubernetes.io/os": "windows"}
+	irService.Tolerations = []core.Toleration{{
+		Effect: core.TaintEffectNoSchedule,
+		Key:    "os",
+		Value:  "Windows",
+	}}
 	ir.Services[serviceName] = irService
 	return &transformertypes.Artifact{
 		Name:     t.Env.GetProjectName(),
@@ -160,4 +170,19 @@ func (t *DockerfileParser) getDockerFileAST(path string) (*dockerparser.Result, 
 		logrus.Debugf("Unable to parse file %s as Docker files : %s", path, err)
 	}
 	return res, err
+}
+
+func (t *DockerfileParser) isWindowsContainer(df *dockerparser.Result) bool {
+	for _, dfchild := range df.AST.Children {
+		if dfchild.Value == "from" {
+			imageNameNode := dfchild.Next
+			if imageNameNode == nil {
+				continue
+			}
+			if strings.HasPrefix(imageNameNode.Value, "mcr.microsoft.com") {
+				return true
+			}
+		}
+	}
+	return false
 }

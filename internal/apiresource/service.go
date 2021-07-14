@@ -22,8 +22,10 @@ import (
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
+	"github.com/konveyor/move2kube/qaengine"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	okdroutev1 "github.com/openshift/api/route/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -385,6 +387,11 @@ func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, ho
 	weight := int32(1)                                    //Hard-coded to 1 to avoid Helm v3 errors
 	ingressArray := []okdroutev1.RouteIngress{{Host: ""}} //Hard-coded to empty string to avoid Helm v3 errors
 
+	host := targetClusterSpec.Host
+	if host == "" {
+		host = commonqa.IngressHost(host)
+	}
+
 	route := &okdroutev1.Route{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       routeKind,
@@ -395,7 +402,7 @@ func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, ho
 			Labels: getServiceLabels(service.Name),
 		},
 		Spec: okdroutev1.RouteSpec{
-			Host: hostprefix + "." + targetClusterSpec.Host,
+			Host: hostprefix + "." + host,
 			Path: path,
 			To: okdroutev1.RouteTargetReference{
 				Kind:   common.ServiceKind,
@@ -448,16 +455,31 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 
 	// Configure the rule with the above fan-out paths
 	rules := []networking.IngressRule{}
-
+	host := targetClusterSpec.Host
+	secretName := ""
+	if len(hostHttpIngressPaths) > 0 {
+		if host == "" {
+			host = commonqa.IngressHost(host)
+		}
+		defaultSecretName := ""
+		secretName = qaengine.FetchStringAnswer(common.ConfigIngressTLSKey, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
+	}
 	for hostprefix, httpIngressPaths := range hostHttpIngressPaths {
 		rules = append(rules, networking.IngressRule{
-			Host: hostprefix + `/` + targetClusterSpec.Host,
+			Host: hostprefix + `/` + host,
 			IngressRuleValue: networking.IngressRuleValue{
 				HTTP: &networking.HTTPIngressRuleValue{
 					Paths: httpIngressPaths,
 				},
 			},
 		})
+	}
+
+	tls := []networking.IngressTLS{}
+	if secretName != "" {
+		tls = []networking.IngressTLS{{Hosts: []string{host},
+			SecretName: secretName,
+		}}
 	}
 
 	ingressName := ir.Name
@@ -470,7 +492,10 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 			Name:   ingressName,
 			Labels: getServiceLabels(ingressName),
 		},
-		Spec: networking.IngressSpec{Rules: rules},
+		Spec: networking.IngressSpec{
+			Rules: rules,
+			TLS:   tls,
+		},
 	}
 
 	return &ingress
