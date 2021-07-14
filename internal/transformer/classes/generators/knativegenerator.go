@@ -22,8 +22,8 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/irpreprocessor"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -48,12 +48,12 @@ func (t *Knative) GetConfig() (transformertypes.Transformer, *environment.Enviro
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *Knative) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Knative) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *Knative) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Knative) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
@@ -71,6 +71,13 @@ func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, oldArtifac
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
+		}
+		ir.Name = a.Name
+		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		if err != nil {
+			logrus.Errorf("Unable to prepreocess IR : %s", err)
+		} else {
+			ir = preprocessedIR
 		}
 		deployKnativeDir := filepath.Join(common.DeployDir, "knative")
 		tempDest := filepath.Join(t.Env.TempPath, deployKnativeDir)

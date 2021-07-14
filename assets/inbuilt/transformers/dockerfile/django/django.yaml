@@ -4,11 +4,7 @@ metadata:
   name: Django
 spec:
   mode: "Container"
-  class: "SimpleExecutable"
-  generates: 
-    - "ContainerBuild"
-  generatedBases: 
-    - "ContainerBuild"
+  class: "Executable"
   config:
     directoryDetectCMD: ["./m2kdetect.sh"]
     platforms: ["linux", "darwin"]

@@ -24,7 +24,6 @@ import (
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	dockerparser "github.com/moby/buildkit/frontend/dockerfile/parser"
@@ -50,8 +49,8 @@ func (t *DockerfileDetector) GetConfig() (transformertypes.Transformer, *environ
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
-	ts := []plantypes.Transformer{}
+func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+	ts := []transformertypes.TransformerPlan{}
 	if info, err := os.Stat(dir); os.IsNotExist(err) {
 		logrus.Warnf("Error in walking through files due to : %s", err)
 		return nil, nil, err
@@ -68,7 +67,7 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[
 			return nil
 		}
 		if isdf, _ := isDockerFile(path); isdf {
-			trans := plantypes.Transformer{
+			trans := transformertypes.TransformerPlan{
 				Mode:              t.Config.Spec.Mode,
 				ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType, artifacts.DockerfileArtifactType},
 				BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -88,7 +87,7 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *DockerfileDetector) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *DockerfileDetector) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 

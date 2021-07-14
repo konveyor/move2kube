@@ -22,10 +22,10 @@ if [ ! -f "$1/go.mod" ]; then
    found="$(find "$BASE_DIR"/. -name "*.go" -print -quit | wc -l)"
 
    if [ "$found" -eq 1 ]; then
-      echo '{"builder": "'$IMAGE'", "port": 8080}'
+      echo '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","builder": "'$IMAGE'", "port": 8080}'
    else
       exit 1
    fi
 else
-   echo '{"builder": "'$IMAGE'", "port": 8080}'
+   echo '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","builder": "'$IMAGE'", "port": 8080}'
 fi

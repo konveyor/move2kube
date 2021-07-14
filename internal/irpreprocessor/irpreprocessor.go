@@ -28,7 +28,7 @@ type irpreprocessor interface {
 
 // getIRPreprocessors returns optimizers
 func getIRPreprocessors() []irpreprocessor {
-	var l = []irpreprocessor{new(normalizeCharacterPreprocessor), new(ingressPreprocessor), new(replicaPreprocessor), new(imagePullPolicyPreprocessor), new(portMergePreprocessor)}
+	var l = []irpreprocessor{new(normalizeCharacterPreprocessor), new(ingressPreprocessor), new(replicaPreprocessor), new(imagePullPolicyPreprocessor), new(mergePreprocessor)}
 	return l
 }
 

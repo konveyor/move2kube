@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 {{range $buildscript := . }}
-cd {{ $buildscript.PathToSlash }}
+cd {{ $buildscript.PathUnix }}
 ./{{ $buildscript.BuildScriptName }}
 cd -
 {{end}}

@@ -35,6 +35,7 @@ import (
 	"github.com/spf13/cast"
 	"k8s.io/apimachinery/pkg/api/resource"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 // V3Loader loads a v3 compose file
@@ -516,13 +517,13 @@ func (*V3Loader) addPorts(ports []types.ServicePortConfig, expose []string, serv
 	exist := map[string]bool{}
 	for _, port := range ports {
 		// Forward the port on the k8s service to the k8s pod.
-		podPort := irtypes.Port{
+		podPort := networking.ServiceBackendPort{
 			Number: int32(port.Target),
 		}
-		servicePort := irtypes.Port{
+		servicePort := networking.ServiceBackendPort{
 			Number: int32(port.Published),
 		}
-		service.AddPortForwarding(servicePort, podPort)
+		service.AddPortForwarding(servicePort, podPort, "")
 		exist[cast.ToString(port.Target)] = true
 	}
 	for _, port := range expose {
@@ -536,13 +537,13 @@ func (*V3Loader) addPorts(ports []types.ServicePortConfig, expose []string, serv
 		}
 		// Forward the port on the k8s service to the k8s pod.
 		portNumber := cast.ToInt32(portValue)
-		podPort := irtypes.Port{
+		podPort := networking.ServiceBackendPort{
 			Number: portNumber,
 		}
-		servicePort := irtypes.Port{
+		servicePort := networking.ServiceBackendPort{
 			Number: portNumber,
 		}
-		service.AddPortForwarding(servicePort, podPort)
+		service.AddPortForwarding(servicePort, podPort, "")
 	}
 }
 

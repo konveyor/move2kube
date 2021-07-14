@@ -38,9 +38,7 @@ const (
 
 // PeerContainer is supports spawning peer containers to run the environment
 type PeerContainer struct {
-	Name     string
-	Source   string
-	TempPath string
+	EnvInfo
 
 	WorkspaceSource  string
 	WorkspaceContext string
@@ -53,15 +51,12 @@ type PeerContainer struct {
 }
 
 // NewPeerContainer creates an instance of peer container based environment
-func NewPeerContainer(name, source, context, tempPath string, grpcQAReceiver net.Addr, c environmenttypes.Container) (ei EnvironmentInstance, err error) {
+func NewPeerContainer(envInfo EnvInfo, grpcQAReceiver net.Addr, c environmenttypes.Container) (ei EnvironmentInstance, err error) {
 	peerContainer := &PeerContainer{
-		Name:           name,
-		Source:         source,
-		TempPath:       tempPath,
+		EnvInfo:        envInfo,
 		ImageName:      c.Image,
 		GRPCQAReceiver: grpcQAReceiver,
 	}
-	peerContainer.TempPath = tempPath
 	if c.WorkingDir != "" {
 		peerContainer.WorkspaceContext = c.WorkingDir
 	} else {
@@ -72,17 +67,17 @@ func NewPeerContainer(name, source, context, tempPath string, grpcQAReceiver net
 	if cengine == nil {
 		return ei, fmt.Errorf("no working container runtime found")
 	}
-	newImageName := peerContainer.ImageName + strings.ToLower(name+uniuri.NewLen(5))
-	err = cengine.CopyDirsIntoImage(peerContainer.ImageName, newImageName, map[string]string{source: peerContainer.WorkspaceSource})
+	newImageName := peerContainer.ImageName + strings.ToLower(envInfo.Name+uniuri.NewLen(5))
+	err = cengine.CopyDirsIntoImage(peerContainer.ImageName, newImageName, map[string]string{envInfo.Source: peerContainer.WorkspaceSource})
 	if err != nil {
 		logrus.Debugf("Unable to create new container image with new data")
 		if c.ContainerBuild.Context != "" {
-			err = cengine.BuildImage(c.Image, filepath.Join(context, c.ContainerBuild.Context), c.ContainerBuild.Dockerfile)
+			err = cengine.BuildImage(c.Image, filepath.Join(envInfo.Context, c.ContainerBuild.Context), c.ContainerBuild.Dockerfile)
 			if err != nil {
 				logrus.Errorf("Unable to build new container image for %s : %s", c.Image, err)
 				return ei, err
 			}
-			err = cengine.CopyDirsIntoImage(c.Image, newImageName, map[string]string{source: peerContainer.WorkspaceSource})
+			err = cengine.CopyDirsIntoImage(c.Image, newImageName, map[string]string{envInfo.Source: peerContainer.WorkspaceSource})
 			if err != nil {
 				logrus.Errorf("Unable to copy paths to new container image : %s", err)
 			}

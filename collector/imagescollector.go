@@ -116,7 +116,7 @@ func getImageInfo(data []byte) collecttypes.ImageInfo {
 		imageInfo.Spec.AccessedDirs = append(imageInfo.Spec.AccessedDirs, image.CConfig.WorkingDir)
 		for key := range image.CConfig.EPorts {
 			regex := regexp.MustCompile("[0-9]+")
-			portNumber, err := cast.ToIntE(string(regex.FindAll([]byte(key), -1)[0]))
+			portNumber, err := cast.ToInt32E(string(regex.FindAll([]byte(key), -1)[0]))
 			if err != nil {
 				logrus.Debugf("PortNumber not available in image metadata for [%s]", image.RepoTags[0])
 			} else {

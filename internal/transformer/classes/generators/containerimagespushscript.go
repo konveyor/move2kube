@@ -21,7 +21,6 @@ import (
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -30,8 +29,8 @@ import (
 
 // ContainerImagesPushScript implements Transformer interface
 type ContainerImagesPushScript struct {
-	TConfig transformertypes.Transformer
-	Env     *environment.Environment
+	Config transformertypes.Transformer
+	Env    *environment.Environment
 }
 
 // ImagePushTemplateConfig represents template config used by ImagePush script
@@ -43,23 +42,23 @@ type ImagePushTemplateConfig struct {
 
 // Init Initializes the transformer
 func (t *ContainerImagesPushScript) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
-	t.TConfig = tc
+	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
 func (t *ContainerImagesPushScript) GetConfig() (transformertypes.Transformer, *environment.Environment) {
-	return t.TConfig, t.Env
+	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *ContainerImagesPushScript) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ContainerImagesPushScript) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *ContainerImagesPushScript) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ContainerImagesPushScript) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
@@ -84,7 +83,7 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 	ipt.RegistryNamespace = commonqa.ImageRegistryNamespace(t.Env.ProjectName)
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
-		SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),
+		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 		DestPath:       common.ScriptsDir,
 		TemplateConfig: ipt,
 	})

@@ -14,13 +14,20 @@
  *  limitations under the License.
  */
 
-package artifacts
+package environment
 
-import (
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-)
+import "github.com/konveyor/move2kube/types/collection"
 
-const (
-	// ProjectPathPathType points to the project context directory
-	ProjectPathPathType transformertypes.PathType = "ProjectPath"
-)
+// EnvInfo stores the envionment generic info
+type EnvInfo struct {
+	Name          string
+	ProjectName   string
+	TargetCluster collection.ClusterMetadata
+
+	Source                string
+	Output                string
+	Context               string
+	CurrEnvOutputBasePath string
+	RelTemplatesDir       string
+	TempPath              string
+}

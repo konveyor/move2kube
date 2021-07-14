@@ -5,7 +5,3 @@ metadata:
 spec:
   mode: "Container"
   class: "CloudFoundry"
-  generates: 
-    - "ContainerBuild"
-  generatedBases: 
-    - "ContainerBuild"

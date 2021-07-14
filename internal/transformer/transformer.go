@@ -49,8 +49,8 @@ type Transformer interface {
 	// GetConfig returns the transformer config
 	GetConfig() (transformertypes.Transformer, *environment.Environment)
 
-	BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error)
-	DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error)
+	BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error)
+	DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error)
 
 	Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error)
 }
@@ -82,7 +82,7 @@ func init() {
 		new(dockerfilegenerators.NodejsDockerfileGenerator),
 
 		new(external.Starlark),
-		new(external.SimpleExecutable),
+		new(external.Executable),
 	}
 	for _, tt := range transformerObjs {
 		t := reflect.TypeOf(tt).Elem()
@@ -154,7 +154,16 @@ func InitTransformers(transformerToInit map[string]string, targetCluster collect
 			logrus.Errorf("Unable to find Transformer class %s in %+v", tc.Spec.Class, transformerTypes)
 		} else {
 			t := reflect.New(c).Interface().(Transformer)
-			env, err := environment.NewEnvironment(tc.Name, projName, targetCluster, sourcePath, outputPath, filepath.Dir(tc.Spec.FilePath), tc.Spec.TemplatesDir, nil, environmenttypes.Container{})
+			envInfo := environment.EnvInfo{
+				Name:            tc.Name,
+				ProjectName:     projName,
+				TargetCluster:   targetCluster,
+				Source:          sourcePath,
+				Output:          outputPath,
+				Context:         filepath.Dir(tc.Spec.FilePath),
+				RelTemplatesDir: tc.Spec.TemplatesDir,
+			}
+			env, err := environment.NewEnvironment(envInfo, nil, environmenttypes.Container{})
 			if err != nil {
 				logrus.Errorf("Unable to create environment : %s", err)
 				return err
@@ -190,9 +199,9 @@ func GetTransformers() map[string]Transformer {
 }
 
 // GetServices returns the list of services detected in a directory
-func GetServices(prjName string, dir string) (services map[string]plantypes.Service, err error) {
-	services = map[string]plantypes.Service{}
-	unservices := []plantypes.Transformer{}
+func GetServices(prjName string, dir string) (services map[string]transformertypes.ServicePlan, err error) {
+	services = map[string]transformertypes.ServicePlan{}
+	unservices := []transformertypes.TransformerPlan{}
 	logrus.Infoln("Planning Transformation - Base Directory")
 	logrus.Debugf("Transformers : %+v", transformers)
 	for tn, t := range transformers {
@@ -203,8 +212,8 @@ func GetServices(prjName string, dir string) (services map[string]plantypes.Serv
 		if err != nil {
 			logrus.Errorf("[%s] Failed : %s", tn, err)
 		} else {
-			nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]plantypes.Service), config)
-			nunservices = setTransformerInfoForTransformers(*env.Decode(&nunservices).(*[]plantypes.Transformer), config)
+			nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]transformertypes.ServicePlan), config)
+			nunservices = setTransformerInfoForTransformers(*env.Decode(&nunservices).(*[]transformertypes.TransformerPlan), config)
 			services = plantypes.MergeServices(services, nservices)
 			unservices = append(unservices, nunservices...)
 			if len(nservices) > 0 || len(nunservices) > 0 {
@@ -308,9 +317,9 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 	return nil
 }
 
-func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string]plantypes.Service) (services map[string]plantypes.Service, unservices []plantypes.Transformer, err error) {
+func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string]transformertypes.ServicePlan) (services map[string]transformertypes.ServicePlan, unservices []transformertypes.TransformerPlan, err error) {
 	services = bservices
-	unservices = []plantypes.Transformer{}
+	unservices = []transformertypes.TransformerPlan{}
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
 	knownProjectPaths := []string{}
 
@@ -346,8 +355,8 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 			if err != nil {
 				logrus.Warnf("[%s] Failed : %s", config.Name, err)
 			} else {
-				nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]plantypes.Service), config)
-				nunservices = setTransformerInfoForTransformers(*env.Decode(&nunservices).(*[]plantypes.Transformer), config)
+				nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]transformertypes.ServicePlan), config)
+				nunservices = setTransformerInfoForTransformers(*env.Decode(&nunservices).(*[]transformertypes.TransformerPlan), config)
 				services = plantypes.MergeServices(services, nservices)
 				unservices = append(unservices, nunservices...)
 				logrus.Debugf("[%s] Done", config.Name)

@@ -25,7 +25,6 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/konveyor/move2kube/types/source/maven"
 	"github.com/konveyor/move2kube/types/source/springboot"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -75,12 +74,12 @@ func (t *SpringbootAnalyser) GetConfig() (transformertypes.Transformer, *environ
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *SpringbootAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *SpringbootAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	destEntries, err := ioutil.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Unable to process directory %s : %s", dir, err)
@@ -166,7 +165,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		}
 	}
 
-	ct := plantypes.Transformer{
+	ct := transformertypes.TransformerPlan{
 		Mode:              transformertypes.ModeContainer,
 		ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
 		BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -181,7 +180,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 			applicationFilePath:           validSpringbootFiles,
 		},
 	}
-	return map[string]plantypes.Service{appName: {ct}}, nil, nil
+	return map[string]transformertypes.ServicePlan{appName: {ct}}, nil, nil
 }
 
 // Transform transforms the artifacts

@@ -82,7 +82,7 @@ func getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContent
 	return ignoreDirectories, ignoreContents
 }
 
-func getArtifactForTransformerPlan(serviceName string, t plantypes.Transformer, p plantypes.Plan) transformertypes.Artifact {
+func getArtifactForTransformerPlan(serviceName string, t transformertypes.TransformerPlan, p plantypes.Plan) transformertypes.Artifact {
 	serviceConfig := artifacts.ServiceConfig{
 		ServiceName: serviceName,
 	}
@@ -172,7 +172,7 @@ func mergePathSliceMaps(map1 map[transformertypes.PathType][]string, map2 map[tr
 	return map1
 }
 
-func setTransformerInfoForServices(services map[string]plantypes.Service, t transformertypes.Transformer) map[string]plantypes.Service {
+func setTransformerInfoForServices(services map[string]transformertypes.ServicePlan, t transformertypes.Transformer) map[string]transformertypes.ServicePlan {
 	for sn, s := range services {
 		for sti, st := range s {
 			st.Name = t.Name
@@ -183,7 +183,7 @@ func setTransformerInfoForServices(services map[string]plantypes.Service, t tran
 	return services
 }
 
-func setTransformerInfoForTransformers(transformers []plantypes.Transformer, t transformertypes.Transformer) []plantypes.Transformer {
+func setTransformerInfoForTransformers(transformers []transformertypes.TransformerPlan, t transformertypes.Transformer) []transformertypes.TransformerPlan {
 	for ti, tr := range transformers {
 		tr.Name = t.Name
 		tr.Mode = t.Spec.Mode

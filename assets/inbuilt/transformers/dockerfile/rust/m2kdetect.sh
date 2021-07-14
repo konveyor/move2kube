@@ -21,4 +21,4 @@ if [ ! -f "$BASE_DIR/Cargo.toml" ]; then
 fi
 
 name=$(awk -F'[ ="]+' '$1 == "name" { print $2 }' $BASE_DIR/Cargo.toml)
-echo '{"port": 8080, "app_name": '"\"$name\""'}'
+echo '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","port": 8080, "app_name": '"\"$name\""'}'

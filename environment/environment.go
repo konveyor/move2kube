@@ -31,7 +31,6 @@ import (
 	"github.com/konveyor/move2kube/internal/common/deepcopy"
 	"github.com/konveyor/move2kube/internal/common/pathconverters"
 	"github.com/konveyor/move2kube/types"
-	"github.com/konveyor/move2kube/types/collection"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
@@ -39,24 +38,32 @@ import (
 
 const workspaceDir = "workspace"
 
-// GRPCEnvName represents the environment variable name used to pass the GRPC server information to the transformers
-var GRPCEnvName = strings.ToUpper(types.AppNameShort) + "QA_GRPC_SERVER"
+var (
+	// GRPCEnvName represents the environment variable name used to pass the GRPC server information to the transformers
+	GRPCEnvName = strings.ToUpper(types.AppNameShort) + "_QA_GRPC_SERVER"
+	// ProjectNameEnvName stores the project name
+	ProjectNameEnvName = strings.ToUpper(types.AppNameShort) + "_PROJECT_NAME"
+	// SourceEnvName stores the source path
+	SourceEnvName = strings.ToUpper(types.AppNameShort) + "_SOURCE"
+	// OutputEnvName stores the output path
+	OutputEnvName = strings.ToUpper(types.AppNameShort) + "_OUTPUT"
+	// ContextEnvName stores the context
+	ContextEnvName = strings.ToUpper(types.AppNameShort) + "_CONTEXT"
+	// CurrOutputEnvName stores the location of output from the previous iteration
+	CurrOutputEnvName = strings.ToUpper(types.AppNameShort) + "_CURRENT_OUTPUT"
+	// RelTemplatesDirEnvName stores the rel templates directory
+	RelTemplatesDirEnvName = strings.ToUpper(types.AppNameShort) + "_RELATIVE_TEMPLATES_DIR"
+	// TempPathEnvName stores the temp path
+	TempPathEnvName = strings.ToUpper(types.AppNameShort) + "_TEMP"
+	// EnvNameEnvName stores the environment name
+	EnvNameEnvName = strings.ToUpper(types.AppNameShort) + "_ENV_NAME"
+)
 
 // Environment is used to manage EnvironmentInstances
 type Environment struct {
-	Name     string
+	EnvInfo
 	Env      EnvironmentInstance
 	Children []*Environment
-
-	ProjectName   string
-	TargetCluster collection.ClusterMetadata
-
-	Source                string
-	Output                string
-	Context               string
-	CurrEnvOutputBasePath string
-	RelTemplatesDir       string
-	TempPath              string
 }
 
 // EnvironmentInstance represents a actual instance of an environment which the Environment manages
@@ -72,22 +79,16 @@ type EnvironmentInstance interface {
 }
 
 // NewEnvironment creates a new environment
-func NewEnvironment(name string, projectName string, targetCluster collection.ClusterMetadata, source string, output string, context string, relTemplatesDir string, grpcQAReceiver net.Addr, c environmenttypes.Container) (env *Environment, err error) {
-	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+name+"-*")
+func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr, c environmenttypes.Container) (env *Environment, err error) {
+	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+envInfo.Name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return env, err
 	}
+	envInfo.TempPath = tempPath
 	env = &Environment{
-		Name:            name,
-		ProjectName:     projectName,
-		TargetCluster:   targetCluster,
-		Source:          source,
-		Output:          output,
-		Context:         context,
-		RelTemplatesDir: relTemplatesDir,
-		Children:        []*Environment{},
-		TempPath:        tempPath,
+		EnvInfo:  envInfo,
+		Children: []*Environment{},
 	}
 	if c.Image != "" {
 		envVariableName := common.MakeStringEnvNameCompliant(c.Image)
@@ -100,7 +101,8 @@ func NewEnvironment(name string, projectName string, targetCluster collection.Cl
 			if len(envvarpair) > 0 && envVariableName == c.Image && len(envvarpair) > 1 {
 				_, err := strconv.Atoi(envvarpair[1])
 				if err != nil {
-					env.Env, err = NewLocal(name, source, envvarpair[1], tempPath, grpcQAReceiver)
+					envInfo.Context = envvarpair[1]
+					env.Env, err = NewLocal(envInfo, grpcQAReceiver)
 					if err != nil {
 						logrus.Errorf("Unable to create local environment : %s", err)
 					}
@@ -115,14 +117,14 @@ func NewEnvironment(name string, projectName string, targetCluster collection.Cl
 			}
 		}
 		if env.Env == nil {
-			env.Env, err = NewPeerContainer(name, source, context, tempPath, grpcQAReceiver, c)
+			env.Env, err = NewPeerContainer(envInfo, grpcQAReceiver, c)
 			if err != nil && !container.IsDisabled() {
 				logrus.Errorf("Unable to create peer container environment : %s", err)
 			}
 			return env, err
 		}
 	}
-	env.Env, err = NewLocal(name, source, context, tempPath, grpcQAReceiver)
+	env.Env, err = NewLocal(envInfo, grpcQAReceiver)
 	if err != nil {
 		logrus.Errorf("Unable to create Local environment : %s", err)
 	}

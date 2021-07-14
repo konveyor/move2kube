@@ -29,13 +29,13 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 // CloudFoundry implements Transformer interface
@@ -57,15 +57,15 @@ func (t *CloudFoundry) GetConfig() (transformertypes.Transformer, *environment.E
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
-	namedServices = map[string]plantypes.Service{}
+func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+	namedServices = map[string]transformertypes.ServicePlan{}
 
 	filePaths, err := common.GetFilesByExt(dir, []string{".yml", ".yaml"})
 	if err != nil {
 		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", dir, err)
 		return namedServices, nil, err
 	}
-	namedServices = map[string]plantypes.Service{}
+	namedServices = map[string]transformertypes.ServicePlan{}
 	// Load instance apps, if available
 	cfInstanceApps := map[string][]collecttypes.CfApplication{} //path
 	for _, filePath := range filePaths {
@@ -102,7 +102,7 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string
 				basename := filepath.Base(filePath)
 				applicationName = strings.TrimSuffix(basename, filepath.Ext(basename))
 			}
-			ct := plantypes.Transformer{
+			ct := transformertypes.TransformerPlan{
 				Mode:              transformertypes.ModeContainer,
 				ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType},
 				BaseArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType},
@@ -128,14 +128,14 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string
 				ct.Configs[artifacts.CloudFoundryConfigType] = ctConfig
 				continue
 			}
-			namedServices[applicationName] = []plantypes.Transformer{ct}
+			namedServices[applicationName] = []transformertypes.TransformerPlan{ct}
 		}
 	}
 	return namedServices, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *CloudFoundry) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *CloudFoundry) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
@@ -203,20 +203,20 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldAr
 					// Add the port to the k8s pod.
 					serviceContainer.Ports = append(serviceContainer.Ports, core.ContainerPort{ContainerPort: port})
 					// Forward the port on the k8s service to the k8s pod.
-					podPort := irtypes.Port{Number: int32(port)}
+					podPort := networking.ServiceBackendPort{Number: port}
 					servicePort := podPort
-					serviceConfig.AddPortForwarding(servicePort, podPort)
+					serviceConfig.AddPortForwarding(servicePort, podPort, "")
 				}
 				envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(cfinstanceapp.Ports[0])}
 				serviceContainer.Env = append(serviceContainer.Env, envvar)
 			} else {
 				port := common.DefaultServicePort
 				// Add the port to the k8s pod.
-				serviceContainer.Ports = []core.ContainerPort{{ContainerPort: int32(port)}}
+				serviceContainer.Ports = []core.ContainerPort{{ContainerPort: port}}
 				// Forward the port on the k8s service to the k8s pod.
-				podPort := irtypes.Port{Number: int32(port)}
+				podPort := networking.ServiceBackendPort{Number: port}
 				servicePort := podPort
-				serviceConfig.AddPortForwarding(servicePort, podPort)
+				serviceConfig.AddPortForwarding(servicePort, podPort, "")
 				envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(port)}
 				serviceContainer.Env = append(serviceContainer.Env, envvar)
 			}

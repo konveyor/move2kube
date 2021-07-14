@@ -21,7 +21,6 @@ import (
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -29,36 +28,36 @@ import (
 
 // ContainerImagesBuildScript implements Transformer interface
 type ContainerImagesBuildScript struct {
-	TConfig transformertypes.Transformer
-	Env     *environment.Environment
+	Config transformertypes.Transformer
+	Env    *environment.Environment
 }
 
 // ImageBuildTemplateConfig represents template config used by ImagePush script
 type ImageBuildTemplateConfig struct {
 	BuildScriptName string
-	PathToSlash     string
-	PathFromSlash   string
+	PathUnix        string
+	PathWindows     string
 }
 
 // Init Initializes the transformer
 func (t *ContainerImagesBuildScript) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
-	t.TConfig = tc
+	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
 func (t *ContainerImagesBuildScript) GetConfig() (transformertypes.Transformer, *environment.Environment) {
-	return t.TConfig, t.Env
+	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *ContainerImagesBuildScript) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ContainerImagesBuildScript) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *ContainerImagesBuildScript) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ContainerImagesBuildScript) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
@@ -77,8 +76,8 @@ func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.A
 				}
 				shScripts = append(shScripts, ImageBuildTemplateConfig{
 					BuildScriptName: filepath.Base(shScript),
-					PathToSlash:     filepath.ToSlash(relPath),
-					PathFromSlash:   filepath.FromSlash(relPath),
+					PathUnix:        common.GetUnixPath(relPath),
+					PathWindows:     common.GetWindowsPath(relPath),
 				})
 			}
 			for _, batScript := range a.Paths[artifacts.ContainerImageBuildBatScriptPathType] {
@@ -89,8 +88,8 @@ func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.A
 				}
 				batScripts = append(batScripts, ImageBuildTemplateConfig{
 					BuildScriptName: filepath.Base(batScript),
-					PathToSlash:     filepath.ToSlash(relPath),
-					PathFromSlash:   filepath.FromSlash(relPath),
+					PathUnix:        common.GetUnixPath(relPath),
+					PathWindows:     common.GetWindowsPath(relPath),
 				})
 			}
 		}
@@ -102,12 +101,12 @@ func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.A
 	buildImagesBatFileName := "buildimages.bat"
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
-		SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir, buildImagesShFileName),
+		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir, buildImagesShFileName),
 		DestPath:       filepath.Join(common.ScriptsDir, buildImagesShFileName),
 		TemplateConfig: shScripts,
 	}, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
-		SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir, buildImagesBatFileName),
+		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir, buildImagesBatFileName),
 		DestPath:       filepath.Join(common.ScriptsDir, buildImagesBatFileName),
 		TemplateConfig: batScripts,
 	})

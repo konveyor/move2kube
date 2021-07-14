@@ -21,7 +21,6 @@ import (
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -29,37 +28,37 @@ import (
 
 // DockerfileImageBuildScript implements Transformer interface
 type DockerfileImageBuildScript struct {
-	TConfig transformertypes.Transformer
-	Env     *environment.Environment
+	Config transformertypes.Transformer
+	Env    *environment.Environment
 }
 
 // DockerfileImageBuildScriptTemplateConfig represents template config used by ImagePush script
 type DockerfileImageBuildScriptTemplateConfig struct {
-	DockerfileName   string
-	ImageName        string
-	ContextToSlash   string
-	ContextFromSlash string
+	DockerfileName string
+	ImageName      string
+	ContextUnix    string
+	ContextWindows string
 }
 
 // Init Initializes the transformer
 func (t *DockerfileImageBuildScript) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
-	t.TConfig = tc
+	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
 func (t *DockerfileImageBuildScript) GetConfig() (transformertypes.Transformer, *environment.Environment) {
-	return t.TConfig, t.Env
+	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *DockerfileImageBuildScript) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *DockerfileImageBuildScript) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *DockerfileImageBuildScript) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *DockerfileImageBuildScript) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
@@ -94,10 +93,10 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 					continue
 				}
 				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:        sImageName.ImageName,
-					ContextToSlash:   filepath.ToSlash(filepath.Join(common.DefaultSourceDir, relPath)),
-					ContextFromSlash: filepath.FromSlash(filepath.Join(common.DefaultSourceDir, relPath)),
-					DockerfileName:   filepath.Base(path),
+					ImageName:      sImageName.ImageName,
+					ContextUnix:    common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relPath)),
+					ContextWindows: common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relPath)),
+					DockerfileName: filepath.Base(path),
 				})
 			} else if common.IsParent(path, t.Env.GetEnvironmentOutput()) {
 				relPath, err = filepath.Rel(t.Env.GetEnvironmentOutput(), filepath.Dir(path))
@@ -106,17 +105,17 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 					continue
 				}
 				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:        sImageName.ImageName,
-					ContextToSlash:   filepath.ToSlash(relPath),
-					ContextFromSlash: filepath.FromSlash(relPath),
-					DockerfileName:   filepath.Base(path),
+					ImageName:      sImageName.ImageName,
+					ContextUnix:    common.GetUnixPath(relPath),
+					ContextWindows: common.GetWindowsPath(relPath),
+					DockerfileName: filepath.Base(path),
 				})
 			} else {
 				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:        sImageName.ImageName,
-					ContextToSlash:   filepath.ToSlash(filepath.Join(common.DefaultSourceDir, relPath)),
-					ContextFromSlash: filepath.FromSlash(filepath.Join(common.DefaultSourceDir, relPath)),
-					DockerfileName:   filepath.Base(path),
+					ImageName:      sImageName.ImageName,
+					ContextUnix:    common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relPath)),
+					ContextWindows: common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relPath)),
+					DockerfileName: filepath.Base(path),
 				})
 			}
 			nartifacts = append(nartifacts, transformertypes.Artifact{
@@ -135,7 +134,7 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 	}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
-		SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),
+		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 		DestPath:       common.ScriptsDir,
 		TemplateConfig: dfs,
 	})

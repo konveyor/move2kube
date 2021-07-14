@@ -33,7 +33,7 @@ type ImageInfo struct {
 // ImageInfoSpec defines the data stored about ImageInfo
 type ImageInfoSpec struct {
 	Tags          []string `yaml:"tags"`
-	PortsToExpose []int    `yaml:"ports"`
+	PortsToExpose []int32  `yaml:"ports"`
 	AccessedDirs  []string `yaml:"accessedDirs"`
 	UserID        int      `yaml:"userID"`
 }

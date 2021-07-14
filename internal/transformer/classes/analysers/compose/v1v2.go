@@ -35,6 +35,7 @@ import (
 	"github.com/spf13/cast"
 	"k8s.io/apimachinery/pkg/api/resource"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 // V1V2Loader loads a compoose file of versions 1 or 2
@@ -367,9 +368,9 @@ func (c *V1V2Loader) addPorts(composePorts []string, expose []string, service *i
 		}
 		if !exist[servicePortNumber] {
 			// Forward the port on the k8s service to the k8s pod.
-			podPort := irtypes.Port{Number: int32(podPortNumber)}
-			servicePort := irtypes.Port{Number: int32(servicePortNumber)}
-			service.AddPortForwarding(servicePort, podPort)
+			podPort := networking.ServiceBackendPort{Number: int32(podPortNumber)}
+			servicePort := networking.ServiceBackendPort{Number: int32(servicePortNumber)}
+			service.AddPortForwarding(servicePort, podPort, "")
 			exist[servicePortNumber] = true
 		}
 	}
@@ -380,9 +381,9 @@ func (c *V1V2Loader) addPorts(composePorts []string, expose []string, service *i
 		}
 		if !exist[servicePortNumber] {
 			// Forward the port on the k8s service to the k8s pod.
-			podPort := irtypes.Port{Number: int32(podPortNumber)}
-			servicePort := irtypes.Port{Number: int32(servicePortNumber)}
-			service.AddPortForwarding(servicePort, podPort)
+			podPort := networking.ServiceBackendPort{Number: int32(podPortNumber)}
+			servicePort := networking.ServiceBackendPort{Number: int32(servicePortNumber)}
+			service.AddPortForwarding(servicePort, podPort, "")
 			exist[servicePortNumber] = true
 		}
 	}

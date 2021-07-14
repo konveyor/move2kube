@@ -4,7 +4,7 @@ metadata:
   name: PHP-s2i
 spec:
   mode: "Container"
-  class: "SimpleExecutable"
+  class: "Executable"
   config:
     directoryDetectCMD: ["./m2kdetect.sh"]
     platforms: ["linux", "darwin"]

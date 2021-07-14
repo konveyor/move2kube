@@ -7,5 +7,3 @@ spec:
   class: "Knative"
   consumes:
     - "IR"
-  generates:
-    - "KubernetesYamls"

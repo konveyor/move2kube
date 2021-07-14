@@ -23,8 +23,8 @@ import (
 	composetypes "github.com/docker/cli/cli/compose/types"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/irpreprocessor"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
 )
@@ -57,12 +57,12 @@ func (t *ComposeGenerator) GetConfig() (transformertypes.Transformer, *environme
 }
 
 // BaseDirectoryDetect executes detect in base directory
-func (t *ComposeGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ComposeGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect executes detect in each sub directory
-func (t *ComposeGenerator) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *ComposeGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
@@ -78,6 +78,13 @@ func (t *ComposeGenerator) Transform(newArtifacts []transformertypes.Artifact, o
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
+		}
+		ir.Name = a.Name
+		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		if err != nil {
+			logrus.Errorf("Unable to prepreocess IR : %s", err)
+		} else {
+			ir = preprocessedIR
 		}
 		logrus.Debugf("Starting Compose transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))

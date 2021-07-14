@@ -5,9 +5,5 @@ metadata:
 spec:
   mode: "Container"
   class: "CNBContainerizer"
-  generates: 
-    - "ContainerBuild"
-  generatedBases: 
-    - "ContainerBuild"
   config:
     CNBBuilder: "gcr.io/buildpacks/builder"

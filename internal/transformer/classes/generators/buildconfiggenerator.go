@@ -27,8 +27,8 @@ import (
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/sshkeys"
+	"github.com/konveyor/move2kube/internal/irpreprocessor"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -64,12 +64,12 @@ func (t *BuildConfig) GetConfig() (transformertypes.Transformer, *environment.En
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *BuildConfig) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *BuildConfig) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *BuildConfig) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *BuildConfig) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
@@ -86,6 +86,13 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArt
 		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
+		}
+		ir.Name = a.Name
+		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		if err != nil {
+			logrus.Errorf("Unable to prepreocess IR : %s", err)
+		} else {
+			ir = preprocessedIR
 		}
 		if !(len(t.Env.TargetCluster.Spec.GetSupportedVersions("BuildConfig")) > 0) {
 			logrus.Debugf("BuildConfig was not found on the target cluster.")

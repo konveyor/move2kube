@@ -19,4 +19,4 @@ if [ ! -f "$1/build.xml" ]; then
    exit 1
 fi
 
-echo '{"port": 8080, "ant_cmd": "ant all", "app_name": "simplewebapp"}'
+echo '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","port": 8080, "ant_cmd": "ant all", "app_name": "simplewebapp"}'

@@ -22,38 +22,38 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 // S2IGenerator implements Transformer interface
 type S2IGenerator struct {
-	TConfig transformertypes.Transformer
-	Env     *environment.Environment
+	Config transformertypes.Transformer
+	Env    *environment.Environment
 }
 
 // Init Initializes the transformer
 func (t *S2IGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
-	t.TConfig = tc
+	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
 func (t *S2IGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
-	return t.TConfig, t.Env
+	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in the base directory
-func (t *S2IGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *S2IGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *S2IGenerator) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *S2IGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
@@ -91,12 +91,12 @@ func (t *S2IGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 		serviceContainerPorts := []core.ContainerPort{}
 		for _, port := range container.ExposedPorts {
 			// Add the port to the k8s pod.
-			serviceContainerPort := core.ContainerPort{ContainerPort: int32(port)}
+			serviceContainerPort := core.ContainerPort{ContainerPort: port}
 			serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
 			// Forward the port on the k8s service to the k8s pod.
-			podPort := irtypes.Port{Number: int32(port)}
+			podPort := networking.ServiceBackendPort{Number: port}
 			servicePort := podPort
-			irService.AddPortForwarding(servicePort, podPort)
+			irService.AddPortForwarding(servicePort, podPort, "")
 		}
 		serviceContainer.Ports = serviceContainerPorts
 		irService.Containers = []core.Container{serviceContainer}
@@ -107,7 +107,7 @@ func (t *S2IGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			DestPath: common.DefaultSourceDir,
 		}, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),
+			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
 			TemplateConfig: s2iConfig,
 		})

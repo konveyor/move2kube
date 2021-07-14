@@ -14,20 +14,16 @@
  *  limitations under the License.
  */
 
-package external
-
-import (
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-)
+package transformer
 
 // DetectOutput structure is the data format for receiving data from starlark detect functions
 type DetectOutput struct {
-	NamedServices   map[string]transformertypes.ServicePlan `yaml:"namedServices,omitempty" json:"namedServices,omitempty"`
-	UnNamedServices []transformertypes.TransformerPlan      `yaml:"unnamedServices,omitempty" json:"unnamedServices,omitempty"`
+	NamedServices   map[string]ServicePlan `yaml:"namedServices,omitempty" json:"namedServices,omitempty"`
+	UnNamedServices []TransformerPlan      `yaml:"unnamedServices,omitempty" json:"unnamedServices,omitempty"`
 }
 
 // TransformOutput structure is the data format for receiving data from starlark transform functions
 type TransformOutput struct {
-	PathMappings     []transformertypes.PathMapping `yaml:"pathMappings,omitempty" json:"pathMappings,omitempty"`
-	CreatedArtifacts []transformertypes.Artifact    `yaml:"artifacts,omitempty" json:"artifacts,omitempty"`
+	PathMappings     []PathMapping `yaml:"pathMappings,omitempty" json:"pathMappings,omitempty"`
+	CreatedArtifacts []Artifact    `yaml:"artifacts,omitempty" json:"artifacts,omitempty"`
 }

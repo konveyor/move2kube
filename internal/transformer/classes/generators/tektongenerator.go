@@ -26,15 +26,16 @@ import (
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/knownhosts"
 	"github.com/konveyor/move2kube/internal/common/sshkeys"
+	"github.com/konveyor/move2kube/internal/irpreprocessor"
 	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 const (
@@ -76,12 +77,12 @@ func (t *Tekton) GetConfig() (transformertypes.Transformer, *environment.Environ
 }
 
 // BaseDirectoryDetect runs detect in base input directory
-func (t *Tekton) BaseDirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Tekton) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each subdirectory
-func (t *Tekton) DirectoryDetect(dir string) (namedServices map[string]plantypes.Service, unnamedServices []plantypes.Transformer, err error) {
+func (t *Tekton) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
@@ -98,6 +99,13 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
+		}
+		ir.Name = a.Name
+		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		if err != nil {
+			logrus.Errorf("Unable to prepreocess IR : %s", err)
+		} else {
+			ir = preprocessedIR
 		}
 		apis := []apiresource.IAPIResource{
 			new(apiresource.Service),
@@ -190,14 +198,19 @@ func (t *Tekton) setupEnhancedIR(oldir irtypes.IR, name string) irtypes.Enhanced
 		WorkspaceName: workspaceName,
 	}}
 	ir.TektonResources = res
+	var port int32 = 8080
 	ir.Services = map[string]irtypes.Service{gitEventIngressName: {
 		Name:               gitEventIngressName,
 		BackendServiceName: gitEventListenerServiceName,
 		OnlyIngress:        true,
-		ServiceRelPath:     "/" + gitEventListenerServiceName, // this has to be an absolute path otherwise k8s will complain
+		ServiceToPodPortForwardings: []irtypes.ServiceToPodPortForwarding{{
+			ServicePort:    networking.ServiceBackendPort{Number: port},
+			PodPort:        networking.ServiceBackendPort{Number: port},
+			ServiceRelPath: "/" + gitEventListenerServiceName, // this has to be an absolute path otherwise k8s will complain
+		}},
 		PodSpec: core.PodSpec{
 			Containers: []core.Container{{
-				Ports: []core.ContainerPort{{ContainerPort: int32(8080)}},
+				Ports: []core.ContainerPort{{ContainerPort: port}},
 			}}},
 	}}
 
