@@ -17,14 +17,13 @@
 package external
 
 import (
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
 // DetectOutput structure is the data format for receiving data from starlark detect functions
 type DetectOutput struct {
-	NamedServices   map[string]plantypes.Service `yaml:"namedServices,omitempty" json:"namedServices,omitempty"`
-	UnNamedServices []plantypes.Transformer      `yaml:"unnamedServices,omitempty" json:"unnamedServices,omitempty"`
+	NamedServices   map[string]transformertypes.ServicePlan `yaml:"namedServices,omitempty" json:"namedServices,omitempty"`
+	UnNamedServices []transformertypes.TransformerPlan      `yaml:"unnamedServices,omitempty" json:"unnamedServices,omitempty"`
 }
 
 // TransformOutput structure is the data format for receiving data from starlark transform functions

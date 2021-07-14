@@ -18,4 +18,4 @@ if [ ! -f "$1/Gemfile" ]; then
    exit 1
 fi
 
-echo '{"port": 8080, "app_name": "app"}'
+echo '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","port": 8080, "app_name": "app"}'

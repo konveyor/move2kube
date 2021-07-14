@@ -21,4 +21,4 @@ if [ ! "$found" -eq 1 ]; then
     exit 1
 fi
 
-echo '{"port": 8080, "app_name": "app-bin"}'
+echo '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","port": 8080, "app_name": "app-bin"}'

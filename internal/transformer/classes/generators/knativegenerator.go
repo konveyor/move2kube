@@ -22,6 +22,7 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/internal/irpreprocessor"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -70,6 +71,13 @@ func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, oldArtifac
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
+		}
+		ir.Name = a.Name
+		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		if err != nil {
+			logrus.Errorf("Unable to prepreocess IR : %s", err)
+		} else {
+			ir = preprocessedIR
 		}
 		deployKnativeDir := filepath.Join(common.DeployDir, "knative")
 		tempDest := filepath.Join(t.Env.TempPath, deployKnativeDir)

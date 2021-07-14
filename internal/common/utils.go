@@ -421,6 +421,26 @@ func MergeIntSlices(slice1 []int, slice2 []int) []int {
 	return slice1
 }
 
+// MergeIntSlices merges two int slices
+func MergeInt32Slices(slice1 []int32, slice2 []int32) []int32 {
+	for _, item := range slice2 {
+		if !IsInt32Present(slice1, item) {
+			slice1 = append(slice1, item)
+		}
+	}
+	return slice1
+}
+
+// IsIntPresent checks if a value is present in a slice
+func IsInt32Present(list []int32, value int32) bool {
+	for _, val := range list {
+		if val == value {
+			return true
+		}
+	}
+	return false
+}
+
 // GetStringFromTemplate returns string for a template
 func GetStringFromTemplate(tpl string, config interface{}) (string, error) {
 	var tplbuffer bytes.Buffer
@@ -710,7 +730,7 @@ func CopyCustomizationsAssetsData(customizationsPath string) (err error) {
 
 // CopyEmbedFSToDir converts a string into a directory
 func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[string]int) (err error) {
-	f, err := embedFS.Open(filepath.ToSlash(source))
+	f, err := embedFS.Open(GetUnixPath(source))
 	if err != nil {
 		logrus.Errorf("Error while reading embedded file : %s", err)
 		return err
@@ -721,7 +741,7 @@ func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[str
 		return err
 	}
 	if finfo != nil && !finfo.Mode().IsDir() {
-		permission, ok := permissions[filepath.FromSlash(source)]
+		permission, ok := permissions[GetUnixPath(source)]
 		if !ok {
 			logrus.Errorf("Permission missing for file %s. Do `make generate` to update permissions file.", dest)
 		}
@@ -744,7 +764,7 @@ func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[str
 	if err := os.MkdirAll(dest, DefaultDirectoryPermission); err != nil {
 		return err
 	}
-	dirEntries, err := embedFS.ReadDir(filepath.ToSlash(source))
+	dirEntries, err := embedFS.ReadDir(GetUnixPath(source))
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory : %s", err)
 		return err
@@ -753,6 +773,16 @@ func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[str
 		CopyEmbedFSToDir(embedFS, filepath.Join(source, de.Name()), filepath.Join(dest, removeDollarPrefixFromHiddenDir(de.Name())), permissions)
 	}
 	return nil
+}
+
+// GetUnixPath return Unix Path for any path
+func GetUnixPath(path string) string {
+	return strings.ReplaceAll(path, `\`, `/`)
+}
+
+// GetWindowsPath return Windows Path for any path
+func GetWindowsPath(path string) string {
+	return strings.ReplaceAll(path, `/`, `\`)
 }
 
 func removeDollarPrefixFromHiddenDir(name string) string {

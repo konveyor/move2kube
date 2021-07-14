@@ -28,11 +28,12 @@ import (
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 // CNBContainerizer implements Containerizer interface
 type CNBContainerizer struct {
-	TConfig   transformertypes.Transformer
+	Config    transformertypes.Transformer
 	CNBConfig CNBContainerizerYamlConfig
 	Env       *environment.Environment
 	CNBEnv    *environment.Environment
@@ -45,12 +46,12 @@ type CNBContainerizerYamlConfig struct {
 
 // Init Initializes the transformer
 func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
-	t.TConfig = tc
+	t.Config = tc
 	t.Env = env
 	t.CNBConfig = CNBContainerizerYamlConfig{}
-	err = common.GetObjFromInterface(t.TConfig.Spec.Config, &t.CNBConfig)
+	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.CNBConfig)
 	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.TConfig.Spec.Config, t.CNBConfig, err)
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.CNBConfig, err)
 		return err
 	}
 	envInfo := environment.EnvInfo{
@@ -76,7 +77,7 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environmen
 
 // GetConfig returns the transformer config
 func (t *CNBContainerizer) GetConfig() (transformertypes.Transformer, *environment.Environment) {
-	return t.TConfig, t.Env
+	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
@@ -94,7 +95,7 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 		logrus.Errorf("Detect failed %s : %s : %d : %s", stdout, stderr, exitcode, err)
 		return nil, nil, err
 	} else if exitcode != 0 {
-		logrus.Debugf("Detect did not succeed %s : %s : %d : %s", stdout, stderr, exitcode, err)
+		logrus.Debugf("Detect did not succeed %s : %s : %d", stdout, stderr, exitcode)
 		return nil, nil, nil
 	}
 	trans := transformertypes.TransformerPlan{
@@ -140,12 +141,12 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 		serviceContainerPorts := []core.ContainerPort{}
 		for _, port := range container.ExposedPorts {
 			// Add the port to the k8s pod.
-			serviceContainerPort := core.ContainerPort{ContainerPort: int32(port)}
+			serviceContainerPort := core.ContainerPort{ContainerPort: port}
 			serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
 			// Forward the port on the k8s service to the k8s pod.
-			podPort := irtypes.Port{Number: int32(port)}
+			podPort := networking.ServiceBackendPort{Number: port}
 			servicePort := podPort
-			irService.AddPortForwarding(servicePort, podPort)
+			irService.AddPortForwarding(servicePort, podPort, "")
 		}
 		serviceContainer.Ports = serviceContainerPorts
 		irService.Containers = []core.Container{serviceContainer}

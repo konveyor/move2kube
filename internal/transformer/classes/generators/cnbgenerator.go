@@ -28,20 +28,20 @@ import (
 
 // CNBGenerator implements Transformer interface
 type CNBGenerator struct {
-	TConfig transformertypes.Transformer
-	Env     *environment.Environment
+	Config transformertypes.Transformer
+	Env    *environment.Environment
 }
 
 // Init Initializes the transformer
 func (t *CNBGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
-	t.TConfig = tc
+	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
 func (t *CNBGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
-	return t.TConfig, t.Env
+	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in the base directory
@@ -76,7 +76,7 @@ func (t *CNBGenerator) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			DestPath: common.DefaultSourceDir,
 		}, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),
+			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
 			TemplateConfig: tc,
 		})

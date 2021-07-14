@@ -25,20 +25,20 @@ import (
 
 // ReadMeGenerator implements Transformer interface
 type ReadMeGenerator struct {
-	TConfig transformertypes.Transformer
-	Env     *environment.Environment
+	Config transformertypes.Transformer
+	Env    *environment.Environment
 }
 
 // Init initializes the translator
 func (t *ReadMeGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
-	t.TConfig = tc
+	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the config of the transformer
 func (t *ReadMeGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
-	return t.TConfig, t.Env
+	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect executes detect in base directory
@@ -56,7 +56,7 @@ func (t *ReadMeGenerator) Transform(newArtifacts []transformertypes.Artifact, ol
 	pathMappings := []transformertypes.PathMapping{}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:    transformertypes.TemplatePathMappingType,
-		SrcPath: filepath.Join(t.Env.Context, t.TConfig.Spec.TemplatesDir),
+		SrcPath: filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 	})
 	return pathMappings, nil, nil
 }

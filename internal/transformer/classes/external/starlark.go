@@ -59,7 +59,7 @@ const (
 
 // Starlark implements transformer interface and is used to write simple external transformers
 type Starlark struct {
-	TConfig     transformertypes.Transformer
+	Config      transformertypes.Transformer
 	StarConfig  StarYamlConfig
 	StarThread  *starlark.Thread
 	StarGlobals starlark.StringDict
@@ -77,12 +77,12 @@ type StarYamlConfig struct {
 
 // Init Initializes the transformer
 func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
-	t.TConfig = tc
+	t.Config = tc
 	t.Env = env
 	t.StarConfig = StarYamlConfig{}
-	err = common.GetObjFromInterface(t.TConfig.Spec.Config, &t.StarConfig)
+	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.StarConfig)
 	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.TConfig.Spec.Config, t.StarConfig, err)
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.StarConfig, err)
 		return err
 	}
 	t.StarThread = &starlark.Thread{Name: tc.Name}
@@ -131,7 +131,7 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Enviro
 
 // GetConfig returns the transformer config
 func (t *Starlark) GetConfig() (transformertypes.Transformer, *environment.Environment) {
-	return t.TConfig, t.Env
+	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory

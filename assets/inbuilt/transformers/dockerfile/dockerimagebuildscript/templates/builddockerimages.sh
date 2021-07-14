@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 {{range $dockerfile := . }}
-cd {{ $dockerfile.ContextToSlash }}
+cd {{ $dockerfile.ContextUnix }}
 docker build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 cd -
 {{end}}

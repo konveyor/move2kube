@@ -64,18 +64,15 @@ type Service struct {
 	ServiceToPodPortForwardings []ServiceToPodPortForwarding
 	Replicas                    int
 	Networks                    []string
-	ServiceRelPath              string //Ingress fan-out path
 	OnlyIngress                 bool
 	Daemon                      bool //Gets converted to DaemonSet
 }
 
-// Port is a port number with an optional port name.
-type Port networking.ServiceBackendPort
-
 // ServiceToPodPortForwarding forwards a k8s service port to a k8s pod port
 type ServiceToPodPortForwarding struct {
-	ServicePort Port
-	PodPort     Port
+	ServicePort    networking.ServiceBackendPort
+	PodPort        networking.ServiceBackendPort
+	ServiceRelPath string //Ingress fan-out path - If empty the service is not exposed
 }
 
 // ContainerBuildTypeValue stores the container build type
@@ -86,7 +83,7 @@ type ContainerBuildArtifactTypeValue string
 
 // ContainerImage defines images that need to be built or reused.
 type ContainerImage struct {
-	ExposedPorts []int    `yaml:"ports"`
+	ExposedPorts []int32  `yaml:"ports"`
 	UserID       int      `yaml:"userID"`
 	AccessedDirs []string `yaml:"accessedDirs"`
 	Build        ContainerBuild
@@ -177,30 +174,32 @@ func (service *Service) merge(nService Service) {
 		service.Replicas = nService.Replicas
 	}
 	service.Networks = common.MergeStringSlices(service.Networks, nService.Networks...)
-	if nService.ServiceRelPath != "" {
-		service.ServiceRelPath = nService.ServiceRelPath
-	}
 	service.OnlyIngress = service.OnlyIngress && nService.OnlyIngress
 	service.Daemon = service.Daemon && nService.Daemon
-	// TODO: Check if this needs a more intelligent merge
-	service.ServiceToPodPortForwardings = append(service.ServiceToPodPortForwardings, nService.ServiceToPodPortForwardings...)
+	for _, pf := range nService.ServiceToPodPortForwardings {
+		service.AddPortForwarding(pf.ServicePort, pf.PodPort, pf.ServiceRelPath)
+	}
 }
 
 // AddPortForwarding adds a new port forwarding to the service.
-func (service *Service) AddPortForwarding(servicePort Port, podPort Port) error {
+func (service *Service) AddPortForwarding(servicePort networking.ServiceBackendPort, podPort networking.ServiceBackendPort, relPath string) error {
 	for _, forwarding := range service.ServiceToPodPortForwardings {
 		if servicePort.Name != "" && forwarding.ServicePort.Name == servicePort.Name {
 			err := fmt.Errorf("the port name %s on %s service is already in use. Not adding the new forwarding", servicePort.Name, service.Name)
-			logrus.Warn(err)
 			return err
 		}
 		if forwarding.ServicePort.Number == servicePort.Number {
 			err := fmt.Errorf("the port number %d on %s service is already in use. Not adding the new forwarding", servicePort.Number, service.Name)
-			logrus.Warn(err)
 			return err
 		}
 	}
-	newForwarding := ServiceToPodPortForwarding{ServicePort: servicePort, PodPort: podPort}
+	newForwarding := ServiceToPodPortForwarding{ServicePort: servicePort, PodPort: podPort, ServiceRelPath: relPath}
+	for _, pf := range service.ServiceToPodPortForwardings {
+		if pf.PodPort == newForwarding.PodPort || pf.ServicePort == newForwarding.ServicePort {
+			return fmt.Errorf("mapping exists for port %v:%v in service %s. Ignoring", pf.PodPort, pf.ServicePort, service.Name)
+		}
+	}
+	//TODO: Make sure the port is exposed by at least one container
 	service.ServiceToPodPortForwardings = append(service.ServiceToPodPortForwardings, newForwarding)
 	return nil
 }
@@ -229,7 +228,7 @@ func (service *Service) HasValidAnnotation(annotation string) bool {
 // NewContainer creates a new container
 func NewContainer() ContainerImage {
 	return ContainerImage{
-		ExposedPorts: []int{},
+		ExposedPorts: []int32{},
 		UserID:       -1,
 		AccessedDirs: []string{},
 	}
@@ -240,7 +239,7 @@ func (c *ContainerImage) Merge(newc ContainerImage) bool {
 	if c.UserID != newc.UserID {
 		logrus.Errorf("Two different users found for image : %d in %d. Ignoring new users.", c.UserID, newc.UserID)
 	}
-	c.ExposedPorts = common.MergeIntSlices(c.ExposedPorts, newc.ExposedPorts)
+	c.ExposedPorts = common.MergeInt32Slices(c.ExposedPorts, newc.ExposedPorts)
 	c.AccessedDirs = common.MergeStringSlices(c.AccessedDirs, newc.AccessedDirs...)
 	c.Build.Merge(newc.Build)
 	return true
@@ -266,8 +265,8 @@ func (c *ContainerBuild) Merge(newc ContainerBuild) bool {
 }
 
 // AddExposedPort adds an exposed port to a container
-func (c *ContainerImage) AddExposedPort(port int) {
-	if !common.IsIntPresent(c.ExposedPorts, port) {
+func (c *ContainerImage) AddExposedPort(port int32) {
+	if !common.IsInt32Present(c.ExposedPorts, port) {
 		c.ExposedPorts = append(c.ExposedPorts, port)
 	}
 }
@@ -303,7 +302,7 @@ func (ir *IR) Merge(newir IR) {
 
 // NewServiceWithName initializes a service with just the name.
 func NewServiceWithName(serviceName string) Service {
-	return Service{Name: serviceName, ServiceRelPath: "/" + serviceName}
+	return Service{Name: serviceName}
 }
 
 // Merge merges storage

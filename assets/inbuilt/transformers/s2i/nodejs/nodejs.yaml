@@ -5,9 +5,5 @@ metadata:
 spec:
   mode: "Container"
   class: "Starlark"
-  generates: 
-    - "ContainerBuild"
-  generatedBases: 
-    - "ContainerBuild"
   config:
     starFile: "nodejs.star"

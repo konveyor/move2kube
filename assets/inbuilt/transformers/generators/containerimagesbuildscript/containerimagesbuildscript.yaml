@@ -5,7 +5,5 @@ metadata:
 spec:
   mode: "Container"
   class: "ContainerImagesBuildScript"
-  generates: 
-    - "ContainerImagesBuildScript"
   consumes: 
     - "ContainerImageBuildScript"

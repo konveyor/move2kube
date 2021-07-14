@@ -27,6 +27,7 @@ import (
 	"github.com/konveyor/move2kube/internal/apiresource"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/common/sshkeys"
+	"github.com/konveyor/move2kube/internal/irpreprocessor"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -85,6 +86,13 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, oldArt
 		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
+		}
+		ir.Name = a.Name
+		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		if err != nil {
+			logrus.Errorf("Unable to prepreocess IR : %s", err)
+		} else {
+			ir = preprocessedIR
 		}
 		if !(len(t.Env.TargetCluster.Spec.GetSupportedVersions("BuildConfig")) > 0) {
 			logrus.Debugf("BuildConfig was not found on the target cluster.")

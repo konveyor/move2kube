@@ -22,7 +22,7 @@ error() {
 main() {
     [ ! -e "$1" ] && exit 1
     [ "$#" -gt 1 ] && error 'there are multiple WAR files. taking only the first one: '"$1"
-    printf '{"port":9080, "war_path":"%s"}' "$(basename "$1")"
+    printf '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","port":9080, "war_path":"%s"}' "$(basename "$1")"
 }
 
 main "$1/"*.war

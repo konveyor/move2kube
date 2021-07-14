@@ -30,7 +30,7 @@ if [ -f "$1/build.xml" ]; then
 fi
 
 if [ -f "$1/pom.xml" ]; then
-   echo '{"builder": "'$WEB_IMAGE'", "port": 8080}'
+   echo '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","builder": "'$WEB_IMAGE'", "port": 8080}'
    exit 0
 fi
 
@@ -40,4 +40,4 @@ if [ ! "$found" -eq 1 ]; then
    exit 1
 fi
 
-echo '{"builder": "'$NATIVE_IMAGE'", "port": 8080}'
+echo '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","builder": "'$NATIVE_IMAGE'", "port": 8080}'

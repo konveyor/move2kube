@@ -14,19 +14,22 @@
 
 :: Invoke as pushimages.bat <registry_url> <registry_namespace>
 
-IF "%~2"=="" IF "%~1"=="" GOTO DEFAULT
-    REGISTRY_URL={{ .RegistryURL }}
-    REGISTRY_NAMESPACE={{ .RegistryNamespace }}
+@echo off
+
+IF "%2"=="" GOTO DEFAULT
+IF "%1"=="" GOTO DEFAULT
+    SET REGISTRY_URL=%1
+    SET REGISTRY_NAMESPACE=%2
 GOTO :MAIN
 
 :DEFAULT
-    REGISTRY_URL=$1
-    REGISTRY_NAMESPACE=$2
+    SET REGISTRY_URL={{ .RegistryURL }}
+    SET REGISTRY_NAMESPACE={{ .RegistryNamespace }}
 
 :MAIN
 :: Uncomment the below line if you want to enable login before pushing
-:: docker login ${REGISTRY_URL}
+:: docker login %REGISTRY_URL%
 
-{{range $image := .Images}}docker tag {{$image}} ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{$image}}
-docker push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{$image}}
+{{range $image := .Images}}docker tag {{$image}} %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}
+docker push %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}
 {{end}}

@@ -37,22 +37,31 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		return ir, nil
 	}
 
-	for sn := range ir.Services {
-		key := common.ConfigServicesKey + common.Delim + `"` + sn + `"` + common.Delim + "urlpath"
-		message := fmt.Sprintf("What URL/path should we expose the service %s on?", sn)
-		hints := []string{"Enter empty string to not expose the service"}
-		exposedServiceRelPath := "/" + sn
-		exposedServiceRelPath = strings.TrimSpace(qaengine.FetchStringAnswer(key, message, hints, exposedServiceRelPath))
-		logrus.Debugf("Exposing service %s on path %s", sn, exposedServiceRelPath)
+	for sn, s := range ir.Services {
 		tempService := ir.Services[sn]
-		tempService.ServiceRelPath = exposedServiceRelPath
-		if exposedServiceRelPath != "" && !strings.HasPrefix(exposedServiceRelPath, "/") {
-			exposedServiceRelPath = "/" + exposedServiceRelPath
+		expose := false
+		for _, pf := range s.ServiceToPodPortForwardings {
+			if pf.ServicePort.Number == 0 {
+				continue
+			}
+			key := common.ConfigServicesKey + common.Delim + `"` + sn + `"` + common.Delim + `"` + fmt.Sprintf("%d", pf.ServicePort.Number) + `"` + common.Delim + "urlpath"
+			message := fmt.Sprintf("What URL/path should we expose the service %s's %d port on?", sn, pf.ServicePort.Number)
+			hints := []string{"Enter :- not expose the service", "Leave out leading / to use first part as subdomain", "Add :N as suffix for NodePort service type", "Add :L for Load Balancer service type"}
+			exposedServiceRelPath := ""
+			if pf.ServiceRelPath != "" {
+				exposedServiceRelPath = pf.ServiceRelPath
+			} else {
+				exposedServiceRelPath = "/" + sn
+			}
+			exposedServiceRelPath = strings.TrimSpace(qaengine.FetchStringAnswer(key, message, hints, exposedServiceRelPath))
+			if exposedServiceRelPath != "" {
+				expose = true
+			}
 		}
 		if tempService.Annotations == nil {
 			tempService.Annotations = map[string]string{}
 		}
-		if exposedServiceRelPath != "" {
+		if expose {
 			tempService.Annotations[common.ExposeSelector] = common.AnnotationLabelValue
 		} else {
 			delete(tempService.Annotations, common.ExposeSelector)

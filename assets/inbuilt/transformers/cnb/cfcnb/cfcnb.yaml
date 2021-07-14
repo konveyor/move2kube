@@ -5,9 +5,5 @@ metadata:
 spec:
   mode: "Container"
   class: "CNBContainerizer"
-  generates: 
-    - "ContainerBuild"
-  generatedBases: 
-    - "ContainerBuild"
   config:
     CNBBuilder: "cloudfoundry/cnb:cflinuxfs3"

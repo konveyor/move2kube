@@ -18,6 +18,7 @@ package apiresource
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/k8sschema"
@@ -79,15 +80,8 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 			logrus.Errorf("Could not find a valid resource type in cluster to create a Service")
 			continue
 		}
-		if exposeobjectcreated || !service.HasValidAnnotation(common.ExposeSelector) {
-			//Create clusterip service
-			obj := d.createService(service, core.ServiceTypeClusterIP)
-			objs = append(objs, obj)
-		} else {
-			//Create Nodeport service - TODO: Should it be load balancer or Nodeport? Should it be QA?
-			obj := d.createService(service, core.ServiceTypeNodePort)
-			objs = append(objs, obj)
-		}
+		obj := d.createService(service)
+		objs = append(objs, obj)
 	}
 
 	// Create one ingress for all services
@@ -374,18 +368,9 @@ func (d *Service) ingressToService(ingress networking.Ingress) []runtime.Object 
 
 func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) [](*okdroutev1.Route) {
 	routes := [](*okdroutev1.Route){}
-	servicePorts := d.getServicePorts(service)
-	pathPrefix := service.ServiceRelPath
-	for _, servicePort := range servicePorts {
-		path := pathPrefix
-		if len(servicePorts) > 1 {
-			// All ports cannot be exposed as /ServiceRelPath because they will clash
-			path = pathPrefix + "/" + servicePort.Name
-			if servicePort.Name == "" {
-				path = pathPrefix + "/" + cast.ToString(servicePort.Port)
-			}
-		}
-		route := d.createRoute(service, servicePort, path, ir, targetClusterSpec)
+	servicePorts, hostPrefixes, relPaths, _ := d.getExposeInfo(service)
+	for i, servicePort := range servicePorts {
+		route := d.createRoute(service, servicePort, hostPrefixes[i], relPaths[i], ir, targetClusterSpec)
 		routes = append(routes, route)
 	}
 	return routes
@@ -396,7 +381,7 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR, t
 //[https://bugzilla.redhat.com/show_bug.cgi?id=1773682]
 // Can't use https because of this https://github.com/openshift/origin/issues/2162
 // When service has multiple ports,the route needs a port name. Port number doesn't seem to work.
-func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, path string, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) *okdroutev1.Route {
+func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, hostprefix, path string, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) *okdroutev1.Route {
 	weight := int32(1)                                    //Hard-coded to 1 to avoid Helm v3 errors
 	ingressArray := []okdroutev1.RouteIngress{{Host: ""}} //Hard-coded to empty string to avoid Helm v3 errors
 
@@ -410,7 +395,7 @@ func (d *Service) createRoute(service irtypes.Service, port core.ServicePort, pa
 			Labels: getServiceLabels(service.Name),
 		},
 		Spec: okdroutev1.RouteSpec{
-			Host: targetClusterSpec.Host,
+			Host: hostprefix + "." + targetClusterSpec.Host,
 			Path: path,
 			To: okdroutev1.RouteTargetReference{
 				Kind:   common.ServiceKind,
@@ -432,7 +417,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 	pathType := networking.PathTypePrefix
 
 	// Create the fan-out paths
-	httpIngressPaths := []networking.HTTPIngressPath{}
+	hostHttpIngressPaths := map[string][]networking.HTTPIngressPath{} //[hostprefix]
 	for _, service := range ir.Services {
 		if !service.HasValidAnnotation(common.ExposeSelector) {
 			continue
@@ -441,23 +426,14 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 		if service.BackendServiceName == "" {
 			backendServiceName = service.Name
 		}
-		servicePorts := d.getServicePorts(service)
-		pathPrefix := service.ServiceRelPath
-		for _, servicePort := range servicePorts {
-			path := pathPrefix
-			if len(servicePorts) > 1 {
-				// All ports cannot be exposed as /ServiceRelPath because they will clash
-				path = pathPrefix + "/" + servicePort.Name
-				if servicePort.Name == "" {
-					path = pathPrefix + "/" + cast.ToString(servicePort.Port)
-				}
-			}
+		servicePorts, hostPrefixes, relPaths, _ := d.getExposeInfo(service)
+		for i, servicePort := range servicePorts {
 			backendPort := networking.ServiceBackendPort{Name: servicePort.Name}
 			if servicePort.Name == "" {
 				backendPort = networking.ServiceBackendPort{Number: servicePort.Port}
 			}
 			httpIngressPath := networking.HTTPIngressPath{
-				Path:     path,
+				Path:     relPaths[i],
 				PathType: &pathType,
 				Backend: networking.IngressBackend{
 					Service: &networking.IngressServiceBackend{
@@ -466,20 +442,22 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 					},
 				},
 			}
-			httpIngressPaths = append(httpIngressPaths, httpIngressPath)
+			hostHttpIngressPaths[hostPrefixes[i]] = append(hostHttpIngressPaths[hostPrefixes[i]], httpIngressPath)
 		}
 	}
 
 	// Configure the rule with the above fan-out paths
-	rules := []networking.IngressRule{
-		{
-			Host: targetClusterSpec.Host,
+	rules := []networking.IngressRule{}
+
+	for hostprefix, httpIngressPaths := range hostHttpIngressPaths {
+		rules = append(rules, networking.IngressRule{
+			Host: hostprefix + `/` + targetClusterSpec.Host,
 			IngressRuleValue: networking.IngressRuleValue{
 				HTTP: &networking.HTTPIngressRuleValue{
 					Paths: httpIngressPaths,
 				},
 			},
-		},
+		})
 	}
 
 	ingressName := ir.Name
@@ -499,8 +477,8 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 }
 
 // createService creates a service
-func (d *Service) createService(service irtypes.Service, serviceType core.ServiceType) *core.Service {
-	ports := d.getServicePorts(service)
+func (d *Service) createService(service irtypes.Service) *core.Service {
+	ports, _, _, serviceType := d.getExposeInfo(service)
 	svc := &core.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       common.ServiceKind,
@@ -524,9 +502,15 @@ func (d *Service) createService(service irtypes.Service, serviceType core.Servic
 }
 
 // GetServicePorts configure the container service ports.
-func (d *Service) getServicePorts(service irtypes.Service) []core.ServicePort {
-	servicePorts := []core.ServicePort{}
+func (d *Service) getExposeInfo(service irtypes.Service) (servicePorts []core.ServicePort, hostPrefixes []string, relPaths []string, serviceType core.ServiceType) {
+	servicePorts = []core.ServicePort{}
+	relPaths = []string{}
+	hostPrefixes = []string{}
+	serviceType = core.ServiceTypeClusterIP
 	for _, forwarding := range service.ServiceToPodPortForwardings {
+		if forwarding.ServiceRelPath == "" {
+			continue
+		}
 		servicePortName := forwarding.ServicePort.Name
 		if servicePortName == "" {
 			servicePortName = fmt.Sprintf("port-%d", forwarding.ServicePort.Number)
@@ -541,7 +525,51 @@ func (d *Service) getServicePorts(service irtypes.Service) []core.ServicePort {
 			Port:       forwarding.ServicePort.Number,
 			TargetPort: targetPort,
 		}
+		hostPrefix, relPath, st := d.parseServiceRelPath(forwarding.ServiceRelPath)
+		switch st {
+		case core.ServiceTypeLoadBalancer:
+			serviceType = st
+		case core.ServiceTypeNodePort:
+			if serviceType != core.ServiceTypeLoadBalancer {
+				serviceType = st
+			}
+		case "":
+			continue
+		}
+		relPaths = append(relPaths, relPath)
+		hostPrefixes = append(relPaths, hostPrefix)
 		servicePorts = append(servicePorts, servicePort)
 	}
-	return servicePorts
+	return servicePorts, hostPrefixes, relPaths, serviceType
+}
+
+func (d *Service) parseServiceRelPath(path string) (hostPrefix, relPath string, serviceType core.ServiceType) {
+	serviceType = core.ServiceTypeClusterIP
+	relPath = path
+	const nodeportSuffix = ":N"
+	const loadBalancerSuffix = ":L"
+	const noneSuffix = ":-"
+	if strings.HasSuffix(relPath, nodeportSuffix) {
+		serviceType = core.ServiceTypeNodePort
+		relPath = strings.TrimSuffix(relPath, nodeportSuffix)
+	}
+	if strings.HasSuffix(relPath, loadBalancerSuffix) {
+		serviceType = core.ServiceTypeLoadBalancer
+		relPath = strings.TrimSuffix(relPath, loadBalancerSuffix)
+	}
+	if strings.HasSuffix(relPath, noneSuffix) {
+		serviceType = ""
+		relPath = strings.TrimSuffix(relPath, noneSuffix)
+	}
+	if !strings.HasPrefix(relPath, `/`) {
+		parts := []string{relPath}
+		if strings.Contains(relPath, `/`) {
+			parts = strings.SplitN(relPath, `/`, 2)
+		}
+		if len(parts) > 1 {
+			relPath = `/` + parts[1]
+		}
+		hostPrefix = parts[0]
+	}
+	return hostPrefix, relPath, serviceType
 }

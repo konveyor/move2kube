@@ -24,4 +24,4 @@ if [ ! "$found" -eq 1 ]; then
     exit 1
 fi
 
-echo '{"builder": "'$IMAGE'", "port": 8080}'
+echo '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","builder": "'$IMAGE'", "port": 8080}'

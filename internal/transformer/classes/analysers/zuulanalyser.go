@@ -133,7 +133,8 @@ func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldAr
 
 		ir := irtypes.NewIR()
 		logrus.Debugf("Transforming %s", sConfig.ServiceName)
-		serviceConfig := irtypes.Service{Name: sConfig.ServiceName, ServiceRelPath: config.ServiceRelativePath, Annotations: map[string]string{common.ExposeSelector: common.AnnotationLabelValue}}
+		//TOFIX
+		serviceConfig := irtypes.Service{Name: sConfig.ServiceName, Annotations: map[string]string{common.ExposeSelector: common.AnnotationLabelValue}}
 		ir.Services[sConfig.ServiceName] = serviceConfig
 		artifactsCreated = append(artifactsCreated, transformertypes.Artifact{
 			Name:     t.Env.GetProjectName(),

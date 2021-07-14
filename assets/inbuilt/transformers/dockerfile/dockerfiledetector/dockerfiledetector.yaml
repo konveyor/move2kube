@@ -5,8 +5,3 @@ metadata:
 spec:
   mode: "Container"
   class: "DockerfileDetector"
-  generates: 
-    - "ContainerBuild"
-    - "Dockerfile"
-  generatedBases: 
-    - "ContainerBuild"

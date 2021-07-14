@@ -35,6 +35,7 @@ import (
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 // CloudFoundry implements Transformer interface
@@ -202,20 +203,20 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldAr
 					// Add the port to the k8s pod.
 					serviceContainer.Ports = append(serviceContainer.Ports, core.ContainerPort{ContainerPort: port})
 					// Forward the port on the k8s service to the k8s pod.
-					podPort := irtypes.Port{Number: int32(port)}
+					podPort := networking.ServiceBackendPort{Number: port}
 					servicePort := podPort
-					serviceConfig.AddPortForwarding(servicePort, podPort)
+					serviceConfig.AddPortForwarding(servicePort, podPort, "")
 				}
 				envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(cfinstanceapp.Ports[0])}
 				serviceContainer.Env = append(serviceContainer.Env, envvar)
 			} else {
 				port := common.DefaultServicePort
 				// Add the port to the k8s pod.
-				serviceContainer.Ports = []core.ContainerPort{{ContainerPort: int32(port)}}
+				serviceContainer.Ports = []core.ContainerPort{{ContainerPort: port}}
 				// Forward the port on the k8s service to the k8s pod.
-				podPort := irtypes.Port{Number: int32(port)}
+				podPort := networking.ServiceBackendPort{Number: port}
 				servicePort := podPort
-				serviceConfig.AddPortForwarding(servicePort, podPort)
+				serviceConfig.AddPortForwarding(servicePort, podPort, "")
 				envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(port)}
 				serviceContainer.Env = append(serviceContainer.Env, envvar)
 			}

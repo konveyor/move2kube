@@ -28,24 +28,25 @@ import (
 	dockerparser "github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 // DockerfileParser implements Transformer interface
 type DockerfileParser struct {
-	TConfig transformertypes.Transformer
-	Env     *environment.Environment
+	Config transformertypes.Transformer
+	Env    *environment.Environment
 }
 
 // Init Initializes the transformer
 func (t *DockerfileParser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
-	t.TConfig = tc
+	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
 func (t *DockerfileParser) GetConfig() (transformertypes.Transformer, *environment.Environment) {
-	return t.TConfig, t.Env
+	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
@@ -114,7 +115,7 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 					logrus.Errorf("Unable to parse port %s as int in %s", dfchild.Value, dockerfilepath)
 					continue
 				}
-				container.AddExposedPort(p)
+				container.AddExposedPort(int32(p))
 			}
 		}
 	}
@@ -129,12 +130,12 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 	serviceContainerPorts := []core.ContainerPort{}
 	for _, port := range container.ExposedPorts {
 		// Add the port to the k8s pod.
-		serviceContainerPort := core.ContainerPort{ContainerPort: int32(port)}
+		serviceContainerPort := core.ContainerPort{ContainerPort: port}
 		serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
 		// Forward the port on the k8s service to the k8s pod.
-		podPort := irtypes.Port{Number: int32(port)}
+		podPort := networking.ServiceBackendPort{Number: port}
 		servicePort := podPort
-		irService.AddPortForwarding(servicePort, podPort)
+		irService.AddPortForwarding(servicePort, podPort, "")
 	}
 	serviceContainer.Ports = serviceContainerPorts
 	irService.Containers = []core.Container{serviceContainer}
