@@ -242,7 +242,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 			javaVersion = "1.8"
 		}
 
-		mappingPath := filepath.Join(t.Env.Context, "mappings/java2images_tags.json")
+		mappingPath := filepath.Join(t.Env.Context, "mappings/java2images_tags_amd64.json")
 
 		var appServers AppServers
 		java2ImagesMappging, err := ioutil.ReadFile(mappingPath)
