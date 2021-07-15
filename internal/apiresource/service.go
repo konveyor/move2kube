@@ -494,7 +494,7 @@ func (d *Service) parseServiceRelPath(path string) (hostPrefix, relPath string, 
 		serviceType = ""
 		relPath = strings.TrimSuffix(relPath, noneSuffix)
 	}
-	if !strings.HasPrefix(relPath, `/`) {
+	if relPath != "" && !strings.HasPrefix(relPath, `/`) {
 		parts := []string{relPath}
 		if strings.Contains(relPath, `/`) {
 			parts = strings.SplitN(relPath, `/`, 2)

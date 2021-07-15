@@ -210,7 +210,18 @@ func (c *Config) AddSolution(p Problem) error {
 		return err
 	}
 
-	selectedAnswers := p.Answer.([]string)
+	selectedAnswers, ok := p.Answer.([]string)
+	if !ok {
+		iArr, ok := p.Answer.([]interface{})
+		if !ok {
+			logrus.Errorf("Unable to convert to []interface{}")
+			selectedAnswers = []string{}
+		} else {
+			for _, iV := range iArr {
+				selectedAnswers = append(selectedAnswers, iV.(string))
+			}
+		}
+	}
 	// multi-select problem has 2 cases
 	key := p.ID
 	idx := strings.LastIndex(key, common.Special)
