@@ -30,7 +30,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
@@ -127,12 +127,12 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 					Content:     data,
 				})
 			} else {
-				log.Warnf("Unable to create auth string : %s", err)
+				logrus.Warnf("Unable to create auth string : %s", err)
 			}
 		}
 	}
 
-	for _, service := range ir.Services {
+	for sn, service := range ir.Services {
 		for i, serviceContainer := range service.Containers {
 			if common.IsStringPresent(newimages, serviceContainer.Image) {
 				image, tag := common.GetImageNameAndTag(serviceContainer.Image)
@@ -161,7 +161,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 				}
 			}
 		}
-		ir.Services[service.Name] = service
+		ir.Services[sn] = service
 	}
 	return ir, nil
 }

@@ -71,3 +71,8 @@ func ImageRegistryNamespace(def string) string {
 func IngressHost(defaulthost string) string {
 	return qaengine.FetchStringAnswer(common.ConfigIngressHostKey, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaulthost)
 }
+
+// MinimumReplicaCount returns minimum replica count
+func MinimumReplicaCount(defaultminreplicas string) string {
+	return qaengine.FetchStringAnswer(common.ConfigMinReplicasKey, "Provide the minimum number of replicas each service should have", []string{"If the value is 0 pods won't be started by default"}, defaultminreplicas)
+}

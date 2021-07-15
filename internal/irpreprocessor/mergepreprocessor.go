@@ -40,6 +40,23 @@ func (opt *mergePreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 				service.AddPortForwarding(networking.ServiceBackendPort{Number: p.ContainerPort}, networking.ServiceBackendPort{Number: p.ContainerPort}, "")
 			}
 		}
+		tolerations := service.Tolerations
+		service.Tolerations = []core.Toleration{}
+		for _, t := range tolerations {
+			if (t == core.Toleration{}) {
+				continue
+			}
+			found := false
+			for _, ot := range service.Tolerations {
+				if ot == t {
+					found = true
+					continue
+				}
+			}
+			if !found {
+				service.Tolerations = append(service.Tolerations, t)
+			}
+		}
 		ir.Services[serviceName] = service
 	}
 	return ir, nil
