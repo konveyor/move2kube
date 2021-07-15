@@ -46,12 +46,16 @@ func (opt *mergePreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 			if (t == core.Toleration{}) {
 				continue
 			}
+			found := false
 			for _, ot := range service.Tolerations {
 				if ot == t {
+					found = true
 					continue
 				}
 			}
-			service.Tolerations = append(service.Tolerations, t)
+			if !found {
+				service.Tolerations = append(service.Tolerations, t)
+			}
 		}
 		ir.Services[serviceName] = service
 	}
