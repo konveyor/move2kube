@@ -77,6 +77,8 @@ const (
 	ConfigServicesKey = BaseKey + d + "services"
 	//ConfigStoragesKey represents Storages Key
 	ConfigStoragesKey = BaseKey + d + "storages"
+	//ConfigMinReplicasKey represents Ingress host Key
+	ConfigMinReplicasKey = BaseKey + d + "minreplicas"
 	//ConfigModesKey represents modes Key
 	ConfigModesKey = BaseKey + d + "modes"
 	//ConfigSpawmContainersKey represents modes Key

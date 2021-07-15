@@ -17,7 +17,12 @@
 package irpreprocessor
 
 import (
+	"fmt"
+	"strconv"
+
 	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube/types/qaengine/commonqa"
+	"github.com/sirupsen/logrus"
 )
 
 // replicaOptimizer sets the minimum number of replicas
@@ -25,13 +30,19 @@ type replicaPreprocessor struct {
 }
 
 const (
-	minReplicas = 2
+	minReplicas int = 2
 )
 
 func (ep replicaPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
+	replicaCountStr := commonqa.MinimumReplicaCount(fmt.Sprintf("%d", minReplicas))
+	replicaCount, err := strconv.Atoi(replicaCountStr)
+	if err != nil {
+		logrus.Errorf("Replica count %s is not a number. Reverting to default %d.", replicaCountStr, minReplicas)
+		replicaCount = minReplicas
+	}
 	for k, scObj := range ir.Services {
-		if scObj.Replicas < minReplicas {
-			scObj.Replicas = minReplicas
+		if scObj.Replicas < replicaCount {
+			scObj.Replicas = replicaCount
 		}
 		ir.Services[k] = scObj
 	}

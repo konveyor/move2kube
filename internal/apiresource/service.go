@@ -465,7 +465,7 @@ func (d *Service) getExposeInfo(service irtypes.Service) (servicePorts []core.Se
 			if serviceType != core.ServiceTypeLoadBalancer {
 				serviceType = st
 			}
-		case core.ServiceTypeClusterIP, "":
+		case "":
 			continue
 		}
 		relPaths = append(relPaths, relPath)
@@ -499,8 +499,9 @@ func (d *Service) parseServiceRelPath(path string) (hostPrefix, relPath string, 
 		if strings.Contains(relPath, `/`) {
 			parts = strings.SplitN(relPath, `/`, 2)
 		}
+		relPath = `/`
 		if len(parts) > 1 {
-			relPath = `/` + parts[1]
+			relPath += parts[1]
 		}
 		hostPrefix = parts[0]
 	}
