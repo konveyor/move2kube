@@ -40,7 +40,7 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 	for sn, s := range ir.Services {
 		tempService := ir.Services[sn]
 		expose := false
-		for _, pf := range s.ServiceToPodPortForwardings {
+		for pfi, pf := range s.ServiceToPodPortForwardings {
 			if pf.ServicePort.Number == 0 {
 				continue
 			}
@@ -54,9 +54,11 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 				exposedServiceRelPath = "/" + sn
 			}
 			exposedServiceRelPath = strings.TrimSpace(qaengine.FetchStringAnswer(key, message, hints, exposedServiceRelPath))
+			pf.ServiceRelPath = exposedServiceRelPath
 			if exposedServiceRelPath != "" {
 				expose = true
 			}
+			tempService.ServiceToPodPortForwardings[pfi] = pf
 		}
 		if tempService.Annotations == nil {
 			tempService.Annotations = map[string]string{}

@@ -153,7 +153,9 @@ func (bc *BuildConfig) getBuildTriggerPolicy(irBuildConfig irtypes.BuildConfig, 
 	if repoURL != "" {
 		gitRepoURLObj, err := giturls.Parse(repoURL)
 		if err != nil {
-			logrus.Warnf("Failed to parse git repo url %s Error: %q", repoURL, err)
+			if repoURL != "" {
+				logrus.Warnf("Failed to parse git repo url %s Error: %q", repoURL, err)
+			}
 		} else if gitRepoURLObj.Hostname() == "" {
 			logrus.Warnf("Successfully parsed git repo url %s but the host name is empty: %+v", repoURL, gitRepoURLObj)
 		} else {

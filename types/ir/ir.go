@@ -183,6 +183,9 @@ func (service *Service) merge(nService Service) {
 
 // AddPortForwarding adds a new port forwarding to the service.
 func (service *Service) AddPortForwarding(servicePort networking.ServiceBackendPort, podPort networking.ServiceBackendPort, relPath string) error {
+	if podPort.Number == 0 || servicePort.Number == 0 {
+		return fmt.Errorf("PodPort or ServicePort can not be 0")
+	}
 	for _, forwarding := range service.ServiceToPodPortForwardings {
 		if servicePort.Name != "" && forwarding.ServicePort.Name == servicePort.Name {
 			err := fmt.Errorf("the port name %s on %s service is already in use. Not adding the new forwarding", servicePort.Name, service.Name)
