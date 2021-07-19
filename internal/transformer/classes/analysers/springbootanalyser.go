@@ -46,58 +46,66 @@ const (
 
 // SpringbootAnalyser implements Transformer interface
 type SpringbootAnalyser struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config transformertypes.Transformer `yaml:"Config,omitempty"`
+	Env    *environment.Environment     `yaml:"Env,omitempty"`
 }
 
 // SpringbootConfig defines SpringbootConfig properties
 type SpringbootConfig struct {
 	ServiceName            string `yaml:"serviceName,omitempty"`
-	Ports                  []int  `yaml:"ports,omitempty"`
-	JavaVersion            string
-	ApplicationServer      string
-	ApplicationServerImage string
-	JavaBuildImage         string
-	JavaRuntimeImage       string
-	AppFile                string
-	DeploymentFile         string
+	Ports                  []int  `yaml:"Ports,omitempty"`
+	JavaVersion            string `yaml:"JavaVerison,omitempty"`
+	ApplicationServer      string `yaml:"ApplicationServer,omitempty"`
+	ApplicationServerImage string `yaml:"ApplicationServerImage,omitempty"`
+	JavaBuildImage         string `yaml:"JavaBuildImage,omitempty"`
+	JavaRuntimeImage       string `yaml:"JavaRuntimeImage,omitempty"`
+	AppFile                string `yaml:"AppFile,omitempty"`
+	DeploymentFile         string `yaml:"DeploymentFile,omitempty"`
 }
 
 // SpringbootTemplateConfig defines SpringbootTemplateConfig properties
 type SpringbootTemplateConfig struct {
-	Port             int
-	JavaBuildImage   string
-	JavaRuntimeImage string
-	AppServerImage   string
-	AppFile          string
-	DeploymentFile   string
+	Port             int    `yaml:"Port,omitempty"`
+	JavaBuildImage   string `yaml:"JavaBuildImage,omitempty"`
+	JavaRuntimeImage string `yaml:"JavaRuntimeImage,omitempty"`
+	AppServerImage   string `yaml:"AppServerImage,omitempty"`
+	AppFile          string `yaml:"AppFile,omitempty"`
+	DeploymentFile   string `yaml:"DeploymentFile,omitempty"`
 }
 
-// For loading map
+// AppServers defines AppServers properties
 type AppServers struct {
 	AppServers []AppServer `json:"app_servers"`
 }
+
+// AppServer defines AppServer properties
 type AppServer struct {
-	ID           string        `json:"id"`
-	JavaVersions []JavaVersion `json:"java_versions"`
+	ID           string        `yaml:"ID,omitempty" json:"id"`
+	JavaVersions []JavaVersion `yaml:"JavaVersions,omitempty" json:"java_versions"`
 }
+
+// JavaVersion defines JavaVersion properties
 type JavaVersion struct {
-	ID     string  `json:"version_id"`
-	Images []Image `json:"images"`
+	ID     string  `yaml:"ID,omitempty" json:"version_id"`
+	Images []Image `yaml:"Images,omitempty" json:"images"`
 }
+
+// Image defines Image properties
 type Image struct {
-	Name    string `json:"name"`
-	Created string `json:"created"`
+	Name    string `yaml:"Name,omitempty" json:"name"`
+	Created string `yaml:"Created,omitempty" json:"created"`
 }
 
+// JavaRuntime defines JavaRuntime properties
 type JavaRuntime struct {
-	JavaVersion string
-	Image       string
+	JavaVersion string `yaml:"JavaVersion,omitempty"`
+	Image       string `yaml:"Image,omitempty"`
 }
 
+// JavaBuild defines JavaBuild properties
 type JavaBuild struct {
-	JavaVersion string
-	Image       string
+	JavaVersion string `yaml:"JavaVersion,omitempty"`
+	Image       string `yaml:"Image,omitempty"`
 }
 
 // Init Initializes the transformer
@@ -220,7 +228,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	// If the server is not embedded, we check if it is open-liberty or jboss/wildfly
 	appServer := ""
 	if !isServerEmbedded {
-		// Server is not embedded. What type of server are we using?
+		// Server is not embedded. What type of server app are we using?
 
 		// Search for server.xml files
 		serverXMLfiles, err := common.GetFilesByName(dir, []string{"server.xml"})
@@ -228,6 +236,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 			logrus.Debugf("Cannot get server.xml files: %s", err)
 		}
 
+		// Current assumption: if there is at least one server.xml file, -> open-liberty
 		if len(serverXMLfiles) > 0 {
 			appServer = "openliberty/open-liberty"
 		} else {
@@ -245,7 +254,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 			javaVersion = "1.8"
 		}
 
-		mappingPath := filepath.Join(t.Env.Context, "mappings/java2images_tags_amd64.json")
+		mappingPath := filepath.Join(t.Env.Context, "mappings/java2images_tags.json")
 		var appServers AppServers
 		java2ImagesMappging, err := ioutil.ReadFile(mappingPath)
 		if err != nil {
@@ -311,14 +320,17 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		javaRuntimeImage = val
 	}
 
-	// Get app file
+	// Get app file and app name
+	appName := ""
 	appFile := ""
 	if pom.Name != "" {
 		appFile = pom.Name
+		appName = pom.Name
 	} else {
 		if pom.ArtifactID != "" {
 			appFile = pom.ArtifactID
 		}
+		appName = filepath.Base(dir)
 	}
 	if appFile != "" {
 		if pom.Version != "" {
@@ -352,7 +364,6 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	}
 
 	validSpringbootFiles := []string{}
-	appName := filepath.Base(dir)
 	ports := []int{}
 
 	for _, appfile := range appfiles {
@@ -399,6 +410,9 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 			applicationFilePath:           validSpringbootFiles,
 		},
 	}
+
+	logrus.Debugf("----- Pablo ----")
+	logrus.Debugf(appName)
 	return map[string]transformertypes.ServicePlan{appName: {ct}}, nil, nil
 }
 

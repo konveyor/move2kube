@@ -1,5 +1,10 @@
 
-FROM {{.JavaRuntimeImage}}
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+RUN microdnf update \
+   && microdnf install --nodocs \
+      {{ .JavaBuildImage }} \
+   && microdnf clean all
+
 COPY --from=build_base /app/target/*.jar app.jar
 EXPOSE {{.Port}}
 CMD ["java", "-Xmx200m", "-jar", "/app.jar"]

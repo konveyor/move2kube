@@ -104,10 +104,8 @@
 "inbuilt/transformers/s2i/ruby/ruby.yaml" : 0644
 "inbuilt/transformers/s2i/ruby/templates/$.s2i/environment" : 0644
 "inbuilt/transformers/springboot/eurekareplaceengine/eureka.yaml" : 0644
-"inbuilt/transformers/springboot/java-springboot/.DS_Store" : 0644
 "inbuilt/transformers/springboot/java-springboot/java-springboot.yaml" : 0644
 "inbuilt/transformers/springboot/java-springboot/mappings/java2images_tags.json" : 0644
-"inbuilt/transformers/springboot/java-springboot/mappings/java2images_tags_amd64.json" : 0644
 "inbuilt/transformers/springboot/java-springboot/mappings/java_build_images.json" : 0644
 "inbuilt/transformers/springboot/java-springboot/mappings/java_runtime_images.json" : 0644
 "inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.license" : 0644
