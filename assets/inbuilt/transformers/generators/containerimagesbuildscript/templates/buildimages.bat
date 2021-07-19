@@ -14,6 +14,6 @@
 
 {{range $buildscript := . }}
 pushd {{ $buildscript.PathWindows }}
-{{ $buildscript.BuildScriptName }}
+{{ $buildscript.BuildScript }}
 popd
 {{end}}
