@@ -257,7 +257,6 @@ Similar to the command line tool, Move2Kube Web-UI can also be used to do the tr
     │           └── ruby
     │               ├── Dockerfile.ruby
     │               └── ruby-docker-build.sh
-    ├── copysources.sh
     ├── deploy.sh
     ├── docker-compose.yaml
     ├── m2kqacache.yaml
@@ -286,7 +285,7 @@ Similar to the command line tool, Move2Kube Web-UI can also be used to do the tr
 
     The UI has created Yamls for us which are stored inside the *./vmapps* directory. For each of the folders and the services identified, it has created the deployment artifacts, service artifacts and the ingress as required.  The *./containers* folder contains the scripts for building the images for the applications using Dockerfiles.
 
-    Many scripts like *buildimages.sh*, *copysources.sh* and *deploy.sh* are also present inside the folder. It has also created a simple *docker-compose.yaml* for you, so that you can test the images locally if you want. It has also created Tekton artifacts inside the *./cicd* directory that are required if you want to use Tekton as your CI/CD pipeline.
+    Many scripts like *buildimages.sh* and *deploy.sh* are also present inside the folder. It has also created a simple *docker-compose.yaml* for you, so that you can test the images locally if you want. It has also created Tekton artifacts inside the *./cicd* directory that are required if you want to use Tekton as your CI/CD pipeline.
 
     The *Readme.md* file guides on the next steps to be followed.
 
@@ -305,38 +304,18 @@ Similar to the command line tool, Move2Kube Web-UI can also be used to do the tr
 
     Next Steps
     ----------
-    * Copy the source directory into the containers folder for packaging as containers using "copysource.sh <SRC_DIR>"
     * Build your images using "buildimages.sh"
     * Push images to registry "pushimages.sh <REGISTRY_URL> <REGISTRY_NAMESPACE>"
     * Use "deploy.sh" to deploy your artifacts into a kubernetes cluster.
-
-    IMPORTANT!!: If you used the UI for translation then "copysources.sh" may copy to the wrong folder.  
-    This is a limitation of the beta version. It should be fixed in future versions of move2kube-ui.  
-    In the meantime you can either:
-    - copy the sources to the appropriate folders inside "./containers/" manually. "./containers/" has  
-      the same folder structure as the sources folder so simply copy the appropriate source files/folders  
-      to the corresponding folders inside "./containers/".
-    - move the sources into a directory with the same name and then try copysources with that.  
-      Example: if sources is a folder called "foo" you might try moving it into "foo/foo/foo" and then  
-      doing "./copysources.sh path/to/foo/". This will require you to read "copysource.sh" and have some knowledge  
-      of how "cp -r" works in order to get it right.
     ```
 
-2. The source folder `language-platforms` can be obtained by extracting the [language-platform.zip](https://github.com/konveyor/move2kube-demos/raw/main/samples/language-platforms.zip). Create a folder `source` and create a sub-folder `language-platforms` within the `source` folder. Now paste the extracted `language-platforms` folder inside `source/language-platforms` folder. Then, our source artifacts will be inside `source/language-platforms/language-platforms`.  
-
-3. We will now run the `copysources.sh` script and provide path to the above `source` folder.
-
-    ```console
-    vmapps $ ./copysources.sh path/to/source
-    ```
-
-4. Next we run the *buildimages.sh* script. This step may take some time to complete.
+2. Next we run the *buildimages.sh* script. This step may take some time to complete.
 
     ```console
     vmapps $ ./buildimages.sh
     ```
 
-5. Now using the *pushimages.sh* script we can push our applications images to the registry that we specified during the *translate* phase. For this step, you are required to log in to the Docker registry. To log in to IBM Cloud `us.icr.io` registry refer [here](https://cloud.ibm.com/docs/Registry?topic=Registry-registry_access#registry_access_apikey_auth_docker).
+3. Now using the *pushimages.sh* script we can push our applications images to the registry that we specified during the *translate* phase. For this step, you are required to log in to the Docker registry. To log in to IBM Cloud `us.icr.io` registry refer [here](https://cloud.ibm.com/docs/Registry?topic=Registry-registry_access#registry_access_apikey_auth_docker).
 
     ```console
     vmapps $ ./pushimages.sh
@@ -411,7 +390,7 @@ Similar to the command line tool, Move2Kube Web-UI can also be used to do the tr
     latest: digest: sha256:524b1308fb013f37570db1eb9375d2a71340d01c85e438b206cbec90a542086b size: 1158
     ```
 
-6. Finally we are going to deploy the applications using the *deploy.sh* script.
+4. Finally we are going to deploy the applications using the *deploy.sh* script.
 
    ```console
    vmapps $ ./deploy.sh

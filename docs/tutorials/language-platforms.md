@@ -337,7 +337,6 @@ myproject
 │   │   └── python-s2i-build.sh
 │   └── ruby
 │       └── ruby-s2i-build.sh
-├── copysources.sh
 ├── deploy.sh
 ├── docker-compose.yaml
 ├── m2kqacache.yaml
@@ -360,7 +359,7 @@ myproject
 
 It has created Yamls for us which are stored inside the *myproject/myproject* directory. For each of the folders and the services identified, it has created the deployment artifacts, service artifacts and the ingress as required. The *Readme.md* file guides on the next steps to be followed. The *containers* folder contains the scripts for building the images for the applications using S2I.
 
-Many scripts like *buildimages.sh*, *copysources.sh* and *deploy.sh* are also present inside the *myproject* folder. It has also created a simple *docker-compose.yaml* for you, so that you can test the images locally if you want. It has also created Tekton artifacts inside the *cicd* directory that are required if you want to use Tekton as your CI/CD pipeline.
+Many scripts like *buildimages.sh* and *deploy.sh* are also present inside the *myproject* folder. It has also created a simple *docker-compose.yaml* for you, so that you can test the images locally if you want. It has also created Tekton artifacts inside the *cicd* directory that are required if you want to use Tekton as your CI/CD pipeline.
 
 ## Deploying the application to Kubernetes with the generated target artifacts
 
@@ -373,22 +372,16 @@ Many scripts like *buildimages.sh*, *copysources.sh* and *deploy.sh* are also pr
    ```console
    myproject git:(main) $ ls
    NOTES.txt           buildimages.sh      containers          deploy.sh           m2kqacache.yaml     pushimages.sh
-   Readme.md           cicd                copysources.sh      docker-compose.yaml myproject
+   Readme.md           cicd                docker-compose.yaml myproject
    ```
 
-2. We will now run the *copysources.sh* script and provide it the path to the folder containing the source artifacts.
-
-   ```console
-   myproject git:(main) $ ./copysources.sh ../samples/language-platforms/
-   ```
-
-3. Next we run the *buildimages.sh* script. This step may take some time to complete.
+2. Next we run the *buildimages.sh* script. This step may take some time to complete.
 
    ```console
    myproject git:(main) $ ./buildimages.sh
    ```
 
-4. Now using the *pushimages.sh* script we can push our applications images to the registry that we specified during the *translate* phase. For this step, you are required to log in to the Docker registry. To log in to IBM Cloud `us.icr.io` registry refer [here](https://cloud.ibm.com/docs/Registry?topic=Registry-registry_access#registry_access_apikey_auth_docker).
+3. Now using the *pushimages.sh* script we can push our applications images to the registry that we specified during the *translate* phase. For this step, you are required to log in to the Docker registry. To log in to IBM Cloud `us.icr.io` registry refer [here](https://cloud.ibm.com/docs/Registry?topic=Registry-registry_access#registry_access_apikey_auth_docker).
 
    ```console
    The push refers to repository [us.icr.io/m2k-tutorial/nodejs]
@@ -439,7 +432,7 @@ Many scripts like *buildimages.sh*, *copysources.sh* and *deploy.sh* are also pr
    latest: digest: sha256:ba73a8b37e090dd8ae503e6d7a0a60431a4408f7ef272a3f3a191b7b09c74e80 size: 1161
    ```
 
-5. Finally we are going to deploy the applications using the *deploy.sh* script.
+4. Finally we are going to deploy the applications using the *deploy.sh* script.
 
    ```console
    myproject git:(main) $ ./deploy.sh
