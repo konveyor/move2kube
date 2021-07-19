@@ -223,7 +223,6 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		isPackagingWAR = true
 	}
 	isServerEmbedded = !(isTomcatProvided && isPackagingWAR)
-	logrus.Debugf("Is embedded server ", isServerEmbedded)
 
 	// If the server is not embedded, we check if it is open-liberty or jboss/wildfly
 	appServer := ""
@@ -244,7 +243,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		}
 	}
 
-	logrus.Debugf("App server", appServer)
+	logrus.Debugf("App server: %s", appServer)
 
 	// Check compatible image for the application server
 	var appServerCandidateImages []Image
@@ -258,7 +257,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		var appServers AppServers
 		java2ImagesMappging, err := ioutil.ReadFile(mappingPath)
 		if err != nil {
-			logrus.Debugf("Could not load mapping at", mappingPath)
+			logrus.Debugf("Could not load mapping at %s", mappingPath)
 		}
 		json.Unmarshal(java2ImagesMappging, &appServers)
 
@@ -288,7 +287,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	if err != nil {
 		logrus.Debugf("Cannot get application files: %s", err)
 	}
-	logrus.Debugf("App prop files", appPropfiles)
+	logrus.Debugf("App prop files %s", appPropfiles)
 
 	// Java images for build and deploy
 
@@ -296,7 +295,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	javaBuildImagesMappingPath := filepath.Join(t.Env.Context, "mappings/java_build_images.json")
 	javaBuildImagesMappingData, err := ioutil.ReadFile(javaBuildImagesMappingPath)
 	if err != nil {
-		logrus.Debugf("Could not load mapping at", javaBuildImagesMappingPath)
+		logrus.Debugf("Could not load mapping at %s", javaBuildImagesMappingPath)
 	}
 	var javaBuildImagesMapping map[string]string
 	json.Unmarshal([]byte(javaBuildImagesMappingData), &javaBuildImagesMapping)
@@ -305,7 +304,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	javaRuntimeImagesMappingPath := filepath.Join(t.Env.Context, "mappings/java_runtime_images.json")
 	javaRuntimeImagesMappingData, err := ioutil.ReadFile(javaRuntimeImagesMappingPath)
 	if err != nil {
-		logrus.Debugf("Could not load mapping at", javaBuildImagesMappingPath)
+		logrus.Debugf("Could not load mapping at %s", javaBuildImagesMappingPath)
 	}
 	var javaRuntimeImagesMapping map[string]string
 	json.Unmarshal([]byte(javaRuntimeImagesMappingData), &javaRuntimeImagesMapping)
