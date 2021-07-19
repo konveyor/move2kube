@@ -14,6 +14,6 @@
 
 {{range $buildscript := . }}
 cd {{ $buildscript.PathUnix }}
-./{{ $buildscript.BuildScriptName }}
+./{{ $buildscript.BuildScript }}
 cd -
 {{end}}

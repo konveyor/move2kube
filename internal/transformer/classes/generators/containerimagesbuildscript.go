@@ -34,9 +34,9 @@ type ContainerImagesBuildScript struct {
 
 // ImageBuildTemplateConfig represents template config used by ImagePush script
 type ImageBuildTemplateConfig struct {
-	BuildScriptName string
-	PathUnix        string
-	PathWindows     string
+	BuildScript string
+	PathUnix    string
+	PathWindows string
 }
 
 // Init Initializes the transformer
@@ -69,27 +69,43 @@ func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.A
 	for _, a := range newArtifacts {
 		if a.Artifact == artifacts.ContainerImageBuildScriptArtifactType {
 			for _, shScript := range a.Paths[artifacts.ContainerImageBuildShScriptPathType] {
-				relPath, err := filepath.Rel(t.Env.GetEnvironmentOutput(), filepath.Dir(shScript))
+				contextPath := filepath.Dir(shScript)
+				if ctxPath, ok := a.Paths[artifacts.ContainerImageBuildShScriptContextPathType]; ok {
+					contextPath = ctxPath[0]
+				}
+				relPath, err := filepath.Rel(t.Env.GetEnvironmentOutput(), contextPath)
+				if err != nil {
+					logrus.Errorf("Unable to make path relative : %s", err)
+					continue
+				}
+				scriptPath, err := filepath.Rel(contextPath, shScript)
 				if err != nil {
 					logrus.Errorf("Unable to make path relative : %s", err)
 					continue
 				}
 				shScripts = append(shScripts, ImageBuildTemplateConfig{
-					BuildScriptName: filepath.Base(shScript),
-					PathUnix:        common.GetUnixPath(relPath),
-					PathWindows:     common.GetWindowsPath(relPath),
+					BuildScript: scriptPath,
+					PathUnix:    common.GetUnixPath(relPath),
 				})
 			}
 			for _, batScript := range a.Paths[artifacts.ContainerImageBuildBatScriptPathType] {
-				relPath, err := filepath.Rel(t.Env.GetEnvironmentOutput(), filepath.Dir(batScript))
+				contextPath := filepath.Dir(batScript)
+				if ctxPath, ok := a.Paths[artifacts.ContainerImageBuildShScriptContextPathType]; ok {
+					contextPath = ctxPath[0]
+				}
+				relPath, err := filepath.Rel(t.Env.GetEnvironmentOutput(), contextPath)
+				if err != nil {
+					logrus.Errorf("Unable to make path relative : %s", err)
+					continue
+				}
+				scriptPath, err := filepath.Rel(contextPath, batScript)
 				if err != nil {
 					logrus.Errorf("Unable to make path relative : %s", err)
 					continue
 				}
 				batScripts = append(batScripts, ImageBuildTemplateConfig{
-					BuildScriptName: filepath.Base(batScript),
-					PathUnix:        common.GetUnixPath(relPath),
-					PathWindows:     common.GetWindowsPath(relPath),
+					BuildScript: scriptPath,
+					PathWindows: common.GetWindowsPath(relPath),
 				})
 			}
 		}

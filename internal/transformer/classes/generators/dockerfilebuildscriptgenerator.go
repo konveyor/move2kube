@@ -142,7 +142,10 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 		Name:     artifacts.ContainerImageBuildScriptArtifactType,
 		Artifact: artifacts.ContainerImageBuildScriptArtifactType,
 		Paths: map[string][]string{artifacts.ContainerImageBuildShScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.sh")},
-			artifacts.ContainerImageBuildBatScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.bat")}},
+			artifacts.ContainerImageBuildShScriptContextPathType:  {"."},
+			artifacts.ContainerImageBuildBatScriptPathType:        {filepath.Join(common.ScriptsDir, "builddockerimages.bat")},
+			artifacts.ContainerImageBuildBatScriptContextPathType: {"."},
+		},
 	})
 	return pathMappings, nartifacts, nil
 }
