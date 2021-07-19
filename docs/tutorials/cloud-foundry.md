@@ -402,7 +402,6 @@ Finally, the translation is successful and the target artifacts can be found ins
     │   └── myproject-tekton-triggers-admin-serviceaccount.yaml
     ├── containers
     │   └── move2kube-demo-cf-cnb-build.sh
-    ├── copysources.sh
     ├── deploy.sh
     ├── docker-compose.yaml
     ├── m2kqacache.yaml
@@ -414,7 +413,7 @@ Finally, the translation is successful and the target artifacts can be found ins
     └── pushimages.sh
 ```
 
-So, here it has created all the deployment artifacts. It was an OpenShift cluster that we collected, so it has created the `deploymentconfig`, `imagestream`, `route` and `service` yamls for us. Many scripts like *buildimages.sh*, *copysources.sh* and *deploy.sh* are also present inside the *myproject* folder.
+So, here it has created all the deployment artifacts. It was an OpenShift cluster that we collected, so it has created the `deploymentconfig`, `imagestream`, `route` and `service` yamls for us. Many scripts like *buildimages.sh* and *deploy.sh* are also present inside the *myproject* folder.
 
 ## Deploying the application to Kubernetes with the generated target artifacts
 
@@ -425,23 +424,18 @@ So, here it has created all the deployment artifacts. It was an OpenShift cluste
 
      myproject git:(main) $ ls
      NOTES.txt           buildimages.sh      containers          deploy.sh           m2kqacache.yaml     pushimages.sh
-     Readme.md           cicd                copysources.sh      docker-compose.yaml myproject
+     Readme.md           cicd                docker-compose.yaml myproject
      ```
 
-2. We will now run the *copysources.sh* script and provide it the path to the folder containing the source artifacts.
 
-    ```console
-    myproject git:(main) $ ./copysources.sh ../cloud-foundry
-    ```
-
-3. Next we run the *buildimages.sh* script. This step may take some time to complete.
+2. Next we run the *buildimages.sh* script. This step may take some time to complete.
 
     ```console
     myproject git:(main) $ ./buildimages.sh
     ```
 
 
-4. Now using the *pushimages.sh* script we can push our applications images to the registry that we specified during the *translate* phase. For this step, you are required to log in to the Docker registry. To log in to IBM Cloud `us.icr.io` registry refer [here](https://cloud.ibm.com/docs/Registry?topic=Registry-registry_access#registry_access_apikey_auth_docker).
+3. Now using the *pushimages.sh* script we can push our applications images to the registry that we specified during the *translate* phase. For this step, you are required to log in to the Docker registry. To log in to IBM Cloud `us.icr.io` registry refer [here](https://cloud.ibm.com/docs/Registry?topic=Registry-registry_access#registry_access_apikey_auth_docker).
 
     ```console
     myproject git:(main) $ ./pushimages.sh
@@ -461,7 +455,7 @@ So, here it has created all the deployment artifacts. It was an OpenShift cluste
     latest: digest: sha256:2de229e1b1bfc034f329e8bd5861b5adb6439bc8d3b37ce659ad7f5093541c79 size: 2823
     ```
 
-5. Finally we are going to deploy the application using the *deploy.sh* script.
+4. Finally we are going to deploy the application using the *deploy.sh* script.
 
     ```console
     myproject git:(main) $ ./deploy.sh

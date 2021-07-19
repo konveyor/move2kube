@@ -37,6 +37,5 @@ This document helps you to add customized docker files which could be parameteri
         - Dockerfiles required to create the containers.
         - Shell scripts to build these containers.
         - Yaml files required for deploying these containers in kubernetes.
-    - In the output directory, do `sh copysources.sh samples/language-platforms/java-maven` to copy sources for which container has to be created.
     - Do `sh buildimages.sh` to build the container. Once the image is built, `docker images` should list the image `java-maven:latest`.
     - If there are no bugs, then the image could be run with `docker run` command.
