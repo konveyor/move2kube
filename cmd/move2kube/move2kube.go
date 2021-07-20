@@ -27,7 +27,7 @@ import (
 )
 
 func main() {
-	verbose := false
+	loglevel := common.InfoLevelStr
 
 	// RootCmd root level flags and commands
 	rootCmd := &cobra.Command{
@@ -40,14 +40,12 @@ Even if the app does not use any of the above, or even if it is not containerize
 For more documentation and support, visit https://move2kube.konveyor.io/
 `,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
-			if verbose {
-				logrus.SetLevel(logrus.DebugLevel)
-			}
+			logrus.SetLevel(common.GetLogLevel(loglevel))
 			return nil
 		},
 	}
 
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
+	rootCmd.PersistentFlags().StringVarP(&loglevel, "loglevel", "l", common.InfoLevelStr, "Set logging levels.")
 	rootCmd.AddCommand(GetVersionCommand())
 	rootCmd.AddCommand(getCollectCommand())
 	rootCmd.AddCommand(getPlanCommand())

@@ -17,7 +17,9 @@
 package main
 
 import (
+	"context"
 	"os"
+	"os/signal"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/internal/common"
@@ -47,9 +49,18 @@ type transformFlags struct {
 }
 
 func transformHandler(cmd *cobra.Command, flags transformFlags) {
-	// Setup
-	var err error
+	ctx, cancel := context.WithCancel(cmd.Context())
+	logrus.AddHook(common.NewCleanupHook(cancel))
+	logrus.AddHook(common.NewCleanupHook(lib.Destroy))
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
+	go func() {
+		<-ctx.Done()
+		lib.Destroy()
+		stop()
+		common.Interrupt()
+	}()
 
+	var err error
 	if flags.planfile, err = filepath.Abs(flags.planfile); err != nil {
 		logrus.Fatalf("Failed to make the plan file path %q absolute. Error: %q", flags.planfile, err)
 	}
@@ -94,7 +105,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
-		p = lib.CreatePlan(flags.srcpath, flags.outpath, flags.customizationsPath, flags.name)
+		p = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.name)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.planfile)
 		rootDir := ""
@@ -131,9 +142,8 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		startQA(flags.qaflags)
 	}
 	p = lib.CuratePlan(p, flags.outpath)
-	lib.Transform(p, flags.outpath)
+	lib.Transform(ctx, p, flags.outpath)
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
-	lib.Destroy()
 }
 
 func getTransformCommand() *cobra.Command {

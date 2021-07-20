@@ -1114,3 +1114,17 @@ func GetMapInterfaceFromObj(obj interface{}) (mapobj interface{}, err error) {
 	}
 	return mapobj, nil
 }
+
+// Interrupt creates SIGINT signal
+func Interrupt() error {
+	p, err := os.FindProcess(os.Getpid())
+	if err != nil {
+		logrus.Fatal(err)
+		return err
+	}
+	if err := p.Signal(os.Interrupt); err != nil {
+		logrus.Fatal(err)
+		return err
+	}
+	return nil
+}

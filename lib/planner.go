@@ -17,6 +17,8 @@
 package lib
 
 import (
+	"context"
+
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/configuration"
 	"github.com/konveyor/move2kube/internal/transformer"
@@ -27,7 +29,7 @@ import (
 )
 
 //CreatePlan creates the plan from all planners
-func CreatePlan(inputPath, outputPath string, customizationsPath, prjName string) plantypes.Plan {
+func CreatePlan(ctx context.Context, inputPath, outputPath string, customizationsPath, prjName string) plantypes.Plan {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	p := plantypes.NewPlan()
 	p.Name = prjName

@@ -112,7 +112,7 @@ func (e *PeerContainer) Reset() error {
 }
 
 // Exec executes a command in the container
-func (e *PeerContainer) Exec(cmd environmenttypes.Command) (string, string, int, error) {
+func (e *PeerContainer) Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error) {
 	cengine := container.GetContainerEngine()
 	envs := []string{}
 	if e.GRPCQAReceiver != nil {
