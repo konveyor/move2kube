@@ -185,8 +185,9 @@ func InitTransformers(transformerToInit map[string]string, targetCluster collect
 
 // Destroy destroys the transformers
 func Destroy() {
-	for _, t := range transformers {
+	for tn, t := range transformers {
 		_, env := t.GetConfig()
+		delete(transformers, tn)
 		if err := env.Destroy(); err != nil {
 			logrus.Errorf("Unable to destroy environment : %s", err)
 		}

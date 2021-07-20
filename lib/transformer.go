@@ -17,6 +17,8 @@
 package lib
 
 import (
+	"context"
+
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/transformer"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -24,7 +26,7 @@ import (
 )
 
 // Transform transforms the artifacts and writes output
-func Transform(plan plantypes.Plan, outputPath string) {
+func Transform(ctx context.Context, plan plantypes.Plan, outputPath string) {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	logrus.Infof("Starting Plan Transformation")
 	err := transformer.Transform(plan, outputPath)
@@ -34,7 +36,8 @@ func Transform(plan plantypes.Plan, outputPath string) {
 	logrus.Infof("Plan Transformation done")
 }
 
-// Destroy destroys the tranformer
+// Destroy destroys the tranformers
 func Destroy() {
+	logrus.Debugf("Cleaning up!")
 	transformer.Destroy()
 }

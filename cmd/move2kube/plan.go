@@ -17,7 +17,9 @@
 package main
 
 import (
+	"context"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 
@@ -43,8 +45,18 @@ type planFlags struct {
 	preSets []string
 }
 
-func planHandler(flags planFlags) {
-	// Check if this is even a directory
+func planHandler(cmd *cobra.Command, flags planFlags) {
+	ctx, cancel := context.WithCancel(cmd.Context())
+	logrus.AddHook(common.NewCleanupHook(cancel))
+	logrus.AddHook(common.NewCleanupHook(lib.Destroy))
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
+	go func() {
+		<-ctx.Done()
+		lib.Destroy()
+		stop()
+		common.Interrupt()
+	}()
+
 	var err error
 	planfile := flags.planfile
 	srcpath := flags.srcpath
@@ -59,7 +71,6 @@ func planHandler(flags planFlags) {
 	if err != nil {
 		logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
 	}
-	// TODO: should we normalize the project name?
 	fi, err := os.Stat(srcpath)
 	if err != nil {
 		logrus.Fatalf("Unable to access source directory : %s", err)
@@ -81,12 +92,11 @@ func planHandler(flags planFlags) {
 	}
 	qaengine.StartEngine(true, 0, true)
 	qaengine.SetupConfigFile("", flags.setconfigs, flags.configs, flags.preSets)
-	p := lib.CreatePlan(srcpath, "", customizationsPath, name)
+	p := lib.CreatePlan(ctx, srcpath, "", customizationsPath, name)
 	if err = plantypes.WritePlan(planfile, p); err != nil {
 		logrus.Errorf("Unable to write plan file (%s) : %s", planfile, err)
 		return
 	}
-	lib.Destroy()
 	logrus.Infof("Plan can be found at [%s].", planfile)
 }
 
@@ -103,7 +113,7 @@ func getPlanCommand() *cobra.Command {
 		Use:   "plan",
 		Short: "Plan out a move",
 		Long:  "Discover and create a plan file based on an input directory",
-		Run:   func(*cobra.Command, []string) { planHandler(flags) },
+		Run:   func(cmd *cobra.Command, _ []string) { planHandler(cmd, flags) },
 	}
 
 	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", ".", "Specify source directory.")
