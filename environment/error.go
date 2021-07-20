@@ -16,9 +16,11 @@
 
 package environment
 
+// EnvironmentNotActiveError represents the error when an environment is not active and a function is called on it
 type EnvironmentNotActiveError struct {
 }
 
+// Error implements the Error interface
 func (e *EnvironmentNotActiveError) Error() string {
 	return "environment Not active. Process is terminating"
 }
