@@ -24,6 +24,7 @@ import (
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/source/maven"
 	"github.com/konveyor/move2kube/types/source/springboot"
@@ -72,27 +73,12 @@ type SpringbootTemplateConfig struct {
 	DeploymentFile   string `yaml:"deploymentFile,omitempty"`
 }
 
-// AppServers defines AppServers properties
-type AppServers struct {
-	AppServers []AppServer `json:"app_servers"`
-}
-
-// AppServer defines AppServer properties
-type AppServer struct {
-	ID           string        `yaml:"id,omitempty" json:"id"`
-	JavaVersions []JavaVersion `yaml:"javaVersions,omitempty" json:"java_versions"`
-}
-
-// JavaVersion defines JavaVersion properties
-type JavaVersion struct {
-	ID     string  `yaml:"id,omitempty" json:"version_id"`
-	Images []Image `yaml:"images,omitempty" json:"images"`
-}
-
-// Image defines Image properties
-type Image struct {
-	Name    string `yaml:"name,omitempty" json:"name"`
-	Created string `yaml:"created,omitempty" json:"created"`
+// ExtendedImage defines ExtendedImage properties
+type ExtendedImage struct {
+	collection.ImageInfoSpec
+	ImageName string            `json:"imageName" yaml:"imageName"`
+	Created   string            `json:"created" yaml:"created"`
+	Params    map[string]string `json:"params" yaml:"params"`
 }
 
 // JavaRuntime defines JavaRuntime properties
@@ -246,7 +232,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	logrus.Debugf("App server: %s", appServer)
 
 	// Check compatible image for the application server
-	var appServerCandidateImages []Image
+	var appServerCandidateImages []ExtendedImage
 
 	if appServer != "" {
 		if javaVersion == "" { // default case
@@ -254,30 +240,21 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		}
 
 		mappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java2images_tags.json")
-		var appServers AppServers
-		if err := common.ReadJSON(mappingPath, &appServers); err == nil {
+		var images2Data []ExtendedImage
+		if err := common.ReadJSON(mappingPath, &images2Data); err == nil {
 			logrus.Debugf("Could not load mapping at %s", mappingPath)
 		}
+		for _, im := range images2Data {
 
-		for _, apps := range appServers.AppServers {
-			if apps.ID == appServer {
-				jvs := apps.JavaVersions
-				for _, jv := range jvs {
-					if jv.ID == javaVersion {
-						appServerCandidateImages = jv.Images
-					}
-				}
+			if im.Params["javaVersion"] == javaVersion && im.Params["serverApp"] == appServer {
+				appServerCandidateImages = append(appServerCandidateImages, im)
 			}
 		}
 	}
 
-	for _, k := range appServerCandidateImages {
-		logrus.Debugf("image %s", k.Name)
-	}
-
 	appServerImage := ""
 	if len(appServerCandidateImages) > 0 {
-		appServerImage = appServerCandidateImages[0].Name
+		appServerImage = appServerCandidateImages[0].ImageName
 	}
 	logrus.Debugf("app server image %s", appServerImage)
 
