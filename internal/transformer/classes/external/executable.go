@@ -18,6 +18,7 @@ package external
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -139,6 +140,10 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, oldArti
 			}
 			stdout, stderr, exitcode, err := t.Env.Exec(append(t.ExecConfig.TransformCMD, path))
 			if err != nil {
+				if errors.Is(err, &environment.EnvironmentNotActiveError{}) {
+					logrus.Debugf("%s", err)
+					continue
+				}
 				logrus.Errorf("Transform failed %s : %s : %d : %s", stdout, stderr, exitcode, err)
 				continue
 			} else if exitcode != 0 {
@@ -162,6 +167,10 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, oldArti
 func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (nameServices map[string]transformertypes.ServicePlan, unservices []transformertypes.TransformerPlan, err error) {
 	stdout, stderr, exitcode, err := t.Env.Exec(append(cmd, dir))
 	if err != nil {
+		if errors.Is(err, &environment.EnvironmentNotActiveError{}) {
+			logrus.Debugf("%s", err)
+			return nil, nil, err
+		}
 		logrus.Errorf("Detect failed %s : %s : %d : %s", stdout, stderr, exitcode, err)
 		return nil, nil, err
 	} else if exitcode != 0 {

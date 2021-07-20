@@ -64,6 +64,7 @@ type Environment struct {
 	EnvInfo
 	Env      EnvironmentInstance
 	Children []*Environment
+	active   bool
 }
 
 // EnvironmentInstance represents a actual instance of an environment which the Environment manages
@@ -71,7 +72,7 @@ type EnvironmentInstance interface {
 	Reset() error
 	Download(envpath string) (outpath string, err error)
 	Upload(outpath string) (envpath string, err error)
-	Exec(cmd []string) (string, string, int, error)
+	Exec(cmd []string) (stdout string, stderr string, exitcode int, err error)
 	Destroy() error
 
 	GetSource() string
@@ -89,6 +90,7 @@ func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr, c environmenttypes
 	env = &Environment{
 		EnvInfo:  envInfo,
 		Children: []*Environment{},
+		active:   true,
 	}
 	if c.Image != "" {
 		envVariableName := common.MakeStringEnvNameCompliant(c.Image)
@@ -138,17 +140,27 @@ func (e *Environment) AddChild(env *Environment) {
 
 // Reset resets an environment
 func (e *Environment) Reset() error {
+	if !e.active {
+		logrus.Debug("environment not active. Process is terminating")
+		return nil
+	}
 	e.CurrEnvOutputBasePath = ""
 	return e.Env.Reset()
 }
 
 // Exec executes an executable within the environment
-func (e *Environment) Exec(cmd []string) (string, string, int, error) {
+func (e *Environment) Exec(cmd []string) (stdout string, stderr string, exitcode int, err error) {
+	if !e.active {
+		err = &EnvironmentNotActiveError{}
+		logrus.Debug(err)
+		return "", "", 0, err
+	}
 	return e.Env.Exec(cmd)
 }
 
 // Destroy destroys all artifacts specific to the environment
 func (e *Environment) Destroy() error {
+	e.active = false
 	e.Env.Destroy()
 	for _, env := range e.Children {
 		if err := env.Destroy(); err != nil {
@@ -161,6 +173,10 @@ func (e *Environment) Destroy() error {
 // Encode encodes all paths in the obj to be relevant to the environment
 func (e *Environment) Encode(obj interface{}) interface{} {
 	dupobj := deepcopy.DeepCopy(obj)
+	if !e.active {
+		logrus.Debug("environment not active. Process is terminating")
+		return dupobj
+	}
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
@@ -207,6 +223,10 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 // Decode decodes all paths in the passed obj
 func (e *Environment) Decode(obj interface{}) interface{} {
 	dupobj := deepcopy.DeepCopy(obj)
+	if !e.active {
+		logrus.Debug("environment not active. Process is terminating")
+		return dupobj
+	}
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
@@ -259,6 +279,10 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 // DownloadAndDecode downloads and decodes the data from the paths in the object
 func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) interface{} {
 	dupobj := deepcopy.DeepCopy(obj)
+	if !e.active {
+		logrus.Debug("environment not active. Process is terminating")
+		return dupobj
+	}
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
@@ -302,6 +326,10 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 // ProcessPathMappings post processes the paths in the path mappings
 func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMapping) []transformertypes.PathMapping {
 	dupPathMappings := deepcopy.DeepCopy(pathMappings).([]transformertypes.PathMapping)
+	if !e.active {
+		logrus.Debug("environment not active. Process is terminating")
+		return dupPathMappings
+	}
 	for pmi, pm := range dupPathMappings {
 		if filepath.IsAbs(pm.SrcPath) && common.IsParent(pm.SrcPath, e.GetEnvironmentOutput()) {
 			var err error

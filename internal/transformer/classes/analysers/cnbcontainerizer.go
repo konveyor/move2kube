@@ -17,6 +17,7 @@
 package analysers
 
 import (
+	"errors"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/environment"
@@ -92,6 +93,10 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 		"/cnb/lifecycle/detector", "-app", t.CNBEnv.Encode(path).(string)}
 	stdout, stderr, exitcode, err := t.CNBEnv.Exec(cmd)
 	if err != nil {
+		if errors.Is(err, &environment.EnvironmentNotActiveError{}) {
+			logrus.Debugf("%s", err)
+			return nil, nil, err
+		}
 		logrus.Errorf("Detect failed %s : %s : %d : %s", stdout, stderr, exitcode, err)
 		return nil, nil, err
 	} else if exitcode != 0 {

@@ -76,8 +76,7 @@ func (e *Local) Reset() error {
 }
 
 // Exec executes an executable within the environment
-func (e *Local) Exec(cmd environmenttypes.Command) (string, string, int, error) {
-	var exitcode int
+func (e *Local) Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error) {
 	var outb, errb bytes.Buffer
 	var execcmd *exec.Cmd
 	if len(cmd) > 0 {
@@ -91,7 +90,7 @@ func (e *Local) Exec(cmd environmenttypes.Command) (string, string, int, error) 
 	execcmd.Stdout = &outb
 	execcmd.Stderr = &errb
 	execcmd.Env = e.getEnv()
-	err := execcmd.Run()
+	err = execcmd.Run()
 	if err != nil {
 		var ee *exec.ExitError
 		var pe *os.PathError
