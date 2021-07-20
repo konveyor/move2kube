@@ -17,7 +17,6 @@
 package analysers
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"io/ioutil"
 	"path/filepath"
@@ -46,31 +45,31 @@ const (
 
 // SpringbootAnalyser implements Transformer interface
 type SpringbootAnalyser struct {
-	Config transformertypes.Transformer `yaml:"Config,omitempty"`
-	Env    *environment.Environment     `yaml:"Env,omitempty"`
+	Config transformertypes.Transformer
+	Env    *environment.Environment
 }
 
 // SpringbootConfig defines SpringbootConfig properties
 type SpringbootConfig struct {
 	ServiceName            string `yaml:"serviceName,omitempty"`
-	Ports                  []int  `yaml:"Ports,omitempty"`
-	JavaVersion            string `yaml:"JavaVerison,omitempty"`
-	ApplicationServer      string `yaml:"ApplicationServer,omitempty"`
-	ApplicationServerImage string `yaml:"ApplicationServerImage,omitempty"`
-	JavaBuildImage         string `yaml:"JavaBuildImage,omitempty"`
-	JavaRuntimeImage       string `yaml:"JavaRuntimeImage,omitempty"`
-	AppFile                string `yaml:"AppFile,omitempty"`
-	DeploymentFile         string `yaml:"DeploymentFile,omitempty"`
+	Ports                  []int  `yaml:"ports,omitempty"`
+	JavaVersion            string `yaml:"javaVersion,omitempty"`
+	ApplicationServer      string `yaml:"applicationServer,omitempty"`
+	ApplicationServerImage string `yaml:"applicationServerImage,omitempty"`
+	JavaBuildImage         string `yaml:"javaBuildImage,omitempty"`
+	JavaRuntimeImage       string `yaml:"javaRuntimeImage,omitempty"`
+	AppFile                string `yaml:"appFile,omitempty"`
+	DeploymentFile         string `yaml:"deploymentFile,omitempty"`
 }
 
 // SpringbootTemplateConfig defines SpringbootTemplateConfig properties
 type SpringbootTemplateConfig struct {
-	Port             int    `yaml:"Port,omitempty"`
-	JavaBuildImage   string `yaml:"JavaBuildImage,omitempty"`
-	JavaRuntimeImage string `yaml:"JavaRuntimeImage,omitempty"`
-	AppServerImage   string `yaml:"AppServerImage,omitempty"`
-	AppFile          string `yaml:"AppFile,omitempty"`
-	DeploymentFile   string `yaml:"DeploymentFile,omitempty"`
+	Port             int    `yaml:"port,omitempty"`
+	JavaBuildImage   string `yaml:"javaBuildImage,omitempty"`
+	JavaRuntimeImage string `yaml:"javaRuntimeImage,omitempty"`
+	AppServerImage   string `yaml:"appServerImage,omitempty"`
+	AppFile          string `yaml:"appFile,omitempty"`
+	DeploymentFile   string `yaml:"deploymentFile,omitempty"`
 }
 
 // AppServers defines AppServers properties
@@ -80,32 +79,32 @@ type AppServers struct {
 
 // AppServer defines AppServer properties
 type AppServer struct {
-	ID           string        `yaml:"ID,omitempty" json:"id"`
-	JavaVersions []JavaVersion `yaml:"JavaVersions,omitempty" json:"java_versions"`
+	ID           string        `yaml:"id,omitempty" json:"id"`
+	JavaVersions []JavaVersion `yaml:"javaVersions,omitempty" json:"java_versions"`
 }
 
 // JavaVersion defines JavaVersion properties
 type JavaVersion struct {
-	ID     string  `yaml:"ID,omitempty" json:"version_id"`
-	Images []Image `yaml:"Images,omitempty" json:"images"`
+	ID     string  `yaml:"id,omitempty" json:"version_id"`
+	Images []Image `yaml:"images,omitempty" json:"images"`
 }
 
 // Image defines Image properties
 type Image struct {
-	Name    string `yaml:"Name,omitempty" json:"name"`
-	Created string `yaml:"Created,omitempty" json:"created"`
+	Name    string `yaml:"name,omitempty" json:"name"`
+	Created string `yaml:"created,omitempty" json:"created"`
 }
 
 // JavaRuntime defines JavaRuntime properties
 type JavaRuntime struct {
-	JavaVersion string `yaml:"JavaVersion,omitempty"`
-	Image       string `yaml:"Image,omitempty"`
+	JavaVersion string `yaml:"javaVersion,omitempty"`
+	Image       string `yaml:"image,omitempty"`
 }
 
 // JavaBuild defines JavaBuild properties
 type JavaBuild struct {
-	JavaVersion string `yaml:"JavaVersion,omitempty"`
-	Image       string `yaml:"Image,omitempty"`
+	JavaVersion string `yaml:"javaVersion,omitempty"`
+	Image       string `yaml:"image,omitempty"`
 }
 
 // Init Initializes the transformer
@@ -197,9 +196,10 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		logrus.Debugf("Pom at %s  does not contain a Properties block", dir)
 	} else {
 		for k, v := range pom.Properties.Entries {
-			if k == "java.version" {
+			switch k {
+			case "java.version":
 				javaVersion = v
-			} else if k == "tomcat.version" {
+			case "tomcat.version":
 				tomcatVersion = v
 			}
 		}
@@ -253,13 +253,11 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 			javaVersion = "1.8"
 		}
 
-		mappingPath := filepath.Join(t.Env.Context, "mappings/java2images_tags.json")
+		mappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java2images_tags.json")
 		var appServers AppServers
-		java2ImagesMappging, err := ioutil.ReadFile(mappingPath)
-		if err != nil {
+		if err := common.ReadJSON(mappingPath, &appServers); err == nil {
 			logrus.Debugf("Could not load mapping at %s", mappingPath)
 		}
-		json.Unmarshal(java2ImagesMappging, &appServers)
 
 		for _, apps := range appServers.AppServers {
 			if apps.ID == appServer {
@@ -292,22 +290,18 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	// Java images for build and deploy
 
 	// build
-	javaBuildImagesMappingPath := filepath.Join(t.Env.Context, "mappings/java_build_images.json")
-	javaBuildImagesMappingData, err := ioutil.ReadFile(javaBuildImagesMappingPath)
-	if err != nil {
+	javaBuildImagesMappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java_build_images.json")
+	var javaBuildImagesMapping map[string]string
+	if err := common.ReadJSON(javaBuildImagesMappingPath, &javaBuildImagesMapping); err == nil {
 		logrus.Debugf("Could not load mapping at %s", javaBuildImagesMappingPath)
 	}
-	var javaBuildImagesMapping map[string]string
-	json.Unmarshal([]byte(javaBuildImagesMappingData), &javaBuildImagesMapping)
 
 	// runtime
-	javaRuntimeImagesMappingPath := filepath.Join(t.Env.Context, "mappings/java_runtime_images.json")
-	javaRuntimeImagesMappingData, err := ioutil.ReadFile(javaRuntimeImagesMappingPath)
-	if err != nil {
-		logrus.Debugf("Could not load mapping at %s", javaBuildImagesMappingPath)
-	}
+	javaRuntimeImagesMappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java_runtime_images.json")
 	var javaRuntimeImagesMapping map[string]string
-	json.Unmarshal([]byte(javaRuntimeImagesMappingData), &javaRuntimeImagesMapping)
+	if err := common.ReadJSON(javaRuntimeImagesMappingPath, &javaRuntimeImagesMapping); err == nil {
+		logrus.Debugf("Could not load mapping at %s", javaRuntimeImagesMappingPath)
+	}
 
 	javaBuildImage := ""
 	if val, ok := javaBuildImagesMapping[javaVersion]; ok {
@@ -410,8 +404,6 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		},
 	}
 
-	logrus.Debugf("----- Pablo ----")
-	logrus.Debugf(appName)
 	return map[string]transformertypes.ServicePlan{appName: {ct}}, nil, nil
 }
 
@@ -450,13 +442,13 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		}
 
 		// License
-		strLicense, err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir, "Dockerfile.license"))
+		strLicense, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license"))
 		if err != nil {
 			return nil, nil, err
 		}
 
 		// Build
-		strBuild, err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir, "Dockerfile.maven-build"))
+		strBuild, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.maven-build"))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -469,7 +461,7 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 			runtimeSegment = "Dockerfile.springboot-open-liberty-runtime"
 		}
 
-		strRuntime, err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir, runtimeSegment))
+		strRuntime, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, runtimeSegment))
 		if err != nil {
 			return nil, nil, err
 		}
