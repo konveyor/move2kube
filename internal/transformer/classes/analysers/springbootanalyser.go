@@ -216,7 +216,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		}
 
 		mappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java2images_tags.yaml")
-		var images2Data collectiontypes.ImagesInfo
+		images2Data := collectiontypes.NewImagesInfo()
 		if err := common.ReadMove2KubeYaml(mappingPath, &images2Data); err != nil {
 			logrus.Debugf("Could not load mapping at %s", mappingPath)
 		}

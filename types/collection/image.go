@@ -23,7 +23,7 @@ import (
 // ImageMetadataKind defines kind for imagemetadata file
 const ImageMetadataKind types.Kind = "ImageMetadata"
 
-// ImagesMetadataKind defines kind for imagesmetadata file
+// ImageInfoKind defines kind for imagesmetadata file
 const ImageInfoKind types.Kind = "ImageInfo"
 
 // ImageInfo stores data about different images
@@ -54,6 +54,16 @@ type ImageInfoSpec struct {
 // NewImageInfo creates a new imageinfo instance
 func NewImageInfo() ImageInfo {
 	return ImageInfo{
+		TypeMeta: types.TypeMeta{
+			Kind:       string(ImageMetadataKind),
+			APIVersion: types.SchemeGroupVersion.String(),
+		},
+	}
+}
+
+// NewImagesInfo creates a new imagesinfo instance
+func NewImagesInfo() ImagesInfo {
+	return ImagesInfo{
 		TypeMeta: types.TypeMeta{
 			Kind:       string(ImageMetadataKind),
 			APIVersion: types.SchemeGroupVersion.String(),
