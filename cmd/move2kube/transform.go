@@ -59,6 +59,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		stop()
 		common.Interrupt()
 	}()
+	defer lib.Destroy()
 
 	var err error
 	if flags.planfile, err = filepath.Abs(flags.planfile); err != nil {
@@ -172,8 +173,8 @@ func getTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location")
 	transformCmd.Flags().StringVar(&flags.qaCacheOut, qaCacheOutFlag, ".", "Specify cache file output location")
 	transformCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations")
-	transformCmd.Flags().StringSliceVarP(&flags.preSets, preSetFlag, "r", []string{}, "Specify preset config to use")
-	transformCmd.Flags().StringArrayVarP(&flags.setconfigs, setConfigFlag, "k", []string{}, "Specify config key-value pairs")
+	transformCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use")
+	transformCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs")
 	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored.")
 
 	// Advanced options

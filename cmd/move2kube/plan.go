@@ -56,6 +56,7 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 		stop()
 		common.Interrupt()
 	}()
+	defer lib.Destroy()
 
 	var err error
 	planfile := flags.planfile
@@ -121,8 +122,8 @@ func getPlanCommand() *cobra.Command {
 	planCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	planCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored.")
 	planCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations")
-	planCmd.Flags().StringSliceVarP(&flags.preSets, preSetFlag, "r", []string{}, "Specify preset config to use")
-	planCmd.Flags().StringArrayVarP(&flags.setconfigs, setConfigFlag, "k", []string{}, "Specify config key-value pairs")
+	planCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use")
+	planCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs")
 
 	must(planCmd.MarkFlagRequired(sourceFlag))
 
