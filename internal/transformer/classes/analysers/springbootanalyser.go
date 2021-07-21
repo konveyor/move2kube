@@ -81,16 +81,16 @@ type ExtendedImage struct {
 }
 
 // JavaRuntime defines JavaRuntime properties
-type JavaRuntime struct {
-	JavaVersion string `yaml:"javaVersion,omitempty"`
-	Image       string `yaml:"image,omitempty"`
-}
+//type JavaRuntime struct {
+//	JavaVersion string `yaml:"javaVersion,omitempty"`
+//	Image       string `yaml:"image,omitempty"`
+//}
 
 // JavaBuild defines JavaBuild properties
-type JavaBuild struct {
-	JavaVersion string `yaml:"javaVersion,omitempty"`
-	Image       string `yaml:"image,omitempty"`
-}
+//type JavaBuild struct {
+//	JavaVersion string `yaml:"javaVersion,omitempty"`
+//	Image       string `yaml:"image,omitempty"`
+//}
 
 // Init Initializes the transformer
 func (t *SpringbootAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
