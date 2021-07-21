@@ -23,11 +23,21 @@ import (
 // ImageMetadataKind defines kind for imagemetadata file
 const ImageMetadataKind types.Kind = "ImageMetadata"
 
+// ImageInfoKind defines kind for imagesmetadata file
+const ImageInfoKind types.Kind = "ImageInfo"
+
 // ImageInfo stores data about different images
 type ImageInfo struct {
 	types.TypeMeta   `yaml:",inline"`
 	types.ObjectMeta `yaml:"metadata,omitempty"`
 	Spec             ImageInfoSpec `yaml:"spec,omitempty"`
+}
+
+// ImagesInfo stores data about different images
+type ImagesInfo struct {
+	types.TypeMeta   `yaml:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec             []ImageInfoSpec `yaml:"spec,omitempty"`
 }
 
 // ImageInfoSpec defines the data stored about ImageInfo
@@ -36,11 +46,24 @@ type ImageInfoSpec struct {
 	PortsToExpose []int32  `yaml:"ports"`
 	AccessedDirs  []string `yaml:"accessedDirs"`
 	UserID        int      `yaml:"userID"`
+
+	Created string            `json:"created,omitempty" yaml:"created,omitempty"`
+	Params  map[string]string `json:"params,omitempty" yaml:"params,omitempty"`
 }
 
 // NewImageInfo creates a new imageinfo instance
 func NewImageInfo() ImageInfo {
 	return ImageInfo{
+		TypeMeta: types.TypeMeta{
+			Kind:       string(ImageMetadataKind),
+			APIVersion: types.SchemeGroupVersion.String(),
+		},
+	}
+}
+
+// NewImagesInfo creates a new imagesinfo instance
+func NewImagesInfo() ImagesInfo {
+	return ImagesInfo{
 		TypeMeta: types.TypeMeta{
 			Kind:       string(ImageMetadataKind),
 			APIVersion: types.SchemeGroupVersion.String(),

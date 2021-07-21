@@ -24,6 +24,7 @@ import (
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
+	collectiontypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/source/maven"
 	"github.com/konveyor/move2kube/types/source/springboot"
@@ -51,14 +52,23 @@ type SpringbootAnalyser struct {
 
 // SpringbootConfig defines SpringbootConfig properties
 type SpringbootConfig struct {
-	ServiceName string `yaml:"serviceName,omitempty"`
-	Ports       []int  `yaml:"ports,omitempty"`
+	ServiceName            string `yaml:"serviceName,omitempty"`
+	Ports                  []int  `yaml:"ports,omitempty"`
+	JavaVersion            string `yaml:"javaVersion,omitempty"`
+	ApplicationServer      string `yaml:"applicationServer,omitempty"`
+	ApplicationServerImage string `yaml:"applicationServerImage,omitempty"`
+	JavaPackageName        string `yaml:"javaPackageName,omitempty"`
+	AppFile                string `yaml:"appFile,omitempty"`
+	DeploymentFile         string `yaml:"deploymentFile,omitempty"`
 }
 
 // SpringbootTemplateConfig defines SpringbootTemplateConfig properties
 type SpringbootTemplateConfig struct {
-	Port        int
-	JavaVersion string
+	Port            int    `yaml:"port,omitempty"`
+	JavaPackageName string `yaml:"javaPackageName,omitempty"`
+	AppServerImage  string `yaml:"appServerImage,omitempty"`
+	AppFile         string `yaml:"appFile,omitempty"`
+	DeploymentFile  string `yaml:"deploymentFile,omitempty"`
 }
 
 // Init Initializes the transformer
@@ -133,14 +143,165 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		return nil, nil, nil
 	}
 
+	// Collect packaging
+	packaging := ""
+	if pom.Packaging == "" {
+		logrus.Debugf("Pom at %s does not contain a Packaging block", dir)
+	} else {
+		packaging = pom.Packaging
+		logrus.Debugf("Packaging: %s", packaging)
+	}
+
+	// Collect java / tomcat version fom the Properties block
+	javaVersion := ""
+	tomcatVersion := ""
+	if pom.Properties == nil {
+		logrus.Debugf("Pom at %s  does not contain a Properties block", dir)
+	} else {
+		for k, v := range pom.Properties.Entries {
+			switch k {
+			case "java.version":
+				javaVersion = v
+			case "tomcat.version":
+				tomcatVersion = v
+			}
+		}
+	}
+	logrus.Debugf("Java version %s", javaVersion)
+	logrus.Debugf("Tomcat version %s", tomcatVersion)
+
+	// Check if the application uses an embeded server or not. If not, identify which server
+	isServerEmbedded := false
+
+	// First condition: Tomcat with provided scope?
+	isTomcatProvided := false
+	for _, dependency := range *pom.Dependencies {
+		if strings.Contains(dependency.ArtifactID, "spring-boot-starter-tomcat") && dependency.Scope == "provided" {
+			isTomcatProvided = true
+		}
+	}
+	// Second condition: Is packaging WAR
+	isPackagingWAR := false
+	if packaging == "war" {
+		isPackagingWAR = true
+	}
+	isServerEmbedded = !(isTomcatProvided && isPackagingWAR)
+
+	// If the server is not embedded, we check if it is open-liberty or jboss/wildfly
+	appServer := ""
+	if !isServerEmbedded {
+		// Server is not embedded. What type of server app are we using?
+
+		// Search for server.xml files
+		serverXMLfiles, err := common.GetFilesByName(dir, []string{"server.xml"})
+		if err != nil {
+			logrus.Debugf("Cannot get server.xml files: %s", err)
+		}
+
+		// Current assumption: if there is at least one server.xml file, -> open-liberty
+		if len(serverXMLfiles) > 0 {
+			appServer = "openliberty/open-liberty"
+		} else {
+			appServer = "jboss/wildfly"
+		}
+	}
+	logrus.Debugf("App server: %s", appServer)
+
+	// Check compatible image for the application server
+	var appServerCandidateImages []collectiontypes.ImageInfoSpec
+
+	if appServer != "" {
+		if javaVersion == "" { // default case
+			javaVersion = "1.8"
+		}
+
+		mappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java2images_tags.yaml")
+		images2Data := collectiontypes.NewImagesInfo()
+		if err := common.ReadMove2KubeYaml(mappingPath, &images2Data); err != nil {
+			logrus.Debugf("Could not load mapping at %s", mappingPath)
+		}
+
+		for _, im := range images2Data.Spec {
+			if im.Params["javaVersion"] == javaVersion && im.Params["serverApp"] == appServer {
+				appServerCandidateImages = append(appServerCandidateImages, im)
+			}
+		}
+	}
+
+	for _, e := range appServerCandidateImages {
+		logrus.Debugf("e: %s", e.Tags)
+	}
+
+	appServerImage := ""
+	if len(appServerCandidateImages) > 0 {
+		appServerImage = appServerCandidateImages[0].Tags[0]
+	}
+	logrus.Debugf("app server image %s", appServerImage)
+
+	appPropfiles, err := common.GetFilesByName(dir, []string{"", "application.properties"})
+	if err != nil {
+		logrus.Debugf("Cannot get application files: %s", err)
+	}
+	logrus.Debugf("App prop files %s", appPropfiles)
+
+	// Java images for build and deploy
+
+	// build
+	javaPackageNamesMappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java_version2package_name.json")
+	var javaPackageNamesMapping map[string]string
+	if err := common.ReadJSON(javaPackageNamesMappingPath, &javaPackageNamesMapping); err != nil {
+		logrus.Debugf("Could not load mapping at %s", javaPackageNamesMappingPath)
+	}
+
+	javaPackageName := ""
+	if val, ok := javaPackageNamesMapping[javaVersion]; ok {
+		javaPackageName = val
+	}
+
+	// Get app file and app name
+	appName := ""
+	appFile := ""
+	if pom.Name != "" {
+		appFile = pom.Name
+		appName = pom.Name
+	} else {
+		if pom.ArtifactID != "" {
+			appFile = pom.ArtifactID
+		}
+		appName = filepath.Base(dir)
+	}
+	if appFile != "" {
+		if pom.Version != "" {
+			appFile = appFile + "-" + pom.Version
+		}
+
+		if pom.Packaging != "" {
+			appFile = appFile + "." + pom.Packaging
+		} else {
+			appFile = appFile + ".jar"
+		}
+	}
+
+	// Get deployment file
+	deploymentFile := ""
+	if pom.ArtifactID != "" {
+		deploymentFile = pom.ArtifactID
+	}
+	if deploymentFile != "" {
+		if pom.Packaging != "" {
+			deploymentFile = deploymentFile + "." + pom.Packaging
+		} else {
+			deploymentFile = deploymentFile + ".jar"
+		}
+	}
+
+	// Collect application.yml/yaml files
 	appfiles, err := common.GetFilesByName(dir, []string{"application.yaml", "application.yml"})
 	if err != nil {
 		logrus.Debugf("Cannot get application files: %s", err)
 	}
 
 	validSpringbootFiles := []string{}
-
-	appName := filepath.Base(dir)
 	ports := []int{}
 
 	for _, appfile := range appfiles {
@@ -171,8 +332,14 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 		Configs: map[transformertypes.ConfigType]interface{}{
 			springbootServiceConfigType: SpringbootConfig{
-				ServiceName: appName,
-				Ports:       ports,
+				ServiceName:            appName,
+				Ports:                  ports,
+				JavaVersion:            javaVersion,
+				ApplicationServer:      appServer,
+				ApplicationServerImage: appServerImage,
+				JavaPackageName:        javaPackageName,
+				AppFile:                appFile,
+				DeploymentFile:         deploymentFile,
 			}},
 		Paths: map[transformertypes.PathType][]string{
 			mavenPomXML:                   {filepath.Join(dir, pomXML)},
@@ -180,6 +347,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 			applicationFilePath:           validSpringbootFiles,
 		},
 	}
+
 	return map[string]transformertypes.ServicePlan{appName: {ct}}, nil, nil
 }
 
@@ -218,27 +386,32 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		}
 
 		// License
-		strLicense, err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir, "Dockerfile.license"))
+		strLicense, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license"))
 		if err != nil {
 			return nil, nil, err
 		}
 
 		// Build
-		strBuild, err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir, "Dockerfile.maven-build"))
+		strBuild, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.maven-build"))
 		if err != nil {
 			return nil, nil, err
 		}
 
 		// Runtime
-		strEmbedded, err := ioutil.ReadFile(filepath.Join(t.Env.Context, t.Env.RelTemplatesDir, "Dockerfile.springboot-embedded"))
+		runtimeSegment := "Dockerfile.springboot-embedded" // default
+		if sConfig.ApplicationServer == "jboss/wildfly" {
+			runtimeSegment = "Dockerfile.springboot-wildfly-jboss-runtime"
+		} else if sConfig.ApplicationServer == "openliberty/open-liberty" {
+			runtimeSegment = "Dockerfile.springboot-open-liberty-runtime"
+		}
+
+		strRuntime, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, runtimeSegment))
 		if err != nil {
 			return nil, nil, err
 		}
 
 		var outputPath = filepath.Join(t.Env.TempPath, "Dockerfile.template")
-
-		template := string(strLicense) + "\n" + string(strBuild) + "\n" + string(strEmbedded)
-
+		template := string(strLicense) + "\n" + string(strBuild) + "\n" + string(strRuntime)
 		err = ioutil.WriteFile(outputPath, []byte(template), 0644)
 		if err != nil {
 			logrus.Errorf("Could not write the single generated Dockerfile template: %s", err)
@@ -251,10 +424,16 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 
 		dfp := filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile")
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
-			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        outputPath,
-			DestPath:       dfp,
-			TemplateConfig: SpringbootTemplateConfig{Port: port},
+			Type:     transformertypes.TemplatePathMappingType,
+			SrcPath:  outputPath,
+			DestPath: dfp,
+			TemplateConfig: SpringbootTemplateConfig{
+				JavaPackageName: sConfig.JavaPackageName,
+				AppServerImage:  sConfig.ApplicationServerImage,
+				Port:            port,
+				AppFile:         sConfig.AppFile,
+				DeploymentFile:  sConfig.DeploymentFile,
+			},
 		}, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
 			SrcPath:  "",
@@ -275,7 +454,10 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		dfs := transformertypes.Artifact{
 			Name:     sConfig.ServiceName,
 			Artifact: artifacts.DockerfileForServiceArtifactType,
-			Paths:    a.Paths,
+			Paths: map[string][]string{
+				artifacts.ProjectPathPathType: {filepath.Dir(dfp)},
+				artifacts.DockerfilePathType:  {dfp},
+			},
 			Configs: map[string]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 				artifacts.ServiceConfigType:   sConfig,
