@@ -24,7 +24,7 @@ import (
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/types/collection"
+	collectiontypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/source/maven"
 	"github.com/konveyor/move2kube/types/source/springboot"
@@ -57,40 +57,19 @@ type SpringbootConfig struct {
 	JavaVersion            string `yaml:"javaVersion,omitempty"`
 	ApplicationServer      string `yaml:"applicationServer,omitempty"`
 	ApplicationServerImage string `yaml:"applicationServerImage,omitempty"`
-	JavaBuildImage         string `yaml:"javaBuildImage,omitempty"`
-	JavaRuntimeImage       string `yaml:"javaRuntimeImage,omitempty"`
+	JavaPackageName        string `yaml:"javaPackageName,omitempty"`
 	AppFile                string `yaml:"appFile,omitempty"`
 	DeploymentFile         string `yaml:"deploymentFile,omitempty"`
 }
 
 // SpringbootTemplateConfig defines SpringbootTemplateConfig properties
 type SpringbootTemplateConfig struct {
-	Port             int    `yaml:"port,omitempty"`
-	JavaBuildImage   string `yaml:"javaBuildImage,omitempty"`
-	JavaRuntimeImage string `yaml:"javaRuntimeImage,omitempty"`
-	AppServerImage   string `yaml:"appServerImage,omitempty"`
-	AppFile          string `yaml:"appFile,omitempty"`
-	DeploymentFile   string `yaml:"deploymentFile,omitempty"`
+	Port            int    `yaml:"port,omitempty"`
+	JavaPackageName string `yaml:"javaPackageName,omitempty"`
+	AppServerImage  string `yaml:"appServerImage,omitempty"`
+	AppFile         string `yaml:"appFile,omitempty"`
+	DeploymentFile  string `yaml:"deploymentFile,omitempty"`
 }
-
-// ExtendedImage defines ExtendedImage properties
-type ExtendedImage struct {
-	collection.ImageInfoSpec
-	Created string            `json:"created" yaml:"created"`
-	Params  map[string]string `json:"params" yaml:"params"`
-}
-
-// JavaRuntime defines JavaRuntime properties
-//type JavaRuntime struct {
-//	JavaVersion string `yaml:"javaVersion,omitempty"`
-//	Image       string `yaml:"image,omitempty"`
-//}
-
-// JavaBuild defines JavaBuild properties
-//type JavaBuild struct {
-//	JavaVersion string `yaml:"javaVersion,omitempty"`
-//	Image       string `yaml:"image,omitempty"`
-//}
 
 // Init Initializes the transformer
 func (t *SpringbootAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
@@ -229,20 +208,20 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	logrus.Debugf("App server: %s", appServer)
 
 	// Check compatible image for the application server
-	var appServerCandidateImages []ExtendedImage
+	var appServerCandidateImages []collectiontypes.ImageInfoSpec
 
 	if appServer != "" {
 		if javaVersion == "" { // default case
 			javaVersion = "1.8"
 		}
 
-		mappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java2images_tags.json")
-		var images2Data []ExtendedImage
-		if err := common.ReadJSON(mappingPath, &images2Data); err != nil {
+		mappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java2images_tags.yaml")
+		var images2Data collectiontypes.ImagesInfo
+		if err := common.ReadMove2KubeYaml(mappingPath, &images2Data); err != nil {
 			logrus.Debugf("Could not load mapping at %s", mappingPath)
 		}
 
-		for _, im := range images2Data {
+		for _, im := range images2Data.Spec {
 			if im.Params["javaVersion"] == javaVersion && im.Params["serverApp"] == appServer {
 				appServerCandidateImages = append(appServerCandidateImages, im)
 			}
@@ -268,27 +247,15 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	// Java images for build and deploy
 
 	// build
-	javaBuildImagesMappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java_build_images.json")
-	var javaBuildImagesMapping map[string]string
-	if err := common.ReadJSON(javaBuildImagesMappingPath, &javaBuildImagesMapping); err == nil {
-		logrus.Debugf("Could not load mapping at %s", javaBuildImagesMappingPath)
+	javaPackageNamesMappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java_version2package_name.json")
+	var javaPackageNamesMapping map[string]string
+	if err := common.ReadJSON(javaPackageNamesMappingPath, &javaPackageNamesMapping); err != nil {
+		logrus.Debugf("Could not load mapping at %s", javaPackageNamesMappingPath)
 	}
 
-	// runtime
-	javaRuntimeImagesMappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java_runtime_images.json")
-	var javaRuntimeImagesMapping map[string]string
-	if err := common.ReadJSON(javaRuntimeImagesMappingPath, &javaRuntimeImagesMapping); err == nil {
-		logrus.Debugf("Could not load mapping at %s", javaRuntimeImagesMappingPath)
-	}
-
-	javaBuildImage := ""
-	if val, ok := javaBuildImagesMapping[javaVersion]; ok {
-		javaBuildImage = val
-	}
-
-	javaRuntimeImage := ""
-	if val, ok := javaRuntimeImagesMapping[javaVersion]; ok {
-		javaRuntimeImage = val
+	javaPackageName := ""
+	if val, ok := javaPackageNamesMapping[javaVersion]; ok {
+		javaPackageName = val
 	}
 
 	// Get app file and app name
@@ -370,8 +337,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 				JavaVersion:            javaVersion,
 				ApplicationServer:      appServer,
 				ApplicationServerImage: appServerImage,
-				JavaBuildImage:         javaBuildImage,
-				JavaRuntimeImage:       javaRuntimeImage,
+				JavaPackageName:        javaPackageName,
 				AppFile:                appFile,
 				DeploymentFile:         deploymentFile,
 			}},
@@ -462,12 +428,11 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 			SrcPath:  outputPath,
 			DestPath: dfp,
 			TemplateConfig: SpringbootTemplateConfig{
-				JavaRuntimeImage: sConfig.JavaRuntimeImage,
-				JavaBuildImage:   sConfig.JavaBuildImage,
-				AppServerImage:   sConfig.ApplicationServerImage,
-				Port:             port,
-				AppFile:          sConfig.AppFile,
-				DeploymentFile:   sConfig.DeploymentFile,
+				JavaPackageName: sConfig.JavaPackageName,
+				AppServerImage:  sConfig.ApplicationServerImage,
+				Port:            port,
+				AppFile:         sConfig.AppFile,
+				DeploymentFile:  sConfig.DeploymentFile,
 			},
 		}, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
@@ -489,7 +454,10 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		dfs := transformertypes.Artifact{
 			Name:     sConfig.ServiceName,
 			Artifact: artifacts.DockerfileForServiceArtifactType,
-			Paths:    a.Paths,
+			Paths: map[string][]string{
+				artifacts.ProjectPathPathType: {filepath.Dir(dfp)},
+				artifacts.DockerfilePathType:  {dfp},
+			},
 			Configs: map[string]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 				artifacts.ServiceConfigType:   sConfig,

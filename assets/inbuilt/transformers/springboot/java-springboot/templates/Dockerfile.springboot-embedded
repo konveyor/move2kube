@@ -2,7 +2,7 @@
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 RUN microdnf update \
    && microdnf install --nodocs \
-      {{ .JavaBuildImage }} \
+      {{ .JavaPackageName }} \
    && microdnf clean all
 
 COPY --from=build_base /app/target/*.jar app.jar
