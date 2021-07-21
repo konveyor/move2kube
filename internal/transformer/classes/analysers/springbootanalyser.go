@@ -76,9 +76,8 @@ type SpringbootTemplateConfig struct {
 // ExtendedImage defines ExtendedImage properties
 type ExtendedImage struct {
 	collection.ImageInfoSpec
-	ImageName string            `json:"imageName" yaml:"imageName"`
-	Created   string            `json:"created" yaml:"created"`
-	Params    map[string]string `json:"params" yaml:"params"`
+	Created string            `json:"created" yaml:"created"`
+	Params  map[string]string `json:"params" yaml:"params"`
 }
 
 // JavaRuntime defines JavaRuntime properties
@@ -177,7 +176,6 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	// Collect java / tomcat version fom the Properties block
 	javaVersion := ""
 	tomcatVersion := ""
-
 	if pom.Properties == nil {
 		logrus.Debugf("Pom at %s  does not contain a Properties block", dir)
 	} else {
@@ -228,7 +226,6 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 			appServer = "jboss/wildfly"
 		}
 	}
-
 	logrus.Debugf("App server: %s", appServer)
 
 	// Check compatible image for the application server
@@ -241,20 +238,24 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 
 		mappingPath := filepath.Join(t.Env.GetEnvironmentContext(), "mappings/java2images_tags.json")
 		var images2Data []ExtendedImage
-		if err := common.ReadJSON(mappingPath, &images2Data); err == nil {
+		if err := common.ReadJSON(mappingPath, &images2Data); err != nil {
 			logrus.Debugf("Could not load mapping at %s", mappingPath)
 		}
-		for _, im := range images2Data {
 
+		for _, im := range images2Data {
 			if im.Params["javaVersion"] == javaVersion && im.Params["serverApp"] == appServer {
 				appServerCandidateImages = append(appServerCandidateImages, im)
 			}
 		}
 	}
 
+	for _, e := range appServerCandidateImages {
+		logrus.Debugf("e: %s", e.Tags)
+	}
+
 	appServerImage := ""
 	if len(appServerCandidateImages) > 0 {
-		appServerImage = appServerCandidateImages[0].ImageName
+		appServerImage = appServerCandidateImages[0].Tags[0]
 	}
 	logrus.Debugf("app server image %s", appServerImage)
 
