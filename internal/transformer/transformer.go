@@ -80,6 +80,7 @@ func init() {
 		new(generators.ReadMeGenerator),
 
 		new(dockerfilegenerators.NodejsDockerfileGenerator),
+		new(dockerfilegenerators.GolangDockerfileGenerator),
 
 		new(external.Starlark),
 		new(external.Executable),
