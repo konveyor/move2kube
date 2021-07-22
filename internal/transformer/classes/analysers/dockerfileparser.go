@@ -144,13 +144,13 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 	irService.Containers = []core.Container{serviceContainer}
 	if t.isWindowsContainer(df) {
 		irService.Annotations = map[string]string{common.WindowsAnnotation: common.AnnotationLabelValue}
+		irService.NodeSelector = map[string]string{"kubernetes.io/os": "windows"}
+		irService.Tolerations = []core.Toleration{{
+			Effect: core.TaintEffectNoSchedule,
+			Key:    "os",
+			Value:  "Windows",
+		}}
 	}
-	irService.NodeSelector = map[string]string{"kubernetes.io/os": "windows"}
-	irService.Tolerations = []core.Toleration{{
-		Effect: core.TaintEffectNoSchedule,
-		Key:    "os",
-		Value:  "Windows",
-	}}
 	ir.Services[serviceName] = irService
 	return &transformertypes.Artifact{
 		Name:     t.Env.GetProjectName(),
