@@ -1,6 +1,4 @@
-#!/usr/bin/env bash
-
-#   Copyright IBM Corporation 2020
+#   Copyright IBM Corporation 2021
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -14,11 +12,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Takes as input the source directory and returns error if it is not fit
-found=$(find "$1"/. -name "*.go" -print -quit | wc -l)
+# Build Stage
+FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .baseImageVersion }} As build-env
+WORKDIR /app
+COPY . .
+RUN msbuild /p:Configuration=Release
 
-if [ ! "$found" -eq 1 ]; then
-    exit 1
-fi
-
-echo '{"generates":"ContainerBuild","generatedBases":"ContainerBuild","port": 8080, "app_name": "app-bin"}'
+# Run Stage
+FROM mcr.microsoft.com/dotnet/framework/runtime:{{ .baseImageVersion }}
+{{- range $port := .Ports }}
+EXPOSE {{ $port }}
+{{- end }}
+WORKDIR /app
+COPY --from=build-env /app/bin/Release .
+CMD {{ .appName }}.exe

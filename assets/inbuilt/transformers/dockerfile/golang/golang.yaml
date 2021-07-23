@@ -1,15 +1,9 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Transformer
 metadata:
-  name: Golang
+  name: Golang-Dockerfile
 spec:
   mode: "Container"
-  class: "Executable"
+  class: "GolangDockerfileGenerator"
   config:
-    directoryDetectCMD: ["./m2kdetect.sh"]
-    platforms: ["linux", "darwin"]
-    #container:
-    #  image: m2kgolangdf
-    #  build:
-    #    dockerfile: Dockerfile
-    #    context: .
+    defaultGoVersion: "1.16"
