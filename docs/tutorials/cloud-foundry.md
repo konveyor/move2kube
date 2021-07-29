@@ -402,15 +402,22 @@ Finally, the translation is successful and the target artifacts can be found ins
     │   └── myproject-tekton-triggers-admin-serviceaccount.yaml
     ├── containers
     │   └── move2kube-demo-cf-cnb-build.sh
-    ├── deploy.sh
     ├── docker-compose.yaml
     ├── m2kqacache.yaml
+    ├── scripts
+    │   ├── buildimages.sh
+    │   ├── deploy-cicd.sh
+    │   ├── deployhelm.sh
+    │   ├── deployknative.sh
+    │   ├── deploykustomize.sh
+    │   ├── deployoctemplates.sh
+    │   ├── deploy.sh
+    │   └── pushimages.sh
     ├── myproject
     │   ├── move2kube-demo-cf-deploymentconfig.yaml
     │   ├── move2kube-demo-cf-imagestream.yaml
     │   ├── move2kube-demo-cf-route.yaml
     │   └── move2kube-demo-cf-service.yaml
-    └── pushimages.sh
 ```
 
 So, here it has created all the deployment artifacts. It was an OpenShift cluster that we collected, so it has created the `deploymentconfig`, `imagestream`, `route` and `service` yamls for us. Many scripts like *buildimages.sh* and *deploy.sh* are also present inside the *myproject* folder.
@@ -423,22 +430,21 @@ So, here it has created all the deployment artifacts. It was an OpenShift cluste
      samples git:(main) $ cd myproject/
 
      myproject git:(main) $ ls
-     NOTES.txt           buildimages.sh      containers          deploy.sh           m2kqacache.yaml     pushimages.sh
-     Readme.md           cicd                docker-compose.yaml myproject
+     deploy  m2kconfig.yaml  m2kqacache.yaml  newfiles.txt  README.md  scripts  source
      ```
 
 
 2. Next we run the *buildimages.sh* script. This step may take some time to complete.
 
     ```console
-    myproject git:(main) $ ./buildimages.sh
+    myproject git:(main) $ ./scripts/buildimages.sh
     ```
 
 
 3. Now using the *pushimages.sh* script we can push our applications images to the registry that we specified during the *translate* phase. For this step, you are required to log in to the Docker registry. To log in to IBM Cloud `us.icr.io` registry refer [here](https://cloud.ibm.com/docs/Registry?topic=Registry-registry_access#registry_access_apikey_auth_docker).
 
     ```console
-    myproject git:(main) $ ./pushimages.sh
+    myproject git:(main) $ ./scripts/pushimages.sh
     The push refers to repository [us.icr.io/m2k-tutorial/move2kube-demo-cf]
     83d85471d9f8: Layer already exists
     b93c49230f34: Layer already exists
@@ -458,7 +464,7 @@ So, here it has created all the deployment artifacts. It was an OpenShift cluste
 4. Finally we are going to deploy the application using the *deploy.sh* script.
 
     ```console
-    myproject git:(main) $ ./deploy.sh
+    myproject git:(main) $ ./scripts/deploy.sh
     service/move2kube-demo-cf configured
 
     The services are accessible on the following paths:
