@@ -222,7 +222,12 @@ checkMove2KubeInstalledVersion() {
 
 # downloadMove2Kube downloads the latest binary package and verifies the checksum.
 downloadMove2Kube() {
-    MOVE2KUBE_DIST="move2kube-$MOVE2KUBE_TAG-$OS-$ARCH.tar.gz"
+		# version 0.2.0 does not have a v prefix in the file names, so we need to account for that
+		if [[ "${MOVE2KUBE_TAG}" == "v0.2.0" ]]; then
+			MOVE2KUBE_DIST="move2kube-0.2.0-$OS-$ARCH.tar.gz"
+		else
+      MOVE2KUBE_DIST="move2kube-$MOVE2KUBE_TAG-$OS-$ARCH.tar.gz"
+		fi
     DOWNLOAD_URL="https://github.com/konveyor/move2kube/releases/download/$MOVE2KUBE_TAG/$MOVE2KUBE_DIST"
     MOVE2KUBE_TMP_ROOT="$(mktemp -dt move2kube-installer-XXXXXX)"
     MOVE2KUBE_TMP_FILE="$MOVE2KUBE_TMP_ROOT/$MOVE2KUBE_DIST"
