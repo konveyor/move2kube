@@ -124,3 +124,15 @@ func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
 	}
 	return exposePorts
 }
+
+// GetConfFileForService returns ports used by a service
+func GetConfFileForService(confFiles []string, serviceName string) string {
+	noAnswer := "none of the above"
+	confFiles = append(confFiles, noAnswer)
+	selectedConfFile := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigConfFileForServiceKeySegment, "Choose the conf file to be used:", []string{"Selected conf file will be used for identifying the port to be exposed"}, confFiles[0], confFiles)
+	if selectedConfFile == noAnswer {
+		logrus.Debugf("No conf file selected for the service %s", serviceName)
+		return ""
+	}
+	return selectedConfFile
+}

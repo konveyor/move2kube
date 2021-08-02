@@ -83,6 +83,8 @@ const (
 	ConfigPortsForServiceKeySegment = "ports"
 	//ConfigAdditionalPortsForServiceKeySegment represents the ports used for service
 	ConfigAdditionalPortsForServiceKeySegment = "additionalports"
+	//ConfigConfFileForServiceKeySegment represents the conf file used for service
+	ConfigConfFileForServiceKeySegment = "conf"
 	//ConfigModesKey represents modes Key
 	ConfigModesKey = BaseKey + d + "modes"
 	//ConfigSpawmContainersKey represents modes Key

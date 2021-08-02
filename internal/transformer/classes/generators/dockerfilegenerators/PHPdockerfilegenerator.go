@@ -34,6 +34,7 @@ import (
 const (
 	phpExt      = ".php"
 	virtualHost = "VirtualHost"
+	confExt     = ".conf"
 )
 
 // PHPDockerfileGenerator implements the Transformer interface
@@ -65,49 +66,54 @@ func (t *PHPDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices 
 	return nil, nil, nil
 }
 
-// DetectConf extracts the port information from .conf file
-func DetectConf(dir string) (int32, string, error) {
+// ParseConfFile parses the conf file to detect the port
+func ParseConfFile(confFilePath string) int32 {
 	var port int32
-	var confFileName string
-	dirEntries, err := os.ReadDir(dir)
+	confFile, err := os.Open(confFilePath)
 	if err != nil {
-		logrus.Errorf("Error while trying to read directory : %s", err)
-		return port, confFileName, err
+		logrus.Errorf("Could not open the conf file: %s", err)
+		return port
 	}
-	for _, de := range dirEntries {
-		ext := filepath.Ext(de.Name())
-		if ext != ".conf" {
+	root, err := gopache.Parse(confFile)
+	if err != nil {
+		logrus.Errorf("Error while parsing configuration file : %s", err)
+		return port
+	}
+	match, err := root.FindOne(virtualHost)
+	if err != nil {
+		logrus.Debugf("Could not find the VirtualHost in conf file: %s", err)
+		return port
+	}
+	tokens := strings.Split(match.Content, ":")
+	if len(tokens) > 1 {
+		detectedPort, err := strconv.ParseInt(tokens[1], 10, 32)
+		if err != nil {
+			logrus.Errorf("Error while converting the port from string to int : %s", err)
+			return port
+		}
+		return int32(detectedPort)
+	}
+	defer confFile.Close()
+	return port
+}
+
+// DetectConfFiles detects if conf files are present or not
+func DetectConfFiles(dir string) ([]string, error) {
+	var confFilesPaths []string
+	confFiles, err := common.GetFilesByExt(dir, []string{confExt})
+	if err != nil {
+		logrus.Debugf("Could not find conf files %s", err)
+		return confFilesPaths, err
+	}
+	for _, confFilePath := range confFiles {
+		confFileRelPath, err := filepath.Rel(dir, confFilePath)
+		if err != nil {
+			logrus.Errorf("Unable to resolve conf file path %s as rel path : %s", confFilePath, err)
 			continue
 		}
-		confFileName := de.Name()
-		confFilePath := filepath.Join(dir, de.Name())
-		confFile, err := os.Open(confFilePath)
-		if err != nil {
-			logrus.Errorf("Could not open the conf file: %s", err)
-			return port, confFileName, err
-		}
-		root, err := gopache.Parse(confFile)
-		if err != nil {
-			logrus.Errorf("Error while parsing configuration file : %s", err)
-			return port, confFileName, err
-		}
-		match, err := root.FindOne(virtualHost)
-		if err != nil {
-			logrus.Errorf("Could not find the VirtualHost in conf file: %s", err)
-			return port, confFileName, err
-		}
-		tokens := strings.Split(match.Content, ":")
-		if len(tokens) > 1 {
-			port, err := strconv.ParseInt(tokens[1], 10, 32)
-			if err != nil {
-				logrus.Errorf("Error while converting the entered port from string to int : %s", err)
-				return int32(port), confFileName, err
-			}
-			return int32(port), confFileName, nil
-		}
-		defer confFile.Close()
+		confFilesPaths = append(confFilesPaths, confFileRelPath)
 	}
-	return port, confFileName, err
+	return confFilesPaths, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -118,18 +124,18 @@ func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[
 		return nil, nil, err
 	}
 	for _, de := range dirEntries {
-		ext := filepath.Ext(de.Name())
-		if ext == phpExt {
-			unnamedServices = []transformertypes.TransformerPlan{{
-				Mode:              t.Config.Spec.Mode,
-				ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-				BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-				Paths: map[string][]string{
-					artifacts.ProjectPathPathType: {dir},
-				},
-			}}
-			return nil, unnamedServices, nil
+		if filepath.Ext(de.Name()) != phpExt {
+			continue
 		}
+		unnamedServices = []transformertypes.TransformerPlan{{
+			Mode:              t.Config.Spec.Mode,
+			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+			Paths: map[string][]string{
+				artifacts.ProjectPathPathType: {dir},
+			},
+		}}
+		return nil, unnamedServices, nil
 	}
 	return nil, nil, nil
 }
@@ -159,14 +165,23 @@ func (t *PHPDockerfileGenerator) Transform(newArtifacts []transformertypes.Artif
 		}
 		var detectedPorts []int32
 		var phpConfig PhpTemplateConfig
-		port, confFileName, err := DetectConf(a.Paths[artifacts.ProjectPathPathType][0])
+		var confFilePath string
+		confFiles, err := DetectConfFiles(a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
-			logrus.Debugf("Could not find port in the conf file %s: %s", confFileName, err)
+			logrus.Debugf("Could not detect any conf files %s", err)
 		} else {
-			if port != 0 {
-				detectedPorts = append(detectedPorts, port)
+			if len(confFiles) == 1 {
+				confFilePath = confFiles[0]
+			} else if len(confFiles) > 1 {
+				confFilePath = commonqa.GetConfFileForService(confFiles, a.Name)
 			}
-			phpConfig.ConfFile = confFileName
+			if confFilePath != "" {
+				port := ParseConfFile(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], confFilePath))
+				if port != 0 {
+					detectedPorts = append(detectedPorts, port)
+				}
+				phpConfig.ConfFile = confFilePath
+			}
 		}
 		detectedPorts = commonqa.GetPortsForService(detectedPorts, a.Name)
 		phpConfig.Ports = detectedPorts
