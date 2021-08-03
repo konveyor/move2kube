@@ -15,9 +15,9 @@
 FROM registry.access.redhat.com/ubi8/php-74:latest
 {{- if .ConfFile }}
 COPY {{ .ConfFile }} /etc/httpd/conf.d/
+{{- else}}
+RUN printf "ServerName localhost\n\nListen {{ .ConfFilePort }}\n<VirtualHost *:{{ .ConfFilePort }}>\n  ServerAdmin webmaster@localhost\n  DocumentRoot /var/www/html\n  <Directory /var/www/html>\n    Options Indexes FollowSymLinks\n    AllowOverride All\n    Require all granted\n</Directory>\n</VirtualHost>" > /etc/httpd/conf.d/site.conf
 {{- end }}
 COPY . /var/www/html/
-{{- range $port := .Ports }}
-EXPOSE {{ $port }}
-{{- end }}
+EXPOSE {{ .ConfFilePort }}
 CMD ["httpd", "-D", "FOREGROUND"]

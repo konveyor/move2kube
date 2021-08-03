@@ -45,8 +45,8 @@ type PHPDockerfileGenerator struct {
 
 // PhpTemplateConfig implements Php config interface
 type PhpTemplateConfig struct {
-	Ports    []int32
-	ConfFile string
+	ConfFile     string
+	ConfFilePort int32
 }
 
 // Init Initializes the transformer
@@ -66,8 +66,8 @@ func (t *PHPDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices 
 	return nil, nil, nil
 }
 
-// ParseConfFile parses the conf file to detect the port
-func ParseConfFile(confFilePath string) int32 {
+// parseConfFile parses the conf file to detect the port
+func parseConfFile(confFilePath string) int32 {
 	var port int32
 	confFile, err := os.Open(confFilePath)
 	if err != nil {
@@ -97,8 +97,8 @@ func ParseConfFile(confFilePath string) int32 {
 	return port
 }
 
-// DetectConfFiles detects if conf files are present or not
-func DetectConfFiles(dir string) ([]string, error) {
+// detectConfFiles detects if conf files are present or not
+func detectConfFiles(dir string) ([]string, error) {
 	var confFilesPaths []string
 	confFiles, err := common.GetFilesByExt(dir, []string{confExt})
 	if err != nil {
@@ -166,7 +166,7 @@ func (t *PHPDockerfileGenerator) Transform(newArtifacts []transformertypes.Artif
 		var detectedPorts []int32
 		var phpConfig PhpTemplateConfig
 		var confFilePath string
-		confFiles, err := DetectConfFiles(a.Paths[artifacts.ProjectPathPathType][0])
+		confFiles, err := detectConfFiles(a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Debugf("Could not detect any conf files %s", err)
 		} else {
@@ -176,15 +176,17 @@ func (t *PHPDockerfileGenerator) Transform(newArtifacts []transformertypes.Artif
 				confFilePath = commonqa.GetConfFileForService(confFiles, a.Name)
 			}
 			if confFilePath != "" {
-				port := ParseConfFile(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], confFilePath))
+				port := parseConfFile(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], confFilePath))
 				if port != 0 {
 					detectedPorts = append(detectedPorts, port)
 				}
 				phpConfig.ConfFile = confFilePath
 			}
 		}
-		detectedPorts = commonqa.GetPortsForService(detectedPorts, a.Name)
-		phpConfig.Ports = detectedPorts
+		if len(detectedPorts) == 0 {
+			detectedPorts = commonqa.GetPortsForService(detectedPorts, a.Name)
+		}
+		phpConfig.ConfFilePort = detectedPorts[0]
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
