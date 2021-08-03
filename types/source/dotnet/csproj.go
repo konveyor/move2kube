@@ -19,12 +19,49 @@ package dotnet
 import (
 	"encoding/xml"
 	"io"
+	"regexp"
 )
 
-type ConfigurationDotNET struct {
-	XMLName       xml.Name      `xml:"Project"`
-	Sdk           string        `xml:"Sdk,attr"`
-	PropertyGroup PropertyGroup `xml:"PropertyGroup"`
+var (
+	FourXPattern = regexp.MustCompile("v4*")
+	WebLib       = regexp.MustCompile("^System.Web*")
+	WebSLLib     = regexp.MustCompile("Silverlight.js")
+)
+
+const (
+	ProjBlock               = "^Project"
+	CsSln                   = ".sln"
+	CsProj                  = ".csproj"
+	DefaultBaseImageVersion = "4.8"
+)
+
+type CSProj struct {
+	XMLName       xml.Name       `xml:"Project"`
+	Sdk           string         `xml:"Sdk,attr"`
+	PropertyGroup *PropertyGroup `xml:"PropertyGroup"`
+	ItemGroups    []ItemGroup    `xml:"ItemGroup"`
+}
+
+type ItemGroup struct {
+	XMLName    xml.Name    `xml:"ItemGroup"`
+	References []Reference `xml:"Reference"`
+	Contents   []Content   `xml:"Content"`
+	None       []None   `xml:"None"`
+}
+
+type Reference struct {
+	XMLName xml.Name `xml:"Reference"`
+	Include string   `xml:"Include,attr"`
+}
+
+type Content struct {
+	XMLName xml.Name `xml:"Content"`
+	Include string   `xml:"Include,attr"`
+}
+
+type None struct {
+	XMLName xml.Name `xml:"None"`
+	Include string   `xml:"Include,attr"`
 }
 
 type PropertyGroup struct {

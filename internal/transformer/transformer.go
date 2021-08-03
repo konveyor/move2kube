@@ -80,7 +80,9 @@ func init() {
 		new(generators.ReadMeGenerator),
 
 		new(dockerfilegenerators.NodejsDockerfileGenerator),
-		new(dockerfilegenerators.WinAppWCFDockerfileGenerator),
+		new(dockerfilegenerators.WinConsoleAppDockerfileGenerator),
+		new(dockerfilegenerators.WinWebAppDockerfileGenerator),
+		new(dockerfilegenerators.WinSLWebAppDockerfileGenerator),
 
 		new(external.Starlark),
 		new(external.Executable),

@@ -67,8 +67,12 @@
 "inbuilt/transformers/dockerfile/rust/m2kdetect.sh" : 0755
 "inbuilt/transformers/dockerfile/rust/rust.yaml" : 0644
 "inbuilt/transformers/dockerfile/rust/templates/Dockerfile" : 0644
-"inbuilt/transformers/dockerfile/winwcf/templates/Dockerfile" : 0644
-"inbuilt/transformers/dockerfile/winwcf/winwcf.yaml" : 0644
+"inbuilt/transformers/dockerfile/winconsole/templates/Dockerfile" : 0644
+"inbuilt/transformers/dockerfile/winconsole/winconsole.yaml" : 0644
+"inbuilt/transformers/dockerfile/winslweb/templates/Dockerfile" : 0644
+"inbuilt/transformers/dockerfile/winslweb/winslweb.yaml" : 0644
+"inbuilt/transformers/dockerfile/winweb/templates/Dockerfile" : 0644
+"inbuilt/transformers/dockerfile/winweb/winweb.yaml" : 0644
 "inbuilt/transformers/generators/buildconfig/buildconfig.yaml" : 0644
 "inbuilt/transformers/generators/containerimagesbuildscript/containerimagesbuildscript.yaml" : 0644
 "inbuilt/transformers/generators/containerimagesbuildscript/templates/buildimages.bat" : 0755

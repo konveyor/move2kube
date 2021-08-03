@@ -1,10 +1,10 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Transformer
 metadata:
-  name: WinAppWCF-Dockerfile
+  name: WinSLWebApp-Dockerfile
 spec:
   mode: "Container"
-  class: "WinAppWCFDockerfileGenerator"
+  class: "WinSLWebAppDockerfileGenerator"
   generates: 
     - "ContainerBuild"
   generatedBases: 
