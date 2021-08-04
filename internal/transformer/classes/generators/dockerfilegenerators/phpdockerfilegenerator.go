@@ -17,6 +17,7 @@
 package dockerfilegenerators
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -25,6 +26,7 @@ import (
 	gopache "github.com/Akash-Nayak/GopacheConfig"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -67,34 +69,34 @@ func (t *PHPDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices 
 }
 
 // parseConfFile parses the conf file to detect the port
-func parseConfFile(confFilePath string) int32 {
+func parseConfFile(confFilePath string) (int32, error) {
 	var port int32
 	confFile, err := os.Open(confFilePath)
 	if err != nil {
-		logrus.Errorf("Could not open the conf file: %s", err)
-		return port
+		logrus.Errorf("Could not open the apache config file: %s", err)
+		return port, err
 	}
+	defer confFile.Close()
 	root, err := gopache.Parse(confFile)
 	if err != nil {
-		logrus.Errorf("Error while parsing configuration file : %s", err)
-		return port
+		logrus.Errorf("Error while parsing apache config file : %s", err)
+		return port, err
 	}
 	match, err := root.FindOne(virtualHost)
 	if err != nil {
-		logrus.Debugf("Could not find the VirtualHost in conf file: %s", err)
-		return port
+		logrus.Debugf("Could not find the VirtualHost in apache config file: %s", err)
+		return port, err
 	}
 	tokens := strings.Split(match.Content, ":")
 	if len(tokens) > 1 {
 		detectedPort, err := strconv.ParseInt(tokens[1], 10, 32)
 		if err != nil {
 			logrus.Errorf("Error while converting the port from string to int : %s", err)
-			return port
+			return port, err
 		}
-		return int32(detectedPort)
+		return int32(detectedPort), nil
 	}
-	defer confFile.Close()
-	return port
+	return port, err
 }
 
 // detectConfFiles detects if conf files are present or not
@@ -106,14 +108,38 @@ func detectConfFiles(dir string) ([]string, error) {
 		return confFilesPaths, err
 	}
 	for _, confFilePath := range confFiles {
+		confFile, err := os.Open(confFilePath)
+		if err != nil {
+			logrus.Debugf("Could not open the conf file: %s", err)
+			confFile.Close()
+			continue
+		}
+		defer confFile.Close()
+		_, err = gopache.Parse(confFile)
+		if err != nil {
+			logrus.Debugf("Error while parsing conf file : %s", err)
+			continue
+		}
 		confFileRelPath, err := filepath.Rel(dir, confFilePath)
 		if err != nil {
-			logrus.Errorf("Unable to resolve conf file path %s as rel path : %s", confFilePath, err)
+			logrus.Errorf("Unable to resolve apache config file path %s as rel path : %s", confFilePath, err)
 			continue
 		}
 		confFilesPaths = append(confFilesPaths, confFileRelPath)
 	}
 	return confFilesPaths, nil
+}
+
+// GetConfFileForService returns ports used by a service
+func GetConfFileForService(confFiles []string, serviceName string) string {
+	noAnswer := "none of the above"
+	confFiles = append(confFiles, noAnswer)
+	selectedConfFile := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigApacheConfFileForServiceKeySegment, fmt.Sprintf("Choose the apache config file to be used for the service %s", serviceName), []string{fmt.Sprintf("Selected apache config file will be used for identifying the port to be exposed for the service %s", serviceName)}, confFiles[0], confFiles)
+	if selectedConfFile == noAnswer {
+		logrus.Debugf("No apache config file selected for the service %s", serviceName)
+		return ""
+	}
+	return selectedConfFile
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -124,6 +150,9 @@ func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[
 		return nil, nil, err
 	}
 	for _, de := range dirEntries {
+		if de.IsDir() {
+			continue
+		}
 		if filepath.Ext(de.Name()) != phpExt {
 			continue
 		}
@@ -165,28 +194,25 @@ func (t *PHPDockerfileGenerator) Transform(newArtifacts []transformertypes.Artif
 		}
 		var detectedPorts []int32
 		var phpConfig PhpTemplateConfig
-		var confFilePath string
 		confFiles, err := detectConfFiles(a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Debugf("Could not detect any conf files %s", err)
 		} else {
 			if len(confFiles) == 1 {
-				confFilePath = confFiles[0]
+				phpConfig.ConfFile = confFiles[0]
 			} else if len(confFiles) > 1 {
-				confFilePath = commonqa.GetConfFileForService(confFiles, a.Name)
+				phpConfig.ConfFile = GetConfFileForService(confFiles, a.Name)
 			}
-			if confFilePath != "" {
-				port := parseConfFile(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], confFilePath))
-				if port != 0 {
-					detectedPorts = append(detectedPorts, port)
+			if phpConfig.ConfFile != "" {
+				phpConfig.ConfFilePort, err = parseConfFile(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], phpConfig.ConfFile))
+				if err != nil {
+					logrus.Errorf("Error while parsing configuration file : %s", err)
 				}
-				phpConfig.ConfFile = confFilePath
+			}
+			if phpConfig.ConfFilePort == 0 {
+				phpConfig.ConfFilePort = commonqa.GetPortForService(detectedPorts, a.Name)
 			}
 		}
-		if len(detectedPorts) == 0 {
-			detectedPorts = commonqa.GetPortsForService(detectedPorts, a.Name)
-		}
-		phpConfig.ConfFilePort = detectedPorts[0]
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}

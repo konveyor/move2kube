@@ -5,7 +5,7 @@ go 1.16
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20210608160410-67692ebc98de // indirect
 	code.cloudfoundry.org/cli v7.1.0+incompatible
-	github.com/Akash-Nayak/GopacheConfig v0.0.0-20210730101443-d5bfa3109be4 // indirect
+	github.com/Akash-Nayak/GopacheConfig v0.0.0-20210730101443-d5bfa3109be4
 	github.com/AlecAivazis/survey/v2 v2.2.12
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
@@ -39,7 +39,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
 	go.starlark.net v0.0.0-20210602144842-1cdb82c9e17a
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
-	golang.org/x/mod v0.4.2 // indirect
+	golang.org/x/mod v0.4.2
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
