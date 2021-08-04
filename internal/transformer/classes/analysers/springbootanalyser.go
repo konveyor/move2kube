@@ -127,23 +127,30 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		return nil, nil, nil
 	}
 
-	// Check if at least there is one springboot dependency
+	// Check the dependencies block in case it exists
+
 	isSpringboot := false
+	isTomcatProvided := false
+
 	if pom.Dependencies == nil {
-		logrus.Debugf("Ignoring pom at %s as does not contain any dependencies", dir)
-		return nil, nil, nil
-	}
-	for _, dependency := range *pom.Dependencies {
-		if strings.Contains(dependency.GroupID, "org.springframework.boot") {
-			isSpringboot = true
+		logrus.Debugf("POM file at %s does not contain a dependencies block", dir)
+	} else {
+
+		for _, dependency := range *pom.Dependencies {
+
+			if strings.Contains(dependency.GroupID, "org.springframework.boot") {
+				isSpringboot = true
+			}
+
+			if strings.Contains(dependency.ArtifactID, "spring-boot-starter-tomcat") && dependency.Scope == "provided" {
+				isTomcatProvided = true
+			}
 		}
 	}
-	if !isSpringboot {
-		logrus.Debugf("Ignoring pom at %s as does not contain Springboot dependencies: org.springframework.boot", dir)
-		return nil, nil, nil
-	}
 
-	// Collect packaging
+	logrus.Debugf("Is springboot app: ", isSpringboot)
+
+	// Collect packaging from the packaging block
 	packaging := ""
 	if pom.Packaging == "" {
 		logrus.Debugf("Pom at %s does not contain a Packaging block", dir)
@@ -158,34 +165,42 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	if pom.Properties == nil {
 		logrus.Debugf("Pom at %s  does not contain a Properties block", dir)
 	} else {
+
 		for k, v := range pom.Properties.Entries {
 			switch k {
+			// Only for springboot apps
 			case "java.version":
 				javaVersion = v
 			case "tomcat.version":
 				tomcatVersion = v
+			// Non springboot apps:
+			case "maven.compiler.target":
+				javaVersion = v
 			}
 		}
 	}
+
 	logrus.Debugf("Java version %s", javaVersion)
 	logrus.Debugf("Tomcat version %s", tomcatVersion)
 
-	// Check if the application uses an embeded server or not. If not, identify which server
+	// Check if the application uses an embeded server or not.
+	// This is based on having tomcat as `provided` and packaging as `war`
+	// Initialize flag as false
 	isServerEmbedded := false
 
-	// First condition: Tomcat with provided scope?
-	isTomcatProvided := false
-	for _, dependency := range *pom.Dependencies {
-		if strings.Contains(dependency.ArtifactID, "spring-boot-starter-tomcat") && dependency.Scope == "provided" {
-			isTomcatProvided = true
-		}
-	}
-	// Second condition: Is packaging WAR
 	isPackagingWAR := false
 	if packaging == "war" {
 		isPackagingWAR = true
 	}
+
+	// here we asses for both conditions
 	isServerEmbedded = !(isTomcatProvided && isPackagingWAR)
+
+	// in the case we have standanlone java maven application (no springboot),
+	// we assume the server is not embedded
+	if isSpringboot == false {
+		isServerEmbedded = false
+	}
 
 	// If the server is not embedded, we check if it is open-liberty or jboss/wildfly
 	appServer := ""
@@ -324,6 +339,11 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		if springApplicationYaml.Server.Port != 0 {
 			ports = append(ports, springApplicationYaml.Server.Port)
 		}
+	}
+
+	// If we couldnt find a java version up to this point , we assume 1.8
+	if javaVersion == "" {
+		javaVersion = "1.8"
 	}
 
 	ct := transformertypes.TransformerPlan{
