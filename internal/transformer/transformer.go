@@ -80,9 +80,14 @@ func init() {
 		new(generators.ReadMeGenerator),
 
 		new(dockerfilegenerators.NodejsDockerfileGenerator),
+<<<<<<< HEAD
 		new(dockerfilegenerators.WinConsoleAppDockerfileGenerator),
 		new(dockerfilegenerators.WinWebAppDockerfileGenerator),
 		new(dockerfilegenerators.WinSLWebAppDockerfileGenerator),
+=======
+		new(dockerfilegenerators.GolangDockerfileGenerator),
+		new(dockerfilegenerators.PHPDockerfileGenerator),
+>>>>>>> f22dd84... feat: Add golang-based transformer for PHP (#575)
 
 		new(external.Starlark),
 		new(external.Executable),
