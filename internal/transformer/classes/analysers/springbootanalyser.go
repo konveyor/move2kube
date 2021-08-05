@@ -17,8 +17,10 @@
 package analysers
 
 import (
+	"bufio"
 	"encoding/xml"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -34,6 +36,7 @@ import (
 )
 
 const pomXML string = "pom.xml"
+const buildGradle string = "build.gradle"
 
 const (
 	springbootServiceConfigType transformertypes.ConfigType = "SpringbootService"
@@ -88,6 +91,82 @@ func (t *SpringbootAnalyser) BaseDirectoryDetect(dir string) (namedServices map[
 	return nil, nil, nil
 }
 
+// New function for extracting info from Gradle files
+func GetGradleData(gradleBuildPath string) []string {
+
+	// What do we need from a build.gradle file?
+	// - we need to know if the folder is the parent of other projects -> `modules` block in maven
+	// - we need to know the packaging jar/war of the project -> `packaging` in maven
+	// - we need to access a properties block to get tomcat/java version
+	// - we need to access a dependencies block to check on springboot usage
+	// - name/artifactId, version for constructing output file
+
+	// Step 1: Data extraction
+	file, err := os.Open(gradleBuildPath)
+	if err != nil {
+		logrus.Errorf("failed opening file: %s", err)
+	}
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanLines)
+	var txtlines []string
+	for scanner.Scan() {
+		txtlines = append(txtlines, scanner.Text())
+	}
+	defer file.Close()
+
+	openBlock := false
+	openMultilineCommentBlock := false
+
+	blocks := map[string][]string{}
+	var singleParams []string
+	var blockContent []string
+	var blockName string
+	for _, line := range txtlines {
+
+		if strings.Contains(line, "/*") {
+			openMultilineCommentBlock = true
+		}
+
+		if strings.Contains(line, "*/") && openMultilineCommentBlock {
+			openMultilineCommentBlock = false
+			continue
+		}
+
+		if openMultilineCommentBlock {
+			continue
+		}
+
+		if strings.Contains(line, "{") {
+			openBlock = true
+			blockName = strings.Replace(line, "{", "", 1)
+			blockName = strings.TrimSpace(blockName)
+			blockContent = nil
+		}
+
+		if openBlock && strings.Contains(line, "}") {
+			if blockContent != nil {
+				blocks[blockName] = blockContent
+			}
+			openBlock = false
+			blockContent = nil
+		}
+
+		if openBlock && !strings.Contains(line, "}") && !strings.Contains(line, "{") {
+			blockContent = append(blockContent, line)
+		}
+
+		if !openBlock && !strings.Contains(line, "}") && !strings.Contains(line, "{") && line != "" && strings.TrimSpace(line) != "" {
+			singleParams = append(singleParams, line)
+		}
+	}
+
+	// Step 2: data processing
+
+	logrus.Debugf("this is a test", txtlines)
+
+	return txtlines
+}
+
 // DirectoryDetect runs detect in each sub directory
 func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	destEntries, err := ioutil.ReadDir(dir)
@@ -96,15 +175,26 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		return nil, nil, err
 	}
 	pomFound := false
+	gradleFound := false
 	for _, de := range destEntries {
 		if de.Name() == pomXML {
 			pomFound = true
 			break
 		}
+		if de.Name() == buildGradle {
+			gradleFound = true
+			break
+		}
 	}
 
-	if !pomFound {
+	// If there are not build config files, we stop
+	if !pomFound && !gradleFound {
 		return nil, nil, nil
+	}
+
+	if gradleFound {
+		res := GetGradleData(filepath.Join(dir, buildGradle))
+		logrus.Debugf("", res)
 	}
 
 	// filled with previously declared xml
@@ -198,7 +288,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 
 	// in the case we have standanlone java maven application (no springboot),
 	// we assume the server is not embedded
-	if isSpringboot == false {
+	if !isSpringboot {
 		isServerEmbedded = false
 	}
 
