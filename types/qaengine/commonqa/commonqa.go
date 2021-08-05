@@ -17,6 +17,7 @@
 package commonqa
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -123,4 +124,29 @@ func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
 		}
 	}
 	return exposePorts
+}
+
+// GetPortForService returns port used by a service
+func GetPortForService(detectedPorts []int32, serviceName string) int32 {
+	var detectedPortsStr []string
+	var exposePortStr string
+	var exposePort int32
+	if len(detectedPorts) != 0 {
+		for _, detectedPort := range detectedPorts {
+			detectedPortsStr = append(detectedPortsStr, strconv.Itoa(int(detectedPort)))
+		}
+		allDetectedPortsStr := append(detectedPortsStr, qatypes.OtherAnswer)
+		exposePortStr = qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortForServiceKeySegment, fmt.Sprintf("Select port to be exposed for the service %s :", serviceName), []string{fmt.Sprintf("Select Other if you want to expose the service %s to some other port", serviceName)}, allDetectedPortsStr[0], allDetectedPortsStr)
+	} else {
+		exposePortStr = qaengine.FetchStringAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigAdditionalPortForServiceKeySegment, fmt.Sprintf("Enter the port to be exposed for the service %s: ", serviceName), []string{fmt.Sprintf("The service %s will be exposed to the specified port", serviceName)}, "8080")
+	}
+	exposePortStr = strings.TrimSpace(exposePortStr)
+	if exposePortStr != "" {
+		port, err := strconv.ParseInt(exposePortStr, 10, 32)
+		if err != nil {
+			logrus.Errorf("Error while converting the selected port from string to int : %s", err)
+		}
+		return int32(port)
+	}
+	return exposePort
 }

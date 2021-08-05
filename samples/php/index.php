@@ -17,4 +17,6 @@ limitations under the License.
 
 <?php
 	echo "<html><body>This is a PHP web app</body></html>";
+
+	phpinfo();
 ?>

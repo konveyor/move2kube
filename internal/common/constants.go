@@ -81,8 +81,14 @@ const (
 	ConfigMinReplicasKey = BaseKey + d + "minreplicas"
 	//ConfigPortsForServiceKeySegment represents the ports used for service
 	ConfigPortsForServiceKeySegment = "ports"
+	//ConfigPortForServiceKeySegment represents the port used for service
+	ConfigPortForServiceKeySegment = "port"
 	//ConfigAdditionalPortsForServiceKeySegment represents the ports used for service
 	ConfigAdditionalPortsForServiceKeySegment = "additionalports"
+	//ConfigAdditionalPortForServiceKeySegment represents the port used for service
+	ConfigAdditionalPortForServiceKeySegment = "additionalport"
+	//ConfigApacheConfFileForServiceKeySegment represents the conf file used for service
+	ConfigApacheConfFileForServiceKeySegment = "apacheconfig"
 	//ConfigModesKey represents modes Key
 	ConfigModesKey = BaseKey + d + "modes"
 	//ConfigSpawmContainersKey represents modes Key
