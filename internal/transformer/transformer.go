@@ -28,6 +28,7 @@ import (
 	"github.com/konveyor/move2kube/internal/transformer/classes/external"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators/dockerfilegenerators"
+	dotnet "github.com/konveyor/move2kube/internal/transformer/classes/generators/dockerfilegenerators/dotnet"
 	"github.com/konveyor/move2kube/qaengine"
 	collectiontypes "github.com/konveyor/move2kube/types/collection"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
@@ -80,14 +81,11 @@ func init() {
 		new(generators.ReadMeGenerator),
 
 		new(dockerfilegenerators.NodejsDockerfileGenerator),
-<<<<<<< HEAD
-		new(dockerfilegenerators.WinConsoleAppDockerfileGenerator),
-		new(dockerfilegenerators.WinWebAppDockerfileGenerator),
-		new(dockerfilegenerators.WinSLWebAppDockerfileGenerator),
-=======
+		new(dotnet.WinConsoleAppDockerfileGenerator),
+		new(dotnet.WinWebAppDockerfileGenerator),
+		new(dotnet.WinSilverLightWebAppDockerfileGenerator),
 		new(dockerfilegenerators.GolangDockerfileGenerator),
 		new(dockerfilegenerators.PHPDockerfileGenerator),
->>>>>>> f22dd84... feat: Add golang-based transformer for PHP (#575)
 
 		new(external.Starlark),
 		new(external.Executable),

@@ -5,7 +5,3 @@ metadata:
 spec:
   mode: "Container"
   class: "WinConsoleAppDockerfileGenerator"
-  generates: 
-    - "ContainerBuild"
-  generatedBases: 
-    - "ContainerBuild"

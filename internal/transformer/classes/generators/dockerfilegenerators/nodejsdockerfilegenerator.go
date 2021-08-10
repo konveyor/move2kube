@@ -86,5 +86,5 @@ func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (namedServices m
 
 // Transform transforms the artifacts
 func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
-	return transform(t.Config, t.Env, newArtifacts)
+	return Transform(t.Config, t.Env, newArtifacts)
 }

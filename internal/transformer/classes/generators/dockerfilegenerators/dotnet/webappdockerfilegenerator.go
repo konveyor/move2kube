@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package dockerfilegenerators
+package dotnet
 
 import (
 	"encoding/xml"
@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/internal/transformer/classes/generators/dockerfilegenerators"
 	"github.com/konveyor/move2kube/types/source/dotnet"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -63,8 +64,7 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedService
 	appName := ""
 	ports := make([]string, 0)
 	for _, de := range dirEntries {
-		ext := filepath.Ext(de.Name())
-		if ext != dotnet.CsSln {
+		if filepath.Ext(de.Name()) != dotnet.CsSln {
 			continue
 		}
 		csProjPaths := parseSolutionFile(filepath.Join(dir, de.Name()))
@@ -107,6 +107,9 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedService
 
 			appName = strings.TrimSuffix(filepath.Base(de.Name()), filepath.Ext(de.Name()))
 		}
+
+		// Exit soon of after the solution file is found
+		break
 	}
 
 	if appName == "" {
@@ -135,5 +138,5 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedService
 
 // Transform transforms the artifacts
 func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
-	return transform(t.Config, t.Env, newArtifacts)
+	return dockerfilegenerators.Transform(t.Config, t.Env, newArtifacts)
 }

@@ -23,9 +23,9 @@ import (
 )
 
 var (
-	FourXPattern = regexp.MustCompile("v4*")
-	WebLib       = regexp.MustCompile("^System.Web*")
-	WebSLLib     = regexp.MustCompile("Silverlight.js")
+	FourXPattern = regexp.MustCompile("v4\\.[0-9]+\\.[0-9]+")
+	WebLib       = regexp.MustCompile("^System\\.Web+")
+	WebSLLib     = regexp.MustCompile("Silverlight\\.js")
 )
 
 const (
@@ -46,7 +46,7 @@ type ItemGroup struct {
 	XMLName    xml.Name    `xml:"ItemGroup"`
 	References []Reference `xml:"Reference"`
 	Contents   []Content   `xml:"Content"`
-	None       []None   `xml:"None"`
+	None       []None      `xml:"None"`
 }
 
 type Reference struct {

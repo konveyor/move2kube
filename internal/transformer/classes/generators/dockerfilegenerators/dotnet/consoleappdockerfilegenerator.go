@@ -14,47 +14,119 @@
  *  limitations under the License.
  */
 
-package dockerfilegenerators
+package dotnet
 
 import (
 	"encoding/xml"
 	"io/ioutil"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/internal/transformer/classes/generators/dockerfilegenerators"
 	"github.com/konveyor/move2kube/types/source/dotnet"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
-// WinSLWebAppDockerfileGenerator implements the Transformer interface
-type WinSLWebAppDockerfileGenerator struct {
+// WinConsoleAppDockerfileGenerator implements the Transformer interface
+type WinConsoleAppDockerfileGenerator struct {
 	Config transformertypes.Transformer
 	Env    *environment.Environment
 }
 
 // Init Initializes the transformer
-func (t *WinSLWebAppDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *WinConsoleAppDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *WinSLWebAppDockerfileGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
+func (t *WinConsoleAppDockerfileGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *WinSLWebAppDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *WinConsoleAppDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
+func (t *WinConsoleAppDockerfileGenerator) parseAppConfig(baseDir string) []string {
+	appConfigFile, err := os.Open(filepath.Join(baseDir, "App.config"))
+	if err != nil {
+		logrus.Errorf("Could not open the App.config file: %s", err)
+		return nil
+	}
+
+	defer appConfigFile.Close()
+
+	byteValue, _ := ioutil.ReadAll(appConfigFile)
+	appCfg := dotnet.AppConfig{}
+	xml.Unmarshal(byteValue, &appCfg)
+	if err != nil {
+		logrus.Errorf("Could not parse the App.config file: %s", err)
+		return nil
+	}
+
+	ports := make([]string, 0)
+	for _, addKey := range appCfg.AppCfgSettings.AddList {
+		parsedUrl, err := url.ParseRequestURI(addKey.Value)
+		if err != nil {
+			logrus.Errorf("Could not parse URI: %s", err)
+			continue
+		}
+
+		if parsedUrl.Scheme == "" || parsedUrl.Host == "" {
+			logrus.Warnf("Scheme or host is empty in URI")
+			continue
+		}
+
+		_, port, err := net.SplitHostPort(parsedUrl.Host)
+		if err != nil {
+			logrus.Errorf("Could not extract port from URI: %s", err)
+			continue
+		}
+
+		ports = append(ports, port)
+	}
+
+	if len(appCfg.Model.Services.ServiceList) == 0 {
+		return ports
+	}
+
+	for _, svc := range appCfg.Model.Services.ServiceList {
+		for _, addKey := range svc.Host.BaseAddresses.AddList {
+			parsedUrl, err := url.ParseRequestURI(addKey.BaseAddress)
+			if err != nil {
+				logrus.Errorf("Could not parse URI: %s", err)
+				continue
+			}
+
+			if parsedUrl.Scheme == "" || parsedUrl.Host == "" {
+				logrus.Warnf("Scheme or host is empty in URI")
+				continue
+			}
+
+			_, port, err := net.SplitHostPort(parsedUrl.Host)
+			if err != nil {
+				logrus.Errorf("Could not extract port from URI: %s", err)
+				continue
+			}
+
+			ports = append(ports, port)
+		}
+	}
+
+	return ports
+}
+
 // DirectoryDetect runs detect in each sub directory
-func (t *WinSLWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory: %s", err)
@@ -63,13 +135,12 @@ func (t *WinSLWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServi
 	appName := ""
 	ports := make([]string, 0)
 	for _, de := range dirEntries {
-		ext := filepath.Ext(de.Name())
-		if ext != dotnet.CsSln {
+		if filepath.Ext(de.Name()) != dotnet.CsSln {
 			continue
 		}
 		csProjPaths := parseSolutionFile(filepath.Join(dir, de.Name()))
 
-		if csProjPaths == nil || len(csProjPaths) == 0 {
+		if len(csProjPaths) == 0 {
 			logrus.Errorf("No projects available for the solution: %s", de.Name())
 			continue
 		}
@@ -97,17 +168,20 @@ func (t *WinSLWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServi
 			}
 
 			isWebProj, err := isWeb(configuration)
-			if err != nil || !isWebProj {
+			if err != nil || isWebProj {
 				continue
 			}
 
-			isSLProj, err := isSilverlight(configuration)
-			if err != nil || !isSLProj {
-				continue
+			portList := t.parseAppConfig(filepath.Join(dir, filepath.Dir(csPath)))
+			if portList != nil {
+				ports = append(ports, portList...)
 			}
-			
+
 			appName = strings.TrimSuffix(filepath.Base(de.Name()), filepath.Ext(de.Name()))
 		}
+
+		// Exit soon of after the solution file is found
+		break
 	}
 
 	if appName == "" {
@@ -124,8 +198,9 @@ func (t *WinSLWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServi
 			},
 			Configs: map[string]interface{}{
 				artifacts.DockerfileTemplateConfigConfigType: map[string]interface{}{
-					"Ports":   ports,
-					"appName": appName,
+					"Ports":            ports,
+					"baseImageVersion": dotnet.DefaultBaseImageVersion,
+					"appName":          appName,
 				},
 			},
 		}},
@@ -134,6 +209,6 @@ func (t *WinSLWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServi
 }
 
 // Transform transforms the artifacts
-func (t *WinSLWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
-	return transform(t.Config, t.Env, newArtifacts)
+func (t *WinConsoleAppDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+	return dockerfilegenerators.Transform(t.Config, t.Env, newArtifacts)
 }

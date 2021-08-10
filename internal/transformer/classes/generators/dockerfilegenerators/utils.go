@@ -17,107 +17,17 @@
 package dockerfilegenerators
 
 import (
-	"bufio"
-	"fmt"
-	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/types/source/dotnet"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
-func isSilverlight(configuration dotnet.CSProj) (bool, error) {
-	if configuration.ItemGroups == nil || len(configuration.ItemGroups) == 0 {
-		return false, fmt.Errorf("No item groups in project file to parse")
-	}
-
-	for _, ig := range configuration.ItemGroups {
-		if ig.Contents == nil || len(ig.Contents) == 0 {
-			continue
-		}
-
-		for _, r := range ig.Contents {
-			if dotnet.WebSLLib.MatchString(r.Include) {
-				return true, nil
-			}
-		}
-	}
-
-	return false, nil
-}
-
-func isWeb(configuration dotnet.CSProj) (bool, error) {
-	if configuration.ItemGroups == nil || len(configuration.ItemGroups) == 0 {
-		return false, fmt.Errorf("No item groups in project file to parse")
-	}
-
-	for _, ig := range configuration.ItemGroups {
-		if ig.References == nil || len(ig.References) == 0 {
-			continue
-		}
-
-		for _, r := range ig.References {
-			if dotnet.WebLib.MatchString(r.Include) {
-				return true, nil
-			}
-		}
-	}
-
-	return false, nil
-}
-
-func parseSolutionFile(inputPath string) []string {
-	solFile, err := os.Open(inputPath)
-	if err != nil {
-		logrus.Errorf("Could not open the solution file: %s", err)
-		return nil
-	}
-	defer solFile.Close()
-
-	solFileScanner := bufio.NewScanner(solFile)
-
-	r := regexp.MustCompile(dotnet.ProjBlock)
-
-	csr := regexp.MustCompile(dotnet.CsProj)
-
-	projectPaths := make([]string, 0)
-	for solFileScanner.Scan() {
-		s := solFileScanner.Text()
-		if r.MatchString(s) {
-			tokens := strings.Split(s, "=")
-			if len(tokens[1]) > 0 {
-				values := strings.Split(tokens[1], ",")
-				for _, v := range values {
-					if csr.MatchString(v) {
-						projectPaths = append(projectPaths, v)
-					}
-				}
-			}
-		}
-	}
-
-	if err := solFileScanner.Err(); err != nil {
-		logrus.Errorf("Could not parse the solution file: %s", err)
-		return nil
-	}
-
-	for i, c := range projectPaths {
-		c = strings.Replace(c, "\"", "", -1)
-		c = strings.Replace(c, "\\", "/", -1)
-		projectPaths[i] = c
-	}
-
-	return projectPaths
-}
-
 // transform transforms the artifacts
-func transform(tc transformertypes.Transformer, env *environment.Environment, newArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func Transform(tc transformertypes.Transformer, env *environment.Environment, newArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {

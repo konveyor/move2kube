@@ -8,7 +8,6 @@ require (
 	github.com/Akash-Nayak/GopacheConfig v0.0.0-20210730101443-d5bfa3109be4
 	github.com/AlecAivazis/survey/v2 v2.2.12
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/apex/log v1.3.0 // indirect
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.263 // indirect
 	github.com/cloudrecipes/packagejson v1.0.0

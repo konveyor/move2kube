@@ -68,8 +68,8 @@
 "inbuilt/transformers/dockerfile/rust/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/winconsole/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/winconsole/winconsole.yaml" : 0644
-"inbuilt/transformers/dockerfile/winslweb/templates/Dockerfile" : 0644
-"inbuilt/transformers/dockerfile/winslweb/winslweb.yaml" : 0644
+"inbuilt/transformers/dockerfile/winsilverlightweb/templates/Dockerfile" : 0644
+"inbuilt/transformers/dockerfile/winsilverlightweb/winsilverlightweb.yaml" : 0644
 "inbuilt/transformers/dockerfile/winweb/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/winweb/winweb.yaml" : 0644
 "inbuilt/transformers/generators/buildconfig/buildconfig.yaml" : 0644

@@ -4,8 +4,4 @@ metadata:
   name: WinSLWebApp-Dockerfile
 spec:
   mode: "Container"
-  class: "WinSLWebAppDockerfileGenerator"
-  generates: 
-    - "ContainerBuild"
-  generatedBases: 
-    - "ContainerBuild"
+  class: "WinSilverLightWebAppDockerfileGenerator"
