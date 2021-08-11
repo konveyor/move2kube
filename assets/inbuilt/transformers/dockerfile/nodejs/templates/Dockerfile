@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 FROM registry.access.redhat.com/ubi8/nodejs-{{ .NodeVersion }}
-ADD . .
+COPY . .
 RUN npm install
 {{- if .Build }}
 RUN npm run build
