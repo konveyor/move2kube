@@ -17,13 +17,10 @@
 package dockerfilegenerators
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/cloudrecipes/packagejson"
 	"github.com/joho/godotenv"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
@@ -36,8 +33,8 @@ import (
 )
 
 const (
-	nodeVersion = "12"
-	packageJson = "package.json"
+	nodeVersion     = "12"
+	packageJsonFile = "package.json"
 )
 
 // NodejsDockerfileGenerator implements the Transformer interface
@@ -76,13 +73,6 @@ type PackageJSON struct {
 	Engines     map[string]string `json:"engines"`
 }
 
-// parseJson parses package.json payload and returns structure.
-func parseJson(payload []byte) (*PackageJSON, error) {
-	var packagejson *PackageJSON
-	err := json.Unmarshal(payload, &packagejson)
-	return packagejson, err
-}
-
 // Init Initializes the transformer
 func (t *NodejsDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
@@ -108,21 +98,17 @@ func (t *NodejsDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServic
 
 // DirectoryDetect runs detect in each sub directory
 func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	packagejsondata, err := os.ReadFile(filepath.Join(dir, "package.json"))
-	if err != nil {
+	var packageJson PackageJSON
+	if err := common.ReadJSON(filepath.Join(dir, packageJsonFile), &packageJson); err != nil {
+		logrus.Debugf("unable to read the package.json file: %s", err)
 		return nil, nil, nil
 	}
-	parsedPackageJson, err := packagejson.Parse(packagejsondata)
-	if err != nil {
-		logrus.Debugf("Found package.json, but unable to parse it to get project name. Ignoring : %s", err)
-		return nil, nil, nil
-	}
-	if parsedPackageJson.Name == "" {
+	if packageJson.Name == "" {
 		err = fmt.Errorf("unable to get project name of nodejs project at %s. Ignoring", dir)
 		return nil, nil, err
 	}
 	namedServices = map[string]transformertypes.ServicePlan{
-		parsedPackageJson.Name: []transformertypes.TransformerPlan{{
+		packageJson.Name: []transformertypes.TransformerPlan{{
 			Mode:              t.Config.Spec.Mode,
 			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -159,18 +145,14 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		}
 		build := false
 		nodeVersion := t.NodejsConfig.DefaultNodejsVersion
-		packagejsondata, err := os.ReadFile(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], packageJson))
-		if err != nil {
+		var packageJson PackageJSON
+		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], packageJsonFile), &packageJson); err != nil {
 			logrus.Debugf("unable to read the package.json file: %s", err)
 		} else {
-			parsedPackageJson, err := parseJson(packagejsondata)
-			if err != nil {
-				logrus.Debugf("Found package.json, but unable to parse it. Ignoring : %s", err)
-			}
-			if _, ok := parsedPackageJson.Scripts["build"]; ok {
+			if _, ok := packageJson.Scripts["build"]; ok {
 				build = true
 			}
-			if node, ok := parsedPackageJson.Engines["node"]; ok {
+			if node, ok := packageJson.Engines["node"]; ok {
 				if !strings.HasPrefix(node, "v") {
 					node = "v" + node
 				}
