@@ -175,28 +175,7 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 					node = "v" + node
 				}
 				nodeVersion = strings.TrimPrefix(semver.Major(node), "v")
-				logrus.Infof("============= nodeVersion = %s ===========\n", nodeVersion)
 			}
-			// var jsonData map[string]interface{}
-			// if err := json.Unmarshal(packagejsondata, &jsonData); err != nil {
-			// 	logrus.Errorf("Error while unmarshalling package.json : %s", err)
-			// }
-			// enginesI, ok := jsonData["engines"]
-			// if ok {
-			// 	engines, ok := enginesI.(map[string]interface{})
-			// 	if ok {
-			// 		nodeVersionI, ok := engines["node"]
-			// 		if ok {
-			// 			node, ok := nodeVersionI.(string)
-			// 			if ok {
-			// 				if !strings.HasPrefix(node, "v") {
-			// 					node = "v" + node
-			// 				}
-			// 				nodeVersion = strings.TrimPrefix(semver.Major(node), "v")
-			// 			}
-			// 		}
-			// 	}
-			// }
 		}
 		var ports []int32
 		envMap, err := godotenv.Read(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], ".env"))
