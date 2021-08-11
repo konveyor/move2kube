@@ -18,6 +18,7 @@ package dotnet
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/url"
@@ -56,11 +57,10 @@ func (t *WinConsoleAppDockerfileGenerator) BaseDirectoryDetect(dir string) (name
 	return nil, nil, nil
 }
 
-func (t *WinConsoleAppDockerfileGenerator) parseAppConfig(baseDir string) []string {
+func (t *WinConsoleAppDockerfileGenerator) parseAppConfig(baseDir string) ([]string, error) {
 	appConfigFile, err := os.Open(filepath.Join(baseDir, "App.config"))
 	if err != nil {
-		logrus.Errorf("Could not open the App.config file: %s", err)
-		return nil
+		return nil, fmt.Errorf("Could not open the App.config file: %s", err)
 	}
 
 	defer appConfigFile.Close()
@@ -69,8 +69,7 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfig(baseDir string) []stri
 	appCfg := dotnet.AppConfig{}
 	xml.Unmarshal(byteValue, &appCfg)
 	if err != nil {
-		logrus.Errorf("Could not parse the App.config file: %s", err)
-		return nil
+		return nil, fmt.Errorf("Could not parse the App.config file: %s", err)
 	}
 
 	ports := make([]string, 0)
@@ -96,7 +95,7 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfig(baseDir string) []stri
 	}
 
 	if len(appCfg.Model.Services.ServiceList) == 0 {
-		return ports
+		return ports, nil
 	}
 
 	for _, svc := range appCfg.Model.Services.ServiceList {
@@ -122,7 +121,7 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfig(baseDir string) []stri
 		}
 	}
 
-	return ports
+	return ports, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -138,7 +137,11 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (namedSer
 		if filepath.Ext(de.Name()) != dotnet.CsSln {
 			continue
 		}
-		csProjPaths := parseSolutionFile(filepath.Join(dir, de.Name()))
+		csProjPaths, err := parseSolutionFile(filepath.Join(dir, de.Name()))
+		if err != nil {
+			logrus.Errorf("%s", err)
+			continue
+		}
 
 		if len(csProjPaths) == 0 {
 			logrus.Errorf("No projects available for the solution: %s", de.Name())
@@ -168,11 +171,19 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (namedSer
 			}
 
 			isWebProj, err := isWeb(configuration)
-			if err != nil || isWebProj {
+			if err != nil {
+				logrus.Errorf("%s", err)
+				continue
+			}
+			if isWebProj {
 				continue
 			}
 
-			portList := t.parseAppConfig(filepath.Join(dir, filepath.Dir(csPath)))
+			portList, err := t.parseAppConfig(filepath.Join(dir, filepath.Dir(csPath)))
+			if err != nil {
+				logrus.Errorf("%s", err)
+				continue
+			}
 			if portList != nil {
 				ports = append(ports, portList...)
 			}

@@ -67,9 +67,13 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (n
 		if filepath.Ext(de.Name()) != dotnet.CsSln {
 			continue
 		}
-		csProjPaths := parseSolutionFile(filepath.Join(dir, de.Name()))
+		csProjPaths, err := parseSolutionFile(filepath.Join(dir, de.Name()))
+		if err != nil {
+			logrus.Errorf("%s", err)
+			continue
+		}
 
-		if csProjPaths == nil || len(csProjPaths) == 0 {
+		if len(csProjPaths) == 0 {
 			logrus.Errorf("No projects available for the solution: %s", de.Name())
 			continue
 		}
@@ -97,12 +101,20 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (n
 			}
 
 			isWebProj, err := isWeb(configuration)
-			if err != nil || !isWebProj {
+			if err != nil {
+				logrus.Errorf("%s", err)
+				continue
+			}
+			if !isWebProj {
 				continue
 			}
 
 			isSLProj, err := isSilverlight(configuration)
-			if err != nil || !isSLProj {
+			if err != nil {
+				logrus.Errorf("%s", err)
+				continue
+			}
+			if !isSLProj {
 				continue
 			}
 

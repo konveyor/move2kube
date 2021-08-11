@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/types/source/dotnet"
-	"github.com/sirupsen/logrus"
 )
 
 func isSilverlight(configuration dotnet.CSProj) (bool, error) {
@@ -67,11 +66,10 @@ func isWeb(configuration dotnet.CSProj) (bool, error) {
 	return false, nil
 }
 
-func parseSolutionFile(inputPath string) []string {
+func parseSolutionFile(inputPath string) ([]string, error) {
 	solFile, err := os.Open(inputPath)
 	if err != nil {
-		logrus.Errorf("Could not open the solution file: %s", err)
-		return nil
+		return nil, fmt.Errorf("Could not open the solution file: %s", err)
 	}
 	defer solFile.Close()
 
@@ -98,8 +96,7 @@ func parseSolutionFile(inputPath string) []string {
 	}
 
 	if err := solFileScanner.Err(); err != nil {
-		logrus.Errorf("Could not parse the solution file: %s", err)
-		return nil
+		return nil, fmt.Errorf("Could not parse the solution file: %s", err)
 	}
 
 	for i, c := range projectPaths {
@@ -108,5 +105,5 @@ func parseSolutionFile(inputPath string) []string {
 		projectPaths[i] = c
 	}
 
-	return projectPaths
+	return projectPaths, nil
 }
