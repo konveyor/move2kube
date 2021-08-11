@@ -12,10 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM registry.access.redhat.com/ubi8/nodejs-12
+FROM registry.access.redhat.com/ubi8/nodejs-{{ .NodeVersion }}
 ADD . .
 RUN npm install
-{{- range $port := .Ports }}
-EXPOSE {{ $port }}
-{{- end }}
-CMD npm run -d start
+{{- if .Build }}
+RUN npm run build
+{{- end}}
+EXPOSE {{ .Port }}
+CMD npm run start
