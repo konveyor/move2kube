@@ -68,7 +68,7 @@ func initContainerEngine() (err error) {
 // GetContainerEngine gets a working container engine
 func GetContainerEngine() ContainerEngine {
 	if !inited {
-		disabled = !qaengine.FetchBoolAnswer(common.ConfigSpawmContainersKey, "Allow spawing containers?", []string{"If this setting is set to false, those transformers that rely on containers will not work."}, false)
+		disabled = !qaengine.FetchBoolAnswer(common.ConfigSpawnContainersKey, "Allow spawning containers?", []string{"If this setting is set to false, those transformers that rely on containers will not work."}, false)
 		if !disabled {
 			initContainerEngine()
 		}

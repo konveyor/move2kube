@@ -91,8 +91,8 @@ const (
 	ConfigApacheConfFileForServiceKeySegment = "apacheconfig"
 	//ConfigModesKey represents modes Key
 	ConfigModesKey = BaseKey + d + "modes"
-	//ConfigSpawmContainersKey represents modes Key
-	ConfigSpawmContainersKey = BaseKey + d + "spawncontainers"
+	//ConfigSpawnContainersKey represents modes Key
+	ConfigSpawnContainersKey = BaseKey + d + "spawncontainers"
 	//ConfigTransformersKey represents transformers Key
 	ConfigTransformersKey = BaseKey + d + "transformers"
 	//ConfigTargetKey represents Target Key

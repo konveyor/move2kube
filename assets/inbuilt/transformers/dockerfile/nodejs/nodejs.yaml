@@ -5,3 +5,5 @@ metadata:
 spec:
   mode: "Container"
   class: "NodejsDockerfileGenerator"
+  config:
+    defaultNodejsVersion: "12"

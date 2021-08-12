@@ -86,6 +86,20 @@ func (opt *mergePreprocessor) mergeContainers(sContainers []core.Container) []co
 				}
 			}
 			container.Ports = uniquePorts
+			uniqueEnvVars := []core.EnvVar{}
+			for _, cce := range coreContainer.Env {
+				found := false
+				for _, ce := range uniqueEnvVars {
+					if cce.Name == ce.Name {
+						found = true
+						break
+					}
+				}
+				if !found && cce.Name != "" {
+					uniqueEnvVars = append(uniqueEnvVars, cce)
+				}
+			}
+			container.Env = uniqueEnvVars
 		}
 		uniquePorts := container.Ports
 		for _, ccp := range coreContainer.Ports {
@@ -101,6 +115,20 @@ func (opt *mergePreprocessor) mergeContainers(sContainers []core.Container) []co
 			}
 		}
 		container.Ports = uniquePorts
+		uniqueEnvVars := container.Env
+		for _, cce := range coreContainer.Env {
+			found := false
+			for _, ce := range uniqueEnvVars {
+				if cce.Name == ce.Name {
+					found = true
+					break
+				}
+			}
+			if !found && cce.Name != "" {
+				uniqueEnvVars = append(uniqueEnvVars, cce)
+			}
+		}
+		container.Env = uniqueEnvVars
 		containers[coreContainer.Name] = container
 		break
 	}
