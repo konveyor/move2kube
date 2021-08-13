@@ -37,6 +37,7 @@ import (
 
 const pomXML string = "pom.xml"
 const buildGradle string = "build.gradle"
+const settingsGradle string = "settings.gradle"
 
 const (
 	springbootServiceConfigType transformertypes.ConfigType = "SpringbootService"
@@ -63,6 +64,7 @@ type SpringbootConfig struct {
 	JavaPackageName        string `yaml:"javaPackageName,omitempty"`
 	AppFile                string `yaml:"appFile,omitempty"`
 	DeploymentFile         string `yaml:"deploymentFile,omitempty"`
+	BuildTool              string `yaml:"buildTool,omitempty"`
 }
 
 // SpringbootTemplateConfig defines SpringbootTemplateConfig properties
@@ -72,6 +74,20 @@ type SpringbootTemplateConfig struct {
 	AppServerImage  string `yaml:"appServerImage,omitempty"`
 	AppFile         string `yaml:"appFile,omitempty"`
 	DeploymentFile  string `yaml:"deploymentFile,omitempty"`
+}
+
+// Configuration defines Configuration properties
+type Configuration struct {
+	BuildTool        string `yaml:"buildTool,omitempty"` // Maven or Gradle
+	HasModules       bool   `yaml:"hasModules,omitempty"`
+	IsSpringboot     bool   `yaml:"isSpringboot,omitempty"`
+	IsTomcatProvided bool   `yaml:"isTomcatProvided,omitempty"`
+	Packaging        string `yaml:"packaging,omitempty"`
+	JavaVersion      string `yaml:"javaVersion,omitempty"`
+	TomcatVersion    string `yaml:"tomcatVersion,omitempty"`
+	Name             string `yaml:"name,omitempty"`
+	ArtifactID       string `yaml:"artifactId,omitempty"`
+	Version          string `yaml:"version,omitempty"`
 }
 
 // Init Initializes the transformer
@@ -91,20 +107,15 @@ func (t *SpringbootAnalyser) BaseDirectoryDetect(dir string) (namedServices map[
 	return nil, nil, nil
 }
 
-// New function for extracting info from Gradle files
-func GetGradleData(gradleBuildPath string) []string {
+// Function for extracting info from Gradle files
+func GetGradleData(buildGradlePath string, settingsGradlePath string) (configuration Configuration, err error) {
 
-	// What do we need from a build.gradle file?
-	// - we need to know if the folder is the parent of other projects -> `modules` block in maven
-	// - we need to know the packaging jar/war of the project -> `packaging` in maven
-	// - we need to access a properties block to get tomcat/java version
-	// - we need to access a dependencies block to check on springboot usage
-	// - name/artifactId, version for constructing output file
-
-	// Step 1: Data extraction
-	file, err := os.Open(gradleBuildPath)
+	// Data extraction from build.gradle
+	file, err := os.Open(buildGradlePath)
 	if err != nil {
 		logrus.Errorf("failed opening file: %s", err)
+		return Configuration{}, err
+
 	}
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
@@ -117,7 +128,7 @@ func GetGradleData(gradleBuildPath string) []string {
 	openBlock := false
 	openMultilineCommentBlock := false
 
-	blocks := map[string][]string{}
+	blockParams := map[string][]string{}
 	var singleParams []string
 	var blockContent []string
 	var blockName string
@@ -145,13 +156,14 @@ func GetGradleData(gradleBuildPath string) []string {
 
 		if openBlock && strings.Contains(line, "}") {
 			if blockContent != nil {
-				blocks[blockName] = blockContent
+				blockParams[blockName] = blockContent
 			}
 			openBlock = false
 			blockContent = nil
 		}
 
 		if openBlock && !strings.Contains(line, "}") && !strings.Contains(line, "{") {
+			line = strings.TrimSpace(line)
 			blockContent = append(blockContent, line)
 		}
 
@@ -160,72 +172,134 @@ func GetGradleData(gradleBuildPath string) []string {
 		}
 	}
 
-	// Step 2: data processing
+	// (Optional) Data extraction from settings.gradle
+	var settingsLines []string
+	settingsFile, err := os.Open(settingsGradlePath)
+	if err != nil {
+		logrus.Errorf("failed opening file: %s", err)
 
-	logrus.Debugf("this is a test", txtlines)
+	} else {
+		scanner := bufio.NewScanner(settingsFile)
+		scanner.Split(bufio.ScanLines)
 
-	return txtlines
+		for scanner.Scan() {
+			settingsLines = append(settingsLines, scanner.Text())
+		}
+		defer settingsFile.Close()
+	}
+
+	name := ""
+	artifactId := ""
+	for _, sl := range settingsLines {
+		sl = strings.TrimSpace(sl)
+		if strings.Contains(sl, "rootProject.name") {
+			slSplitted := strings.Split(sl, "=")
+			if len(slSplitted) == 2 {
+				name = slSplitted[1]
+				artifactId = slSplitted[1]
+			}
+
+		}
+
+	}
+
+	//Data processing
+
+	// Collect Modules
+	var modules []string
+	version := ""
+	javaVersion := ""
+
+	for _, sp := range singleParams {
+		spSplitted := strings.Split(sp, " ")
+		if strings.Contains(sp, "include") {
+
+			module := spSplitted[len(spSplitted)-1]
+			modules = append(modules, module)
+		}
+
+		if spSplitted[0] == "version" && len(spSplitted) == 2 {
+			version = spSplitted[1]
+		}
+
+		if strings.Contains(sp, "sourceCompatibility") {
+			spSplittedEq := strings.Split(sp, "=")
+			if len(spSplittedEq) == 2 {
+				javaVersion = spSplittedEq[1]
+			}
+
+		}
+
+	}
+
+	hasModules := false
+	if len(modules) > 0 {
+		hasModules = true
+	}
+
+	isSpringboot := false
+	isTomcatProvided := false
+	packaging := ""
+	// Traverse  blocks
+	for blockId, blockContent := range blockParams {
+		if blockId == "dependencies" {
+			for _, dependency := range blockContent {
+				if strings.Contains(dependency, "org.springframework.boot") {
+					isSpringboot = true
+				}
+
+				if strings.Contains(dependency, "providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'") {
+					isTomcatProvided = true
+				}
+			}
+		}
+
+		if blockId == "war" {
+			packaging = "war"
+		}
+	}
+
+	conf := Configuration{
+		BuildTool:        "gradle",
+		HasModules:       hasModules,
+		IsSpringboot:     isSpringboot,
+		IsTomcatProvided: isTomcatProvided,
+		Packaging:        packaging,
+		JavaVersion:      javaVersion,
+		Name:             name,
+		ArtifactID:       artifactId,
+		Version:          version,
+	}
+	return conf, nil
 }
 
-// DirectoryDetect runs detect in each sub directory
-func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	destEntries, err := ioutil.ReadDir(dir)
-	if err != nil {
-		logrus.Errorf("Unable to process directory %s : %s", dir, err)
-		return nil, nil, err
-	}
-	pomFound := false
-	gradleFound := false
-	for _, de := range destEntries {
-		if de.Name() == pomXML {
-			pomFound = true
-			break
-		}
-		if de.Name() == buildGradle {
-			gradleFound = true
-			break
-		}
-	}
-
-	// If there are not build config files, we stop
-	if !pomFound && !gradleFound {
-		return nil, nil, nil
-	}
-
-	if gradleFound {
-		res := GetGradleData(filepath.Join(dir, buildGradle))
-		logrus.Debugf("", res)
-	}
+func GetMavenData(pomXMLPath string) (configuration Configuration, err error) {
 
 	// filled with previously declared xml
-	pomStr, err := ioutil.ReadFile(filepath.Join(dir, pomXML))
+	pomStr, err := ioutil.ReadFile(pomXMLPath)
 	if err != nil {
 		logrus.Errorf("Could not read the pom.xml file: %s", err)
-		return nil, nil, err
+		return Configuration{}, err
 	}
 
 	// Load pom from string
 	var pom maven.Pom
 	if err := xml.Unmarshal([]byte(pomStr), &pom); err != nil {
 		logrus.Errorf("unable to unmarshal pom file. Reason: %s", err)
-		return nil, nil, err
+		return Configuration{}, err
 	}
 
-	// Dont process if this is a root pom and there are submodules
+	hasModules := false
 	if pom.Modules != nil && len(*(pom.Modules)) != 0 {
-		logrus.Debugf("Ignoring pom at %s as it has modules", dir)
-		return nil, nil, nil
+		hasModules = true
 	}
-
-	// Check the dependencies block in case it exists
 
 	isSpringboot := false
 	isTomcatProvided := false
 
 	if pom.Dependencies == nil {
-		logrus.Debugf("POM file at %s does not contain a dependencies block", dir)
+		logrus.Debugf("POM file at %s does not contain a dependencies block", pomXMLPath)
 	} else {
-
 		for _, dependency := range *pom.Dependencies {
 
 			if strings.Contains(dependency.GroupID, "org.springframework.boot") {
@@ -238,12 +312,9 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		}
 	}
 
-	logrus.Debugf("Is springboot app: ", isSpringboot)
-
-	// Collect packaging from the packaging block
 	packaging := ""
 	if pom.Packaging == "" {
-		logrus.Debugf("Pom at %s does not contain a Packaging block", dir)
+		logrus.Debugf("Pom at %s does not contain a Packaging block", pomXMLPath)
 	} else {
 		packaging = pom.Packaging
 		logrus.Debugf("Packaging: %s", packaging)
@@ -251,9 +322,9 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 
 	// Collect java / tomcat version fom the Properties block
 	javaVersion := ""
-	tomcatVersion := ""
+	//tomcatVersion := ""
 	if pom.Properties == nil {
-		logrus.Debugf("Pom at %s  does not contain a Properties block", dir)
+		logrus.Debugf("Pom at %s  does not contain a Properties block", pomXMLPath)
 	} else {
 
 		for k, v := range pom.Properties.Entries {
@@ -261,8 +332,8 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 			// Only for springboot apps
 			case "java.version":
 				javaVersion = v
-			case "tomcat.version":
-				tomcatVersion = v
+			//case "tomcat.version":
+			//	tomcatVersion = v
 			// Non springboot apps:
 			case "maven.compiler.target":
 				javaVersion = v
@@ -270,8 +341,139 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		}
 	}
 
-	logrus.Debugf("Java version %s", javaVersion)
-	logrus.Debugf("Tomcat version %s", tomcatVersion)
+	conf := Configuration{
+		BuildTool:        "maven",
+		HasModules:       hasModules,
+		IsSpringboot:     isSpringboot,
+		IsTomcatProvided: isTomcatProvided,
+		Packaging:        packaging,
+		JavaVersion:      javaVersion,
+		Name:             pom.Name,
+		ArtifactID:       pom.ArtifactID,
+		Version:          pom.Version,
+	}
+
+	return conf, nil
+
+}
+
+// DirectoryDetect runs detect in each sub directory
+func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+	destEntries, err := ioutil.ReadDir(dir)
+	if err != nil {
+		logrus.Errorf("Unable to process directory %s : %s", dir, err)
+		return nil, nil, err
+	}
+	mavenFound := false
+	gradleFound := false
+	for _, de := range destEntries {
+		if de.Name() == pomXML {
+			mavenFound = true
+			break
+		}
+		if de.Name() == buildGradle {
+			mavenFound = true
+			break
+		}
+	}
+
+	// If there are not build config files, we stop
+	if !mavenFound && !gradleFound {
+		return nil, nil, nil
+	}
+
+	config := Configuration{}
+	if mavenFound {
+		mavenConfig, err := GetMavenData(filepath.Join(dir, pomXML))
+		if err != nil {
+			config = mavenConfig
+		}
+	}
+	if gradleFound {
+		gradleConfig, err := GetGradleData(filepath.Join(dir, buildGradle), filepath.Join(dir, settingsGradle))
+		if err != nil {
+			config = gradleConfig
+		}
+	}
+
+	buildTool := config.BuildTool
+
+	// filled with previously declared xml
+	//pomStr, err := ioutil.ReadFile(filepath.Join(dir, pomXML))
+	//if err != nil {
+	//	logrus.Errorf("Could not read the pom.xml file: %s", err)
+	//	return nil, nil, err
+	//}
+
+	// Load pom from string
+	//var pom maven.Pom
+	//if err := xml.Unmarshal([]byte(pomStr), &pom); err != nil {
+	//	logrus.Errorf("unable to unmarshal pom file. Reason: %s", err)
+	//	return nil, nil, err
+	//}
+
+	// ....................
+
+	// Dont process if this is a root pom and there are submodules
+	//if pom.Modules != nil && len(*(pom.Modules)) != 0 {
+	//	logrus.Debugf("Ignoring pom at %s as it has modules", dir)
+	//	return nil, nil, nil
+	//}
+	if config.HasModules {
+		logrus.Debugf("Ignoring configuration at %s as it has modules", dir)
+		return nil, nil, nil
+	}
+
+	// Check the dependencies block in case it exists
+	//isSpringboot := false
+	//isTomcatProvided := false
+	//if pom.Dependencies == nil {
+	//	logrus.Debugf("POM file at %s does not contain a dependencies block", dir)
+	//} else {
+	///	for _, dependency := range *pom.Dependencies {
+	//		if strings.Contains(dependency.GroupID, "org.springframework.boot") {
+	//			isSpringboot = true
+	//		}
+	//
+	//		if strings.Contains(dependency.ArtifactID, "spring-boot-starter-tomcat") && dependency.Scope == "provided" {
+	//			isTomcatProvided = true
+	//		}
+	//	}
+	//}
+
+	//logrus.Debugf("Is springboot app: ", isSpringboot)
+
+	// Collect packaging from the packaging block
+	//packaging := ""
+	//if pom.Packaging == "" {
+	//	logrus.Debugf("Pom at %s does not contain a Packaging block", dir)
+	//} else {
+	//	packaging = pom.Packaging
+	//	logrus.Debugf("Packaging: %s", packaging)
+	//}
+
+	// Collect java / tomcat version fom the Properties block
+	javaVersion := ""
+	//tomcatVersion := ""
+	//if pom.Properties == nil {
+	//	logrus.Debugf("Pom at %s  does not contain a Properties block", dir)
+	//} else {
+	//	for k, v := range pom.Properties.Entries {
+	//		switch k {
+	//		// Only for springboot apps
+	//		case "java.version":
+	//			javaVersion = v
+	//		//case "tomcat.version":
+	//		//	tomcatVersion = v
+	//		// Non springboot apps:
+	//		case "maven.compiler.target":
+	//			javaVersion = v
+	//		}
+	//	}
+	//}
+
+	//logrus.Debugf("Java version %s", javaVersion)
+	//logrus.Debugf("Tomcat version %s", tomcatVersion)
 
 	// Check if the application uses an embeded server or not.
 	// This is based on having tomcat as `provided` and packaging as `war`
@@ -279,16 +481,16 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	isServerEmbedded := false
 
 	isPackagingWAR := false
-	if packaging == "war" {
+	if config.Packaging == "war" {
 		isPackagingWAR = true
 	}
 
 	// here we asses for both conditions
-	isServerEmbedded = !(isTomcatProvided && isPackagingWAR)
+	isServerEmbedded = !(config.IsTomcatProvided && isPackagingWAR)
 
 	// in the case we have standanlone java maven application (no springboot),
 	// we assume the server is not embedded
-	if !isSpringboot {
+	if !config.IsSpringboot {
 		isServerEmbedded = false
 	}
 
@@ -316,7 +518,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	var appServerCandidateImages []collectiontypes.ImageInfoSpec
 
 	if appServer != "" {
-		if javaVersion == "" { // default case
+		if config.JavaVersion == "" { // default case
 			javaVersion = "1.8"
 		}
 
@@ -365,36 +567,39 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 
 	// Get app file and app name
 	appName := ""
-	appFile := ""
-	if pom.Name != "" {
-		appFile = pom.Name
-		appName = pom.Name
+	if config.Name != "" {
+		appName = config.Name
 	} else {
-		if pom.ArtifactID != "" {
-			appFile = pom.ArtifactID
-		}
 		appName = filepath.Base(dir)
 	}
+
+	appFile := ""
+	if config.Name != "" {
+		appFile = config.Name
+	} else {
+		if config.ArtifactID != "" {
+			appFile = config.ArtifactID
+		}
+	}
 	if appFile != "" {
-		if pom.Version != "" {
-			appFile = appFile + "-" + pom.Version
+		if config.Version != "" {
+			appFile = appFile + "-" + config.Version
 		}
 
-		if pom.Packaging != "" {
-			appFile = appFile + "." + pom.Packaging
+		if config.Packaging != "" {
+			appFile = appFile + "." + config.Packaging
 		} else {
 			appFile = appFile + ".jar"
 		}
 	}
 
-	// Get deployment file
 	deploymentFile := ""
-	if pom.ArtifactID != "" {
-		deploymentFile = pom.ArtifactID
+	if config.ArtifactID != "" {
+		deploymentFile = config.ArtifactID
 	}
 	if deploymentFile != "" {
-		if pom.Packaging != "" {
-			deploymentFile = deploymentFile + "." + pom.Packaging
+		if config.Packaging != "" {
+			deploymentFile = deploymentFile + "." + config.Packaging
 		} else {
 			deploymentFile = deploymentFile + ".jar"
 		}
@@ -450,6 +655,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 				JavaPackageName:        javaPackageName,
 				AppFile:                appFile,
 				DeploymentFile:         deploymentFile,
+				BuildTool:              buildTool,
 			}},
 		Paths: map[transformertypes.PathType][]string{
 			mavenPomXML:                   {filepath.Join(dir, pomXML)},
@@ -502,7 +708,16 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		}
 
 		// Build
-		strBuild, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.maven-build"))
+
+		buildSegment := ""
+		if sConfig.BuildTool == "maven" {
+			buildSegment = "Dockerfile.maven-build"
+		} else {
+			buildSegment = "Dockerfile.gradle-build"
+
+		}
+
+		strBuild, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, buildSegment))
 		if err != nil {
 			return nil, nil, err
 		}
