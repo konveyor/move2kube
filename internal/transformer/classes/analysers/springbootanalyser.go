@@ -107,7 +107,7 @@ func (t *SpringbootAnalyser) BaseDirectoryDetect(dir string) (namedServices map[
 	return nil, nil, nil
 }
 
-// Function for extracting info from Gradle files
+// GetGradleData extracts info from Gradle files
 func GetGradleData(buildGradlePath string, settingsGradlePath string) (configuration Configuration, err error) {
 
 	// Data extraction from build.gradle
@@ -273,6 +273,7 @@ func GetGradleData(buildGradlePath string, settingsGradlePath string) (configura
 	return conf, nil
 }
 
+// GetMavenData extracts data from maven files
 func GetMavenData(pomXMLPath string) (configuration Configuration, err error) {
 
 	// filled with previously declared xml
