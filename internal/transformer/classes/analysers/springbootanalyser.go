@@ -369,11 +369,11 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	for _, de := range destEntries {
 		if de.Name() == pomXML {
 			mavenFound = true
-			break
+			continue //break
 		}
 		if de.Name() == buildGradle {
-			mavenFound = true
-			break
+			gradleFound = true
+			continue
 		}
 	}
 
@@ -382,17 +382,24 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		return nil, nil, nil
 	}
 
-	config := Configuration{}
+	//config := Configuration{}
+	var config Configuration
 	if mavenFound {
 		mavenConfig, err := GetMavenData(filepath.Join(dir, pomXML))
 		if err != nil {
+			logrus.Errorf("Unable to load data from maven file %s", filepath.Join(dir, pomXML))
+		} else {
 			config = mavenConfig
 		}
-	}
-	if gradleFound {
-		gradleConfig, err := GetGradleData(filepath.Join(dir, buildGradle), filepath.Join(dir, settingsGradle))
-		if err != nil {
-			config = gradleConfig
+
+	} else { // This hierarchy is by design. We are more confident on the maven extraction
+		if gradleFound {
+			gradleConfig, err := GetGradleData(filepath.Join(dir, buildGradle), filepath.Join(dir, settingsGradle))
+			if err != nil {
+				logrus.Errorf("Unable to load data from gradle file %s", filepath.Join(dir, buildGradle))
+			} else {
+				config = gradleConfig
+			}
 		}
 	}
 
@@ -712,9 +719,11 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		buildSegment := ""
 		if sConfig.BuildTool == "maven" {
 			buildSegment = "Dockerfile.maven-build"
-		} else {
+		} else if sConfig.BuildTool == "gradle" {
 			buildSegment = "Dockerfile.gradle-build"
-
+		} else {
+			logrus.Errorf("Unable to set the buildSegment file")
+			continue
 		}
 
 		strBuild, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, buildSegment))
