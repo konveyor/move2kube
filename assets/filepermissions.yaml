@@ -105,6 +105,7 @@
 "inbuilt/transformers/springboot/java-springboot/java-springboot.yaml" : 0644
 "inbuilt/transformers/springboot/java-springboot/mappings/java2images_tags.yaml" : 0644
 "inbuilt/transformers/springboot/java-springboot/mappings/java_version2package_name.json" : 0644
+"inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.gradle-build" : 0644
 "inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.license" : 0644
 "inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.maven-build" : 0644
 "inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.springboot-embedded" : 0644
