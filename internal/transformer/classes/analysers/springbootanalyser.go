@@ -17,10 +17,8 @@
 package analysers
 
 import (
-	"bufio"
 	"encoding/xml"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -76,8 +74,8 @@ type SpringbootTemplateConfig struct {
 	DeploymentFile  string `yaml:"deploymentFile,omitempty"`
 }
 
-// Configuration defines Configuration properties
-type Configuration struct {
+// ConfigurationFromBuildTool defines Configuration properties
+type ConfigurationFromBuildTool struct {
 	BuildTool        string `yaml:"buildTool,omitempty"` // Maven or Gradle
 	HasModules       bool   `yaml:"hasModules,omitempty"`
 	IsSpringboot     bool   `yaml:"isSpringboot,omitempty"`
@@ -107,23 +105,44 @@ func (t *SpringbootAnalyser) BaseDirectoryDetect(dir string) (namedServices map[
 	return nil, nil, nil
 }
 
-// GetGradleData extracts info from Gradle files
-func GetGradleData(buildGradlePath string, settingsGradlePath string) (configuration Configuration, err error) {
+// getFileLines gets the lines from a file as a list of strings
+func getFileLines(filePath string) ([]string, error) {
 
-	// Data extraction from build.gradle
-	file, err := os.Open(buildGradlePath)
+	// Implementation using Scanner
+	/*
+		file, err := os.Open(filePath)
+		if err != nil {
+			logrus.Errorf("failed opening file: %s", filePath)
+			return nil, err
+		}
+		scanner := bufio.NewScanner(file)
+		scanner.Split(bufio.ScanLines)
+		var fileLines []string
+		for scanner.Scan() {
+			fileLines = append(fileLines, scanner.Text())
+		}
+		defer file.Close()
+		return fileLines, err
+	*/
+
+	// Implementation using ioutil.ReadFile
+	fileContent, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		logrus.Errorf("failed opening file: %s", err)
-		return Configuration{}, err
+		return nil, err
+	}
+	fileContentAsString := string(fileContent) // originally is an array of bytes
+	fileLines := strings.Split(fileContentAsString, "\n")
+	return fileLines, nil
 
+}
+
+// getGradleData extracts info from Gradle files
+func getGradleData(buildGradlePath string, settingsGradlePath string) (configuration ConfigurationFromBuildTool, err error) {
+
+	buildGradleLines, err := getFileLines(buildGradlePath)
+	if err != nil {
+		logrus.Errorf("failed getting lines from file: %s", buildGradlePath)
 	}
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-	var txtlines []string
-	for scanner.Scan() {
-		txtlines = append(txtlines, scanner.Text())
-	}
-	defer file.Close()
 
 	openBlock := false
 	openMultilineCommentBlock := false
@@ -132,7 +151,7 @@ func GetGradleData(buildGradlePath string, settingsGradlePath string) (configura
 	var singleParams []string
 	var blockContent []string
 	var blockName string
-	for _, line := range txtlines {
+	for _, line := range buildGradleLines {
 
 		if strings.Contains(line, "/*") {
 			openMultilineCommentBlock = true
@@ -173,24 +192,14 @@ func GetGradleData(buildGradlePath string, settingsGradlePath string) (configura
 	}
 
 	// (Optional) Data extraction from settings.gradle
-	var settingsLines []string
-	settingsFile, err := os.Open(settingsGradlePath)
+	settingsGradleLines, err := getFileLines(settingsGradlePath)
 	if err != nil {
-		logrus.Errorf("failed opening file: %s", err)
-
-	} else {
-		scanner := bufio.NewScanner(settingsFile)
-		scanner.Split(bufio.ScanLines)
-
-		for scanner.Scan() {
-			settingsLines = append(settingsLines, scanner.Text())
-		}
-		defer settingsFile.Close()
+		logrus.Errorf("failed getting lines from file: %s", settingsGradlePath)
 	}
 
 	name := ""
 	artifactId := ""
-	for _, sl := range settingsLines {
+	for _, sl := range settingsGradleLines {
 		sl = strings.TrimSpace(sl)
 		if strings.Contains(sl, "rootProject.name") {
 			slSplitted := strings.Split(sl, "=")
@@ -198,9 +207,7 @@ func GetGradleData(buildGradlePath string, settingsGradlePath string) (configura
 				name = slSplitted[1]
 				artifactId = slSplitted[1]
 			}
-
 		}
-
 	}
 
 	//Data processing
@@ -227,9 +234,7 @@ func GetGradleData(buildGradlePath string, settingsGradlePath string) (configura
 			if len(spSplittedEq) == 2 {
 				javaVersion = spSplittedEq[1]
 			}
-
 		}
-
 	}
 
 	hasModules := false
@@ -240,9 +245,11 @@ func GetGradleData(buildGradlePath string, settingsGradlePath string) (configura
 	isSpringboot := false
 	isTomcatProvided := false
 	packaging := ""
-	// Traverse  blocks
+
 	for blockId, blockContent := range blockParams {
-		if blockId == "dependencies" {
+
+		switch blockId {
+		case "dependencies":
 			for _, dependency := range blockContent {
 				if strings.Contains(dependency, "org.springframework.boot") {
 					isSpringboot = true
@@ -252,14 +259,12 @@ func GetGradleData(buildGradlePath string, settingsGradlePath string) (configura
 					isTomcatProvided = true
 				}
 			}
-		}
-
-		if blockId == "war" {
+		case "war":
 			packaging = "war"
 		}
 	}
 
-	conf := Configuration{
+	conf := ConfigurationFromBuildTool{
 		BuildTool:        "gradle",
 		HasModules:       hasModules,
 		IsSpringboot:     isSpringboot,
@@ -273,21 +278,21 @@ func GetGradleData(buildGradlePath string, settingsGradlePath string) (configura
 	return conf, nil
 }
 
-// GetMavenData extracts data from maven files
-func GetMavenData(pomXMLPath string) (configuration Configuration, err error) {
+// getMavenData extracts data from maven files
+func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, err error) {
 
 	// filled with previously declared xml
 	pomStr, err := ioutil.ReadFile(pomXMLPath)
 	if err != nil {
 		logrus.Errorf("Could not read the pom.xml file: %s", err)
-		return Configuration{}, err
+		return ConfigurationFromBuildTool{}, err
 	}
 
 	// Load pom from string
 	var pom maven.Pom
 	if err := xml.Unmarshal([]byte(pomStr), &pom); err != nil {
 		logrus.Errorf("unable to unmarshal pom file. Reason: %s", err)
-		return Configuration{}, err
+		return ConfigurationFromBuildTool{}, err
 	}
 
 	hasModules := false
@@ -342,7 +347,7 @@ func GetMavenData(pomXMLPath string) (configuration Configuration, err error) {
 		}
 	}
 
-	conf := Configuration{
+	conf := ConfigurationFromBuildTool{
 		BuildTool:        "maven",
 		HasModules:       hasModules,
 		IsSpringboot:     isSpringboot,
@@ -353,9 +358,7 @@ func GetMavenData(pomXMLPath string) (configuration Configuration, err error) {
 		ArtifactID:       pom.ArtifactID,
 		Version:          pom.Version,
 	}
-
 	return conf, nil
-
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -383,10 +386,9 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		return nil, nil, nil
 	}
 
-	//config := Configuration{}
-	var config Configuration
+	var config ConfigurationFromBuildTool
 	if mavenFound {
-		mavenConfig, err := GetMavenData(filepath.Join(dir, pomXML))
+		mavenConfig, err := getMavenData(filepath.Join(dir, pomXML))
 		if err != nil {
 			logrus.Errorf("Unable to load data from maven file %s", filepath.Join(dir, pomXML))
 		} else {
@@ -395,7 +397,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 
 	} else { // This hierarchy is by design. We are more confident on the maven extraction
 		if gradleFound {
-			gradleConfig, err := GetGradleData(filepath.Join(dir, buildGradle), filepath.Join(dir, settingsGradle))
+			gradleConfig, err := getGradleData(filepath.Join(dir, buildGradle), filepath.Join(dir, settingsGradle))
 			if err != nil {
 				logrus.Errorf("Unable to load data from gradle file %s", filepath.Join(dir, buildGradle))
 			} else {
