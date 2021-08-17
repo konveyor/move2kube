@@ -286,7 +286,7 @@ func GenerateYAMLFromExpression(expr string) (string, error) {
 	logging.SetBackend(new(nullLogBackend))
 	b := bytes.Buffer{}
 	printer, evaluator := getPrinterAndEvaluator(&b)
-	if err := evaluator.EvaluateNew(expr, printer); err != nil {
+	if err := evaluator.EvaluateNew(expr, printer, ""); err != nil {
 		return "", err
 	}
 	return b.String(), nil

@@ -25,7 +25,7 @@ import (
 )
 
 // GetVersionCommand returns the version
-func GetVersionCommand() *cobra.Command {
+func getVersionCommand() *cobra.Command {
 	viper.AutomaticEnv()
 
 	long := false
