@@ -175,7 +175,7 @@ func mergePathSliceMaps(map1 map[transformertypes.PathType][]string, map2 map[tr
 func setTransformerInfoForServices(services map[string]transformertypes.ServicePlan, t transformertypes.Transformer) map[string]transformertypes.ServicePlan {
 	for sn, s := range services {
 		for sti, st := range s {
-			st.Name = t.Name
+			st.TransformerName = t.Name
 			st.Mode = t.Spec.Mode
 			services[sn][sti] = st
 		}
@@ -185,7 +185,7 @@ func setTransformerInfoForServices(services map[string]transformertypes.ServiceP
 
 func setTransformerInfoForTransformers(transformers []transformertypes.TransformerPlan, t transformertypes.Transformer) []transformertypes.TransformerPlan {
 	for ti, tr := range transformers {
-		tr.Name = t.Name
+		tr.TransformerName = t.Name
 		tr.Mode = t.Spec.Mode
 		transformers[ti] = tr
 	}
