@@ -107,7 +107,7 @@ func CuratePlan(p plantypes.Plan, outputPath string) plantypes.Plan {
 					logrus.Debugf("Ignoring transformer %+v for service %s due to deselected mode %s", t, sn, t.Mode)
 					continue
 				}
-				if !common.IsStringPresent(transformers, t.Name) {
+				if !common.IsStringPresent(transformers, t.TransformerName) {
 					logrus.Debugf("Ignoring transformer %+v for service %s due to deselected transformer %s", t, sn, t.Mode)
 					continue
 				}
@@ -115,7 +115,7 @@ func CuratePlan(p plantypes.Plan, outputPath string) plantypes.Plan {
 			} else if mode != t.Mode {
 				logrus.Debugf("Ingoring %+v for service %s due to differing mode", t, sn)
 			}
-			if !common.IsStringPresent(transformers, t.Name) {
+			if !common.IsStringPresent(transformers, t.TransformerName) {
 				logrus.Debugf("Ignoring transformer %+v for service %s due to deselected transformer %s", t, sn, t.Mode)
 				continue
 			}
