@@ -350,7 +350,7 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 	conf := ConfigurationFromBuildTool{
 		BuildTool:        "maven",
 		HasModules:       hasModules,
-		IsSpringboot:     isSpringboot,
+		IsSpringboot:     isSpringboot, //->  struct
 		IsTomcatProvided: isTomcatProvided,
 		Packaging:        packaging,
 		JavaVersion:      javaVersion,
@@ -464,6 +464,12 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 
 	// Collect java / tomcat version fom the Properties block
 	javaVersion := ""
+	if config.JavaVersion == "" { // default case
+		javaVersion = "1.8"
+	} else {
+		javaVersion = config.JavaVersion
+	}
+
 	//tomcatVersion := ""
 	//if pom.Properties == nil {
 	//	logrus.Debugf("Pom at %s  does not contain a Properties block", dir)
