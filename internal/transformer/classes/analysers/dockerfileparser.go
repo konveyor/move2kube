@@ -181,8 +181,11 @@ func (t *DockerfileParser) isWindowsContainer(df *dockerparser.Result) bool {
 			if imageNameNode == nil {
 				continue
 			}
-			if strings.HasPrefix(imageNameNode.Value, "mcr.microsoft.com") {
-				return true
+			for _, flag := range dfchild.Flags {
+				flag = strings.TrimPrefix(flag, "--platform=")
+				if strings.HasPrefix(flag, "windows") {
+					return true
+				}
 			}
 		}
 	}
