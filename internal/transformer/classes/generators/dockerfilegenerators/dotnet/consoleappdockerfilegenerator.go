@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/konveyor/move2kube/environment"
@@ -58,7 +59,7 @@ func (t *WinConsoleAppDockerfileGenerator) BaseDirectoryDetect(dir string) (name
 }
 
 // parseAppConfig parses the application config
-func (t *WinConsoleAppDockerfileGenerator) parseAppConfig(baseDir string) ([]string, error) {
+func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(baseDir string) ([]string, error) {
 	appConfigFile, err := os.Open(filepath.Join(baseDir, "App.config"))
 	if err != nil {
 		return nil, fmt.Errorf("Could not open the App.config file: %s", err)
@@ -115,6 +116,10 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfig(baseDir string) ([]str
 			_, port, err := net.SplitHostPort(parsedUrl.Host)
 			if err != nil {
 				logrus.Errorf("Could not extract port from URI: %s", err)
+				continue
+			}
+			if _, err := strconv.Atoi(port); err != nil {
+				logrus.Errorf("Invalid port format: %s", err)
 				continue
 			}
 
@@ -180,7 +185,7 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (namedSer
 				continue
 			}
 
-			portList, err := t.parseAppConfig(filepath.Join(dir, filepath.Dir(csPath)))
+			portList, err := t.parseAppConfigForPort(filepath.Join(dir, filepath.Dir(csPath)))
 			if err != nil {
 				logrus.Errorf("%s", err)
 				continue
