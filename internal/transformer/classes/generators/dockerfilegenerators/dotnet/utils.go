@@ -17,9 +17,8 @@
 package dotnet
 
 import (
-	"bufio"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"regexp"
 	"strings"
 
@@ -70,32 +69,19 @@ func isWeb(configuration dotnet.CSProj) (bool, error) {
 
 // parseSolutionFile parses the solution file for cs project file paths
 func parseSolutionFile(inputPath string) ([]string, error) {
-	solFile, err := os.Open(inputPath)
+	solFileTxt, err := ioutil.ReadFile(inputPath)
 	if err != nil {
 		return nil, fmt.Errorf("Could not open the solution file: %s", err)
 	}
-	defer solFile.Close()
-
-	solFileScanner := bufio.NewScanner(solFile)
-
-	csr := regexp.MustCompile(dotnet.CsProj)
 
 	projectPaths := make([]string, 0)
-	for solFileScanner.Scan() {
-		s := solFileScanner.Text()
-		if csr.MatchString(s) {
-			tokens := strings.Split(s, "=")
-			if len(tokens[1]) > 0 {
-				values := strings.Split(tokens[1], ",")
-				for _, v := range values {
-					projectPaths = append(projectPaths, v)
-				}
-			}
+	projBlockRegex := regexp.MustCompile(dotnet.ProjBlock)
+	l := projBlockRegex.FindAllStringSubmatch(string(solFileTxt), -1)
+	for _, path := range l {
+		if len(path) == 0 {
+			continue
 		}
-	}
-
-	if err := solFileScanner.Err(); err != nil {
-		return nil, fmt.Errorf("Could not parse the solution file: %s", err)
+		projectPaths = append(projectPaths, path[0])
 	}
 
 	for i, c := range projectPaths {

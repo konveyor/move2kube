@@ -36,8 +36,10 @@ var (
 const (
 	// CsSln is the solution file extension
 	CsSln = ".sln"
-	// CsProj is the project file extension
-	CsProj = ".csproj"
+
+	// ProjBlock pattern
+	ProjBlock = "[\\w_\\-\\.(/|\\\\)]+\\.csproj"
+
 	// DefaultBaseImageVersion is the default base image version tag
 	DefaultBaseImageVersion = "4.8"
 )
