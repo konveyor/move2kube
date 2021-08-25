@@ -34,8 +34,6 @@ var (
 )
 
 const (
-	// ProjBlock is the project block pattern in solution file
-	ProjBlock = "^Project"
 	// CsSln is the solution file extension
 	CsSln = ".sln"
 	// CsProj is the project file extension

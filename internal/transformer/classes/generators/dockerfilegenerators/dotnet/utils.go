@@ -78,21 +78,17 @@ func parseSolutionFile(inputPath string) ([]string, error) {
 
 	solFileScanner := bufio.NewScanner(solFile)
 
-	r := regexp.MustCompile(dotnet.ProjBlock)
-
 	csr := regexp.MustCompile(dotnet.CsProj)
 
 	projectPaths := make([]string, 0)
 	for solFileScanner.Scan() {
 		s := solFileScanner.Text()
-		if r.MatchString(s) {
+		if csr.MatchString(s) {
 			tokens := strings.Split(s, "=")
 			if len(tokens[1]) > 0 {
 				values := strings.Split(tokens[1], ",")
 				for _, v := range values {
-					if csr.MatchString(v) {
-						projectPaths = append(projectPaths, v)
-					}
+					projectPaths = append(projectPaths, v)
 				}
 			}
 		}
