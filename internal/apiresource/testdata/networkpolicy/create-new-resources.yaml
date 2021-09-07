@@ -7,12 +7,12 @@
   spec:
     podselector:
       matchlabels:
-        move2kube.konveyor.io/network/net1: "true"
+        move2kube.konveyor.io/network-net1: "true"
     ingress:
       - from:
           - podselector:
               matchlabels:
-                move2kube.konveyor.io/network/net1: "true"
+                move2kube.konveyor.io/network-net1: "true"
 - typemeta:
     kind: NetworkPolicy
     apiversion: networking.k8s.io/__internal
@@ -21,10 +21,10 @@
   spec:
     podselector:
       matchlabels:
-        move2kube.konveyor.io/network/net2: "true"
+        move2kube.konveyor.io/network-net2: "true"
     ingress:
       - from:
           - podselector:
               matchlabels:
-                move2kube.konveyor.io/network/net2: "true"
+                move2kube.konveyor.io/network-net2: "true"
 ...
