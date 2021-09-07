@@ -24,12 +24,20 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/internal/transformer/classes/generators/dockerfilegenerators"
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/konveyor/move2kube/types/source/dotnet"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
+
+// WebTemplateConfig implements .Net Web config interface
+type WebTemplateConfig struct {
+	Ports            []int32
+	AppName          string
+	BaseImageVersion string
+}
 
 // WinWebAppDockerfileGenerator implements the Transformer interface
 type WinWebAppDockerfileGenerator struct {
@@ -62,7 +70,6 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedService
 		return nil, nil, err
 	}
 	appName := ""
-	ports := make([]string, 0)
 	for _, de := range dirEntries {
 		if filepath.Ext(de.Name()) != dotnet.CsSln {
 			continue
@@ -136,13 +143,6 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedService
 			Paths: map[string][]string{
 				artifacts.ProjectPathPathType: {dir},
 			},
-			Configs: map[string]interface{}{
-				artifacts.DockerfileTemplateConfigConfigType: map[string]interface{}{
-					"Ports":            ports,
-					"baseImageVersion": dotnet.DefaultBaseImageVersion,
-					"appName":          appName,
-				},
-			},
 		}},
 	}
 	return namedServices, nil, nil
@@ -150,5 +150,68 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedService
 
 // Transform transforms the artifacts
 func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
-	return dockerfilegenerators.Transform(t.Config, t.Env, newArtifacts)
+	pathMappings := []transformertypes.PathMapping{}
+	artifactsCreated := []transformertypes.Artifact{}
+	for _, a := range newArtifacts {
+		if a.Artifact != artifacts.ServiceArtifactType {
+			continue
+		}
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		if err != nil {
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+		}
+		var sConfig artifacts.ServiceConfig
+		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+			continue
+		}
+		sImageName := artifacts.ImageName{}
+		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		if err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+		}
+
+		var detectedPorts []int32
+		detectedPorts = append(detectedPorts, 8080) //TODO: Write parser to parse and identify port
+		detectedPorts = commonqa.GetPortsForService(detectedPorts, a.Name)
+		var webConfig WebTemplateConfig
+		webConfig.AppName = a.Name
+		webConfig.Ports = detectedPorts
+		webConfig.BaseImageVersion = dotnet.DefaultBaseImageVersion
+
+		if sImageName.ImageName == "" {
+			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
+		}
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:     transformertypes.SourcePathMappingType,
+			DestPath: common.DefaultSourceDir,
+		}, transformertypes.PathMapping{
+			Type:           transformertypes.TemplatePathMappingType,
+			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
+			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
+			TemplateConfig: webConfig,
+		})
+		paths := a.Paths
+		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile")}
+		p := transformertypes.Artifact{
+			Name:     sImageName.ImageName,
+			Artifact: artifacts.DockerfileArtifactType,
+			Paths:    paths,
+			Configs: map[string]interface{}{
+				artifacts.ImageNameConfigType: sImageName,
+			},
+		}
+		dfs := transformertypes.Artifact{
+			Name:     sConfig.ServiceName,
+			Artifact: artifacts.DockerfileForServiceArtifactType,
+			Paths:    a.Paths,
+			Configs: map[string]interface{}{
+				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ServiceConfigType:   sConfig,
+			},
+		}
+		artifactsCreated = append(artifactsCreated, p, dfs)
+	}
+	return pathMappings, artifactsCreated, nil
 }
