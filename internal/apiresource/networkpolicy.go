@@ -85,15 +85,10 @@ func (d *NetworkPolicy) createNetworkPolicy(networkName string) (*networking.Net
 		},
 		Spec: networking.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{networkSelector + "/" + networkName: common.AnnotationLabelValue},
+				MatchLabels: map[string]string{networkSelector + "-" + networkName: common.AnnotationLabelValue},
 			},
-			Ingress: []networking.NetworkPolicyIngressRule{{
-				From: []networking.NetworkPolicyPeer{{
-					PodSelector: &metav1.LabelSelector{
-						MatchLabels: getNetworkPolicyLabels([]string{networkName}),
-					},
-				}},
-			}},
+			Ingress:     []networking.NetworkPolicyIngressRule{{}},
+			PolicyTypes: []networking.PolicyType{"Ingress"},
 		},
 	}
 
@@ -103,7 +98,7 @@ func (d *NetworkPolicy) createNetworkPolicy(networkName string) (*networking.Net
 func getNetworkPolicyLabels(networks []string) map[string]string {
 	networklabels := map[string]string{}
 	for _, network := range networks {
-		networklabels[networkSelector+"/"+network] = common.AnnotationLabelValue
+		networklabels[networkSelector+"-"+network] = common.AnnotationLabelValue
 	}
 	return networklabels
 }
