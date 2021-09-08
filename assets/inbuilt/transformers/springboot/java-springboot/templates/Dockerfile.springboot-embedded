@@ -5,6 +5,6 @@ RUN microdnf update \
       {{ .JavaPackageName }} \
    && microdnf clean all
 
-COPY --from=build_base /app/target/*.jar app.jar
+COPY --from=build_base /app/target/* .
 EXPOSE {{.Port}}
-CMD ["java", "-Xmx200m", "-jar", "/app.jar"]
+CMD ["java", "-Xmx200m", "-jar", "{{ .AppFile }}"]
