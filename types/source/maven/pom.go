@@ -318,14 +318,26 @@ type PluginManagement struct {
 
 // Plugin defines a pom.xml Plugin
 type Plugin struct {
-	GroupID      string             `xml:"groupId,omitempty"`
-	ArtifactID   string             `xml:"artifactId,omitempty"`
-	Version      string             `xml:"version,omitempty"`
-	Extensions   string             `xml:"extensions,omitempty"`
-	Executions   *[]PluginExecution `xml:"executions>execution,omitempty"`
-	Dependencies *[]Dependency      `xml:"dependencies>dependency,omitempty"`
-	Inherited    string             `xml:"inherited,omitempty"`
+	GroupID       string             `xml:"groupId,omitempty"`
+	ArtifactID    string             `xml:"artifactId,omitempty"`
+	Version       string             `xml:"version,omitempty"`
+	Extensions    string             `xml:"extensions,omitempty"`
+	Executions    *[]PluginExecution `xml:"executions>execution,omitempty"`
+	Dependencies  *[]Dependency      `xml:"dependencies>dependency,omitempty"`
+	Inherited     string             `xml:"inherited,omitempty"`
+	Configuration Configuration      `xml:"configuration,omitempty"`
 }
+
+// Configuration defines a pom.xml Configuration
+type Configuration struct {
+	Classifier string `xml:"classifier,omitempty"`
+	//	ConfigurationProfiles *[]ConfigurationProfile `xml:"profiles>profile,omitempty"`
+}
+
+// ConfigurationProfile defines a pom.xml ConfigurationProfile
+//type ConfigurationProfile struct {
+//	ConfigurationProfile string `xml:"profile,omitempty"`
+//}
 
 // PluginExecution defines a pom.xml PluginExecution
 type PluginExecution struct {

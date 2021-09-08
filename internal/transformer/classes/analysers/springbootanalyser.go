@@ -86,6 +86,7 @@ type ConfigurationFromBuildTool struct {
 	Name             string `yaml:"name,omitempty"`
 	ArtifactID       string `yaml:"artifactId,omitempty"`
 	Version          string `yaml:"version,omitempty"`
+	FileSuffix       string `yaml:"fileSuffix,omitempty"`
 }
 
 // Init Initializes the transformer
@@ -107,23 +108,6 @@ func (t *SpringbootAnalyser) BaseDirectoryDetect(dir string) (namedServices map[
 
 // getFileLines gets the lines from a file as a list of strings
 func getFileLines(filePath string) ([]string, error) {
-
-	// Implementation using Scanner
-	/*
-		file, err := os.Open(filePath)
-		if err != nil {
-			logrus.Errorf("failed opening file: %s", filePath)
-			return nil, err
-		}
-		scanner := bufio.NewScanner(file)
-		scanner.Split(bufio.ScanLines)
-		var fileLines []string
-		for scanner.Scan() {
-			fileLines = append(fileLines, scanner.Text())
-		}
-		defer file.Close()
-		return fileLines, err
-	*/
 
 	// Implementation using ioutil.ReadFile
 	fileContent, err := ioutil.ReadFile(filePath)
@@ -347,6 +331,20 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 		}
 	}
 
+	fileSuffix := ""
+	if pom.Build.Plugins == nil {
+		logrus.Debugf("Pom at %s does not contain a Build->Plugins block", pomXMLPath)
+	} else {
+		for _, bp := range *pom.Build.Plugins {
+			logrus.Debugf("s:", bp)
+			if bp.Configuration.Classifier != "" {
+				fileSuffix = bp.Configuration.Classifier
+			}
+
+		}
+
+	}
+
 	conf := ConfigurationFromBuildTool{
 		BuildTool:        "maven",
 		HasModules:       hasModules,
@@ -357,6 +355,7 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 		Name:             pom.Name,
 		ArtifactID:       pom.ArtifactID,
 		Version:          pom.Version,
+		FileSuffix:       fileSuffix,
 	}
 	return conf, nil
 }
@@ -408,59 +407,10 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 
 	buildTool := config.BuildTool
 
-	// filled with previously declared xml
-	//pomStr, err := ioutil.ReadFile(filepath.Join(dir, pomXML))
-	//if err != nil {
-	//	logrus.Errorf("Could not read the pom.xml file: %s", err)
-	//	return nil, nil, err
-	//}
-
-	// Load pom from string
-	//var pom maven.Pom
-	//if err := xml.Unmarshal([]byte(pomStr), &pom); err != nil {
-	//	logrus.Errorf("unable to unmarshal pom file. Reason: %s", err)
-	//	return nil, nil, err
-	//}
-
-	// ....................
-
-	// Dont process if this is a root pom and there are submodules
-	//if pom.Modules != nil && len(*(pom.Modules)) != 0 {
-	//	logrus.Debugf("Ignoring pom at %s as it has modules", dir)
-	//	return nil, nil, nil
-	//}
 	if config.HasModules {
 		logrus.Debugf("Ignoring configuration at %s as it has modules", dir)
 		return nil, nil, nil
 	}
-
-	// Check the dependencies block in case it exists
-	//isSpringboot := false
-	//isTomcatProvided := false
-	//if pom.Dependencies == nil {
-	//	logrus.Debugf("POM file at %s does not contain a dependencies block", dir)
-	//} else {
-	///	for _, dependency := range *pom.Dependencies {
-	//		if strings.Contains(dependency.GroupID, "org.springframework.boot") {
-	//			isSpringboot = true
-	//		}
-	//
-	//		if strings.Contains(dependency.ArtifactID, "spring-boot-starter-tomcat") && dependency.Scope == "provided" {
-	//			isTomcatProvided = true
-	//		}
-	//	}
-	//}
-
-	//logrus.Debugf("Is springboot app: ", isSpringboot)
-
-	// Collect packaging from the packaging block
-	//packaging := ""
-	//if pom.Packaging == "" {
-	//	logrus.Debugf("Pom at %s does not contain a Packaging block", dir)
-	//} else {
-	//	packaging = pom.Packaging
-	//	logrus.Debugf("Packaging: %s", packaging)
-	//}
 
 	// Collect java / tomcat version fom the Properties block
 	javaVersion := ""
@@ -469,27 +419,6 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	} else {
 		javaVersion = config.JavaVersion
 	}
-
-	//tomcatVersion := ""
-	//if pom.Properties == nil {
-	//	logrus.Debugf("Pom at %s  does not contain a Properties block", dir)
-	//} else {
-	//	for k, v := range pom.Properties.Entries {
-	//		switch k {
-	//		// Only for springboot apps
-	//		case "java.version":
-	//			javaVersion = v
-	//		//case "tomcat.version":
-	//		//	tomcatVersion = v
-	//		// Non springboot apps:
-	//		case "maven.compiler.target":
-	//			javaVersion = v
-	//		}
-	//	}
-	//}
-
-	//logrus.Debugf("Java version %s", javaVersion)
-	//logrus.Debugf("Tomcat version %s", tomcatVersion)
 
 	// Check if the application uses an embeded server or not.
 	// This is based on having tomcat as `provided` and packaging as `war`
@@ -600,6 +529,10 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	if appFile != "" {
 		if config.Version != "" {
 			appFile = appFile + "-" + config.Version
+		}
+
+		if config.FileSuffix != "" {
+			appFile = appFile + "-" + config.FileSuffix
 		}
 
 		if config.Packaging != "" {
