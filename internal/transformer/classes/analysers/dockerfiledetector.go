@@ -152,7 +152,7 @@ func isDockerFile(path string) (isDockerfile bool, err error) {
 		return false, err
 	}
 	for _, dfchild := range res.AST.Children {
-		if dfchild.Value == "from" {
+		if dfchild.Value == "FROM" {
 			r := regexp.MustCompile(`(?i)FROM\s+(--platform=[^\s]+)?[^\s]+(\s+AS\s+[^\s]+)?\s*(#.+)?$`)
 			if r.MatchString(dfchild.Original) {
 				logrus.Debugf("Identified a docker file : " + path)
@@ -160,7 +160,7 @@ func isDockerFile(path string) (isDockerfile bool, err error) {
 			}
 			return false, nil
 		}
-		if dfchild.Value == "arg" {
+		if dfchild.Value == "ARG" {
 			continue
 		}
 		return false, fmt.Errorf("%s is not a valid Dockerfile", path)
