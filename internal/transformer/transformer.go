@@ -20,7 +20,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"regexp"
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
@@ -37,10 +36,9 @@ import (
 )
 
 var (
-	initialized                                     = false
-	transformerTypes        map[string]reflect.Type = map[string]reflect.Type{}
-	transformers            map[string]Transformer  = map[string]Transformer{}
-	defaultIgnoreDirRegexps                         = []*regexp.Regexp{regexp.MustCompile("[.].*")}
+	initialized                              = false
+	transformerTypes map[string]reflect.Type = map[string]reflect.Type{}
+	transformers     map[string]Transformer  = map[string]Transformer{}
 )
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
@@ -333,7 +331,7 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 		if !info.IsDir() {
 			return nil
 		}
-		for _, dirRegExp := range defaultIgnoreDirRegexps {
+		for _, dirRegExp := range common.DefaultIgnoreDirRegexps {
 			if dirRegExp.Match([]byte(filepath.Base(path))) {
 				return filepath.SkipDir
 			}
