@@ -522,11 +522,11 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	appName = strings.Replace(appName, " ", "-", 1)
 
 	appFile := ""
-	if config.Name != "" {
-		appFile = config.Name
+	if config.ArtifactID != "" {
+		appFile = config.ArtifactID
 	} else {
-		if config.ArtifactID != "" {
-			appFile = config.ArtifactID
+		if config.Name != "" {
+			appFile = config.Name
 		}
 	}
 	if appFile != "" {
