@@ -312,7 +312,7 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 
 	// Collect java / tomcat version fom the Properties block
 	javaVersion := ""
-	//tomcatVersion := ""
+	tomcatVersion := ""
 	if pom.Properties == nil {
 		logrus.Debugf("Pom at %s  does not contain a Properties block", pomXMLPath)
 	} else {
@@ -322,11 +322,14 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 			// Only for springboot apps
 			case "java.version":
 				javaVersion = v
-			//case "tomcat.version":
-			//	tomcatVersion = v
+			case "tomcat.version":
+				tomcatVersion = v
 			// Non springboot apps:
 			case "maven.compiler.target":
-				javaVersion = v
+				if javaVersion == "" {
+					javaVersion = v
+				}
+
 			}
 		}
 	}
@@ -356,6 +359,7 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 		ArtifactID:       pom.ArtifactID,
 		Version:          pom.Version,
 		FileSuffix:       fileSuffix,
+		TomcatVersion:    tomcatVersion,
 	}
 	return conf, nil
 }
