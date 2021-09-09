@@ -518,6 +518,9 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		appName = filepath.Base(dir)
 	}
 
+	appName = common.NormalizeForServiceName(appName)
+	appName = strings.Replace(appName, " ", "-", 1)
+
 	appFile := ""
 	if config.Name != "" {
 		appFile = config.Name
