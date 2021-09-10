@@ -19,7 +19,9 @@ package analysers
 import (
 	"encoding/xml"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/konveyor/move2kube/environment"
@@ -329,7 +331,6 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 				if javaVersion == "" {
 					javaVersion = v
 				}
-
 			}
 		}
 	}
@@ -362,6 +363,50 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 		TomcatVersion:    tomcatVersion,
 	}
 	return conf, nil
+}
+
+//getFilesByRegExp returns files that match a reg exp
+func getFilesByRegExp(inputPath string, re string) ([]string, error) {
+	var files []string
+	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
+		logrus.Warnf("Error in walking through files due to : %q", err)
+		return files, err
+	} else if !info.IsDir() {
+		logrus.Warnf("The path %q is not a directory.", inputPath)
+	}
+
+	reg, err2 := regexp.Compile(re)
+	if err2 != nil {
+		logrus.Warnf("Could not compile regular expression: %s", re)
+		return files, err2
+	}
+
+	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil && path == inputPath { // if walk for root search path return gets error
+			// then stop walking and return this error
+			return err
+		}
+		if err != nil {
+			logrus.Warnf("Skipping path %q due to error: %q", path, err)
+			return nil
+		}
+		// Skip directories
+		if info.IsDir() {
+			return nil
+		}
+		fname := filepath.Base(path)
+
+		if reg.MatchString(fname) {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		logrus.Warnf("Error in walking through files due to : %s", err)
+		return files, err
+	}
+	//logrus.Debugf("No of files with %s names identified : %d", names, len(files))
+	return files, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -567,6 +612,39 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		logrus.Debugf("Cannot get application files: %s", err)
 	}
 
+	// General query for springboot config files
+	springConfigFiles, err := getFilesByRegExp(dir, "application.*.(yaml|yml|properties)")
+	if err != nil {
+		logrus.Debugf("Cannot get application files: %s", err)
+	}
+	logrus.Debugf("testfiles %s", springConfigFiles)
+
+	// Remove not relevant files
+	springConfigFilesFiltered := []string{}
+	for _, scf := range springConfigFiles {
+		if !strings.Contains(scf, "test/") && !strings.Contains(scf, "secret/") {
+			// in the case of secret, we probably need it anyway
+			springConfigFilesFiltered = append(springConfigFilesFiltered, scf)
+		}
+	}
+
+	// Divide the remaining list into yaml and properties
+	springConfigFilesYaml := []string{}
+	springConfigFilesProperties := []string{}
+
+	for _, scf := range springConfigFilesFiltered {
+
+		// regex for this?
+		segments := strings.Split(scf, ".")
+		extension := segments[len(segments)-1]
+
+		if extension == "yml" || extension == "yaml" {
+			springConfigFilesYaml = append(springConfigFilesYaml, scf)
+		} else if extension == "properties" {
+			springConfigFilesProperties = append(springConfigFilesProperties, scf)
+		}
+
+	}
 	validSpringbootFiles := []string{}
 	ports := []int{}
 
