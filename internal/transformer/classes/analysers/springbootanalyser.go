@@ -264,6 +264,28 @@ func getGradleData(buildGradlePath string, settingsGradlePath string) (configura
 	return conf, nil
 }
 
+// readPropertiesFile reads a .properties file
+func readPropertiesFile(propertiesFilePath string) (result map[string]string, err error) {
+
+	res := map[string]string{}
+
+	propertiesFileLines, err := getFileLines(propertiesFilePath)
+	if err != nil {
+		logrus.Errorf("Failed getting lines from file: %s", propertiesFilePath)
+		return res, err
+	}
+
+	for _, line := range propertiesFileLines {
+		if line != "" && strings.Contains(line, "=") {
+			lineContent := strings.Split(line, "=")
+			if len(lineContent) == 2 {
+				res[lineContent[0]] = lineContent[1]
+			}
+		}
+	}
+	return res, err
+}
+
 // getMavenData extracts data from maven files
 func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, err error) {
 
@@ -344,9 +366,7 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 			if bp.Configuration.Classifier != "" {
 				fileSuffix = bp.Configuration.Classifier
 			}
-
 		}
-
 	}
 
 	conf := ConfigurationFromBuildTool{
@@ -633,7 +653,6 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	springConfigFilesProperties := []string{}
 
 	for _, scf := range springConfigFilesFiltered {
-
 		// regex for this?
 		segments := strings.Split(scf, ".")
 		extension := segments[len(segments)-1]
@@ -643,11 +662,19 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		} else if extension == "properties" {
 			springConfigFilesProperties = append(springConfigFilesProperties, scf)
 		}
-
 	}
+
+	// Test reading .properties file
+	for _, propFile := range springConfigFilesProperties {
+		propFileContent, err := readPropertiesFile(propFile)
+		if err != nil {
+			logrus.Debugf("Could not process .properties file %s", propFile)
+		}
+		logrus.Debugf(" len content ", len(propFileContent))
+	}
+
 	validSpringbootFiles := []string{}
 	ports := []int{}
-
 	for _, appfile := range appfiles {
 		var springApplicationYaml springboot.SpringApplicationYaml
 		err = common.ReadYaml(appfile, &springApplicationYaml)
