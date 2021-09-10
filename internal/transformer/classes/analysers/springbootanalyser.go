@@ -79,17 +79,18 @@ type SpringbootTemplateConfig struct {
 
 // ConfigurationFromBuildTool defines Configuration properties
 type ConfigurationFromBuildTool struct {
-	BuildTool        string `yaml:"buildTool,omitempty"` // Maven or Gradle
-	HasModules       bool   `yaml:"hasModules,omitempty"`
-	IsSpringboot     bool   `yaml:"isSpringboot,omitempty"`
-	IsTomcatProvided bool   `yaml:"isTomcatProvided,omitempty"`
-	Packaging        string `yaml:"packaging,omitempty"`
-	JavaVersion      string `yaml:"javaVersion,omitempty"`
-	TomcatVersion    string `yaml:"tomcatVersion,omitempty"`
-	Name             string `yaml:"name,omitempty"`
-	ArtifactID       string `yaml:"artifactId,omitempty"`
-	Version          string `yaml:"version,omitempty"`
-	FileSuffix       string `yaml:"fileSuffix,omitempty"`
+	BuildTool        string   `yaml:"buildTool,omitempty"` // Maven or Gradle
+	HasModules       bool     `yaml:"hasModules,omitempty"`
+	IsSpringboot     bool     `yaml:"isSpringboot,omitempty"`
+	IsTomcatProvided bool     `yaml:"isTomcatProvided,omitempty"`
+	Packaging        string   `yaml:"packaging,omitempty"`
+	JavaVersion      string   `yaml:"javaVersion,omitempty"`
+	TomcatVersion    string   `yaml:"tomcatVersion,omitempty"`
+	Name             string   `yaml:"name,omitempty"`
+	ArtifactID       string   `yaml:"artifactId,omitempty"`
+	Version          string   `yaml:"version,omitempty"`
+	FileSuffix       string   `yaml:"fileSuffix,omitempty"`
+	Profiles         []string `yaml:"profiles,omitempty"`
 }
 
 // Init Initializes the transformer
@@ -196,8 +197,6 @@ func getGradleData(buildGradlePath string, settingsGradlePath string) (configura
 			}
 		}
 	}
-
-	//Data processing
 
 	// Collect Modules
 	var modules []string
@@ -363,10 +362,19 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 		logrus.Debugf("Pom at %s does not contain a Build->Plugins block", pomXMLPath)
 	} else {
 		for _, bp := range *pom.Build.Plugins {
-			logrus.Debugf("s:", bp)
+			//logrus.Debugf("s:", bp)
 			if bp.Configuration.Classifier != "" {
 				fileSuffix = bp.Configuration.Classifier
 			}
+		}
+	}
+
+	profiles := []string{}
+	if pom.Profiles == nil {
+		logrus.Debugf("Pom at %s does not contain a Profiles block", pomXMLPath)
+	} else {
+		for _, pr := range *pom.Profiles {
+			profiles = append(profiles, pr.ID)
 		}
 	}
 
@@ -382,6 +390,7 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 		Version:          pom.Version,
 		FileSuffix:       fileSuffix,
 		TomcatVersion:    tomcatVersion,
+		Profiles:         profiles,
 	}
 	return conf, nil
 }
@@ -584,6 +593,8 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 	appName := ""
 	if config.Name != "" {
 		appName = config.Name
+	} else if config.ArtifactID != "" {
+		appName = config.ArtifactID
 	} else {
 		appName = filepath.Base(dir)
 	}
