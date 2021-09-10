@@ -56,15 +56,16 @@ type SpringbootAnalyser struct {
 
 // SpringbootConfig defines SpringbootConfig properties
 type SpringbootConfig struct {
-	ServiceName            string `yaml:"serviceName,omitempty"`
-	Ports                  []int  `yaml:"ports,omitempty"`
-	JavaVersion            string `yaml:"javaVersion,omitempty"`
-	ApplicationServer      string `yaml:"applicationServer,omitempty"`
-	ApplicationServerImage string `yaml:"applicationServerImage,omitempty"`
-	JavaPackageName        string `yaml:"javaPackageName,omitempty"`
-	AppFile                string `yaml:"appFile,omitempty"`
-	DeploymentFile         string `yaml:"deploymentFile,omitempty"`
-	BuildTool              string `yaml:"buildTool,omitempty"`
+	ServiceName            string   `yaml:"serviceName,omitempty"`
+	Ports                  []int    `yaml:"ports,omitempty"`
+	JavaVersion            string   `yaml:"javaVersion,omitempty"`
+	ApplicationServer      string   `yaml:"applicationServer,omitempty"`
+	ApplicationServerImage string   `yaml:"applicationServerImage,omitempty"`
+	JavaPackageName        string   `yaml:"javaPackageName,omitempty"`
+	AppFile                string   `yaml:"appFile,omitempty"`
+	DeploymentFile         string   `yaml:"deploymentFile,omitempty"`
+	BuildTool              string   `yaml:"buildTool,omitempty"`
+	Profiles               []string `yaml:"profiles,omitempty"`
 }
 
 // SpringbootTemplateConfig defines SpringbootTemplateConfig properties
@@ -664,15 +665,42 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		}
 	}
 
-	// Test reading .properties file
+	propFilesMap := map[string]map[string]string{}
+	profiles := []string{}
+
 	for _, propFile := range springConfigFilesProperties {
 		propFileContent, err := readPropertiesFile(propFile)
 		if err != nil {
 			logrus.Debugf("Could not process .properties file %s", propFile)
+		} else {
+			fileName := filepath.Base(propFile)
+			if strings.Contains(fileName, "-") {
+				parts := strings.Split(fileName, "-")
+				profile := strings.Replace(parts[1], ".properties", "", 1)
+				profiles = append(profiles, profile)
+			}
+
+			propFilesMap[propFile] = propFileContent
 		}
-		logrus.Debugf(" len content ", len(propFileContent))
 	}
 
+	yamlFilesMap := map[string]springboot.SpringApplicationYaml{}
+	for _, yamlFile := range springConfigFilesYaml {
+
+		var springApplicationYaml springboot.SpringApplicationYaml
+		err = common.ReadYaml(yamlFile, &springApplicationYaml)
+		if err != nil {
+			logrus.Debugf("Could not load application file %s", yamlFile)
+			continue
+		}
+		if (springApplicationYaml == springboot.SpringApplicationYaml{}) {
+			logrus.Debugf("No information found in application file %s", yamlFile)
+			continue
+		}
+		yamlFilesMap[yamlFile] = springApplicationYaml
+	}
+
+	// original code
 	validSpringbootFiles := []string{}
 	ports := []int{}
 	for _, appfile := range appfiles {
@@ -717,6 +745,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 				AppFile:                appFile,
 				DeploymentFile:         deploymentFile,
 				BuildTool:              buildTool,
+				Profiles:               profiles,
 			}},
 		Paths: map[transformertypes.PathType][]string{
 			mavenPomXML:                   {filepath.Join(dir, pomXML)},
