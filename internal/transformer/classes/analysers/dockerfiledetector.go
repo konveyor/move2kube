@@ -65,6 +65,11 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[
 		}
 		// Skip directories
 		if info.IsDir() {
+			for _, dirRegExp := range common.DefaultIgnoreDirRegexps {
+				if dirRegExp.Match([]byte(filepath.Base(path))) {
+					return filepath.SkipDir
+				}
+			}
 			return nil
 		}
 		if isdf, _ := isDockerFile(path); isdf {
