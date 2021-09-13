@@ -157,7 +157,8 @@ func (c *V1V2Loader) convertToIR(filedir string, composeObject *project.Project,
 		if serviceContainer.Image == "" {
 			serviceContainer.Image = name + ":latest"
 		}
-		serviceContainer.Name = strings.ToLower(composeServiceConfig.ContainerName)
+
+		serviceContainer.Name = common.NormalizeForServiceName(composeServiceConfig.ContainerName)
 		if serviceContainer.Name != composeServiceConfig.ContainerName {
 			logrus.Debugf("Container name in service %q has been changed from %q to %q", name, composeServiceConfig.ContainerName, serviceContainer.Name)
 		}

@@ -105,7 +105,7 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 	ir.Name = t.Env.GetProjectName()
 	container := irtypes.NewContainer()
 	for _, dfchild := range df.AST.Children {
-		if dfchild.Value == "expose" {
+		if strings.EqualFold(dfchild.Value, "EXPOSE") {
 			for {
 				dfchild = dfchild.Next
 				if dfchild == nil {
@@ -176,13 +176,16 @@ func (t *DockerfileParser) getDockerFileAST(path string) (*dockerparser.Result, 
 
 func (t *DockerfileParser) isWindowsContainer(df *dockerparser.Result) bool {
 	for _, dfchild := range df.AST.Children {
-		if dfchild.Value == "from" {
+		if strings.EqualFold(dfchild.Value, "FROM") {
 			imageNameNode := dfchild.Next
 			if imageNameNode == nil {
 				continue
 			}
-			if strings.HasPrefix(imageNameNode.Value, "mcr.microsoft.com") {
-				return true
+			for _, flag := range dfchild.Flags {
+				flag = strings.TrimPrefix(flag, "--platform=")
+				if strings.HasPrefix(flag, "windows") {
+					return true
+				}
 			}
 		}
 	}

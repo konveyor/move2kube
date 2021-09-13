@@ -20,7 +20,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"regexp"
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
@@ -37,10 +36,9 @@ import (
 )
 
 var (
-	initialized                                     = false
-	transformerTypes        map[string]reflect.Type = map[string]reflect.Type{}
-	transformers            map[string]Transformer  = map[string]Transformer{}
-	defaultIgnoreDirRegexps                         = []*regexp.Regexp{regexp.MustCompile("[.].*")}
+	initialized                              = false
+	transformerTypes map[string]reflect.Type = map[string]reflect.Type{}
+	transformers     map[string]Transformer  = map[string]Transformer{}
 )
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
@@ -249,14 +247,14 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 	logrus.Infof("Iteration %d", iteration)
 	for serviceName, service := range plan.Spec.Services {
 		for _, transformer := range service {
-			logrus.Infof("Transformer %s for service %s", transformer.Name, serviceName)
-			t := transformers[transformer.Name]
+			logrus.Infof("Transformer %s for service %s", transformer.TransformerName, serviceName)
+			t := transformers[transformer.TransformerName]
 			_, env := t.GetConfig()
 			env.Reset()
 			a := getArtifactForTransformerPlan(serviceName, transformer, plan)
 			newPathMappings, newArtifacts, err := t.Transform([]transformertypes.Artifact{*env.Encode(&a).(*transformertypes.Artifact)}, *env.Encode(&artifacts).(*[]transformertypes.Artifact))
 			if err != nil {
-				logrus.Errorf("Unable to transform service %s using %s : %s", serviceName, transformer.Name, err)
+				logrus.Errorf("Unable to transform service %s using %s : %s", serviceName, transformer.TransformerName, err)
 				continue
 			}
 			newPathMappings = env.ProcessPathMappings(newPathMappings)
@@ -265,7 +263,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			pathMappings = append(pathMappings, newPathMappings...)
 			artifacts = mergeArtifacts(append(artifacts, newArtifacts...))
 			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))
-			logrus.Infof("Transformer %s Done for service %s", transformer.Name, serviceName)
+			logrus.Infof("Transformer %s Done for service %s", transformer.TransformerName, serviceName)
 		}
 	}
 	err = processPathMappings(pathMappings, plan.Spec.RootDir, outputPath)
@@ -333,7 +331,7 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 		if !info.IsDir() {
 			return nil
 		}
-		for _, dirRegExp := range defaultIgnoreDirRegexps {
+		for _, dirRegExp := range common.DefaultIgnoreDirRegexps {
 			if dirRegExp.Match([]byte(filepath.Base(path))) {
 				return filepath.SkipDir
 			}

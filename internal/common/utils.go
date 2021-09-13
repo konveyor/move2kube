@@ -67,6 +67,11 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 		}
 		// Skip directories
 		if info.IsDir() {
+			for _, dirRegExp := range DefaultIgnoreDirRegexps {
+				if dirRegExp.Match([]byte(filepath.Base(path))) {
+					return filepath.SkipDir
+				}
+			}
 			return nil
 		}
 		fext := filepath.Ext(path)
@@ -105,6 +110,11 @@ func GetFilesByName(inputPath string, names []string) ([]string, error) {
 		}
 		// Skip directories
 		if info.IsDir() {
+			for _, dirRegExp := range DefaultIgnoreDirRegexps {
+				if dirRegExp.Match([]byte(filepath.Base(path))) {
+					return filepath.SkipDir
+				}
+			}
 			return nil
 		}
 		fname := filepath.Base(path)

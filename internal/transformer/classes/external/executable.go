@@ -97,7 +97,30 @@ func (t *Executable) DirectoryDetect(dir string) (namedServices map[string]trans
 	if t.ExecConfig.DirectoryDetectCMD == nil {
 		return nil, nil, nil
 	}
-	return t.executeDetect(t.ExecConfig.DirectoryDetectCMD, dir)
+	namedServices, unnamedServices, err = t.executeDetect(t.ExecConfig.DirectoryDetectCMD, dir)
+	if err != nil {
+		return namedServices, unnamedServices, err
+	}
+	for sn, ns := range namedServices {
+		for nsi, nst := range ns {
+			if len(nst.Paths) == 0 {
+				nst.Paths = map[string][]string{
+					artifacts.ProjectPathPathType: {dir},
+				}
+				ns[nsi] = nst
+			}
+		}
+		namedServices[sn] = ns
+	}
+	for unsi, unst := range unnamedServices {
+		if len(unst.Paths) == 0 {
+			unst.Paths = map[string][]string{
+				artifacts.ProjectPathPathType: {dir},
+			}
+		}
+		unnamedServices[unsi] = unst
+	}
+	return namedServices, unnamedServices, err
 }
 
 const (

@@ -46,7 +46,7 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 	}
 
 	rootCmd.PersistentFlags().StringVar(&loglevel, "loglevel", common.InfoLevelStr, "Set logging levels.")
-	rootCmd.AddCommand(GetVersionCommand())
+	rootCmd.AddCommand(getVersionCommand())
 	rootCmd.AddCommand(getCollectCommand())
 	rootCmd.AddCommand(getPlanCommand())
 	rootCmd.AddCommand(getTransformCommand())
