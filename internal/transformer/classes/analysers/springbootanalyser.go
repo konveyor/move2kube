@@ -79,17 +79,24 @@ type SpringbootTemplateConfig struct {
 
 // ConfigurationFromBuildTool defines Configuration properties
 type ConfigurationFromBuildTool struct {
-	BuildTool        string   `yaml:"buildTool,omitempty"` // Maven or Gradle
-	HasModules       bool     `yaml:"hasModules,omitempty"`
-	IsSpringboot     bool     `yaml:"isSpringboot,omitempty"`
+	BuildTool                     string                        `yaml:"buildTool,omitempty"` // Maven or Gradle
+	HasModules                    bool                          `yaml:"hasModules,omitempty"`
+	IsSpringboot                  bool                          `yaml:"isSpringboot,omitempty"`
+	IsTomcatProvided              bool                          `yaml:"isTomcatProvided,omitempty"`
+	Packaging                     string                        `yaml:"packaging,omitempty"`
+	JavaVersion                   string                        `yaml:"javaVersion,omitempty"`
+	TomcatVersion                 string                        `yaml:"tomcatVersion,omitempty"`
+	Name                          string                        `yaml:"name,omitempty"`
+	ArtifactID                    string                        `yaml:"artifactId,omitempty"`
+	Version                       string                        `yaml:"version,omitempty"`
+	FileSuffix                    string                        `yaml:"fileSuffix,omitempty"`
+	Profiles                      []string                      `yaml:"profiles,omitempty"`
+	SpringbootConfigFromBuildTool SpringbootConfigFromBuildTool `yaml:"springbootConfigFromBuildTool,omitempty"`
+}
+
+// SpringbootConfigFromBuildTool defines SpringbootConfigFromBuildTool properties
+type SpringbootConfigFromBuildTool struct {
 	IsTomcatProvided bool     `yaml:"isTomcatProvided,omitempty"`
-	Packaging        string   `yaml:"packaging,omitempty"`
-	JavaVersion      string   `yaml:"javaVersion,omitempty"`
-	TomcatVersion    string   `yaml:"tomcatVersion,omitempty"`
-	Name             string   `yaml:"name,omitempty"`
-	ArtifactID       string   `yaml:"artifactId,omitempty"`
-	Version          string   `yaml:"version,omitempty"`
-	FileSuffix       string   `yaml:"fileSuffix,omitempty"`
 	Profiles         []string `yaml:"profiles,omitempty"`
 }
 
@@ -381,8 +388,8 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 	conf := ConfigurationFromBuildTool{
 		BuildTool:        "maven",
 		HasModules:       hasModules,
-		IsSpringboot:     isSpringboot, //->  struct
-		IsTomcatProvided: isTomcatProvided,
+		IsSpringboot:     isSpringboot,     //->  SpringbootConfigFromBuildTool struct
+		IsTomcatProvided: isTomcatProvided, // x
 		Packaging:        packaging,
 		JavaVersion:      javaVersion,
 		Name:             pom.Name,
@@ -390,7 +397,11 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 		Version:          pom.Version,
 		FileSuffix:       fileSuffix,
 		TomcatVersion:    tomcatVersion,
-		Profiles:         profiles,
+		Profiles:         profiles, // x
+		SpringbootConfigFromBuildTool: SpringbootConfigFromBuildTool{
+			IsTomcatProvided: isTomcatProvided,
+			Profiles:         profiles,
+		},
 	}
 	return conf, nil
 }
