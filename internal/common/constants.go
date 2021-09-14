@@ -18,6 +18,7 @@ package common
 
 import (
 	"os"
+	"regexp"
 
 	"github.com/konveyor/move2kube/types"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -158,4 +159,8 @@ var (
 	DefaultPVCSize, _ = resource.ParseQuantity("100Mi")
 	// IgnoreEnvironment indicates whether to ignore the current environment or not
 	IgnoreEnvironment = false
+	// DefaultIgnoreDirRegexps specifies directory name regexes that would be ignored
+	DefaultIgnoreDirRegexps = []*regexp.Regexp{regexp.MustCompile("[.].*")}
+	// Characters not allowed in a DNS Name
+	disallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
 )
