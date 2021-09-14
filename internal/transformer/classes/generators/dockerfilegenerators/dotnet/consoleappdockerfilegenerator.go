@@ -39,6 +39,7 @@ import (
 const (
 	// AppConfigFilePathListType points to the go.mod file path
 	AppConfigFilePathListType transformertypes.PathType = "AppConfigFilePathList"
+	AppCfgFile                                          = "App.config"
 )
 
 // ConsoleTemplateConfig implements .Net Console config interface
@@ -72,8 +73,8 @@ func (t *WinConsoleAppDockerfileGenerator) BaseDirectoryDetect(dir string) (name
 }
 
 // parseAppConfig parses the application config
-func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(baseDir string) ([]int32, error) {
-	appConfigFile, err := os.Open(filepath.Join(baseDir, "App.config"))
+func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(AppCfgFilePath string) ([]int32, error) {
+	appConfigFile, err := os.Open(AppCfgFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("Could not open the App.config file: %s", err)
 	}
@@ -206,7 +207,11 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (namedSer
 				continue
 			}
 
-			appConfigList = append(appConfigList, filepath.Join(dir, filepath.Dir(csPath)))
+			appCfgFilePath := filepath.Join(dir, filepath.Dir(csPath), AppCfgFile)
+			if _, err = os.Stat(appCfgFilePath); os.IsNotExist(err) {
+				continue
+			}
+			appConfigList = append(appConfigList, appCfgFilePath)
 
 			appName = strings.TrimSuffix(filepath.Base(de.Name()), filepath.Ext(de.Name()))
 		}
