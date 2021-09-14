@@ -40,7 +40,7 @@ const (
 	// AppConfigFilePathListType points to the go.mod file path
 	AppConfigFilePathListType transformertypes.PathType = "AppConfigFilePathList"
 
-	// AppConfigFile is file name of App.Config file in dotnet projects
+	// AppCfgFile is file name of App.Config file in dotnet projects
 	AppCfgFile = "App.config"
 )
 
