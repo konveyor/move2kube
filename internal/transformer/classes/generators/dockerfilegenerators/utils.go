@@ -26,8 +26,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// transform transforms the artifacts
-func transform(tc transformertypes.Transformer, env *environment.Environment, newArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+// Transform transforms the artifacts
+func Transform(tc transformertypes.Transformer, env *environment.Environment, newArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
