@@ -16,19 +16,19 @@
 FROM hugodahl/silverlightbuild:sl5 As build-env
 WORKDIR /app
 COPY . .
-RUN msbuild {{ .appName }}.sln
+RUN msbuild {{ .AppName }}.sln
 RUN mkdir output
-RUN cp {{ .appName }}.Web/*.html output/
-RUN cp {{ .appName }}.Web/*.aspx output/
-RUN cp {{ .appName }}.Web/*.js output/
-RUN cp {{ .appName }}.Web/Web.config output/
-RUN cp -r {{ .appName }}.Web/bin output/
-RUN cp -r {{ .appName }}.Web/ClientBin output/
+RUN cp {{ .AppName }}.Web/*.html output/
+RUN cp {{ .AppName }}.Web/*.aspx output/
+RUN cp {{ .AppName }}.Web/*.js output/
+RUN cp {{ .AppName }}.Web/Web.config output/
+RUN cp -r {{ .AppName }}.Web/bin output/
+RUN cp -r {{ .AppName }}.Web/ClientBin output/
 
 # Run stage
 FROM mcr.microsoft.com/windows/servercore/iis
 RUN powershell -NoProfile -Command Remove-Item -Recurse C:\inetpub\wwwroot\*
-{{- range .ports}}
+{{- range .Ports}}
 EXPOSE {{.}}
 {{- end}}
 WORKDIR /inetpub/wwwroot

@@ -27,6 +27,7 @@ import (
 	"github.com/konveyor/move2kube/internal/transformer/classes/external"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators/dockerfilegenerators"
+	dotnetgen "github.com/konveyor/move2kube/internal/transformer/classes/generators/dockerfilegenerators/dotnet"
 	"github.com/konveyor/move2kube/qaengine"
 	collectiontypes "github.com/konveyor/move2kube/types/collection"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
@@ -80,6 +81,10 @@ func init() {
 		new(dockerfilegenerators.NodejsDockerfileGenerator),
 		new(dockerfilegenerators.GolangDockerfileGenerator),
 		new(dockerfilegenerators.PHPDockerfileGenerator),
+
+		new(dotnetgen.WinConsoleAppDockerfileGenerator),
+		new(dotnetgen.WinSilverLightWebAppDockerfileGenerator),
+		new(dotnetgen.WinWebAppDockerfileGenerator),
 
 		new(external.Starlark),
 		new(external.Executable),

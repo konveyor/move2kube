@@ -13,19 +13,19 @@
 #   limitations under the License.
 
 # Build Stage
-FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .baseImageVersion }} As build-env
+FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As build-env
 WORKDIR /app
 COPY . .
 RUN nuget restore
 
-COPY {{ .appName }}/. ./{{ .appName }}/
-WORKDIR /app/{{ .appName }}
+COPY {{ .AppName }}/. ./{{ .AppName }}/
+WORKDIR /app/{{ .AppName }}
 RUN msbuild /p:Configuration=Release
 
 # Run Stage
 FROM microsoft/aspnet:4.7.2 AS runtime
-{{- range .ports}}
+{{- range .Ports}}
 EXPOSE {{.}}
 {{- end}}
 WORKDIR /inetpub/wwwroot
-COPY --from=build-env /app/{{ .appName }}/. ./
+COPY --from=build-env /app/{{ .AppName }}/. ./

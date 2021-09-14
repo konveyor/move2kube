@@ -39,7 +39,9 @@ import (
 const (
 	// AppConfigFilePathListType points to the go.mod file path
 	AppConfigFilePathListType transformertypes.PathType = "AppConfigFilePathList"
-	AppCfgFile                                          = "App.config"
+
+	// AppConfig file name
+	AppCfgFile = "App.config"
 )
 
 // ConsoleTemplateConfig implements .Net Console config interface

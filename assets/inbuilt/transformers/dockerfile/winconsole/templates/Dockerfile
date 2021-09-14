@@ -13,16 +13,16 @@
 #   limitations under the License.
 
 # Build Stage
-FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .baseImageVersion }} As build-env
+FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As build-env
 WORKDIR /app
 COPY . .
 RUN msbuild /p:Configuration=Release
 
 # Run Stage
-FROM mcr.microsoft.com/dotnet/framework/runtime:{{ .baseImageVersion }}
+FROM mcr.microsoft.com/dotnet/framework/runtime:{{ .BaseImageVersion }}
 {{- range $port := .Ports }}
 EXPOSE {{ $port }}
 {{- end }}
 WORKDIR /app
 COPY --from=build-env /app/bin/Release .
-CMD {{ .appName }}.exe
+CMD {{ .AppName }}.exe
