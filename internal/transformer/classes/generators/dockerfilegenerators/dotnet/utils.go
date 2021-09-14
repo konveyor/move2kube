@@ -86,13 +86,13 @@ func parseSolutionFile(inputPath string) ([]string, error) {
 		projectPaths = append(projectPaths, path[0])
 	}
 
-	if runtime.GOOS != "windows" {
-		sep := fmt.Sprintf("%c", os.PathSeparator)
-		for i, c := range projectPaths {
-			c = strings.Trim(c, "\"")
-			c = strings.ReplaceAll(c, "\\", sep)
-			projectPaths[i] = c
+	separator := fmt.Sprintf("%c", os.PathSeparator)
+	for i, c := range projectPaths {
+		c = strings.Trim(c, `"`)
+		if runtime.GOOS != "windows" {
+			c = strings.ReplaceAll(c, `\`, separator)
 		}
+		projectPaths[i] = c
 	}
 	return projectPaths, nil
 }
