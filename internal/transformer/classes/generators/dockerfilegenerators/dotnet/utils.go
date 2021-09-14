@@ -19,7 +19,9 @@ package dotnet
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/konveyor/move2kube/types/source/dotnet"
@@ -84,11 +86,13 @@ func parseSolutionFile(inputPath string) ([]string, error) {
 		projectPaths = append(projectPaths, path[0])
 	}
 
-	for i, c := range projectPaths {
-		c = strings.Replace(c, "\"", "", -1)
-		c = strings.Replace(c, "\\", "/", -1)
-		projectPaths[i] = c
+	if runtime.GOOS != "windows" {
+		sep := fmt.Sprintf("%c", os.PathSeparator)
+		for i, c := range projectPaths {
+			c = strings.Trim(c, "\"")
+			c = strings.ReplaceAll(c, "\\", sep)
+			projectPaths[i] = c
+		}
 	}
-
 	return projectPaths, nil
 }
