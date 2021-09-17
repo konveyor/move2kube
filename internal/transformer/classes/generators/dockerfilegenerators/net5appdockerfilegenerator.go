@@ -1,0 +1,249 @@
+/*
+ *  Copyright IBM Corporation 2021
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package dockerfilegenerators
+
+import (
+	"encoding/xml"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/types/qaengine/commonqa"
+	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/sirupsen/logrus"
+)
+
+// Net5AppDockerfileGenerator implements the Transformer interface
+type Net5AppDockerfileGenerator struct {
+	Config transformertypes.Transformer
+	Env    *environment.Environment
+}
+
+const (
+	csproj             = ".csproj"
+	dotNETCore5        = "net5.0"
+	launchSettingsJSON = "launchSettings.json"
+	// CsprojFilePathType points to the .csproj file path
+	CsprojFilePathType transformertypes.PathType = "CsprojFilePath"
+)
+
+// Net5TemplateConfig implements Nodejs config interface
+type Net5TemplateConfig struct {
+	Port           int32
+	HTTPPort       int32
+	HTTPSPort      int32
+	AppName        string
+	CsprojFilePath string
+}
+
+//LaunchSettings defines launchSettings.json properties
+type LaunchSettings struct {
+	Profiles map[string]interface{} `json:"profiles"`
+}
+
+//ConfigurationDotNETCore defines .csproj file properties
+type ConfigurationDotNETCore struct {
+	XMLName       xml.Name      `xml:"Project"`
+	Sdk           string        `xml:"Sdk,attr"`
+	PropertyGroup PropertyGroup `xml:"PropertyGroup"`
+}
+
+//PropertyGroup defines properties of PropertyGroup key in .csproj file
+type PropertyGroup struct {
+	XMLName         xml.Name `xml:"PropertyGroup"`
+	Condition       string   `xml:"Condition,attr"`
+	TargetFramework string   `xml:"TargetFramework"`
+}
+
+// Init Initializes the transformer
+func (t *Net5AppDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+	t.Config = tc
+	t.Env = env
+	return nil
+}
+
+// GetConfig returns the transformer config
+func (t *Net5AppDockerfileGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
+	return t.Config, t.Env
+}
+
+// BaseDirectoryDetect runs detect in base directory
+func (t *Net5AppDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+	return nil, nil, nil
+}
+
+// DirectoryDetect runs detect in each sub directory
+func (t *Net5AppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+	dirEntries, err := os.ReadDir(dir)
+	if err != nil {
+		logrus.Errorf("Error while trying to read directory : %s", err)
+		return nil, nil, err
+	}
+	for _, de := range dirEntries {
+		if de.IsDir() {
+			continue
+		}
+		ext := filepath.Ext(de.Name())
+		if ext != csproj {
+			continue
+		}
+		csprojFile := filepath.Join(dir, de.Name())
+		xmlFile, err := os.Open(csprojFile)
+		if err != nil {
+			logrus.Errorf("Could not open the csproj file: %s", err)
+		}
+		defer xmlFile.Close()
+		byteValue, err := ioutil.ReadAll(xmlFile)
+		if err != nil {
+			logrus.Errorf("Could not read the csproj file: %s", err)
+		}
+		configuration := ConfigurationDotNETCore{}
+		err = xml.Unmarshal(byteValue, &configuration)
+		if err != nil {
+			logrus.Errorf("Could not parse the project file %s", err)
+		}
+		serviceName := strings.TrimSuffix(filepath.Base(csprojFile), filepath.Ext(csprojFile))
+		if configuration.PropertyGroup.TargetFramework == dotNETCore5 {
+			namedServices = map[string]transformertypes.ServicePlan{
+				serviceName: []transformertypes.TransformerPlan{{
+					Mode:              t.Config.Spec.Mode,
+					ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+					BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+					Paths: map[string][]string{
+						artifacts.ProjectPathPathType: {dir},
+						CsprojFilePathType:            {csprojFile},
+					},
+				}},
+			}
+			return namedServices, nil, nil
+		}
+	}
+	return nil, nil, nil
+}
+
+// Transform transforms the artifacts
+func (t *Net5AppDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+	pathMappings := []transformertypes.PathMapping{}
+	artifactsCreated := []transformertypes.Artifact{}
+	for _, a := range newArtifacts {
+		if a.Artifact != artifacts.ServiceArtifactType {
+			continue
+		}
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		if err != nil {
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+		}
+		var sConfig artifacts.ServiceConfig
+		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+			continue
+		}
+		sImageName := artifacts.ImageName{}
+		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		if err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+		}
+		var ports []int32
+		var net5Config Net5TemplateConfig
+		net5Config.AppName = a.Name
+		net5Config.CsprojFilePath, err = filepath.Rel(a.Paths[artifacts.ProjectPathPathType][0], a.Paths[CsprojFilePathType][0])
+		if err != nil {
+			logrus.Errorf("Error while getting the relative path of csproj file%s", err)
+		}
+		jsonFiles, err := common.GetFilesByExt(a.Paths[artifacts.ProjectPathPathType][0], []string{".json"})
+		if err != nil {
+			logrus.Errorf("Error while finding json files %s", err)
+		}
+		for _, jsonFile := range jsonFiles {
+			if filepath.Base(jsonFile) == launchSettingsJSON {
+				launchSettings := LaunchSettings{}
+				if err := common.ReadJSON(jsonFile, &launchSettings); err != nil {
+					logrus.Errorf("unable to read the launchSettings.json file: %s", err)
+					continue
+				}
+				if launchSettings.Profiles[net5Config.AppName] != nil {
+					profiles := launchSettings.Profiles[net5Config.AppName].(map[string]interface{})
+					applicationUrls := profiles["applicationUrl"].(string)
+					Urls := strings.Split(applicationUrls, ";")
+					re := regexp.MustCompile("[0-9]+")
+					for _, url := range Urls {
+						re1 := regexp.MustCompile("^https://")
+						if len(re1.FindAllString(url, -1)) != 0 && re1.FindAllString(url, -1)[0] == "https://" {
+							portStr := re.FindAllString(url, 1)[0]
+							port, err := strconv.ParseInt(portStr, 10, 32)
+							if err != nil {
+								logrus.Errorf("Error while converting the port from string to int : %s", err)
+							}
+							net5Config.HTTPSPort = int32(port)
+						}
+						re2 := regexp.MustCompile("^http://")
+						if len(re2.FindAllString(url, -1)) != 0 && re2.FindAllString(url, -1)[0] == "http://" {
+							portStr := re.FindAllString(url, 1)[0]
+							port, err := strconv.ParseInt(portStr, 10, 32)
+							if err != nil {
+								logrus.Errorf("Error while converting the port from string to int : %s", err)
+							}
+							net5Config.HTTPPort = int32(port)
+						}
+					}
+					ports = append(ports, net5Config.HTTPPort)
+				}
+			}
+		}
+		net5Config.Port = commonqa.GetPortForService(ports, a.Name)
+		if sImageName.ImageName == "" {
+			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
+		}
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:     transformertypes.SourcePathMappingType,
+			DestPath: common.DefaultSourceDir,
+		}, transformertypes.PathMapping{
+			Type:           transformertypes.TemplatePathMappingType,
+			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
+			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
+			TemplateConfig: net5Config,
+		})
+		paths := a.Paths
+		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile")}
+		p := transformertypes.Artifact{
+			Name:     sImageName.ImageName,
+			Artifact: artifacts.DockerfileArtifactType,
+			Paths:    paths,
+			Configs: map[string]interface{}{
+				artifacts.ImageNameConfigType: sImageName,
+			},
+		}
+		dfs := transformertypes.Artifact{
+			Name:     sConfig.ServiceName,
+			Artifact: artifacts.DockerfileForServiceArtifactType,
+			Paths:    a.Paths,
+			Configs: map[string]interface{}{
+				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ServiceConfigType:   sConfig,
+			},
+		}
+		artifactsCreated = append(artifactsCreated, p, dfs)
+	}
+	return pathMappings, artifactsCreated, nil
+}

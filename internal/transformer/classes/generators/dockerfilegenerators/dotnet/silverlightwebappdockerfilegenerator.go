@@ -102,7 +102,7 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (n
 			if configuration.PropertyGroup == nil ||
 				configuration.PropertyGroup.TargetFrameworkVersion == "" ||
 				!dotnet.FourXPattern.MatchString(configuration.PropertyGroup.TargetFrameworkVersion) {
-				logrus.Errorf("Not a supported dotnet framework [%s]", configuration.PropertyGroup.TargetFrameworkVersion)
+				logrus.Debugf("Not a supported dotnet framework [%s]", configuration.PropertyGroup.TargetFrameworkVersion)
 				continue
 			}
 

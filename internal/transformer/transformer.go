@@ -81,6 +81,7 @@ func init() {
 		new(dockerfilegenerators.NodejsDockerfileGenerator),
 		new(dockerfilegenerators.GolangDockerfileGenerator),
 		new(dockerfilegenerators.PHPDockerfileGenerator),
+		new(dockerfilegenerators.Net5AppDockerfileGenerator),
 
 		new(dotnetgen.WinConsoleAppDockerfileGenerator),
 		new(dotnetgen.WinSilverLightWebAppDockerfileGenerator),
