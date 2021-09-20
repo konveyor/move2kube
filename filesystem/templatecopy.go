@@ -18,10 +18,10 @@ package filesystem
 
 import (
 	"bytes"
-	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"text/template"
 
 	"github.com/sirupsen/logrus"
 )
