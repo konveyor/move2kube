@@ -22,7 +22,7 @@ type ServicePlan []TransformerPlan
 // TransformerPlan stores transformer option
 type TransformerPlan struct {
 	Mode              Mode                       `yaml:"mode" json:"mode"` // container, customresource, service, generic
-	Name              string                     `yaml:"transformerName" json:"transformerName"`
+	TransformerName   string                     `yaml:"transformerName" json:"transformerName"`
 	ArtifactTypes     []ArtifactType             `yaml:"generates,omitempty" json:"generates,omitempty"`
 	BaseArtifactTypes []ArtifactType             `yaml:"generatedBases,omitempty" json:"generatedBases,omitempty"`
 	Paths             map[PathType][]string      `yaml:"paths,omitempty" json:"paths,omitempty" m2kpath:"normal"`

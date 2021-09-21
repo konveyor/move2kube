@@ -67,6 +67,11 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 		}
 		// Skip directories
 		if info.IsDir() {
+			for _, dirRegExp := range DefaultIgnoreDirRegexps {
+				if dirRegExp.Match([]byte(filepath.Base(path))) {
+					return filepath.SkipDir
+				}
+			}
 			return nil
 		}
 		fext := filepath.Ext(path)
@@ -105,6 +110,11 @@ func GetFilesByName(inputPath string, names []string) ([]string, error) {
 		}
 		// Skip directories
 		if info.IsDir() {
+			for _, dirRegExp := range DefaultIgnoreDirRegexps {
+				if dirRegExp.Match([]byte(filepath.Base(path))) {
+					return filepath.SkipDir
+				}
+			}
 			return nil
 		}
 		fname := filepath.Base(path)
@@ -224,7 +234,7 @@ func ReadMove2KubeYaml(path string, out interface{}) error {
 	}
 	yamlMap := map[string]interface{}{}
 	if err := yaml.Unmarshal([]byte(yamlData), yamlMap); err != nil {
-		logrus.Errorf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
+		logrus.Debugf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
 		return err
 	}
 	groupVersionI, ok := yamlMap["apiVersion"]
@@ -373,8 +383,7 @@ func NormalizeForFilename(name string) string {
 
 // NormalizeForServiceName converts the string to be compatible for service name
 func NormalizeForServiceName(svcName string) string {
-	re := regexp.MustCompile("[._]")
-	newName := strings.ToLower(re.ReplaceAllLiteralString(svcName, "-"))
+	newName := disallowedDNSCharactersRegex.ReplaceAllLiteralString(strings.ToLower(svcName), "-")
 	if newName != svcName {
 		logrus.Infof("Changing service name to %s from %s", svcName, newName)
 	}

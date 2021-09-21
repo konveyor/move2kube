@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
@@ -64,6 +65,11 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[
 		}
 		// Skip directories
 		if info.IsDir() {
+			for _, dirRegExp := range common.DefaultIgnoreDirRegexps {
+				if dirRegExp.Match([]byte(filepath.Base(path))) {
+					return filepath.SkipDir
+				}
+			}
 			return nil
 		}
 		if isdf, _ := isDockerFile(path); isdf {
@@ -152,7 +158,7 @@ func isDockerFile(path string) (isDockerfile bool, err error) {
 		return false, err
 	}
 	for _, dfchild := range res.AST.Children {
-		if dfchild.Value == "from" {
+		if strings.EqualFold(dfchild.Value, "FROM") {
 			r := regexp.MustCompile(`(?i)FROM\s+(--platform=[^\s]+)?[^\s]+(\s+AS\s+[^\s]+)?\s*(#.+)?$`)
 			if r.MatchString(dfchild.Original) {
 				logrus.Debugf("Identified a docker file : " + path)
@@ -160,7 +166,7 @@ func isDockerFile(path string) (isDockerfile bool, err error) {
 			}
 			return false, nil
 		}
-		if dfchild.Value == "arg" {
+		if strings.EqualFold(dfchild.Value, "ARG") {
 			continue
 		}
 		return false, fmt.Errorf("%s is not a valid Dockerfile", path)

@@ -158,7 +158,7 @@ func (c *V3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		serviceContainer.Command = composeServiceConfig.Entrypoint
 		serviceContainer.Args = composeServiceConfig.Command
 		serviceContainer.Stdin = composeServiceConfig.StdinOpen
-		serviceContainer.Name = strings.ToLower(composeServiceConfig.ContainerName)
+		serviceContainer.Name = common.NormalizeForServiceName(composeServiceConfig.ContainerName)
 		if serviceContainer.Name == "" {
 			serviceContainer.Name = strings.ToLower(serviceConfig.Name)
 		}

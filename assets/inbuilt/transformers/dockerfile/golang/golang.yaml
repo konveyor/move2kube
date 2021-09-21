@@ -6,4 +6,4 @@ spec:
   mode: "Container"
   class: "GolangDockerfileGenerator"
   config:
-    defaultGoVersion: "1.16"
+    defaultGoVersion: "1.17"

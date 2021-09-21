@@ -434,7 +434,7 @@ func (t *Starlark) getStarlarkFSReadDir() *starlark.Builtin {
 		if err != nil {
 			return nil, err
 		}
-		var result []string
+		var result []interface{}
 		for _, fileInfo := range fileInfos {
 			result = append(result, fileInfo.Name())
 		}
