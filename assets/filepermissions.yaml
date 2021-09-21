@@ -110,4 +110,8 @@
 "inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.springboot-embedded" : 0644
 "inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.springboot-open-liberty-runtime" : 0644
 "inbuilt/transformers/springboot/java-springboot/templates/Dockerfile.springboot-wildfly-jboss-runtime" : 0644
+"inbuilt/transformers/springboot/java-springboot-runtime/java-springboot-runtime.yaml" : 0644
+"inbuilt/transformers/springboot/java-springboot-runtime/templates/Dockerfile.springboot-embedded" : 0644
+"inbuilt/transformers/springboot/java-springboot-runtime/templates/Dockerfile.springboot-open-liberty-runtime" : 0644
+"inbuilt/transformers/springboot/java-springboot-runtime/templates/Dockerfile.springboot-wildfly-jboss-runtime" : 0644
 "inbuilt/transformers/springboot/zuul/zuulanalyser.yaml" : 0644

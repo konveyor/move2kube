@@ -62,6 +62,7 @@ func init() {
 		new(analysers.CloudFoundry),
 		new(analysers.DockerfileDetector),
 		new(analysers.SpringbootAnalyser),
+		new(analysers.SpringbootRuntimeAnalyser),
 		new(analysers.ZuulAnalyser),
 		new(analysers.EurekaReplaceEngine),
 		new(analysers.DockerfileParser),

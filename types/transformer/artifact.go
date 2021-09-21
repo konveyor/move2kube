@@ -23,6 +23,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// BuildType is used to store the artifact type
+type BuildType = string
+
+// RuntimeType is used to store the artifact type
+type RuntimeType = string
+
 // ArtifactType is used to store the artifact type
 type ArtifactType = string
 

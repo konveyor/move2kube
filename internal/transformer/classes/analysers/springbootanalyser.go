@@ -73,8 +73,11 @@ type SpringbootTemplateConfig struct {
 	Port            int    `yaml:"port,omitempty"`
 	JavaPackageName string `yaml:"javaPackageName,omitempty"`
 	AppServerImage  string `yaml:"appServerImage,omitempty"`
+	AppServer       string `yaml:"appServer,omitempty"`
 	AppFile         string `yaml:"appFile,omitempty"`
 	DeploymentFile  string `yaml:"deploymentFile,omitempty"`
+	BuildPath       string `yaml:"buildPath,omitempty"`
+	BuildOutputPath string `yaml:"buildOutputPath,omitempty"`
 }
 
 // ConfigurationFromBuildTool defines Configuration properties
@@ -837,20 +840,23 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		}
 
 		// Runtime
-		runtimeSegment := "Dockerfile.springboot-embedded" // default
-		if sConfig.ApplicationServer == "jboss/wildfly" {
-			runtimeSegment = "Dockerfile.springboot-wildfly-jboss-runtime"
-		} else if sConfig.ApplicationServer == "openliberty/open-liberty" {
-			runtimeSegment = "Dockerfile.springboot-open-liberty-runtime"
-		}
+		// Pablo: we will split this part.
+		//runtimeSegment := "Dockerfile.springboot-embedded" // default
+		//if sConfig.ApplicationServer == "jboss/wildfly" {
+		//	runtimeSegment = "Dockerfile.springboot-wildfly-jboss-runtime"
+		//} else if sConfig.ApplicationServer == "openliberty/open-liberty" {
+		//	runtimeSegment = "Dockerfile.springboot-open-liberty-runtime"
+		//}
 
-		strRuntime, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, runtimeSegment))
-		if err != nil {
-			return nil, nil, err
-		}
+		//strRuntime, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, runtimeSegment))
+		//if err != nil {
+		//	return nil, nil, err
+		//}
 
 		var outputPath = filepath.Join(t.Env.TempPath, "Dockerfile.template")
-		template := string(strLicense) + "\n" + string(strBuild) + "\n" + string(strRuntime)
+		//template := string(strLicense) + "\n" + string(strBuild) + "\n" + string(strRuntime)
+		// Pablo: Just condider license and build
+		template := string(strLicense) + "\n" + string(strBuild)
 		err = ioutil.WriteFile(outputPath, []byte(template), 0644)
 		if err != nil {
 			logrus.Errorf("Could not write the single generated Dockerfile template: %s", err)
@@ -879,30 +885,84 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 			DestPath: common.DefaultSourceDir,
 		})
 
-		p := transformertypes.Artifact{
-			Name:     sImageName.ImageName,
-			Artifact: artifacts.DockerfileArtifactType,
+		/*
+			// not using it
+			p := transformertypes.Artifact{
+				Name:     sImageName.ImageName,
+				Artifact: artifacts.DockerfileArtifactType,
+				Paths: map[string][]string{
+					artifacts.ProjectPathPathType: {filepath.Dir(dfp)},
+					artifacts.DockerfilePathType:  {dfp},
+				},
+				Configs: map[string]interface{}{
+					artifacts.ImageNameConfigType: sImageName,
+				},
+			}
+
+
+			// not using it
+			dfs := transformertypes.Artifact{
+				Name:     sConfig.ServiceName,
+				Artifact: artifacts.DockerfileForServiceArtifactType,
+				Paths: map[string][]string{
+					artifacts.ProjectPathPathType: {filepath.Dir(dfp)},
+					artifacts.DockerfilePathType:  {dfp},
+				},
+				Configs: map[string]interface{}{
+					artifacts.ImageNameConfigType: sImageName,
+					artifacts.ServiceConfigType:   sConfig,
+				},
+			}
+		*/
+
+		//new
+		buildArtifact := transformertypes.Artifact{
+			Name:     sImageName.ImageName + "-build",
+			Artifact: artifacts.BuildType,
+			//In here we store the current path of the current Dockerfile template
 			Paths: map[string][]string{
 				artifacts.ProjectPathPathType: {filepath.Dir(dfp)},
 				artifacts.DockerfilePathType:  {dfp},
 			},
 			Configs: map[string]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
+				"targetAppData": SpringbootTemplateConfig{
+					JavaPackageName: sConfig.JavaPackageName,
+					AppServerImage:  sConfig.ApplicationServerImage,
+					Port:            port,
+					AppFile:         sConfig.AppFile,
+					DeploymentFile:  sConfig.DeploymentFile,
+					AppServer:       sConfig.ApplicationServer,
+					BuildPath:       dfp,
+					BuildOutputPath: outputPath,
+				},
 			},
 		}
-		dfs := transformertypes.Artifact{
-			Name:     sConfig.ServiceName,
-			Artifact: artifacts.DockerfileForServiceArtifactType,
-			Paths: map[string][]string{
-				artifacts.ProjectPathPathType: {filepath.Dir(dfp)},
-				artifacts.DockerfilePathType:  {dfp},
-			},
-			Configs: map[string]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
-				artifacts.ServiceConfigType:   sConfig,
-			},
-		}
-		createdArtifacts = append(createdArtifacts, p, dfs)
+		// new
+		/*
+			runtimeDataArtifact := transformertypes.Artifact{
+				Name:     sImageName.ImageName + "-runtime",
+				Artifact: artifacts.RuntimeType,
+				//In here we store the current path of the current Dockerfile template
+
+				Configs: map[string]interface{}{
+					"targetAppData": SpringbootTemplateConfig{
+						JavaPackageName: sConfig.JavaPackageName,
+						AppServerImage:  sConfig.ApplicationServerImage,
+						Port:            port,
+						AppFile:         sConfig.AppFile,
+						DeploymentFile:  sConfig.DeploymentFile,
+					},
+				},
+			}
+		*/
+
+		//createdArtifacts = append(createdArtifacts, p, dfs) // original
+		createdArtifacts = append(createdArtifacts, buildArtifact)
+
 	}
+
 	return pathMappings, createdArtifacts, nil
+
+	// changes:
+	// - just artifacts: jar/war/ + params to run it
 }
