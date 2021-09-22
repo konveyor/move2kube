@@ -164,3 +164,6 @@ var (
 	// Characters not allowed in a DNS Name
 	disallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
 )
+
+// PlanProgressNumFiles keeps track of the number of files/folders analyzed during planning
+var PlanProgressNumFiles = 0

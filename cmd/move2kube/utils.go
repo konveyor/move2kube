@@ -17,13 +17,17 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 // checkSourcePath checks if the source path is an existing directory.
@@ -114,4 +118,25 @@ func startQA(flags qaflags) {
 	if err := qaengine.WriteStoresToDisk(); err != nil {
 		logrus.Warnf("Failed to write the stores to disk. Error: %q", err)
 	}
+}
+
+func startPlanProgressServer(port int) http.Server {
+	logrus.Trace("startPlanProgressServer start")
+	var server http.Server
+	r := mux.NewRouter()
+	r.HandleFunc("/progress", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{"files": common.PlanProgressNumFiles})
+	}).Methods("GET")
+	server.Handler = r
+	server.Addr = ":" + cast.ToString(port)
+	go func() {
+		logrus.Debugf("listening on port %d", port)
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			logrus.Errorf("failed to shutdown the plan progress server gracefully. Error: %q", err)
+		}
+	}()
+	logrus.Trace("startPlanProgressServer end")
+	return server
 }
