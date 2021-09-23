@@ -27,7 +27,7 @@ import (
 )
 
 func main() {
-	loglevel := common.InfoLevelStr
+	loglevel := logrus.InfoLevel.String()
 
 	// RootCmd root level flags and commands
 	rootCmd := &cobra.Command{
@@ -40,27 +40,31 @@ Even if the app does not use any of the above, or even if it is not containerize
 For more documentation and support, visit https://move2kube.konveyor.io/
 `,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
-			logrus.SetLevel(common.GetLogLevel(loglevel))
+			logl, err := logrus.ParseLevel(loglevel)
+			if err != nil {
+				logrus.Errorf("the log level '%s' is invalid, using 'info' log level instead. Error: %q", loglevel, err)
+				logl = logrus.InfoLevel
+			}
+			logrus.SetLevel(logl)
 			return nil
 		},
 	}
 
-	rootCmd.PersistentFlags().StringVar(&loglevel, "loglevel", common.InfoLevelStr, "Set logging levels.")
+	rootCmd.PersistentFlags().StringVar(&loglevel, "log-level", logrus.InfoLevel.String(), "Set logging levels.")
 	rootCmd.AddCommand(getVersionCommand())
 	rootCmd.AddCommand(getCollectCommand())
 	rootCmd.AddCommand(getPlanCommand())
 	rootCmd.AddCommand(getTransformCommand())
-	rootCmd.AddCommand(getValidateCommand())
 	rootCmd.AddCommand(getParameterizeCommand())
 
 	assetsFilePermissions := map[string]int{}
 	err := yaml.Unmarshal([]byte(assets.AssetFilePermissions), &assetsFilePermissions)
 	if err != nil {
-		logrus.Fatalf("Unable to convert permissions : %s", err)
+		logrus.Fatalf("unable to convert permissions. Error: %q", err)
 	}
 	assetsPath, tempPath, err := common.CreateAssetsData(assets.AssetsDir, assetsFilePermissions)
 	if err != nil {
-		logrus.Fatalf("Unable to create the assets directory. Error: %q", err)
+		logrus.Fatalf("unable to create the assets directory. Error: %q", err)
 	}
 	common.TempPath = tempPath
 	common.AssetsPath = assetsPath

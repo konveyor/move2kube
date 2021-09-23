@@ -33,6 +33,7 @@ import (
 )
 
 type planFlags struct {
+	progressServerPort int
 	planfile           string
 	srcpath            string
 	name               string
@@ -93,6 +94,9 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	}
 	qaengine.StartEngine(true, 0, true)
 	qaengine.SetupConfigFile("", flags.setconfigs, flags.configs, flags.preSets)
+	if flags.progressServerPort != 0 {
+		startPlanProgressServer(flags.progressServerPort)
+	}
 	p := lib.CreatePlan(ctx, srcpath, "", customizationsPath, name)
 	if err = plantypes.WritePlan(planfile, p); err != nil {
 		logrus.Errorf("Unable to write plan file (%s) : %s", planfile, err)
@@ -125,7 +129,10 @@ func getPlanCommand() *cobra.Command {
 	planCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use")
 	planCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs")
 
+	planCmd.Flags().IntVar(&flags.progressServerPort, planProgressPortFlag, 0, "Port for the plan progress server. If not provided, the server won't be started.")
+
 	must(planCmd.MarkFlagRequired(sourceFlag))
+	must(planCmd.Flags().MarkHidden(planProgressPortFlag))
 
 	return planCmd
 }
