@@ -18,12 +18,10 @@ package main
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/lib"
@@ -96,22 +94,13 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	}
 	qaengine.StartEngine(true, 0, true)
 	qaengine.SetupConfigFile("", flags.setconfigs, flags.configs, flags.preSets)
-	var server *http.Server
 	if flags.progressServerPort != 0 {
-		s := startPlanProgressServer(flags.progressServerPort)
-		server = &s
+		startPlanProgressServer(flags.progressServerPort)
 	}
 	p := lib.CreatePlan(ctx, srcpath, "", customizationsPath, name)
 	if err = plantypes.WritePlan(planfile, p); err != nil {
 		logrus.Errorf("Unable to write plan file (%s) : %s", planfile, err)
 		return
-	}
-	if server != nil {
-		c, cancel := context.WithTimeout(ctx, 2*time.Second)
-		defer cancel()
-		if err := server.Shutdown(c); err != nil {
-			logrus.Errorf("failed to stop the plan progres server. Error: %q", err)
-		}
 	}
 	logrus.Infof("Plan can be found at [%s].", planfile)
 }
@@ -140,10 +129,10 @@ func getPlanCommand() *cobra.Command {
 	planCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use")
 	planCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs")
 
-	planCmd.Flags().IntVar(&flags.progressServerPort, "plan_progress_port", 0, "Port for the plan progress server. If not provided, the server won't be started.")
+	planCmd.Flags().IntVar(&flags.progressServerPort, planProgressPortFlag, 0, "Port for the plan progress server. If not provided, the server won't be started.")
 
 	must(planCmd.MarkFlagRequired(sourceFlag))
-	must(planCmd.Flags().MarkHidden("plan_progress_port"))
+	must(planCmd.Flags().MarkHidden(planProgressPortFlag))
 
 	return planCmd
 }

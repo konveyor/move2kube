@@ -224,6 +224,7 @@ func GetServices(prjName string, dir string) (services map[string]transformertyp
 			if len(nservices) > 0 || len(nunservices) > 0 {
 				logrus.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
 			}
+			common.PlanProgressNumBaseDetectTransformers++
 			logrus.Infof("[%s] Done", tn)
 		}
 	}
@@ -329,7 +330,6 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 	knownProjectPaths := []string{}
 
 	err = filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
-		common.PlanProgressNumFiles++
 		if err != nil {
 			logrus.Warnf("Skipping path %q due to error. Error: %q", path, err)
 			return nil
@@ -351,6 +351,7 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 			}
 			return nil
 		}
+		common.PlanProgressNumDirectories++
 		logrus.Debugf("Planning dir transformation - %s", path)
 		found := false
 		for _, t := range transformers {

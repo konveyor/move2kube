@@ -165,5 +165,8 @@ var (
 	disallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
 )
 
-// PlanProgressNumFiles keeps track of the number of files/folders analyzed during planning
-var PlanProgressNumFiles = 0
+// PlanProgressNumBaseDetectTransformers keeps track of the number of transformers that finished base directory detect during planning
+var PlanProgressNumBaseDetectTransformers = 0
+
+// PlanProgressNumDirectories keeps track of the number of files/folders analyzed during planning
+var PlanProgressNumDirectories = 0

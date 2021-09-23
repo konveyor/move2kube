@@ -120,14 +120,14 @@ func startQA(flags qaflags) {
 	}
 }
 
-func startPlanProgressServer(port int) http.Server {
+func startPlanProgressServer(port int) {
 	logrus.Trace("startPlanProgressServer start")
 	var server http.Server
 	r := mux.NewRouter()
 	r.HandleFunc("/progress", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{"files": common.PlanProgressNumFiles})
+		json.NewEncoder(w).Encode(map[string]interface{}{"files": common.PlanProgressNumDirectories, "transformers": common.PlanProgressNumBaseDetectTransformers})
 	}).Methods("GET")
 	server.Handler = r
 	server.Addr = ":" + cast.ToString(port)
@@ -138,5 +138,4 @@ func startPlanProgressServer(port int) http.Server {
 		}
 	}()
 	logrus.Trace("startPlanProgressServer end")
-	return server
 }

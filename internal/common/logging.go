@@ -18,37 +18,9 @@ package common
 
 import (
 	"context"
-	"strings"
 
 	"github.com/sirupsen/logrus"
 )
-
-const (
-	// InfoLevelStr stores the info loggin level in string
-	InfoLevelStr = "info"
-)
-
-// GetLogLevel converts from string logging level to logrus logging level
-func GetLogLevel(loglevel string) logrus.Level {
-	switch strings.ToLower(loglevel) {
-	case "trace":
-		return logrus.TraceLevel
-	case "debug", "verbose":
-		return logrus.DebugLevel
-	case InfoLevelStr:
-		return logrus.InfoLevel
-	case "warn":
-		return logrus.WarnLevel
-	case "error":
-		return logrus.ErrorLevel
-	case "fatal":
-		return logrus.FatalLevel
-	case "panic":
-		return logrus.PanicLevel
-	default:
-		return logrus.InfoLevel
-	}
-}
 
 // CleanupHook calls the cleanup functions on fatal and panic errors
 type CleanupHook struct {
