@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM mcr.microsoft.com/dotnet/sdk:5.0 AS buildImg
+FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build_base
 WORKDIR /src
 COPY . .
 RUN mkdir app
@@ -21,9 +21,9 @@ RUN dotnet build {{ .CsprojFilePath }} -c Release -o /src/app
 RUN dotnet publish {{ .CsprojFilePath }} -c Release -o /src/app
 
 # Run Stage
-FROM mcr.microsoft.com/dotnet/aspnet:5.0 AS runImg
+FROM mcr.microsoft.com/dotnet/aspnet:5.0
 WORKDIR /app
 EXPOSE {{ .Port }}
 ENV ASPNETCORE_URLS=http://+:{{ .Port }}
-COPY --from=buildImg /src/app .
+COPY --from=build_base /src/app .
 ENTRYPOINT ["dotnet", "{{ .AppName }}.dll"]
