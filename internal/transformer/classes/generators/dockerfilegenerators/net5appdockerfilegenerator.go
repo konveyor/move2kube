@@ -28,6 +28,7 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
+	"github.com/konveyor/move2kube/types/source/dotnet"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -47,6 +48,10 @@ const (
 	CsprojFilePathType transformertypes.PathType = "CsprojFilePath"
 )
 
+var (
+	portRegex = regexp.MustCompile(`[0-9]+`)
+)
+
 // Net5TemplateConfig implements Nodejs config interface
 type Net5TemplateConfig struct {
 	Port           int32
@@ -58,21 +63,16 @@ type Net5TemplateConfig struct {
 
 //LaunchSettings defines launchSettings.json properties
 type LaunchSettings struct {
-	Profiles map[string]interface{} `json:"profiles"`
+	Profiles map[string]LaunchProfile `json:"profiles"`
 }
 
-//ConfigurationDotNETCore defines .csproj file properties
-type ConfigurationDotNETCore struct {
-	XMLName       xml.Name      `xml:"Project"`
-	Sdk           string        `xml:"Sdk,attr"`
-	PropertyGroup PropertyGroup `xml:"PropertyGroup"`
-}
-
-//PropertyGroup defines properties of PropertyGroup key in .csproj file
-type PropertyGroup struct {
-	XMLName         xml.Name `xml:"PropertyGroup"`
-	Condition       string   `xml:"Condition,attr"`
-	TargetFramework string   `xml:"TargetFramework"`
+//LaunchProfile implements launch profile properties
+type LaunchProfile struct {
+	CommandName          string            `json:"CommandName"`
+	DotnetRunMessages    string            `json:"dotnetRunMessages"`
+	LaunchBrowser        bool              `json:"launchBrowser"`
+	ApplicationURL       string            `json:"applicationUrl"`
+	EnvironmentVariables map[string]string `json:"environmentVariables"`
 }
 
 // Init Initializes the transformer
@@ -117,7 +117,7 @@ func (t *Net5AppDockerfileGenerator) DirectoryDetect(dir string) (namedServices 
 		if err != nil {
 			logrus.Errorf("Could not read the csproj file: %s", err)
 		}
-		configuration := ConfigurationDotNETCore{}
+		configuration := dotnet.CSProj{}
 		err = xml.Unmarshal(byteValue, &configuration)
 		if err != nil {
 			logrus.Errorf("Could not parse the project file %s", err)
@@ -182,28 +182,16 @@ func (t *Net5AppDockerfileGenerator) Transform(newArtifacts []transformertypes.A
 					logrus.Errorf("unable to read the launchSettings.json file: %s", err)
 					continue
 				}
-				if launchSettings.Profiles[net5Config.AppName] != nil {
-					profiles := launchSettings.Profiles[net5Config.AppName].(map[string]interface{})
-					applicationUrls := profiles["applicationUrl"].(string)
-					Urls := strings.Split(applicationUrls, ";")
-					re := regexp.MustCompile("[0-9]+")
+				if launchSettings.Profiles[net5Config.AppName].ApplicationURL != "" {
+					Urls := strings.Split(launchSettings.Profiles[net5Config.AppName].ApplicationURL, ";")
 					for _, url := range Urls {
-						re1 := regexp.MustCompile("^https://")
-						if len(re1.FindAllString(url, -1)) != 0 && re1.FindAllString(url, -1)[0] == "https://" {
-							portStr := re.FindAllString(url, 1)[0]
-							port, err := strconv.ParseInt(portStr, 10, 32)
-							if err != nil {
-								logrus.Errorf("Error while converting the port from string to int : %s", err)
-							}
+						portStr := portRegex.FindAllString(url, 1)[0]
+						port, err := strconv.ParseInt(portStr, 10, 32)
+						if err != nil {
+							logrus.Errorf("Error while converting the port from string to int : %s", err)
+						} else if strings.HasPrefix(url, "https://") {
 							net5Config.HTTPSPort = int32(port)
-						}
-						re2 := regexp.MustCompile("^http://")
-						if len(re2.FindAllString(url, -1)) != 0 && re2.FindAllString(url, -1)[0] == "http://" {
-							portStr := re.FindAllString(url, 1)[0]
-							port, err := strconv.ParseInt(portStr, 10, 32)
-							if err != nil {
-								logrus.Errorf("Error while converting the port from string to int : %s", err)
-							}
+						} else if strings.HasPrefix(url, "http://") {
 							net5Config.HTTPPort = int32(port)
 						}
 					}

@@ -91,7 +91,7 @@ func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
 			detectedPortsStr = append(detectedPortsStr, strconv.Itoa(int(detectedPort)))
 		}
 		allDetectedPortsStr := append(detectedPortsStr, qatypes.OtherAnswer)
-		selectedPortsStr = qaengine.FetchMultiSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortsForServiceKeySegment, "Select ports to be exposed :", []string{"Select Other if you want to add more ports"}, detectedPortsStr, allDetectedPortsStr)
+		selectedPortsStr = qaengine.FetchMultiSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortsForServiceKeySegment, fmt.Sprintf("Select ports to be exposed for the service %s :", serviceName), []string{"Select Other if you want to add more ports"}, detectedPortsStr, allDetectedPortsStr)
 	}
 	if len(selectedPortsStr) == 0 || common.IsStringPresent(selectedPortsStr, qatypes.OtherAnswer) {
 		enteredPorts = qaengine.FetchMultilineAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigAdditionalPortsForServiceKeySegment, "Enter the ports to be exposed", []string{"Enter each port in a newline"}, "")
