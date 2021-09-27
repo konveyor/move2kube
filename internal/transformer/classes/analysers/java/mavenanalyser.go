@@ -14,14 +14,11 @@
  *  limitations under the License.
  */
 
-package analysers
+package java
 
 import (
-	"encoding/xml"
 	"io/ioutil"
-	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/konveyor/move2kube/environment"
@@ -35,313 +32,79 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const pomXML string = "pom.xml"
-const buildGradle string = "build.gradle"
-const settingsGradle string = "settings.gradle"
-
 const (
-	springbootServiceConfigType transformertypes.ConfigType = "SpringbootService"
+	mavenPomXML transformertypes.PathType = "MavenPomXML"
 )
 
-const (
-	mavenPomXML         transformertypes.PathType = "MavenPomXML"
-	applicationFilePath transformertypes.PathType = "SpringbootApplicationFile"
-)
-
-// SpringbootAnalyser implements Transformer interface
-type SpringbootAnalyser struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+// MavenAnalyser implements Transformer interface
+type MavenAnalyser struct {
+	Config      transformertypes.Transformer
+	Env         *environment.Environment
+	MavenConfig *MavenYamlConfig
 }
 
-// SpringbootConfig defines SpringbootConfig properties
-type SpringbootConfig struct {
-	ServiceName            string   `yaml:"serviceName,omitempty"`
-	Ports                  []int    `yaml:"ports,omitempty"`
-	JavaVersion            string   `yaml:"javaVersion,omitempty"`
-	ApplicationServer      string   `yaml:"applicationServer,omitempty"`
-	ApplicationServerImage string   `yaml:"applicationServerImage,omitempty"`
-	JavaPackageName        string   `yaml:"javaPackageName,omitempty"`
-	AppFile                string   `yaml:"appFile,omitempty"`
-	DeploymentFile         string   `yaml:"deploymentFile,omitempty"`
-	BuildTool              string   `yaml:"buildTool,omitempty"`
-	Profiles               []string `yaml:"profiles,omitempty"`
-}
-
-// SpringbootTemplateConfig defines SpringbootTemplateConfig properties
-type SpringbootTemplateConfig struct {
-	Port            int    `yaml:"port,omitempty"`
-	JavaPackageName string `yaml:"javaPackageName,omitempty"`
-	AppServerImage  string `yaml:"appServerImage,omitempty"`
-	AppServer       string `yaml:"appServer,omitempty"`
-	AppFile         string `yaml:"appFile,omitempty"`
-	DeploymentFile  string `yaml:"deploymentFile,omitempty"`
-	BuildPath       string `yaml:"buildPath,omitempty"`
-	BuildOutputPath string `yaml:"buildOutputPath,omitempty"`
-}
-
-// ConfigurationFromBuildTool defines Configuration properties
-type ConfigurationFromBuildTool struct {
-	BuildTool                     string                        `yaml:"buildTool,omitempty"` // Maven or Gradle
-	HasModules                    bool                          `yaml:"hasModules,omitempty"`
-	IsSpringboot                  bool                          `yaml:"isSpringboot,omitempty"`
-	IsTomcatProvided              bool                          `yaml:"isTomcatProvided,omitempty"`
-	Packaging                     string                        `yaml:"packaging,omitempty"`
-	JavaVersion                   string                        `yaml:"javaVersion,omitempty"`
-	TomcatVersion                 string                        `yaml:"tomcatVersion,omitempty"`
-	Name                          string                        `yaml:"name,omitempty"`
-	ArtifactID                    string                        `yaml:"artifactId,omitempty"`
-	Version                       string                        `yaml:"version,omitempty"`
-	FileSuffix                    string                        `yaml:"fileSuffix,omitempty"`
-	Profiles                      []string                      `yaml:"profiles,omitempty"`
-	SpringbootConfigFromBuildTool SpringbootConfigFromBuildTool `yaml:"springbootConfigFromBuildTool,omitempty"`
-}
-
-// SpringbootConfigFromBuildTool defines SpringbootConfigFromBuildTool properties
-type SpringbootConfigFromBuildTool struct {
-	IsTomcatProvided bool     `yaml:"isTomcatProvided,omitempty"`
-	Profiles         []string `yaml:"profiles,omitempty"`
+type MavenYamlConfig struct {
+	MavenVersion string `yaml:"defaultMavenVersion"`
 }
 
 // Init Initializes the transformer
-func (t *SpringbootAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *MavenAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
+	t.MavenConfig = &MavenYamlConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.MavenConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.MavenConfig, err)
+		return err
+	}
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *SpringbootAnalyser) GetConfig() (transformertypes.Transformer, *environment.Environment) {
+func (t *MavenAnalyser) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *SpringbootAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *MavenAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
-// getFileLines gets the lines from a file as a list of strings
-func getFileLines(filePath string) ([]string, error) {
-
-	// Implementation using ioutil.ReadFile
-	fileContent, err := ioutil.ReadFile(filePath)
+// DirectoryDetect runs detect in each sub directory
+func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+	mavenFilePath, err := common.GetFileNameInCurrentDirectory(dir, maven.PomXMLFileName, false)
 	if err != nil {
-		return nil, err
+		logrus.Errorf("Error while parsing directory %s for maven file : %s", dir, err)
+		return nil, nil, err
 	}
-	fileContentAsString := string(fileContent) // originally is an array of bytes
-	fileLines := strings.Split(fileContentAsString, "\n")
-	return fileLines, nil
-
-}
-
-// getGradleData extracts info from Gradle files
-func getGradleData(buildGradlePath string, settingsGradlePath string) (configuration ConfigurationFromBuildTool, err error) {
-
-	buildGradleLines, err := getFileLines(buildGradlePath)
-	if err != nil {
-		logrus.Errorf("failed getting lines from file: %s", buildGradlePath)
+	if mavenFilePath == "" {
+		return nil, nil, nil
 	}
-
-	openBlock := false
-	openMultilineCommentBlock := false
-
-	blockParams := map[string][]string{}
-	var singleParams []string
-	var blockContent []string
-	var blockName string
-	for _, line := range buildGradleLines {
-
-		if strings.Contains(line, "/*") {
-			openMultilineCommentBlock = true
-		}
-
-		if strings.Contains(line, "*/") && openMultilineCommentBlock {
-			openMultilineCommentBlock = false
-			continue
-		}
-
-		if openMultilineCommentBlock {
-			continue
-		}
-
-		if strings.Contains(line, "{") {
-			openBlock = true
-			blockName = strings.Replace(line, "{", "", 1)
-			blockName = strings.TrimSpace(blockName)
-			blockContent = nil
-		}
-
-		if openBlock && strings.Contains(line, "}") {
-			if blockContent != nil {
-				blockParams[blockName] = blockContent
-			}
-			openBlock = false
-			blockContent = nil
-		}
-
-		if openBlock && !strings.Contains(line, "}") && !strings.Contains(line, "{") {
-			line = strings.TrimSpace(line)
-			blockContent = append(blockContent, line)
-		}
-
-		if !openBlock && !strings.Contains(line, "}") && !strings.Contains(line, "{") && line != "" && strings.TrimSpace(line) != "" {
-			singleParams = append(singleParams, line)
-		}
-	}
-
-	// (Optional) Data extraction from settings.gradle
-	settingsGradleLines, err := getFileLines(settingsGradlePath)
-	if err != nil {
-		logrus.Errorf("failed getting lines from file: %s", settingsGradlePath)
-	}
-
-	name := ""
-	artifactId := ""
-	for _, sl := range settingsGradleLines {
-		sl = strings.TrimSpace(sl)
-		if strings.Contains(sl, "rootProject.name") {
-			slSplitted := strings.Split(sl, "=")
-			if len(slSplitted) == 2 {
-				name = slSplitted[1]
-				artifactId = slSplitted[1]
-			}
-		}
-	}
-
-	// Collect Modules
-	var modules []string
-	version := ""
-	javaVersion := ""
-
-	for _, sp := range singleParams {
-		spSplitted := strings.Split(sp, " ")
-		if strings.Contains(sp, "include") {
-
-			module := spSplitted[len(spSplitted)-1]
-			modules = append(modules, module)
-		}
-
-		if spSplitted[0] == "version" && len(spSplitted) == 2 {
-			version = spSplitted[1]
-		}
-
-		if strings.Contains(sp, "sourceCompatibility") {
-			spSplittedEq := strings.Split(sp, "=")
-			if len(spSplittedEq) == 2 {
-				javaVersion = spSplittedEq[1]
-			}
-		}
-	}
-
-	hasModules := false
-	if len(modules) > 0 {
-		hasModules = true
-	}
-
-	isSpringboot := false
-	isTomcatProvided := false
-	packaging := ""
-
-	for blockId, blockContent := range blockParams {
-
-		switch blockId {
-		case "dependencies":
-			for _, dependency := range blockContent {
-				if strings.Contains(dependency, "org.springframework.boot") {
-					isSpringboot = true
-				}
-
-				if strings.Contains(dependency, "providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'") {
-					isTomcatProvided = true
-				}
-			}
-		case "war":
-			packaging = "war"
-		}
-	}
-
-	conf := ConfigurationFromBuildTool{
-		BuildTool:        "gradle",
-		HasModules:       hasModules,
-		IsSpringboot:     isSpringboot,
-		IsTomcatProvided: isTomcatProvided,
-		Packaging:        packaging,
-		JavaVersion:      javaVersion,
-		Name:             name,
-		ArtifactID:       artifactId,
-		Version:          version,
-	}
-	return conf, nil
-}
-
-// readPropertiesFile reads a .properties file
-func readPropertiesFile(propertiesFilePath string) (result map[string]string, err error) {
-
-	res := map[string]string{}
-
-	propertiesFileLines, err := getFileLines(propertiesFilePath)
-	if err != nil {
-		logrus.Errorf("Failed getting lines from file: %s", propertiesFilePath)
-		return res, err
-	}
-
-	for _, line := range propertiesFileLines {
-		if line != "" && strings.Contains(line, "=") {
-			lineContent := strings.Split(line, "=")
-			if len(lineContent) == 2 {
-				res[lineContent[0]] = lineContent[1]
-			}
-		}
-	}
-	return res, err
-}
-
-// getMavenData extracts data from maven files
-func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, err error) {
-
-	// filled with previously declared xml
-	pomStr, err := ioutil.ReadFile(pomXMLPath)
-	if err != nil {
-		logrus.Errorf("Could not read the pom.xml file: %s", err)
-		return ConfigurationFromBuildTool{}, err
-	}
-
-	// Load pom from string
 	var pom maven.Pom
-	if err := xml.Unmarshal([]byte(pomStr), &pom); err != nil {
-		logrus.Errorf("unable to unmarshal pom file. Reason: %s", err)
-		return ConfigurationFromBuildTool{}, err
+	err = common.ReadXML(mavenFilePath, &pom)
+	if err != nil {
+		logrus.Errorf("Unable to unmarshal pom file (%s). Reason: %s", mavenFilePath, err)
+		return nil, nil, err
 	}
-
-	hasModules := false
 	if pom.Modules != nil && len(*(pom.Modules)) != 0 {
-		hasModules = true
+		logrus.Debugf("Parent pom detected (%s). Ignoring.", mavenFilePath)
+		return nil, nil, nil
 	}
-
-	isSpringboot := false
-	isTomcatProvided := false
-
-	if pom.Dependencies == nil {
-		logrus.Debugf("POM file at %s does not contain a dependencies block", pomXMLPath)
-	} else {
-		for _, dependency := range *pom.Dependencies {
-
-			if strings.Contains(dependency.GroupID, "org.springframework.boot") {
-				isSpringboot = true
-			}
-
-			if strings.Contains(dependency.ArtifactID, "spring-boot-starter-tomcat") && dependency.Scope == "provided" {
-				isTomcatProvided = true
-			}
-		}
-	}
-
 	packaging := ""
 	if pom.Packaging == "" {
 		logrus.Debugf("Pom at %s does not contain a Packaging block", pomXMLPath)
 	} else {
 		packaging = pom.Packaging
 		logrus.Debugf("Packaging: %s", packaging)
+	}
+
+	for _, dependency := range *pom.Dependencies {
+		if strings.Contains(dependency.GroupID, "org.springframework.boot") {
+			isSpringboot = true
+		}
+		if strings.Contains(dependency.ArtifactID, "spring-boot-starter-tomcat") && dependency.Scope == "provided" {
+			isTomcatProvided = true
+		}
 	}
 
 	// Collect java / tomcat version fom the Properties block
@@ -388,91 +151,6 @@ func getMavenData(pomXMLPath string) (configuration ConfigurationFromBuildTool, 
 		}
 	}
 
-	conf := ConfigurationFromBuildTool{
-		BuildTool:        "maven",
-		HasModules:       hasModules,
-		IsSpringboot:     isSpringboot,     //->  SpringbootConfigFromBuildTool struct
-		IsTomcatProvided: isTomcatProvided, // x
-		Packaging:        packaging,
-		JavaVersion:      javaVersion,
-		Name:             pom.Name,
-		ArtifactID:       pom.ArtifactID,
-		Version:          pom.Version,
-		FileSuffix:       fileSuffix,
-		TomcatVersion:    tomcatVersion,
-		Profiles:         profiles, // x
-		SpringbootConfigFromBuildTool: SpringbootConfigFromBuildTool{
-			IsTomcatProvided: isTomcatProvided,
-			Profiles:         profiles,
-		},
-	}
-	return conf, nil
-}
-
-//getFilesByRegExp returns files that match a reg exp
-func getFilesByRegExp(inputPath string, re string) ([]string, error) {
-	var files []string
-	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
-		logrus.Warnf("Error in walking through files due to : %q", err)
-		return files, err
-	} else if !info.IsDir() {
-		logrus.Warnf("The path %q is not a directory.", inputPath)
-	}
-
-	reg, err2 := regexp.Compile(re)
-	if err2 != nil {
-		logrus.Warnf("Could not compile regular expression: %s", re)
-		return files, err2
-	}
-
-	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil && path == inputPath { // if walk for root search path return gets error
-			// then stop walking and return this error
-			return err
-		}
-		if err != nil {
-			logrus.Warnf("Skipping path %q due to error: %q", path, err)
-			return nil
-		}
-		// Skip directories
-		if info.IsDir() {
-			return nil
-		}
-		fname := filepath.Base(path)
-
-		if reg.MatchString(fname) {
-			files = append(files, path)
-		}
-		return nil
-	})
-	if err != nil {
-		logrus.Warnf("Error in walking through files due to : %s", err)
-		return files, err
-	}
-	//logrus.Debugf("No of files with %s names identified : %d", names, len(files))
-	return files, nil
-}
-
-// DirectoryDetect runs detect in each sub directory
-func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	destEntries, err := ioutil.ReadDir(dir)
-	if err != nil {
-		logrus.Errorf("Unable to process directory %s : %s", dir, err)
-		return nil, nil, err
-	}
-	mavenFound := false
-	gradleFound := false
-	for _, de := range destEntries {
-		if de.Name() == pomXML {
-			mavenFound = true
-			continue //break
-		}
-		if de.Name() == buildGradle {
-			gradleFound = true
-			continue
-		}
-	}
-
 	// If there are not build config files, we stop
 	if !mavenFound && !gradleFound {
 		return nil, nil, nil
@@ -480,18 +158,18 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 
 	var config ConfigurationFromBuildTool
 	if mavenFound {
-		mavenConfig, err := getMavenData(filepath.Join(dir, pomXML))
+		mavenConfig, err := getMavenData(filepath.Join(dir, maven.PomXMLFileName))
 		if err != nil {
-			logrus.Errorf("Unable to load data from maven file %s", filepath.Join(dir, pomXML))
+			logrus.Errorf("Unable to load data from maven file %s", filepath.Join(dir, maven.PomXMLFileName))
 		} else {
 			config = mavenConfig
 		}
 
 	} else { // This hierarchy is by design. We are more confident on the maven extraction
 		if gradleFound {
-			gradleConfig, err := getGradleData(filepath.Join(dir, buildGradle), filepath.Join(dir, settingsGradle))
+			gradleConfig, err := getGradleData(filepath.Join(dir, gradleBuildFileName), filepath.Join(dir, gradleSettingsFileName))
 			if err != nil {
-				logrus.Errorf("Unable to load data from gradle file %s", filepath.Join(dir, buildGradle))
+				logrus.Errorf("Unable to load data from gradle file %s", filepath.Join(dir, gradleBuildFileName))
 			} else {
 				config = gradleConfig
 			}
@@ -750,9 +428,9 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		}
 	}
 
-	// If we couldnt find a java version up to this point , we assume 1.8
+	// If we couldnt find a java version up to this point , we use default from config
 	if javaVersion == "" {
-		javaVersion = "1.8"
+		javaVersion = t.JavaConfig.JavaVersion
 	}
 
 	ct := transformertypes.TransformerPlan{
@@ -760,22 +438,19 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 		ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
 		BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 		Configs: map[transformertypes.ConfigType]interface{}{
-			springbootServiceConfigType: SpringbootConfig{
-				ServiceName:            appName,
-				Ports:                  ports,
-				JavaVersion:            javaVersion,
-				ApplicationServer:      appServer,
-				ApplicationServerImage: appServerImage,
-				JavaPackageName:        javaPackageName,
-				AppFile:                appFile,
-				DeploymentFile:         deploymentFile,
-				BuildTool:              buildTool,
-				Profiles:               profiles,
+			javaServiceConfigType: JavaConfig{
+				ServiceName:    appName,
+				Ports:          ports,
+				JavaVersion:    javaVersion,
+				AppFile:        appFile,
+				DeploymentFile: deploymentFile,
+				BuildTool:      buildTool,
+				Profiles:       profiles,
 			}},
 		Paths: map[transformertypes.PathType][]string{
-			mavenPomXML:                   {filepath.Join(dir, pomXML)},
+			mavenPomXML:                   {filepath.Join(dir, maven.PomXMLFileName)},
 			artifacts.ProjectPathPathType: {dir},
-			applicationFilePath:           validSpringbootFiles,
+			springbootApplicationFilePath: validSpringbootFiles,
 		},
 	}
 
@@ -783,7 +458,7 @@ func (t *SpringbootAnalyser) DirectoryDetect(dir string) (namedServices map[stri
 }
 
 // Transform transforms the artifacts
-func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
@@ -795,8 +470,8 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
 		}
-		var sConfig SpringbootConfig
-		err = a.GetConfig(springbootServiceConfigType, &sConfig)
+		var sConfig JavaConfig
+		err = a.GetConfig(javaServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
@@ -872,12 +547,12 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 			Type:     transformertypes.TemplatePathMappingType,
 			SrcPath:  outputPath,
 			DestPath: dfp,
-			TemplateConfig: SpringbootTemplateConfig{
-				JavaPackageName: sConfig.JavaPackageName,
-				AppServerImage:  sConfig.ApplicationServerImage,
-				Port:            port,
-				AppFile:         sConfig.AppFile,
-				DeploymentFile:  sConfig.DeploymentFile,
+			TemplateConfig: JavaBuildTemplateConfig{
+				JavaInstallPackageName: sConfig.JavaPackageName,
+				AppServerImage:         sConfig.ApplicationServerImage,
+				Port:                   port,
+				AppFile:                sConfig.AppFile,
+				DeploymentFile:         sConfig.DeploymentFile,
 			},
 		}, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
@@ -918,22 +593,22 @@ func (t *SpringbootAnalyser) Transform(newArtifacts []transformertypes.Artifact,
 		//new
 		buildArtifact := transformertypes.Artifact{
 			Name:     sImageName.ImageName + "-build",
-			Artifact: artifacts.BuildType,
+			Artifact: artifacts.JarArtifactType,
 			//In here we store the current path of the current Dockerfile template
 			Paths: map[string][]string{
 				artifacts.ProjectPathPathType: {filepath.Dir(dfp)},
 				artifacts.DockerfilePathType:  {dfp},
 			},
 			Configs: map[string]interface{}{
-				"targetAppData": SpringbootTemplateConfig{
-					JavaPackageName: sConfig.JavaPackageName,
-					AppServerImage:  sConfig.ApplicationServerImage,
-					Port:            port,
-					AppFile:         sConfig.AppFile,
-					DeploymentFile:  sConfig.DeploymentFile,
-					AppServer:       sConfig.ApplicationServer,
-					BuildPath:       dfp,
-					BuildOutputPath: outputPath,
+				"targetAppData": JavaBuildTemplateConfig{
+					JavaInstallPackageName: sConfig.JavaPackageName,
+					AppServerImage:         sConfig.ApplicationServerImage,
+					Port:                   port,
+					AppFile:                sConfig.AppFile,
+					DeploymentFile:         sConfig.DeploymentFile,
+					AppServer:              sConfig.ApplicationServer,
+					BuildPath:              dfp,
+					BuildOutputPath:        outputPath,
 				},
 			},
 		}

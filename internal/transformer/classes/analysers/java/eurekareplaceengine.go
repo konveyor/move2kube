@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package analysers
+package java
 
 import (
 	"bufio"
@@ -131,7 +131,7 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 		logrus.Errorf("Unable to process directory %s : %s", dir, err)
 	} else {
 		for _, de := range destEntries {
-			if de.Name() == pomXML {
+			if de.Name() == maven.PomXMLFileName {
 
 				// filled with previously declared xml
 				pomStr, err := ioutil.ReadFile(filepath.Join(dir, de.Name()))

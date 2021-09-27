@@ -24,6 +24,7 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/transformer/classes/analysers"
+	"github.com/konveyor/move2kube/internal/transformer/classes/analysers/java"
 	"github.com/konveyor/move2kube/internal/transformer/classes/external"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators/dockerfilegenerators"
@@ -60,11 +61,12 @@ func init() {
 		new(analysers.CNBContainerizer),
 		new(analysers.CloudFoundry),
 		new(analysers.DockerfileDetector),
-		new(analysers.SpringbootAnalyser),
-		new(analysers.SpringbootRuntimeAnalyser),
-		new(analysers.ZuulAnalyser),
-		new(analysers.EurekaReplaceEngine),
 		new(analysers.DockerfileParser),
+
+		new(java.JavaAnalyser),
+		new(java.SpringbootRuntimeAnalyser),
+		new(java.ZuulAnalyser),
+		new(java.EurekaReplaceEngine),
 
 		new(generators.ComposeGenerator),
 		new(generators.Kubernetes),

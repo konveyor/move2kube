@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package analysers
+package java
 
 import (
 	"github.com/konveyor/move2kube/environment"

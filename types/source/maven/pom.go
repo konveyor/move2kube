@@ -21,6 +21,9 @@ import (
 	"io"
 )
 
+// PomXML represents the name of the POM File
+const PomXMLFileName string = "pom.xml"
+
 // Pom defines pom.xml data
 type Pom struct {
 	XMLName                xml.Name                `xml:"project,omitempty"`

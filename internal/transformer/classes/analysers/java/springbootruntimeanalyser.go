@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package analysers
+package java
 
 import (
 	"io/ioutil"
@@ -32,6 +32,18 @@ import (
 type SpringbootRuntimeAnalyser struct {
 	Config transformertypes.Transformer
 	Env    *environment.Environment
+}
+
+// JavaRuntimeTemplateConfig defines JavaRuntimeTemplateConfig properties
+type JavaRuntimeTemplateConfig struct {
+	Port                   int    `yaml:"port,omitempty"`
+	JavaInstallPackageName string `yaml:"javaInstallPackageName,omitempty"`
+	AppServerImage         string `yaml:"appServerImage,omitempty"`
+	AppServer              string `yaml:"appServer,omitempty"`
+	AppFile                string `yaml:"appFile,omitempty"`
+	DeploymentFile         string `yaml:"deploymentFile,omitempty"`
+	BuildPath              string `yaml:"buildPath,omitempty"`
+	BuildOutputPath        string `yaml:"buildOutputPath,omitempty"`
 }
 
 // Init Initializes the transformer
@@ -97,7 +109,7 @@ func (t *SpringbootRuntimeAnalyser) Transform(newArtifacts []transformertypes.Ar
 			}
 		*/
 
-		templateConfig := SpringbootTemplateConfig{}
+		templateConfig := JavaTemplateConfig{}
 		err = a.GetConfig("targetAppData", &templateConfig)
 		if err != nil {
 			logrus.Debugf("unable to load config %s : %s", "targetAppData", err)
@@ -151,12 +163,12 @@ func (t *SpringbootRuntimeAnalyser) Transform(newArtifacts []transformertypes.Ar
 			Type:     transformertypes.TemplatePathMappingType,
 			SrcPath:  outputPath,
 			DestPath: dfp,
-			TemplateConfig: SpringbootTemplateConfig{
-				JavaPackageName: templateConfig.JavaPackageName,
-				AppServerImage:  templateConfig.AppServerImage,
-				Port:            port,
-				AppFile:         templateConfig.AppFile,
-				DeploymentFile:  templateConfig.DeploymentFile,
+			TemplateConfig: JavaTemplateConfig{
+				JavaInstallPackageName: templateConfig.JavaInstallPackageName,
+				AppServerImage:         templateConfig.AppServerImage,
+				Port:                   port,
+				AppFile:                templateConfig.AppFile,
+				DeploymentFile:         templateConfig.DeploymentFile,
 			},
 		}, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,

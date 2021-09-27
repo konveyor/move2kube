@@ -4,4 +4,4 @@ RUN yum install -y {{ .JavaPackageName }}
 RUN yum install -y maven
 COPY . /app
 WORKDIR /app
-RUN gradle install
+RUN mvn package

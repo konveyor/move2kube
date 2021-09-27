@@ -21,6 +21,5 @@ import (
 )
 
 const (
-	// ProjectPathPathType points to the project context directory
-	ProjectPathPathType transformertypes.PathType = "ProjectPath"
+	JarArtifactType transformertypes.ArtifactType = "Jar"
 )

@@ -1,7 +1,9 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Transformer
 metadata:
-  name: Java-Springboot
+  name: Java
 spec:
   mode: "Container"
-  class: "SpringbootAnalyser"
+  class: "MavenAnalyser"
+  config: 
+    defaultMavenVersion: "3.8.2"
