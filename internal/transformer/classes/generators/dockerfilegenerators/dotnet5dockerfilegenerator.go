@@ -34,8 +34,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Net5AppDockerfileGenerator implements the Transformer interface
-type Net5AppDockerfileGenerator struct {
+// DotNet5DockerfileGenerator implements the Transformer interface
+type DotNet5DockerfileGenerator struct {
 	Config transformertypes.Transformer
 	Env    *environment.Environment
 }
@@ -52,8 +52,8 @@ var (
 	portRegex = regexp.MustCompile(`[0-9]+`)
 )
 
-// Net5TemplateConfig implements Nodejs config interface
-type Net5TemplateConfig struct {
+// DotNet5TemplateConfig implements Nodejs config interface
+type DotNet5TemplateConfig struct {
 	Port           int32
 	HTTPPort       int32
 	HTTPSPort      int32
@@ -76,24 +76,24 @@ type LaunchProfile struct {
 }
 
 // Init Initializes the transformer
-func (t *Net5AppDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *DotNet5DockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *Net5AppDockerfileGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
+func (t *DotNet5DockerfileGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *Net5AppDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *DotNet5DockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *Net5AppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *DotNet5DockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory : %s", err)
@@ -142,7 +142,7 @@ func (t *Net5AppDockerfileGenerator) DirectoryDetect(dir string) (namedServices 
 }
 
 // Transform transforms the artifacts
-func (t *Net5AppDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *DotNet5DockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
@@ -165,9 +165,9 @@ func (t *Net5AppDockerfileGenerator) Transform(newArtifacts []transformertypes.A
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
 		var ports []int32
-		var net5Config Net5TemplateConfig
-		net5Config.AppName = a.Name
-		net5Config.CsprojFilePath, err = filepath.Rel(a.Paths[artifacts.ProjectPathPathType][0], a.Paths[CsprojFilePathType][0])
+		var dotnet5Config DotNet5TemplateConfig
+		dotnet5Config.AppName = a.Name
+		dotnet5Config.CsprojFilePath, err = filepath.Rel(a.Paths[artifacts.ProjectPathPathType][0], a.Paths[CsprojFilePathType][0])
 		if err != nil {
 			logrus.Errorf("Error while getting the relative path of csproj file%s", err)
 		}
@@ -182,24 +182,24 @@ func (t *Net5AppDockerfileGenerator) Transform(newArtifacts []transformertypes.A
 					logrus.Errorf("unable to read the launchSettings.json file: %s", err)
 					continue
 				}
-				if launchSettings.Profiles[net5Config.AppName].ApplicationURL != "" {
-					Urls := strings.Split(launchSettings.Profiles[net5Config.AppName].ApplicationURL, ";")
+				if launchSettings.Profiles[dotnet5Config.AppName].ApplicationURL != "" {
+					Urls := strings.Split(launchSettings.Profiles[dotnet5Config.AppName].ApplicationURL, ";")
 					for _, url := range Urls {
 						portStr := portRegex.FindAllString(url, 1)[0]
 						port, err := strconv.ParseInt(portStr, 10, 32)
 						if err != nil {
 							logrus.Errorf("Error while converting the port from string to int : %s", err)
 						} else if strings.HasPrefix(url, "https://") {
-							net5Config.HTTPSPort = int32(port)
+							dotnet5Config.HTTPSPort = int32(port)
 						} else if strings.HasPrefix(url, "http://") {
-							net5Config.HTTPPort = int32(port)
+							dotnet5Config.HTTPPort = int32(port)
 						}
 					}
-					ports = append(ports, net5Config.HTTPPort)
+					ports = append(ports, dotnet5Config.HTTPPort)
 				}
 			}
 		}
-		net5Config.Port = commonqa.GetPortForService(ports, a.Name)
+		dotnet5Config.Port = commonqa.GetPortForService(ports, a.Name)
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
@@ -210,7 +210,7 @@ func (t *Net5AppDockerfileGenerator) Transform(newArtifacts []transformertypes.A
 			Type:           transformertypes.TemplatePathMappingType,
 			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
-			TemplateConfig: net5Config,
+			TemplateConfig: dotnet5Config,
 		})
 		paths := a.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile")}

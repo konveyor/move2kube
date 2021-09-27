@@ -1,7 +1,7 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Transformer
 metadata:
-  name: Net5App-Dockerfile
+  name: DotNet5-Dockerfile
 spec:
   mode: "Container"
-  class: "Net5AppDockerfileGenerator"
+  class: "DotNet5DockerfileGenerator"
