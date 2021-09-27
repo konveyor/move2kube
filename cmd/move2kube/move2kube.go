@@ -49,7 +49,7 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 			}
 			logrus.SetLevel(logl)
 			if logFile != "" {
-				f, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE, common.DefaultFilePermission)
+				f, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, common.DefaultFilePermission)
 				if err != nil {
 					logrus.Fatalf("failed to open the log file at path %s . Error: %q", logFile, err)
 				}
