@@ -196,7 +196,7 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (namedSer
 			if configuration.PropertyGroup == nil ||
 				configuration.PropertyGroup.TargetFrameworkVersion == "" ||
 				!dotnet.FourXPattern.MatchString(configuration.PropertyGroup.TargetFrameworkVersion) {
-				logrus.Errorf("Not a supported dotnet framework [%s]", configuration.PropertyGroup.TargetFrameworkVersion)
+				logrus.Debugf("Not a supported dotnet framework [%s]", configuration.PropertyGroup.TargetFrameworkVersion)
 				continue
 			}
 

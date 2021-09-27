@@ -82,6 +82,7 @@ type None struct {
 type PropertyGroup struct {
 	XMLName                xml.Name    `xml:"PropertyGroup"`
 	Condition              string      `xml:"Condition,attr"`
+	TargetFramework        string      `xml:"TargetFramework"`
 	TargetFrameworkVersion string      `xml:"TargetFrameworkVersion"`
 	Properties             *Properties `xml:"properties,omitempty"`
 }
