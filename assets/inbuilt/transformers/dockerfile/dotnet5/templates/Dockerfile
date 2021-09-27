@@ -1,4 +1,4 @@
-#   Copyright IBM Corporation 2021
+#   Copyright IBM Corporation 2020
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,20 +12,18 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Build Stage
-FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As build_base
-WORKDIR /app
+FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build_base
+WORKDIR /src
 COPY . .
-RUN nuget restore
-
-COPY {{ .AppName }}/. ./{{ .AppName }}/
-WORKDIR /app/{{ .AppName }}
-RUN msbuild /p:Configuration=Release
+RUN mkdir app
+RUN dotnet restore {{ .CsprojFilePath }}
+RUN dotnet build {{ .CsprojFilePath }} -c Release -o /src/app
+RUN dotnet publish {{ .CsprojFilePath }} -c Release -o /src/app
 
 # Run Stage
-FROM microsoft/aspnet:4.7.2 AS runtime
-{{- range .Ports}}
-EXPOSE {{.}}
-{{- end}}
-WORKDIR /inetpub/wwwroot
-COPY --from=build_base /app/{{ .AppName }}/. ./
+FROM mcr.microsoft.com/dotnet/aspnet:5.0
+WORKDIR /app
+EXPOSE {{ .Port }}
+ENV ASPNETCORE_URLS=http://+:{{ .Port }}
+COPY --from=build_base /src/app .
+ENTRYPOINT ["dotnet", "{{ .AppName }}.dll"]

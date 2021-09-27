@@ -26,25 +26,26 @@ const (
 	// planFlag is the name of the flag that contains the path to the plan file
 	planFlag = "plan"
 	// ignoreEnvFlag is the name of the flag that tells us whether to use data collected from the local machine
-	ignoreEnvFlag = "ignoreenv"
+	ignoreEnvFlag = "ignore-env"
 	// qaSkipFlag is the name of the flag that lets you skip all the question answers
-	qaSkipFlag = "qaskip"
+	qaSkipFlag = "qa-skip"
 	// configOutFlag is the name of the flag that will point the location to output the config file
-	configOutFlag = "configout"
+	configOutFlag = "config-out"
 	// qaCacheOutFlag is the name of the flag that will point the location to output the cache file
-	qaCacheOutFlag = "qacacheout"
+	qaCacheOutFlag = "qa-cache-out"
 	// configFlag is the name of the flag that contains list of config files
 	configFlag = "config"
 	// setConfigFlag is the name of the flag that contains list of key-value configs
-	setConfigFlag = "setconfig"
+	setConfigFlag = "set-config"
 	// preSetFlag is the name of the flag that contains list of preset configurations to use
 	preSetFlag = "preset"
 	// overwriteFlag is the name of the flag that lets you overwrite the output directory if it exists
 	overwriteFlag = "overwrite"
 	// customizationsFlag is the path to customizations directory
-	customizationsFlag = "customizations"
-	qadisablecliFlag   = "qadisablecli"
-	qaportFlag         = "qaport"
+	customizationsFlag   = "customizations"
+	qadisablecliFlag     = "qa-disable-cli"
+	qaportFlag           = "qa-port"
+	planProgressPortFlag = "plan-progress-port"
 )
 
 type qaflags struct {
