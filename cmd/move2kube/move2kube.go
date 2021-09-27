@@ -17,6 +17,7 @@
 package main
 
 import (
+	"io"
 	"os"
 
 	"github.com/konveyor/move2kube/assets"
@@ -28,6 +29,7 @@ import (
 
 func main() {
 	loglevel := logrus.InfoLevel.String()
+	logFile := ""
 
 	// RootCmd root level flags and commands
 	rootCmd := &cobra.Command{
@@ -46,11 +48,20 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 				logl = logrus.InfoLevel
 			}
 			logrus.SetLevel(logl)
+			if logFile != "" {
+				f, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE, common.DefaultFilePermission)
+				if err != nil {
+					logrus.Fatalf("failed to open the log file at path %s . Error: %q", logFile, err)
+				}
+				logrus.SetOutput(io.MultiWriter(f, os.Stdout))
+			}
 			return nil
 		},
 	}
 
 	rootCmd.PersistentFlags().StringVar(&loglevel, "log-level", logrus.InfoLevel.String(), "Set logging levels.")
+	rootCmd.PersistentFlags().StringVar(&logFile, "log-file", "", "File to store the logs in. By default it only prints to console.")
+
 	rootCmd.AddCommand(getVersionCommand())
 	rootCmd.AddCommand(getCollectCommand())
 	rootCmd.AddCommand(getPlanCommand())
