@@ -41,9 +41,12 @@ brew install move2kube
 
 To bring up UI version:
 
-* Change directory to an empty directory using say, `mkdir -p workspace && cd workspace`
-* Run `docker run -p 8080:8080 -v $PWD:/workspace -v /var/run/docker.sock:/var/run/docker.sock -it quay.io/konveyor/move2kube-aio:latest`
-* Access the UI in `http://localhost:8080/`.
+```
+docker run --rm -it -p 8080:8080 quay.io/konveyor/move2kube-ui:latest
+```
+Then go to http://localhost:8080 in a browser
+
+More detailed instructions can be found in the [Move2Kube UI repo](https://github.com/konveyor/move2kube-ui#starting-the-ui)
 
 ## Usage
 
