@@ -4,10 +4,9 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/konveyor/move2kube)](https://goreportcard.com/report/github.com/konveyor/move2kube)
 [<img src="https://img.shields.io/badge/slack-konveyor/move2kube-green.svg?logo=slack">](https://kubernetes.slack.com/archives/CR85S82A2)
 
-
 # Move2Kube
 
-Move2Kube is a command-line tool that accelerates the process of re-platforming to Kubernetes/Openshift. It does so by analysing the environment and source artifacts, and asking guidance from the user when required. It allows customizations to enable generating the directory structure and artifacts in the format required for your project.
+Move2Kube is a command-line tool that accelerates the process of re-platforming to Kubernetes/Openshift. It does so by analyzing the environment and source artifacts, and asking guidance from the user when required. It allows customizations to enable generating the directory structure and artifacts in the format required for your project.
 
 ![Usage](./imgs/overview.png)
 
@@ -16,23 +15,26 @@ Move2Kube is a command-line tool that accelerates the process of re-platforming 
 ### Using install script
 
 To install the latest stable version:
-```
+
+```shell
 bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
 ```
 
 To install a specific version (for example version `v0.2.0-alpha.3`):
-```
+
+```shell
 MOVE2KUBE_TAG='v0.2.0-alpha.3' bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
 ```
 
 To install the bleeding edge version:
-```
+
+```shell
 BLEEDING_EDGE='true' bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
 ```
 
 ### Using Homebrew
 
-```
+```shell
 brew tap konveyor/move2kube
 brew install move2kube
 ```
@@ -41,16 +43,25 @@ brew install move2kube
 
 To bring up UI version:
 
-```
+Using `docker`:
+
+```shell
 docker run --rm -it -p 8080:8080 quay.io/konveyor/move2kube-ui:latest
 ```
+
+Using `podman`:
+
+```shell
+podman run --rm -it -p 8080:8080 quay.io/konveyor/move2kube-ui:latest
+```
+
 Then go to http://localhost:8080 in a browser
 
 More detailed instructions can be found in the [Move2Kube UI repo](https://github.com/konveyor/move2kube-ui#starting-the-ui)
 
 ## Usage
 
-`move2kube transform -s src` , where src is the folder containing the source artifacts.
+`move2kube transform -s src`, where `src` is the folder containing the source artifacts.
 
 Checkout the [Getting started](https://move2kube.konveyor.io/docs/getting-started) guide and [Tutorials](https://move2kube.konveyor.io/docs/tutorial) for more information.
 
@@ -91,7 +102,7 @@ To browse code [![Open in VSCode](https://open.vscode.dev/badges/open-in-vscode.
   * Kubernetes/Openshift Yamls
   * Helm charts
   * Kustomize
-  * Openshift Templates
+  * OpenShift Templates
   * Operator
   * Docker compose
 
