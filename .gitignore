@@ -37,3 +37,9 @@ __pycache__/
 .bundle/
 vendor/
 .ruby-version
+
+# Samples
+samples/**/*.project
+samples/**/*.classpath
+samples/**/*.gradle
+samples/**/*.settings
