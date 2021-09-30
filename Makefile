@@ -186,11 +186,9 @@ info: ## Get version info
 .PHONY: cbuild
 cbuild: ## Build container image
 ifndef CONTAINER_TOOL
-$(error No container tool (docker, podman) found in your environment. Please, install one)
+	$(error No container tool (docker, podman) found in your environment. Please, install one)
 endif
-
 	@echo "Building image with $(CONTAINER_TOOL)"
-
 	${CONTAINER_TOOL} build -t ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --target build_base                          --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
 	${CONTAINER_TOOL} build -t ${REGISTRYNS}/${BINNAME}:${VERSION}         --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
 	${CONTAINER_TOOL} tag ${REGISTRYNS}/${BINNAME}-builder:${VERSION} ${REGISTRYNS}/${BINNAME}-builder:latest
@@ -199,11 +197,9 @@ endif
 .PHONY: cpush
 cpush: ## Push container image
 ifndef CONTAINER_TOOL
-$(error No container tool (docker, podman) found in your environment. Please, install one)
+	$(error No container tool (docker, podman) found in your environment. Please, install one)
 endif
-
 	@echo "Pushing image with $(CONTAINER_TOOL)"
-
 	# To help with reusing layers and hence speeding up build
 	${CONTAINER_TOOL} push ${REGISTRYNS}/${BINNAME}-builder:${VERSION}
 	${CONTAINER_TOOL} push ${REGISTRYNS}/${BINNAME}:${VERSION}
