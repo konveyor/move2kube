@@ -46,12 +46,13 @@ type Transformer struct {
 
 // TransformerSpec stores the data
 type TransformerSpec struct {
-	FilePath           string      `yaml:"-"`
-	Mode               Mode        `yaml:"mode"`
-	Class              string      `yaml:"class"`
-	ArtifactsToProcess []string    `yaml:"consumes"`  //plantypes.ArtifactType
-	TemplatesDir       string      `yaml:"templates"` //Relative to yaml directory or working directory in image
-	Config             interface{} `yaml:"config"`
+	FilePath           string            `yaml:"-"`
+	Mode               Mode              `yaml:"mode"`
+	Class              string            `yaml:"class"`
+	ExternalFiles      map[string]string `yaml:"externalFiles"` // [source]destination
+	ArtifactsToProcess []string          `yaml:"consumes"`      //plantypes.ArtifactType
+	TemplatesDir       string            `yaml:"templates"`     //Relative to yaml directory or working directory in image
+	Config             interface{}       `yaml:"config"`
 }
 
 // NewTransformer creates a new instance of tansformer

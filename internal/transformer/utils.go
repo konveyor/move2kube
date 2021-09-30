@@ -51,7 +51,7 @@ func getTransformerConfig(path string) (transformertypes.Transformer, error) {
 }
 
 func getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContents []string) {
-	filePaths, err := common.GetFilesByName(inputPath, []string{common.IgnoreFilename})
+	filePaths, err := common.GetFilesByName(inputPath, []string{common.IgnoreFilename}, nil)
 	if err != nil {
 		logrus.Warnf("Unable to fetch .m2kignore files at path %q Error: %q", inputPath, err)
 		return ignoreDirectories, ignoreContents

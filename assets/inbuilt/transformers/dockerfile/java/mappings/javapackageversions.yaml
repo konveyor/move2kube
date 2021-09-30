@@ -1,0 +1,9 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: JavaPackageVersions
+metadata:
+  name: JavaPackageVersions
+spec:
+  packageVersions:
+    "1.7": "java-1.7.0-openjdk-devel"
+    "1.8": "java-1.8.0-openjdk-devel"
+    "11": "java-11-openjdk-devel"

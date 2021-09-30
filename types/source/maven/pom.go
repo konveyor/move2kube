@@ -18,11 +18,20 @@ package maven
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
+	"regexp"
+
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/sirupsen/logrus"
 )
 
 // PomXML represents the name of the POM File
 const PomXMLFileName string = "pom.xml"
+
+var (
+	propVar = regexp.MustCompile(`\${(.+)}`)
+)
 
 // Pom defines pom.xml data
 type Pom struct {
@@ -56,6 +65,27 @@ type Pom struct {
 	Reporting              *Reporting              `xml:"reporting,omitempty"`
 	Profiles               *[]Profile              `xml:"profiles>profile,omitempty"`
 	Properties             *Properties             `xml:"properties,omitempty"`
+}
+
+// Load loads a pom xml file
+func (pom *Pom) Load(file string) error {
+	err := common.ReadXML(file, &pom)
+	if err != nil {
+		logrus.Errorf("Unable to unmarshal pom file (%s) : %s", file, err)
+		return err
+	}
+	return nil
+}
+
+// GetProperty returns the property value of a property
+func (pom *Pom) GetProperty(key string) (val string, err error) {
+	if val, ok := pom.Properties.Entries[key]; ok {
+		if matches := propVar.FindStringSubmatch(val); len(matches) > 1 {
+			return pom.GetProperty(matches[1])
+		}
+		return val, nil
+	}
+	return "", fmt.Errorf("property not found in pom")
 }
 
 // Entries defines a pom.xml entry
@@ -334,6 +364,8 @@ type Plugin struct {
 // Configuration defines a pom.xml Configuration
 type Configuration struct {
 	Classifier string `xml:"classifier,omitempty"`
+	Source     string `xml:"source,omitempty"`
+	Target     string `xml:"target,omitempty"`
 	//	ConfigurationProfiles *[]ConfigurationProfile `xml:"profiles>profile,omitempty"`
 }
 

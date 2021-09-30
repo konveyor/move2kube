@@ -16,25 +16,32 @@
 
 package java
 
-import transformertypes "github.com/konveyor/move2kube/types/transformer"
+import (
+	"github.com/konveyor/move2kube/types"
+	transformertypes "github.com/konveyor/move2kube/types/transformer"
+)
 
-const springbootApplicationFilePath transformertypes.PathType = "SpringbootApplicationFile"
+// JavaPackageNamesMappingKind defines kind of JavaPackageNamesMappingKind
+const JavaPackageNamesMappingKind types.Kind = "JavaPackageVersions"
 
-// ConfigurationFromBuildTool defines Configuration properties
-type ConfigurationFromBuildTool struct {
-	HasModules                    bool                    `yaml:"hasModules,omitempty"`
-	IsSpringboot                  bool                    `yaml:"isSpringboot,omitempty"`
-	IsTomcatProvided              bool                    `yaml:"isTomcatProvided,omitempty"`
-	Packaging                     string                  `yaml:"packaging,omitempty"`
-	JavaVersion                   string                  `yaml:"javaVersion,omitempty"`
-	TomcatVersion                 string                  `yaml:"tomcatVersion,omitempty"`
-	Name                          string                  `yaml:"name,omitempty"`
-	ArtifactID                    string                  `yaml:"artifactId,omitempty"`
-	Version                       string                  `yaml:"version,omitempty"`
-	FileSuffix                    string                  `yaml:"fileSuffix,omitempty"`
-	Profiles                      []string                `yaml:"profiles,omitempty"`
-	SpringbootConfigFromBuildTool JavaConfigFromBuildTool `yaml:"springbootConfigFromBuildTool,omitempty"`
+// JavaPackageNamesMapping stores the java package version mappings
+type JavaPackageNamesMapping struct {
+	types.TypeMeta   `yaml:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec             JavaPackageNamesMappingSpec `yaml:"spec,omitempty"`
 }
+
+type JavaPackageNamesMappingSpec struct {
+	PackageVersions map[string]string `yaml:"packageVersions"`
+}
+
+type packaging = string
+
+const (
+	JarPackaging packaging = "jar"
+	WarPackaging packaging = "war"
+	EarPackaging packaging = "ear"
+)
 
 // SpringBootConfig defines SpringBootConfig properties
 type SpringBootConfig struct {
@@ -45,4 +52,9 @@ type JarArtifactConfig struct {
 }
 
 type WarArtifactConfig struct {
+}
+
+type javaArtifacts struct {
+	MavenArtifact      transformertypes.Artifact
+	SpringBootArtifact transformertypes.Artifact
 }

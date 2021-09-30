@@ -1,7 +1,0 @@
-
-FROM registry.access.redhat.com/ubi8/ubi:latest AS build_base
-RUN yum install -y {{ .JavaPackageName }}
-RUN yum install -y gradle
-COPY . /app
-WORKDIR /app
-RUN gradle install

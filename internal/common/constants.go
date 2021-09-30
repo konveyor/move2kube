@@ -154,6 +154,11 @@ const (
 	ConfigServicesExposeKey = ConfigServicesKey + d + Special + d + "expose"
 )
 
+const (
+	// DefaultDockerfileName refers to the default Dockerfile name
+	DefaultDockerfileName = "Dockerfile"
+)
+
 var (
 	// DefaultPVCSize stores the default PVC size
 	DefaultPVCSize, _ = resource.ParseQuantity("100Mi")
