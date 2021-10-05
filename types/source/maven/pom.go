@@ -80,8 +80,24 @@ func (pom *Pom) Load(file string) error {
 // GetProperty returns the property value of a property
 func (pom *Pom) GetProperty(key string) (val string, err error) {
 	if val, ok := pom.Properties.Entries[key]; ok {
-		if matches := propVar.FindStringSubmatch(val); len(matches) > 1 {
-			return pom.GetProperty(matches[1])
+		if fullMatches := propVar.FindAllSubmatchIndex([]byte(val), -1); len(fullMatches) > 0 {
+			newVal := ""
+			prevMatch := 0
+			for _, fullMatch := range fullMatches {
+				newVal += val[prevMatch:fullMatch[0]]
+				if len(fullMatch) <= 1 {
+					logrus.Errorf("Unable to find variable name in pom property : %s", val)
+					continue
+				}
+				propVal, err := pom.GetProperty(val[fullMatch[2]:fullMatch[3]])
+				if err != nil {
+					logrus.Errorf("Unable to read property in pom : %s", err)
+					return "", err
+				}
+				newVal += propVal
+				prevMatch = fullMatch[2]
+			}
+			val = newVal
 		}
 		return val, nil
 	}

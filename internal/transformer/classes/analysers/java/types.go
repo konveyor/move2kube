@@ -18,7 +18,6 @@ package java
 
 import (
 	"github.com/konveyor/move2kube/types"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
 // JavaPackageNamesMappingKind defines kind of JavaPackageNamesMappingKind
@@ -42,19 +41,3 @@ const (
 	WarPackaging packaging = "war"
 	EarPackaging packaging = "ear"
 )
-
-// SpringBootConfig defines SpringBootConfig properties
-type SpringBootConfig struct {
-	Profiles []string `yaml:"profiles,omitempty"`
-}
-
-type JarArtifactConfig struct {
-}
-
-type WarArtifactConfig struct {
-}
-
-type javaArtifacts struct {
-	MavenArtifact      transformertypes.Artifact
-	SpringBootArtifact transformertypes.Artifact
-}

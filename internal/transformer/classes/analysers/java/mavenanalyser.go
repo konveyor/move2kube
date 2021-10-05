@@ -17,6 +17,7 @@
 package java
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
@@ -34,6 +35,10 @@ const (
 	mavenPomXML transformertypes.PathType = "MavenPomXML"
 )
 
+const (
+	defaultAppPathInContainer = "/app/"
+)
+
 var (
 	defaultResourcesPath = filepath.Join("src", "main", "resources")
 )
@@ -46,8 +51,9 @@ type MavenAnalyser struct {
 }
 
 type MavenYamlConfig struct {
-	MavenVersion string `yaml:"defaultMavenVersion"`
-	JavaVersion  string `yaml:"defaultJavaVersion"`
+	MavenVersion            string `yaml:"defaultMavenVersion"`
+	JavaVersion             string `yaml:"defaultJavaVersion"`
+	AppPathInBuildContainer string `yaml:"appPathInBuildContainer"`
 }
 
 type MavenBuildDockerfileTemplate struct {
@@ -100,43 +106,38 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 	}
 	var bootstrapFiles, bootstrapYamlFiles, springbootAppPropFiles, springbootAppYamlFiles []string
 	appName := pom.ArtifactID
-	for _, dependency := range *pom.Dependencies {
-		if dependency.GroupID == "org.springframework.boot" {
-			appName, bootstrapFiles, bootstrapYamlFiles, springbootAppPropFiles, springbootAppYamlFiles = getSpringBootInfo(dir)
-			sbt := transformertypes.TransformerPlan{
-				Mode: transformertypes.ModeContainer,
-				Paths: map[transformertypes.PathType][]string{
-					artifacts.ProjectPathPathType: {dir},
-				},
-			}
-			if len(bootstrapFiles) > 0 {
-				sbt.Paths[artifacts.SpringBootBootstrapPropsFilePathType] = bootstrapFiles
-			}
-			if len(bootstrapYamlFiles) > 0 {
-				sbt.Paths[artifacts.SpringBootBootstrapYamlFilePathType] = bootstrapYamlFiles
-			}
-			if len(springbootAppPropFiles) > 0 {
-				sbt.Paths[artifacts.SpringBootAppPropsFilePathType] = springbootAppPropFiles
-			}
-			if len(springbootAppYamlFiles) > 0 {
-				sbt.Paths[artifacts.SpringBootBootstrapYamlFilePathType] = springbootAppYamlFiles
-			}
-			if appName == "" {
-				unnamedServices = append(unnamedServices, sbt)
-			} else {
-				namedServices[appName] = append(namedServices[appName], sbt)
-			}
-		}
-	}
-
 	ct := transformertypes.TransformerPlan{
 		Mode:              transformertypes.ModeContainer,
 		ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
 		BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+		Configs:           map[transformertypes.ConfigType]interface{}{},
 		Paths: map[transformertypes.PathType][]string{
 			mavenPomXML:                   {filepath.Join(dir, maven.PomXMLFileName)},
 			artifacts.ProjectPathPathType: {dir},
 		},
+	}
+	for _, dependency := range *pom.Dependencies {
+		if dependency.GroupID == "org.springframework.boot" {
+			appName, bootstrapFiles, bootstrapYamlFiles, springbootAppPropFiles, springbootAppYamlFiles = getSpringBootInfo(dir)
+			if len(bootstrapFiles) > 0 {
+				ct.Paths[artifacts.SpringBootBootstrapPropsFilePathType] = bootstrapFiles
+			}
+			if len(bootstrapYamlFiles) > 0 {
+				ct.Paths[artifacts.SpringBootBootstrapYamlFilePathType] = bootstrapYamlFiles
+			}
+			if len(springbootAppPropFiles) > 0 {
+				ct.Paths[artifacts.SpringBootAppPropsFilePathType] = springbootAppPropFiles
+			}
+			if len(springbootAppYamlFiles) > 0 {
+				ct.Paths[artifacts.SpringBootBootstrapYamlFilePathType] = springbootAppYamlFiles
+			}
+			sbc := artifacts.SpringBootConfig{}
+			if dependency.Version != "" {
+				sbc.SpringBootVersion = dependency.Version
+			}
+			ct.Configs[artifacts.SpringBootConfigType] = sbc
+			break
+		}
 	}
 	if appName == "" {
 		unnamedServices = append(unnamedServices, ct)
@@ -149,36 +150,24 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 
 // Transform transforms the artifacts
 func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
-	javaServiceArtifacts := map[string]javaArtifacts{}
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		if a.Artifact != artifacts.ServiceArtifactType {
 			continue
 		}
-		var ja javaArtifacts
-		var ok bool
-		if ja, ok = javaServiceArtifacts[a.Name]; !ok {
-			ja = javaArtifacts{}
-		}
-		if len(a.Paths[mavenPomXML]) != 0 {
-			ja.MavenArtifact = a
-		} else {
-			ja.SpringBootArtifact = a
-		}
-		javaServiceArtifacts[a.Name] = ja
-	}
-	for sn, ja := range javaServiceArtifacts {
 		javaVersion := ""
 		var pom maven.Pom
-		if len(ja.MavenArtifact.Paths[mavenPomXML]) == 0 {
-			logrus.Errorf("Unable to find pom for %s", sn)
+		if len(a.Paths[mavenPomXML]) == 0 {
+			err := fmt.Errorf("unable to find pom for %s", a.Name)
+			logrus.Errorf("%s", err)
+			return nil, nil, err
 		}
-		err := pom.Load(ja.MavenArtifact.Paths[mavenPomXML][0])
+		err := pom.Load(a.Paths[mavenPomXML][0])
 		if err != nil {
-			logrus.Errorf("Unable to load pom for %s : %s", sn, err)
+			logrus.Errorf("Unable to load pom for %s : %s", a.Name, err)
 		}
-		if ja.SpringBootArtifact.Artifact != "" {
+		if _, ok := a.Configs[artifacts.SpringBootConfigType]; ok {
 			jv, err := pom.GetProperty("java.version")
 			if err == nil {
 				javaVersion = jv
@@ -202,17 +191,13 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if javaVersion == "" {
 			javaVersion = t.MavenConfig.JavaVersion
 		}
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), ja.MavenArtifact.Paths[artifacts.ProjectPathPathType][0])
-		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", ja.MavenArtifact.Paths[artifacts.ProjectPathPathType][0], err)
-		}
 		sImageName := artifacts.ImageName{}
-		err = ja.MavenArtifact.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
 		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(ja.MavenArtifact.Name)
+			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(a.Name)
 		}
 
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/javapackageversions.yaml"), javaVersion)
@@ -234,22 +219,62 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}
-		dfp := filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.TemplatePathMappingType,
 			SrcPath:  dockerfileTemplate,
-			DestPath: dfp,
+			DestPath: filepath.Join(t.Env.TempPath, "Dockerfile.build"),
 			TemplateConfig: MavenBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
 			},
 		})
-
+		deploymentFileName := pom.ArtifactID + "-" + pom.Version
 		switch pom.Packaging {
 		case WarPackaging:
+			createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
+				Name:     a.Name,
+				Artifact: artifacts.WarArtifactType,
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.WarConfigType: artifacts.WarArtifactConfig{
+						DeploymentFile:                    deploymentFileName + ".war",
+						JavaVersion:                       javaVersion,
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+					},
+				},
+				Paths: map[transformertypes.PathType][]string{
+					artifacts.BuildContainerFileType: {dockerfileTemplate},
+				},
+			})
 		case EarPackaging:
+			createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
+				Name:     a.Name,
+				Artifact: artifacts.EarArtifactType,
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.EarConfigType: artifacts.EarArtifactConfig{
+						DeploymentFile:                    deploymentFileName + ".ear",
+						JavaVersion:                       javaVersion,
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+					},
+				},
+				Paths: map[transformertypes.PathType][]string{
+					artifacts.BuildContainerFileType: {dockerfileTemplate},
+				},
+			})
 		default:
-			
+			createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
+				Name:     a.Name,
+				Artifact: artifacts.JarArtifactType,
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.JarConfigType: artifacts.JarArtifactConfig{
+						DeploymentFile:                    deploymentFileName + ".jar",
+						JavaVersion:                       javaVersion,
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+					},
+				},
+				Paths: map[transformertypes.PathType][]string{
+					artifacts.BuildContainerFileType: {dockerfileTemplate},
+				},
+			})
 		}
 	}
-	return pathMappings, nil, nil
+	return pathMappings, createdArtifacts, nil
 }
