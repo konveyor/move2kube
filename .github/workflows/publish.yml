@@ -25,8 +25,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: ${{ steps.get_tag.ouputs.tag }}
-      - id: get_sha
-        run: echo "::set-output name=sha::$(git rev-parse HEAD)"
       - id: semver_parser
         uses: booxmedialtd/ws-action-parse-semver@v1
         with:
@@ -49,7 +47,6 @@ jobs:
             // if it is a stable version then publish the homebrew formula
             if('${{ steps.semver_parser.outputs.prerelease }}' === '') {
               const tag = '${{ steps.get_tag.outputs.tag }}';
-              const tag_sha = '${{ steps.get_sha.outputs.sha }}';
               const publish_formula_workflow = 'publish.yml';
 
               await github.actions.createWorkflowDispatch({
@@ -57,6 +54,6 @@ jobs:
                 repo: 'homebrew-move2kube',
                 workflow_id: publish_formula_workflow,
                 ref: 'main',
-                inputs: {tag, tag_sha},
+                inputs: {tag},
               });
             }
