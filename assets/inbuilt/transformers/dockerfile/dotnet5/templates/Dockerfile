@@ -17,13 +17,23 @@ WORKDIR /src
 COPY . .
 RUN mkdir app
 RUN dotnet restore {{ .CsprojFilePath }}
-RUN dotnet build {{ .CsprojFilePath }} -c Release -o /src/app
-RUN dotnet publish {{ .CsprojFilePath }} -c Release -o /src/app
+RUN dotnet build {{ .CsprojFilePath }} -c Release -o /src/app/build
+
+{{- if or .IsReactProject .IsReactReduxProject .IsAngularProject}}
+RUN apt-get update && \
+    apt-get install -y wget && \
+    apt-get install -y gnupg2 && \
+    wget -qO- https://deb.nodesource.com/setup_10.x | bash - && \
+    apt-get install -y build-essential nodejs
+{{- end }}
+
+FROM build_base AS publish
+RUN dotnet publish {{ .CsprojFilePath }} -c Release -o /src/app/publish
 
 # Run Stage
 FROM mcr.microsoft.com/dotnet/aspnet:5.0
 WORKDIR /app
 EXPOSE {{ .Port }}
 ENV ASPNETCORE_URLS=http://+:{{ .Port }}
-COPY --from=build_base /src/app .
+COPY --from=publish /src/app/publish .
 ENTRYPOINT ["dotnet", "{{ .AppName }}.dll"]

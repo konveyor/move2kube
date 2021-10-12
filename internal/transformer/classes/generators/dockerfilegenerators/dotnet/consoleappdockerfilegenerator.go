@@ -182,7 +182,7 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (namedSer
 			projPath := filepath.Join(strings.TrimSpace(dir), strings.TrimSpace(csPath))
 			byteValue, err := ioutil.ReadFile(projPath)
 			if err != nil {
-				logrus.Errorf("Could not read the project file: %s", err)
+				logrus.Debugf("Could not read the project file: %s", err)
 				continue
 			}
 
