@@ -414,6 +414,7 @@ func ReadJSON(file string, data interface{}) error {
 		logrus.Debugf("Error in reading json file %s: %s.", file, err)
 		return err
 	}
+	jsonFile = bytes.TrimPrefix(jsonFile, []byte("\xef\xbb\xbf"))
 	err = json.Unmarshal(jsonFile, &data)
 	if err != nil {
 		logrus.Debugf("Error in unmarshalling json file %s: %s.", file, err)
