@@ -20,13 +20,13 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
+type SpringBootConfig struct {
+	SpringBootVersion  string   `yaml:"SpringBootVersion"`
+	SpringBootAppName  string   `yaml:"springBootAppName" json:"springBootAppName"`
+	SpringBootProfiles []string `yaml:"springBootProfiles" json:"springBootProfiles"`
+}
+
 const (
-	// SpringBootAppPropsFilePathType defines the springboot app properties file path type
-	SpringBootAppPropsFilePathType transformertypes.PathType = "SpringBootAppPropsFile"
-	// SpringBootAppPropsYamlFilePathType defines the springboot app properties file path type
-	SpringBootAppPropsYamlFilePathType transformertypes.PathType = "SpringBootAppPropsYamlFile"
-	// SpringBootBootstrapPropsFilePathType defines the springboot app properties file path type
-	SpringBootBootstrapPropsFilePathType transformertypes.PathType = "SpringBootBootstrapPropsFile"
-	// SpringBootBootstrapYamlFilePathType defines the springboot app properties file path type
-	SpringBootBootstrapYamlFilePathType transformertypes.PathType = "SpringBootBootstrapYamlFile"
+	// SpringBootConfigType stores the springboot config
+	SpringBootConfigType transformertypes.ConfigType = "SpringBoot"
 )

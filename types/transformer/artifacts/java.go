@@ -30,8 +30,6 @@ const (
 	EarArtifactType transformertypes.ArtifactType = "Ear"
 	EarConfigType   transformertypes.ConfigType   = "Ear"
 
-	SpringBootConfigType transformertypes.ConfigType = "SpringBoot"
-
 	BuildContainerFileType transformertypes.PathType = "BuildContainerFile"
 )
 
@@ -51,8 +49,4 @@ type EarArtifactConfig struct {
 	DeploymentFile                    string `yaml:"DeploymentFile"`
 	JavaVersion                       string `yaml:"JavaVersion"`
 	DeploymentFileDirInBuildContainer string `yaml:"DeploymentFileDirInBuildContainer"`
-}
-
-type SpringBootConfig struct {
-	SpringBootVersion string `yaml:"SpringBootVersion"`
 }

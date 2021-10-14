@@ -25,6 +25,7 @@
 "inbuilt/transformers/cnb/gcrcnb/gcrcnb.yaml" : 0644
 "inbuilt/transformers/compose/composeanalyser/composeanalyser.yaml" : 0644
 "inbuilt/transformers/compose/composegenerator/composegenerator.yaml" : 0644
+"inbuilt/transformers/dockerfile/common/Dockerfile.license" : 0644
 "inbuilt/transformers/dockerfile/django/django.yaml" : 0644
 "inbuilt/transformers/dockerfile/django/m2kdetect.sh" : 0755
 "inbuilt/transformers/dockerfile/django/templates/Dockerfile" : 0644
@@ -38,10 +39,9 @@
 "inbuilt/transformers/dockerfile/golang/golang.yaml" : 0644
 "inbuilt/transformers/dockerfile/golang/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/java/eurekareplaceengine/eureka.yaml" : 0644
-"inbuilt/transformers/dockerfile/java/maven/mappings/java_version2package_name.json" : 0644
+"inbuilt/transformers/dockerfile/java/mappings/javapackageversions.yaml" : 0644
 "inbuilt/transformers/dockerfile/java/maven/maven.yaml" : 0644
 "inbuilt/transformers/dockerfile/java/maven/templates/Dockerfile.gradle-build" : 0644
-"inbuilt/transformers/dockerfile/java/maven/templates/Dockerfile.license" : 0644
 "inbuilt/transformers/dockerfile/java/maven/templates/Dockerfile.maven-build" : 0644
 "inbuilt/transformers/dockerfile/java/zuul/zuulanalyser.yaml" : 0644
 "inbuilt/transformers/dockerfile/nodejs/nodejs.yaml" : 0644

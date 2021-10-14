@@ -104,7 +104,6 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 		logrus.Debugf("Parent pom detected (%s). Ignoring.", mavenFilePath)
 		return nil, nil, nil
 	}
-	var bootstrapFiles, bootstrapYamlFiles, springbootAppPropFiles, springbootAppYamlFiles []string
 	appName := pom.ArtifactID
 	ct := transformertypes.TransformerPlan{
 		Mode:              transformertypes.ModeContainer,
@@ -118,20 +117,8 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 	}
 	for _, dependency := range *pom.Dependencies {
 		if dependency.GroupID == "org.springframework.boot" {
-			appName, bootstrapFiles, bootstrapYamlFiles, springbootAppPropFiles, springbootAppYamlFiles = getSpringBootInfo(dir)
-			if len(bootstrapFiles) > 0 {
-				ct.Paths[artifacts.SpringBootBootstrapPropsFilePathType] = bootstrapFiles
-			}
-			if len(bootstrapYamlFiles) > 0 {
-				ct.Paths[artifacts.SpringBootBootstrapYamlFilePathType] = bootstrapYamlFiles
-			}
-			if len(springbootAppPropFiles) > 0 {
-				ct.Paths[artifacts.SpringBootAppPropsFilePathType] = springbootAppPropFiles
-			}
-			if len(springbootAppYamlFiles) > 0 {
-				ct.Paths[artifacts.SpringBootBootstrapYamlFilePathType] = springbootAppYamlFiles
-			}
 			sbc := artifacts.SpringBootConfig{}
+			sbc.SpringBootAppName, sbc.SpringBootProfiles = getSpringBootAppNameAndProfilesFromDir(dir)
 			if dependency.Version != "" {
 				sbc.SpringBootVersion = dependency.Version
 			}

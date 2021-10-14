@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/types/source/springboot"
 	"github.com/magiconair/properties"
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 	"github.com/sirupsen/logrus"
@@ -37,15 +36,8 @@ const (
 	springbootProfilesConfig = "spring.profiles"
 )
 
-type filetype string
-
 const (
-	yamlfile filetype = "yaml"
-	propfile filetype = "properties"
-)
-
-const (
-	yamlSeperator = `---`
+	seperator = `---`
 )
 
 type SpringBootMetadataFiles struct {
@@ -53,6 +45,10 @@ type SpringBootMetadataFiles struct {
 	bootstrapYamlFiles []string
 	appPropFiles       []string
 	appYamlFiles       []string
+}
+
+func getSpringBootAppNameAndProfilesFromDir(dir string) (appName string, profiles []string) {
+	return getSpringBootAppNameAndProfiles(getSpringBootMetadataFiles(dir))
 }
 
 func getSpringBootMetadataFiles(dir string) (springbootMetadataFiles SpringBootMetadataFiles) {
@@ -75,7 +71,7 @@ func getSpringBootAppNameAndProfiles(springbootMetadataFiles SpringBootMetadataF
 		}
 	}
 	if len(springbootMetadataFiles.bootstrapYamlFiles) != 0 && appName != "" {
-		propss := getYamlSegmentsAsProperties(getYamlSegmentsFromFiles(springbootMetadataFiles.bootstrapYamlFiles))
+		propss := getYamlSegmentsAsProperties(getSegmentsFromFiles(springbootMetadataFiles.bootstrapYamlFiles))
 		for _, props := range propss {
 			if appName = props.GetString(springbootAppNameConfig, ""); appName != "" {
 				break
@@ -85,7 +81,7 @@ func getSpringBootAppNameAndProfiles(springbootMetadataFiles SpringBootMetadataF
 	if len(springbootMetadataFiles.appPropFiles) != 0 {
 		for _, appPropFile := range springbootMetadataFiles.appPropFiles {
 			if appPropFile == "application.properties" {
-				propss := getYamlSegmentsAsProperties(getYamlSegmentsFromFiles([]string{appPropFile}))
+				propss := getPropertiesFileSegmentsAsProperties(getSegmentsFromFiles([]string{appPropFile}))
 				for _, props := range propss {
 					if appName != "" {
 						appName = props.GetString(springbootAppNameConfig, "")
@@ -93,29 +89,43 @@ func getSpringBootAppNameAndProfiles(springbootMetadataFiles SpringBootMetadataF
 					if currProfilesStr := strings.TrimSpace(props.GetString(springbootProfilesConfig, "")); currProfilesStr != "" {
 						currProfiles := strings.Split(currProfilesStr, ",")
 						for _, currProfile := range currProfiles {
-							currProfile = strings.TrimSpace(currProfile)
+							currProfile = strings.TrimPrefix(strings.TrimSpace(currProfile), `!`)
 							if currProfile != "" && !common.IsStringPresent(profiles, currProfile) {
 								profiles = append(profiles, currProfile)
 							}
 						}
 					}
 				}
+			} else {
+				currProfile := strings.TrimSuffix(strings.TrimPrefix(appPropFile, "application-"), ".properties")
+				if currProfile != "" && !common.IsStringPresent(profiles, currProfile) {
+					profiles = append(profiles, currProfile)
+				}
 			}
 		}
 	}
-	appYamlPropFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultResourcesPath), nil, []string{"application(-.+)?.ya?ml"})
-	if len(appYamlPropFiles) != 0 {
-		if appName != "" {
-			for _, appYamlFile := range appYamlPropFiles {
-				appYaml := springboot.SpringApplicationYaml{}
-				err := common.ReadYaml(appYamlFile, &appYaml)
-				if err != nil {
-					logrus.Errorf("Unable to read bootstrap yaml properties : %s", err)
-				} else {
-					if appYaml.Spring.SpringApplication.Name != "" {
-						appName = appYaml.Spring.SpringApplication.Name
-						break
+	if len(springbootMetadataFiles.appYamlFiles) != 0 {
+		for _, appYamlFile := range springbootMetadataFiles.appYamlFiles {
+			if strings.HasPrefix(appYamlFile, "application.") {
+				propss := getYamlSegmentsAsProperties(getSegmentsFromFiles([]string{appYamlFile}))
+				for _, props := range propss {
+					if appName != "" {
+						appName = props.GetString(springbootAppNameConfig, "")
 					}
+					if currProfilesStr := strings.TrimSpace(props.GetString(springbootProfilesConfig, "")); currProfilesStr != "" {
+						currProfiles := strings.Split(currProfilesStr, ",")
+						for _, currProfile := range currProfiles {
+							currProfile = strings.TrimPrefix(strings.TrimSpace(currProfile), `!`)
+							if currProfile != "" && !common.IsStringPresent(profiles, currProfile) {
+								profiles = append(profiles, currProfile)
+							}
+						}
+					}
+				}
+			} else {
+				currProfile := strings.TrimSuffix(strings.TrimSuffix(strings.TrimPrefix(appYamlFile, "application-"), ".yaml"), ".yml")
+				if currProfile != "" && !common.IsStringPresent(profiles, currProfile) {
+					profiles = append(profiles, currProfile)
 				}
 			}
 		}
@@ -142,19 +152,19 @@ func getYamlAsProperties(yamlStr string) (props *properties.Properties, err erro
 	return properties.LoadString(output.String())
 }
 
-func getYamlSegmentsFromFile(yamlFilename string) (yamlSegments []string) {
-	yamlbytes, err := ioutil.ReadFile(yamlFilename)
+func getSegmentsFromFile(fileName string) (segments []string) {
+	filebytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		logrus.Errorf("Unable to read bootstrap yaml file : %s", err)
+		logrus.Errorf("Unable to read file : %s", err)
 		return nil
 	}
-	return strings.Split(string(yamlbytes), yamlSeperator)
+	return strings.Split(string(filebytes), seperator)
 }
 
-func getYamlSegmentsFromFiles(yamlFilenames []string) (yamlSegments []string) {
-	yamlSegments = []string{}
-	for _, yamlFilename := range yamlFilenames {
-		yamlSegments = append(yamlSegments, getYamlSegmentsFromFile(yamlFilename)...)
+func getSegmentsFromFiles(filenames []string) (segments []string) {
+	segments = []string{}
+	for _, filename := range filenames {
+		segments = append(segments, getSegmentsFromFile(filename)...)
 	}
 	return
 }
@@ -162,7 +172,19 @@ func getYamlSegmentsFromFiles(yamlFilenames []string) (yamlSegments []string) {
 func getYamlSegmentsAsProperties(yamlSegments []string) (props []*properties.Properties) {
 	props = []*properties.Properties{}
 	for _, yamlSegment := range yamlSegments {
-		propsForSegment, err := properties.LoadString(yamlSegment)
+		propsForSegment, err := getYamlAsProperties(yamlSegment)
+		if err != nil {
+			logrus.Errorf("Unable to decode yaml file as properties : %s", err)
+		}
+		props = append(props, propsForSegment)
+	}
+	return
+}
+
+func getPropertiesFileSegmentsAsProperties(segments []string) (props []*properties.Properties) {
+	props = []*properties.Properties{}
+	for _, segment := range segments {
+		propsForSegment, err := properties.LoadString(segment)
 		if err != nil {
 			logrus.Errorf("Unable to parse properties segment : %s", err)
 			continue
