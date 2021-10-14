@@ -54,14 +54,12 @@ var (
 
 // DotNet5TemplateConfig implements Nodejs config interface
 type DotNet5TemplateConfig struct {
-	Port                int32
-	HTTPPort            int32
-	HTTPSPort           int32
-	AppName             string
-	CsprojFilePath      string
-	IsReactProject      bool
-	IsReactReduxProject bool
-	IsAngularProject    bool
+	Port            int32
+	HTTPPort        int32
+	HTTPSPort       int32
+	AppName         string
+	CsprojFilePath  string
+	IsNodeJSProject bool
 }
 
 //LaunchSettings defines launchSettings.json properties
@@ -206,13 +204,7 @@ func (t *DotNet5DockerfileGenerator) Transform(newArtifacts []transformertypes.A
 				if err := common.ReadJSON(jsonFile, &packageJson); err != nil {
 					logrus.Debugf("Unable to read the package.json file: %s", err)
 				} else {
-					if _, ok := packageJson.Dependencies["react-redux"]; ok {
-						dotnet5Config.IsReactReduxProject = true
-					} else if _, ok := packageJson.Dependencies["react"]; ok {
-						dotnet5Config.IsReactProject = true
-					} else if _, ok := packageJson.Dependencies["@angular/animations"]; ok {
-						dotnet5Config.IsAngularProject = true
-					}
+					dotnet5Config.IsNodeJSProject = true
 				}
 			}
 		}
