@@ -54,11 +54,12 @@ var (
 
 // DotNet5TemplateConfig implements Nodejs config interface
 type DotNet5TemplateConfig struct {
-	Port           int32
-	HTTPPort       int32
-	HTTPSPort      int32
-	AppName        string
-	CsprojFilePath string
+	Port            int32
+	HTTPPort        int32
+	HTTPSPort       int32
+	AppName         string
+	CsprojFilePath  string
+	IsNodeJSProject bool
 }
 
 //LaunchSettings defines launchSettings.json properties
@@ -156,13 +157,13 @@ func (t *DotNet5DockerfileGenerator) Transform(newArtifacts []transformertypes.A
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+			logrus.Errorf("Unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
 		sImageName := artifacts.ImageName{}
 		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+			logrus.Debugf("Unable to load config for Transformer into %T : %s", sImageName, err)
 		}
 		var ports []int32
 		var dotnet5Config DotNet5TemplateConfig
@@ -179,7 +180,7 @@ func (t *DotNet5DockerfileGenerator) Transform(newArtifacts []transformertypes.A
 			if filepath.Base(jsonFile) == launchSettingsJSON {
 				launchSettings := LaunchSettings{}
 				if err := common.ReadJSON(jsonFile, &launchSettings); err != nil {
-					logrus.Errorf("unable to read the launchSettings.json file: %s", err)
+					logrus.Errorf("Unable to read the launchSettings.json file: %s", err)
 					continue
 				}
 				if launchSettings.Profiles[dotnet5Config.AppName].ApplicationURL != "" {
@@ -196,6 +197,14 @@ func (t *DotNet5DockerfileGenerator) Transform(newArtifacts []transformertypes.A
 						}
 					}
 					ports = append(ports, dotnet5Config.HTTPPort)
+				}
+			}
+			if filepath.Base(jsonFile) == packageJsonFile {
+				var packageJson PackageJSON
+				if err := common.ReadJSON(jsonFile, &packageJson); err != nil {
+					logrus.Debugf("Unable to read the package.json file: %s", err)
+				} else {
+					dotnet5Config.IsNodeJSProject = true
 				}
 			}
 		}

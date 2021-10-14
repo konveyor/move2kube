@@ -58,19 +58,20 @@ type NodejsDockerfileYamlConfig struct {
 
 // PackageJSON represents NodeJS package.json
 type PackageJSON struct {
-	Name        string            `json:"name"`
-	Version     string            `json:"version"`
-	Description string            `json:"description"`
-	Keywords    []string          `json:"keywords"`
-	Homepage    string            `json:"homepage"`
-	License     string            `json:"license"`
-	Files       []string          `json:"files"`
-	Main        string            `json:"main"`
-	Scripts     map[string]string `json:"scripts"`
-	Os          []string          `json:"os"`
-	Cpu         []string          `json:"cpu"`
-	Private     bool              `json:"private"`
-	Engines     map[string]string `json:"engines"`
+	Name         string            `json:"name"`
+	Version      string            `json:"version"`
+	Description  string            `json:"description"`
+	Keywords     []string          `json:"keywords"`
+	Homepage     string            `json:"homepage"`
+	License      string            `json:"license"`
+	Files        []string          `json:"files"`
+	Main         string            `json:"main"`
+	Scripts      map[string]string `json:"scripts"`
+	Os           []string          `json:"os"`
+	Cpu          []string          `json:"cpu"`
+	Private      bool              `json:"private"`
+	Engines      map[string]string `json:"engines"`
+	Dependencies map[string]string `json:"dependencies"`
 }
 
 // Init Initializes the transformer
