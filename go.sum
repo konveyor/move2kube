@@ -1168,6 +1168,8 @@ github.com/miekg/dns v1.1.35/go.mod h1:KNUDUusw/aVsxyTYZM1oqvCicbwhgbNgztCETuNZ7
 github.com/miekg/pkcs11 v1.0.3/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
 github.com/mikefarah/yq/v4 v4.11.2 h1:5680MzRlsyjMKqIDHvdxj1qMgCIKg3++H7UaUF9PaK8=
 github.com/mikefarah/yq/v4 v4.11.2/go.mod h1:2PBiXhy697VmG5ngptTW/jsuwYkVSBkdoPkJtndTTJQ=
+github.com/mikefarah/yq/v4 v4.13.3 h1:pSIf6Jd8U0GAoiGelwXGJZbsap7gaDAgn2X9YAsUq8g=
+github.com/mikefarah/yq/v4 v4.13.3/go.mod h1:kPzkI++fRvD6YflTqBYUrgRjsfYAQL2tiasTKhR1MEk=
 github.com/mindprince/gonvml v0.0.0-20190828220739-9ebdce4bb989/go.mod h1:2eu9pRWp8mo84xCg6KswZ+USQHjwgRhNp06sozOdsTY=
 github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible/go.mod h1:8AuVvqP/mXw1px98n46wfvcGfQ4ci2FwoAjKYxuo3Z4=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=

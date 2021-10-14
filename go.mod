@@ -17,7 +17,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/joho/godotenv v1.3.0
 	github.com/magiconair/properties v1.8.5
-	github.com/mikefarah/yq/v4 v4.11.2
+	github.com/mikefarah/yq/v4 v4.13.3
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/moby/buildkit v0.9.0
 	github.com/openshift/api v0.0.0-20210621070332-ea13be50ba2d

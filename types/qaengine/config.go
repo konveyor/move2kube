@@ -272,7 +272,7 @@ func (*nullLogBackend) Log(logging.Level, int, *logging.Record) error {
 func getPrinterAndEvaluator(buffer *bytes.Buffer) (yqlib.Printer, yqlib.StreamEvaluator) {
 	logging.SetBackend(new(nullLogBackend))
 	indentLevel := 2
-	printer := yqlib.NewPrinter(buffer, false, false, false, indentLevel, false)
+	printer := yqlib.NewPrinter(buffer, yqlib.YamlOutputFormat, false, false, indentLevel, false)
 	evaluator := yqlib.NewStreamEvaluator()
 	return printer, evaluator
 }
