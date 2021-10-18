@@ -256,34 +256,26 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 
 func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
 	return starlark.NewBuiltin(fswriteFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-		var filePath string
-		var data string
-		var permissions = 0666
-
+		var filePath, data string
+		var permissions = common.DefaultFilePermission
 		if err := starlark.UnpackArgs(fswriteFnName, args, kwargs, "filepath", &filePath, "data", &data, "perm?", &permissions); err != nil {
 			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fswriteFnName, err)
 		}
-
 		if filePath == "" {
 			return starlark.None, fmt.Errorf("FilePath is missing in write parameters")
 		}
-
 		if len(data) == 0 {
 			return starlark.None, fmt.Errorf("Data is missing in write parameters")
 		}
-
 		numBytesWritten := len(data)
-
 		err := ioutil.WriteFile(filePath, []byte(data), fs.FileMode(permissions))
 		if err != nil {
 			return starlark.None, fmt.Errorf("Could not write to file %s", filePath)
 		}
-
 		retValue, err := starutil.Marshal(numBytesWritten)
 		if err != nil {
 			return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", numBytesWritten, numBytesWritten, err)
 		}
-
 		return retValue, err
 	})
 }
