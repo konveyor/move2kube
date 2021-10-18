@@ -19,6 +19,7 @@ package external
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -49,13 +50,13 @@ const (
 	projectVarName           = "project"
 
 	// Function names
-	qaFnName    = "query"
-	writeFnName = "write"
+	qaFnName = "query"
 	// fs package
 	fsexistsFnName   = "exists"
 	fsreadFnName     = "read"
 	fsreaddirFnName  = "readdir"
 	fspathjoinFnName = "pathjoin"
+	fswriteFnName    = "write"
 )
 
 // Starlark implements transformer interface and is used to write simple external transformers
@@ -74,12 +75,6 @@ type Starlark struct {
 // StarYamlConfig defines yaml config for Starlark transformers
 type StarYamlConfig struct {
 	StarFile string `yaml:"starFile"`
-}
-
-// WriteFnParams defines yaml config for Starlark transformers
-type WriteFnParams struct {
-	FilePath string `yaml:"FilePath" json:"FilePath"`
-	Data     []byte `yaml:"Data" json:"Data"`
 }
 
 // Init Initializes the transformer
@@ -165,7 +160,7 @@ func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, oldArtifa
 	}
 	oaObj, err := common.GetMapInterfaceFromObj(oldArtifacts)
 	if err != nil {
-		logrus.Errorf("Unable to conver new artifacts to map[string]interface{}")
+		logrus.Errorf("Unable to convert new artifacts to map[string]interface{}")
 		return nil, nil, err
 	}
 	starOldArtifacts, err := starutil.Marshal(oaObj)
@@ -259,36 +254,29 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 	})
 }
 
-func (t *Starlark) getStarlarkFileWrite() *starlark.Builtin {
-	return starlark.NewBuiltin(writeFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-		argDictValue := &starlark.Dict{}
-		if err := starlark.UnpackPositionalArgs(writeFnName, args, kwargs, 1, &argDictValue); err != nil {
-			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Expected a single dict argument. Error: %q", writeFnName, err)
+func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
+	return starlark.NewBuiltin(fswriteFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var filePath string
+		var data string
+		var permissions = 0666
+
+		if err := starlark.UnpackArgs(fswriteFnName, args, kwargs, "filepath", &filePath, "data", &data, "perm?", &permissions); err != nil {
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fswriteFnName, err)
 		}
-		argI, err := starutil.Unmarshal(argDictValue)
+
+		if filePath == "" {
+			return starlark.None, fmt.Errorf("FilePath is missing in write parameters")
+		}
+
+		if len(data) == 0 {
+			return starlark.None, fmt.Errorf("Data is missing in write parameters")
+		}
+
+		numBytesWritten := len(data)
+
+		err := ioutil.WriteFile(filePath, []byte(data), fs.FileMode(permissions))
 		if err != nil {
-			return starlark.None, fmt.Errorf("failed to unmarshal the argument provided to '%s'. Expected a single dict argument. Error: %q", writeFnName, err)
-		}
-		writeParams := WriteFnParams{}
-		err = common.GetObjFromInterface(argI, &writeParams)
-		if err != nil {
-			logrus.Errorf("Unable to convert interface %+v to problem %T : %s", argI, writeParams, err)
-			return starlark.None, err
-		}
-
-		if writeParams.FilePath == "" {
-			return starlark.None, fmt.Errorf("FilePath is missing in write parameters %+v", argI)
-		}
-
-		if len(writeParams.Data) == 0 {
-			return starlark.None, fmt.Errorf("Data is missing in write parameters %+v", argI)
-		}
-
-		numBytesWritten := len(writeParams.Data)
-
-		err = os.WriteFile(writeParams.FilePath, writeParams.Data, 0666)
-		if err != nil {
-			return starlark.None, fmt.Errorf("Could not write to file %s", writeParams.FilePath)
+			return starlark.None, fmt.Errorf("Could not write to file %s", filePath)
 		}
 
 		retValue, err := starutil.Marshal(numBytesWritten)
@@ -331,6 +319,7 @@ func (t *Starlark) addFSModules() {
 			fsreadFnName:     t.getStarlarkFSRead(),
 			fsreaddirFnName:  t.getStarlarkFSReadDir(),
 			fspathjoinFnName: t.getStarlarkFSPathJoin(),
+			fswriteFnName:    t.getStarlarkFSWrite(),
 		},
 	}
 }
@@ -339,8 +328,7 @@ func (t *Starlark) addAppModules() {
 	t.StarGlobals[types.AppNameShort] = &starlarkstruct.Module{
 		Name: types.AppNameShort,
 		Members: starlark.StringDict{
-			qaFnName:    t.getStarlarkQuery(),
-			writeFnName: t.getStarlarkFileWrite(),
+			qaFnName: t.getStarlarkQuery(),
 		},
 	}
 }
