@@ -44,16 +44,14 @@ jobs:
               ref: context.ref,
             });
 
-            // if it is a stable version then publish the homebrew formula
-            if('${{ steps.semver_parser.outputs.prerelease }}' === '') {
-              const tag = '${{ steps.get_tag.outputs.tag }}';
-              const publish_formula_workflow = 'publish.yml';
+            // create a homebrew formula
+            const tag = '${{ steps.get_tag.outputs.tag }}';
+            const publish_formula_workflow = 'publish.yml';
 
-              await github.actions.createWorkflowDispatch({
-                owner: context.repo.owner,
-                repo: 'homebrew-move2kube',
-                workflow_id: publish_formula_workflow,
-                ref: 'main',
-                inputs: {tag},
-              });
-            }
+            await github.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: 'homebrew-move2kube',
+              workflow_id: publish_formula_workflow,
+              ref: 'main',
+              inputs: {tag},
+            });
