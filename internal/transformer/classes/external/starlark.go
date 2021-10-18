@@ -19,6 +19,7 @@ package external
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -55,6 +56,7 @@ const (
 	fsreadFnName     = "read"
 	fsreaddirFnName  = "readdir"
 	fspathjoinFnName = "pathjoin"
+	fswriteFnName    = "write"
 )
 
 // Starlark implements transformer interface and is used to write simple external transformers
@@ -158,7 +160,7 @@ func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, oldArtifa
 	}
 	oaObj, err := common.GetMapInterfaceFromObj(oldArtifacts)
 	if err != nil {
-		logrus.Errorf("Unable to conver new artifacts to map[string]interface{}")
+		logrus.Errorf("Unable to convert new artifacts to map[string]interface{}")
 		return nil, nil, err
 	}
 	starOldArtifacts, err := starutil.Marshal(oaObj)
@@ -252,6 +254,32 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 	})
 }
 
+func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
+	return starlark.NewBuiltin(fswriteFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var filePath, data string
+		var permissions = common.DefaultFilePermission
+		if err := starlark.UnpackArgs(fswriteFnName, args, kwargs, "filepath", &filePath, "data", &data, "perm?", &permissions); err != nil {
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fswriteFnName, err)
+		}
+		if filePath == "" {
+			return starlark.None, fmt.Errorf("FilePath is missing in write parameters")
+		}
+		if len(data) == 0 {
+			return starlark.None, fmt.Errorf("Data is missing in write parameters")
+		}
+		numBytesWritten := len(data)
+		err := ioutil.WriteFile(filePath, []byte(data), fs.FileMode(permissions))
+		if err != nil {
+			return starlark.None, fmt.Errorf("Could not write to file %s", filePath)
+		}
+		retValue, err := starutil.Marshal(numBytesWritten)
+		if err != nil {
+			return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", numBytesWritten, numBytesWritten, err)
+		}
+		return retValue, err
+	})
+}
+
 func (t *Starlark) setDefaultGlobals() {
 	t.StarGlobals = starlark.StringDict{}
 	t.addStarlibModules()
@@ -283,6 +311,7 @@ func (t *Starlark) addFSModules() {
 			fsreadFnName:     t.getStarlarkFSRead(),
 			fsreaddirFnName:  t.getStarlarkFSReadDir(),
 			fspathjoinFnName: t.getStarlarkFSPathJoin(),
+			fswriteFnName:    t.getStarlarkFSWrite(),
 		},
 	}
 }
