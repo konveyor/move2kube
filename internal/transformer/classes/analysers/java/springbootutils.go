@@ -97,7 +97,7 @@ func getSpringBootAppNameAndProfiles(springbootMetadataFiles SpringBootMetadataF
 					}
 				}
 			} else {
-				currProfile := strings.TrimSuffix(strings.TrimPrefix(appPropFile, "application-"), ".properties")
+				currProfile := strings.TrimSuffix(strings.TrimPrefix(filepath.Base(appPropFile), "application-"), ".properties")
 				if currProfile != "" && !common.IsStringPresent(profiles, currProfile) {
 					profiles = append(profiles, currProfile)
 				}
@@ -123,14 +123,14 @@ func getSpringBootAppNameAndProfiles(springbootMetadataFiles SpringBootMetadataF
 					}
 				}
 			} else {
-				currProfile := strings.TrimSuffix(strings.TrimSuffix(strings.TrimPrefix(appYamlFile, "application-"), ".yaml"), ".yml")
+				currProfile := strings.TrimSuffix(strings.TrimSuffix(strings.TrimPrefix(filepath.Base(appYamlFile), "application-"), ".yaml"), ".yml")
 				if currProfile != "" && !common.IsStringPresent(profiles, currProfile) {
 					profiles = append(profiles, currProfile)
 				}
 			}
 		}
 	}
-	return
+	return appName, profiles
 }
 
 func getYamlAsProperties(yamlStr string) (props *properties.Properties, err error) {

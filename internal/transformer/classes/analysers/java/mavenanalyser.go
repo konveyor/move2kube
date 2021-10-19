@@ -127,7 +127,11 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 		}
 	}
 	if appName == "" {
-		unnamedServices = append(unnamedServices, ct)
+		if pom.Name != "" {
+			namedServices[pom.Name] = append(namedServices[pom.Name], ct)
+		} else {
+			unnamedServices = append(unnamedServices, ct)
+		}
 	} else {
 		namedServices[appName] = append(namedServices[appName], ct)
 	}

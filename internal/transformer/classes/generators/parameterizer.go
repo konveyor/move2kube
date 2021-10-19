@@ -68,9 +68,6 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 		ps = append(ps, p...)
 	}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.KubernetesYamlsArtifactType {
-			continue
-		}
 		yamlsPath := a.Paths[artifacts.KubernetesYamlsPathType][0]
 		destPath := yamlsPath + "-parameterized"
 		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, parameterizertypes.PackagingSpecPathT{}, ps)

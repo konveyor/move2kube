@@ -69,7 +69,7 @@ type Pom struct {
 
 // Load loads a pom xml file
 func (pom *Pom) Load(file string) error {
-	err := common.ReadXML(file, &pom)
+	err := common.ReadXML(file, pom)
 	if err != nil {
 		logrus.Errorf("Unable to unmarshal pom file (%s) : %s", file, err)
 		return err

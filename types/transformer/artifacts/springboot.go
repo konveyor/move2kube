@@ -21,9 +21,9 @@ import (
 )
 
 type SpringBootConfig struct {
-	SpringBootVersion  string   `yaml:"SpringBootVersion"`
-	SpringBootAppName  string   `yaml:"springBootAppName" json:"springBootAppName"`
-	SpringBootProfiles []string `yaml:"springBootProfiles" json:"springBootProfiles"`
+	SpringBootVersion  string   `yaml:"springBootVersion,omitempty" json:"springBootVersion,omitempty"`
+	SpringBootAppName  string   `yaml:"springBootAppName,omitempty" json:"springBootAppName,omitempty"`
+	SpringBootProfiles []string `yaml:"springBootProfiles,omitempty" json:"springBootProfiles,omitempty"`
 }
 
 const (
