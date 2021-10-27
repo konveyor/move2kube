@@ -65,6 +65,7 @@ func (p *processor) process(source, destination string) error {
 				destination = filepath.Join(destination, filepath.Base(source))
 			}
 		}
+
 		if err := p.processFile(source, destination); err != nil {
 			return err
 		}

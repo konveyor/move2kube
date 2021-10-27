@@ -92,7 +92,7 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 }
 
 //GetFilesByName returns files by name
-func GetFilesByName(inputPath string, names []string, nameRegexs []string) ([]string, error) {
+func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]string, error) {
 	var files []string
 	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
 		logrus.Warnf("Error in walking through files due to : %q", err)
@@ -101,7 +101,7 @@ func GetFilesByName(inputPath string, names []string, nameRegexs []string) ([]st
 		logrus.Warnf("The path %q is not a directory.", inputPath)
 	}
 	compiledNameRegexes := []*regexp.Regexp{}
-	for _, nameRegex := range nameRegexs {
+	for _, nameRegex := range nameRegexes {
 		compiledNameRegex, err := regexp.Compile(nameRegex)
 		if err != nil {
 			logrus.Errorf("Could not compile regular expression (%s): %s. Ignoring regex during search", err, nameRegex)
@@ -150,41 +150,42 @@ func GetFilesByName(inputPath string, names []string, nameRegexs []string) ([]st
 	return files, nil
 }
 
-// GetFileNameInCurrentDirectory returns the name of the file present in the current directory which matches the pattern
-func GetFileNameInCurrentDirectory(path, fileNamePattern string, isFileNameRegex bool) (fileName string, err error) {
+// GetFilesInCurrentDirectory returns the name of the file present in the current directory which matches the pattern
+func GetFilesInCurrentDirectory(path string, fileNames, fileNameRegexes []string) (files []string, err error) {
+	files = []string{}
 	dirhandle, err := os.Open(path)
 	if err != nil {
 		logrus.Errorf("Unable to open directory: %s", err)
-		return "", err
+		return nil, err
 	}
 	defer dirhandle.Close()
-
-	var compiledNameRegex *regexp.Regexp
-	if isFileNameRegex {
-		compiledNameRegex, err = regexp.Compile(fileNamePattern)
+	compiledNameRegexes := []*regexp.Regexp{}
+	for _, nameRegex := range fileNameRegexes {
+		compiledNameRegex, err := regexp.Compile(nameRegex)
 		if err != nil {
-			logrus.Errorf("Could not compile regular expression (%s): %s. Ignoring regex during search", err, fileNamePattern)
-			return "", err
+			logrus.Errorf("Could not compile regular expression (%s): %s. Ignoring regex during search", err, nameRegex)
+			continue
 		}
+		compiledNameRegexes = append(compiledNameRegexes, compiledNameRegex)
 	}
-
-	fileNames, err := dirhandle.Readdirnames(0) // 0 to read all files and folders
+	currFileNames, err := dirhandle.Readdirnames(0) // 0 to read all files and folders
 	if err != nil {
 		logrus.Errorf("Unable to read dir names in %s : %s", path, err)
-		return "", err
+		return nil, err
 	}
-	for _, filename := range fileNames {
-		if !isFileNameRegex {
-			if filename == fileNamePattern {
-				return filepath.Join(path, filename), nil
+	for _, fname := range currFileNames {
+		for _, name := range fileNames {
+			if name == fname {
+				files = append(files, filepath.Join(path, fname))
 			}
-		} else {
-			if compiledNameRegex.MatchString(filename) {
-				return filepath.Join(path, filename), nil
+		}
+		for _, compiledNameRegex := range compiledNameRegexes {
+			if compiledNameRegex.MatchString(fname) {
+				files = append(files, filepath.Join(path, fname))
 			}
 		}
 	}
-	return "", nil
+	return files, nil
 }
 
 //YamlAttrPresent returns YAML attributes

@@ -39,6 +39,8 @@
 "inbuilt/transformers/dockerfile/golang/golang.yaml" : 0644
 "inbuilt/transformers/dockerfile/golang/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/java/eurekareplaceengine/eureka.yaml" : 0644
+"inbuilt/transformers/dockerfile/java/jar/jar.yaml" : 0644
+"inbuilt/transformers/dockerfile/java/jar/templates/Dockerfile.embedded" : 0644
 "inbuilt/transformers/dockerfile/java/mappings/javapackageversions.yaml" : 0644
 "inbuilt/transformers/dockerfile/java/maven/maven.yaml" : 0644
 "inbuilt/transformers/dockerfile/java/maven/templates/Dockerfile.gradle-build" : 0644

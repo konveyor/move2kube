@@ -75,7 +75,7 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[
 		if isdf, _ := isDockerFile(path); isdf {
 			trans := transformertypes.TransformerPlan{
 				Mode:              t.Config.Spec.Mode,
-				ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType, artifacts.DockerfileArtifactType},
+				ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 				BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 				Paths: map[string][]string{
 					artifacts.ProjectPathPathType: {filepath.Dir(path)},

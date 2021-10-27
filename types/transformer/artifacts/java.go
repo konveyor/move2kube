@@ -23,20 +23,24 @@ import (
 const (
 	JarArtifactType transformertypes.ArtifactType = "Jar"
 	JarConfigType   transformertypes.ConfigType   = "Jar"
+	JarPathType     transformertypes.PathType     = "Jar"
 
 	WarArtifactType transformertypes.ArtifactType = "War"
 	WarConfigType   transformertypes.ConfigType   = "War"
+	WarPathType     transformertypes.PathType     = "War"
 
 	EarArtifactType transformertypes.ArtifactType = "Ear"
 	EarConfigType   transformertypes.ConfigType   = "Ear"
+	EarPathType     transformertypes.PathType     = "Ear"
 
 	BuildContainerFileType transformertypes.PathType = "BuildContainerFile"
 )
 
 type JarArtifactConfig struct {
-	DeploymentFile                    string `yaml:"DeploymentFile"`
-	JavaVersion                       string `yaml:"JavaVersion"`
-	DeploymentFileDirInBuildContainer string `yaml:"DeploymentFileDirInBuildContainer"`
+	DeploymentFile              string `yaml:"deploymentFile"`
+	JavaVersion                 string `yaml:"javaVersion"`
+	DeploymentFileDir           string `yaml:"deploymentFileDir"`
+	IsDeploymentFileInContainer bool   `yaml:"isDeploymentFileInContainer"`
 }
 
 type WarArtifactConfig struct {

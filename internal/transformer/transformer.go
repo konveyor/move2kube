@@ -64,6 +64,7 @@ func init() {
 		new(analysers.DockerfileDetector),
 		new(analysers.DockerfileParser),
 
+		new(java.JarAnalyser),
 		new(java.MavenAnalyser),
 		new(java.ZuulAnalyser),
 		new(java.EurekaReplaceEngine),

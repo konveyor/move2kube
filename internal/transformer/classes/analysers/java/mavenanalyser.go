@@ -28,7 +28,6 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
-	//"github.com/magiconair/properties"
 )
 
 const (
@@ -86,22 +85,22 @@ func (t *MavenAnalyser) BaseDirectoryDetect(dir string) (namedServices map[strin
 // DirectoryDetect runs detect in each sub directory
 func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	namedServices = map[string]transformertypes.ServicePlan{}
-	mavenFilePath, err := common.GetFileNameInCurrentDirectory(dir, maven.PomXMLFileName, false)
+	mavenFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{maven.PomXMLFileName}, nil)
 	if err != nil {
 		logrus.Errorf("Error while parsing directory %s for maven file : %s", dir, err)
 		return nil, nil, err
 	}
-	if mavenFilePath == "" {
+	if len(mavenFilePaths) == 0 {
 		return nil, nil, nil
 	}
 	pom := &maven.Pom{}
-	err = pom.Load(mavenFilePath)
+	err = pom.Load(mavenFilePaths[0])
 	if err != nil {
-		logrus.Errorf("Unable to unmarshal pom file (%s): %s", mavenFilePath, err)
+		logrus.Errorf("Unable to unmarshal pom file (%s): %s", mavenFilePaths[0], err)
 		return nil, nil, err
 	}
 	if pom.Modules != nil && len(*(pom.Modules)) != 0 {
-		logrus.Debugf("Parent pom detected (%s). Ignoring.", mavenFilePath)
+		logrus.Debugf("Parent pom detected (%s). Ignoring.", mavenFilePaths[0])
 		return nil, nil, nil
 	}
 	appName := pom.ArtifactID
@@ -111,10 +110,19 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 		BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 		Configs:           map[transformertypes.ConfigType]interface{}{},
 		Paths: map[transformertypes.PathType][]string{
-			mavenPomXML:                   {filepath.Join(dir, maven.PomXMLFileName)},
+			artifacts.MavenPomPathType:    {filepath.Join(dir, maven.PomXMLFileName)},
 			artifacts.ProjectPathPathType: {dir},
 		},
 	}
+	mc := artifacts.MavenConfig{}
+	mc.ArtifactType = pom.Packaging
+	if mc.ArtifactType == "" {
+		mc.ArtifactType = "jar"
+	}
+	if pom.ArtifactID != "" {
+		mc.MavenAppName = pom.ArtifactID
+	}
+	ct.Configs[artifacts.MavenConfigType] = mc
 	for _, dependency := range *pom.Dependencies {
 		if dependency.GroupID == "org.springframework.boot" {
 			sbc := artifacts.SpringBootConfig{}
@@ -127,15 +135,10 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 		}
 	}
 	if appName == "" {
-		if pom.Name != "" {
-			namedServices[pom.Name] = append(namedServices[pom.Name], ct)
-		} else {
-			unnamedServices = append(unnamedServices, ct)
-		}
+		unnamedServices = append(unnamedServices, ct)
 	} else {
 		namedServices[appName] = append(namedServices[appName], ct)
 	}
-
 	return
 }
 
@@ -149,12 +152,12 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		}
 		javaVersion := ""
 		var pom maven.Pom
-		if len(a.Paths[mavenPomXML]) == 0 {
+		if len(a.Paths[artifacts.MavenPomPathType]) == 0 {
 			err := fmt.Errorf("unable to find pom for %s", a.Name)
 			logrus.Errorf("%s", err)
 			return nil, nil, err
 		}
-		err := pom.Load(a.Paths[mavenPomXML][0])
+		err := pom.Load(a.Paths[artifacts.MavenPomPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to load pom for %s : %s", a.Name, err)
 		}
@@ -190,7 +193,12 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(a.Name)
 		}
-
+		var sConfig artifacts.ServiceConfig
+		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+			continue
+		}
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/javapackageversions.yaml"), javaVersion)
 		if err != nil {
 			logrus.Error("Unable to find mapping version for java version %s : %s", javaVersion, err)
@@ -204,7 +212,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if err != nil {
 			logrus.Errorf("Unable to read Dockerfile license template : %s", err)
 		}
-		var dockerfileTemplate = filepath.Join(t.Env.TempPath, "Dockerfile.template")
+		dockerfileTemplate := filepath.Join(t.Env.TempPath, "Dockerfile.template")
 		template := string(license) + "\n" + string(mavenBuild)
 		err = ioutil.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
 		if err != nil {
@@ -256,13 +264,17 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 				Artifact: artifacts.JarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.JarConfigType: artifacts.JarArtifactConfig{
-						DeploymentFile:                    deploymentFileName + ".jar",
-						JavaVersion:                       javaVersion,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFile:              deploymentFileName + ".jar",
+						JavaVersion:                 javaVersion,
+						DeploymentFileDir:           filepath.Join(defaultAppPathInContainer, "target"),
+						IsDeploymentFileInContainer: true,
 					},
+					artifacts.ImageNameConfigType: sImageName,
+					artifacts.ServiceConfigType:   sConfig,
 				},
 				Paths: map[transformertypes.PathType][]string{
 					artifacts.BuildContainerFileType: {dockerfileTemplate},
+					artifacts.ProjectPathPathType:    a.Paths[artifacts.ProjectPathPathType],
 				},
 			})
 		}
