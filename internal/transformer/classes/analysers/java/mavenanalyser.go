@@ -31,10 +31,6 @@ import (
 )
 
 const (
-	mavenPomXML transformertypes.PathType = "MavenPomXML"
-)
-
-const (
 	defaultAppPathInContainer = "/app/"
 )
 

@@ -137,6 +137,9 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArt
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", jarArtifactConfig, err)
 		}
+		if jarArtifactConfig.JavaVersion == "" {
+			jarArtifactConfig.JavaVersion = t.JarConfig.JavaVersion
+		}
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/javapackageversions.yaml"), jarArtifactConfig.JavaVersion)
 		if err != nil {
 			logrus.Error("Unable to find mapping version for java version %s : %s", jarArtifactConfig.JavaVersion, err)
@@ -150,10 +153,12 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArt
 			SrcPath:  dockerfileTemplate,
 			DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
 			TemplateConfig: JarDockerfileTemplate{
-				JavaPackageName:   javaPackage,
-				DeploymentFile:    jarArtifactConfig.DeploymentFile,
-				DeploymentFileDir: jarArtifactConfig.DeploymentFileDir,
-				Port:              "8080",
+				JavaVersion:          jarArtifactConfig.JavaVersion,
+				JavaPackageName:      javaPackage,
+				DeploymentFile:       jarArtifactConfig.DeploymentFile,
+				DeploymentFileDir:    jarArtifactConfig.DeploymentFileDir,
+				Port:                 "8080",
+				PortConfigureEnvName: "SERVER_PORT",
 			},
 		})
 		paths := a.Paths
