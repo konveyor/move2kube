@@ -35,10 +35,12 @@ type JarAnalyser struct {
 	JarConfig *JarYamlConfig
 }
 
+// JarYamlConfig stores jar related configuration information
 type JarYamlConfig struct {
 	JavaVersion string `yaml:"defaultJavaVersion"`
 }
 
+// JarDockerfileTemplate stores parameters for the dockerfile template
 type JarDockerfileTemplate struct {
 	JavaVersion          string
 	JavaPackageName      string
@@ -142,7 +144,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArt
 		}
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/javapackageversions.yaml"), jarArtifactConfig.JavaVersion)
 		if err != nil {
-			logrus.Error("Unable to find mapping version for java version %s : %s", jarArtifactConfig.JavaVersion, err)
+			logrus.Errorf("Unable to find mapping version for java version %s : %s", jarArtifactConfig.JavaVersion, err)
 			javaPackage = "java-1.8.0-openjdk-devel"
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{

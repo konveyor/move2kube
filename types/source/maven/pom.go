@@ -26,7 +26,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PomXML represents the name of the POM File
+// PomXMLFileName represents the name of the POM File
 const PomXMLFileName string = "pom.xml"
 
 var (

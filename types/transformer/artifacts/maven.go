@@ -20,6 +20,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
+// MavenConfig stores maven related configuration information
 type MavenConfig struct {
 	MavenAppName string `yaml:"mavenAppName,omitempty" json:"mavenAppName,omitempty"`
 	ArtifactType string `yaml:"artifactType"`

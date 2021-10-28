@@ -21,21 +21,32 @@ import (
 )
 
 const (
+	// JarArtifactType defines the jar artifact type
 	JarArtifactType transformertypes.ArtifactType = "Jar"
-	JarConfigType   transformertypes.ConfigType   = "Jar"
-	JarPathType     transformertypes.PathType     = "Jar"
+	// JarConfigType defines the jar config type
+	JarConfigType transformertypes.ConfigType = "Jar"
+	// JarPathType defines jar path type
+	JarPathType transformertypes.PathType = "Jar"
 
+	// WarArtifactType defines war artifact type
 	WarArtifactType transformertypes.ArtifactType = "War"
-	WarConfigType   transformertypes.ConfigType   = "War"
-	WarPathType     transformertypes.PathType     = "War"
+	// WarConfigType defines the war config type
+	WarConfigType transformertypes.ConfigType = "War"
+	// WarPathType defines the war path type
+	WarPathType transformertypes.PathType = "War"
 
+	// EarArtifactType defines the ear artifact type
 	EarArtifactType transformertypes.ArtifactType = "Ear"
-	EarConfigType   transformertypes.ConfigType   = "Ear"
-	EarPathType     transformertypes.PathType     = "Ear"
+	// EarConfigType defines the ear config type
+	EarConfigType transformertypes.ConfigType = "Ear"
+	// EarPathType defines the ear path type
+	EarPathType transformertypes.PathType = "Ear"
 
+	// BuildContainerFileType defines the build container file type
 	BuildContainerFileType transformertypes.PathType = "BuildContainerFile"
 )
 
+// JarArtifactConfig defines a JarArtifactConfig struct
 type JarArtifactConfig struct {
 	DeploymentFile              string `yaml:"deploymentFile"`
 	JavaVersion                 string `yaml:"javaVersion"`
@@ -43,12 +54,14 @@ type JarArtifactConfig struct {
 	IsDeploymentFileInContainer bool   `yaml:"isDeploymentFileInContainer"`
 }
 
+// WarArtifactConfig defines a WarArtifactConfig struct
 type WarArtifactConfig struct {
 	DeploymentFile                    string `yaml:"DeploymentFile"`
 	JavaVersion                       string `yaml:"JavaVersion"`
 	DeploymentFileDirInBuildContainer string `yaml:"DeploymentFileDirInBuildContainer"`
 }
 
+// EarArtifactConfig defines a EarArtifactConfig struct
 type EarArtifactConfig struct {
 	DeploymentFile                    string `yaml:"DeploymentFile"`
 	JavaVersion                       string `yaml:"JavaVersion"`

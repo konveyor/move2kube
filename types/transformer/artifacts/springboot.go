@@ -20,6 +20,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
+// SpringBootConfig stores spring boot related configuration information
 type SpringBootConfig struct {
 	SpringBootVersion  string   `yaml:"springBootVersion,omitempty" json:"springBootVersion,omitempty"`
 	SpringBootAppName  string   `yaml:"springBootAppName,omitempty" json:"springBootAppName,omitempty"`

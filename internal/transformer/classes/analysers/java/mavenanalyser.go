@@ -45,12 +45,14 @@ type MavenAnalyser struct {
 	MavenConfig *MavenYamlConfig
 }
 
+// MavenYamlConfig stores the maven related information
 type MavenYamlConfig struct {
 	MavenVersion            string `yaml:"defaultMavenVersion"`
 	JavaVersion             string `yaml:"defaultJavaVersion"`
 	AppPathInBuildContainer string `yaml:"appPathInBuildContainer"`
 }
 
+// MavenBuildDockerfileTemplate defines the information for the build dockerfile template
 type MavenBuildDockerfileTemplate struct {
 	JavaPackageName string
 }
@@ -197,7 +199,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		}
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/javapackageversions.yaml"), javaVersion)
 		if err != nil {
-			logrus.Error("Unable to find mapping version for java version %s : %s", javaVersion, err)
+			logrus.Errorf("Unable to find mapping version for java version %s : %s", javaVersion, err)
 			javaPackage = "java-1.8.0-openjdk-devel"
 		}
 		license, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license"))

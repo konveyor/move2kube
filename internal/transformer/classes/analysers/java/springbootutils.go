@@ -40,6 +40,7 @@ const (
 	seperator = `---`
 )
 
+// SpringBootMetadataFiles defines the lists of configuration files from spring boot applications
 type SpringBootMetadataFiles struct {
 	bootstrapFiles     []string
 	bootstrapYamlFiles []string

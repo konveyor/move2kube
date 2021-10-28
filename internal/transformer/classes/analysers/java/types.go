@@ -30,6 +30,7 @@ type JavaPackageNamesMapping struct {
 	Spec             JavaPackageNamesMappingSpec `yaml:"spec,omitempty"`
 }
 
+// JavaPackageNamesMappingSpec stores the java package version spec
 type JavaPackageNamesMappingSpec struct {
 	PackageVersions map[string]string `yaml:"packageVersions"`
 }
@@ -37,7 +38,10 @@ type JavaPackageNamesMappingSpec struct {
 type packaging = string
 
 const (
+	// JarPackaging defines jar packaging
 	JarPackaging packaging = "jar"
+	// WarPackaging defines war packaging
 	WarPackaging packaging = "war"
+	// EarPackaging defines ear packaging
 	EarPackaging packaging = "ear"
 )
