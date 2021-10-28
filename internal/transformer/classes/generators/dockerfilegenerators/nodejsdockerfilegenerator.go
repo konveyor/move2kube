@@ -34,7 +34,7 @@ import (
 
 const (
 	nodeVersion     = "12"
-	packageJsonFile = "package.json"
+	packageJSONFile = "package.json"
 )
 
 // NodejsDockerfileGenerator implements the Transformer interface
@@ -68,7 +68,7 @@ type PackageJSON struct {
 	Main         string            `json:"main"`
 	Scripts      map[string]string `json:"scripts"`
 	Os           []string          `json:"os"`
-	Cpu          []string          `json:"cpu"`
+	CPU          []string          `json:"cpu"`
 	Private      bool              `json:"private"`
 	Engines      map[string]string `json:"engines"`
 	Dependencies map[string]string `json:"dependencies"`
@@ -99,17 +99,17 @@ func (t *NodejsDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServic
 
 // DirectoryDetect runs detect in each sub directory
 func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	var packageJson PackageJSON
-	if err := common.ReadJSON(filepath.Join(dir, packageJsonFile), &packageJson); err != nil {
+	var packageJSON PackageJSON
+	if err := common.ReadJSON(filepath.Join(dir, packageJSONFile), &packageJSON); err != nil {
 		logrus.Debugf("unable to read the package.json file: %s", err)
 		return nil, nil, nil
 	}
-	if packageJson.Name == "" {
+	if packageJSON.Name == "" {
 		err = fmt.Errorf("unable to get project name of nodejs project at %s. Ignoring", dir)
 		return nil, nil, err
 	}
 	namedServices = map[string]transformertypes.ServicePlan{
-		packageJson.Name: []transformertypes.TransformerPlan{{
+		packageJSON.Name: []transformertypes.TransformerPlan{{
 			Mode:              t.Config.Spec.Mode,
 			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -146,14 +146,14 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		}
 		build := false
 		nodeVersion := t.NodejsConfig.DefaultNodejsVersion
-		var packageJson PackageJSON
-		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], packageJsonFile), &packageJson); err != nil {
+		var packageJSON PackageJSON
+		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], packageJSONFile), &packageJSON); err != nil {
 			logrus.Debugf("unable to read the package.json file: %s", err)
 		} else {
-			if _, ok := packageJson.Scripts["build"]; ok {
+			if _, ok := packageJSON.Scripts["build"]; ok {
 				build = true
 			}
-			if node, ok := packageJson.Engines["node"]; ok {
+			if node, ok := packageJSON.Engines["node"]; ok {
 				if !strings.HasPrefix(node, "v") {
 					node = "v" + node
 				}

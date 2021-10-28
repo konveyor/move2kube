@@ -21,6 +21,7 @@ import (
 	"crypto/sha256"
 	"embed"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"hash/crc64"
 	"io"
@@ -91,13 +92,22 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 }
 
 //GetFilesByName returns files by name
-func GetFilesByName(inputPath string, names []string) ([]string, error) {
+func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]string, error) {
 	var files []string
 	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
 		logrus.Warnf("Error in walking through files due to : %q", err)
 		return files, err
 	} else if !info.IsDir() {
 		logrus.Warnf("The path %q is not a directory.", inputPath)
+	}
+	compiledNameRegexes := []*regexp.Regexp{}
+	for _, nameRegex := range nameRegexes {
+		compiledNameRegex, err := regexp.Compile(nameRegex)
+		if err != nil {
+			logrus.Errorf("Could not compile regular expression (%s): %s. Ignoring regex during search", err, nameRegex)
+			continue
+		}
+		compiledNameRegexes = append(compiledNameRegexes, compiledNameRegex)
 	}
 	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil && path == inputPath { // if walk for root search path return gets error
@@ -119,8 +129,15 @@ func GetFilesByName(inputPath string, names []string) ([]string, error) {
 		}
 		fname := filepath.Base(path)
 		for _, name := range names {
-			if fname == name {
+			if name == fname {
 				files = append(files, path)
+				return nil
+			}
+		}
+		for _, compiledNameRegex := range compiledNameRegexes {
+			if compiledNameRegex.MatchString(fname) {
+				files = append(files, path)
+				return nil
 			}
 		}
 		return nil
@@ -130,6 +147,44 @@ func GetFilesByName(inputPath string, names []string) ([]string, error) {
 		return files, err
 	}
 	logrus.Debugf("No of files with %s names identified : %d", names, len(files))
+	return files, nil
+}
+
+// GetFilesInCurrentDirectory returns the name of the file present in the current directory which matches the pattern
+func GetFilesInCurrentDirectory(path string, fileNames, fileNameRegexes []string) (files []string, err error) {
+	files = []string{}
+	dirhandle, err := os.Open(path)
+	if err != nil {
+		logrus.Errorf("Unable to open directory: %s", err)
+		return nil, err
+	}
+	defer dirhandle.Close()
+	compiledNameRegexes := []*regexp.Regexp{}
+	for _, nameRegex := range fileNameRegexes {
+		compiledNameRegex, err := regexp.Compile(nameRegex)
+		if err != nil {
+			logrus.Errorf("Could not compile regular expression (%s): %s. Ignoring regex during search", err, nameRegex)
+			continue
+		}
+		compiledNameRegexes = append(compiledNameRegexes, compiledNameRegex)
+	}
+	currFileNames, err := dirhandle.Readdirnames(0) // 0 to read all files and folders
+	if err != nil {
+		logrus.Errorf("Unable to read dir names in %s : %s", path, err)
+		return nil, err
+	}
+	for _, fname := range currFileNames {
+		for _, name := range fileNames {
+			if name == fname {
+				files = append(files, filepath.Join(path, fname))
+			}
+		}
+		for _, compiledNameRegex := range compiledNameRegexes {
+			if compiledNameRegex.MatchString(fname) {
+				files = append(files, filepath.Join(path, fname))
+			}
+		}
+	}
 	return files, nil
 }
 
@@ -364,6 +419,21 @@ func ReadJSON(file string, data interface{}) error {
 	err = json.Unmarshal(jsonFile, &data)
 	if err != nil {
 		logrus.Debugf("Error in unmarshalling json file %s: %s.", file, err)
+		return err
+	}
+	return nil
+}
+
+// ReadXML reads an json into an object
+func ReadXML(file string, data interface{}) error {
+	xmlFile, err := ioutil.ReadFile(file)
+	if err != nil {
+		logrus.Debugf("Error in reading xml file %s: %s.", file, err)
+		return err
+	}
+	err = xml.Unmarshal(xmlFile, &data)
+	if err != nil {
+		logrus.Debugf("Error in unmarshalling xml file %s: %s.", file, err)
 		return err
 	}
 	return nil

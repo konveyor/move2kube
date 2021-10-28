@@ -18,7 +18,19 @@ package maven
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
+	"regexp"
+
+	"github.com/konveyor/move2kube/internal/common"
+	"github.com/sirupsen/logrus"
+)
+
+// PomXMLFileName represents the name of the POM File
+const PomXMLFileName string = "pom.xml"
+
+var (
+	propVar = regexp.MustCompile(`\${(.+)}`)
 )
 
 // Pom defines pom.xml data
@@ -53,6 +65,43 @@ type Pom struct {
 	Reporting              *Reporting              `xml:"reporting,omitempty"`
 	Profiles               *[]Profile              `xml:"profiles>profile,omitempty"`
 	Properties             *Properties             `xml:"properties,omitempty"`
+}
+
+// Load loads a pom xml file
+func (pom *Pom) Load(file string) error {
+	err := common.ReadXML(file, pom)
+	if err != nil {
+		logrus.Errorf("Unable to unmarshal pom file (%s) : %s", file, err)
+		return err
+	}
+	return nil
+}
+
+// GetProperty returns the property value of a property
+func (pom *Pom) GetProperty(key string) (val string, err error) {
+	if val, ok := pom.Properties.Entries[key]; ok {
+		if fullMatches := propVar.FindAllSubmatchIndex([]byte(val), -1); len(fullMatches) > 0 {
+			newVal := ""
+			prevMatch := 0
+			for _, fullMatch := range fullMatches {
+				newVal += val[prevMatch:fullMatch[0]]
+				if len(fullMatch) <= 1 {
+					logrus.Errorf("Unable to find variable name in pom property : %s", val)
+					continue
+				}
+				propVal, err := pom.GetProperty(val[fullMatch[2]:fullMatch[3]])
+				if err != nil {
+					logrus.Errorf("Unable to read property in pom : %s", err)
+					return "", err
+				}
+				newVal += propVal
+				prevMatch = fullMatch[2]
+			}
+			val = newVal
+		}
+		return val, nil
+	}
+	return "", fmt.Errorf("property not found in pom")
 }
 
 // Entries defines a pom.xml entry
@@ -318,14 +367,28 @@ type PluginManagement struct {
 
 // Plugin defines a pom.xml Plugin
 type Plugin struct {
-	GroupID      string             `xml:"groupId,omitempty"`
-	ArtifactID   string             `xml:"artifactId,omitempty"`
-	Version      string             `xml:"version,omitempty"`
-	Extensions   string             `xml:"extensions,omitempty"`
-	Executions   *[]PluginExecution `xml:"executions>execution,omitempty"`
-	Dependencies *[]Dependency      `xml:"dependencies>dependency,omitempty"`
-	Inherited    string             `xml:"inherited,omitempty"`
+	GroupID       string             `xml:"groupId,omitempty"`
+	ArtifactID    string             `xml:"artifactId,omitempty"`
+	Version       string             `xml:"version,omitempty"`
+	Extensions    string             `xml:"extensions,omitempty"`
+	Executions    *[]PluginExecution `xml:"executions>execution,omitempty"`
+	Dependencies  *[]Dependency      `xml:"dependencies>dependency,omitempty"`
+	Inherited     string             `xml:"inherited,omitempty"`
+	Configuration Configuration      `xml:"configuration,omitempty"`
 }
+
+// Configuration defines a pom.xml Configuration
+type Configuration struct {
+	Classifier string `xml:"classifier,omitempty"`
+	Source     string `xml:"source,omitempty"`
+	Target     string `xml:"target,omitempty"`
+	//	ConfigurationProfiles *[]ConfigurationProfile `xml:"profiles>profile,omitempty"`
+}
+
+// ConfigurationProfile defines a pom.xml ConfigurationProfile
+//type ConfigurationProfile struct {
+//	ConfigurationProfile string `xml:"profile,omitempty"`
+//}
 
 // PluginExecution defines a pom.xml PluginExecution
 type PluginExecution struct {

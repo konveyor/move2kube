@@ -16,7 +16,8 @@ require (
 	github.com/google/go-cmp v0.5.6
 	github.com/gorilla/mux v1.8.0
 	github.com/joho/godotenv v1.3.0
-	github.com/mikefarah/yq/v4 v4.11.2
+	github.com/magiconair/properties v1.8.5
+	github.com/mikefarah/yq/v4 v4.13.3
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/moby/buildkit v0.9.0
 	github.com/openshift/api v0.0.0-20210621070332-ea13be50ba2d
@@ -105,7 +106,6 @@ require (
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
-	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect

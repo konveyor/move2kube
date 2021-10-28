@@ -92,18 +92,18 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(AppCfgFilePath 
 
 	ports := make([]int32, 0)
 	for _, addKey := range appCfg.AppCfgSettings.AddList {
-		parsedUrl, err := url.ParseRequestURI(addKey.Value)
+		parsedURL, err := url.ParseRequestURI(addKey.Value)
 		if err != nil {
 			logrus.Errorf("Could not parse URI: %s", err)
 			continue
 		}
 
-		if parsedUrl.Scheme == "" || parsedUrl.Host == "" {
+		if parsedURL.Scheme == "" || parsedURL.Host == "" {
 			logrus.Warnf("Scheme or host is empty in URI")
 			continue
 		}
 
-		_, port, err := net.SplitHostPort(parsedUrl.Host)
+		_, port, err := net.SplitHostPort(parsedURL.Host)
 		if err != nil {
 			logrus.Errorf("Could not extract port from URI: %s", err)
 			continue
@@ -124,18 +124,18 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(AppCfgFilePath 
 
 	for _, svc := range appCfg.Model.Services.ServiceList {
 		for _, addKey := range svc.Host.BaseAddresses.AddList {
-			parsedUrl, err := url.ParseRequestURI(addKey.BaseAddress)
+			parsedURL, err := url.ParseRequestURI(addKey.BaseAddress)
 			if err != nil {
 				logrus.Errorf("Could not parse URI: %s", err)
 				continue
 			}
 
-			if parsedUrl.Scheme == "" || parsedUrl.Host == "" {
+			if parsedURL.Scheme == "" || parsedURL.Host == "" {
 				logrus.Warnf("Scheme or host is empty in URI")
 				continue
 			}
 
-			_, port, err := net.SplitHostPort(parsedUrl.Host)
+			_, port, err := net.SplitHostPort(parsedURL.Host)
 			if err != nil {
 				logrus.Errorf("Could not extract port from URI: %s", err)
 				continue

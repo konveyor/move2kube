@@ -1,0 +1,13 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: Maven
+spec:
+  mode: "Container"
+  class: "MavenAnalyser"
+  externalFiles:
+    "../../common/Dockerfile.license" : templates/Dockerfile.license
+    "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml
+  config: 
+    defaultMavenVersion: "3.8.2"
+    defaultJavaVersion: "1.8"

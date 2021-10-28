@@ -22,8 +22,10 @@ import (
 	"reflect"
 
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/internal/common"
 	"github.com/konveyor/move2kube/internal/transformer/classes/analysers"
+	"github.com/konveyor/move2kube/internal/transformer/classes/analysers/java"
 	"github.com/konveyor/move2kube/internal/transformer/classes/external"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators"
 	"github.com/konveyor/move2kube/internal/transformer/classes/generators/dockerfilegenerators"
@@ -60,10 +62,12 @@ func init() {
 		new(analysers.CNBContainerizer),
 		new(analysers.CloudFoundry),
 		new(analysers.DockerfileDetector),
-		new(analysers.SpringbootAnalyser),
-		new(analysers.ZuulAnalyser),
-		new(analysers.EurekaReplaceEngine),
 		new(analysers.DockerfileParser),
+
+		new(java.JarAnalyser),
+		new(java.MavenAnalyser),
+		new(java.ZuulAnalyser),
+		new(java.EurekaReplaceEngine),
 
 		new(generators.ComposeGenerator),
 		new(generators.Kubernetes),
@@ -160,14 +164,21 @@ func InitTransformers(transformerToInit map[string]string, targetCluster collect
 			logrus.Errorf("Unable to find Transformer class %s in %+v", tc.Spec.Class, transformerTypes)
 		} else {
 			t := reflect.New(c).Interface().(Transformer)
+			transformerContextPath := filepath.Dir(tc.Spec.FilePath)
 			envInfo := environment.EnvInfo{
 				Name:            tc.Name,
 				ProjectName:     projName,
 				TargetCluster:   targetCluster,
 				Source:          sourcePath,
 				Output:          outputPath,
-				Context:         filepath.Dir(tc.Spec.FilePath),
+				Context:         transformerContextPath,
 				RelTemplatesDir: tc.Spec.TemplatesDir,
+			}
+			for src, dest := range tc.Spec.ExternalFiles {
+				err := filesystem.Replicate(filepath.Join(transformerContextPath, src), filepath.Join(transformerContextPath, dest))
+				if err != nil {
+					logrus.Errorf("Error while copying external files in transformer %s (%s:%s) : %s", tc.Name, src, dest, err)
+				}
 			}
 			env, err := environment.NewEnvironment(envInfo, nil, environmenttypes.Container{})
 			if err != nil {
