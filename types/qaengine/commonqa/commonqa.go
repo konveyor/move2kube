@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	dockercliconfig "github.com/docker/cli/cli/config"
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/sirupsen/logrus"

@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"

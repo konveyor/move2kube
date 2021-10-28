@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"

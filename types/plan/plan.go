@@ -17,7 +17,7 @@
 package plan
 
 import (
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/types"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )

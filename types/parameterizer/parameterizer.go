@@ -17,7 +17,7 @@
 package parameterizer
 
 import (
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/types/qaengine"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

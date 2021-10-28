@@ -19,7 +19,7 @@ package lib
 import (
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/parameterizer"
 	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
 	"github.com/sirupsen/logrus"

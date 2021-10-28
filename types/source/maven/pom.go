@@ -22,7 +22,7 @@ import (
 	"io"
 	"regexp"
 
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 )
 

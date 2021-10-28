@@ -24,9 +24,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/common/deepcopy"
-	"github.com/konveyor/move2kube/internal/k8sschema"
+	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/deepcopy"
+	"github.com/konveyor/move2kube/k8sschema"
 	"github.com/konveyor/move2kube/qaengine"
 	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"

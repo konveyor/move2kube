@@ -19,8 +19,8 @@ package lib
 import (
 	"context"
 
-	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/transformer"
+	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/transformer"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
 )

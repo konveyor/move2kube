@@ -27,8 +27,8 @@ import (
 	"strings"
 
 	semver "github.com/Masterminds/semver/v3"
-	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/k8sschema"
+	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/k8sschema"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"

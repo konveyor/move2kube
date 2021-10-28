@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	dockertypes "github.com/docker/docker/api/types"
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	"github.com/sirupsen/logrus"

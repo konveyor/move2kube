@@ -26,10 +26,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/deepcopy"
+	"github.com/konveyor/move2kube/common/pathconverters"
 	"github.com/konveyor/move2kube/environment/container"
-	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/common/deepcopy"
-	"github.com/konveyor/move2kube/internal/common/pathconverters"
 	"github.com/konveyor/move2kube/types"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
