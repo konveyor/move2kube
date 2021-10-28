@@ -199,9 +199,9 @@ func (t *DotNet5DockerfileGenerator) Transform(newArtifacts []transformertypes.A
 					ports = append(ports, dotnet5Config.HTTPPort)
 				}
 			}
-			if filepath.Base(jsonFile) == packageJsonFile {
-				var packageJson PackageJSON
-				if err := common.ReadJSON(jsonFile, &packageJson); err != nil {
+			if filepath.Base(jsonFile) == packageJSONFile {
+				var packageJSON PackageJSON
+				if err := common.ReadJSON(jsonFile, &packageJSON); err != nil {
 					logrus.Debugf("Unable to read the package.json file: %s", err)
 				} else {
 					dotnet5Config.IsNodeJSProject = true

@@ -329,7 +329,7 @@ func (d *Service) createRoute(irName string, service irtypes.Service, port core.
 func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) *networking.Ingress {
 	pathType := networking.PathTypePrefix
 
-	hostHttpIngressPaths := map[string][]networking.HTTPIngressPath{} //[hostprefix]
+	hostHTTPIngressPaths := map[string][]networking.HTTPIngressPath{} //[hostprefix]
 	for _, service := range ir.Services {
 		backendServiceName := service.BackendServiceName
 		if service.BackendServiceName == "" {
@@ -354,10 +354,10 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 					},
 				},
 			}
-			hostHttpIngressPaths[hostPrefixes[i]] = append(hostHttpIngressPaths[hostPrefixes[i]], httpIngressPath)
+			hostHTTPIngressPaths[hostPrefixes[i]] = append(hostHTTPIngressPaths[hostPrefixes[i]], httpIngressPath)
 		}
 	}
-	if len(hostHttpIngressPaths) == 0 {
+	if len(hostHTTPIngressPaths) == 0 {
 		return nil
 	}
 
@@ -370,7 +370,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 	}
 	defaultSecretName := ""
 	secretName = qaengine.FetchStringAnswer(common.ConfigIngressTLSKey, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
-	for hostprefix, httpIngressPaths := range hostHttpIngressPaths {
+	for hostprefix, httpIngressPaths := range hostHTTPIngressPaths {
 		ph := host
 		if hostprefix != "" {
 			ph = hostprefix + "." + ph
