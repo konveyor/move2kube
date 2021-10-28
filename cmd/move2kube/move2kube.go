@@ -21,7 +21,7 @@ import (
 	"os"
 
 	"github.com/konveyor/move2kube/assets"
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"

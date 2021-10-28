@@ -19,10 +19,10 @@ package lib
 import (
 	"context"
 
-	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/configuration"
-	"github.com/konveyor/move2kube/internal/transformer"
+	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/configuration"
 	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/transformer"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"

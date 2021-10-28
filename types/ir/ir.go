@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/konveyor/move2kube/internal/common"
-	"github.com/konveyor/move2kube/internal/common/deepcopy"
+	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/deepcopy"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"

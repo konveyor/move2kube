@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 
 	sourcetypes "github.com/konveyor/move2kube/collector/sourcetypes"
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	"github.com/sirupsen/logrus"
 )
