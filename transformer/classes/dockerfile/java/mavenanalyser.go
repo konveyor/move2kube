@@ -19,6 +19,7 @@ package java
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -104,12 +105,12 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 		return nil, nil, nil
 	}
 	appName := pom.ArtifactID
-
 	profiles := []string{}
-	for _, profile := range *pom.Profiles {
-		profiles = append(profiles, profile.ID)
+	if pom.Profiles != nil {
+		for _, profile := range *pom.Profiles {
+			profiles = append(profiles, profile.ID)
+		}
 	}
-
 	ct := transformertypes.TransformerPlan{
 		Mode:              transformertypes.ModeContainer,
 		ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
@@ -122,8 +123,9 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 	}
 	mc := artifacts.MavenConfig{}
 	mc.ArtifactType = pom.Packaging
-	mc.MavenProfiles = profiles
-
+	if len(profiles) != 0 {
+		mc.MavenProfiles = profiles
+	}
 	if mc.ArtifactType == "" {
 		mc.ArtifactType = "jar"
 	}
@@ -200,15 +202,13 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 			logrus.Debugf("unable to load maven config object: %s", err)
 		}
 		mavenProfiles := mavenConfig.MavenProfiles
-
 		selectedMavenProfiles := qaengine.FetchMultiSelectAnswer(
-			common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ActiveMavenProfilesForServiceKeySegment,
+			common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ConfigActiveMavenProfilesForServiceKeySegment,
 			fmt.Sprintf("Choose the Maven profile to be used for the service %s", a.Name),
 			[]string{fmt.Sprintf("Selected Maven profiles will be used for setting configuration for the service %s", a.Name)},
-			nil,
+			mavenProfiles,
 			mavenProfiles,
 		)
-
 		if len(selectedMavenProfiles) == 0 {
 			logrus.Debugf("no maven profiles selected")
 		}
@@ -240,17 +240,19 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if err != nil {
 			logrus.Errorf("Unable to read Dockerfile license template : %s", err)
 		}
-		dockerfileTemplate := filepath.Join(t.Env.TempPath, "Dockerfile.template")
+		tempDir := filepath.Join(t.Env.TempPath, a.Name)
+		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
+		dockerfileTemplate := filepath.Join(tempDir, "Dockerfile.template")
 		template := string(license) + "\n" + string(mavenBuild)
 		err = ioutil.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
 		if err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}
-		dockerfileBuild := filepath.Join(t.Env.TempPath, "Dockerfile.build")
+		buildDockerfile := filepath.Join(tempDir, "Dockerfile.build")
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.TemplatePathMappingType,
 			SrcPath:  dockerfileTemplate,
-			DestPath: dockerfileBuild,
+			DestPath: buildDockerfile,
 			TemplateConfig: MavenBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
 				MavenProfiles:   selectedMavenProfiles,
@@ -303,7 +305,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 					artifacts.ServiceConfigType:   sConfig,
 				},
 				Paths: map[transformertypes.PathType][]string{
-					artifacts.BuildContainerFileType: {dockerfileBuild},
+					artifacts.BuildContainerFileType: {buildDockerfile},
 					artifacts.ProjectPathPathType:    a.Paths[artifacts.ProjectPathPathType],
 				},
 			})

@@ -311,7 +311,6 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 			}
 			return relPath, nil
 		}
-
 		if tempPath, ok := e.TempPathsMap[path]; ok {
 			return tempPath, nil
 		}
@@ -371,7 +370,7 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 				} else {
 					tmpDestPath := filepath.Join(tempOutputPath, filepath.Base(destPath))
 					e.TempPathsMap[dupPathMappings[pmi].DestPath] = tmpDestPath
-					dupPathMappings[pmi].DestPath = tmpDestPath
+					//dupPathMappings[pmi].DestPath = tmpDestPath
 				}
 			}
 		}
