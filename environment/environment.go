@@ -62,9 +62,10 @@ var (
 // Environment is used to manage EnvironmentInstances
 type Environment struct {
 	EnvInfo
-	Env      EnvironmentInstance
-	Children []*Environment
-	active   bool
+	Env          EnvironmentInstance
+	Children     []*Environment
+	TempPathsMap map[string]string
+	active       bool
 }
 
 // EnvironmentInstance represents a actual instance of an environment which the Environment manages
@@ -88,9 +89,10 @@ func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr, c environmenttypes
 	}
 	envInfo.TempPath = tempPath
 	env = &Environment{
-		EnvInfo:  envInfo,
-		Children: []*Environment{},
-		active:   true,
+		EnvInfo:      envInfo,
+		Children:     []*Environment{},
+		TempPathsMap: map[string]string{},
+		active:       true,
 	}
 	if c.Image != "" {
 		envVariableName := common.MakeStringEnvNameCompliant(c.Image)
@@ -309,6 +311,9 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 			}
 			return relPath, nil
 		}
+		if tempPath, ok := e.TempPathsMap[path]; ok {
+			return tempPath, nil
+		}
 		outpath, err := e.Env.Download(path)
 		if err != nil {
 			logrus.Errorf("Unable to copy data from path %s : %s", path, err)
@@ -351,12 +356,21 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 			destPath = destPathSplit[1]
 		}
 		if filepath.IsAbs(destPath) {
-			dp, err := filepath.Rel(e.GetEnvironmentSource(), destPath)
-			if err != nil {
-				logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
-				continue
+			if common.IsParent(destPath, e.GetEnvironmentSource()) {
+				dp, err := filepath.Rel(e.GetEnvironmentSource(), destPath)
+				if err != nil {
+					logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
+					continue
+				}
+				dupPathMappings[pmi].DestPath = filepath.Join(relPath, dp)
+			} else {
+				tempOutputPath, err := ioutil.TempDir(e.TempPath, "*")
+				if err != nil {
+					logrus.Errorf("Unable to create temp dir : %s", err)
+				} else {
+					e.TempPathsMap[dupPathMappings[pmi].DestPath] = tempOutputPath
+				}
 			}
-			dupPathMappings[pmi].DestPath = filepath.Join(relPath, dp)
 		}
 	}
 	return dupPathMappings

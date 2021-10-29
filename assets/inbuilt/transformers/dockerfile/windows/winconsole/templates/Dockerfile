@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 # Build Stage
-FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As build_base
+FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As builder
 WORKDIR /app
 COPY . .
 RUN msbuild /p:Configuration=Release
@@ -24,5 +24,5 @@ FROM mcr.microsoft.com/dotnet/framework/runtime:{{ .BaseImageVersion }}
 EXPOSE {{ $port }}
 {{- end }}
 WORKDIR /app
-COPY --from=build_base /app/bin/Release .
+COPY --from=builder /app/bin/Release .
 CMD {{ .AppName }}.exe

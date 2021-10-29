@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 # Build App
-FROM registry.access.redhat.com/ubi8/ubi:latest AS build_base
+FROM registry.access.redhat.com/ubi8/ubi:latest AS builder
 WORKDIR /temp
 ENV GOPATH=/go
 ENV PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -28,7 +28,7 @@ RUN cp ./{{ .AppName }} /bin/{{ .AppName }}
 
 # Run App
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.3-201
-COPY --from=build_base /bin/{{ .AppName }} /bin/{{ .AppName }}
+COPY --from=builder /bin/{{ .AppName }} /bin/{{ .AppName }}
 {{- range $port := .Ports }}
 EXPOSE {{ $port }}
 {{- end }}

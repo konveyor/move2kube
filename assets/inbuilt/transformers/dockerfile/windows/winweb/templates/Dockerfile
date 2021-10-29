@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 # Build Stage
-FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As build_base
+FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As builder
 WORKDIR /app
 COPY . .
 RUN nuget restore
@@ -28,4 +28,4 @@ FROM microsoft/aspnet:4.7.2 AS runtime
 EXPOSE {{.}}
 {{- end}}
 WORKDIR /inetpub/wwwroot
-COPY --from=build_base /app/{{ .AppName }}/. ./
+COPY --from=builder /app/{{ .AppName }}/. ./

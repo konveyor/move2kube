@@ -5,6 +5,6 @@ RUN microdnf update \
       {{ .JavaPackageName }} \
    && microdnf clean all
 ENV {{ .PortConfigureEnvName }} {{ .Port }}
-COPY --from=build_base {{ .DeploymentFileDir }} .
+COPY --from=builder {{ .DeploymentFileDir }} .
 EXPOSE {{ .Port }}
 CMD ["java", "-jar", "{{ .DeploymentFile }}"]

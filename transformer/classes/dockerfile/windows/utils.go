@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package dotnet
+package windows
 
 import (
 	"fmt"
@@ -32,19 +32,16 @@ func isSilverlight(configuration dotnet.CSProj) (bool, error) {
 	if configuration.ItemGroups == nil || len(configuration.ItemGroups) == 0 {
 		return false, fmt.Errorf("no item groups in project file to parse")
 	}
-
 	for _, ig := range configuration.ItemGroups {
 		if ig.Contents == nil || len(ig.Contents) == 0 {
 			continue
 		}
-
 		for _, r := range ig.Contents {
 			if dotnet.WebSLLib.MatchString(r.Include) {
 				return true, nil
 			}
 		}
 	}
-
 	return false, nil
 }
 
@@ -53,19 +50,16 @@ func isWeb(configuration dotnet.CSProj) (bool, error) {
 	if configuration.ItemGroups == nil || len(configuration.ItemGroups) == 0 {
 		return false, fmt.Errorf("no item groups in project file to parse")
 	}
-
 	for _, ig := range configuration.ItemGroups {
 		if ig.References == nil || len(ig.References) == 0 {
 			continue
 		}
-
 		for _, r := range ig.References {
 			if dotnet.WebLib.MatchString(r.Include) {
 				return true, nil
 			}
 		}
 	}
-
 	return false, nil
 }
 
@@ -75,7 +69,6 @@ func parseSolutionFile(inputPath string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not open the solution file: %s", err)
 	}
-
 	projectPaths := make([]string, 0)
 	projBlockRegex := regexp.MustCompile(dotnet.ProjBlock)
 	l := projBlockRegex.FindAllStringSubmatch(string(solFileTxt), -1)
@@ -85,7 +78,6 @@ func parseSolutionFile(inputPath string) ([]string, error) {
 		}
 		projectPaths = append(projectPaths, path[0])
 	}
-
 	separator := fmt.Sprintf("%c", os.PathSeparator)
 	for i, c := range projectPaths {
 		c = strings.Trim(c, `"`)

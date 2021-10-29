@@ -31,8 +31,8 @@ import (
 	"github.com/konveyor/move2kube/transformer/classes/compose"
 	"github.com/konveyor/move2kube/transformer/classes/container"
 	"github.com/konveyor/move2kube/transformer/classes/dockerfile"
-	dotnetgen "github.com/konveyor/move2kube/transformer/classes/dockerfile/dotnet"
 	"github.com/konveyor/move2kube/transformer/classes/dockerfile/java"
+	"github.com/konveyor/move2kube/transformer/classes/dockerfile/windows"
 	"github.com/konveyor/move2kube/transformer/classes/external"
 	"github.com/konveyor/move2kube/transformer/classes/kubernetes"
 	"github.com/konveyor/move2kube/transformer/classes/s2i"
@@ -63,24 +63,36 @@ type Transformer interface {
 
 func init() {
 	transformerObjs := []Transformer{
-		new(compose.ComposeAnalyser),
-		new(compose.ComposeGenerator),
-
-		new(cnb.CNBContainerizer),
-		new(cnb.CNBGenerator),
-
-		new(cloudfoundry.CloudFoundry),
+		new(external.Starlark),
+		new(external.Executable),
 
 		new(dockerfile.DockerfileDetector),
 		new(dockerfile.DockerfileParser),
 		new(dockerfile.DockerfileImageBuildScript),
 		new(dockerfile.NodejsDockerfileGenerator),
 		new(dockerfile.GolangDockerfileGenerator),
-
+		new(dockerfile.PHPDockerfileGenerator),
+		new(dockerfile.DotNet5DockerfileGenerator),
 		new(java.JarAnalyser),
 		new(java.MavenAnalyser),
 		new(java.ZuulAnalyser),
 		new(java.EurekaReplaceEngine),
+		new(windows.WinConsoleAppDockerfileGenerator),
+		new(windows.WinSilverLightWebAppDockerfileGenerator),
+		new(windows.WinWebAppDockerfileGenerator),
+
+		new(cnb.CNBContainerizer),
+		new(cnb.CNBGenerator),
+
+		new(s2i.S2IGenerator),
+
+		new(compose.ComposeAnalyser),
+		new(compose.ComposeGenerator),
+
+		new(cloudfoundry.CloudFoundry),
+
+		new(container.ContainerImagesPushScript),
+		new(container.ContainerImagesBuildScript),
 
 		new(kubernetes.Kubernetes),
 		new(kubernetes.Knative),
@@ -88,22 +100,7 @@ func init() {
 		new(kubernetes.BuildConfig),
 		new(kubernetes.Parameterizer),
 
-		new(s2i.S2IGenerator),
-
-		new(container.ContainerImagesPushScript),
-		new(container.ContainerImagesBuildScript),
-
 		new(transformer.ReadMeGenerator),
-
-		new(dockerfile.PHPDockerfileGenerator),
-		new(dockerfile.DotNet5DockerfileGenerator),
-
-		new(dotnetgen.WinConsoleAppDockerfileGenerator),
-		new(dotnetgen.WinSilverLightWebAppDockerfileGenerator),
-		new(dotnetgen.WinWebAppDockerfileGenerator),
-
-		new(external.Starlark),
-		new(external.Executable),
 	}
 	for _, tt := range transformerObjs {
 		t := reflect.TypeOf(tt).Elem()
