@@ -109,8 +109,6 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 		profiles = append(profiles, profile.ID)
 	}
 
-	logrus.Debugf("profiles", profiles)
-
 	ct := transformertypes.TransformerPlan{
 		Mode:              transformertypes.ModeContainer,
 		ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
@@ -213,7 +211,6 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if len(selectedMavenProfiles) == 0 {
 			logrus.Debugf("no maven profiles selected")
 		}
-		logrus.Debugf("selected profiles", selectedMavenProfiles)
 
 		sImageName := artifacts.ImageName{}
 		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
