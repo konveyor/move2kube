@@ -45,8 +45,6 @@ RUN cp bin/move2kube /bin/move2kube
 
 ### Run image ###
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
-RUN curl -o /usr/local/bin/operator-sdk -LJO 'https://github.com/operator-framework/operator-sdk/releases/download/v1.9.0/operator-sdk_linux_amd64' \
-    && chmod +x /usr/local/bin/operator-sdk
 COPY --from=builder /bin/move2kube /bin/move2kube
 VOLUME ["/workspace"]
 #"/var/run/docker.sock" needs to be mounted for CNB containerization to use docker

@@ -5,7 +5,6 @@ Move2Kube is a command-line tool that accelerates the process of re-platforming 
 ## Setup
 
 1. Ensure that the move2kube executable is in path. `export PATH=$PATH:$PWD`
-1. (Optional) To install dependencies such as `pack`, `kubectl` and `operator-sdk`, invoke `source installdeps.sh`.
 
 ## Usage
 
