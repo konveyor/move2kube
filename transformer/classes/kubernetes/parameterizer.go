@@ -17,6 +17,7 @@
 package kubernetes
 
 import (
+	"io/ioutil"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/environment"
@@ -69,13 +70,18 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 	}
 	for _, a := range newArtifacts {
 		yamlsPath := a.Paths[artifacts.KubernetesYamlsPathType][0]
-		destPath := yamlsPath + "-parameterized"
+		tempPath, err := ioutil.TempDir(t.Env.TempPath, "*")
+		if err != nil {
+			logrus.Errorf("Unable to create temp dir : %s", err)
+		}
+		baseDirName := filepath.Base(yamlsPath) + "-parameterized"
+		destPath := filepath.Join(tempPath, baseDirName)
 		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, parameterizertypes.PackagingSpecPathT{}, ps)
 		if err != nil {
 			logrus.Errorf("Unable to parameterize : %s", err)
 		}
 		for _, f := range filesWritten {
-			rel, err := filepath.Rel(t.Env.GetEnvironmentOutput(), f)
+			rel, err := filepath.Rel(destPath, f)
 			if err != nil {
 				logrus.Errorf("Unable to make parameterized file path relative : %s", err)
 				continue
@@ -83,7 +89,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:     transformertypes.DefaultPathMappingType,
 				SrcPath:  f,
-				DestPath: rel,
+				DestPath: filepath.Join(filepath.Dir(yamlsPath), baseDirName, rel),
 			})
 		}
 	}
