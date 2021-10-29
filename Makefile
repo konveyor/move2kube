@@ -103,10 +103,6 @@ get: go.mod
 generate:
 	go generate ${PKG}
 
-.PHONY: deps
-deps: 
-	source scripts/installdeps.sh
-
 # -- Test --
 
 .PHONY: test
@@ -166,7 +162,7 @@ else
 	@echo 'Linux: sudo apt-get install upx'
 endif
 	mkdir -p $(DISTDIR)/files
-	cp -r ./LICENSE ./scripts/installdeps.sh ./USAGE.md ./samples $(DISTDIR)/files/
+	cp -r ./LICENSE ./USAGE.md ./samples $(DISTDIR)/files/
 	cd $(DISTDIR) && go run ../scripts/dist/builddist.go -b $(BINNAME) -v $(VERSION)
 
 .PHONY: clean

@@ -103,7 +103,6 @@ To browse code [![Open in VSCode](https://open.vscode.dev/badges/open-in-vscode.
   * Helm charts
   * Kustomize
   * OpenShift Templates
-  * Operator
   * Docker compose
 
 ## Discussion
