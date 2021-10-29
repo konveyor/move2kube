@@ -22,8 +22,9 @@ import (
 
 // MavenConfig stores maven related configuration information
 type MavenConfig struct {
-	MavenAppName string `yaml:"mavenAppName,omitempty" json:"mavenAppName,omitempty"`
-	ArtifactType string `yaml:"artifactType"`
+	MavenAppName  string   `yaml:"mavenAppName,omitempty" json:"mavenAppName,omitempty"`
+	ArtifactType  string   `yaml:"artifactType"`
+	MavenProfiles []string `yaml:"mavenProfiles,omitempty" json:"mavenProfiles,omitempty"`
 }
 
 const (

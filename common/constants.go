@@ -152,6 +152,8 @@ const (
 	ConfigContainerizationTypesKey = ConfigContainerizationKeySegment + d + "types"
 	//ConfigServicesExposeKey represents Services Expose Key
 	ConfigServicesExposeKey = ConfigServicesKey + d + Special + d + "expose"
+	// ConfigActiveMavenProfilesForServiceKeySegment represents the maven profiles used for service
+	ConfigActiveMavenProfilesForServiceKeySegment = "activemavenprofiles"
 )
 
 const (

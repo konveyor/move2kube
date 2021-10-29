@@ -285,6 +285,10 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			}
 			newPathMappings = env.ProcessPathMappings(newPathMappings)
 			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
+			err = processPathMappings(newPathMappings, plan.Spec.RootDir, outputPath)
+			if err != nil {
+				logrus.Errorf("Unable to process path mappings")
+			}
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
 			artifacts = mergeArtifacts(append(artifacts, newArtifacts...))
@@ -321,6 +325,10 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			}
 			newPathMappings = env.ProcessPathMappings(newPathMappings)
 			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
+			err = processPathMappings(newPathMappings, plan.Spec.RootDir, outputPath)
+			if err != nil {
+				logrus.Errorf("Unable to process path mappings")
+			}
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
 			newArtifactsCreated = append(newArtifactsCreated, newArtifacts...)

@@ -18,6 +18,7 @@ package java
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -128,7 +129,9 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArt
 		if err != nil {
 			logrus.Errorf("Unable to read build Dockerfile template : %s", err)
 		}
-		dockerfileTemplate := filepath.Join(t.Env.TempPath, "Dockerfile")
+		tempDir := filepath.Join(t.Env.TempPath, a.Name)
+		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
+		dockerfileTemplate := filepath.Join(tempDir, "Dockerfile")
 		template := string(buildDockerfile) + "\n" + string(jarRunDockerfile)
 		err = ioutil.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
 		if err != nil {
