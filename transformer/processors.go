@@ -68,7 +68,7 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 			}
 		default:
 			if !copiedDefaultDests[getpair(pm.SrcPath, pm.DestPath)] {
-				if err := filesystem.Merge(pm.SrcPath, destPath, true); err != nil {
+				if err := filesystem.Merge(pm.SrcPath, destPath, false); err != nil {
 					logrus.Errorf("Error while copying sourcepath for %+v", pm)
 				}
 				copiedDefaultDests[getpair(pm.SrcPath, pm.DestPath)] = true
