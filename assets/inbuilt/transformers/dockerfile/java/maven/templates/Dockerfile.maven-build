@@ -1,5 +1,5 @@
 
-FROM registry.access.redhat.com/ubi8/ubi:latest AS build_base
+FROM registry.access.redhat.com/ubi8/ubi:latest AS builder
 RUN yum install -y {{ .JavaPackageName }}
 RUN yum install -y maven
 COPY . /app

@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 # Build stage
-FROM hugodahl/silverlightbuild:sl5 As build_base
+FROM hugodahl/silverlightbuild:sl5 As builder
 WORKDIR /app
 COPY . .
 RUN msbuild {{ .AppName }}.sln
@@ -32,4 +32,4 @@ RUN powershell -NoProfile -Command Remove-Item -Recurse C:\inetpub\wwwroot\*
 EXPOSE {{.}}
 {{- end}}
 WORKDIR /inetpub/wwwroot
-COPY --from=build_base /app/output/ .
+COPY --from=builder /app/output/ .

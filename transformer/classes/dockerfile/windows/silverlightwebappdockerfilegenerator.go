@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package dotnet
+package windows
 
 import (
 	"encoding/xml"
@@ -32,38 +32,37 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// WebTemplateConfig implements .Net Web config interface
-type WebTemplateConfig struct {
-	Ports            []int32
-	AppName          string
-	BaseImageVersion string
+// SilverLightTemplateConfig implements SilverLight config interface
+type SilverLightTemplateConfig struct {
+	Ports   []int32
+	AppName string
 }
 
-// WinWebAppDockerfileGenerator implements the Transformer interface
-type WinWebAppDockerfileGenerator struct {
+// WinSilverLightWebAppDockerfileGenerator implements the Transformer interface
+type WinSilverLightWebAppDockerfileGenerator struct {
 	Config transformertypes.Transformer
 	Env    *environment.Environment
 }
 
 // Init Initializes the transformer
-func (t *WinWebAppDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *WinSilverLightWebAppDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *WinWebAppDockerfileGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
+func (t *WinSilverLightWebAppDockerfileGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *WinWebAppDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *WinSilverLightWebAppDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	return nil, nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory: %s", err)
@@ -103,6 +102,7 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedService
 			if configuration.PropertyGroup == nil ||
 				configuration.PropertyGroup.TargetFrameworkVersion == "" ||
 				!dotnet.FourXPattern.MatchString(configuration.PropertyGroup.TargetFrameworkVersion) {
+				logrus.Debugf("Not a supported dotnet framework [%s]", configuration.PropertyGroup.TargetFrameworkVersion)
 				continue
 			}
 
@@ -120,7 +120,7 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedService
 				logrus.Errorf("%s", err)
 				continue
 			}
-			if isSLProj {
+			if !isSLProj {
 				continue
 			}
 
@@ -149,7 +149,7 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedService
 }
 
 // Transform transforms the artifacts
-func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *WinSilverLightWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
@@ -175,10 +175,9 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 		var detectedPorts []int32
 		detectedPorts = append(detectedPorts, 8080) //TODO: Write parser to parse and identify port
 		detectedPorts = commonqa.GetPortsForService(detectedPorts, a.Name)
-		var webConfig WebTemplateConfig
-		webConfig.AppName = a.Name
-		webConfig.Ports = detectedPorts
-		webConfig.BaseImageVersion = dotnet.DefaultBaseImageVersion
+		var silverLightConfig SilverLightTemplateConfig
+		silverLightConfig.AppName = a.Name
+		silverLightConfig.Ports = detectedPorts
 
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
@@ -190,7 +189,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			Type:           transformertypes.TemplatePathMappingType,
 			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
-			TemplateConfig: webConfig,
+			TemplateConfig: silverLightConfig,
 		})
 		paths := a.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile")}

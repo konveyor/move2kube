@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 # Builder image
-FROM registry.access.redhat.com/ubi8/ubi:latest AS build_base
+FROM registry.access.redhat.com/ubi8/ubi:latest AS builder
 WORKDIR /temp
 
 RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
@@ -47,7 +47,7 @@ RUN cp bin/move2kube /bin/move2kube
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 RUN curl -o /usr/local/bin/operator-sdk -LJO 'https://github.com/operator-framework/operator-sdk/releases/download/v1.9.0/operator-sdk_linux_amd64' \
     && chmod +x /usr/local/bin/operator-sdk
-COPY --from=build_base /bin/move2kube /bin/move2kube
+COPY --from=builder /bin/move2kube /bin/move2kube
 VOLUME ["/workspace"]
 #"/var/run/docker.sock" needs to be mounted for CNB containerization to use docker
 # Start app

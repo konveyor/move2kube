@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build_base
+FROM mcr.microsoft.com/dotnet/sdk:5.0 AS builder
 WORKDIR /src
 COPY . .
 RUN mkdir app
@@ -32,5 +32,5 @@ FROM mcr.microsoft.com/dotnet/aspnet:5.0
 WORKDIR /app
 EXPOSE {{ .Port }}
 ENV ASPNETCORE_URLS=http://+:{{ .Port }}
-COPY --from=build_base /src/app/publish .
+COPY --from=builder /src/app/publish .
 CMD ["dotnet", "{{ .AppName }}.dll"]

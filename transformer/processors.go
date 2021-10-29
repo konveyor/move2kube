@@ -52,7 +52,10 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 	}
 	copiedDefaultDests := map[pair]bool{}
 	for _, pm := range pms {
-		destPath := filepath.Join(outputPath, pm.DestPath)
+		destPath := pm.DestPath
+		if !filepath.IsAbs(pm.DestPath) {
+			destPath = filepath.Join(outputPath, pm.DestPath)
+		}
 		switch strings.ToLower(pm.Type) {
 		case strings.ToLower(transformertypes.SourcePathMappingType): // skip sources
 		case strings.ToLower(transformertypes.ModifiedSourcePathMappingType):
