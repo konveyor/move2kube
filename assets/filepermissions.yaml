@@ -49,7 +49,6 @@
 "inbuilt/transformers/dockerfile/java/jar/templates/Dockerfile.embedded" : 0644
 "inbuilt/transformers/dockerfile/java/mappings/javapackageversions.yaml" : 0644
 "inbuilt/transformers/dockerfile/java/maven/maven.yaml" : 0644
-"inbuilt/transformers/dockerfile/java/maven/templates/Dockerfile.gradle-build" : 0644
 "inbuilt/transformers/dockerfile/java/maven/templates/Dockerfile.maven-build" : 0644
 "inbuilt/transformers/dockerfile/java/zuul/zuulanalyser.yaml" : 0644
 "inbuilt/transformers/dockerfile/nodejs/nodejs.yaml" : 0644

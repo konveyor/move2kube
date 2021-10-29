@@ -246,10 +246,11 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}
+		dockerfileBuild := filepath.Join(t.Env.TempPath, "Dockerfile.build")
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.TemplatePathMappingType,
 			SrcPath:  dockerfileTemplate,
-			DestPath: filepath.Join(t.Env.TempPath, "Dockerfile.build"),
+			DestPath: dockerfileBuild,
 			TemplateConfig: MavenBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
 				MavenProfiles:   selectedMavenProfiles,
@@ -302,7 +303,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 					artifacts.ServiceConfigType:   sConfig,
 				},
 				Paths: map[transformertypes.PathType][]string{
-					artifacts.BuildContainerFileType: {dockerfileTemplate},
+					artifacts.BuildContainerFileType: {dockerfileBuild},
 					artifacts.ProjectPathPathType:    a.Paths[artifacts.ProjectPathPathType],
 				},
 			})
