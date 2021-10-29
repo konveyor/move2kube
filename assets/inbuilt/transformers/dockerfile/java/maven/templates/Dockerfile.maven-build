@@ -4,4 +4,10 @@ RUN yum install -y {{ .JavaPackageName }}
 RUN yum install -y maven
 COPY . /app
 WORKDIR /app
+
+{{- range $mp := .MavenProfiles }}
+{{ $mp }}
+{{- end }}
+
 RUN mvn package
+

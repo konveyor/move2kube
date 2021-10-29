@@ -56,6 +56,7 @@ type MavenYamlConfig struct {
 // MavenBuildDockerfileTemplate defines the information for the build dockerfile template
 type MavenBuildDockerfileTemplate struct {
 	JavaPackageName string
+	MavenProfiles   []string
 }
 
 // Init Initializes the transformer
@@ -251,6 +252,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 			DestPath: filepath.Join(t.Env.TempPath, "Dockerfile.build"),
 			TemplateConfig: MavenBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
+				MavenProfiles:   selectedMavenProfiles,
 			},
 		})
 		deploymentFileName := pom.ArtifactID + "-" + pom.Version
