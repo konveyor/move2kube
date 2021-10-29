@@ -23,6 +23,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/source/maven"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -102,6 +103,14 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 		return nil, nil, nil
 	}
 	appName := pom.ArtifactID
+
+	profiles := []string{}
+	for _, profile := range *pom.Profiles {
+		profiles = append(profiles, profile.ID)
+	}
+
+	logrus.Debugf("profiles", profiles)
+
 	ct := transformertypes.TransformerPlan{
 		Mode:              transformertypes.ModeContainer,
 		ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
@@ -114,6 +123,8 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 	}
 	mc := artifacts.MavenConfig{}
 	mc.ArtifactType = pom.Packaging
+	mc.MavenProfiles = profiles
+
 	if mc.ArtifactType == "" {
 		mc.ArtifactType = "jar"
 	}
@@ -183,6 +194,27 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if javaVersion == "" {
 			javaVersion = t.MavenConfig.JavaVersion
 		}
+
+		mavenConfig := artifacts.MavenConfig{}
+		err = a.GetConfig(artifacts.MavenConfigType, &mavenConfig)
+		if err != nil {
+			logrus.Debugf("unable to load maven config object: %s", err)
+		}
+		mavenProfiles := mavenConfig.MavenProfiles
+
+		selectedMavenProfiles := qaengine.FetchMultiSelectAnswer(
+			common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ActiveMavenProfilesForServiceKeySegment,
+			fmt.Sprintf("Choose the Maven profile to be used for the service %s", a.Name),
+			[]string{fmt.Sprintf("Selected Maven profiles will be used for setting configuration for the service %s", a.Name)},
+			nil,
+			mavenProfiles,
+		)
+
+		if len(selectedMavenProfiles) == 0 {
+			logrus.Debugf("no maven profiles selected")
+		}
+		logrus.Debugf("selected profiles", selectedMavenProfiles)
+
 		sImageName := artifacts.ImageName{}
 		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
