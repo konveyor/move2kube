@@ -195,24 +195,21 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if javaVersion == "" {
 			javaVersion = t.MavenConfig.JavaVersion
 		}
-
 		mavenConfig := artifacts.MavenConfig{}
 		err = a.GetConfig(artifacts.MavenConfigType, &mavenConfig)
 		if err != nil {
-			logrus.Debugf("unable to load maven config object: %s", err)
+			logrus.Debugf("Unable to load maven config object: %s", err)
 		}
-		mavenProfiles := mavenConfig.MavenProfiles
 		selectedMavenProfiles := qaengine.FetchMultiSelectAnswer(
 			common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ConfigActiveMavenProfilesForServiceKeySegment,
 			fmt.Sprintf("Choose the Maven profile to be used for the service %s", a.Name),
 			[]string{fmt.Sprintf("Selected Maven profiles will be used for setting configuration for the service %s", a.Name)},
-			mavenProfiles,
-			mavenProfiles,
+			mavenConfig.MavenProfiles,
+			mavenConfig.MavenProfiles,
 		)
 		if len(selectedMavenProfiles) == 0 {
-			logrus.Debugf("no maven profiles selected")
+			logrus.Debugf("No maven profiles selected")
 		}
-
 		sImageName := artifacts.ImageName{}
 		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {

@@ -370,7 +370,6 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 				} else {
 					tmpDestPath := filepath.Join(tempOutputPath, filepath.Base(destPath))
 					e.TempPathsMap[dupPathMappings[pmi].DestPath] = tmpDestPath
-					//dupPathMappings[pmi].DestPath = tmpDestPath
 				}
 			}
 		}
