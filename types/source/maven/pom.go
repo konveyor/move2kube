@@ -379,10 +379,10 @@ type Plugin struct {
 
 // Configuration defines a pom.xml Configuration
 type Configuration struct {
-	Classifier string `xml:"classifier,omitempty"`
-	Source     string `xml:"source,omitempty"`
-	Target     string `xml:"target,omitempty"`
-	//	ConfigurationProfiles *[]ConfigurationProfile `xml:"profiles>profile,omitempty"`
+	Classifier            string   `xml:"classifier,omitempty"`
+	Source                string   `xml:"source,omitempty"`
+	Target                string   `xml:"target,omitempty"`
+	ConfigurationProfiles []string `xml:"profiles>profile,omitempty"`
 }
 
 // ConfigurationProfile defines a pom.xml ConfigurationProfile

@@ -210,6 +210,33 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if len(selectedMavenProfiles) == 0 {
 			logrus.Debugf("No maven profiles selected")
 		}
+
+		classifier := ""
+		// Iterate over existing plugins
+		for _, mavenPlugin := range *pom.Build.Plugins {
+			// Check if spring-boot-maven-plugin is present
+			if mavenPlugin.ArtifactID == "spring-boot-maven-plugin" {
+				for _, mavenPluginExecution := range *mavenPlugin.Executions {
+					for _, mavenPluginExecutionGoal := range *mavenPluginExecution.Goals {
+						// if the plugin has repackage goal
+						if mavenPluginExecutionGoal == "repackage" {
+							// we check the profiles included within this plugin
+							for _, configProfile := range mavenPlugin.Configuration.ConfigurationProfiles {
+								// we check if any of these profiles is contained in the list of profiles
+								// selected by the user
+								// if yes, we look for the classifier property of this plugin and
+								// assign it to the classifier variable
+								if common.IsStringPresent(selectedMavenProfiles, configProfile) {
+									classifier = mavenPlugin.Configuration.Classifier
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		logrus.Debugf("classifier: %s", classifier)
+
 		sImageName := artifacts.ImageName{}
 		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
@@ -255,7 +282,12 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 				MavenProfiles:   selectedMavenProfiles,
 			},
 		})
+
 		deploymentFileName := pom.ArtifactID + "-" + pom.Version
+		if classifier != "" {
+			deploymentFileName = deploymentFileName + "-" + classifier
+		}
+
 		switch pom.Packaging {
 		case WarPackaging:
 			createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
