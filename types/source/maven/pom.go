@@ -385,11 +385,6 @@ type Configuration struct {
 	ConfigurationProfiles []string `xml:"profiles>profile,omitempty"`
 }
 
-// ConfigurationProfile defines a pom.xml ConfigurationProfile
-//type ConfigurationProfile struct {
-//	ConfigurationProfile string `xml:"profile,omitempty"`
-//}
-
 // PluginExecution defines a pom.xml PluginExecution
 type PluginExecution struct {
 	ID        string    `xml:"id,omitempty"`
