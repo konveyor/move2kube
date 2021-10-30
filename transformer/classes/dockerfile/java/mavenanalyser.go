@@ -210,38 +210,41 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if len(selectedMavenProfiles) == 0 {
 			logrus.Debugf("No maven profiles selected")
 		}
-
 		classifier := ""
-
-		if pom.Build != nil {
+		if pom.Build != nil && pom.Build.Plugins != nil {
 			// Iterate over existing plugins
 			for _, mavenPlugin := range *pom.Build.Plugins {
 				// Check if spring-boot-maven-plugin is present
-				if mavenPlugin.ArtifactID == "spring-boot-maven-plugin" {
-
-					if len(*mavenPlugin.Executions) == 0 {
-						break
+				if mavenPlugin.ArtifactID != "spring-boot-maven-plugin" || mavenPlugin.Executions == nil {
+					continue
+				}
+				isRepackageEnabled := false
+				for _, mavenPluginExecution := range *mavenPlugin.Executions {
+					if mavenPluginExecution.Goals == nil {
+						continue
 					}
-
-					for _, mavenPluginExecution := range *mavenPlugin.Executions {
-						for _, mavenPluginExecutionGoal := range *mavenPluginExecution.Goals {
-							// if the plugin has repackage goal
-							if mavenPluginExecutionGoal == "repackage" {
-								// we check the profiles included within this plugin
-								for _, configProfile := range mavenPlugin.Configuration.ConfigurationProfiles {
-									// we check if any of these profiles is contained in the list of profiles
-									// selected by the user
-									// if yes, we look for the classifier property of this plugin and
-									// assign it to the classifier variable
-									if common.IsStringPresent(selectedMavenProfiles, configProfile) {
-										classifier = mavenPlugin.Configuration.Classifier
-										break
-									}
-								}
-							}
-						}
+					if common.IsStringPresent(*mavenPluginExecution.Goals, "repackage") {
+						isRepackageEnabled = true
 					}
 				}
+				if !isRepackageEnabled {
+					continue
+				}
+				if mavenPlugin.Configuration.ConfigurationProfiles == nil || len(*mavenPlugin.Configuration.ConfigurationProfiles) == 0 {
+					classifier = mavenPlugin.Configuration.Classifier
+					break
+				}
+				for _, configProfile := range *mavenPlugin.Configuration.ConfigurationProfiles {
+					// we check if any of these profiles is contained in the list of profiles
+					// selected by the user
+					// if yes, we look for the classifier property of this plugin and
+					// assign it to the classifier variable
+					if common.IsStringPresent(selectedMavenProfiles, configProfile) {
+						classifier = mavenPlugin.Configuration.Classifier
+						break
+					}
+				}
+				break
 			}
 			logrus.Debugf("classifier: %s", classifier)
 		}
