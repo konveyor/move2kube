@@ -4,4 +4,4 @@ RUN yum install -y {{ .JavaPackageName }}
 RUN yum install -y maven
 COPY . /app
 WORKDIR /app
-{{if .MavenProfiles}}RUN mvn package -P {{$first := true}}{{range $mp := .MavenProfiles}}{{if $first}}{{$first = false}}{{else}},{{end}}{{$mp}}{{end}}{{else}}RUN mvn package{{end}}
+{{if .MavenProfiles}}RUN mvn package -Dmaven.test.skip -P {{$first := true}}{{range $mp := .MavenProfiles}}{{if $first}}{{$first = false}}{{else}},{{end}}{{$mp}}{{end}}{{else}}RUN mvn package -Dmaven.test.skip{{end}}
