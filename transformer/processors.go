@@ -60,16 +60,16 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 		case strings.ToLower(transformertypes.SourcePathMappingType): // skip sources
 		case strings.ToLower(transformertypes.ModifiedSourcePathMappingType):
 			if err := filesystem.Merge(pm.SrcPath, destPath, false); err != nil {
-				logrus.Errorf("Error while copying sourcepath for %+v", pm)
+				logrus.Errorf("Error while copying sourcepath for %+v . Error: %q", pm, err)
 			}
 		case strings.ToLower(transformertypes.TemplatePathMappingType):
 			if err := filesystem.TemplateCopy(pm.SrcPath, destPath, pm.TemplateConfig); err != nil {
-				logrus.Errorf("Error while copying sourcepath for %+v", pm)
+				logrus.Errorf("Error while copying sourcepath for %+v . Error: %q", pm, err)
 			}
 		default:
 			if !copiedDefaultDests[getpair(pm.SrcPath, pm.DestPath)] {
 				if err := filesystem.Merge(pm.SrcPath, destPath, false); err != nil {
-					logrus.Errorf("Error while copying sourcepath for %+v", pm)
+					logrus.Errorf("Error while copying sourcepath for %+v . Error: %q", pm, err)
 				}
 				copiedDefaultDests[getpair(pm.SrcPath, pm.DestPath)] = true
 			}
