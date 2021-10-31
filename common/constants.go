@@ -154,6 +154,8 @@ const (
 	ConfigServicesExposeKey = ConfigServicesKey + d + Special + d + "expose"
 	// ConfigActiveMavenProfilesForServiceKeySegment represents the maven profiles used for service
 	ConfigActiveMavenProfilesForServiceKeySegment = "activemavenprofiles"
+	// ConfigActiveSpringBootProfilesForServiceKeySegment represent the springboot profiles used for service
+	ConfigActiveSpringBootProfilesForServiceKeySegment = "activespringbootprofiles"
 )
 
 const (

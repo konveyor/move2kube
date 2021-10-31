@@ -48,10 +48,11 @@ const (
 
 // JarArtifactConfig defines a JarArtifactConfig struct
 type JarArtifactConfig struct {
-	DeploymentFile              string `yaml:"deploymentFile"`
-	JavaVersion                 string `yaml:"javaVersion"`
-	DeploymentFileDir           string `yaml:"deploymentFileDir"`
-	IsDeploymentFileInContainer bool   `yaml:"isDeploymentFileInContainer"`
+	DeploymentFile              string            `yaml:"deploymentFile"`
+	JavaVersion                 string            `yaml:"javaVersion"`
+	DeploymentFileDir           string            `yaml:"deploymentFileDir"`
+	IsDeploymentFileInContainer bool              `yaml:"isDeploymentFileInContainer"`
+	EnvVariables                map[string]string `yaml:"envVariables"`
 }
 
 // WarArtifactConfig defines a WarArtifactConfig struct
