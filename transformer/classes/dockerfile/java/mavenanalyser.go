@@ -255,24 +255,30 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 
 		// Springboot profiles handling
 		// We collect the springboot profiles from the current service
-		springBootMetadataFiles := getSpringBootMetadataFiles(a.Paths[artifacts.ProjectPathPathType][0])
-		_, springBootProfiles := getSpringBootAppNameAndProfiles(springBootMetadataFiles)
+
+		springbootConfig := artifacts.SpringBootConfig{}
+		err = a.GetConfig(artifacts.SpringBootConfigType, &springbootConfig)
+		if err != nil {
+			logrus.Debugf("Unable to load springboot config object: %s", err)
+		}
+
+		springBootProfiles := springbootConfig.SpringBootProfiles
+
 		// if there are profiles, we ask the user to select
 		springBootProfilesFlattened := ""
 		if len(springBootProfiles) > 0 {
 			selectedSpringBootProfiles := qaengine.FetchMultiSelectAnswer(
 				common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ConfigActiveSpringBootProfilesForServiceKeySegment,
-				fmt.Sprintf("Choose the Springboot profile to be used for the service %s", a.Name),
+				fmt.Sprintf("Choose Springboot profiles to be used for the service %s", a.Name),
 				[]string{fmt.Sprintf("Selected Springboot profiles will be used for setting configuration for the service %s", a.Name)},
 				springBootProfiles,
 				springBootProfiles,
 			)
-			if len(selectedSpringBootProfiles) == 0 {
-				logrus.Debugf("No springboot profiles selected")
-			} else {
+			if len(selectedSpringBootProfiles) != 0 {
 				// we flatten the list of springboot profiles for passing it as env var
 				springBootProfilesFlattened = strings.Join(selectedSpringBootProfiles, ",")
-
+			} else {
+				logrus.Debugf("No springboot profiles selected")
 			}
 		}
 
