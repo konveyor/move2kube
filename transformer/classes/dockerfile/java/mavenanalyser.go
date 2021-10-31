@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -249,6 +250,37 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 			logrus.Debugf("classifier: %s", classifier)
 		}
 
+		// Dockerfile Env variables storage
+		envVariablesMap := map[string]string{}
+
+		// Springboot profiles handling
+		// We collect the springboot profiles from the current service
+		springBootMetadataFiles := getSpringBootMetadataFiles(a.Paths[artifacts.ProjectPathPathType][0])
+		_, springBootProfiles := getSpringBootAppNameAndProfiles(springBootMetadataFiles)
+		// if there are profiles, we ask the user to select
+		springBootProfilesFlattened := ""
+		if len(springBootProfiles) > 0 {
+			selectedSpringBootProfiles := qaengine.FetchMultiSelectAnswer(
+				common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ConfigActiveSpringBootProfilesForServiceKeySegment,
+				fmt.Sprintf("Choose the Springboot profile to be used for the service %s", a.Name),
+				[]string{fmt.Sprintf("Selected Springboot profiles will be used for setting configuration for the service %s", a.Name)},
+				springBootProfiles,
+				springBootProfiles,
+			)
+			if len(selectedSpringBootProfiles) == 0 {
+				logrus.Debugf("No springboot profiles selected")
+			} else {
+				// we flatten the list of springboot profiles for passing it as env var
+				springBootProfilesFlattened = strings.Join(selectedSpringBootProfiles, ",")
+
+			}
+		}
+
+		if springBootProfilesFlattened != "" {
+			// we add to the map of env vars
+			envVariablesMap["SPRING_PROFILES_ACTIVE"] = springBootProfilesFlattened
+		}
+
 		sImageName := artifacts.ImageName{}
 		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
@@ -341,6 +373,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 						JavaVersion:                 javaVersion,
 						DeploymentFileDir:           filepath.Join(defaultAppPathInContainer, "target"),
 						IsDeploymentFileInContainer: true,
+						EnvVariables:                envVariablesMap,
 					},
 					artifacts.ImageNameConfigType: sImageName,
 					artifacts.ServiceConfigType:   sConfig,

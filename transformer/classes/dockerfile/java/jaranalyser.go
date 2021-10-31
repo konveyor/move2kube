@@ -49,6 +49,7 @@ type JarDockerfileTemplate struct {
 	DeploymentFileDir    string
 	Port                 string
 	PortConfigureEnvName string
+	EnvVariables         map[string]string
 }
 
 // Init Initializes the transformer
@@ -164,6 +165,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArt
 				DeploymentFileDir:    jarArtifactConfig.DeploymentFileDir,
 				Port:                 "8080",
 				PortConfigureEnvName: "SERVER_PORT",
+				EnvVariables:         jarArtifactConfig.EnvVariables,
 			},
 		})
 		paths := a.Paths
