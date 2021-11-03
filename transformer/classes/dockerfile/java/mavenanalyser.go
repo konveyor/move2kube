@@ -201,11 +201,22 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 		if err != nil {
 			logrus.Debugf("Unable to load maven config object: %s", err)
 		}
+		defaultProfiles := []string{}
+		if pom.Profiles != nil {
+			for _, profile := range *pom.Profiles {
+				if profile.Activation != nil && profile.Activation.ActiveByDefault && common.IsStringPresent(mavenConfig.MavenProfiles, profile.ID) {
+					defaultProfiles = append(defaultProfiles, profile.ID)
+				}
+			}
+		}
+		if len(defaultProfiles) == 0 {
+			defaultProfiles = mavenConfig.MavenProfiles
+		}
 		selectedMavenProfiles := qaengine.FetchMultiSelectAnswer(
 			common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ConfigActiveMavenProfilesForServiceKeySegment,
 			fmt.Sprintf("Choose the Maven profile to be used for the service %s", a.Name),
 			[]string{fmt.Sprintf("Selected Maven profiles will be used for setting configuration for the service %s", a.Name)},
-			mavenConfig.MavenProfiles,
+			defaultProfiles,
 			mavenConfig.MavenProfiles,
 		)
 		if len(selectedMavenProfiles) == 0 {
@@ -255,7 +266,6 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 
 		// Springboot profiles handling
 		// We collect the springboot profiles from the current service
-
 		springbootConfig := artifacts.SpringBootConfig{}
 		err = a.GetConfig(artifacts.SpringBootConfigType, &springbootConfig)
 		if err != nil {
