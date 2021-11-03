@@ -22,9 +22,9 @@ import (
 
 // SpringBootConfig stores spring boot related configuration information
 type SpringBootConfig struct {
-	SpringBootVersion  string   `yaml:"springBootVersion,omitempty" json:"springBootVersion,omitempty"`
-	SpringBootAppName  string   `yaml:"springBootAppName,omitempty" json:"springBootAppName,omitempty"`
-	SpringBootProfiles []string `yaml:"springBootProfiles,omitempty" json:"springBootProfiles,omitempty"`
+	SpringBootVersion  string    `yaml:"springBootVersion,omitempty" json:"springBootVersion,omitempty"`
+	SpringBootAppName  string    `yaml:"springBootAppName,omitempty" json:"springBootAppName,omitempty"`
+	SpringBootProfiles *[]string `yaml:"springBootProfiles,omitempty" json:"springBootProfiles,omitempty"`
 }
 
 const (

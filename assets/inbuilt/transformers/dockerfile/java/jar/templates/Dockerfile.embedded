@@ -1,9 +1,8 @@
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
-
-{{range $k, $v := .EnvVariables}}ENV {{$k}} {{$v}}
-{{end}}
-
+{{- range $k, $v := .EnvVariables}}
+ENV {{$k}} {{$v}}
+{{- end}}
 RUN microdnf update \
    && microdnf install --nodocs \
       {{ .JavaPackageName }} \

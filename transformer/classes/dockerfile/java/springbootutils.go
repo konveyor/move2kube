@@ -81,7 +81,7 @@ func getSpringBootAppNameAndProfiles(springbootMetadataFiles SpringBootMetadataF
 	}
 	if len(springbootMetadataFiles.appPropFiles) != 0 {
 		for _, appPropFile := range springbootMetadataFiles.appPropFiles {
-			if appPropFile == "application.properties" {
+			if filepath.Base(appPropFile) == "application.properties" {
 				propss := getPropertiesFileSegmentsAsProperties(getSegmentsFromFiles([]string{appPropFile}))
 				for _, props := range propss {
 					if appName != "" {
