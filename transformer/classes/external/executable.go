@@ -85,23 +85,23 @@ func (t *Executable) GetConfig() (transformertypes.Transformer, *environment.Env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *Executable) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *Executable) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	if t.ExecConfig.BaseDirectoryDetectCMD == nil {
-		return nil, nil, nil
+		return nil, nil
 	}
 	return t.executeDetect(t.ExecConfig.BaseDirectoryDetectCMD, dir)
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *Executable) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *Executable) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	if t.ExecConfig.DirectoryDetectCMD == nil {
-		return nil, nil, nil
+		return nil, nil
 	}
-	namedServices, unnamedServices, err = t.executeDetect(t.ExecConfig.DirectoryDetectCMD, dir)
+	services, err = t.executeDetect(t.ExecConfig.DirectoryDetectCMD, dir)
 	if err != nil {
-		return namedServices, unnamedServices, err
+		return services, err
 	}
-	for sn, ns := range namedServices {
+	for sn, ns := range services {
 		for nsi, nst := range ns {
 			if len(nst.Paths) == 0 {
 				nst.Paths = map[string][]string{
@@ -110,17 +110,9 @@ func (t *Executable) DirectoryDetect(dir string) (namedServices map[string]trans
 				ns[nsi] = nst
 			}
 		}
-		namedServices[sn] = ns
+		services[sn] = ns
 	}
-	for unsi, unst := range unnamedServices {
-		if len(unst.Paths) == 0 {
-			unst.Paths = map[string][]string{
-				artifacts.ProjectPathPathType: {dir},
-			}
-		}
-		unnamedServices[unsi] = unst
-	}
-	return namedServices, unnamedServices, err
+	return services, err
 }
 
 const (
@@ -175,7 +167,7 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, oldArti
 			}
 			logrus.Debugf("%s Transform succeeded in %s : %s, %s, %d", t.Config.Name, t.Env.Decode(path), stdout, stderr, exitcode)
 			stdout = strings.TrimSpace(stdout)
-			var output TransformOutput
+			var output transformertypes.TransformOutput
 			err = json.Unmarshal([]byte(stdout), &output)
 			if err != nil {
 				logrus.Errorf("Error in unmarshalling json %s: %s.", stdout, err)
@@ -187,29 +179,28 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, oldArti
 	return pathMappings, createdArtifacts, nil
 }
 
-func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (nameServices map[string]transformertypes.ServicePlan, unservices []transformertypes.TransformerPlan, err error) {
+func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	stdout, stderr, exitcode, err := t.Env.Exec(append(cmd, dir))
 	if err != nil {
 		if errors.Is(err, &environment.EnvironmentNotActiveError{}) {
 			logrus.Debugf("%s", err)
-			return nil, nil, err
+			return nil, err
 		}
 		logrus.Errorf("Detect failed %s : %s : %d : %s", stdout, stderr, exitcode, err)
-		return nil, nil, err
+		return nil, err
 	} else if exitcode != 0 {
 		logrus.Debugf("Detect did not succeed %s : %s : %d", stdout, stderr, exitcode)
-		return nil, nil, nil
+		return nil, nil
 	}
 	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d", t.Config.Name, t.Env.Decode(dir), stdout, stderr, exitcode)
 	stdout = strings.TrimSpace(stdout)
-	var output DetectOutput
+	var output map[string][]transformertypes.TransformerPlan
 	err = json.Unmarshal([]byte(stdout), &output)
 	if err != nil {
 		logrus.Errorf("Error in unmarshalling json %s: %s.", stdout, err)
 	}
-	if len(output.NamedServices) > 0 || len(output.UnNamedServices) > 0 {
-		return output.NamedServices, output.UnNamedServices, nil
-
+	if len(output) > 0 {
+		return output, nil
 	}
 	var config map[string]interface{}
 	if stdout != "" {
@@ -238,6 +229,5 @@ func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (na
 			TemplateConfigType: config,
 		},
 	}
-	return nil, []transformertypes.TransformerPlan{trans}, nil
-
+	return map[string][]transformertypes.TransformerPlan{"": {trans}}, nil
 }

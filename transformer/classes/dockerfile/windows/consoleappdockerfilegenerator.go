@@ -70,8 +70,8 @@ func (t *WinConsoleAppDockerfileGenerator) GetConfig() (transformertypes.Transfo
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *WinConsoleAppDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *WinConsoleAppDockerfileGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // parseAppConfig parses the application config
@@ -155,11 +155,11 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(AppCfgFilePath 
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory: %s", err)
-		return nil, nil, err
+		return nil, err
 	}
 	appName := ""
 	appConfigList := make([]string, 0)
@@ -223,11 +223,11 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (namedSer
 	}
 
 	if appName == "" {
-		return nil, nil, nil
+		return nil, nil
 	}
 
-	namedServices = map[string]transformertypes.ServicePlan{
-		appName: []transformertypes.TransformerPlan{{
+	services = map[string][]transformertypes.TransformerPlan{
+		appName: {{
 			Mode:              t.Config.Spec.Mode,
 			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -237,7 +237,7 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (namedSer
 			},
 		}},
 	}
-	return namedServices, nil, nil
+	return services, nil
 }
 
 // Transform transforms the artifacts

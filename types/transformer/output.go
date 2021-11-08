@@ -16,12 +16,6 @@
 
 package transformer
 
-// DetectOutput structure is the data format for receiving data from starlark detect functions
-type DetectOutput struct {
-	NamedServices   map[string]ServicePlan `yaml:"namedServices,omitempty" json:"namedServices,omitempty"`
-	UnNamedServices []TransformerPlan      `yaml:"unnamedServices,omitempty" json:"unnamedServices,omitempty"`
-}
-
 // TransformOutput structure is the data format for receiving data from starlark transform functions
 type TransformOutput struct {
 	PathMappings     []PathMapping `yaml:"pathMappings,omitempty" json:"pathMappings,omitempty"`

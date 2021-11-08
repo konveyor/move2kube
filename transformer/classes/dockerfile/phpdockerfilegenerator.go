@@ -64,8 +64,8 @@ func (t *PHPDockerfileGenerator) GetConfig() (transformertypes.Transformer, *env
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *PHPDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *PHPDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // parseConfFile parses the conf file to detect the port
@@ -143,11 +143,11 @@ func GetConfFileForService(confFiles []string, serviceName string) string {
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory : %s", err)
-		return nil, nil, err
+		return nil, err
 	}
 	for _, de := range dirEntries {
 		if de.IsDir() {
@@ -156,17 +156,16 @@ func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[
 		if filepath.Ext(de.Name()) != phpExt {
 			continue
 		}
-		unnamedServices = []transformertypes.TransformerPlan{{
+		return map[string][]transformertypes.TransformerPlan{"": {{
 			Mode:              t.Config.Spec.Mode,
 			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			Paths: map[string][]string{
 				artifacts.ProjectPathPathType: {dir},
 			},
-		}}
-		return nil, unnamedServices, nil
+		}}}, nil
 	}
-	return nil, nil, nil
+	return nil, nil
 }
 
 // Transform transforms the artifacts

@@ -57,13 +57,13 @@ func (t *ComposeGenerator) GetConfig() (transformertypes.Transformer, *environme
 }
 
 // BaseDirectoryDetect executes detect in base directory
-func (t *ComposeGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *ComposeGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect executes detect in each sub directory
-func (t *ComposeGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *ComposeGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // Transform transforms the artifacts

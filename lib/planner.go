@@ -153,7 +153,7 @@ func CuratePlan(p plantypes.Plan, outputPath string) plantypes.Plan {
 	transformer.InitTransformers(p.Spec.Configuration.Transformers, tc, p.Spec.RootDir, outputPath, p.Name, true)
 
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
-	planServices := map[string]transformertypes.ServicePlan{}
+	planServices := map[string][]transformertypes.TransformerPlan{}
 	for _, s := range selectedServices {
 		planServices[s] = p.Spec.Services[s]
 	}

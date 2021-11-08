@@ -53,13 +53,13 @@ func (t *DockerfileImageBuildScript) GetConfig() (transformertypes.Transformer, 
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *DockerfileImageBuildScript) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *DockerfileImageBuildScript) BaseDirectoryDetect(dir string) (namedServices map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *DockerfileImageBuildScript) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *DockerfileImageBuildScript) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // Transform transforms the artifacts

@@ -50,11 +50,11 @@ func (t *DockerfileDetector) GetConfig() (transformertypes.Transformer, *environ
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	ts := []transformertypes.TransformerPlan{}
+func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	services = map[string][]transformertypes.TransformerPlan{}
 	if info, err := os.Stat(dir); os.IsNotExist(err) {
 		logrus.Warnf("Error in walking through files due to : %s", err)
-		return nil, nil, err
+		return nil, err
 	} else if !info.IsDir() {
 		logrus.Warnf("The path %q is not a directory.", dir)
 	}
@@ -82,19 +82,19 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (namedServices map[
 					artifacts.DockerfilePathType:  {path},
 				},
 			}
-			ts = append(ts, trans)
+			services[""] = append(services[""], trans)
 		}
 		return nil
 	})
 	if err != nil {
 		logrus.Warnf("Error in walking through files due to : %s", err)
 	}
-	return nil, ts, nil
+	return services, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *DockerfileDetector) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // Transform transforms the artifacts

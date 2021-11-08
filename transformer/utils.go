@@ -172,7 +172,7 @@ func mergePathSliceMaps(map1 map[transformertypes.PathType][]string, map2 map[tr
 	return map1
 }
 
-func setTransformerInfoForServices(services map[string]transformertypes.ServicePlan, t transformertypes.Transformer) map[string]transformertypes.ServicePlan {
+func setTransformerInfoForServices(services map[string][]transformertypes.TransformerPlan, t transformertypes.Transformer) map[string][]transformertypes.TransformerPlan {
 	for sn, s := range services {
 		for sti, st := range s {
 			st.TransformerName = t.Name
@@ -190,4 +190,13 @@ func setTransformerInfoForTransformers(transformers []transformertypes.Transform
 		transformers[ti] = tr
 	}
 	return transformers
+}
+
+func getNamedAndUnNamedServicesLogMessage(services map[string][]transformertypes.TransformerPlan) string {
+	nnservices := len(services)
+	nuntransformers := len(services[""])
+	if _, ok := services[""]; ok {
+		nuntransformers -= 1
+	}
+	return fmt.Sprintf("Identified %d namedservices and %d unnamed transformer plans", nnservices, nuntransformers)
 }

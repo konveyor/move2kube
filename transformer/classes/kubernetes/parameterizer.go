@@ -47,13 +47,13 @@ func (t *Parameterizer) GetConfig() (transformertypes.Transformer, *environment.
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *Parameterizer) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *Parameterizer) BaseDirectoryDetect(dir string) (namedServices map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each subdirectory
-func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // Transform transforms artifacts

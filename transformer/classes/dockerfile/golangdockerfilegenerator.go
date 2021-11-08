@@ -73,30 +73,30 @@ func (t *GolangDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *GolangDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *GolangDockerfileGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	modFilePath := filepath.Join(dir, "go.mod")
 	data, err := ioutil.ReadFile(modFilePath)
 	if err != nil {
-		return nil, nil, nil
+		return nil, nil
 	}
 	modFile, err := modfile.Parse(modFilePath, data, nil)
 	if err != nil {
 		logrus.Errorf("Error while parsing the go.mod file : %s", err)
-		return nil, nil, nil
+		return nil, nil
 	}
 	prefix, _, ok := module.SplitPathVersion(modFile.Module.Mod.Path)
 	if !ok {
 		logrus.Errorf("Invalid module path")
-		return nil, nil, nil
+		return nil, nil
 	}
 	serviceName := filepath.Base(prefix)
-	namedServices = map[string]transformertypes.ServicePlan{
-		serviceName: []transformertypes.TransformerPlan{{
+	services = map[string][]transformertypes.TransformerPlan{
+		serviceName: {{
 			Mode:              t.Config.Spec.Mode,
 			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -106,7 +106,7 @@ func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (namedServices m
 			},
 		}},
 	}
-	return namedServices, nil, nil
+	return services, nil
 }
 
 // Transform transforms the artifacts

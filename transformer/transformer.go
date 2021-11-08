@@ -55,8 +55,8 @@ type Transformer interface {
 	// GetConfig returns the transformer config
 	GetConfig() (transformertypes.Transformer, *environment.Environment)
 
-	BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error)
-	DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error)
+	BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error)
+	DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error)
 
 	Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error)
 }
@@ -224,43 +224,39 @@ func GetTransformers() map[string]Transformer {
 }
 
 // GetServices returns the list of services detected in a directory
-func GetServices(prjName string, dir string) (services map[string]transformertypes.ServicePlan, err error) {
-	services = map[string]transformertypes.ServicePlan{}
-	unservices := []transformertypes.TransformerPlan{}
+func GetServices(prjName string, dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	services = map[string][]transformertypes.TransformerPlan{}
 	logrus.Infoln("Planning Transformation - Base Directory")
 	logrus.Debugf("Transformers : %+v", transformers)
 	for tn, t := range transformers {
 		config, env := t.GetConfig()
 		env.Reset()
 		logrus.Infof("[%s] Planning transformation", tn)
-		nservices, nunservices, err := t.BaseDirectoryDetect(env.Encode(dir).(string))
+		nservices, err := t.BaseDirectoryDetect(env.Encode(dir).(string))
 		if err != nil {
 			logrus.Errorf("[%s] Failed : %s", tn, err)
 		} else {
-			nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]transformertypes.ServicePlan), config)
-			nunservices = setTransformerInfoForTransformers(*env.Decode(&nunservices).(*[]transformertypes.TransformerPlan), config)
+			nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string][]transformertypes.TransformerPlan), config)
 			services = plantypes.MergeServices(services, nservices)
-			unservices = append(unservices, nunservices...)
-			if len(nservices) > 0 || len(nunservices) > 0 {
-				logrus.Infof("Identified %d namedservices and %d unnamedservices", len(nservices), len(nunservices))
+			if len(nservices) > 0 {
+				logrus.Infof(getNamedAndUnNamedServicesLogMessage(nservices))
 			}
 			common.PlanProgressNumBaseDetectTransformers++
 			logrus.Infof("[%s] Done", tn)
 		}
 	}
-	logrus.Infof("[Base Directory] Identified %d namedservices and %d unnamedservices", len(services), len(unservices))
+	logrus.Infof("[Base Directory] %s", getNamedAndUnNamedServicesLogMessage(services))
 	logrus.Infoln("Transformation planning - Base Directory done")
 	logrus.Infoln("Planning Transformation - Directory Walk")
-	nservices, nunservices, err := walkForServices(dir, transformers, services)
+	nservices, err := walkForServices(dir, transformers, services)
 	if err != nil {
 		logrus.Errorf("Transformation planning - Directory Walk failed : %s", err)
 	} else {
 		services = nservices
-		unservices = append(unservices, nunservices...)
 		logrus.Infoln("Transformation planning - Directory Walk done")
 	}
-	logrus.Infof("[Directory Walk] Identified %d namedservices and %d unnamedservices", len(services), len(unservices))
-	services = nameServices(prjName, services, unservices)
+	logrus.Infof("[Directory Walk] %s", getNamedAndUnNamedServicesLogMessage(services))
+	services = nameServices(prjName, services)
 	logrus.Infof("[Named Services] Identified %d namedservices", len(services))
 	return
 }
@@ -351,9 +347,8 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 	return nil
 }
 
-func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string]transformertypes.ServicePlan) (services map[string]transformertypes.ServicePlan, unservices []transformertypes.TransformerPlan, err error) {
+func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string][]transformertypes.TransformerPlan) (services map[string][]transformertypes.TransformerPlan, err error) {
 	services = bservices
-	unservices = []transformertypes.TransformerPlan{}
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
 	knownProjectPaths := []string{}
 
@@ -386,19 +381,17 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 			config, env := t.GetConfig()
 			logrus.Debugf("[%s] Planning transformation in %s", config.Name, path)
 			env.Reset()
-			nservices, nunservices, err := t.DirectoryDetect(env.Encode(path).(string))
+			nservices, err := t.DirectoryDetect(env.Encode(path).(string))
 			if err != nil {
 				logrus.Warnf("[%s] Failed : %s", config.Name, err)
 			} else {
-				nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string]transformertypes.ServicePlan), config)
-				nunservices = setTransformerInfoForTransformers(*env.Decode(&nunservices).(*[]transformertypes.TransformerPlan), config)
+				nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string][]transformertypes.TransformerPlan), config)
 				services = plantypes.MergeServices(services, nservices)
-				unservices = append(unservices, nunservices...)
 				logrus.Debugf("[%s] Done", config.Name)
-				if len(nservices) > 0 || len(nunservices) > 0 {
+				if len(nservices) > 0 {
 					found = true
 					relpath, _ := filepath.Rel(inputPath, path)
-					logrus.Infof("Found %d named services and %d unnamed transformer success in %s", len(nservices), len(nunservices), relpath)
+					logrus.Infof("%s in %s", getNamedAndUnNamedServicesLogMessage(nservices), relpath)
 				}
 			}
 		}

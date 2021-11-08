@@ -32,11 +32,12 @@ type project struct {
 	pathsuffix string
 }
 
-func nameServices(projName string, nServices map[string]transformertypes.ServicePlan, sts []transformertypes.TransformerPlan) (services map[string]transformertypes.ServicePlan) {
-	services = nServices
+func nameServices(projName string, services map[string][]transformertypes.TransformerPlan) map[string][]transformertypes.TransformerPlan {
+	sts := services[""]
+	delete(services, "")
 	// Collate services by project path or shared common base dir
 	knownServicePaths := map[string]string{} //[path]name
-	for sn, s := range nServices {
+	for sn, s := range services {
 		for _, st := range s {
 			if pps, ok := st.Paths[artifacts.ProjectPathPathType]; ok {
 				for _, pp := range pps {
@@ -101,7 +102,7 @@ func nameServices(projName string, nServices map[string]transformertypes.Service
 		}
 	}
 	// Only one set of unnamed services, use project name
-	if len(nServices) == 0 && len(servicePaths) == 1 {
+	if len(services) == 0 && len(servicePaths) == 1 {
 		for _, ts := range servicePaths {
 			services[projName] = ts
 		}
@@ -141,7 +142,7 @@ func nameServices(projName string, nServices map[string]transformertypes.Service
 		}
 	}
 	//TODO: Consider whether we should take into consideration pre-existing serviceNames
-	svcs := map[string]transformertypes.ServicePlan{}
+	svcs := map[string][]transformertypes.TransformerPlan{}
 	for sn, ps := range sProjects {
 		for _, p := range ps {
 			svcs[sn] = servicePaths[p.path]

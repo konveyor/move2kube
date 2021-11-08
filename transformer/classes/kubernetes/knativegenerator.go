@@ -48,13 +48,13 @@ func (t *Knative) GetConfig() (transformertypes.Transformer, *environment.Enviro
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *Knative) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *Knative) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *Knative) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *Knative) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // Transform transforms the artifacts

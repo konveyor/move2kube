@@ -52,13 +52,13 @@ func (t *ContainerImagesBuildScript) GetConfig() (transformertypes.Transformer, 
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *ContainerImagesBuildScript) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *ContainerImagesBuildScript) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *ContainerImagesBuildScript) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *ContainerImagesBuildScript) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // Transform transforms the artifacts

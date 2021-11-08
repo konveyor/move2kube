@@ -137,12 +137,12 @@ func (t *Starlark) GetConfig() (transformertypes.Transformer, *environment.Envir
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *Starlark) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *Starlark) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	return t.executeDetect(t.baseDetectFn, dir)
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *Starlark) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *Starlark) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	return t.executeDetect(t.detectFn, dir)
 }
 
@@ -187,32 +187,32 @@ func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, oldArtifa
 	return transformOutput.PathMappings, transformOutput.CreatedArtifacts, nil
 }
 
-func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (nameServices map[string]transformertypes.ServicePlan, unservices []transformertypes.TransformerPlan, err error) {
+func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	if fn == nil {
-		return nil, nil, nil
+		return nil, nil
 	}
 	starDir, err := starutil.Marshal(dir)
 	if err != nil {
 		logrus.Errorf("Unable to convert %s to starlark value : %s", dir, err)
-		return nil, nil, err
+		return nil, err
 	}
 	val, err := starlark.Call(t.StarThread, fn, starlark.Tuple{starDir}, nil)
 	if err != nil {
 		logrus.Errorf("Unable to execute starlark function : %s", err)
-		return nil, nil, err
+		return nil, err
 	}
 	valI, err := starutil.Unmarshal(val)
 	if err != nil {
 		logrus.Errorf("Unable to unmarshal starlark function result : %s", err)
-		return nil, nil, err
+		return nil, err
 	}
-	detectOutput := transformertypes.DetectOutput{}
-	err = common.GetObjFromInterface(valI, &detectOutput)
+	services = map[string][]transformertypes.TransformerPlan{}
+	err = common.GetObjFromInterface(valI, &services)
 	if err != nil {
-		logrus.Errorf("unable to load result for Transformer %+v into %T : %s", valI, detectOutput, err)
-		return nil, nil, err
+		logrus.Errorf("unable to load result for Transformer %+v into %T : %s", valI, services, err)
+		return nil, err
 	}
-	return detectOutput.NamedServices, detectOutput.UnNamedServices, nil
+	return services, nil
 }
 
 func (t *Starlark) getStarlarkQuery() *starlark.Builtin {

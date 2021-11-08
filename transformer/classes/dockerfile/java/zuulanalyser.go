@@ -69,12 +69,12 @@ func (t *ZuulAnalyser) GetConfig() (transformertypes.Transformer, *environment.E
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *ZuulAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	namedServices = map[string]transformertypes.ServicePlan{}
+func (t *ZuulAnalyser) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	services = map[string][]transformertypes.TransformerPlan{}
 	yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
 	if err != nil {
 		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
-		return nil, nil, err
+		return nil, err
 	}
 	for _, path := range yamlpaths {
 		z := Zuul{}
@@ -100,15 +100,15 @@ func (t *ZuulAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string
 					},
 				},
 			}
-			namedServices[servicename] = append(namedServices[servicename], ct)
+			services[servicename] = append(services[servicename], ct)
 		}
 	}
-	return namedServices, nil, nil
+	return services, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *ZuulAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *ZuulAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // Transform transforms the artifacts

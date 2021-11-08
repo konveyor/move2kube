@@ -57,15 +57,15 @@ func (t *CloudFoundry) GetConfig() (transformertypes.Transformer, *environment.E
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	namedServices = map[string]transformertypes.ServicePlan{}
+func (t *CloudFoundry) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	services = map[string][]transformertypes.TransformerPlan{}
 
 	filePaths, err := common.GetFilesByExt(dir, []string{".yml", ".yaml"})
 	if err != nil {
 		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", dir, err)
-		return namedServices, nil, err
+		return services, err
 	}
-	namedServices = map[string]transformertypes.ServicePlan{}
+	services = map[string][]transformertypes.TransformerPlan{}
 	// Load instance apps, if available
 	cfInstanceApps := map[string][]collecttypes.CfApplication{} //path
 	for _, filePath := range filePaths {
@@ -128,15 +128,15 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (namedServices map[string
 				ct.Configs[artifacts.CloudFoundryConfigType] = ctConfig
 				continue
 			}
-			namedServices[applicationName] = []transformertypes.TransformerPlan{ct}
+			services[applicationName] = []transformertypes.TransformerPlan{ct}
 		}
 	}
-	return namedServices, nil, nil
+	return services, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *CloudFoundry) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // Transform transforms the artifacts
