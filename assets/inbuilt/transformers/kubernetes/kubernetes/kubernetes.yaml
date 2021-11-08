@@ -9,3 +9,5 @@ spec:
     - "IR"
   directoryDetect:
     levels: 0
+  config: 
+    outputMode: "output-folder"
