@@ -43,7 +43,7 @@ type Kubernetes struct {
 
 // KubernetesGenYamlConfig stores the k8s related information
 type KubernetesGenYamlConfig struct {
-	outputMode string `yaml:"outputMode"`
+	OutputMode string `yaml:"outputMode"`
 }
 
 // Init Initializes the transformer
@@ -51,6 +51,11 @@ func (t *Kubernetes) Init(tc transformertypes.Transformer, e *environment.Enviro
 	t.Config = tc
 	t.Env = e
 	t.KubernetesConfig = &KubernetesGenYamlConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, &t.KubernetesConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.KubernetesConfig, err)
+		return err
+	}
 	return nil
 }
 
@@ -96,7 +101,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 			return nil, nil, err
 		}
 
-		if t.KubernetesConfig.outputMode == tempFolderMode {
+		if t.KubernetesConfig.OutputMode == tempFolderMode {
 			na := transformertypes.Artifact{
 				Name:     t.Config.Name,
 				Artifact: artifacts.KubernetesYamlsArtifactType,
