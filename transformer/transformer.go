@@ -68,6 +68,7 @@ func init() {
 		new(dockerfile.NodejsDockerfileGenerator),
 		new(dockerfile.GolangDockerfileGenerator),
 		new(dockerfile.PHPDockerfileGenerator),
+		new(dockerfile.RubyDockerfileGenerator),
 		new(dockerfile.DotNet5DockerfileGenerator),
 		new(java.JarAnalyser),
 		new(java.MavenAnalyser),
