@@ -28,14 +28,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	rubyFileExt = ".rb"
+)
+
 // RubyDockerfileGenerator implements the Transformer interface
 type RubyDockerfileGenerator struct {
-	Config       transformertypes.Transformer
-	Env          *environment.Environment
-	NodejsConfig NodejsDockerfileYamlConfig
+	Config transformertypes.Transformer
+	Env    *environment.Environment
 }
 
-// RubyTemplateConfig implements Nodejs config interface
+// RubyTemplateConfig implements Ruby config interface
 type RubyTemplateConfig struct {
 	Port    int32
 	AppName string
@@ -60,34 +63,21 @@ func (t *RubyDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices
 
 // DirectoryDetect runs detect in each sub directory
 func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	Gemfiles, err := common.GetFilesByName(dir, []string{"", "Gemfile"}, nil)
+	Gemfiles, err := common.GetFilesByName(dir, []string{"Gemfile"}, nil)
 	if err != nil {
 		logrus.Debugf("Cannot get the Gemfile: %s", err)
 		return nil, nil, nil
 	}
 	if len(Gemfiles) > 0 {
-		rubyFiles, err := common.GetFilesByExt(dir, []string{".rb"})
+		rubyFiles, err := common.GetFilesByExt(dir, []string{rubyFileExt})
 		if err != nil {
 			logrus.Errorf("Error while finding ruby files %s", err)
 		}
 		var serviceName string
 		if len(rubyFiles) == 1 {
-			serviceName = strings.TrimSuffix(filepath.Base(rubyFiles[0]), ".rb")
+			serviceName = strings.TrimSuffix(filepath.Base(rubyFiles[0]), rubyFileExt)
 		}
-		if serviceName != "" {
-			namedServices = map[string]transformertypes.ServicePlan{
-				serviceName: []transformertypes.TransformerPlan{{
-					Mode:              t.Config.Spec.Mode,
-					ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-					BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-					Paths: map[string][]string{
-						artifacts.ProjectPathPathType: {dir},
-					},
-				}},
-			}
-			return namedServices, nil, nil
-		}
-		unnamedServices = []transformertypes.TransformerPlan{{
+		transformerPlan := []transformertypes.TransformerPlan{{
 			Mode:              t.Config.Spec.Mode,
 			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -95,7 +85,13 @@ func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (namedServices map
 				artifacts.ProjectPathPathType: {dir},
 			},
 		}}
-		return nil, unnamedServices, nil
+		if serviceName != "" {
+			namedServices = map[string]transformertypes.ServicePlan{
+				serviceName: transformerPlan,
+			}
+			return namedServices, nil, nil
+		}
+		return nil, transformerPlan, nil
 	}
 	return nil, nil, nil
 }
@@ -141,7 +137,7 @@ func (t *RubyDockerfileGenerator) Transform(newArtifacts []transformertypes.Arti
 			TemplateConfig: rubyConfig,
 		})
 		paths := a.Paths
-		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile")}
+		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
 			Name:     sImageName.ImageName,
 			Artifact: artifacts.DockerfileArtifactType,
