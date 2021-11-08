@@ -93,23 +93,23 @@ func (t *NodejsDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *NodejsDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *NodejsDockerfileGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	var packageJSON PackageJSON
 	if err := common.ReadJSON(filepath.Join(dir, packageJSONFile), &packageJSON); err != nil {
 		logrus.Debugf("unable to read the package.json file: %s", err)
-		return nil, nil, nil
+		return nil, nil
 	}
 	if packageJSON.Name == "" {
 		err = fmt.Errorf("unable to get project name of nodejs project at %s. Ignoring", dir)
-		return nil, nil, err
+		return nil, err
 	}
-	namedServices = map[string]transformertypes.ServicePlan{
-		packageJSON.Name: []transformertypes.TransformerPlan{{
+	services = map[string][]transformertypes.TransformerPlan{
+		packageJSON.Name: {{
 			Mode:              t.Config.Spec.Mode,
 			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -118,7 +118,7 @@ func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (namedServices m
 			},
 		}},
 	}
-	return namedServices, nil, nil
+	return services, nil
 }
 
 // Transform transforms the artifacts

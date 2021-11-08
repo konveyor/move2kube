@@ -71,23 +71,23 @@ func (t *JarAnalyser) GetConfig() (transformertypes.Transformer, *environment.En
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *JarAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *JarAnalyser) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *JarAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	unnamedServices = []transformertypes.TransformerPlan{}
+func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	services = map[string][]transformertypes.TransformerPlan{}
 	jarFilePaths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{".*[.]jar"})
 	if err != nil {
 		logrus.Errorf("Error while parsing directory %s for jar file : %s", dir, err)
-		return nil, nil, err
+		return nil, err
 	}
 	if len(jarFilePaths) == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 	for _, path := range jarFilePaths {
-		unnamedServices = append(unnamedServices, transformertypes.TransformerPlan{
+		services[""] = append(services[""], transformertypes.TransformerPlan{
 			Mode:              transformertypes.ModeContainer,
 			ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
 			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},

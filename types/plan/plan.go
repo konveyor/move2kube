@@ -37,7 +37,7 @@ type Spec struct {
 	RootDir           string `yaml:"rootDir"`
 	CustomizationsDir string `yaml:"customizationsDir,omitempty"`
 
-	Services map[string]transformertypes.ServicePlan `yaml:"services"` //[servicename]
+	Services map[string][]transformertypes.TransformerPlan `yaml:"services"` //[servicename]
 
 	TargetCluster TargetClusterType `yaml:"targetCluster,omitempty"`
 	Configuration Configuration     `yaml:"configuration,omitempty"`
@@ -68,7 +68,7 @@ func NewPlan() Plan {
 			Name: common.DefaultProjectName,
 		},
 		Spec: Spec{
-			Services:      map[string]transformertypes.ServicePlan{},
+			Services:      map[string][]transformertypes.TransformerPlan{},
 			TargetCluster: TargetClusterType{Type: common.DefaultClusterType},
 			Configuration: Configuration{
 				Transformers:   map[string]string{},
@@ -80,7 +80,7 @@ func NewPlan() Plan {
 }
 
 // MergeServices merges two service maps
-func MergeServices(s1 map[string]transformertypes.ServicePlan, s2 map[string]transformertypes.ServicePlan) map[string]transformertypes.ServicePlan {
+func MergeServices(s1 map[string][]transformertypes.TransformerPlan, s2 map[string][]transformertypes.TransformerPlan) map[string][]transformertypes.TransformerPlan {
 	if s1 == nil {
 		return s2
 	}

@@ -82,12 +82,12 @@ func (t *CNBContainerizer) GetConfig() (transformertypes.Transformer, *environme
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *CNBContainerizer) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *CNBContainerizer) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *CNBContainerizer) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	path := dir
 	cmd := environmenttypes.Command{
 		"/cnb/lifecycle/detector", "-app", t.CNBEnv.Encode(path).(string)}
@@ -95,13 +95,13 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 	if err != nil {
 		if errors.Is(err, &environment.EnvironmentNotActiveError{}) {
 			logrus.Debugf("%s", err)
-			return nil, nil, err
+			return nil, err
 		}
 		logrus.Errorf("Detect failed %s : %s : %d : %s", stdout, stderr, exitcode, err)
-		return nil, nil, err
+		return nil, err
 	} else if exitcode != 0 {
 		logrus.Debugf("Detect did not succeed %s : %s : %d", stdout, stderr, exitcode)
-		return nil, nil, nil
+		return nil, nil
 	}
 	trans := transformertypes.TransformerPlan{
 		Mode:              transformertypes.ModeContainer,
@@ -112,7 +112,7 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (namedServices map[string
 			CNBBuilder: t.CNBConfig.BuilderImageName,
 		}},
 	}
-	return nil, []transformertypes.TransformerPlan{trans}, nil
+	return map[string][]transformertypes.TransformerPlan{"": {trans}}, nil
 }
 
 // Transform transforms the artifacts

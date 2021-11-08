@@ -57,16 +57,16 @@ func (t *WinSilverLightWebAppDockerfileGenerator) GetConfig() (transformertypes.
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *WinSilverLightWebAppDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *WinSilverLightWebAppDockerfileGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory: %s", err)
-		return nil, nil, err
+		return nil, err
 	}
 	appName := ""
 	for _, de := range dirEntries {
@@ -132,11 +132,11 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (n
 	}
 
 	if appName == "" {
-		return nil, nil, nil
+		return nil, nil
 	}
 
-	namedServices = map[string]transformertypes.ServicePlan{
-		appName: []transformertypes.TransformerPlan{{
+	services = map[string][]transformertypes.TransformerPlan{
+		appName: {{
 			Mode:              t.Config.Spec.Mode,
 			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -145,7 +145,7 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (n
 			},
 		}},
 	}
-	return namedServices, nil, nil
+	return services, nil
 }
 
 // Transform transforms the artifacts

@@ -16,9 +16,6 @@
 
 package transformer
 
-// ServicePlan is the type that stores a plan service
-type ServicePlan []TransformerPlan
-
 // TransformerPlan stores transformer option
 type TransformerPlan struct {
 	Mode              Mode                       `yaml:"mode" json:"mode"` // container, customresource, service, generic

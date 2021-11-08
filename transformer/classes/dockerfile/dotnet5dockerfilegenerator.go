@@ -89,16 +89,16 @@ func (t *DotNet5DockerfileGenerator) GetConfig() (transformertypes.Transformer, 
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *DotNet5DockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *DotNet5DockerfileGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *DotNet5DockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *DotNet5DockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory : %s", err)
-		return nil, nil, err
+		return nil, err
 	}
 	for _, de := range dirEntries {
 		if de.IsDir() {
@@ -125,8 +125,8 @@ func (t *DotNet5DockerfileGenerator) DirectoryDetect(dir string) (namedServices 
 		}
 		serviceName := strings.TrimSuffix(filepath.Base(csprojFile), filepath.Ext(csprojFile))
 		if configuration.PropertyGroup.TargetFramework == dotNETCore5 {
-			namedServices = map[string]transformertypes.ServicePlan{
-				serviceName: []transformertypes.TransformerPlan{{
+			services = map[string][]transformertypes.TransformerPlan{
+				serviceName: {{
 					Mode:              t.Config.Spec.Mode,
 					ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 					BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
@@ -136,10 +136,10 @@ func (t *DotNet5DockerfileGenerator) DirectoryDetect(dir string) (namedServices 
 					},
 				}},
 			}
-			return namedServices, nil, nil
+			return services, nil
 		}
 	}
-	return nil, nil, nil
+	return nil, nil
 }
 
 // Transform transforms the artifacts

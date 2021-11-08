@@ -113,12 +113,12 @@ func (t *EurekaReplaceEngine) GetConfig() (transformertypes.Transformer, *enviro
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *EurekaReplaceEngine) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *EurekaReplaceEngine) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	destEntries, err := ioutil.ReadDir(dir)
 	var ec EurekaConfig
 	var pomWithEureka []string
@@ -136,14 +136,14 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 				// filled with previously declared xml
 				pomStr, err := ioutil.ReadFile(filepath.Join(dir, de.Name()))
 				if err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 
 				// Load pom from string
 				var pom maven.Pom
 				if err := xml.Unmarshal([]byte(pomStr), &pom); err != nil {
 					logrus.Errorf("unable to unmarshal pom file. Reason: %s", err)
-					return nil, nil, err
+					return nil, err
 				}
 
 				// detect service module
@@ -151,7 +151,7 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 				var isFeignClient bool = false
 				if pom.Dependencies == nil {
 					logrus.Debugf("Ignoring pom at %s as does not contain any dependencies", dir)
-					return nil, nil, nil
+					return nil, nil
 				}
 				for _, dep := range *pom.Dependencies {
 					if dep.ArtifactID == "spring-cloud-starter-netflix-eureka-client" {
@@ -164,7 +164,7 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 				}
 
 				if !isEurekaClient && !isFeignClient {
-					return nil, nil, nil
+					return nil, nil
 				}
 
 				// capture port and app name
@@ -188,7 +188,7 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 					yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
 					if err != nil {
 						logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
-						return nil, nil, err
+						return nil, err
 					}
 					for _, path := range yamlpaths {
 						t := yaml.Node{}
@@ -273,13 +273,13 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (namedServices map[str
 					},
 					Paths: transformerpaths,
 				}
-				return map[string]transformertypes.ServicePlan{ec.ServiceName: []transformertypes.TransformerPlan{ct}}, nil, nil
+				return map[string][]transformertypes.TransformerPlan{ec.ServiceName: {ct}}, nil
 			}
 
 		}
 	}
 
-	return nil, nil, nil
+	return nil, nil
 }
 
 // Transform transforms the artifacts

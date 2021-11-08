@@ -80,30 +80,30 @@ func (t *MavenAnalyser) GetConfig() (transformertypes.Transformer, *environment.
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *MavenAnalyser) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *MavenAnalyser) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	namedServices = map[string]transformertypes.ServicePlan{}
+func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	services = map[string][]transformertypes.TransformerPlan{}
 	mavenFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{maven.PomXMLFileName}, nil)
 	if err != nil {
 		logrus.Errorf("Error while parsing directory %s for maven file : %s", dir, err)
-		return nil, nil, err
+		return nil, err
 	}
 	if len(mavenFilePaths) == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 	pom := &maven.Pom{}
 	err = pom.Load(mavenFilePaths[0])
 	if err != nil {
 		logrus.Errorf("Unable to unmarshal pom file (%s): %s", mavenFilePaths[0], err)
-		return nil, nil, err
+		return nil, err
 	}
 	if pom.Modules != nil && len(*(pom.Modules)) != 0 {
 		logrus.Debugf("Parent pom detected (%s). Ignoring.", mavenFilePaths[0])
-		return nil, nil, nil
+		return nil, nil
 	}
 	appName := pom.ArtifactID
 	profiles := []string{}
@@ -149,11 +149,7 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (namedServices map[string]tr
 			break
 		}
 	}
-	if appName == "" {
-		unnamedServices = append(unnamedServices, ct)
-	} else {
-		namedServices[appName] = append(namedServices[appName], ct)
-	}
+	services[appName] = append(services[appName], ct)
 	return
 }
 
