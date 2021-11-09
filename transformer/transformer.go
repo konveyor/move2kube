@@ -27,7 +27,6 @@ import (
 	"github.com/konveyor/move2kube/qaengine"
 	transformer "github.com/konveyor/move2kube/transformer/classes"
 	"github.com/konveyor/move2kube/transformer/classes/cloudfoundry"
-	"github.com/konveyor/move2kube/transformer/classes/cnb"
 	"github.com/konveyor/move2kube/transformer/classes/compose"
 	"github.com/konveyor/move2kube/transformer/classes/container"
 	"github.com/konveyor/move2kube/transformer/classes/dockerfile"
@@ -35,7 +34,6 @@ import (
 	"github.com/konveyor/move2kube/transformer/classes/dockerfile/windows"
 	"github.com/konveyor/move2kube/transformer/classes/external"
 	"github.com/konveyor/move2kube/transformer/classes/kubernetes"
-	"github.com/konveyor/move2kube/transformer/classes/s2i"
 	collectiontypes "github.com/konveyor/move2kube/types/collection"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -77,11 +75,6 @@ func init() {
 		new(windows.WinConsoleAppDockerfileGenerator),
 		new(windows.WinSilverLightWebAppDockerfileGenerator),
 		new(windows.WinWebAppDockerfileGenerator),
-
-		new(cnb.CNBContainerizer),
-		new(cnb.CNBGenerator),
-
-		new(s2i.S2IGenerator),
 
 		new(compose.ComposeAnalyser),
 		new(compose.ComposeGenerator),

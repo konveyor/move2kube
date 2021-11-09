@@ -94,11 +94,8 @@ To browse code [![Open in VSCode](https://open.vscode.dev/badges/open-in-vscode.
 
 ## Output
 
-* Containerization scripts
-  * Dockerfile
-  * Source 2 Image (S2I)
-  * Cloud Native Buildpack
 * Deployment artifacts
+  * Dockerfile
   * Kubernetes/Openshift Yamls
   * Helm charts
   * Kustomize
