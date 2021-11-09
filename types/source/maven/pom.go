@@ -79,6 +79,9 @@ func (pom *Pom) Load(file string) error {
 
 // GetProperty returns the property value of a property
 func (pom *Pom) GetProperty(key string) (val string, err error) {
+	if pom.Properties == nil {
+		return "", fmt.Errorf("property not found in pom")
+	}
 	if val, ok := pom.Properties.Entries[key]; ok {
 		if fullMatches := propVar.FindAllSubmatchIndex([]byte(val), -1); len(fullMatches) > 0 {
 			newVal := ""

@@ -134,19 +134,21 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]trans
 		mc.MavenAppName = pom.ArtifactID
 	}
 	ct.Configs[artifacts.MavenConfigType] = mc
-	for _, dependency := range *pom.Dependencies {
-		if dependency.GroupID == "org.springframework.boot" {
-			sbc := artifacts.SpringBootConfig{}
-			appName, sbps := getSpringBootAppNameAndProfilesFromDir(dir)
-			sbc.SpringBootAppName = appName
-			if len(sbps) != 0 {
-				sbc.SpringBootProfiles = &sbps
+	if pom.Dependencies != nil {
+		for _, dependency := range *pom.Dependencies {
+			if dependency.GroupID == "org.springframework.boot" {
+				sbc := artifacts.SpringBootConfig{}
+				appName, sbps := getSpringBootAppNameAndProfilesFromDir(dir)
+				sbc.SpringBootAppName = appName
+				if len(sbps) != 0 {
+					sbc.SpringBootProfiles = &sbps
+				}
+				if dependency.Version != "" {
+					sbc.SpringBootVersion = dependency.Version
+				}
+				ct.Configs[artifacts.SpringBootConfigType] = sbc
+				break
 			}
-			if dependency.Version != "" {
-				sbc.SpringBootVersion = dependency.Version
-			}
-			ct.Configs[artifacts.SpringBootConfigType] = sbc
-			break
 		}
 	}
 	services[appName] = append(services[appName], ct)
@@ -184,12 +186,10 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 				javaVersion = jv
 			}
 		}
-		if javaVersion == "" {
-			if pom.Build != nil {
-				for _, dep := range *pom.Build.Plugins {
-					if dep.ArtifactID == "maven-compiler-plugin" {
-						javaVersion = dep.Configuration.Target
-					}
+		if javaVersion == "" && pom.Build != nil && pom.Build.Plugins != nil {
+			for _, dep := range *pom.Build.Plugins {
+				if dep.ArtifactID == "maven-compiler-plugin" {
+					javaVersion = dep.Configuration.Target
 				}
 			}
 		}

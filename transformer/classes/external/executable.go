@@ -197,9 +197,8 @@ func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (se
 	var output map[string][]transformertypes.TransformerPlan
 	err = json.Unmarshal([]byte(stdout), &output)
 	if err != nil {
-		logrus.Errorf("Error in unmarshalling json %s: %s.", stdout, err)
-	}
-	if len(output) > 0 {
+		logrus.Debugf("Error in unmarshalling output json to full detect output %s: %s.", stdout, err)
+	} else {
 		return output, nil
 	}
 	var config map[string]interface{}

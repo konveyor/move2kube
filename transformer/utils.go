@@ -183,15 +183,6 @@ func setTransformerInfoForServices(services map[string][]transformertypes.Transf
 	return services
 }
 
-func setTransformerInfoForTransformers(transformers []transformertypes.TransformerPlan, t transformertypes.Transformer) []transformertypes.TransformerPlan {
-	for ti, tr := range transformers {
-		tr.TransformerName = t.Name
-		tr.Mode = t.Spec.Mode
-		transformers[ti] = tr
-	}
-	return transformers
-}
-
 func getNamedAndUnNamedServicesLogMessage(services map[string][]transformertypes.TransformerPlan) string {
 	nnservices := len(services)
 	nuntransformers := len(services[""])
