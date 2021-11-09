@@ -7,4 +7,3 @@ spec:
   class: "CloudFoundry"
   directoryDetect:
     levels: 1
-

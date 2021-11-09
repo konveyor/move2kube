@@ -56,7 +56,7 @@ func (t *CloudFoundry) GetConfig() (transformertypes.Transformer, *environment.E
 	return t.Config, t.Env
 }
 
-// DirectoryDetect detects projects in various directory
+// DirectoryDetect detects cloud foundry projects in various directories
 func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	services = map[string][]transformertypes.TransformerPlan{}
 
