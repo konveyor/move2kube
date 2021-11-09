@@ -47,7 +47,7 @@ RUN cp bin/move2kube /bin/move2kube
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 COPY --from=builder /bin/move2kube /bin/move2kube
 VOLUME ["/workspace"]
-#"/var/run/docker.sock" needs to be mounted for CNB containerization to use docker
+#"/var/run/docker.sock" needs to be mounted for container based transformers to work with docker
 # Start app
 WORKDIR /workspace
 CMD move2kube
