@@ -57,16 +57,16 @@ func (t *RubyDockerfileGenerator) GetConfig() (transformertypes.Transformer, *en
 }
 
 // BaseDirectoryDetect runs detect in base directory
-func (t *RubyDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
-	return nil, nil, nil
+func (t *RubyDockerfileGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+	return nil, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string]transformertypes.ServicePlan, unnamedServices []transformertypes.TransformerPlan, err error) {
+func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	Gemfiles, err := common.GetFilesByName(dir, []string{"Gemfile"}, nil)
 	if err != nil {
 		logrus.Debugf("Cannot get the Gemfile: %s", err)
-		return nil, nil, nil
+		return nil, nil
 	}
 	if len(Gemfiles) > 0 {
 		rubyFiles, err := common.GetFilesByExt(dir, []string{rubyFileExt})
@@ -77,23 +77,19 @@ func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (namedServices map
 		if len(rubyFiles) == 1 {
 			serviceName = strings.TrimSuffix(filepath.Base(rubyFiles[0]), rubyFileExt)
 		}
-		transformerPlan := []transformertypes.TransformerPlan{{
-			Mode:              t.Config.Spec.Mode,
-			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-			Paths: map[string][]string{
-				artifacts.ProjectPathPathType: {dir},
-			},
-		}}
-		if serviceName != "" {
-			namedServices = map[string]transformertypes.ServicePlan{
-				serviceName: transformerPlan,
-			}
-			return namedServices, nil, nil
+		services = map[string][]transformertypes.TransformerPlan{
+			serviceName: {{
+				Mode:              t.Config.Spec.Mode,
+				ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+				BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+				Paths: map[string][]string{
+					artifacts.ProjectPathPathType: {dir},
+				},
+			}},
 		}
-		return nil, transformerPlan, nil
+		return services, nil
 	}
-	return nil, nil, nil
+	return nil, nil
 }
 
 // Transform transforms the artifacts
