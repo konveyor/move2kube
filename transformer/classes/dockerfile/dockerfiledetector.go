@@ -49,8 +49,8 @@ func (t *DockerfileDetector) GetConfig() (transformertypes.Transformer, *environ
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+// DirectoryDetect runs detect in base directory
+func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	services = map[string][]transformertypes.TransformerPlan{}
 	if info, err := os.Stat(dir); os.IsNotExist(err) {
 		logrus.Warnf("Error in walking through files due to : %s", err)
@@ -90,11 +90,6 @@ func (t *DockerfileDetector) BaseDirectoryDetect(dir string) (services map[strin
 		logrus.Warnf("Error in walking through files due to : %s", err)
 	}
 	return services, nil
-}
-
-// DirectoryDetect runs detect in each sub directory
-func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
 }
 
 // Transform transforms the artifacts

@@ -37,7 +37,7 @@
 "inbuilt/transformers/dockerfile/django/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/dockerfiledetector/dockerfiledetector.yaml" : 0644
 "inbuilt/transformers/dockerfile/dockerfileparser/dockerfileparser.yaml" : 0644
-"inbuilt/transformers/dockerfile/dockerimagebuildscript/docckerfilebuildscriptgenerator.yaml" : 0644
+"inbuilt/transformers/dockerfile/dockerimagebuildscript/dockerfilebuildscriptgenerator.yaml" : 0644
 "inbuilt/transformers/dockerfile/dockerimagebuildscript/templates/builddockerimages.bat" : 0755
 "inbuilt/transformers/dockerfile/dockerimagebuildscript/templates/builddockerimages.sh" : 0755
 "inbuilt/transformers/dockerfile/dotnet5/dotnet5.yaml" : 0644

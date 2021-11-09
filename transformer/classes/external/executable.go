@@ -43,12 +43,11 @@ type Executable struct {
 
 // ExecutableYamlConfig is the format of executable yaml config
 type ExecutableYamlConfig struct {
-	EnableQA               bool                       `yaml:"enableQA"`
-	Platforms              []string                   `yaml:"platforms"`
-	BaseDirectoryDetectCMD environmenttypes.Command   `yaml:"baseDetectCMD"`
-	DirectoryDetectCMD     environmenttypes.Command   `yaml:"directoryDetectCMD"`
-	TransformCMD           environmenttypes.Command   `yaml:"transformCMD"`
-	Container              environmenttypes.Container `yaml:"container,omitempty"`
+	EnableQA           bool                       `yaml:"enableQA"`
+	Platforms          []string                   `yaml:"platforms"`
+	DirectoryDetectCMD environmenttypes.Command   `yaml:"directoryDetectCMD"`
+	TransformCMD       environmenttypes.Command   `yaml:"transformCMD"`
+	Container          environmenttypes.Container `yaml:"container,omitempty"`
 }
 
 // Init Initializes the transformer
@@ -82,14 +81,6 @@ func (t *Executable) Init(tc transformertypes.Transformer, env *environment.Envi
 // GetConfig returns the transformer config
 func (t *Executable) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
-}
-
-// BaseDirectoryDetect runs detect in base directory
-func (t *Executable) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	if t.ExecConfig.BaseDirectoryDetectCMD == nil {
-		return nil, nil
-	}
-	return t.executeDetect(t.ExecConfig.BaseDirectoryDetectCMD, dir)
 }
 
 // DirectoryDetect runs detect in each sub directory

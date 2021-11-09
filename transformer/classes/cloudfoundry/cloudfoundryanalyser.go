@@ -56,8 +56,8 @@ func (t *CloudFoundry) GetConfig() (transformertypes.Transformer, *environment.E
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *CloudFoundry) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+// DirectoryDetect detects cloud foundry projects in various directories
+func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	services = map[string][]transformertypes.TransformerPlan{}
 
 	filePaths, err := common.GetFilesByExt(dir, []string{".yml", ".yaml"})
@@ -132,11 +132,6 @@ func (t *CloudFoundry) BaseDirectoryDetect(dir string) (services map[string][]tr
 		}
 	}
 	return services, nil
-}
-
-// DirectoryDetect runs detect in each sub directory
-func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
 }
 
 // Transform transforms the artifacts

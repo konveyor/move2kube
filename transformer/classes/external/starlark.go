@@ -67,9 +67,8 @@ type Starlark struct {
 	StarGlobals starlark.StringDict
 	Env         *environment.Environment
 
-	baseDetectFn *starlark.Function
-	detectFn     *starlark.Function
-	transformFn  *starlark.Function
+	detectFn    *starlark.Function
+	transformFn *starlark.Function
 }
 
 // StarYamlConfig defines yaml config for Starlark transformers
@@ -134,11 +133,6 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Enviro
 // GetConfig returns the transformer config
 func (t *Starlark) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
-}
-
-// BaseDirectoryDetect runs detect in base directory
-func (t *Starlark) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return t.executeDetect(t.baseDetectFn, dir)
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -337,11 +331,6 @@ func (t *Starlark) addModules(modName string) {
 }
 
 func (t *Starlark) loadFunctions() (err error) {
-	err = t.loadBaseDetectFn()
-	if err != nil {
-		logrus.Errorf("Unable to load base detect function : %s", err)
-		return err
-	}
 	err = t.loadDetectFn()
 	if err != nil {
 		logrus.Errorf("Unable to load detect function : %s", err)
@@ -352,26 +341,6 @@ func (t *Starlark) loadFunctions() (err error) {
 		logrus.Errorf("Unable to load transform function : %s", err)
 		return err
 	}
-	return nil
-}
-
-func (t *Starlark) loadBaseDetectFn() (err error) {
-	if !t.StarGlobals.Has(baseDirectoryDetectFnName) {
-		return nil
-	}
-	baseDirectoryDetectFn := t.StarGlobals[baseDirectoryDetectFnName]
-	fn, ok := baseDirectoryDetectFn.(*starlark.Function)
-	if !ok {
-		err = fmt.Errorf("%s is not a function", baseDirectoryDetectFn)
-		logrus.Errorf("%s", err)
-		return err
-	}
-	if fn.NumParams() != 1 {
-		err = fmt.Errorf("%s does not have the required number of paramters. It has %d, expected %d", baseDirectoryDetectFn, fn.NumParams(), 1)
-		logrus.Errorf("%s", err)
-		return err
-	}
-	t.baseDetectFn = fn
 	return nil
 }
 

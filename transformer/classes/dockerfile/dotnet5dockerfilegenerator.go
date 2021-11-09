@@ -88,11 +88,6 @@ func (t *DotNet5DockerfileGenerator) GetConfig() (transformertypes.Transformer, 
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *DotNet5DockerfileGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // DirectoryDetect runs detect in each sub directory
 func (t *DotNet5DockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	dirEntries, err := os.ReadDir(dir)

@@ -5,3 +5,5 @@ metadata:
 spec:
   mode: "Container"
   class: "CloudFoundry"
+  directoryDetect:
+    levels: 1

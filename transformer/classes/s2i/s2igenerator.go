@@ -47,11 +47,6 @@ func (t *S2IGenerator) GetConfig() (transformertypes.Transformer, *environment.E
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in the base directory
-func (t *S2IGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // DirectoryDetect runs detect in each sub directory
 func (t *S2IGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	return nil, nil

@@ -63,11 +63,6 @@ func (t *BuildConfig) GetConfig() (transformertypes.Transformer, *environment.En
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *BuildConfig) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // DirectoryDetect runs detect in each sub directory
 func (t *BuildConfig) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	return nil, nil

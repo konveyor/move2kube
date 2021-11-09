@@ -7,3 +7,5 @@ spec:
   class: "BuildConfig"
   consumes:
     - "IR"
+  directoryDetect:
+    levels: 0

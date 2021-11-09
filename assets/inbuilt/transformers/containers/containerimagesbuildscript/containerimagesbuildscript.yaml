@@ -7,3 +7,5 @@ spec:
   class: "ContainerImagesBuildScript"
   consumes: 
     - "ContainerImageBuildScript"
+  directoryDetect:
+    levels: 0

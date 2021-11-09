@@ -7,3 +7,5 @@ spec:
   class: "Parameterizer"
   consumes:
     - "KubernetesYamls"
+  directoryDetect:
+    levels: 0
