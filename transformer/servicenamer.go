@@ -32,7 +32,7 @@ type project struct {
 	pathsuffix string
 }
 
-func nameServices(projName string, services map[string][]transformertypes.TransformerPlan) map[string][]transformertypes.TransformerPlan {
+func nameServices(projName string, services map[string][]transformertypes.Artifact) map[string][]transformertypes.Artifact {
 	sts := services[""]
 	delete(services, "")
 	// Collate services by project path or shared common base dir
@@ -47,7 +47,7 @@ func nameServices(projName string, services map[string][]transformertypes.Transf
 		}
 	}
 	// Collate services by project path or shared common base dir
-	servicePaths := map[string][]transformertypes.TransformerPlan{}
+	servicePaths := map[string][]transformertypes.Artifact{}
 	for _, st := range sts {
 		pps, ok := st.Paths[artifacts.ProjectPathPathType]
 		bpp := common.CleanAndFindCommonDirectory(pps)
@@ -142,7 +142,7 @@ func nameServices(projName string, services map[string][]transformertypes.Transf
 		}
 	}
 	//TODO: Consider whether we should take into consideration pre-existing serviceNames
-	svcs := map[string][]transformertypes.TransformerPlan{}
+	svcs := map[string][]transformertypes.Artifact{}
 	for sn, ps := range sProjects {
 		for _, p := range ps {
 			svcs[sn] = servicePaths[p.path]

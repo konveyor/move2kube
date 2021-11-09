@@ -57,15 +57,14 @@ func (t *CloudFoundry) GetConfig() (transformertypes.Transformer, *environment.E
 }
 
 // DirectoryDetect detects cloud foundry projects in various directories
-func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	services = map[string][]transformertypes.TransformerPlan{}
-
+func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+	services = map[string][]transformertypes.Artifact{}
 	filePaths, err := common.GetFilesByExt(dir, []string{".yml", ".yaml"})
 	if err != nil {
 		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", dir, err)
 		return services, err
 	}
-	services = map[string][]transformertypes.TransformerPlan{}
+	services = map[string][]transformertypes.Artifact{}
 	// Load instance apps, if available
 	cfInstanceApps := map[string][]collecttypes.CfApplication{} //path
 	for _, filePath := range filePaths {
@@ -102,10 +101,7 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 				basename := filepath.Base(filePath)
 				applicationName = strings.TrimSuffix(basename, filepath.Ext(basename))
 			}
-			ct := transformertypes.TransformerPlan{
-				Mode:              transformertypes.ModeContainer,
-				ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType},
-				BaseArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType},
+			ct := transformertypes.Artifact{
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.CloudFoundryConfigType: artifacts.CloudFoundryConfig{
 						ServiceName: applicationName,
@@ -121,14 +117,12 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 				if dockerImageName == "" {
 					dockerImageName = appinstance.DockerImage
 				}
-				ct.ArtifactTypes = append(ct.ArtifactTypes, artifacts.ContainerBuildArtifactType)
-				ct.BaseArtifactTypes = append(ct.ArtifactTypes, artifacts.ContainerBuildArtifactType)
 				ctConfig := ct.Configs[artifacts.CloudFoundryConfigType].(artifacts.CloudFoundryConfig)
 				ctConfig.ImageName = dockerImageName
 				ct.Configs[artifacts.CloudFoundryConfigType] = ctConfig
 				continue
 			}
-			services[applicationName] = []transformertypes.TransformerPlan{ct}
+			services[applicationName] = []transformertypes.Artifact{ct}
 		}
 	}
 	return services, nil
@@ -138,9 +132,6 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		var config artifacts.CloudFoundryConfig
 		err := a.GetConfig(artifacts.CloudFoundryConfigType, &config)
 		if err != nil {

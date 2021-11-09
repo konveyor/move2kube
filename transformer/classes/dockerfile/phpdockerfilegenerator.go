@@ -138,7 +138,7 @@ func GetConfFileForService(confFiles []string, serviceName string) string {
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory : %s", err)
@@ -151,10 +151,7 @@ func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (services map[strin
 		if filepath.Ext(de.Name()) != phpExt {
 			continue
 		}
-		return map[string][]transformertypes.TransformerPlan{"": {{
-			Mode:              t.Config.Spec.Mode,
-			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+		return map[string][]transformertypes.Artifact{"": {{
 			Paths: map[string][]string{
 				artifacts.ProjectPathPathType: {dir},
 			},
@@ -168,9 +165,6 @@ func (t *PHPDockerfileGenerator) Transform(newArtifacts []transformertypes.Artif
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)

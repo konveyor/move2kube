@@ -51,7 +51,7 @@ func (t *DockerfileParser) GetConfig() (transformertypes.Transformer, *environme
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *DockerfileParser) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *DockerfileParser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	return nil, nil
 }
 
@@ -60,9 +60,6 @@ func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, o
 	nartifacts := []transformertypes.Artifact{}
 	processedImages := map[string]bool{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.DockerfileForServiceArtifactType {
-			continue
-		}
 		sConfig := artifacts.ServiceConfig{}
 		err := a.GetConfig(artifacts.ServiceArtifactType, &sConfig)
 		if err != nil {

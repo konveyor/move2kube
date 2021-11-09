@@ -69,8 +69,8 @@ func (t *ZuulAnalyser) GetConfig() (transformertypes.Transformer, *environment.E
 }
 
 // DirectoryDetect runs detect in base directory
-func (t *ZuulAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	services = map[string][]transformertypes.TransformerPlan{}
+func (t *ZuulAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+	services = map[string][]transformertypes.Artifact{}
 	yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
 	if err != nil {
 		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
@@ -87,9 +87,7 @@ func (t *ZuulAnalyser) DirectoryDetect(dir string) (services map[string][]transf
 			// TODO: routepath (ant style) to regex
 
 			routepath = routepath[:len(routepath)-2]
-			ct := transformertypes.TransformerPlan{
-				Mode:          transformertypes.ModeContainer,
-				ArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType},
+			ct := transformertypes.Artifact{
 				Configs: map[transformertypes.ConfigType]interface{}{
 					ZuulServiceConfigType: ZuulConfig{
 						ServiceRelativePath: routepath,
@@ -110,9 +108,6 @@ func (t *ZuulAnalyser) DirectoryDetect(dir string) (services map[string][]transf
 func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		var config ZuulConfig
 		err := a.GetConfig(ZuulServiceConfigType, &config)
 		if err != nil {

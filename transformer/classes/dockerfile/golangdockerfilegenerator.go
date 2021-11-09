@@ -73,7 +73,7 @@ func (t *GolangDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	modFilePath := filepath.Join(dir, "go.mod")
 	data, err := ioutil.ReadFile(modFilePath)
 	if err != nil {
@@ -90,11 +90,8 @@ func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 		return nil, nil
 	}
 	serviceName := filepath.Base(prefix)
-	services = map[string][]transformertypes.TransformerPlan{
+	services = map[string][]transformertypes.Artifact{
 		serviceName: {{
-			Mode:              t.Config.Spec.Mode,
-			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			Paths: map[string][]string{
 				artifacts.ProjectPathPathType: {dir},
 				GolangModFilePathType:         {modFilePath},
@@ -109,9 +106,6 @@ func (t *GolangDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)

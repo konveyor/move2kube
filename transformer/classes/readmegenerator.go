@@ -42,7 +42,7 @@ func (t *ReadMeGenerator) GetConfig() (transformertypes.Transformer, *environmen
 }
 
 // DirectoryDetect executes detect in directories respecting the m2kignore
-func (t *ReadMeGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *ReadMeGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	return nil, nil
 }
 

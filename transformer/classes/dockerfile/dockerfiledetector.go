@@ -50,8 +50,8 @@ func (t *DockerfileDetector) GetConfig() (transformertypes.Transformer, *environ
 }
 
 // DirectoryDetect runs detect in base directory
-func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	services = map[string][]transformertypes.TransformerPlan{}
+func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+	services = map[string][]transformertypes.Artifact{}
 	if info, err := os.Stat(dir); os.IsNotExist(err) {
 		logrus.Warnf("Error in walking through files due to : %s", err)
 		return nil, err
@@ -73,10 +73,7 @@ func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]
 			return nil
 		}
 		if isdf, _ := isDockerFile(path); isdf {
-			trans := transformertypes.TransformerPlan{
-				Mode:              t.Config.Spec.Mode,
-				ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-				BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+			trans := transformertypes.Artifact{
 				Paths: map[string][]string{
 					artifacts.ProjectPathPathType: {filepath.Dir(path)},
 					artifacts.DockerfilePathType:  {path},
@@ -97,9 +94,6 @@ func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact,
 	artifactsCreated := []transformertypes.Artifact{}
 	pathMappings := []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		var sConfig artifacts.ServiceConfig
 		err := a.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {

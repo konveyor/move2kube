@@ -26,7 +26,6 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/qaengine"
-	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/source/maven"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -80,8 +79,8 @@ func (t *MavenAnalyser) GetConfig() (transformertypes.Transformer, *environment.
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	services = map[string][]transformertypes.TransformerPlan{}
+func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+	services = map[string][]transformertypes.Artifact{}
 	mavenFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{maven.PomXMLFileName}, nil)
 	if err != nil {
 		logrus.Errorf("Error while parsing directory %s for maven file : %s", dir, err)
@@ -107,11 +106,8 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]trans
 			profiles = append(profiles, profile.ID)
 		}
 	}
-	ct := transformertypes.TransformerPlan{
-		Mode:              transformertypes.ModeContainer,
-		ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
-		BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-		Configs:           map[transformertypes.ConfigType]interface{}{},
+	ct := transformertypes.Artifact{
+		Configs: map[transformertypes.ConfigType]interface{}{},
 		Paths: map[transformertypes.PathType][]string{
 			artifacts.MavenPomPathType:    {filepath.Join(dir, maven.PomXMLFileName)},
 			artifacts.ProjectPathPathType: {dir},
@@ -155,9 +151,6 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		javaVersion := ""
 		var pom maven.Pom
 		if len(a.Paths[artifacts.MavenPomPathType]) == 0 {

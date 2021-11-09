@@ -47,7 +47,7 @@ func (t *Parameterizer) GetConfig() (transformertypes.Transformer, *environment.
 }
 
 // DirectoryDetect runs detect in each subdirectory
-func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.TransformerPlan, err error) {
+func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.Artifact, err error) {
 	return nil, nil
 }
 

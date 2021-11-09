@@ -93,7 +93,7 @@ func (t *NodejsDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	var packageJSON PackageJSON
 	if err := common.ReadJSON(filepath.Join(dir, packageJSONFile), &packageJSON); err != nil {
 		logrus.Debugf("unable to read the package.json file: %s", err)
@@ -103,11 +103,8 @@ func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 		err = fmt.Errorf("unable to get project name of nodejs project at %s. Ignoring", dir)
 		return nil, err
 	}
-	services = map[string][]transformertypes.TransformerPlan{
+	services = map[string][]transformertypes.Artifact{
 		packageJSON.Name: {{
-			Mode:              t.Config.Spec.Mode,
-			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			Paths: map[string][]string{
 				artifacts.ProjectPathPathType: {dir},
 			},
@@ -121,9 +118,6 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)

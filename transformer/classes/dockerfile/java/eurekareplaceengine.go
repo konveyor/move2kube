@@ -28,7 +28,6 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
-	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/source/maven"
 	"github.com/konveyor/move2kube/types/source/springboot"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -113,7 +112,7 @@ func (t *EurekaReplaceEngine) GetConfig() (transformertypes.Transformer, *enviro
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	destEntries, err := ioutil.ReadDir(dir)
 	var ec EurekaConfig
 	var pomWithEureka []string
@@ -259,16 +258,13 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (services map[string][
 				if len(propertiesWithConfig) > 0 {
 					transformerpaths[PropertiesWithConfig] = propertiesWithConfig
 				}
-				ct := transformertypes.TransformerPlan{
-					Mode:              transformertypes.ModeContainer,
-					ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
-					BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
+				ct := transformertypes.Artifact{
 					Configs: map[transformertypes.ConfigType]interface{}{
 						EurekaConfigType: ec,
 					},
 					Paths: transformerpaths,
 				}
-				return map[string][]transformertypes.TransformerPlan{ec.ServiceName: {ct}}, nil
+				return map[string][]transformertypes.Artifact{ec.ServiceName: {ct}}, nil
 			}
 
 		}
@@ -282,9 +278,6 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 	pathMappings := []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
 		var feignclients []string
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		var sConfig EurekaConfig
 		err := a.GetConfig(EurekaConfigType, &sConfig)
 		if err != nil {
