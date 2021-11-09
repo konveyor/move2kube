@@ -136,7 +136,7 @@ func (t *Starlark) GetConfig() (transformertypes.Transformer, *environment.Envir
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *Starlark) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *Starlark) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	return t.executeDetect(t.detectFn, dir)
 }
 
@@ -181,7 +181,7 @@ func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, oldArtifa
 	return transformOutput.PathMappings, transformOutput.CreatedArtifacts, nil
 }
 
-func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (services map[string][]transformertypes.Artifact, err error) {
 	if fn == nil {
 		return nil, nil
 	}
@@ -200,7 +200,7 @@ func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (services ma
 		logrus.Errorf("Unable to unmarshal starlark function result : %s", err)
 		return nil, err
 	}
-	services = map[string][]transformertypes.TransformerPlan{}
+	services = map[string][]transformertypes.Artifact{}
 	err = common.GetObjFromInterface(valI, &services)
 	if err != nil {
 		logrus.Errorf("unable to load result for Transformer %+v into %T : %s", valI, services, err)

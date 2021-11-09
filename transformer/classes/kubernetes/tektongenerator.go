@@ -77,7 +77,7 @@ func (t *Tekton) GetConfig() (transformertypes.Transformer, *environment.Environ
 }
 
 // DirectoryDetect runs detect in each subdirectory
-func (t *Tekton) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *Tekton) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	return nil, nil
 }
 

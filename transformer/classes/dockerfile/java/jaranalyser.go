@@ -23,7 +23,6 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
-	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -71,8 +70,8 @@ func (t *JarAnalyser) GetConfig() (transformertypes.Transformer, *environment.En
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	services = map[string][]transformertypes.TransformerPlan{}
+func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+	services = map[string][]transformertypes.Artifact{}
 	jarFilePaths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{".*[.]jar"})
 	if err != nil {
 		logrus.Errorf("Error while parsing directory %s for jar file : %s", dir, err)
@@ -82,11 +81,8 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 		return nil, nil
 	}
 	for _, path := range jarFilePaths {
-		services[""] = append(services[""], transformertypes.TransformerPlan{
-			Mode:              transformertypes.ModeContainer,
-			ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
-			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-			Configs:           map[transformertypes.ConfigType]interface{}{},
+		services[""] = append(services[""], transformertypes.Artifact{
+			Configs: map[transformertypes.ConfigType]interface{}{},
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.JarPathType:         {path},
 				artifacts.ProjectPathPathType: {path},

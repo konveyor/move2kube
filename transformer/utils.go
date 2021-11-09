@@ -25,9 +25,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/deepcopy"
-	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
@@ -76,23 +74,6 @@ func getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContent
 		}
 	}
 	return ignoreDirectories, ignoreContents
-}
-
-func getArtifactForTransformerPlan(serviceName string, t transformertypes.TransformerPlan, p plantypes.Plan) transformertypes.Artifact {
-	serviceConfig := artifacts.ServiceConfig{
-		ServiceName: serviceName,
-	}
-	if t.Configs == nil {
-		t.Configs = map[string]interface{}{}
-	}
-	t.Configs[artifacts.ServiceConfigType] = serviceConfig
-	artifact := transformertypes.Artifact{
-		Name:     serviceName,
-		Artifact: artifacts.ServiceArtifactType,
-		Paths:    t.Paths,
-		Configs:  t.Configs,
-	}
-	return artifact
 }
 
 func updatedArtifacts(oldArtifacts, newArtifacts []transformertypes.Artifact) (updatedArtifacts []transformertypes.Artifact) {
@@ -168,18 +149,17 @@ func mergePathSliceMaps(map1 map[transformertypes.PathType][]string, map2 map[tr
 	return map1
 }
 
-func setTransformerInfoForServices(services map[string][]transformertypes.TransformerPlan, t transformertypes.Transformer) map[string][]transformertypes.TransformerPlan {
+func setTransformerInfoForServices(services map[string][]transformertypes.Artifact, t transformertypes.Transformer) map[string][]transformertypes.Artifact {
 	for sn, s := range services {
 		for sti, st := range s {
-			st.TransformerName = t.Name
-			st.Mode = t.Spec.Mode
+			st.Artifact = t.Name
 			services[sn][sti] = st
 		}
 	}
 	return services
 }
 
-func getNamedAndUnNamedServicesLogMessage(services map[string][]transformertypes.TransformerPlan) string {
+func getNamedAndUnNamedServicesLogMessage(services map[string][]transformertypes.Artifact) string {
 	nnservices := len(services)
 	nuntransformers := len(services[""])
 	if _, ok := services[""]; ok {

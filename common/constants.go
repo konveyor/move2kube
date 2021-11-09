@@ -90,9 +90,7 @@ const (
 	ConfigAdditionalPortForServiceKeySegment = "additionalport"
 	//ConfigApacheConfFileForServiceKeySegment represents the conf file used for service
 	ConfigApacheConfFileForServiceKeySegment = "apacheconfig"
-	//ConfigModesKey represents modes Key
-	ConfigModesKey = BaseKey + d + "modes"
-	//ConfigSpawnContainersKey represents modes Key
+	//ConfigSpawnContainersKey represents spwan containers option Key
 	ConfigSpawnContainersKey = BaseKey + d + "spawncontainers"
 	//ConfigTransformersKey represents transformers Key
 	ConfigTransformersKey = BaseKey + d + "transformers"

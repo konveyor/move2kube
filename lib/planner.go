@@ -72,78 +72,29 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 // CuratePlan allows curation the plan with the qa engine
 func CuratePlan(p plantypes.Plan, outputPath string) plantypes.Plan {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
-	modes := []string{}
 	transformers := []string{}
-	for s, st := range p.Spec.Services {
-		for _, t := range st {
-			if t.Mode == "" {
-				logrus.Warnf("Ignoring transformer %+v for service %s due to empty mode", t, s)
-				continue
-			}
-			if !common.IsStringPresent(modes, t.Mode) {
-				modes = append(modes, t.Mode)
-			}
-		}
-	}
 	for tn := range p.Spec.Configuration.Transformers {
 		if !common.IsStringPresent(transformers, tn) {
 			transformers = append(transformers, tn)
 		}
 	}
 	serviceNames := []string{}
-	modes = qaengine.FetchMultiSelectAnswer(common.ConfigModesKey, "Choose modes to use:", []string{"Modes generally specify the deployment model"}, modes, modes)
 	transformers = qaengine.FetchMultiSelectAnswer(common.ConfigTransformerTypesKey, "Select all transformer types that you are interested in:", []string{"Services that don't support any of the transformer types you are interested in will be ignored."}, transformers, transformers)
 	for sn, st := range p.Spec.Services {
-		mode := ""
-		baseArtifactTypes := []string{}
-		sTransformers := []transformertypes.TransformerPlan{}
+		sArtifacts := []transformertypes.Artifact{}
 		for _, t := range st {
-			if mode == "" {
-				if t.Mode == "" {
-					logrus.Warnf("Ignoring transformer %+v for service %s due to empty mode", t, sn)
-					continue
-				}
-				if !common.IsStringPresent(modes, t.Mode) {
-					logrus.Debugf("Ignoring transformer %+v for service %s due to deselected mode %s", t, sn, t.Mode)
-					continue
-				}
-				if !common.IsStringPresent(transformers, t.TransformerName) {
-					logrus.Debugf("Ignoring transformer %+v for service %s due to deselected transformer %s", t, sn, t.Mode)
-					continue
-				}
-				mode = t.Mode
-			} else if mode != t.Mode {
-				logrus.Debugf("Ingoring %+v for service %s due to differing mode", t, sn)
+			if common.IsStringPresent(transformers, t.Artifact) {
+				sArtifacts = append(sArtifacts, t)
+				break
 			}
-			if !common.IsStringPresent(transformers, t.TransformerName) {
-				logrus.Debugf("Ignoring transformer %+v for service %s due to deselected transformer %s", t, sn, t.Mode)
-				continue
-			}
-			artifactsToUse := []transformertypes.ArtifactType{}
-			for _, at := range t.ArtifactTypes {
-				if common.IsStringPresent(t.BaseArtifactTypes, string(at)) && common.IsStringPresent(baseArtifactTypes, string(at)) {
-					continue
-				}
-				artifactsToUse = append(artifactsToUse, at)
-			}
-			if len(artifactsToUse) == 0 {
-				continue
-			}
-			t.ArtifactTypes = artifactsToUse
-			for _, e := range t.BaseArtifactTypes {
-				baseArtifactTypes = append(baseArtifactTypes, string(e))
-			}
-			sTransformers = append(sTransformers, t)
+			logrus.Debugf("Ignoring transformer %+v for service %s due to deselected transformer", t, sn)
 		}
-		if mode != "" {
-			modes = append(modes, mode)
-		}
-		if len(sTransformers) == 0 {
+		if len(sArtifacts) == 0 {
 			logrus.Warnf("No transformers selected for service %s. Ignoring.", sn)
 			delete(p.Spec.Services, sn)
 			continue
 		}
-		p.Spec.Services[sn] = sTransformers
+		p.Spec.Services[sn] = sArtifacts
 		serviceNames = append(serviceNames, sn)
 	}
 	tc, err := (&configuration.ClusterMDLoader{}).GetTargetClusterMetadataForPlan(p)
@@ -153,7 +104,7 @@ func CuratePlan(p plantypes.Plan, outputPath string) plantypes.Plan {
 	transformer.InitTransformers(p.Spec.Configuration.Transformers, tc, p.Spec.RootDir, outputPath, p.Name, true)
 
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
-	planServices := map[string][]transformertypes.TransformerPlan{}
+	planServices := map[string][]transformertypes.Artifact{}
 	for _, s := range selectedServices {
 		planServices[s] = p.Spec.Services[s]
 	}

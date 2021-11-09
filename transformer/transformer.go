@@ -38,6 +38,7 @@ import (
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,7 +53,7 @@ type Transformer interface {
 	Init(tc transformertypes.Transformer, env *environment.Environment) (err error)
 	// GetConfig returns the transformer config
 	GetConfig() (transformertypes.Transformer, *environment.Environment)
-	DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error)
+	DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error)
 	Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error)
 }
 
@@ -214,8 +215,8 @@ func GetTransformers() map[string]Transformer {
 }
 
 // GetServices returns the list of services detected in a directory
-func GetServices(prjName string, dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	services = map[string][]transformertypes.TransformerPlan{}
+func GetServices(prjName string, dir string) (services map[string][]transformertypes.Artifact, err error) {
+	services = map[string][]transformertypes.Artifact{}
 	logrus.Infoln("Planning Transformation - Base Directory")
 	logrus.Debugf("Transformers : %+v", transformers)
 	for tn, t := range transformers {
@@ -229,7 +230,7 @@ func GetServices(prjName string, dir string) (services map[string][]transformert
 		if err != nil {
 			logrus.Errorf("[%s] Failed : %s", tn, err)
 		} else {
-			nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string][]transformertypes.TransformerPlan), config)
+			nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string][]transformertypes.Artifact), config)
 			services = plantypes.MergeServices(services, nservices)
 			if len(nservices) > 0 {
 				logrus.Infof(getNamedAndUnNamedServicesLogMessage(nservices))
@@ -256,40 +257,28 @@ func GetServices(prjName string, dir string) (services map[string][]transformert
 
 // Transform transforms as per the plan
 func Transform(plan plantypes.Plan, outputPath string) (err error) {
-	artifacts := []transformertypes.Artifact{}
+	allartifacts := []transformertypes.Artifact{}
+	newArtifactsToProcess := []transformertypes.Artifact{}
 	pathMappings := []transformertypes.PathMapping{}
 	iteration := 1
 	logrus.Infof("Iteration %d", iteration)
-	for serviceName, service := range plan.Spec.Services {
-		for _, transformer := range service {
-			logrus.Infof("Transformer %s for service %s", transformer.TransformerName, serviceName)
-			t := transformers[transformer.TransformerName]
-			_, env := t.GetConfig()
-			env.Reset()
-			a := getArtifactForTransformerPlan(serviceName, transformer, plan)
-			newPathMappings, newArtifacts, err := t.Transform([]transformertypes.Artifact{*env.Encode(&a).(*transformertypes.Artifact)}, *env.Encode(&artifacts).(*[]transformertypes.Artifact))
-			if err != nil {
-				logrus.Errorf("Unable to transform service %s using %s : %s", serviceName, transformer.TransformerName, err)
-				continue
-			}
-			newPathMappings = env.ProcessPathMappings(newPathMappings)
-			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
-			err = processPathMappings(newPathMappings, plan.Spec.RootDir, outputPath)
-			if err != nil {
-				logrus.Errorf("Unable to process path mappings")
-			}
-			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
-			pathMappings = append(pathMappings, newPathMappings...)
-			artifacts = mergeArtifacts(append(artifacts, newArtifacts...))
-			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))
-			logrus.Infof("Transformer %s Done for service %s", transformer.TransformerName, serviceName)
+	for sn, sas := range plan.Spec.Services {
+		if len(sas) == 0 {
+			logrus.Errorf("Ignoring service %s, since it has no artifacts", sn)
+			continue
 		}
+		a := sas[0]
+		a.Name = sn
+		serviceConfig := artifacts.ServiceConfig{
+			ServiceName: sn,
+		}
+		if a.Configs == nil {
+			a.Configs = map[string]interface{}{}
+		}
+		a.Configs[artifacts.ServiceConfigType] = serviceConfig
+		newArtifactsToProcess = append(newArtifactsToProcess, a)
 	}
-	err = processPathMappings(pathMappings, plan.Spec.RootDir, outputPath)
-	if err != nil {
-		logrus.Errorf("Unable to process path mappings")
-	}
-	newArtifactsToProcess := artifacts
+	allartifacts = newArtifactsToProcess
 	for {
 		iteration++
 		newArtifactsCreated := []transformertypes.Artifact{}
@@ -299,7 +288,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			env.Reset()
 			artifactsToProcess := []transformertypes.Artifact{}
 			for _, na := range newArtifactsToProcess {
-				if common.IsStringPresent(config.Spec.ArtifactsToProcess, string(na.Artifact)) {
+				if common.IsStringPresent(config.Spec.ArtifactsToProcess, string(na.Artifact)) || na.Artifact == tn {
 					artifactsToProcess = append(artifactsToProcess, na)
 				}
 			}
@@ -307,7 +296,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 				continue
 			}
 			logrus.Infof("Transformer %s processing %d artifacts", config.Name, len(artifactsToProcess))
-			newPathMappings, newArtifacts, err := t.Transform(*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact), *env.Encode(&artifacts).(*[]transformertypes.Artifact))
+			newPathMappings, newArtifacts, err := t.Transform(*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact), *env.Encode(&allartifacts).(*[]transformertypes.Artifact))
 			if err != nil {
 				logrus.Errorf("Unable to transform artifacts using %s : %s", tn, err)
 				continue
@@ -321,7 +310,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 			pathMappings = append(pathMappings, newPathMappings...)
 			newArtifactsCreated = append(newArtifactsCreated, newArtifacts...)
-			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(artifacts))
+			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(allartifacts))
 			logrus.Infof("Transformer %s Done", config.Name)
 		}
 		if err = os.RemoveAll(outputPath); err != nil {
@@ -334,13 +323,13 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 		if len(newArtifactsCreated) == 0 {
 			break
 		}
-		newArtifactsToProcess = mergeArtifacts(append(newArtifactsCreated, updatedArtifacts(artifacts, newArtifactsCreated)...))
-		artifacts = mergeArtifacts(append(artifacts, newArtifactsToProcess...))
+		newArtifactsToProcess = mergeArtifacts(append(newArtifactsCreated, updatedArtifacts(allartifacts, newArtifactsCreated)...))
+		allartifacts = mergeArtifacts(append(allartifacts, newArtifactsToProcess...))
 	}
 	return nil
 }
 
-func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string][]transformertypes.TransformerPlan) (services map[string][]transformertypes.TransformerPlan, err error) {
+func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string][]transformertypes.Artifact) (services map[string][]transformertypes.Artifact, err error) {
 	services = bservices
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
 	knownProjectPaths := []string{}
@@ -381,7 +370,7 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 			if err != nil {
 				logrus.Warnf("[%s] Failed : %s", config.Name, err)
 			} else {
-				nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string][]transformertypes.TransformerPlan), config)
+				nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string][]transformertypes.Artifact), config)
 				services = plantypes.MergeServices(services, nservices)
 				logrus.Debugf("[%s] Done", config.Name)
 				if len(nservices) > 0 {

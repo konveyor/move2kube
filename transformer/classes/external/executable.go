@@ -84,7 +84,7 @@ func (t *Executable) GetConfig() (transformertypes.Transformer, *environment.Env
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *Executable) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *Executable) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	if t.ExecConfig.DirectoryDetectCMD == nil {
 		return nil, nil
 	}
@@ -116,9 +116,6 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, oldArti
 	pathMappings = []transformertypes.PathMapping{}
 	createdArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		if t.ExecConfig.TransformCMD == nil {
 			relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 			if err != nil {
@@ -170,7 +167,7 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, oldArti
 	return pathMappings, createdArtifacts, nil
 }
 
-func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (services map[string][]transformertypes.Artifact, err error) {
 	stdout, stderr, exitcode, err := t.Env.Exec(append(cmd, dir))
 	if err != nil {
 		if errors.Is(err, &environment.EnvironmentNotActiveError{}) {
@@ -185,7 +182,7 @@ func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (se
 	}
 	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d", t.Config.Name, t.Env.Decode(dir), stdout, stderr, exitcode)
 	stdout = strings.TrimSpace(stdout)
-	var output map[string][]transformertypes.TransformerPlan
+	var output map[string][]transformertypes.Artifact
 	err = json.Unmarshal([]byte(stdout), &output)
 	if err != nil {
 		logrus.Debugf("Error in unmarshalling output json to full detect output %s: %s.", stdout, err)
@@ -200,24 +197,11 @@ func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (se
 			logrus.Debugf("Error in unmarshalling json %s: %s.", stdout, err)
 		}
 	}
-	generatesI := config["generates"]
-	generates := ""
-	if generatesI != nil {
-		generates = generatesI.(string)
-	}
-	generatedBasesI := config["generatedBases"]
-	generatedBases := ""
-	if generatedBasesI != nil {
-		generatedBases = generatedBasesI.(string)
-	}
-	trans := transformertypes.TransformerPlan{
-		Mode:              t.Config.Spec.Mode,
-		ArtifactTypes:     []transformertypes.ArtifactType{generates},
-		BaseArtifactTypes: []transformertypes.ArtifactType{generatedBases},
-		Paths:             map[string][]string{artifacts.ProjectPathPathType: {dir}},
+	trans := transformertypes.Artifact{
+		Paths: map[string][]string{artifacts.ProjectPathPathType: {dir}},
 		Configs: map[transformertypes.ConfigType]interface{}{
 			TemplateConfigType: config,
 		},
 	}
-	return map[string][]transformertypes.TransformerPlan{"": {trans}}, nil
+	return map[string][]transformertypes.Artifact{"": {trans}}, nil
 }

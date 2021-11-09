@@ -65,7 +65,7 @@ func (t *ComposeAnalyser) GetConfig() (transformertypes.Transformer, *environmen
 }
 
 // DirectoryDetect detects docker compose files
-func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
 	if err != nil {
 		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
@@ -81,7 +81,7 @@ func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]tra
 			imageMetadataPaths[imagetag] = path
 		}
 	}
-	services = map[string][]transformertypes.TransformerPlan{}
+	services = map[string][]transformertypes.Artifact{}
 	for _, path := range yamlpaths {
 		currServices := t.getServicesFromComposeFile(path, imageMetadataPaths)
 		services = plantypes.MergeServices(services, currServices)
@@ -94,9 +94,6 @@ func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]tra
 func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		var config ComposeConfig
 		err := a.GetConfig(ComposeServiceConfigType, &config)
 		if err != nil {
@@ -139,11 +136,8 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, ol
 	return nil, artifactsCreated, nil
 }
 
-func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) transformertypes.TransformerPlan {
-	ct := transformertypes.TransformerPlan{
-		Mode:              transformertypes.ModeContainer,
-		ArtifactTypes:     []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
-		BaseArtifactTypes: []transformertypes.ArtifactType{irtypes.IRArtifactType, artifacts.ContainerBuildArtifactType},
+func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) transformertypes.Artifact {
+	ct := transformertypes.Artifact{
 		Configs: map[transformertypes.ConfigType]interface{}{
 			ComposeServiceConfigType: ComposeConfig{
 				ServiceName: serviceName,
@@ -178,19 +172,19 @@ func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string,
 	return ct
 }
 
-func (t *ComposeAnalyser) getServicesFromComposeFile(composeFilePath string, imageMetadataPaths map[string]string) map[string][]transformertypes.TransformerPlan {
-	services := map[string][]transformertypes.TransformerPlan{}
+func (t *ComposeAnalyser) getServicesFromComposeFile(composeFilePath string, imageMetadataPaths map[string]string) map[string][]transformertypes.Artifact {
+	services := map[string][]transformertypes.Artifact{}
 	// Try v3 first and if it fails try v1v2
 	if dc, errV3 := parseV3(composeFilePath); errV3 == nil {
 		logrus.Debugf("Found a docker compose file at path %s", composeFilePath)
 		for _, service := range dc.Services {
-			services[service.Name] = []transformertypes.TransformerPlan{t.getService(composeFilePath, service.Name, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)}
+			services[service.Name] = []transformertypes.Artifact{t.getService(composeFilePath, service.Name, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)}
 		}
 	} else if dc, errV1V2 := parseV2(composeFilePath); errV1V2 == nil {
 		logrus.Debugf("Found a docker compose file at path %s", composeFilePath)
 		servicesMap := dc.ServiceConfigs.All()
 		for serviceName, service := range servicesMap {
-			services[serviceName] = []transformertypes.TransformerPlan{t.getService(composeFilePath, serviceName, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)}
+			services[serviceName] = []transformertypes.Artifact{t.getService(composeFilePath, serviceName, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)}
 		}
 	} else {
 		logrus.Debugf("Failed to parse file at path %s as a docker compose file. Error V3: %q Error V1V2: %q", composeFilePath, errV3, errV1V2)

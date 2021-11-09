@@ -57,7 +57,7 @@ func (t *WinSilverLightWebAppDockerfileGenerator) GetConfig() (transformertypes.
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		logrus.Errorf("Error while trying to read directory: %s", err)
@@ -130,11 +130,8 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (s
 		return nil, nil
 	}
 
-	services = map[string][]transformertypes.TransformerPlan{
+	services = map[string][]transformertypes.Artifact{
 		appName: {{
-			Mode:              t.Config.Spec.Mode,
-			ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-			BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 			Paths: map[string][]string{
 				artifacts.ProjectPathPathType: {dir},
 			},
@@ -148,9 +145,6 @@ func (t *WinSilverLightWebAppDockerfileGenerator) Transform(newArtifacts []trans
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)

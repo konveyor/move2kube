@@ -53,7 +53,7 @@ func (t *ContainerImagesPushScript) GetConfig() (transformertypes.Transformer, *
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *ContainerImagesPushScript) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *ContainerImagesPushScript) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	return nil, nil
 }
 

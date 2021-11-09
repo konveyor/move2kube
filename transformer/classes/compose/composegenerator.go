@@ -57,7 +57,7 @@ func (t *ComposeGenerator) GetConfig() (transformertypes.Transformer, *environme
 }
 
 // DirectoryDetect executes detect in each sub directory
-func (t *ComposeGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *ComposeGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	return nil, nil
 }
 
