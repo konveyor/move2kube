@@ -9,3 +9,5 @@ spec:
     - "ContainerImagesPushScript"
     - "ContainerImagesBuildScript"
     - "KubernetesYamls"
+  directoryDetect:
+    levels: 0

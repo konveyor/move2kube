@@ -56,11 +56,6 @@ func (t *ComposeGenerator) GetConfig() (transformertypes.Transformer, *environme
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect executes detect in base directory
-func (t *ComposeGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // DirectoryDetect executes detect in each sub directory
 func (t *ComposeGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	return nil, nil

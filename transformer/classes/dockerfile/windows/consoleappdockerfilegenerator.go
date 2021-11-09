@@ -69,11 +69,6 @@ func (t *WinConsoleAppDockerfileGenerator) GetConfig() (transformertypes.Transfo
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *WinConsoleAppDockerfileGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // parseAppConfig parses the application config
 func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(AppCfgFilePath string) ([]int32, error) {
 	appConfigFile, err := os.Open(AppCfgFilePath)

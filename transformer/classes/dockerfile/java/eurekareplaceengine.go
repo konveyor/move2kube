@@ -112,11 +112,6 @@ func (t *EurekaReplaceEngine) GetConfig() (transformertypes.Transformer, *enviro
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *EurekaReplaceEngine) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // DirectoryDetect runs detect in each sub directory
 func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	destEntries, err := ioutil.ReadDir(dir)

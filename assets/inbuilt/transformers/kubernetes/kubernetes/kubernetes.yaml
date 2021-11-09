@@ -7,3 +7,5 @@ spec:
   class: "Kubernetes"
   consumes:
     - "IR"
+  directoryDetect:
+    levels: 0

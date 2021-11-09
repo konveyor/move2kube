@@ -7,3 +7,5 @@ spec:
   class: "DockerfileParser"
   consumes: 
     - "DockerfileForService"
+  directoryDetect:
+    levels: 0

@@ -57,11 +57,6 @@ func (t *WinWebAppDockerfileGenerator) GetConfig() (transformertypes.Transformer
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *WinWebAppDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // DirectoryDetect runs detect in each sub directory
 func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.TransformerPlan, err error) {
 	dirEntries, err := os.ReadDir(dir)

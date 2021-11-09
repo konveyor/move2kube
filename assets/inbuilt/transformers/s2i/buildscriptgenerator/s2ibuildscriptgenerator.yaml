@@ -7,3 +7,5 @@ spec:
   class: "S2IGenerator"
   consumes: 
     - "S2IMetadata"
+  directoryDetect:
+    levels: 0

@@ -32,12 +32,8 @@ import (
 )
 
 func getTransformerConfig(path string) (transformertypes.Transformer, error) {
-	tc := transformertypes.Transformer{
-		Spec: transformertypes.TransformerSpec{
-			FilePath:     path,
-			TemplatesDir: "templates/",
-		},
-	}
+	tc := transformertypes.NewTransformer()
+	tc.Spec.FilePath = path
 	if err := common.ReadMove2KubeYaml(path, &tc); err != nil {
 		logrus.Debugf("Failed to read the transformer metadata at path %q Error: %q", path, err)
 		return tc, err

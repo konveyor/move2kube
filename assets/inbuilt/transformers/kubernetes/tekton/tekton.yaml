@@ -7,3 +7,5 @@ spec:
   class: "Tekton"
   consumes:
     - "IR"
+  directoryDetect:
+    levels: 0

@@ -63,11 +63,6 @@ func (t *PHPDockerfileGenerator) GetConfig() (transformertypes.Transformer, *env
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *PHPDockerfileGenerator) BaseDirectoryDetect(dir string) (namedServices map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // parseConfFile parses the conf file to detect the port
 func parseConfFile(confFilePath string) (int32, error) {
 	var port int32

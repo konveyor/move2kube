@@ -64,8 +64,8 @@ func (t *ComposeAnalyser) GetConfig() (transformertypes.Transformer, *environmen
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *ComposeAnalyser) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+// DirectoryDetect detects docker compose files
+func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
 	if err != nil {
 		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
@@ -88,11 +88,6 @@ func (t *ComposeAnalyser) BaseDirectoryDetect(dir string) (services map[string][
 	}
 	logrus.Debugf("Docker compose services : %+v", services)
 	return services, nil
-}
-
-// DirectoryDetect runs detect in each sub directory
-func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
 }
 
 // Transform transforms the artifacts

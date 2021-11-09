@@ -47,11 +47,6 @@ func (t *Kubernetes) GetConfig() (transformertypes.Transformer, *environment.Env
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *Kubernetes) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // DirectoryDetect runs detect in each subdirectory
 func (t *Kubernetes) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	return nil, nil

@@ -7,3 +7,5 @@ spec:
   class: "DockerfileImageBuildScript"
   consumes: 
     - "Dockerfile"
+  directoryDetect:
+    levels: 0

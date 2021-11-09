@@ -7,3 +7,5 @@ spec:
   class: "ComposeGenerator"
   consumes: 
     - "IR"
+  directoryDetect:
+    levels: 0

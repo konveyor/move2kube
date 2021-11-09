@@ -72,11 +72,6 @@ func (t *GolangDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *GolangDockerfileGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // DirectoryDetect runs detect in each sub directory
 func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
 	modFilePath := filepath.Join(dir, "go.mod")

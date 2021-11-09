@@ -5,3 +5,5 @@ metadata:
 spec:
   mode: "Container"
   class: "DockerfileDetector"
+  directoryDetect:
+    levels: 1

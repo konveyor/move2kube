@@ -54,10 +54,7 @@ type Transformer interface {
 	Init(tc transformertypes.Transformer, env *environment.Environment) (err error)
 	// GetConfig returns the transformer config
 	GetConfig() (transformertypes.Transformer, *environment.Environment)
-
-	BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error)
 	DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error)
-
 	Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error)
 }
 
@@ -231,8 +228,11 @@ func GetServices(prjName string, dir string) (services map[string][]transformert
 	for tn, t := range transformers {
 		config, env := t.GetConfig()
 		env.Reset()
+		if config.Spec.DirectoryDetect.Levels != 1 {
+			continue
+		}
 		logrus.Infof("[%s] Planning transformation", tn)
-		nservices, err := t.BaseDirectoryDetect(env.Encode(dir).(string))
+		nservices, err := t.DirectoryDetect(env.Encode(dir).(string))
 		if err != nil {
 			logrus.Errorf("[%s] Failed : %s", tn, err)
 		} else {
@@ -381,6 +381,9 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 			config, env := t.GetConfig()
 			logrus.Debugf("[%s] Planning transformation in %s", config.Name, path)
 			env.Reset()
+			if config.Spec.DirectoryDetect.Levels == 1 || config.Spec.DirectoryDetect.Levels == 0 {
+				continue
+			}
 			nservices, err := t.DirectoryDetect(env.Encode(path).(string))
 			if err != nil {
 				logrus.Warnf("[%s] Failed : %s", config.Name, err)
