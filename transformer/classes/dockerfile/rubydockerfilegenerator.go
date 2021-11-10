@@ -56,13 +56,8 @@ func (t *RubyDockerfileGenerator) GetConfig() (transformertypes.Transformer, *en
 	return t.Config, t.Env
 }
 
-// BaseDirectoryDetect runs detect in base directory
-func (t *RubyDockerfileGenerator) BaseDirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
-	return nil, nil
-}
-
 // DirectoryDetect runs detect in each sub directory
-func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.TransformerPlan, err error) {
+func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	Gemfiles, err := common.GetFilesByName(dir, []string{"Gemfile"}, nil)
 	if err != nil {
 		logrus.Debugf("Cannot get the Gemfile: %s", err)
@@ -77,11 +72,8 @@ func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (services map[stri
 		if len(rubyFiles) == 1 {
 			serviceName = strings.TrimSuffix(filepath.Base(rubyFiles[0]), rubyFileExt)
 		}
-		services = map[string][]transformertypes.TransformerPlan{
+		services = map[string][]transformertypes.Artifact{
 			serviceName: {{
-				Mode:              t.Config.Spec.Mode,
-				ArtifactTypes:     []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
-				BaseArtifactTypes: []transformertypes.ArtifactType{artifacts.ContainerBuildArtifactType},
 				Paths: map[string][]string{
 					artifacts.ProjectPathPathType: {dir},
 				},
@@ -97,9 +89,6 @@ func (t *RubyDockerfileGenerator) Transform(newArtifacts []transformertypes.Arti
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.ServiceArtifactType {
-			continue
-		}
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
