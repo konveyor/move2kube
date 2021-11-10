@@ -123,7 +123,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArt
 		}
 		tempDir := filepath.Join(t.Env.TempPath, a.Name)
 		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
-		dockerfileTemplate := filepath.Join(tempDir, "Dockerfile")
+		dockerfileTemplate := filepath.Join(tempDir, common.DefaultDockerfileName)
 		template := string(buildDockerfile) + "\n" + string(jarRunDockerfile)
 		err = ioutil.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
 		if err != nil {
@@ -160,7 +160,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArt
 			},
 		})
 		paths := a.Paths
-		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile")}
+		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
 			Name:     sImageName.ImageName,
 			Artifact: artifacts.DockerfileArtifactType,

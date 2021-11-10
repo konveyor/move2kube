@@ -158,7 +158,7 @@ func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string,
 		if filepath.IsAbs(relContextPath) {
 			contextPath = relContextPath // this happens with v1v2 parser
 		}
-		dockerfilePath := filepath.Join(contextPath, "Dockerfile")
+		dockerfilePath := filepath.Join(contextPath, common.DefaultDockerfileName)
 		if relDockerfilePath != "" {
 			dockerfilePath = filepath.Join(contextPath, relDockerfilePath)
 			if filepath.IsAbs(relDockerfilePath) {
