@@ -53,7 +53,6 @@
 "inbuilt/transformers/dockerfile/python/m2kdetect.sh" : 0755
 "inbuilt/transformers/dockerfile/python/python.yaml" : 0644
 "inbuilt/transformers/dockerfile/python/templates/Dockerfile" : 0644
-"inbuilt/transformers/dockerfile/ruby/m2kdetect.sh" : 0755
 "inbuilt/transformers/dockerfile/ruby/ruby.yaml" : 0644
 "inbuilt/transformers/dockerfile/ruby/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/rust/m2kdetect.sh" : 0755
