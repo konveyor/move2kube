@@ -10,8 +10,4 @@ spec:
   directoryDetect:
     levels: 0
   config: 
-<<<<<<< HEAD
-    outputMode: "output-folder"
-=======
-    outputMode: "temp-folder"
->>>>>>> Fixed the outputMode variable name
+    outputPath: "custom_source/yamls"
