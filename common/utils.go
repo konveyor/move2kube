@@ -1209,7 +1209,7 @@ func Interrupt() error {
 	return nil
 }
 
-// Returns a type registry for the types in the array
+// GetTypesMap returns a type registry for the types in the array
 func GetTypesMap(typeInstances interface{}) (typesMap map[string]reflect.Type) {
 	typesMap = map[string]reflect.Type{}
 	types := reflect.ValueOf(typeInstances)

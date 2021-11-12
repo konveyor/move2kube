@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// ConfigTypes stores the various config types
 	ConfigTypes map[string]reflect.Type
 )
 

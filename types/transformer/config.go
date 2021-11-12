@@ -16,6 +16,8 @@
 
 package transformer
 
+// Config represents the interface for config functions
 type Config interface {
+	// Merge helps in merging configs
 	Merge(c interface{}) bool
 }
