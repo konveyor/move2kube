@@ -32,7 +32,7 @@ var (
 	// PATCH version when you make backwards compatible bug fixes.
 	// Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 	// For more details about semver 2 see https://semver.org/
-	version = "v0.1.0"
+	version = "v0.3.0"
 
 	// metadata is extra build time data
 	buildmetadata = ""

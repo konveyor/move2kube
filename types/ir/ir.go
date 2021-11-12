@@ -291,7 +291,8 @@ func NewIR() IR {
 }
 
 // Merge merges IRs
-func (ir *IR) Merge(newir IR) {
+func (ir *IR) Merge(newirC interface{}) bool {
+	newir := newirC.(*IR)
 	for _, sc := range newir.Services {
 		ir.addService(sc)
 	}
@@ -301,6 +302,7 @@ func (ir *IR) Merge(newir IR) {
 	for _, newst := range newir.Storages {
 		ir.AddStorage(newst)
 	}
+	return true
 }
 
 // NewServiceWithName initializes a service with just the name.

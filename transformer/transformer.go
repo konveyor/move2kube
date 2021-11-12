@@ -43,9 +43,9 @@ import (
 )
 
 var (
-	initialized                              = false
-	transformerTypes map[string]reflect.Type = map[string]reflect.Type{}
-	transformers     map[string]Transformer  = map[string]Transformer{}
+	initialized      = false
+	transformerTypes = map[string]reflect.Type{}
+	transformers     = map[string]Transformer{}
 )
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
@@ -94,15 +94,7 @@ func init() {
 
 		new(transformer.ReadMeGenerator),
 	}
-	for _, tt := range transformerObjs {
-		t := reflect.TypeOf(tt).Elem()
-		tn := t.Name()
-		if ot, ok := transformerTypes[tn]; ok {
-			logrus.Errorf("Two transformer classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
-			continue
-		}
-		transformerTypes[tn] = t
-	}
+	transformerTypes = common.GetTypesMap(transformerObjs)
 }
 
 // Init initializes the transformers

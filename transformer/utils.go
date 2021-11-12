@@ -21,11 +21,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/deepcopy"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
@@ -107,32 +109,55 @@ func mergeArtifacts(artifacts []transformertypes.Artifact) (newArtifacts []trans
 
 func mergeArtifact(a transformertypes.Artifact, b transformertypes.Artifact) (c transformertypes.Artifact, merged bool) {
 	if a.Artifact == b.Artifact && a.Name == b.Name {
+		mergedConfig, merged := mergeConfigs(a.Configs, b.Configs)
+		if !merged {
+			return c, false
+		}
 		c = transformertypes.Artifact{
 			Name:     a.Name,
 			Artifact: a.Artifact,
 			Paths:    mergePathSliceMaps(a.Paths, b.Paths),
-			Configs:  mergeConfigs(a.Configs, b.Configs),
+			Configs:  mergedConfig,
 		}
 		return c, true
 	}
 	return c, false
 }
 
-func mergeConfigs(configs1 map[transformertypes.ConfigType]interface{}, configs2 map[transformertypes.ConfigType]interface{}) map[transformertypes.ConfigType]interface{} {
+func mergeConfigs(configs1 map[transformertypes.ConfigType]interface{}, configs2 map[transformertypes.ConfigType]interface{}) (mergedConfig map[transformertypes.ConfigType]interface{}, merged bool) {
 	if configs1 == nil {
-		return configs2
+		return configs2, true
 	}
 	if configs2 == nil {
-		return configs1
+		return configs1, true
 	}
 	for cn2, cg2 := range configs2 {
 		if configs1[cn2] == nil {
 			configs1[cn2] = cg2
 			continue
 		}
+		if ct, ok := artifacts.ConfigTypes[cn2]; ok {
+			c1 := reflect.New(ct).Interface().(transformertypes.Config)
+			err := common.GetObjFromInterface(configs1[cn2], c1)
+			if err != nil {
+				logrus.Errorf("Unable to load config : %s", err)
+				break
+			}
+			c2 := reflect.New(ct).Interface().(transformertypes.Config)
+			err = common.GetObjFromInterface(configs2[cn2], c2)
+			if err != nil {
+				logrus.Errorf("Unable to load config : %s", err)
+				break
+			}
+			if merged = c1.Merge(c2); !merged {
+				return configs1, false
+			}
+			configs1[cn2] = c1
+			continue
+		}
 		configs1[cn2] = deepcopy.Merge(configs1[cn2], configs2[cn2])
 	}
-	return configs1
+	return configs1, true
 }
 
 // mergePathSliceMaps merges two string slice maps

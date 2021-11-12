@@ -1208,3 +1208,19 @@ func Interrupt() error {
 	}
 	return nil
 }
+
+// GetTypesMap returns a type registry for the types in the array
+func GetTypesMap(typeInstances interface{}) (typesMap map[string]reflect.Type) {
+	typesMap = map[string]reflect.Type{}
+	types := reflect.ValueOf(typeInstances)
+	for i := 0; i < types.Len(); i++ {
+		t := reflect.TypeOf(types.Index(i).Interface()).Elem()
+		tn := t.Name()
+		if ot, ok := typesMap[tn]; ok {
+			logrus.Errorf("Two transformer classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
+			continue
+		}
+		typesMap[tn] = t
+	}
+	return typesMap
+}

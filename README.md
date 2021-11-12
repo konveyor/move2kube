@@ -20,10 +20,10 @@ To install the latest stable version:
 bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
 ```
 
-To install a specific version (for example version `v0.2.0-alpha.3`):
+To install a specific version (for example version `v0.3.0-alpha.3`):
 
 ```shell
-MOVE2KUBE_TAG='v0.2.0-alpha.3' bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
+MOVE2KUBE_TAG='v0.3.0-alpha.3' bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
 ```
 
 To install the bleeding edge version:
