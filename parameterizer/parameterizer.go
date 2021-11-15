@@ -57,7 +57,7 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Packagi
 	if len(packSpecPath.Envs) == 0 {
 		packSpecPath.Envs = []string{"dev", "staging", "prod"}
 	}
-	pathedKs, err := k8sschema.GetK8sResourcesWithPaths(filepath.Join(cleanSrcDir, packSpecPath.Src))
+	pathedKs, err := k8sschema.GetK8sResourcesWithPaths(cleanSrcDir)
 	if err != nil {
 		return filesWritten, err
 	}

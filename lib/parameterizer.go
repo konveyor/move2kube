@@ -50,14 +50,12 @@ func Parameterize(srcDir string, packDir string, outDir string) ([]string, error
 			logrus.Errorf("failed to find the paramterizers with the name %s referred to by the packaging with the name %s , in the folder %s", name, pack.ObjectMeta.Name, cleanPackDir)
 		}
 		ps = append(ps, pack.Spec.Parameterizers...)
-		for _, path := range pack.Spec.Paths {
-			fw, err := parameterizer.Parameterize(srcDir, outDir, path, ps)
-			if err != nil {
-				logrus.Errorf("Unable to process path %s : %s", path.Src, err)
-				continue
-			}
-			filesWritten = append(filesWritten, fw...)
+		fw, err := parameterizer.Parameterize(srcDir, outDir, pack.Spec.PackagingSpecPathT, ps)
+		if err != nil {
+			logrus.Errorf("Unable to process path: %s", err)
+			continue
 		}
+		filesWritten = append(filesWritten, fw...)
 	}
 	return filesWritten, nil
 }
