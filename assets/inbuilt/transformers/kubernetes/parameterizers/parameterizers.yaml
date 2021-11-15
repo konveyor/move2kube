@@ -9,3 +9,7 @@ spec:
       merge: true
   directoryDetect:
     levels: 0
+  config:
+    helmPath: "source/helm"
+    ocTemplatePath: "source/openshift-template"
+    kustomizePath: "source/kustomize"

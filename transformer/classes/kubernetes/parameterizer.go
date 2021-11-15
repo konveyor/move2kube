@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/parameterizer"
 	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
@@ -30,14 +31,27 @@ import (
 
 // Parameterizer implements Transformer interface
 type Parameterizer struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config     transformertypes.Transformer
+	Env        *environment.Environment
+	PathConfig ParameterizerPathConfig
+}
+
+type ParameterizerPathConfig struct {
+	HelmPath       string `yaml:"helmPath"`
+	OCTemplatePath string `yaml:"ocTemplatePath"`
+	KustomizePath  string `yaml:"kustomizePath"`
 }
 
 // Init Initializes the transformer
 func (t *Parameterizer) Init(tc transformertypes.Transformer, e *environment.Environment) error {
 	t.Config = tc
 	t.Env = e
+	t.PathConfig = ParameterizerPathConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, &t.PathConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.PathConfig, err)
+		return err
+	}
 	return nil
 }
 
@@ -71,7 +85,10 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 		}
 		baseDirName := filepath.Base(yamlsPath) + "-parameterized"
 		destPath := filepath.Join(tempPath, baseDirName)
-		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, parameterizertypes.PackagingSpecPathT{}, ps)
+		pt := parameterizertypes.PackagingSpecPathT{Helm: t.PathConfig.HelmPath,
+			Kustomize:   t.PathConfig.KustomizePath,
+			OCTemplates: t.PathConfig.OCTemplatePath}
+		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, pt, ps)
 		if err != nil {
 			logrus.Errorf("Unable to parameterize : %s", err)
 		}
@@ -84,7 +101,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:     transformertypes.DefaultPathMappingType,
 				SrcPath:  f,
-				DestPath: filepath.Join(filepath.Dir(yamlsPath), baseDirName, rel),
+				DestPath: rel,
 			})
 		}
 	}
