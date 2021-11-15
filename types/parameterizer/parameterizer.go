@@ -52,7 +52,6 @@ type PackagingSpecT struct {
 // PackagingSpecPathT is the set of source paths to be parameterized
 type PackagingSpecPathT struct {
 	Src           string   `yaml:"src" json:"src"`
-	Out           string   `yaml:"out,omitempty" json:"out,omitempty"`
 	Helm          string   `yaml:"helm,omitempty" json:"helm,omitempty"`
 	HelmChartName string   `yaml:"helmChartName,omitempty" json:"helmChartName,omitempty"`
 	Kustomize     string   `yaml:"kustomize,omitempty" json:"kustomize,omitempty"`
