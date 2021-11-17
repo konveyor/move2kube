@@ -43,16 +43,14 @@ type PackagingFileT struct {
 
 // PackagingSpecT is the spec inside the packaging file
 type PackagingSpecT struct {
-	FilePath          string               `yaml:"-" json:"-"`
-	Paths             []PackagingSpecPathT `yaml:"paths" json:"paths"`
-	ParameterizerRefs []string             `yaml:"parameterizerRefs,omitempty" json:"parameterizerRefs,omitempty"`
-	Parameterizers    []ParameterizerT     `yaml:"parameterizers,omitempty" json:"parameterizers,omitempty"`
+	FilePath string `yaml:"-" json:"-"`
+	PackagingSpecPathT
+	ParameterizerRefs []string         `yaml:"parameterizerRefs,omitempty" json:"parameterizerRefs,omitempty"`
+	Parameterizers    []ParameterizerT `yaml:"parameterizers,omitempty" json:"parameterizers,omitempty"`
 }
 
 // PackagingSpecPathT is the set of source paths to be parameterized
 type PackagingSpecPathT struct {
-	Src           string   `yaml:"src" json:"src"`
-	Out           string   `yaml:"out,omitempty" json:"out,omitempty"`
 	Helm          string   `yaml:"helm,omitempty" json:"helm,omitempty"`
 	HelmChartName string   `yaml:"helmChartName,omitempty" json:"helmChartName,omitempty"`
 	Kustomize     string   `yaml:"kustomize,omitempty" json:"kustomize,omitempty"`

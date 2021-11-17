@@ -17,6 +17,7 @@
 package environment
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -25,6 +26,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/deepcopy"
@@ -36,7 +38,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const workspaceDir = "workspace"
+const (
+	workspaceDir    = "workspace"
+	templatePattern = "{{"
+)
 
 var (
 	// GRPCEnvName represents the environment variable name used to pass the GRPC server information to the transformers
@@ -289,6 +294,9 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 		if path == "" {
 			return path, nil
 		}
+		if tempPath, err := common.GetStringFromTemplate(path, e.TempPathsMap); err == nil && strings.Contains(path, templatePattern) {
+			path = tempPath
+		}
 		if !filepath.IsAbs(path) {
 			logrus.Debugf("the input path %q is not an absolute path", path)
 			return path, nil
@@ -311,8 +319,9 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 			}
 			return relPath, nil
 		}
-		if tempPath, ok := e.TempPathsMap[path]; ok {
-			return tempPath, nil
+		if _, err := os.Stat(path); err != nil {
+			logrus.Debugf("Path [%s] does not exist", path)
+			return path, nil
 		}
 		outpath, err := e.Env.Download(path)
 		if err != nil {
@@ -335,46 +344,92 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 		logrus.Debug("environment not active. Process is terminating")
 		return dupPathMappings
 	}
-	for pmi, pm := range dupPathMappings {
-		if filepath.IsAbs(pm.SrcPath) && common.IsParent(pm.SrcPath, e.GetEnvironmentOutput()) {
-			var err error
-			dupPathMappings[pmi].SrcPath, err = e.Env.Download(pm.SrcPath)
-			if err != nil {
-				logrus.Errorf("Error while processing path mappings : %s", err)
-			}
-		}
-		if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
-			dupPathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
-		}
 
-		// Process destination Path
-		destPathSplit := strings.SplitN(pm.DestPath, ":", 2)
-		relPath := ""
-		destPath := pm.DestPath
-		if len(destPathSplit) > 1 {
-			relPath = destPathSplit[0]
-			destPath = destPathSplit[1]
-		}
-		if filepath.IsAbs(destPath) {
-			if common.IsParent(destPath, e.GetEnvironmentSource()) {
-				dp, err := filepath.Rel(e.GetEnvironmentSource(), destPath)
-				if err != nil {
-					logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
-					continue
-				}
-				dupPathMappings[pmi].DestPath = filepath.Join(relPath, dp)
-			} else {
+	tempMappings := []transformertypes.PathMapping{}
+	for pmi, pm := range dupPathMappings {
+		if strings.EqualFold(pm.Type, transformertypes.PathTemplatePathMappingType) {
+			// Process path template
+			methodMap := template.FuncMap{
+				"SourceRel":    e.SourceRel,
+				"OutputRel":    e.OutputRel,
+				"TempRoot":     e.CreateTempRoot,
+				"FilePathBase": filepath.Base,
+			}
+			tpl, err := template.Must(template.New("pathTpl"), nil).Funcs(methodMap).Parse(pm.SrcPath)
+			if err != nil {
+				logrus.Errorf("Error while parsing path template : %s", err)
+				continue
+			}
+			var path bytes.Buffer
+			err = tpl.Execute(&path, pm.TemplateConfig)
+			if err != nil {
+				logrus.Errorf("Error while processing path template : %s", err)
+				continue
+			}
+			pathStr := path.String()
+			logrus.Debugf("Output of environment template: %s\n", pathStr)
+			if filepath.IsAbs(pathStr) {
 				tempOutputPath, err := ioutil.TempDir(e.TempPath, "*")
 				if err != nil {
 					logrus.Errorf("Unable to create temp dir : %s", err)
-				} else {
-					tmpDestPath := filepath.Join(tempOutputPath, filepath.Base(destPath))
-					e.TempPathsMap[dupPathMappings[pmi].DestPath] = tmpDestPath
+					continue
+				}
+				pathStr = filepath.Join(tempOutputPath, filepath.Base(pathStr))
+			}
+			pathTplName, err := common.GetStringFromTemplate("{{ .PathTemplateName }}", pm.TemplateConfig)
+			if err != nil {
+				logrus.Errorf("Unable to create temp dir : %s", err)
+				continue
+			}
+			e.TempPathsMap[pathTplName] = pathStr
+		} else {
+			tempMappings = append(tempMappings, pm)
+			if filepath.IsAbs(pm.SrcPath) && common.IsParent(pm.SrcPath, e.GetEnvironmentOutput()) {
+				var err error
+				dupPathMappings[pmi].SrcPath, err = e.Env.Download(pm.SrcPath)
+				if err != nil {
+					logrus.Errorf("Error while processing path mappings : %s", err)
 				}
 			}
+			if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
+				dupPathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
+			}
+
 		}
 	}
+	dupPathMappings = tempMappings
 	return dupPathMappings
+}
+
+// SourceRel makes the path base-dir relative. Exposed to be used within path-mapping destination-path template.
+func (e *Environment) SourceRel(destPath string) (string, error) {
+	if !common.IsParent(destPath, e.GetEnvironmentSource()) {
+		return "", fmt.Errorf("%s not parent of %s", destPath, e.GetEnvironmentSource())
+	}
+	dp, err := filepath.Rel(e.GetEnvironmentSource(), destPath)
+	if err != nil {
+		logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
+		return "", err
+	}
+	return dp, nil
+}
+
+// OutputRel makes the path output-dir relative. Exposed to be used within path-mapping destination-path template.
+func (e *Environment) OutputRel(destPath string) (string, error) {
+	if !common.IsParent(destPath, e.CurrEnvOutputBasePath) {
+		return "", fmt.Errorf("%s not parent of %s", destPath, e.GetEnvironmentSource())
+	}
+	dp, err := filepath.Rel(e.CurrEnvOutputBasePath, destPath)
+	if err != nil {
+		logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
+		return "", err
+	}
+	return dp, nil
+}
+
+// CreateTempRoot returns the "/" to indicate the temp-root creation. Exposed to be used within path-mapping destination-path template.
+func (e *Environment) CreateTempRoot() string {
+	return "/"
 }
 
 // GetEnvironmentSource returns the source path within the environment

@@ -27,6 +27,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"math/rand"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -1010,6 +1011,11 @@ func IsParent(child, parent string) bool {
 		}
 	}
 	return true
+}
+
+// GetRandomString generates a random string
+func GetRandomString(n int) string {
+	return fmt.Sprintf("%d", rand.Intn(n))
 }
 
 // SplitOnDotExpectInsideQuotes splits a string on dot.

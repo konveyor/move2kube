@@ -53,19 +53,11 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Packagi
 	if err != nil {
 		return nil, err
 	}
-	if packSpecPath.Helm == "" {
-		packSpecPath.Helm = filepath.Join(packSpecPath.Out, "helm-chart")
-	}
-	if packSpecPath.Kustomize == "" {
-		packSpecPath.Kustomize = filepath.Join(packSpecPath.Out, "kustomize")
-	}
-	if packSpecPath.OCTemplates == "" {
-		packSpecPath.OCTemplates = filepath.Join(packSpecPath.Out, "openshift-template")
-	}
+
 	if len(packSpecPath.Envs) == 0 {
 		packSpecPath.Envs = []string{"dev", "staging", "prod"}
 	}
-	pathedKs, err := k8sschema.GetK8sResourcesWithPaths(filepath.Join(cleanSrcDir, packSpecPath.Src))
+	pathedKs, err := k8sschema.GetK8sResourcesWithPaths(cleanSrcDir)
 	if err != nil {
 		return filesWritten, err
 	}
@@ -77,6 +69,7 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Packagi
 		}
 		namedValues := map[string]parameterizertypes.HelmValuesT{}
 		helmChartDir := filepath.Join(cleanOutDir, packSpecPath.Helm, helmChartName)
+
 		helmTemplatesDir := filepath.Join(helmChartDir, "templates")
 		if err := os.MkdirAll(helmTemplatesDir, common.DefaultDirectoryPermission); err != nil {
 			return filesWritten, err
@@ -116,7 +109,9 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Packagi
 	}
 	if packSpecPath.Kustomize != "" {
 		// kustomize json patches with multiple overlays
+
 		kustDir := filepath.Join(cleanOutDir, packSpecPath.Kustomize)
+
 		baseDir := filepath.Join(kustDir, "base")
 		if err := os.MkdirAll(baseDir, common.DefaultDirectoryPermission); err != nil {
 			return filesWritten, err
@@ -220,6 +215,7 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Packagi
 			"parameters": singleSet,
 		}
 		ocDir := filepath.Join(cleanOutDir, packSpecPath.OCTemplates)
+
 		if err := os.MkdirAll(ocDir, common.DefaultDirectoryPermission); err != nil {
 			return filesWritten, err
 		}

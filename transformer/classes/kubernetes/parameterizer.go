@@ -17,9 +17,11 @@
 package kubernetes
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/parameterizer"
 	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
@@ -28,16 +30,44 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	helmPathTemplateName       = "HelmPath"
+	kustomizePathTemplateName  = "KustomizePath"
+	ocTemplatePathTemplateName = "OCTemplatePath"
+	randUpLimit                = 10000000
+)
+
 // Parameterizer implements Transformer interface
 type Parameterizer struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config     transformertypes.Transformer
+	Env        *environment.Environment
+	PathConfig ParameterizerPathConfig
+}
+
+// ParameterizerPathConfig implements Parameterizer path config interface
+type ParameterizerPathConfig struct {
+	HelmPath       string `yaml:"helmPath"`
+	OCTemplatePath string `yaml:"ocTemplatePath"`
+	KustomizePath  string `yaml:"kustomizePath"`
+}
+
+// ParameterizerPathTemplateConfig implements Parameterizer template config interface
+type ParameterizerPathTemplateConfig struct {
+	YamlsPath        string
+	PrjPath          string
+	PathTemplateName string
 }
 
 // Init Initializes the transformer
 func (t *Parameterizer) Init(tc transformertypes.Transformer, e *environment.Environment) error {
 	t.Config = tc
 	t.Env = e
+	t.PathConfig = ParameterizerPathConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, &t.PathConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.PathConfig, err)
+		return err
+	}
 	return nil
 }
 
@@ -71,22 +101,50 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 		}
 		baseDirName := filepath.Base(yamlsPath) + "-parameterized"
 		destPath := filepath.Join(tempPath, baseDirName)
-		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, parameterizertypes.PackagingSpecPathT{}, ps)
+
+		pt := parameterizertypes.PackagingSpecPathT{Helm: "helm",
+			Kustomize:   "kustomize",
+			OCTemplates: "octemplates"}
+		_, err = parameterizer.Parameterize(yamlsPath, destPath, pt, ps)
 		if err != nil {
 			logrus.Errorf("Unable to parameterize : %s", err)
 		}
-		for _, f := range filesWritten {
-			rel, err := filepath.Rel(destPath, f)
-			if err != nil {
-				logrus.Errorf("Unable to make parameterized file path relative : %s", err)
-				continue
-			}
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:     transformertypes.DefaultPathMappingType,
-				SrcPath:  f,
-				DestPath: filepath.Join(filepath.Dir(yamlsPath), baseDirName, rel),
-			})
-		}
+
+		helmKey := helmPathTemplateName + common.GetRandomString(randUpLimit)
+		kustomizeKey := kustomizePathTemplateName + common.GetRandomString(randUpLimit)
+		octKey := ocTemplatePathTemplateName + common.GetRandomString(randUpLimit)
+
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:           transformertypes.PathTemplatePathMappingType,
+			SrcPath:        t.PathConfig.HelmPath,
+			TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: helmKey},
+		})
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:           transformertypes.PathTemplatePathMappingType,
+			SrcPath:        t.PathConfig.KustomizePath,
+			TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: kustomizeKey},
+		})
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:           transformertypes.PathTemplatePathMappingType,
+			SrcPath:        t.PathConfig.OCTemplatePath,
+			TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: octKey},
+		})
+
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:     transformertypes.DefaultPathMappingType,
+			SrcPath:  filepath.Join(destPath, pt.Helm),
+			DestPath: fmt.Sprintf("{{ .%s }}", helmKey),
+		})
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:     transformertypes.DefaultPathMappingType,
+			SrcPath:  filepath.Join(destPath, pt.Kustomize),
+			DestPath: fmt.Sprintf("{{ .%s }}", kustomizeKey),
+		})
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:     transformertypes.DefaultPathMappingType,
+			SrcPath:  filepath.Join(destPath, pt.OCTemplates),
+			DestPath: fmt.Sprintf("{{ .%s }}", octKey),
+		})
 	}
 	return pathMappings, nil, nil
 }

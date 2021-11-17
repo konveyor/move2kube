@@ -31,14 +31,26 @@ import (
 
 // Kubernetes implements Transformer interface
 type Kubernetes struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config           transformertypes.Transformer
+	Env              *environment.Environment
+	KubernetesConfig *KubernetesGenYamlConfig
+}
+
+// KubernetesGenYamlConfig stores the k8s related information
+type KubernetesGenYamlConfig struct {
+	OutputPath string `yaml:"outputPath"`
 }
 
 // Init Initializes the transformer
 func (t *Kubernetes) Init(tc transformertypes.Transformer, e *environment.Environment) error {
 	t.Config = tc
 	t.Env = e
+	t.KubernetesConfig = &KubernetesGenYamlConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, &t.KubernetesConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.KubernetesConfig, err)
+		return err
+	}
 	return nil
 }
 
@@ -69,12 +81,11 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 		ir.Name = a.Name
 		preprocessedIR, err := irpreprocessor.Preprocess(ir)
 		if err != nil {
-			logrus.Errorf("Unable to prepreocess IR : %s", err)
+			logrus.Errorf("Unable to pre-preocess IR : %s", err)
 		} else {
 			ir = preprocessedIR
 		}
-		deployYamlsDir := filepath.Join(common.DeployDir, "yamls")
-		tempDest := filepath.Join(t.Env.TempPath, deployYamlsDir)
+		tempDest := filepath.Join(t.Env.TempPath, "k8s-yamls")
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 		apis := []apiresource.IAPIResource{new(apiresource.Deployment), new(apiresource.Storage), new(apiresource.Service), new(apiresource.ImageStream), new(apiresource.NetworkPolicy)}
@@ -83,23 +94,16 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err
 		}
-		for _, f := range files {
-			destPath, err := filepath.Rel(t.Env.TempPath, f)
-			if err != nil {
-				logrus.Errorf("Invalid yaml path : %s", destPath)
-				continue
-			}
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:     transformertypes.DefaultPathMappingType,
-				SrcPath:  f,
-				DestPath: destPath,
-			})
-		}
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:     transformertypes.DefaultPathMappingType,
+			SrcPath:  tempDest,
+			DestPath: t.KubernetesConfig.OutputPath,
+		})
 		na := transformertypes.Artifact{
 			Name:     t.Config.Name,
 			Artifact: artifacts.KubernetesYamlsArtifactType,
 			Paths: map[transformertypes.PathType][]string{
-				artifacts.KubernetesYamlsPathType: {deployYamlsDir},
+				artifacts.KubernetesYamlsPathType: {t.KubernetesConfig.OutputPath},
 			},
 		}
 		createdArtifacts = append(createdArtifacts, na)
