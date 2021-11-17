@@ -334,6 +334,10 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 			}
 			return relPath, nil
 		}
+		if _, err := os.Stat(path); err != nil {
+			logrus.Debug("Path [%s] does not exist", path)
+			return path, nil
+		}
 		outpath, err := e.Env.Download(path)
 		if err != nil {
 			logrus.Errorf("Unable to copy data from path %s : %s", path, err)
