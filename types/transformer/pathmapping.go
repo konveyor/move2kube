@@ -28,6 +28,8 @@ const (
 	SourcePathMappingType PathMappingType = "Source" // Source path becomes relative to source directory
 	// ModifiedSourcePathMappingType allows for copying of deltas wrt source
 	ModifiedSourcePathMappingType PathMappingType = "SourceDiff" // Source path becomes relative to source directory
+	// PathTemplatePathMappingType allows for path template registration
+	PathTemplatePathMappingType PathMappingType = "PathTemplate" // Path Template type
 )
 
 // PathMapping is the mapping between source and intermediate files and output files

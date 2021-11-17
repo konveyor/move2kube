@@ -10,6 +10,6 @@ spec:
   directoryDetect:
     levels: 0
   config:
-    helmPath: "source/helm"
-    ocTemplatePath: "source/openshift-template"
-    kustomizePath: "source/kustomize"
+    helmPath: "{{ OutputRel .YamlsPath }}/../{{ FilePathBase .YamlsPath }}-parameterized/helm-chart"
+    ocTemplatePath: "{{OutputRel .YamlsPath }}/../{{ FilePathBase .YamlsPath }}-parameterized/openshift-template"
+    kustomizePath: "{{ OutputRel .YamlsPath }}/../{{ FilePathBase .YamlsPath }}-parameterized/kustomize"

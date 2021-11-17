@@ -37,7 +37,8 @@ func getpair(a, b string) pair {
 func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputPath string) error {
 	copiedSourceDests := map[pair]bool{}
 	for _, pm := range pms {
-		if !strings.EqualFold(pm.Type, transformertypes.SourcePathMappingType) || copiedSourceDests[getpair(pm.SrcPath, pm.DestPath)] {
+		if !strings.EqualFold(pm.Type, transformertypes.SourcePathMappingType) ||
+			copiedSourceDests[getpair(pm.SrcPath, pm.DestPath)] {
 			continue
 		}
 		srcPath := pm.SrcPath

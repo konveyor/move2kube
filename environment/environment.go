@@ -19,6 +19,7 @@ package environment
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net"
 	"os"
@@ -26,7 +27,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/deepcopy"
@@ -284,13 +284,18 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 }
 
 func (e *Environment) getMappedTempPath(path string) (string, bool) {
-	for key, value := range e.TempPathsMap {
-		if strings.HasPrefix(path, key) {
-			mappedTempPath := strings.Replace(path, key, value, 1)
-			return mappedTempPath, true
-		}
+	tpl, err := template.Must(template.New("pathTplName"), nil).Parse(path)
+	if err != nil {
+		logrus.Errorf("Error while parsing path template name substitution for path [%s]: %s", path, err)
+		return "", false
 	}
-	return "", false
+	var resolvedPath bytes.Buffer
+	err = tpl.Execute(&resolvedPath, e.TempPathsMap)
+	if err != nil {
+		logrus.Errorf("Error while processing path template name substitution for path [%s] : %s", path, err)
+		return "", false
+	}
+	return resolvedPath.String(), true
 }
 
 // DownloadAndDecode downloads and decodes the data from the paths in the object
@@ -304,14 +309,12 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 		if path == "" {
 			return path, nil
 		}
-		if !strings.Contains(path, templatePattern) && !filepath.IsAbs(path) {
-			logrus.Debugf("the input path %q is not an absolute path", path)
-			return path, nil
-		}
-		isTemplate := false
 		if tempPath, ok := e.getMappedTempPath(path); ok && strings.Contains(path, templatePattern) {
 			path = tempPath
-			isTemplate = true
+		}
+		if !filepath.IsAbs(path) {
+			logrus.Debugf("the input path %q is not an absolute path", path)
+			return path, nil
 		}
 		if !downloadSource {
 			if common.IsParent(path, e.GetEnvironmentSource()) {
@@ -331,9 +334,6 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 			}
 			return relPath, nil
 		}
-		if isTemplate {
-			return path, nil
-		}
 		outpath, err := e.Env.Download(path)
 		if err != nil {
 			logrus.Errorf("Unable to copy data from path %s : %s", path, err)
@@ -348,6 +348,19 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 	return dupobj
 }
 
+func (e *Environment) getPathTemplateName(cfg interface{}) (string, error) {
+	tpl, err := template.Must(template.New("pathTplName"), nil).Parse("{{ .PathTemplateName }}")
+	if err != nil {
+		return "", err
+	}
+	var name bytes.Buffer
+	err = tpl.Execute(&name, cfg)
+	if err != nil {
+		return "", err
+	}
+	return name.String(), nil
+}
+
 // ProcessPathMappings post processes the paths in the path mappings
 func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMapping) []transformertypes.PathMapping {
 	dupPathMappings := deepcopy.DeepCopy(pathMappings).([]transformertypes.PathMapping)
@@ -355,45 +368,60 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 		logrus.Debug("environment not active. Process is terminating")
 		return dupPathMappings
 	}
-	for pmi, pm := range dupPathMappings {
-		if filepath.IsAbs(pm.SrcPath) && common.IsParent(pm.SrcPath, e.GetEnvironmentOutput()) {
-			var err error
-			dupPathMappings[pmi].SrcPath, err = e.Env.Download(pm.SrcPath)
-			if err != nil {
-				logrus.Errorf("Error while processing path mappings : %s", err)
-			}
-		}
-		if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
-			dupPathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
-		}
 
-		// Process destination path
-		methodMap := template.FuncMap{
-			"BaseRel":      e.BaseRel,
-			"TempRoot":     e.CreateTempRoot,
-			"FilePathBase": e.FilePathBase,
-		}
-		tpl, err := template.Must(template.New("baseRelTpl"), nil).Funcs(methodMap).Parse(pm.DestPath)
-		if err != nil {
-			logrus.Errorf("Error while parsing path template : %s", err)
-		}
-		var destPath bytes.Buffer
-		err = tpl.Execute(&destPath, pm.TemplateConfig)
-		if err != nil {
-			logrus.Errorf("Error while processing path template : %s", err)
-		}
-		destPathStr := destPath.String()
-		logrus.Debugf("Output of environment template: %s\n", destPathStr)
-		if filepath.IsAbs(destPathStr) {
-			tempOutputPath, err := ioutil.TempDir(e.TempPath, "*")
+	tempMappings := dupPathMappings[:0]
+	for pmi, pm := range dupPathMappings {
+		if strings.EqualFold(pm.Type, transformertypes.PathTemplatePathMappingType) {
+			// Process path template
+			methodMap := template.FuncMap{
+				"BaseRel":      e.BaseRel,
+				"OutputRel":    e.OutputRel,
+				"TempRoot":     e.CreateTempRoot,
+				"FilePathBase": e.FilePathBase,
+			}
+			tpl, err := template.Must(template.New("pathTpl"), nil).Funcs(methodMap).Parse(pm.SrcPath)
+			if err != nil {
+				logrus.Errorf("Error while parsing path template : %s", err)
+				continue
+			}
+			var path bytes.Buffer
+			err = tpl.Execute(&path, pm.TemplateConfig)
+			if err != nil {
+				logrus.Errorf("Error while processing path template : %s", err)
+				continue
+			}
+			pathStr := path.String()
+			logrus.Debugf("Output of environment template: %s\n", pathStr)
+			if filepath.IsAbs(pathStr) {
+				tempOutputPath, err := ioutil.TempDir(e.TempPath, "*")
+				if err != nil {
+					logrus.Errorf("Unable to create temp dir : %s", err)
+					continue
+				}
+				pathStr = filepath.Join(tempOutputPath, filepath.Base(pathStr))
+			}
+			pathTplName, err := e.getPathTemplateName(pm.TemplateConfig)
 			if err != nil {
 				logrus.Errorf("Unable to create temp dir : %s", err)
-			} else {
-				destPathStr = filepath.Join(tempOutputPath, filepath.Base(destPathStr))
+				continue
 			}
+			e.TempPathsMap[pathTplName] = pathStr
+		} else {
+			tempMappings = append(tempMappings, pm)
+			if filepath.IsAbs(pm.SrcPath) && common.IsParent(pm.SrcPath, e.GetEnvironmentOutput()) {
+				var err error
+				dupPathMappings[pmi].SrcPath, err = e.Env.Download(pm.SrcPath)
+				if err != nil {
+					logrus.Errorf("Error while processing path mappings : %s", err)
+				}
+			}
+			if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
+				dupPathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
+			}
+
 		}
-		e.TempPathsMap[pm.DestPath] = destPathStr
 	}
+	dupPathMappings = tempMappings
 	return dupPathMappings
 }
 
@@ -403,6 +431,19 @@ func (e *Environment) BaseRel(destPath string) (string, error) {
 		return "", fmt.Errorf("%s not parent of %s", destPath, e.GetEnvironmentSource())
 	}
 	dp, err := filepath.Rel(e.GetEnvironmentSource(), destPath)
+	if err != nil {
+		logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
+		return "", err
+	}
+	return dp, nil
+}
+
+// BaseRel makes the path base-dir relative. Exposed to be used within path-mapping destination-path template.
+func (e *Environment) OutputRel(destPath string) (string, error) {
+	if !common.IsParent(destPath, e.CurrEnvOutputBasePath) {
+		return "", fmt.Errorf("%s not parent of %s", destPath, e.GetEnvironmentSource())
+	}
+	dp, err := filepath.Rel(e.CurrEnvOutputBasePath, destPath)
 	if err != nil {
 		logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
 		return "", err
