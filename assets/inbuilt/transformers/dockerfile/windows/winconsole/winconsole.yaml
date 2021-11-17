@@ -3,5 +3,4 @@ kind: Transformer
 metadata:
   name: WinConsoleApp-Dockerfile
 spec:
-  mode: "Container"
   class: "WinConsoleAppDockerfileGenerator"

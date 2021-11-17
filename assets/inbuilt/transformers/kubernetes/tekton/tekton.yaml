@@ -3,9 +3,9 @@ kind: Transformer
 metadata:
   name: Tekton
 spec:
-  mode: "Container"
   class: "Tekton"
   consumes:
-    - "IR"
+    IR:
+      merge: true
   directoryDetect:
     levels: 0

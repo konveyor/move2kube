@@ -3,9 +3,9 @@ kind: Transformer
 metadata:
   name: Knative
 spec:
-  mode: "Container"
   class: "Knative"
   consumes:
-    - "IR"
+    IR:
+      merge: true
   directoryDetect:
     levels: 0

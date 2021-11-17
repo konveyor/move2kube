@@ -3,9 +3,9 @@ kind: Transformer
 metadata:
   name: DockerfileParser
 spec:
-  mode: "Container"
   class: "DockerfileParser"
   consumes: 
-    - "DockerfileForService"
+    DockerfileForService:
+      merge: false
   directoryDetect:
     levels: 0

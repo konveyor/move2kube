@@ -3,7 +3,6 @@ kind: Transformer
 metadata:
   name: DockerfileDetector
 spec:
-  mode: "Container"
   class: "DockerfileDetector"
   directoryDetect:
     levels: 1

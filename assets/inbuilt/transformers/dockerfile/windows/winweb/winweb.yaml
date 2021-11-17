@@ -3,5 +3,4 @@ kind: Transformer
 metadata:
   name: WinWebApp-Dockerfile
 spec:
-  mode: "Container"
   class: "WinWebAppDockerfileGenerator"

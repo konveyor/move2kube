@@ -3,9 +3,9 @@ kind: Transformer
 metadata:
   name: ContainerImagesBuildScript
 spec:
-  mode: "Container"
   class: "ContainerImagesBuildScript"
   consumes: 
-    - "ContainerImageBuildScript"
+    ContainerImageBuildScript:
+      merge: true
   directoryDetect:
     levels: 0

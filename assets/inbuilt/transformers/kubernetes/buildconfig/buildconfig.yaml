@@ -3,9 +3,9 @@ kind: Transformer
 metadata:
   name: Buildconfig
 spec:
-  mode: "Container"
   class: "BuildConfig"
   consumes:
-    - "IR"
+    IR:
+      merge: true
   directoryDetect:
     levels: 0

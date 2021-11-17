@@ -3,5 +3,4 @@ kind: Transformer
 metadata:
   name: Ruby-Dockerfile
 spec:
-  mode: "Container"
   class: "RubyDockerfileGenerator"

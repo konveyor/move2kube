@@ -3,9 +3,9 @@ kind: Transformer
 metadata:
   name: Parameterizer
 spec:
-  mode: "Container"
   class: "Parameterizer"
   consumes:
-    - "KubernetesYamls"
+    KubernetesYamls:
+      merge: true
   directoryDetect:
     levels: 0

@@ -3,7 +3,6 @@ kind: Transformer
 metadata:
   name: CloudFoundry
 spec:
-  mode: "Container"
   class: "CloudFoundry"
   directoryDetect:
     levels: 1

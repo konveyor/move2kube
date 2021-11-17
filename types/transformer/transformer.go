@@ -46,21 +46,26 @@ type Transformer struct {
 
 // TransformerSpec stores the data
 type TransformerSpec struct {
-	FilePath           string            `yaml:"-"`
-	Mode               Mode              `yaml:"mode"`
-	Class              string            `yaml:"class"`
-	DirectoryDetect    DirectoryDetect   `yaml:"directoryDetect"`
-	ExternalFiles      map[string]string `yaml:"externalFiles"` // [source]destination
-	ArtifactsToProcess []string          `yaml:"consumes"`      //plantypes.ArtifactType
-	TemplatesDir       string            `yaml:"templates"`     //Relative to yaml directory or working directory in image
-	Config             interface{}       `yaml:"config"`
+	FilePath           string                              `yaml:"-"`
+	Mode               Mode                                `yaml:"mode"`
+	Class              string                              `yaml:"class"`
+	DirectoryDetect    DirectoryDetect                     `yaml:"directoryDetect"`
+	ExternalFiles      map[string]string                   `yaml:"externalFiles"` // [source]destination
+	ArtifactsToProcess map[string]ArtifactPreprocessConfig `yaml:"consumes"`      // plantypes.ArtifactType
+	TemplatesDir       string                              `yaml:"templates"`     // Relative to yaml directory or working directory in image
+	Config             interface{}                         `yaml:"config"`
 }
 
-// DirectoryDetect stores thd config on how to iterate over the directories
+// DirectoryDetect stores the config on how to iterate over the directories
 type DirectoryDetect struct {
 	Levels                      int  `yaml:"levels"`                      // Supports only 0,1 and -1 currently
 	HonorM2KIgnore              bool `yaml:"honorM2KIgnore"`              // TODO: Add support
 	IgnoreServiceSubdirectories bool `yaml:"ignoreServiceSubdirectories"` // TODO: Add support
+}
+
+// ArtifactPreprocessConfig stores config for how to preprocess artifacts
+type ArtifactPreprocessConfig struct {
+	Merge bool `yaml:"merge"`
 }
 
 // NewTransformer creates a new instance of tansformer

@@ -3,7 +3,6 @@ kind: Transformer
 metadata:
   name: Golang-Dockerfile
 spec:
-  mode: "Container"
   class: "GolangDockerfileGenerator"
   config:
     defaultGoVersion: "1.17"

@@ -3,9 +3,9 @@ kind: Transformer
 metadata:
   name: ContainerImagesPushScript
 spec:
-  mode: "Container"
   class: "ContainerImagesPushScript"
   consumes: 
-    - "NewImages"
+    NewImages:
+      merge: true
   directoryDetect:
     levels: 0

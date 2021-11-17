@@ -3,5 +3,4 @@ kind: Transformer
 metadata:
   name: EurekaReplaceEngine
 spec:
-  mode: "Container"
   class: "EurekaReplaceEngine"
