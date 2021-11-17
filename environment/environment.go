@@ -414,7 +414,7 @@ func (e *Environment) SourceRel(destPath string) (string, error) {
 	return dp, nil
 }
 
-// BaseRel makes the path base-dir relative. Exposed to be used within path-mapping destination-path template.
+// OutputRel makes the path output-dir relative. Exposed to be used within path-mapping destination-path template.
 func (e *Environment) OutputRel(destPath string) (string, error) {
 	if !common.IsParent(destPath, e.CurrEnvOutputBasePath) {
 		return "", fmt.Errorf("%s not parent of %s", destPath, e.GetEnvironmentSource())
