@@ -287,7 +287,6 @@ func (e *Environment) getMappedTempPath(path string) (string, bool) {
 	for key, value := range e.TempPathsMap {
 		if strings.HasPrefix(path, key) {
 			mappedTempPath := strings.Replace(path, key, value, 1)
-			logrus.Infof("getMappedTempPath -> %s", mappedTempPath)
 			return mappedTempPath, true
 		}
 	}
