@@ -3,7 +3,6 @@ kind: Transformer
 metadata:
   name: Maven
 spec:
-  mode: "Container"
   class: "MavenAnalyser"
   externalFiles:
     "../../common/Dockerfile.license" : templates/Dockerfile.license

@@ -3,9 +3,9 @@ kind: Transformer
 metadata:
   name: Kubernetes
 spec:
-  mode: "Container"
   class: "Kubernetes"
   consumes:
-    - "IR"
+    IR: 
+      merge: true
   directoryDetect:
     levels: 0

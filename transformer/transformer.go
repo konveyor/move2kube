@@ -281,7 +281,10 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			env.Reset()
 			artifactsToProcess := []transformertypes.Artifact{}
 			for _, na := range newArtifactsToProcess {
-				if common.IsStringPresent(config.Spec.ArtifactsToProcess, string(na.Artifact)) || na.Artifact == tn {
+				if preprocessSpec, ok := config.Spec.ArtifactsToProcess[na.Artifact]; ok || na.Artifact == tn {
+					if preprocessSpec.Merge {
+						artifactsToProcess = mergeArtifacts(append(artifactsToProcess, updatedArtifacts(allartifacts, na)...))
+					}
 					artifactsToProcess = append(artifactsToProcess, na)
 				}
 			}
@@ -316,8 +319,8 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 		if len(newArtifactsCreated) == 0 {
 			break
 		}
-		newArtifactsToProcess = mergeArtifacts(append(newArtifactsCreated, updatedArtifacts(allartifacts, newArtifactsCreated)...))
-		allartifacts = mergeArtifacts(append(allartifacts, newArtifactsToProcess...))
+		newArtifactsToProcess = newArtifactsCreated
+		allartifacts = append(allartifacts, newArtifactsToProcess...)
 	}
 	return nil
 }

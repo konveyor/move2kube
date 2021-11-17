@@ -3,7 +3,6 @@ kind: Transformer
 metadata:
   name: ComposeAnalyser
 spec:
-  mode: "Container"
   class: "ComposeAnalyser"
   directoryDetect:
     levels: 1

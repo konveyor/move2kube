@@ -3,5 +3,4 @@ kind: Transformer
 metadata:
   name: WinSLWebApp-Dockerfile
 spec:
-  mode: "Container"
   class: "WinSilverLightWebAppDockerfileGenerator"

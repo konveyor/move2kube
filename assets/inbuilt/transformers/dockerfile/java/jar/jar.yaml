@@ -3,10 +3,10 @@ kind: Transformer
 metadata:
   name: Jar
 spec:
-  mode: "Container"
   class: "JarAnalyser"
   consumes: 
-    - "Jar"
+    Jar:
+      merge: false
   externalFiles:
     "../../common/Dockerfile.license" : templates/Dockerfile.license
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml

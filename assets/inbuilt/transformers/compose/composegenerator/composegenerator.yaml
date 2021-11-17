@@ -3,9 +3,9 @@ kind: Transformer
 metadata:
   name: ComposeGenerator
 spec:
-  mode: "Container"
   class: "ComposeGenerator"
   consumes: 
-    - "IR"
+    IR:
+      merge: true
   directoryDetect:
     levels: 0

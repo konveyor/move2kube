@@ -3,11 +3,13 @@ kind: Transformer
 metadata:
   name: ReadMeGenerator
 spec:
-  mode: "Container"
   class: "ReadMeGenerator"
   consumes: 
-    - "ContainerImagesPushScript"
-    - "ContainerImagesBuildScript"
-    - "KubernetesYamls"
+    ContainerImagesPushScript:
+      merge: true
+    ContainerImagesBuildScript:
+      merge: true
+    KubernetesYamls:
+      merge: true
   directoryDetect:
     levels: 0

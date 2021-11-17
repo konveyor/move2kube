@@ -3,5 +3,4 @@ kind: Transformer
 metadata:
   name: PHP-Dockerfile
 spec:
-  mode: "Container"
   class: "PHPDockerfileGenerator"

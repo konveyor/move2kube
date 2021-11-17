@@ -3,5 +3,4 @@ kind: Transformer
 metadata:
   name: DotNet5-Dockerfile
 spec:
-  mode: "Container"
   class: "DotNet5DockerfileGenerator"

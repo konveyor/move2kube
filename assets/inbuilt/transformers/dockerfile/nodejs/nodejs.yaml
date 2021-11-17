@@ -3,7 +3,6 @@ kind: Transformer
 metadata:
   name: Nodejs-Dockerfile
 spec:
-  mode: "Container"
   class: "NodejsDockerfileGenerator"
   config:
     defaultNodejsVersion: "12"

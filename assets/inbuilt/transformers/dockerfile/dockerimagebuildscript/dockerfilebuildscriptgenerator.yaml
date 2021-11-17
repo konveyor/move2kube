@@ -6,6 +6,7 @@ spec:
   mode: "Container"
   class: "DockerfileImageBuildScript"
   consumes: 
-    - "Dockerfile"
+    Dockerfile:
+      merge: true
   directoryDetect:
     levels: 0

@@ -3,7 +3,6 @@ kind: Transformer
 metadata:
   name: ZuulAnalyser
 spec:
-  mode: "Container"
   class: "ZuulAnalyser"
   directoryDetect:
     levels: 1
