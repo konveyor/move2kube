@@ -56,13 +56,14 @@ type TransformerSpec struct {
 	Config             interface{}                         `yaml:"config"`
 }
 
-// DirectoryDetect stores thd config on how to iterate over the directories
+// DirectoryDetect stores the config on how to iterate over the directories
 type DirectoryDetect struct {
 	Levels                      int  `yaml:"levels"`                      // Supports only 0,1 and -1 currently
 	HonorM2KIgnore              bool `yaml:"honorM2KIgnore"`              // TODO: Add support
 	IgnoreServiceSubdirectories bool `yaml:"ignoreServiceSubdirectories"` // TODO: Add support
 }
 
+// ArtifactPreprocessConfig stores config for how to preprocess artifacts
 type ArtifactPreprocessConfig struct {
 	Merge bool `yaml:"merge"`
 }
