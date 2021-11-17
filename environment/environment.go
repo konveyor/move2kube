@@ -369,8 +369,9 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 
 		// Process destination path
 		methodMap := template.FuncMap{
-			"BaseRel":  e.BaseRel,
-			"TempRoot": e.CreateTempRoot,
+			"BaseRel":      e.BaseRel,
+			"TempRoot":     e.CreateTempRoot,
+			"FilePathBase": e.FilePathBase,
 		}
 		tpl, err := template.Must(template.New("baseRelTpl"), nil).Funcs(methodMap).Parse(pm.DestPath)
 		if err != nil {
@@ -381,7 +382,6 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 		if err != nil {
 			logrus.Errorf("Error while processing path template : %s", err)
 		}
-		// dupPathMappings[pmi].DestPath = destPath.String()
 		destPathStr := destPath.String()
 		logrus.Debugf("Output of environment template: %s\n", destPathStr)
 		if filepath.IsAbs(destPathStr) {
@@ -397,6 +397,7 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 	return dupPathMappings
 }
 
+// BaseRel makes the path base-dir relative. Exposed to be used within path-mapping destination-path template.
 func (e *Environment) BaseRel(destPath string) (string, error) {
 	if !common.IsParent(destPath, e.GetEnvironmentSource()) {
 		return "", fmt.Errorf("%s not parent of %s", destPath, e.GetEnvironmentSource())
@@ -409,6 +410,12 @@ func (e *Environment) BaseRel(destPath string) (string, error) {
 	return dp, nil
 }
 
+// FilePathBase extracts out the base of the path. Exposed to be used within path-mapping destination-path template.
+func (e *Environment) FilePathBase(path string) string {
+	return filepath.Base(path)
+}
+
+// CreateTempRoot returns the "/" to indicate the temp-root creation. Exposed to be used within path-mapping destination-path template.
 func (e *Environment) CreateTempRoot() string {
 	return "/"
 }
