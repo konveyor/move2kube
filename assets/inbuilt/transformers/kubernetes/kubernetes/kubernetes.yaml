@@ -9,3 +9,5 @@ spec:
       merge: true
   directoryDetect:
     levels: 0
+  config:
+    outputPath: "deploy/yamls"

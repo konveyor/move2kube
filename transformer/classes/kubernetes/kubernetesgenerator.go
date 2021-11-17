@@ -31,14 +31,26 @@ import (
 
 // Kubernetes implements Transformer interface
 type Kubernetes struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config           transformertypes.Transformer
+	Env              *environment.Environment
+	KubernetesConfig *KubernetesGenYamlConfig
+}
+
+// KubernetesGenYamlConfig stores the k8s related information
+type KubernetesGenYamlConfig struct {
+	OutputPath string `yaml:"outputPath"`
 }
 
 // Init Initializes the transformer
 func (t *Kubernetes) Init(tc transformertypes.Transformer, e *environment.Environment) error {
 	t.Config = tc
 	t.Env = e
+	t.KubernetesConfig = &KubernetesGenYamlConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, &t.KubernetesConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.KubernetesConfig, err)
+		return err
+	}
 	return nil
 }
 
@@ -73,7 +85,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 		} else {
 			ir = preprocessedIR
 		}
-		deployYamlsDir := filepath.Join(common.DeployDir, "yamls")
+		deployYamlsDir := t.KubernetesConfig.OutputPath
 		tempDest := filepath.Join(t.Env.TempPath, deployYamlsDir)
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
