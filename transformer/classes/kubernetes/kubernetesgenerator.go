@@ -96,7 +96,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 		} else {
 			ir = preprocessedIR
 		}
-		tempDest := filepath.Join(t.Env.TempPath, "k8s-yamls")
+		tempDest := filepath.Join(t.Env.TempPath, "k8s-yamls-"+common.GetRandomString(randUpLimit))
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 		apis := []apiresource.IAPIResource{new(apiresource.Deployment), new(apiresource.Storage), new(apiresource.Service), new(apiresource.ImageStream), new(apiresource.NetworkPolicy)}
