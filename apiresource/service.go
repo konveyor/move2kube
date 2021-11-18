@@ -393,6 +393,12 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 	}
 
 	ingressName := ir.Name
+	if len(ir.Services) == 1 {
+		// Loop to get the single service name
+		for k := range ir.Services {
+			ingressName = k
+		}
+	}
 	ingress := networking.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       common.IngressKind,
