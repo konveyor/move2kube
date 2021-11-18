@@ -17,6 +17,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/apiresource"
@@ -29,6 +30,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	outputPathTemplateName = "OutputPath"
+)
+
 // Kubernetes implements Transformer interface
 type Kubernetes struct {
 	Config           transformertypes.Transformer
@@ -39,6 +44,12 @@ type Kubernetes struct {
 // KubernetesGenYamlConfig stores the k8s related information
 type KubernetesGenYamlConfig struct {
 	OutputPath string `yaml:"outputPath"`
+}
+
+// KubernetesPathTemplateConfig implements Kubernetes template config interface
+type KubernetesPathTemplateConfig struct {
+	PathTemplateName string
+	PrjPath          string
 }
 
 // Init Initializes the transformer
@@ -94,20 +105,41 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err
 		}
+		prjPath := ""
+		if prjPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(prjPaths) > 0 {
+			prjPath = prjPaths[0]
+		}
+		outputPathKey := outputPathTemplateName + common.GetRandomString(randUpLimit)
+		outputPath := fmt.Sprintf("{{ .%s }}", outputPathKey)
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:           transformertypes.PathTemplatePathMappingType,
+			SrcPath:        t.KubernetesConfig.OutputPath,
+			TemplateConfig: KubernetesPathTemplateConfig{PathTemplateName: outputPathKey, PrjPath: prjPath},
+		})
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.DefaultPathMappingType,
 			SrcPath:  tempDest,
-			DestPath: t.KubernetesConfig.OutputPath,
+			DestPath: outputPath,
 		})
 		na := transformertypes.Artifact{
 			Name:     t.Config.Name,
 			Artifact: artifacts.KubernetesYamlsArtifactType,
 			Paths: map[transformertypes.PathType][]string{
-				artifacts.KubernetesYamlsPathType: {t.KubernetesConfig.OutputPath},
+				artifacts.KubernetesYamlsPathType: {outputPath},
 			},
 		}
+		// Append the project path only if there is one-one mapping between services and artifacts
+		if len(ir.Services) == 1 {
+			if prjPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(prjPaths) > 0 {
+				na.Paths[artifacts.ProjectPathPathType] = append(na.Paths[artifacts.ProjectPathPathType], prjPaths[0])
+				// Loop to get the single service name
+				for k := range ir.Services {
+					na.Name = k
+				}
+			}
+		}
 		createdArtifacts = append(createdArtifacts, na)
-		logrus.Debugf("Total transformed objects : %d", len(files))
+		logrus.Infof("Total transformed objects : %d", len(files))
 	}
 	return pathMappings, createdArtifacts, nil
 }

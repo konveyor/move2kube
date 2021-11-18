@@ -383,7 +383,6 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 			}
 			e.TempPathsMap[pathTplName] = pathStr
 		} else {
-			tempMappings = append(tempMappings, pm)
 			if filepath.IsAbs(pm.SrcPath) && common.IsParent(pm.SrcPath, e.GetEnvironmentOutput()) {
 				var err error
 				dupPathMappings[pmi].SrcPath, err = e.Env.Download(pm.SrcPath)
@@ -394,7 +393,7 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 			if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
 				dupPathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
 			}
-
+			tempMappings = append(tempMappings, dupPathMappings[pmi])
 		}
 	}
 	dupPathMappings = tempMappings
