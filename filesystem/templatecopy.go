@@ -88,7 +88,7 @@ func templateCopyAdditionCallBack(source, destination string, config interface{}
 func templateCopyDeletionCallBack(source, destination string, config interface{}) error {
 	si, err := os.Stat(source)
 	if err != nil {
-		logrus.Errorf("Unable to stat %s in templateCopyDeletionCallBack(): %s", source, err)
+		logrus.Errorf("Unable to stat source-path [%s] while detecting template copy: %s", source, err)
 		return err
 	}
 	os.RemoveAll(destination)

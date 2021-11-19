@@ -46,7 +46,7 @@ func newProcessor(options options) *processor {
 func (p *processor) process(source, destination string) error {
 	si, err := os.Stat(source)
 	if err != nil {
-		logrus.Errorf("Unable to stat source [%s] in filesystem.process(): %s", source, err)
+		logrus.Errorf("Unable to stat source-path [%s] while processing: %s", source, err)
 		return err
 	}
 	switch si.Mode() & os.ModeType {
