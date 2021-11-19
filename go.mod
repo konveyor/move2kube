@@ -19,6 +19,7 @@ require (
 	github.com/magiconair/properties v1.8.5
 	github.com/mikefarah/yq/v4 v4.13.3
 	github.com/mitchellh/mapstructure v1.4.1
+	github.com/cloudfoundry-community/go-cfclient v0.0.0-20211117203709-9b81b3940cc7
 	github.com/moby/buildkit v0.9.0
 	github.com/openshift/api v0.0.0-20210621070332-ea13be50ba2d
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
@@ -48,7 +49,9 @@ require (
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20210608160410-67692ebc98de // indirect
+	code.cloudfoundry.org/gofileutils v0.0.0-20170111115228-4d0c80011a0f // indirect
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/Microsoft/hcsshim v0.8.20 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20210707164159-52430bf6b52c // indirect
