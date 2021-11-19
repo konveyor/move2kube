@@ -32,12 +32,12 @@ type CfServices struct {
 	Spec             CfServicesSpec `yaml:"spec,omitempty"`
 }
 
-// CfInstanceAppsSpec stores the data
+// CfServicesSpec stores the data
 type CfServicesSpec struct {
 	CfServices []cfclient.Service `yaml:"services"`
 }
 
-// NewCfServicesApps creates a new instance of CfServices
+// NewCfServices creates a new instance of CfServices
 func NewCfServices() CfServices {
 	return CfServices{
 		TypeMeta: types.TypeMeta{
