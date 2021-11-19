@@ -66,18 +66,18 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 	}
 	services = map[string][]transformertypes.Artifact{}
 	// Load instance apps, if available
-	cfInstanceApps := map[string][]collecttypes.CfApplication{} //path
+	cfInstanceApps := map[string][]collecttypes.CfApp{} //path
 	for _, filePath := range filePaths {
-		fileCfInstanceApps := collecttypes.CfInstanceApps{}
+		fileCfInstanceApps := collecttypes.CfApps{}
 		if err := common.ReadMove2KubeYaml(filePath, &fileCfInstanceApps); err != nil {
 			logrus.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
 			continue
 		}
-		if fileCfInstanceApps.Kind != string(collecttypes.CfInstanceAppsMetadataKind) {
-			logrus.Debugf("%q is not a valid apps file. Expected kind: %s Actual Kind: %s", filePath, string(collecttypes.CfInstanceAppsMetadataKind), fileCfInstanceApps.Kind)
+		if fileCfInstanceApps.Kind != string(collecttypes.CfAppsMetadataKind) {
+			logrus.Debugf("%q is not a valid apps file. Expected kind: %s Actual Kind: %s", filePath, string(collecttypes.CfAppsMetadataKind), fileCfInstanceApps.Kind)
 			continue
 		}
-		cfInstanceApps[filePath] = append(cfInstanceApps[filePath], fileCfInstanceApps.Spec.CfApplications...)
+		cfInstanceApps[filePath] = append(cfInstanceApps[filePath], fileCfInstanceApps.Spec.CfApps...)
 	}
 	logrus.Debugf("Cf Instances %+v", cfInstanceApps)
 	for _, filePath := range filePaths {
@@ -112,10 +112,10 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 				},
 			}
 			_, appinstance := getCfInstanceApp(cfInstanceApps, applicationName)
-			if application.DockerImage != "" || appinstance.DockerImage != "" {
+			if application.DockerImage != "" || appinstance.Application.DockerImage != "" {
 				dockerImageName := application.DockerImage
 				if dockerImageName == "" {
-					dockerImageName = appinstance.DockerImage
+					dockerImageName = appinstance.Application.DockerImage
 				}
 				ctConfig := ct.Configs[artifacts.CloudFoundryConfigType].(artifacts.CloudFoundryConfig)
 				ctConfig.ImageName = dockerImageName
@@ -147,7 +147,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldAr
 
 		ir := irtypes.NewIR()
 		logrus.Debugf("Transforming %s", config.ServiceName)
-		var cfinstanceapp collecttypes.CfApplication
+		var cfinstanceapp collecttypes.CfApp
 		if runninginstancefile, ok := a.Paths[artifacts.CfRunningManifestPathType]; ok {
 			var err error
 			cfinstanceapp, err = getCfAppInstance(runninginstancefile[0], config.ServiceName)
@@ -178,22 +178,22 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			//TODO: Add support for services, health check, memory
 			if application.Instances.IsSet {
 				serviceConfig.Replicas = application.Instances.Value
-			} else if cfinstanceapp.Instances != 0 {
-				serviceConfig.Replicas = cfinstanceapp.Instances
+			} else if cfinstanceapp.Application.Instances != 0 {
+				serviceConfig.Replicas = cfinstanceapp.Application.Instances
 			}
-			for varname, value := range cfinstanceapp.Env {
-				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: value})
+			for varname, value := range cfinstanceapp.Application.Environment {
+				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)})
 			}
-			if len(cfinstanceapp.Ports) > 0 {
-				for _, port := range cfinstanceapp.Ports {
+			if len(cfinstanceapp.Application.Ports) > 0 {
+				for _, port := range cfinstanceapp.Application.Ports {
 					// Add the port to the k8s pod.
-					serviceContainer.Ports = append(serviceContainer.Ports, core.ContainerPort{ContainerPort: port})
+					serviceContainer.Ports = append(serviceContainer.Ports, core.ContainerPort{ContainerPort: int32(port)})
 					// Forward the port on the k8s service to the k8s pod.
-					podPort := networking.ServiceBackendPort{Number: port}
+					podPort := networking.ServiceBackendPort{Number: int32(port)}
 					servicePort := podPort
 					serviceConfig.AddPortForwarding(servicePort, podPort, "")
 				}
-				envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(cfinstanceapp.Ports[0])}
+				envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(cfinstanceapp.Application.Ports[0])}
 				serviceContainer.Env = append(serviceContainer.Env, envvar)
 			} else {
 				port := common.DefaultServicePort
@@ -286,26 +286,26 @@ func getMissingVariables(path string) ([]string, error) {
 	return trimmedvariables, nil
 }
 
-func getCfInstanceApp(fileApps map[string][]collecttypes.CfApplication, name string) (string, collecttypes.CfApplication) {
+func getCfInstanceApp(fileApps map[string][]collecttypes.CfApp, name string) (string, collecttypes.CfApp) {
 	for path, apps := range fileApps {
 		for _, app := range apps {
-			if app.Name == name {
+			if app.Application.Name == name {
 				return path, app
 			}
 		}
 	}
-	return "", collecttypes.CfApplication{}
+	return "", collecttypes.CfApp{}
 }
 
-func getCfAppInstance(path string, appname string) (collecttypes.CfApplication, error) {
-	cfinstanceappsfile := collecttypes.CfInstanceApps{}
+func getCfAppInstance(path string, appname string) (collecttypes.CfApp, error) {
+	cfinstanceappsfile := collecttypes.CfApps{}
 	if err := common.ReadMove2KubeYaml(path, &cfinstanceappsfile); err != nil {
-		return collecttypes.CfApplication{}, err
+		return collecttypes.CfApp{}, err
 	}
-	for _, app := range cfinstanceappsfile.Spec.CfApplications {
-		if app.Name == appname {
+	for _, app := range cfinstanceappsfile.Spec.CfApps {
+		if app.Application.Name == appname {
 			return app, nil
 		}
 	}
-	return collecttypes.CfApplication{}, fmt.Errorf("failed to find the app %s in the cf apps file at path %s", appname, path)
+	return collecttypes.CfApp{}, fmt.Errorf("failed to find the app %s in the cf apps file at path %s", appname, path)
 }

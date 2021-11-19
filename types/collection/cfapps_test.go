@@ -23,9 +23,9 @@ import (
 	"github.com/konveyor/move2kube/types/collection"
 )
 
-func TestNewCfInstanceApps(t *testing.T) {
-	cfapps := collection.NewCfInstanceApps()
-	if cfapps.Kind != string(collection.CfInstanceAppsMetadataKind) || cfapps.APIVersion != types.SchemeGroupVersion.String() {
-		t.Fatal("Failed to initialize CfInstanceApps properly.")
+func TestNewCfApps(t *testing.T) {
+	cfapps := collection.NewCfApps()
+	if cfapps.Kind != string(collection.CfAppsMetadataKind) || cfapps.APIVersion != types.SchemeGroupVersion.String() {
+		t.Fatal("Failed to initialize CfApps properly.")
 	}
 }

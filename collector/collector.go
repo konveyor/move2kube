@@ -24,6 +24,6 @@ type Collector interface {
 
 // GetCollectors returns different collectors
 func GetCollectors() ([]Collector, error) {
-	collectors := []Collector{new(ClusterCollector), new(ImagesCollector), new(CfAppsCollector)}
+	collectors := []Collector{new(ClusterCollector), new(ImagesCollector), new(CfAppsCollector), new(CfServicesCollector)}
 	return collectors, nil
 }

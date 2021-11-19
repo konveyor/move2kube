@@ -27,18 +27,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// CfAppsCollector collects cf runtime applications
-type CfAppsCollector struct {
+// CfServicesCollector collects cf runtime applications
+type CfServicesCollector struct {
 }
 
 // GetAnnotations returns annotations on which this collector should be invoked
-func (c *CfAppsCollector) GetAnnotations() []string {
+func (c *CfServicesCollector) GetAnnotations() []string {
 	annotations := []string{"cf", "cloudfoundry"}
 	return annotations
 }
 
-//Collect gets the cf app metadata by querying the cf app. Assumes that the authentication with cluster is already done.
-func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
+//Collect gets the cf service metadata by querying the cf app. Assumes that the authentication with cluster is already done.
+func (c *CfServicesCollector) Collect(inputPath string, outputPath string) error {
 	cli, err := cfclient.NewConfigFromCF()
 	if err != nil {
 		logrus.Errorf("Error while getting cf config : %s", err)
@@ -49,7 +49,7 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		logrus.Errorf("Unable to connect to cf client : %s", err)
 		return err
 	}
-	apps, err := client.ListApps()
+	services, err := client.ListServices()
 	if err != nil {
 		logrus.Errorf("Unable to get list of cf apps : %s", err)
 	}
@@ -58,23 +58,12 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 	if err != nil {
 		logrus.Errorf("Unable to create outputPath %s : %s", outputPath, err)
 	}
-	cfinstanceapps := collecttypes.NewCfApps()
-	for _, app := range apps {
-		cfapp := collecttypes.CfApp{
-			Application: app,
-		}
-		appEnv, err := client.GetAppEnv(app.Guid)
-		if err != nil {
-			logrus.Errorf("Unable to get app environment data : %s", err)
-		} else {
-			cfapp.Environment = appEnv
-		}
-		cfinstanceapps.Spec.CfApps = append(cfinstanceapps.Spec.CfApps, cfapp)
-	}
-	fileName := "cfapps" + cli.ClientID
+	cfservices := collecttypes.NewCfServices()
+	cfservices.Spec.CfServices = services
+	fileName := "cfservices" + cli.ClientID
 	if fileName != "" {
 		outputPath = filepath.Join(outputPath, common.NormalizeForFilename(fileName)+".yaml")
-		err = common.WriteYaml(outputPath, cfinstanceapps)
+		err = common.WriteYaml(outputPath, cfservices)
 		if err != nil {
 			logrus.Errorf("Unable to write collect output : %s", err)
 		}
