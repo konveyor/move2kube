@@ -27,9 +27,6 @@
 "inbuilt/transformers/containers/containerimagespushscript/templates/pushimages.bat" : 0755
 "inbuilt/transformers/containers/containerimagespushscript/templates/pushimages.sh" : 0755
 "inbuilt/transformers/dockerfile/common/Dockerfile.license" : 0644
-"inbuilt/transformers/dockerfile/django/django.yaml" : 0644
-"inbuilt/transformers/dockerfile/django/m2kdetect.sh" : 0755
-"inbuilt/transformers/dockerfile/django/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/dockerfiledetector/dockerfiledetector.yaml" : 0644
 "inbuilt/transformers/dockerfile/dockerfileparser/dockerfileparser.yaml" : 0644
 "inbuilt/transformers/dockerfile/dockerimagebuildscript/dockerfilebuildscriptgenerator.yaml" : 0644
@@ -50,7 +47,6 @@
 "inbuilt/transformers/dockerfile/nodejs/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/php/php.yaml" : 0644
 "inbuilt/transformers/dockerfile/php/templates/Dockerfile" : 0644
-"inbuilt/transformers/dockerfile/python/m2kdetect.sh" : 0755
 "inbuilt/transformers/dockerfile/python/python.yaml" : 0644
 "inbuilt/transformers/dockerfile/python/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfile/ruby/ruby.yaml" : 0644

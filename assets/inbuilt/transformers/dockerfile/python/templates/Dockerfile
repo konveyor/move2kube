@@ -13,8 +13,14 @@
 #   limitations under the License.
 
 FROM registry.access.redhat.com/ubi8/python-36
-WORKDIR /{{ .app_name }}
+WORKDIR /{{ .AppName }}
 COPY . .
-RUN pip install -r requirements.txt
-EXPOSE {{ .port }}
-CMD ["python", "{{ .main_script_rel_path }}"]
+{{- if .RequirementsTxt }}
+RUN pip install -r {{ .RequirementsTxt }}
+{{- end }}
+EXPOSE {{ .Port }}
+{{- if .IsDjangoProject }}
+CMD ["python", "{{ .MainScriptRelPath }}", "runserver", "0.0.0.0:{{ .Port }}"]
+{{- else}}
+CMD ["python", "{{ .MainScriptRelPath }}"]
+{{- end }}
