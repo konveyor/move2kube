@@ -79,11 +79,11 @@ func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, o
 		}
 		processedImages[sImageName.ImageName] = true
 		if paths, ok := a.Paths[artifacts.DockerfilePathType]; ok && len(paths) > 0 {
-			prjPath := filepath.Dir(paths[0])
-			if prjPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(prjPaths) > 0 {
-				prjPath = prjPaths[0]
+			servicePath := filepath.Dir(paths[0])
+			if servicePaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(servicePaths) > 0 {
+				servicePath = servicePaths[0]
 			}
-			na := t.getIRFromDockerfile(paths[0], sImageName.ImageName, sConfig.ServiceName, prjPath)
+			na := t.getIRFromDockerfile(paths[0], sImageName.ImageName, sConfig.ServiceName, servicePath)
 			if na != nil {
 				nartifacts = append(nartifacts, *na)
 			}
@@ -92,7 +92,7 @@ func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, o
 	return nil, nartifacts, nil
 }
 
-func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, serviceName, prjPath string) *transformertypes.Artifact {
+func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, serviceName, servicePath string) *transformertypes.Artifact {
 	df, err := t.getDockerFileAST(dockerfilepath)
 	if err != nil {
 		logrus.Errorf("Unable to parse dockerfile : %s", err)
@@ -153,7 +153,7 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 		Name:     t.Env.GetProjectName(),
 		Artifact: irtypes.IRArtifactType,
 		Paths: map[transformertypes.PathType][]string{
-			artifacts.ProjectPathPathType: {prjPath},
+			artifacts.ProjectPathPathType: {servicePath},
 		},
 		Configs: map[string]interface{}{
 			irtypes.IRConfigType: ir,
