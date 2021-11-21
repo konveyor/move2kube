@@ -22,10 +22,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -39,12 +39,19 @@ const (
 	pythonService       = "python"
 	djangoService       = "django"
 	requirementsTxtFile = "requirements.txt"
-	// MainPythonFilePathType points to the .py file path which contains main function
-	MainPythonFilePathType transformertypes.PathType = "MainPythonFileRelPath"
+	//DetectedPortsConfigType contains the detected ports
+	DetectedPortsConfigType transformertypes.ConfigType = "DetectedPortsConfigType"
+	//RequirementsTxtConfigType points to the requirements.txt file if it's present
+	RequirementsTxtConfigType transformertypes.ConfigType = "RequirementsTxtConfigType"
+	// DjangoProjectConfigType is set to true for Django projects
+	DjangoProjectConfigType transformertypes.ConfigType = "DjangoProjectConfigType"
+	// MainPythonFilesPathType points to the .py file path which contains main function
+	MainPythonFilesPathType transformertypes.PathType = "MainPythonFilesPathType"
 )
 
 var (
-	pythonMainRegex = regexp.MustCompile(`__main__`)
+	pythonMainRegex       = regexp.MustCompile(`__main__`)
+	djangoDependencyRegex = regexp.MustCompile(`django`)
 )
 
 // PythonDockerfileGenerator implements the Transformer interface
@@ -74,11 +81,12 @@ func (t *PythonDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 	return t.Config, t.Env
 }
 
-// findMainScript returns the path of .py file having the main function
-func findMainScript(pythonFilesPath []string) (string, error) {
+// findMainScripts returns the path of .py files having the main function
+func findMainScripts(pythonFilesPath []string) ([]string, error) {
 	if len(pythonFilesPath) == 0 {
-		return "", nil
+		return []string{}, nil
 	}
+	var pythonMainFiles []string
 	for _, pythonFilePath := range pythonFilesPath {
 		pythonFile, err := os.Open(pythonFilePath)
 		if err != nil {
@@ -88,11 +96,41 @@ func findMainScript(pythonFilesPath []string) (string, error) {
 		scanner.Split(bufio.ScanLines)
 		for scanner.Scan() {
 			if pythonMainRegex.MatchString(scanner.Text()) {
-				return pythonFilePath, nil
+				pythonMainFiles = append(pythonMainFiles, pythonFilePath)
 			}
 		}
 	}
-	return "", fmt.Errorf("could not find the main function in python files")
+	if len(pythonMainFiles) == 0 {
+		return []string{}, fmt.Errorf("could not find the main function in python files")
+	}
+	return pythonMainFiles, nil
+}
+
+// findDjangoDependency checks for django dependency in the requirements.txt file
+func findDjangoDependency(reqTxtFilePath string) bool {
+	reqTxtFile, err := os.Open(reqTxtFilePath)
+	if err != nil {
+		logrus.Debugf("Failed to open the file %s", reqTxtFilePath)
+	}
+	scanner := bufio.NewScanner(reqTxtFile)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		if djangoDependencyRegex.MatchString(scanner.Text()) {
+			return true
+		}
+	}
+	return false
+}
+
+// getMainPythonFileForService returns the main file used by a service
+func getMainPythonFileForService(mainPythonFilesPath []string, baseDir string, serviceName string) string {
+	var mainPythonFilesRelPath []string
+	for _, mainPythonFilePath := range mainPythonFilesPath {
+		if mainPythonFileRelPath, err := filepath.Rel(baseDir, mainPythonFilePath); err == nil {
+			mainPythonFilesRelPath = append(mainPythonFilesRelPath, mainPythonFileRelPath)
+		}
+	}
+	return qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigMainPythonFileForServiceKeySegment, fmt.Sprintf("Select the main file to be used for the service %s :", serviceName), []string{fmt.Sprintf("Selected main file will be used for the service %s", serviceName)}, mainPythonFilesRelPath[0], mainPythonFilesRelPath)
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -105,23 +143,37 @@ func (t *PythonDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 	if len(pythonFiles) == 0 {
 		return nil, nil
 	}
-	mainPythonFilePath, err := findMainScript(pythonFiles)
+	mainPythonFilesPath, err := findMainScripts(pythonFiles)
 	if err != nil {
 		return nil, err
 	}
-	// Search requirements.txt
-	if mainPythonFilePath != "" {
-		serviceName := strings.TrimSuffix(filepath.Base(mainPythonFilePath), pythonExt)
-		if serviceName == pythonMain {
-			serviceName = pythonService
-		} else if serviceName == pythonManage {
-			serviceName = djangoService
+	if len(mainPythonFilesPath) != 0 {
+		var serviceName, requirementsTxtPath string
+		var isDjangoProject bool
+		var detectedPorts []int32
+		detectedPorts = append(detectedPorts, 8080) //TODO: Write parser to parse and identify port
+		requirementsTxtFiles, err := common.GetFilesByName(dir, []string{requirementsTxtFile}, nil)
+		if err != nil {
+			logrus.Debugf("Cannot get the requirements.txt file: %s", err)
+		}
+		if len(requirementsTxtFiles) == 1 {
+			requirementsTxt, err := filepath.Rel(dir, requirementsTxtFiles[0])
+			if err != nil {
+				logrus.Errorf("Error in getting the relative path %s", err)
+			} else {
+				requirementsTxtPath = requirementsTxt
+				isDjangoProject = findDjangoDependency(requirementsTxtFiles[0])
+			}
 		}
 		services = map[string][]transformertypes.Artifact{
 			serviceName: {{
 				Paths: map[string][]string{
 					artifacts.ProjectPathPathType: {dir},
-					MainPythonFilePathType:        {mainPythonFilePath},
+					MainPythonFilesPathType:       mainPythonFilesPath,
+				}, Configs: map[string]interface{}{
+					DjangoProjectConfigType:   isDjangoProject,
+					RequirementsTxtConfigType: requirementsTxtPath,
+					DetectedPortsConfigType:   detectedPorts,
 				},
 			}},
 		}
@@ -151,31 +203,13 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
 		var pythonConfig PythonTemplateConfig
+		pythonConfig.MainScriptRelPath = getMainPythonFileForService(a.Paths[MainPythonFilesPathType], a.Paths[artifacts.ProjectPathPathType][0], a.Name)
 		pythonConfig.AppName = a.Name
-		if a.Name == djangoService {
-			pythonConfig.IsDjangoProject = true
+		if IsDjangoProject, ok := a.Configs[DjangoProjectConfigType]; ok {
+			pythonConfig.IsDjangoProject = IsDjangoProject.(bool)
 		}
-		mainPythonFileRelPath, err := filepath.Rel(a.Paths[artifacts.ProjectPathPathType][0], a.Paths[MainPythonFilePathType][0])
-		if err != nil {
-			logrus.Errorf("Error in getting the relative path %s", err)
-		} else {
-			pythonConfig.MainScriptRelPath = mainPythonFileRelPath
-		}
-		var detectedPorts []int32
-		detectedPorts = append(detectedPorts, 8080) //TODO: Write parser to parse and identify port
-		pythonConfig.Port = commonqa.GetPortForService(detectedPorts, a.Name)
-		requirementsTxtFiles, err := common.GetFilesByName(a.Paths[artifacts.ProjectPathPathType][0], []string{requirementsTxtFile}, nil)
-		if err != nil {
-			logrus.Debugf("Cannot get the requirements.txt file: %s", err)
-		}
-		if len(requirementsTxtFiles) == 1 {
-			requirementsTxt, err := filepath.Rel(a.Paths[artifacts.ProjectPathPathType][0], requirementsTxtFiles[0])
-			if err != nil {
-				logrus.Errorf("Error in getting the relative path %s", err)
-			} else {
-				pythonConfig.RequirementsTxt = requirementsTxt
-			}
-		}
+		pythonConfig.Port = commonqa.GetPortForService(a.Configs[DetectedPortsConfigType].([]int32), a.Name)
+		pythonConfig.RequirementsTxt = a.Configs[RequirementsTxtConfigType].(string)
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
@@ -189,7 +223,7 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			TemplateConfig: pythonConfig,
 		})
 		paths := a.Paths
-		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, "Dockerfile")}
+		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
 			Name:     sImageName.ImageName,
 			Artifact: artifacts.DockerfileArtifactType,

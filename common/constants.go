@@ -84,6 +84,12 @@ const (
 	ConfigPortsForServiceKeySegment = "ports"
 	//ConfigPortForServiceKeySegment represents the port used for service
 	ConfigPortForServiceKeySegment = "port"
+	//ConfigAdditionalPortsForServiceKeySegment represents the ports used for service
+	ConfigAdditionalPortsForServiceKeySegment = "additionalports"
+	//ConfigAdditionalPortForServiceKeySegment represents the port used for service
+	ConfigAdditionalPortForServiceKeySegment = "additionalport"
+	//ConfigMainPythonFileForServiceKeySegment represents the main file used for service
+	ConfigMainPythonFileForServiceKeySegment = "pythonmainfile"
 	//ConfigApacheConfFileForServiceKeySegment represents the conf file used for service
 	ConfigApacheConfFileForServiceKeySegment = "apacheconfig"
 	//ConfigSpawnContainersKey represents spwan containers option Key
