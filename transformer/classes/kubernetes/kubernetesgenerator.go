@@ -43,7 +43,8 @@ type Kubernetes struct {
 
 // KubernetesGenYamlConfig stores the k8s related information
 type KubernetesGenYamlConfig struct {
-	OutputPath string `yaml:"outputPath"`
+	IngressName string `yaml:"ingressName"`
+	OutputPath  string `yaml:"outputPath"`
 }
 
 // KubernetesPathTemplateConfig implements Kubernetes template config interface
@@ -89,14 +90,30 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
-		ir.Name = a.Name
+		templatizedKeyMap := map[string]string{common.ProjectNameTemplatizedStringKey: t.Env.ProjectName,
+			common.ArtifactNameTemplatizedStringKey: a.Name,
+		}
+		if len(ir.Services) == 1 {
+			for sn := range ir.Services {
+				templatizedKeyMap[common.ServiceNameTemplatizedStringKey] = sn
+			}
+		}
+		ir.Name, err = common.GetStringFromTemplate(t.KubernetesConfig.IngressName, templatizedKeyMap)
+		if err != nil {
+			logrus.Errorf("Error while computing Ingress Name : %s", err)
+			ir.Name = a.Name
+		}
+		if ir.Name == "" {
+			logrus.Errorf("Evaluating IngressName in Kubernetes transformer resulting in empty string. Defaulting to Artifact Name.")
+			ir.Name = a.Name
+		}
 		preprocessedIR, err := irpreprocessor.Preprocess(ir)
 		if err != nil {
 			logrus.Errorf("Unable to pre-preocess IR : %s", err)
 		} else {
 			ir = preprocessedIR
 		}
-		tempDest := filepath.Join(t.Env.TempPath, "k8s-yamls-"+common.GetRandomString(randUpLimit))
+		tempDest := filepath.Join(t.Env.TempPath, "k8s-yamls-"+common.GetRandomString())
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 		apis := []apiresource.IAPIResource{new(apiresource.Deployment), new(apiresource.Storage), new(apiresource.Service), new(apiresource.ImageStream), new(apiresource.NetworkPolicy)}
@@ -109,7 +126,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 		if serviceFsPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(serviceFsPaths) > 0 {
 			serviceFsPath = serviceFsPaths[0]
 		}
-		outputPathKey := outputPathTemplateName + common.GetRandomString(randUpLimit)
+		outputPathKey := outputPathTemplateName + common.GetRandomString()
 		outputPath := fmt.Sprintf("{{ .%s }}", outputPathKey)
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.PathTemplatePathMappingType,

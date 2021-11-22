@@ -34,9 +34,6 @@ const (
 	helmPathTemplateName       = "HelmPath"
 	kustomizePathTemplateName  = "KustomizePath"
 	ocTemplatePathTemplateName = "OCTemplatePath"
-	randUpLimit                = 10000000
-	projectNameKey             = "ProjectName"
-	artifactNameKey            = "ArtifactName"
 )
 
 // Parameterizer implements Transformer interface
@@ -106,8 +103,8 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 		destPath := filepath.Join(tempPath, baseDirName)
 
 		helmChartName, err := common.GetStringFromTemplate(t.PathConfig.HelmChartName,
-			map[string]string{projectNameKey: t.Env.ProjectName,
-				artifactNameKey: a.Name})
+			map[string]string{common.ProjectNameTemplatizedStringKey: t.Env.ProjectName,
+				common.ArtifactNameTemplatizedStringKey: a.Name})
 		if err != nil {
 			logrus.Errorf("Unable to evaluate helm chart name : %s", err)
 			continue
@@ -136,9 +133,9 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 
 		logrus.Debugf("Number of files written by parameterizer: %d", len(filesWritten))
 
-		helmKey := helmPathTemplateName + common.GetRandomString(randUpLimit)
-		kustomizeKey := kustomizePathTemplateName + common.GetRandomString(randUpLimit)
-		octKey := ocTemplatePathTemplateName + common.GetRandomString(randUpLimit)
+		helmKey := helmPathTemplateName + common.GetRandomString()
+		kustomizeKey := kustomizePathTemplateName + common.GetRandomString()
+		octKey := ocTemplatePathTemplateName + common.GetRandomString()
 
 		serviceFsPath := ""
 		if serviceFsPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(serviceFsPaths) > 0 {

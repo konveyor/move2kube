@@ -11,3 +11,4 @@ spec:
     levels: 0
   config:
     outputPath: "deploy/yamls"
+    ingressName: "{{ .ProjectName }}"

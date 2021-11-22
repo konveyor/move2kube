@@ -951,8 +951,8 @@ func IsParent(child, parent string) bool {
 }
 
 // GetRandomString generates a random string
-func GetRandomString(n int) string {
-	return fmt.Sprintf("%d", rand.Intn(n))
+func GetRandomString() string {
+	return fmt.Sprintf("%d", rand.Intn(10000000))
 }
 
 // SplitOnDotExpectInsideQuotes splits a string on dot.

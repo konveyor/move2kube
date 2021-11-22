@@ -157,6 +157,15 @@ const (
 	DefaultDockerfileName = "Dockerfile"
 )
 
+const (
+	// ProjectNameTemplatizedStringKey is the key for denoting project name in a templatized string
+	ProjectNameTemplatizedStringKey = "ProjectName"
+	// ArtifactNameTemplatizedStringKey is the key for denoting artifact name in a templatized string
+	ArtifactNameTemplatizedStringKey = "ArtifactName"
+	// ServiceNameTemplatizedStringKey is the key for denoting service name in a templatized string
+	ServiceNameTemplatizedStringKey = "ServiceName"
+)
+
 var (
 	// DefaultPVCSize stores the default PVC size
 	DefaultPVCSize, _ = resource.ParseQuantity("100Mi")
