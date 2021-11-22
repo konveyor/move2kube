@@ -23,23 +23,23 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	// DelimiterPairKey is key for the delimeter pair in add-on config
-	DelimiterPairKey = "delimiterPair"
-	// ConfigKey is key for the template config in add-on config
-	ConfigKey = "config"
-	// DefaultOpeningDelimiter is default opening delimiter used in golang templates
-	DefaultOpeningDelimiter = "{{"
-	// DefaultClosingDelimiter is default closing delimiter used in golang templates
-	DefaultClosingDelimiter = "}}"
 	// CustomOpeningDelimiter is custom opening delimiter used in golang templates
 	CustomOpeningDelimiter = "[["
 	// CustomClosingDelimiter is custom closing delimiter used in golang templates
 	CustomClosingDelimiter = "]]"
 )
+
+// AddOnConfig bundles the delimiter configuration with template configuration
+type AddOnConfig struct {
+	OpeningDelimiter string
+	ClosingDelimiter string
+	Config           interface{}
+}
 
 // TemplateCopy copies a directory to another and applies a template config on all files in the directory
 func TemplateCopy(source, destination string, config interface{}) error {
@@ -53,8 +53,9 @@ func TemplateCopy(source, destination string, config interface{}) error {
 	return newProcessor(options).process(source, destination)
 }
 
-func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string, addOnConfig interface{}) error {
-	config := addOnConfig.(map[string]interface{})[ConfigKey]
+func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string, addOnConfigAsIface interface{}) error {
+	addOnConfig := AddOnConfig{}
+	err := common.GetObjFromInterface(addOnConfigAsIface, &addOnConfig)
 	si, err := os.Stat(sourceFilePath)
 	if err != nil {
 		logrus.Errorf("Unable to stat file %s : %s", sourceFilePath, err)
@@ -89,8 +90,9 @@ func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string,
 		}
 	}
 	defer destinationWriter.Close()
-	delimiterPair := (addOnConfig.(map[string]interface{})[DelimiterPairKey]).([]string)
-	err = writeTemplateToFile(string(src), config, destinationFilePath, si.Mode(), delimiterPair)
+	err = writeTemplateToFile(string(src), addOnConfig.Config,
+		destinationFilePath, si.Mode(),
+		addOnConfig.OpeningDelimiter, addOnConfig.ClosingDelimiter)
 	if err != nil {
 		logrus.Errorf("Unable to copy templated file %s to %s : %s", sourceFilePath, destinationFilePath, err)
 		return err
@@ -123,9 +125,15 @@ func templateCopyDeletionCallBack(source, destination string, config interface{}
 }
 
 // writeTemplateToFile writes a templated string to a file
-func writeTemplateToFile(tpl string, config interface{}, writepath string, filemode os.FileMode, delimiterPair []string) error {
+func writeTemplateToFile(tpl string, config interface{}, writepath string,
+	filemode os.FileMode, openingDelimiter string, closingDelimiter string) error {
 	var tplbuffer bytes.Buffer
-	var packageTemplate = template.Must(template.New("").Delims(delimiterPair[0], delimiterPair[1]).Parse(tpl))
+	var packageTemplate *template.Template
+	if openingDelimiter != "" && closingDelimiter != "" {
+		packageTemplate = template.Must(template.New("").Delims(openingDelimiter, closingDelimiter).Parse(tpl))
+	} else {
+		packageTemplate = template.Must(template.New("").Parse(tpl))
+	}
 	err := packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
 		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)
