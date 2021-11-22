@@ -38,7 +38,6 @@ import (
 	"text/template"
 
 	"github.com/go-git/go-git/v5"
-	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/types"
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
@@ -778,37 +777,6 @@ func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath
 	return assetsPath, tempPath, nil
 }
 
-// CopyCustomizationsAssetsData copies an customizations to the assets directory
-func CopyCustomizationsAssetsData(customizationsPath string) (err error) {
-	if customizationsPath == "" {
-		return nil
-	}
-	// Return the absolute version of customizations directory.
-	customizationsPath, err = filepath.Abs(customizationsPath)
-	if err != nil {
-		logrus.Errorf("Unable to make the customizations directory path %q absolute. Error: %q", customizationsPath, err)
-		return err
-	}
-	assetsPath, err := filepath.Abs(AssetsPath)
-	if err != nil {
-		logrus.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
-		return err
-	}
-	customizationsAssetsPath := filepath.Join(assetsPath, "custom")
-
-	// Create the subdirectory and copy the assets into it.
-	if err = os.MkdirAll(customizationsAssetsPath, DefaultDirectoryPermission); err != nil {
-		logrus.Errorf("Unable to create the custom assets directory at path %q Error: %q", customizationsAssetsPath, err)
-		return err
-	}
-	if err = filesystem.Replicate(customizationsPath, customizationsAssetsPath); err != nil {
-		logrus.Errorf("Failed to copy the customizations %s over to the directory at path %s Error: %q", customizationsPath, customizationsAssetsPath, err)
-		return err
-	}
-
-	return nil
-}
-
 // CopyEmbedFSToDir converts a string into a directory
 func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[string]int) (err error) {
 	f, err := embedFS.Open(GetUnixPath(source))
@@ -871,37 +839,6 @@ func removeDollarPrefixFromHiddenDir(name string) string {
 		name = name[1:]
 	}
 	return name
-}
-
-// CheckAndCopyCustomizations checks if the customizations path is an existing directory and copies to assets
-func CheckAndCopyCustomizations(customizationsPath string) {
-	if customizationsPath == "" {
-		return
-	}
-	customizationsPath, err := filepath.Abs(customizationsPath)
-	if err != nil {
-		logrus.Fatalf("Unable to make the customizations directory path %q absolute. Error: %q", customizationsPath, err)
-	}
-	fi, err := os.Stat(customizationsPath)
-	if os.IsNotExist(err) {
-		logrus.Fatalf("The given customizations directory %s does not exist. Error: %q", customizationsPath, err)
-	}
-	if err != nil {
-		logrus.Fatalf("Error while accessing the given customizations directory %s Error: %q", customizationsPath, err)
-	}
-	if !fi.IsDir() {
-		logrus.Fatalf("The given customizations path %s is a file. Expected a directory. Exiting.", customizationsPath)
-	}
-	pwd, err := os.Getwd()
-	if err != nil {
-		logrus.Fatalf("Failed to get the current working directory. Error: %q", err)
-	}
-	if IsParent(pwd, customizationsPath) {
-		logrus.Fatalf("The given customizations directory %s is a parent of the current working directory.", customizationsPath)
-	}
-	if err = CopyCustomizationsAssetsData(customizationsPath); err != nil {
-		logrus.Fatalf("Unable to copy customizations data : %s", err)
-	}
 }
 
 // CopyFile copies a file from src to dst.

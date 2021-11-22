@@ -23,8 +23,23 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 )
+
+const (
+	// SpecialOpeningDelimiter is custom opening delimiter used in golang templates
+	SpecialOpeningDelimiter = "<~"
+	// SpecialClosingDelimiter is custom closing delimiter used in golang templates
+	SpecialClosingDelimiter = "~>"
+)
+
+// AddOnConfig bundles the delimiter configuration with template configuration
+type AddOnConfig struct {
+	OpeningDelimiter string
+	ClosingDelimiter string
+	Config           interface{}
+}
 
 // TemplateCopy copies a directory to another and applies a template config on all files in the directory
 func TemplateCopy(source, destination string, config interface{}) error {
@@ -38,7 +53,9 @@ func TemplateCopy(source, destination string, config interface{}) error {
 	return newProcessor(options).process(source, destination)
 }
 
-func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string, config interface{}) error {
+func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string, addOnConfigAsIface interface{}) error {
+	addOnConfig := AddOnConfig{}
+	err := common.GetObjFromInterface(addOnConfigAsIface, &addOnConfig)
 	si, err := os.Stat(sourceFilePath)
 	if err != nil {
 		logrus.Errorf("Unable to stat file %s : %s", sourceFilePath, err)
@@ -73,7 +90,9 @@ func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string,
 		}
 	}
 	defer destinationWriter.Close()
-	err = writeTemplateToFile(string(src), config, destinationFilePath, si.Mode())
+	err = writeTemplateToFile(string(src), addOnConfig.Config,
+		destinationFilePath, si.Mode(),
+		addOnConfig.OpeningDelimiter, addOnConfig.ClosingDelimiter)
 	if err != nil {
 		logrus.Errorf("Unable to copy templated file %s to %s : %s", sourceFilePath, destinationFilePath, err)
 		return err
@@ -106,9 +125,15 @@ func templateCopyDeletionCallBack(source, destination string, config interface{}
 }
 
 // writeTemplateToFile writes a templated string to a file
-func writeTemplateToFile(tpl string, config interface{}, writepath string, filemode os.FileMode) error {
+func writeTemplateToFile(tpl string, config interface{}, writepath string,
+	filemode os.FileMode, openingDelimiter string, closingDelimiter string) error {
 	var tplbuffer bytes.Buffer
-	var packageTemplate = template.Must(template.New("").Parse(tpl))
+	var packageTemplate *template.Template
+	if openingDelimiter != "" && closingDelimiter != "" {
+		packageTemplate = template.Must(template.New("").Delims(openingDelimiter, closingDelimiter).Parse(tpl))
+	} else {
+		packageTemplate = template.Must(template.New("").Parse(tpl))
+	}
 	err := packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
 		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)

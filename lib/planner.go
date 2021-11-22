@@ -36,7 +36,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	p.Spec.RootDir = inputPath
 	p.Spec.CustomizationsDir = customizationsPath
 	if customizationsPath != "" {
-		common.CheckAndCopyCustomizations(customizationsPath)
+		CheckAndCopyCustomizations(customizationsPath)
 	}
 	logrus.Infoln("Loading Configuration")
 	configurationLoaders := configuration.GetLoaders()

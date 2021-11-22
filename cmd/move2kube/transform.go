@@ -131,7 +131,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 
 		// Global settings
 		checkSourcePath(p.Spec.RootDir)
-		common.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)
+		lib.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)
 		flags.outpath = filepath.Join(flags.outpath, p.Name)
 		checkOutputPath(flags.outpath, flags.overwrite)
 		if p.Spec.RootDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.RootDir) || common.IsParent(p.Spec.RootDir, flags.outpath) {

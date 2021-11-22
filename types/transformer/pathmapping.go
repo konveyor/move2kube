@@ -30,6 +30,8 @@ const (
 	ModifiedSourcePathMappingType PathMappingType = "SourceDiff" // Source path becomes relative to source directory
 	// PathTemplatePathMappingType allows for path template registration
 	PathTemplatePathMappingType PathMappingType = "PathTemplate" // Path Template type
+	// SpecialTemplatePathMappingType allows copy of source to destination and applying of template with custom delimiter
+	SpecialTemplatePathMappingType PathMappingType = "SpecialTemplate" // Source path when relative, is relative to yaml file location
 )
 
 // PathMapping is the mapping between source and intermediate files and output files
