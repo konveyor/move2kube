@@ -28,10 +28,10 @@ import (
 )
 
 const (
-	// CustomOpeningDelimiter is custom opening delimiter used in golang templates
-	CustomOpeningDelimiter = "<~"
-	// CustomClosingDelimiter is custom closing delimiter used in golang templates
-	CustomClosingDelimiter = "~>"
+	// SpecialOpeningDelimiter is custom opening delimiter used in golang templates
+	SpecialOpeningDelimiter = "<~"
+	// SpecialClosingDelimiter is custom closing delimiter used in golang templates
+	SpecialClosingDelimiter = "~>"
 )
 
 // AddOnConfig bundles the delimiter configuration with template configuration
