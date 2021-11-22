@@ -83,8 +83,7 @@ func MinimumReplicaCount(defaultminreplicas string) string {
 
 // GetPortsForService returns ports used by a service
 func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
-	var selectedPortsStr, enteredPortsStr, detectedPortsStr []string
-	var enteredPorts string
+	var selectedPortsStr, detectedPortsStr []string
 	var exposePorts []int32
 	if len(detectedPorts) != 0 {
 		for _, detectedPort := range detectedPorts {
@@ -93,32 +92,13 @@ func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
 		allDetectedPortsStr := append(detectedPortsStr, qatypes.OtherAnswer)
 		selectedPortsStr = qaengine.FetchMultiSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortsForServiceKeySegment, fmt.Sprintf("Select ports to be exposed for the service %s :", serviceName), []string{"Select Other if you want to add more ports"}, detectedPortsStr, allDetectedPortsStr)
 	}
-	if len(selectedPortsStr) == 0 || common.IsStringPresent(selectedPortsStr, qatypes.OtherAnswer) {
-		enteredPorts = qaengine.FetchMultilineAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigAdditionalPortsForServiceKeySegment, "Enter the ports to be exposed", []string{"Enter each port in a newline"}, "")
-	}
-
-	enteredPortsStr = strings.Split(enteredPorts, "\n")
 	for _, portStr := range selectedPortsStr {
-		if portStr == qatypes.OtherAnswer {
-			continue
-		}
 		portStr = strings.TrimSpace(portStr)
 		if portStr != "" {
 			port, err := strconv.ParseInt(portStr, 10, 32)
 			if err != nil {
 				logrus.Errorf("Error while converting the selected port from string to int : %s", err)
 			} else {
-				exposePorts = append(exposePorts, int32(port))
-			}
-		}
-	}
-	for _, portStr := range enteredPortsStr {
-		portStr = strings.TrimSpace(portStr)
-		if portStr != "" {
-			port, err := strconv.ParseInt(portStr, 10, 32)
-			if err != nil {
-				logrus.Errorf("Error while converting the entered port from string to int : %s", err)
-			} else if !common.IsInt32Present(exposePorts, int32(port)) {
 				exposePorts = append(exposePorts, int32(port))
 			}
 		}
@@ -138,7 +118,7 @@ func GetPortForService(detectedPorts []int32, serviceName string) int32 {
 		allDetectedPortsStr := append(detectedPortsStr, qatypes.OtherAnswer)
 		exposePortStr = qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortForServiceKeySegment, fmt.Sprintf("Select port to be exposed for the service %s :", serviceName), []string{fmt.Sprintf("Select Other if you want to expose the service %s to some other port", serviceName)}, allDetectedPortsStr[0], allDetectedPortsStr)
 	} else {
-		exposePortStr = qaengine.FetchStringAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigAdditionalPortForServiceKeySegment, fmt.Sprintf("Enter the port to be exposed for the service %s: ", serviceName), []string{fmt.Sprintf("The service %s will be exposed to the specified port", serviceName)}, "8080")
+		exposePortStr = qaengine.FetchStringAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortForServiceKeySegment, fmt.Sprintf("Enter the port to be exposed for the service %s: ", serviceName), []string{fmt.Sprintf("The service %s will be exposed to the specified port", serviceName)}, "8080")
 	}
 	exposePortStr = strings.TrimSpace(exposePortStr)
 	if exposePortStr != "" {

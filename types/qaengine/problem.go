@@ -37,8 +37,8 @@ const (
 	MultiSelectSolutionFormType SolutionFormType = "MultiSelect"
 	// InputSolutionFormType allows single line user input
 	InputSolutionFormType SolutionFormType = "Input"
-	// MultilineSolutionFormType allows multiple user input
-	MultilineSolutionFormType SolutionFormType = "MultiLine"
+	// MultilineInputSolutionFormType allows multiple user input
+	MultilineInputSolutionFormType SolutionFormType = "MultiLineInput"
 	// PasswordSolutionFormType allows password entry
 	PasswordSolutionFormType SolutionFormType = "Password"
 	// ConfirmSolutionFormType allows yes/no answers
@@ -84,7 +84,7 @@ func InterfaceToArray(ansI interface{}, problemType SolutionFormType) (ans []str
 		return nil, fmt.Errorf("the answer is nil")
 	}
 	switch problemType {
-	case InputSolutionFormType, PasswordSolutionFormType, MultilineSolutionFormType, SelectSolutionFormType:
+	case InputSolutionFormType, PasswordSolutionFormType, MultilineInputSolutionFormType, SelectSolutionFormType:
 		ans, ok := ansI.(string)
 		if !ok {
 			return nil, fmt.Errorf("expected answer to be string. Actual value %+v is of type %T", ansI, ansI)
@@ -113,7 +113,7 @@ func ArrayToInterface(ans []string, problemType SolutionFormType) (ansI interfac
 		return nil, nil
 	}
 	switch problemType {
-	case InputSolutionFormType, PasswordSolutionFormType, MultilineSolutionFormType, SelectSolutionFormType:
+	case InputSolutionFormType, PasswordSolutionFormType, MultilineInputSolutionFormType, SelectSolutionFormType:
 		if len(ans) == 0 {
 			return "", nil
 		}
@@ -136,7 +136,7 @@ func (p *Problem) SetAnswer(ansI interface{}) error {
 		return fmt.Errorf("the answer is nil")
 	}
 	switch p.Type {
-	case InputSolutionFormType, PasswordSolutionFormType, MultilineSolutionFormType, SelectSolutionFormType:
+	case InputSolutionFormType, PasswordSolutionFormType, MultilineInputSolutionFormType, SelectSolutionFormType:
 		ans, ok := ansI.(string)
 		if !ok {
 			return fmt.Errorf("expected answer to be string. Actual value %+v is of type %T", ansI, ansI)
@@ -255,7 +255,7 @@ func NewInputProblem(probid, desc string, hints []string, def string) (Problem, 
 func NewMultilineInputProblem(probid, desc string, hints []string, def string) (Problem, error) {
 	return Problem{
 		ID:      probid,
-		Type:    MultilineSolutionFormType,
+		Type:    MultilineInputSolutionFormType,
 		Desc:    desc,
 		Hints:   hints,
 		Options: nil,

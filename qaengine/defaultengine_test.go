@@ -114,7 +114,7 @@ func TestDefaultEngine(t *testing.T) {
 		line2
 		line3`
 
-		answer := FetchMultilineAnswer(key, desc, context, def)
+		answer := FetchMultilineInputAnswer(key, desc, context, def)
 		if answer != def {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, def)

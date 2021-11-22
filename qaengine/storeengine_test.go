@@ -89,7 +89,7 @@ line2
 line3 
 `
 
-		answer := FetchMultilineAnswer(key, desc, context, "")
+		answer := FetchMultilineInputAnswer(key, desc, context, "")
 		if answer != cachedAnswer {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, cachedAnswer)

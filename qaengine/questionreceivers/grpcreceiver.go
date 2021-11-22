@@ -14,14 +14,15 @@
  *  limitations under the License.
  */
 
-package qaengine
+package questionreceivers
 
 import (
 	"context"
 	"fmt"
 	"net"
 
-	"github.com/konveyor/move2kube/types/qaengine"
+	"github.com/konveyor/move2kube/qaengine"
+	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	qagrpc "github.com/konveyor/move2kube/types/qaengine/qagrpc"
 	"github.com/phayes/freeport"
 	"github.com/sirupsen/logrus"
@@ -30,24 +31,28 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+var (
+	grpcReceiver net.Addr
+)
+
 type server struct {
 	qagrpc.UnimplementedQAEngineServer
 }
 
 func (s *server) FetchAnswer(ctx context.Context, prob *qagrpc.Problem) (a *qagrpc.Answer, err error) {
 	logrus.Debugf("Received Question over grpc : %+v", prob)
-	qaprob, err := qaengine.NewProblem(prob)
+	qaprob, err := qatypes.NewProblem(prob)
 	if err != nil {
 		logrus.Errorf("Unable to read problem : %s", err)
 		return a, err
 	}
-	qaans, err := FetchAnswer(qaprob)
+	qaans, err := qaengine.FetchAnswer(qaprob)
 	if err != nil {
 		logrus.Errorf("Unable to get answer : %s", err)
 		return a, err
 	}
 	a = &qagrpc.Answer{}
-	a.Answer, err = qaengine.InterfaceToArray(qaans.Answer, qaans.Type)
+	a.Answer, err = qatypes.InterfaceToArray(qaans.Answer, qaans.Type)
 	if err != nil {
 		logrus.Errorf("Unable to interpret answer : %s", err)
 	}
