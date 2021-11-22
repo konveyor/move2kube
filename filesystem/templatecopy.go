@@ -61,6 +61,11 @@ func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string,
 		logrus.Errorf("Unable to stat file %s : %s", sourceFilePath, err)
 		return err
 	}
+	destinationFilePath, err = common.GetStringFromTemplate(destinationFilePath, addOnConfig.Config)
+	if err != nil {
+		logrus.Errorf("Unable to fill the template of file path %s : %s", destinationFilePath, err)
+		return err
+	}
 	di, err := os.Stat(destinationFilePath)
 	if err == nil {
 		if err == nil && !(si.Mode().IsRegular() != di.Mode().IsRegular() || si.Size() != di.Size() || si.ModTime() != di.ModTime()) {
@@ -104,10 +109,17 @@ func templateCopyAdditionCallBack(source, destination string, config interface{}
 	return nil
 }
 
-func templateCopyDeletionCallBack(source, destination string, config interface{}) error {
+func templateCopyDeletionCallBack(source, destination string, addOnConfigAsIface interface{}) error {
+	addOnConfig := AddOnConfig{}
+	err := common.GetObjFromInterface(addOnConfigAsIface, &addOnConfig)
 	si, err := os.Stat(source)
 	if err != nil {
 		logrus.Errorf("Unable to stat source-path [%s] while detecting template copy: %s", source, err)
+		return err
+	}
+	destination, err = common.GetStringFromTemplate(destination, addOnConfig.Config)
+	if err != nil {
+		logrus.Errorf("Unable to fill the template of file path %s : %s", destination, err)
 		return err
 	}
 	os.RemoveAll(destination)
