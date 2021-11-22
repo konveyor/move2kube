@@ -390,7 +390,9 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 					logrus.Errorf("Error while processing path mappings : %s", err)
 				}
 			}
-			if strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) && (pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
+			if (strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) ||
+				strings.EqualFold(pm.Type, transformertypes.CustomTemplatePathMappingType)) &&
+				(pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
 				dupPathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
 			}
 			tempMappings = append(tempMappings, dupPathMappings[pmi])

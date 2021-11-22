@@ -26,6 +26,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	DelimiterPairKey        = "delimiterPair"
+	ConfigKey               = "config"
+	DefaultOpeningDelimiter = "{{"
+	DefaultClosingDelimiter = "}}"
+	CustomOpeningDelimiter  = "[["
+	CustomClosingDelimiter  = "]]"
+)
+
 // TemplateCopy copies a directory to another and applies a template config on all files in the directory
 func TemplateCopy(source, destination string, config interface{}) error {
 	options := options{
@@ -38,7 +47,8 @@ func TemplateCopy(source, destination string, config interface{}) error {
 	return newProcessor(options).process(source, destination)
 }
 
-func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string, config interface{}) error {
+func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string, addOnConfig interface{}) error {
+	config := addOnConfig.(map[string]interface{})[ConfigKey]
 	si, err := os.Stat(sourceFilePath)
 	if err != nil {
 		logrus.Errorf("Unable to stat file %s : %s", sourceFilePath, err)
@@ -73,7 +83,8 @@ func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string,
 		}
 	}
 	defer destinationWriter.Close()
-	err = writeTemplateToFile(string(src), config, destinationFilePath, si.Mode())
+	delimiterPair := (addOnConfig.(map[string]interface{})[DelimiterPairKey]).([]string)
+	err = writeTemplateToFile(string(src), config, destinationFilePath, si.Mode(), delimiterPair)
 	if err != nil {
 		logrus.Errorf("Unable to copy templated file %s to %s : %s", sourceFilePath, destinationFilePath, err)
 		return err
@@ -106,9 +117,9 @@ func templateCopyDeletionCallBack(source, destination string, config interface{}
 }
 
 // writeTemplateToFile writes a templated string to a file
-func writeTemplateToFile(tpl string, config interface{}, writepath string, filemode os.FileMode) error {
+func writeTemplateToFile(tpl string, config interface{}, writepath string, filemode os.FileMode, delimiterPair []string) error {
 	var tplbuffer bytes.Buffer
-	var packageTemplate = template.Must(template.New("").Parse(tpl))
+	var packageTemplate = template.Must(template.New("").Delims(delimiterPair[0], delimiterPair[1]).Parse(tpl))
 	err := packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
 		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)
