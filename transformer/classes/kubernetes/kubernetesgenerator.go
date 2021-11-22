@@ -49,7 +49,7 @@ type KubernetesGenYamlConfig struct {
 // KubernetesPathTemplateConfig implements Kubernetes template config interface
 type KubernetesPathTemplateConfig struct {
 	PathTemplateName string
-	PrjPath          string
+	ServiceFsPath    string
 }
 
 // Init Initializes the transformer
@@ -105,16 +105,16 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err
 		}
-		prjPath := ""
-		if prjPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(prjPaths) > 0 {
-			prjPath = prjPaths[0]
+		serviceFsPath := ""
+		if serviceFsPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(serviceFsPaths) > 0 {
+			serviceFsPath = serviceFsPaths[0]
 		}
 		outputPathKey := outputPathTemplateName + common.GetRandomString(randUpLimit)
 		outputPath := fmt.Sprintf("{{ .%s }}", outputPathKey)
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.PathTemplatePathMappingType,
 			SrcPath:        t.KubernetesConfig.OutputPath,
-			TemplateConfig: KubernetesPathTemplateConfig{PathTemplateName: outputPathKey, PrjPath: prjPath},
+			TemplateConfig: KubernetesPathTemplateConfig{PathTemplateName: outputPathKey, ServiceFsPath: serviceFsPath},
 		})
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.DefaultPathMappingType,
@@ -130,8 +130,8 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, oldArti
 		}
 		// Append the project path only if there is one-one mapping between services and artifacts
 		if len(ir.Services) == 1 {
-			if prjPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(prjPaths) > 0 {
-				na.Paths[artifacts.ProjectPathPathType] = append(na.Paths[artifacts.ProjectPathPathType], prjPaths[0])
+			if serviceFsPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(serviceFsPaths) > 0 {
+				na.Paths[artifacts.ProjectPathPathType] = append(na.Paths[artifacts.ProjectPathPathType], serviceFsPaths[0])
 				// Loop to get the single service name
 				for k := range ir.Services {
 					na.Name = k

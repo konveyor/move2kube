@@ -35,7 +35,7 @@ const (
 	kustomizePathTemplateName  = "KustomizePath"
 	ocTemplatePathTemplateName = "OCTemplatePath"
 	randUpLimit                = 10000000
-	prjNameKey                 = "PrjName"
+	projectNameKey             = "ProjectName"
 	artifactNameKey            = "ArtifactName"
 )
 
@@ -57,7 +57,7 @@ type ParameterizerPathConfig struct {
 // ParameterizerPathTemplateConfig implements Parameterizer template config interface
 type ParameterizerPathTemplateConfig struct {
 	YamlsPath        string
-	PrjPath          string
+	ServiceFsPath    string
 	PathTemplateName string
 }
 
@@ -106,7 +106,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 		destPath := filepath.Join(tempPath, baseDirName)
 
 		helmChartName, err := common.GetStringFromTemplate(t.PathConfig.HelmChartName,
-			map[string]string{prjNameKey: t.Env.ProjectName,
+			map[string]string{projectNameKey: t.Env.ProjectName,
 				artifactNameKey: a.Name})
 		if err != nil {
 			logrus.Errorf("Unable to evaluate helm chart name : %s", err)
@@ -140,16 +140,16 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 		kustomizeKey := kustomizePathTemplateName + common.GetRandomString(randUpLimit)
 		octKey := ocTemplatePathTemplateName + common.GetRandomString(randUpLimit)
 
-		prjPath := ""
-		if prjPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(prjPaths) > 0 {
-			prjPath = prjPaths[0]
+		serviceFsPath := ""
+		if serviceFsPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(serviceFsPaths) > 0 {
+			serviceFsPath = serviceFsPaths[0]
 		}
 
 		if len(t.PathConfig.HelmPath) != 0 {
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:           transformertypes.PathTemplatePathMappingType,
 				SrcPath:        t.PathConfig.HelmPath,
-				TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: helmKey, PrjPath: prjPath},
+				TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: helmKey, ServiceFsPath: serviceFsPath},
 			})
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:     transformertypes.DefaultPathMappingType,
@@ -161,7 +161,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:           transformertypes.PathTemplatePathMappingType,
 				SrcPath:        t.PathConfig.KustomizePath,
-				TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: kustomizeKey, PrjPath: prjPath},
+				TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: kustomizeKey, ServiceFsPath: serviceFsPath},
 			})
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:     transformertypes.DefaultPathMappingType,
@@ -173,7 +173,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:           transformertypes.PathTemplatePathMappingType,
 				SrcPath:        t.PathConfig.OCTemplatePath,
-				TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: octKey, PrjPath: prjPath},
+				TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: octKey, ServiceFsPath: serviceFsPath},
 			})
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:     transformertypes.DefaultPathMappingType,
