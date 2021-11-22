@@ -391,7 +391,7 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 				}
 			}
 			if (strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) ||
-				strings.EqualFold(pm.Type, transformertypes.CustomTemplatePathMappingType)) &&
+				strings.EqualFold(pm.Type, transformertypes.SpecialTemplatePathMappingType)) &&
 				(pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
 				dupPathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
 			}

@@ -68,7 +68,7 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 				filesystem.AddOnConfig{Config: pm.TemplateConfig}); err != nil {
 				logrus.Errorf("Error while copying sourcepath for %+v . Error: %q", pm, err)
 			}
-		case strings.ToLower(transformertypes.CustomTemplatePathMappingType):
+		case strings.ToLower(transformertypes.SpecialTemplatePathMappingType):
 			if err := filesystem.TemplateCopy(pm.SrcPath, destPath,
 				filesystem.AddOnConfig{OpeningDelimiter: filesystem.CustomOpeningDelimiter,
 					ClosingDelimiter: filesystem.CustomClosingDelimiter,
