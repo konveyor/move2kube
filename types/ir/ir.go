@@ -292,14 +292,22 @@ func NewIR() IR {
 
 // Merge merges IRs
 func (ir *IR) Merge(newirC interface{}) bool {
-	newir := newirC.(*IR)
-	for _, sc := range newir.Services {
+	newirptr, ok := newirC.(*IR)
+	if !ok {
+		newir, ok := newirC.(IR)
+		if !ok {
+			logrus.Error("Unable to cast to IR for merge")
+			return false
+		}
+		newirptr = &newir
+	}
+	for _, sc := range newirptr.Services {
 		ir.addService(sc)
 	}
-	for in, newcontainer := range newir.ContainerImages {
+	for in, newcontainer := range newirptr.ContainerImages {
 		ir.AddContainer(in, newcontainer)
 	}
-	for _, newst := range newir.Storages {
+	for _, newst := range newirptr.Storages {
 		ir.AddStorage(newst)
 	}
 	return true
