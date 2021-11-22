@@ -27,12 +27,18 @@ import (
 )
 
 const (
-	DelimiterPairKey        = "delimiterPair"
-	ConfigKey               = "config"
+	// DelimiterPairKey is key for the delimeter pair in add-on config
+	DelimiterPairKey = "delimiterPair"
+	// ConfigKey is key for the template config in add-on config
+	ConfigKey = "config"
+	// DefaultOpeningDelimiter is default opening delimiter used in golang templates
 	DefaultOpeningDelimiter = "{{"
+	// DefaultClosingDelimiter is default closing delimiter used in golang templates
 	DefaultClosingDelimiter = "}}"
-	CustomOpeningDelimiter  = "[["
-	CustomClosingDelimiter  = "]]"
+	// CustomOpeningDelimiter is custom opening delimiter used in golang templates
+	CustomOpeningDelimiter = "[["
+	// CustomClosingDelimiter is custom closing delimiter used in golang templates
+	CustomClosingDelimiter = "]]"
 )
 
 // TemplateCopy copies a directory to another and applies a template config on all files in the directory
