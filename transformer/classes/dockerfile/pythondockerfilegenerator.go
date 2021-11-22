@@ -135,7 +135,8 @@ func getMainPythonFileForService(mainPythonFilesPath []string, baseDir string, s
 
 // DirectoryDetect runs detect in each sub directory
 func (t *PythonDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	pythonFiles, err := common.GetFilesByExt(dir, []string{pythonExt})
+
+	pythonFiles, err := common.GetFilesByExtInCurrDir(dir, []string{pythonExt})
 	if err != nil {
 		logrus.Errorf("Error while finding python files %s", err)
 		return nil, nil

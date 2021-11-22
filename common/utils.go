@@ -90,6 +90,39 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 	return files, nil
 }
 
+// GetFilesByExtInCurrDir returns the files present in current directory which have one of the specified extensions
+func GetFilesByExtInCurrDir(inputPath string, exts []string) ([]string, error) {
+	var files []string
+	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
+		logrus.Warnf("Error in walking through files due to : %q", err)
+		return nil, err
+	} else if !info.IsDir() {
+		logrus.Warnf("The path %q is not a directory.", inputPath)
+	}
+	dirhandle, err := os.Open(inputPath)
+	if err != nil {
+		logrus.Warnf("Error in accessing %s due to %s", inputPath, err)
+		return []string{}, err
+	}
+	defer dirhandle.Close()
+	currDirFiles, err := dirhandle.Readdir(-1)
+	if err != nil {
+		logrus.Warnf("Error while reading the directory: %s", err)
+		return []string{}, err
+	}
+	for _, currDirFile := range currDirFiles {
+		if currDirFile.Mode().IsRegular() {
+			fext := filepath.Ext(currDirFile.Name())
+			for _, ext := range exts {
+				if fext == ext {
+					files = append(files, filepath.Join(inputPath, currDirFile.Name()))
+				}
+			}
+		}
+	}
+	return files, nil
+}
+
 //GetFilesByName returns files by name
 func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]string, error) {
 	var files []string
