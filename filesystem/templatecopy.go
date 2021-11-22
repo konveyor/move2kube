@@ -29,9 +29,9 @@ import (
 
 const (
 	// CustomOpeningDelimiter is custom opening delimiter used in golang templates
-	CustomOpeningDelimiter = "[["
+	CustomOpeningDelimiter = "<~"
 	// CustomClosingDelimiter is custom closing delimiter used in golang templates
-	CustomClosingDelimiter = "]]"
+	CustomClosingDelimiter = "~>"
 )
 
 // AddOnConfig bundles the delimiter configuration with template configuration
