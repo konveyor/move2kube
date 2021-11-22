@@ -22,8 +22,11 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/deepcopy"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/phayes/freeport"
 	"github.com/sirupsen/logrus"
@@ -102,6 +105,39 @@ func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, err
 		prob = <-h.answerChan
 		if prob.Answer == nil {
 			return prob, fmt.Errorf("failed to resolve the QA problem: %+v", prob)
+		} else if prob.Type == qatypes.MultiSelectSolutionFormType {
+			otherAnsPresent := false
+			ans, err := common.ConvertInterfaceToSliceOfStrings(prob.Answer)
+			if err != nil {
+				logrus.Errorf("Unable to process answer : %s", err)
+				return prob, err
+			}
+			newAns := []string{}
+			for _, a := range ans {
+				if a == qatypes.OtherAnswer {
+					otherAnsPresent = true
+				} else {
+					newAns = append(newAns, a)
+				}
+			}
+			if otherAnsPresent {
+				multilineAns := ""
+				multilineProb := deepcopy.DeepCopy(prob).(qatypes.Problem)
+				multilineProb.Type = qatypes.MultilineInputSolutionFormType
+				multilineProb.Default = ""
+				h.problemChan <- multilineProb
+				multilineProb = <-h.answerChan
+				multilineAns = multilineProb.Answer.(string)
+				for _, lineAns := range strings.Split(multilineAns, "\n") {
+					lineAns = strings.TrimSpace(lineAns)
+					if lineAns != "" {
+						if !common.IsStringPresent(newAns, lineAns) {
+							newAns = append(newAns, lineAns)
+						}
+					}
+				}
+			}
+			prob.Answer = newAns
 		}
 	}
 	return prob, nil

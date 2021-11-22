@@ -18,7 +18,6 @@ package qaengine
 
 import (
 	"fmt"
-	"net"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -34,9 +33,8 @@ type Engine interface {
 }
 
 var (
-	engines      []Engine
-	writeStores  []qatypes.Store
-	grpcReceiver net.Addr
+	engines     []Engine
+	writeStores []qatypes.Store
 )
 
 // StartEngine starts the QA Engines
@@ -270,8 +268,8 @@ func FetchPasswordAnswer(probid, desc string, context []string) string {
 	return answer
 }
 
-// FetchMultilineAnswer asks a multi-line type question and gets a string as the answer
-func FetchMultilineAnswer(probid, desc string, context []string, def string) string {
+// FetchMultilineInputAnswer asks a multi-line type question and gets a string as the answer
+func FetchMultilineInputAnswer(probid, desc string, context []string, def string) string {
 	problem, err := qatypes.NewMultilineInputProblem(probid, desc, context, def)
 	if err != nil {
 		logrus.Fatalf("Unable to create problem. Error: %q", err)
@@ -348,7 +346,7 @@ func ValidateProblem(prob qatypes.Problem) error {
 				return fmt.Errorf("expected the default to be a bool for the QA confirm problem: %+v", prob)
 			}
 		}
-	case qatypes.InputSolutionFormType, qatypes.MultilineSolutionFormType, qatypes.PasswordSolutionFormType:
+	case qatypes.InputSolutionFormType, qatypes.MultilineInputSolutionFormType, qatypes.PasswordSolutionFormType:
 		if len(prob.Options) > 0 {
 			logrus.Warnf("options are not supported for the QA input/multiline/password question types: %+v", prob)
 		}

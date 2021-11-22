@@ -27,7 +27,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/qaengine/questionreceivers"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -61,7 +61,7 @@ func (t *Executable) Init(tc transformertypes.Transformer, env *environment.Envi
 	}
 	var qaRPCReceiverAddr net.Addr = nil
 	if t.ExecConfig.EnableQA {
-		qaRPCReceiverAddr, err = qaengine.StartGRPCReceiver()
+		qaRPCReceiverAddr, err = questionreceivers.StartGRPCReceiver()
 		if err != nil {
 			logrus.Errorf("Unable to start QA RPC Receiver engine : %s", err)
 			logrus.Infof("Starting transformer that requires QA without QA.")

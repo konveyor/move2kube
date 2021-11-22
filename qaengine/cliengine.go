@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/konveyor/move2kube/common"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/sirupsen/logrus"
 )
@@ -59,8 +60,8 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 		return c.fetchConfirmAnswer(prob)
 	case qatypes.InputSolutionFormType:
 		return c.fetchInputAnswer(prob)
-	case qatypes.MultilineSolutionFormType:
-		return c.fetchMultilineAnswer(prob)
+	case qatypes.MultilineInputSolutionFormType:
+		return c.fetchMultilineInputAnswer(prob)
 	case qatypes.PasswordSolutionFormType:
 		return c.fetchPasswordAnswer(prob)
 	}
@@ -98,7 +99,34 @@ func (*CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (qatypes.Problem,
 	if err := survey.AskOne(prompt, &ans, survey.WithIcons(tickIcon)); err != nil {
 		logrus.Fatalf("Error while asking a question : %s", err)
 	}
-	prob.Answer = ans
+	otherAnsPresent := false
+	newAns := []string{}
+	for _, a := range ans {
+		if a == qatypes.OtherAnswer {
+			otherAnsPresent = true
+		} else {
+			newAns = append(newAns, a)
+		}
+	}
+	if otherAnsPresent {
+		multilineAns := ""
+		prompt := &survey.Multiline{
+			Message: getQAMessage(prob),
+			Default: "",
+		}
+		if err := survey.AskOne(prompt, &multilineAns); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
+		for _, lineAns := range strings.Split(multilineAns, "\n") {
+			lineAns = strings.TrimSpace(lineAns)
+			if lineAns != "" {
+				if !common.IsStringPresent(newAns, lineAns) {
+					newAns = append(newAns, lineAns)
+				}
+			}
+		}
+	}
+	prob.Answer = newAns
 	return prob, nil
 }
 
@@ -134,7 +162,7 @@ func (*CliEngine) fetchInputAnswer(prob qatypes.Problem) (qatypes.Problem, error
 	return prob, nil
 }
 
-func (*CliEngine) fetchMultilineAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
+func (*CliEngine) fetchMultilineInputAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	var ans, def string
 	if prob.Default != nil {
 		def = prob.Default.(string)
