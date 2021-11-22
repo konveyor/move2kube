@@ -26,6 +26,8 @@ const (
 	TemplatePathMappingType PathMappingType = "Template" // Source path when relative, is relative to yaml file location
 	// SourcePathMappingType allows for copying of source directory to another directory
 	SourcePathMappingType PathMappingType = "Source" // Source path becomes relative to source directory
+	// DeletePathMappingType allows for deleting of files or folder directory
+	DeletePathMappingType PathMappingType = "Delete" // Delete path becomes relative to source directory
 	// ModifiedSourcePathMappingType allows for copying of deltas wrt source
 	ModifiedSourcePathMappingType PathMappingType = "SourceDiff" // Source path becomes relative to source directory
 	// PathTemplatePathMappingType allows for path template registration

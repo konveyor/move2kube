@@ -17,6 +17,7 @@
 package transformer
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -59,6 +60,7 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 		}
 		switch strings.ToLower(pm.Type) {
 		case strings.ToLower(transformertypes.SourcePathMappingType): // skip sources
+		case strings.ToLower(transformertypes.DeletePathMappingType): // skip deletes
 		case strings.ToLower(transformertypes.ModifiedSourcePathMappingType):
 			if err := filesystem.Merge(pm.SrcPath, destPath, false); err != nil {
 				logrus.Errorf("Error while copying sourcepath for %+v . Error: %q", pm, err)
@@ -82,6 +84,17 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 				}
 				copiedDefaultDests[getpair(pm.SrcPath, pm.DestPath)] = true
 			}
+		}
+	}
+
+	for _, pm := range pms {
+		srcPath := pm.SrcPath
+		if !filepath.IsAbs(pm.DestPath) {
+			srcPath = filepath.Join(outputPath, pm.SrcPath)
+		}
+		switch strings.ToLower(pm.Type) {
+		case strings.ToLower(transformertypes.DeletePathMappingType):
+			os.Remove(srcPath)
 		}
 	}
 	return nil
