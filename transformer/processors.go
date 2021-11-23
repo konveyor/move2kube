@@ -17,6 +17,7 @@
 package transformer
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -59,6 +60,7 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 		}
 		switch strings.ToLower(pm.Type) {
 		case strings.ToLower(transformertypes.SourcePathMappingType): // skip sources
+		case strings.ToLower(transformertypes.DeletePathMappingType): // skip deletes
 		case strings.ToLower(transformertypes.ModifiedSourcePathMappingType):
 			if err := filesystem.Merge(pm.SrcPath, destPath, false); err != nil {
 				logrus.Errorf("Error while copying sourcepath for %+v . Error: %q", pm, err)
@@ -83,6 +85,22 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 				copiedDefaultDests[getpair(pm.SrcPath, pm.DestPath)] = true
 			}
 		}
+	}
+
+	for _, pm := range pms {
+		if !strings.EqualFold(pm.Type, transformertypes.DeletePathMappingType) {
+			continue
+		}
+		destPath := pm.DestPath
+		if !filepath.IsAbs(pm.DestPath) {
+			destPath = filepath.Join(outputPath, pm.DestPath)
+		}
+		err := os.RemoveAll(destPath)
+		if err != nil {
+			logrus.Errorf("Path [%s] marked by delete-path-mapping could not been deleted: %q", destPath, err)
+			continue
+		}
+		logrus.Debugf("Path [%s] marked by delete-path-mapping has been deleted", destPath)
 	}
 	return nil
 }
