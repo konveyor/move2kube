@@ -98,7 +98,7 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 			if err != nil {
 				logrus.Errorf("Path [%s] marked by delete-path-mapping could not been deleted: %q", destPath, err)
 			} else {
-				logrus.Infof("Path [%s] marked by delete-path-mapping has been deleted", destPath)
+				logrus.Debugf("Path [%s] marked by delete-path-mapping has been deleted", destPath)
 			}
 		}
 	}
