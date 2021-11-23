@@ -144,7 +144,7 @@ func (t *Starlark) DirectoryDetect(dir string) (services map[string][]transforme
 func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	naObj, err := common.GetMapInterfaceFromObj(newArtifacts)
 	if err != nil {
-		logrus.Errorf("Unable to conver new artifacts to map[string]interface{}")
+		logrus.Errorf("Unable to convert new artifacts to map[string]interface{}")
 		return nil, nil, err
 	}
 	starNewArtifacts, err := starutil.Marshal(naObj)

@@ -88,13 +88,18 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 	}
 
 	for _, pm := range pms {
-		srcPath := pm.SrcPath
+		destPath := pm.DestPath
 		if !filepath.IsAbs(pm.DestPath) {
-			srcPath = filepath.Join(outputPath, pm.SrcPath)
+			destPath = filepath.Join(outputPath, pm.DestPath)
 		}
 		switch strings.ToLower(pm.Type) {
 		case strings.ToLower(transformertypes.DeletePathMappingType):
-			os.Remove(srcPath)
+			err := os.RemoveAll(destPath)
+			if err != nil {
+				logrus.Errorf("Path [%s] marked by delete-path-mapping could not been deleted: %q", destPath, err)
+			} else {
+				logrus.Infof("Path [%s] marked by delete-path-mapping has been deleted", destPath)
+			}
 		}
 	}
 	return nil
