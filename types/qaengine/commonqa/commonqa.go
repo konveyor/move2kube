@@ -118,7 +118,7 @@ func GetPortForService(detectedPorts []int32, serviceName string) int32 {
 		allDetectedPortsStr := append(detectedPortsStr, qatypes.OtherAnswer)
 		exposePortStr = qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortForServiceKeySegment, fmt.Sprintf("Select port to be exposed for the service %s :", serviceName), []string{fmt.Sprintf("Select Other if you want to expose the service %s to some other port", serviceName)}, allDetectedPortsStr[0], allDetectedPortsStr)
 	} else {
-		exposePortStr = qaengine.FetchStringAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortForServiceKeySegment, fmt.Sprintf("Enter the port to be exposed for the service %s: ", serviceName), []string{fmt.Sprintf("The service %s will be exposed to the specified port", serviceName)}, "8080")
+		exposePortStr = qaengine.FetchStringAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortForServiceKeySegment, fmt.Sprintf("Enter the port to be exposed for the service %s: ", serviceName), []string{fmt.Sprintf("The service %s will be exposed to the specified port", serviceName)}, fmt.Sprintf("%d", common.DefaultServicePort))
 	}
 	exposePortStr = strings.TrimSpace(exposePortStr)
 	if exposePortStr != "" {

@@ -136,6 +136,17 @@ func (ir *IR) addService(service Service) {
 	}
 }
 
+// GetAllServicePorts returns all ports with a serviceport mapping
+func (ir *IR) GetAllServicePorts() []int32 {
+	ports := []int32{}
+	for _, s := range ir.Services {
+		for _, pf := range s.ServiceToPodPortForwardings {
+			ports = append(ports, pf.PodPort.Number)
+		}
+	}
+	return ports
+}
+
 func (service *Service) merge(nService Service) {
 	if service.Name != nService.Name {
 		return

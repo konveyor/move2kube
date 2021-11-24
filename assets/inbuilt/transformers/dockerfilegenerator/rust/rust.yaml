@@ -1,0 +1,11 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: Rust
+  labels: 
+    type: containerizer
+spec:
+  class: "Executable"
+  config:
+    directoryDetectCMD: ["./m2kdetect.sh"]
+    platforms: ["linux", "darwin"]

@@ -53,6 +53,7 @@ type JarArtifactConfig struct {
 	DeploymentFileDir           string            `yaml:"deploymentFileDir"`
 	IsDeploymentFileInContainer bool              `yaml:"isDeploymentFileInContainer"`
 	EnvVariables                map[string]string `yaml:"envVariables"`
+	Port                        int32             `yaml:"port"`
 }
 
 // WarArtifactConfig defines a WarArtifactConfig struct

@@ -1,0 +1,10 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: Golang-Dockerfile
+  labels: 
+    type: containerizer
+spec:
+  class: "GolangDockerfileGenerator"
+  config:
+    defaultGoVersion: "1.17"

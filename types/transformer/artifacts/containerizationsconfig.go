@@ -16,18 +16,13 @@
 
 package artifacts
 
-import (
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-)
+import transformertypes "github.com/konveyor/move2kube/types/transformer"
 
 const (
-	// ContainerBuildArtifactType represents the container build artifact type
-	ContainerBuildArtifactType transformertypes.ArtifactType = "ContainerBuild"
-	// BuildArtifactPathType defines the build artifact path
-	BuildArtifactPathType transformertypes.PathType = "BuildArtifact"
+	// ContainerizationOptionsC represents the image push script path type
+	ContainerizationOptionsConfigType transformertypes.ConfigType = "ContainerizationOptions"
 )
 
-const (
-	// ContainerConfigType represents container config type
-	ContainerConfigType transformertypes.ConfigType = "Container"
-)
+type ContainerizationOptionsConfig struct {
+	ContainerizationOptions []string `yaml:"containerizationOptions,omitempty" json:"containerizationOptions,omitempty"`
+}
