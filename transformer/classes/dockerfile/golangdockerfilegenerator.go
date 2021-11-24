@@ -17,7 +17,7 @@
 package dockerfile
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -75,7 +75,7 @@ func (t *GolangDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 // DirectoryDetect runs detect in each sub directory
 func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	modFilePath := filepath.Join(dir, "go.mod")
-	data, err := ioutil.ReadFile(modFilePath)
+	data, err := os.ReadFile(modFilePath)
 	if err != nil {
 		return nil, nil
 	}
@@ -121,7 +121,7 @@ func (t *GolangDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
-		data, err := ioutil.ReadFile(a.Paths[GolangModFilePathType][0])
+		data, err := os.ReadFile(a.Paths[GolangModFilePathType][0])
 		if err != nil {
 			logrus.Errorf("Error while reading the go.mod file : %s", err)
 			return nil, nil, nil

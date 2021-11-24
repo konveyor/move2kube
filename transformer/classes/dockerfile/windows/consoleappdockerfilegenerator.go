@@ -19,7 +19,7 @@ package windows
 import (
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/url"
 	"os"
@@ -78,7 +78,7 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(AppCfgFilePath 
 
 	defer appConfigFile.Close()
 
-	byteValue, _ := ioutil.ReadAll(appConfigFile)
+	byteValue, _ := io.ReadAll(appConfigFile)
 	appCfg := dotnet.AppConfig{}
 	xml.Unmarshal(byteValue, &appCfg)
 	if err != nil {
@@ -175,7 +175,7 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (services
 
 		for _, csPath := range csProjPaths {
 			projPath := filepath.Join(strings.TrimSpace(dir), strings.TrimSpace(csPath))
-			byteValue, err := ioutil.ReadFile(projPath)
+			byteValue, err := os.ReadFile(projPath)
 			if err != nil {
 				logrus.Debugf("Could not read the project file: %s", err)
 				continue

@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 /*
@@ -20,7 +21,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"golang.org/x/mod/modfile"
@@ -31,7 +31,7 @@ func main() {
 	if len(os.Args) == 2 && os.Args[1] != "" {
 		modFilePath = os.Args[1]
 	}
-	data, err := ioutil.ReadFile(modFilePath)
+	data, err := os.ReadFile(modFilePath)
 	if err != nil {
 		panic(err)
 	}

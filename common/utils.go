@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"hash/crc64"
 	"io"
-	"io/ioutil"
 	"math"
 	"math/rand"
 	"net/url"
@@ -190,7 +189,7 @@ func GetFilesInCurrentDirectory(path string, fileNames, fileNameRegexes []string
 
 //YamlAttrPresent returns YAML attributes
 func YamlAttrPresent(path string, attr string) (bool, interface{}) {
-	yamlFile, err := ioutil.ReadFile(path)
+	yamlFile, err := os.ReadFile(path)
 	if err != nil {
 		logrus.Warnf("Error in reading yaml file %s: %s. Skipping", path, err)
 		return false, nil
@@ -247,12 +246,12 @@ func WriteYaml(outputPath string, data interface{}) error {
 		logrus.Errorf("Failed to encode the object as a yaml string. Error: %q", err)
 		return err
 	}
-	return ioutil.WriteFile(outputPath, yamlBytes, DefaultFilePermission)
+	return os.WriteFile(outputPath, yamlBytes, DefaultFilePermission)
 }
 
 // ReadYaml reads an yaml into an object
 func ReadYaml(file string, data interface{}) error {
-	yamlFile, err := ioutil.ReadFile(file)
+	yamlFile, err := os.ReadFile(file)
 	if err != nil {
 		logrus.Debugf("Error in reading yaml file %s: %s.", file, err)
 		return err
@@ -282,7 +281,7 @@ func ReadYaml(file string, data interface{}) error {
 // It checks if apiVersion to see if the group is move2kube and also reports if the
 // version is different from the expected version.
 func ReadMove2KubeYaml(path string, out interface{}) error {
-	yamlData, err := ioutil.ReadFile(path)
+	yamlData, err := os.ReadFile(path)
 	if err != nil {
 		logrus.Errorf("Failed to read the yaml file at path %s Error: %q", path, err)
 		return err
@@ -327,7 +326,7 @@ func ReadMove2KubeYaml(path string, out interface{}) error {
 // ReadMove2KubeYamlStrict is like ReadMove2KubeYaml but returns an error
 // when it finds unknown fields in the yaml
 func ReadMove2KubeYamlStrict(path string, out interface{}, kind string) error {
-	yamlData, err := ioutil.ReadFile(path)
+	yamlData, err := os.ReadFile(path)
 	if err != nil {
 		logrus.Debugf("Failed to read the yaml file at path %s Error: %q", path, err)
 		return err
@@ -400,7 +399,7 @@ func WriteJSON(outputPath string, data interface{}) error {
 		logrus.Error("Error while Encoding object")
 		return err
 	}
-	err := ioutil.WriteFile(outputPath, b.Bytes(), DefaultFilePermission)
+	err := os.WriteFile(outputPath, b.Bytes(), DefaultFilePermission)
 	if err != nil {
 		logrus.Errorf("Error writing json to file: %s", err)
 		return err
@@ -410,7 +409,7 @@ func WriteJSON(outputPath string, data interface{}) error {
 
 // ReadJSON reads an json into an object
 func ReadJSON(file string, data interface{}) error {
-	jsonFile, err := ioutil.ReadFile(file)
+	jsonFile, err := os.ReadFile(file)
 	if err != nil {
 		logrus.Debugf("Error in reading json file %s: %s.", file, err)
 		return err
@@ -426,7 +425,7 @@ func ReadJSON(file string, data interface{}) error {
 
 // ReadXML reads an json into an object
 func ReadXML(file string, data interface{}) error {
-	xmlFile, err := ioutil.ReadFile(file)
+	xmlFile, err := os.ReadFile(file)
 	if err != nil {
 		logrus.Debugf("Error in reading xml file %s: %s.", file, err)
 		return err
@@ -758,7 +757,7 @@ func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath
 	}
 
 	// Try to create a new temporary directory for the assets.
-	if newTempPath, err := ioutil.TempDir("", types.AppName+"*"); err != nil {
+	if newTempPath, err := os.MkdirTemp("", types.AppName+"*"); err != nil {
 		logrus.Errorf("Unable to create temp dir. Defaulting to local path.")
 	} else {
 		tempPath = newTempPath

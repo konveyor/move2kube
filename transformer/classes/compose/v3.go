@@ -18,7 +18,6 @@ package compose
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -90,7 +89,7 @@ func removeNonExistentEnvFilesV3(path string, parsedComposeFile map[string]inter
 
 // parseV3 parses version 3 compose files
 func parseV3(path string) (*types.Config, error) {
-	fileData, err := ioutil.ReadFile(path)
+	fileData, err := os.ReadFile(path)
 	if err != nil {
 		err := fmt.Errorf("unable to load Compose file at path %s Error: %q", path, err)
 		logrus.Debug(err)
@@ -426,7 +425,7 @@ func (c *v3Loader) getSecretStorages(secrets map[string]types.SecretConfig) []ir
 		}
 
 		if !secretObj.External.External {
-			content, err := ioutil.ReadFile(secretObj.File)
+			content, err := os.ReadFile(secretObj.File)
 			if err != nil {
 				logrus.Warnf("Could not read the secret file [%s]", secretObj.File)
 			} else {
@@ -455,7 +454,7 @@ func (c *v3Loader) getConfigStorages(configs map[string]types.ConfigObjConfig) [
 				logrus.Warnf("Could not identify the type of secret artifact [%s]. Encountered [%s]", cfgObj.File, err)
 			} else {
 				if !fileInfo.IsDir() {
-					content, err := ioutil.ReadFile(cfgObj.File)
+					content, err := os.ReadFile(cfgObj.File)
 					if err != nil {
 						logrus.Warnf("Could not read the secret file [%s]. Encountered [%s]", cfgObj.File, err)
 					} else {
@@ -614,7 +613,7 @@ func (c *v3Loader) getEnvs(composeServiceConfig types.ServiceConfig) (envs []cor
 }
 
 func (c *v3Loader) getAllDirContentAsMap(directoryPath string) (map[string][]byte, error) {
-	fileList, err := ioutil.ReadDir(directoryPath)
+	fileList, err := os.ReadDir(directoryPath)
 	if err != nil {
 		return nil, err
 	}
@@ -626,7 +625,7 @@ func (c *v3Loader) getAllDirContentAsMap(directoryPath string) (map[string][]byt
 		}
 		fileName := file.Name()
 		logrus.Debugf("Reading file into the data map: [%s]", fileName)
-		data, err := ioutil.ReadFile(filepath.Join(directoryPath, fileName))
+		data, err := os.ReadFile(filepath.Join(directoryPath, fileName))
 		if err != nil {
 			logrus.Debugf("Unable to read file data : %s", fileName)
 			continue

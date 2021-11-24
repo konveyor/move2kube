@@ -18,7 +18,7 @@ package dockerfile
 
 import (
 	"encoding/xml"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -109,7 +109,7 @@ func (t *DotNet5DockerfileGenerator) DirectoryDetect(dir string) (services map[s
 			logrus.Errorf("Could not open the csproj file: %s", err)
 		}
 		defer xmlFile.Close()
-		byteValue, err := ioutil.ReadAll(xmlFile)
+		byteValue, err := io.ReadAll(xmlFile)
 		if err != nil {
 			logrus.Errorf("Could not read the csproj file: %s", err)
 		}

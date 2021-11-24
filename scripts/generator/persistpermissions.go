@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 /*
@@ -22,7 +23,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,7 +62,7 @@ func main() {
 		return
 	}
 
-	err = ioutil.WriteFile(permissionsFilePath, []byte(permissionsheader+permissionsString), 0644)
+	err = os.WriteFile(permissionsFilePath, []byte(permissionsheader+permissionsString), 0644)
 	if err != nil {
 		logrus.Errorf("Error while getting permissions file : %s", err)
 		return

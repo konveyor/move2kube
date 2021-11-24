@@ -47,14 +47,14 @@ func NewProcessSharedContainer(name string, source string, context string, pid i
 
 if env.Container.CID == "" {
 	if env.Container.PID == 0 {
-		env.OutContext, err = ioutil.TempDir(env.TempPath, types.AppNameShort)
+		env.OutContext, err = os.MkdirTemp(env.TempPath, types.AppNameShort)
 		if err != nil {
 			logrus.Errorf("Unable to create temp dir : %s", err)
 		}
 		if err := filesystem.Replicate(env.OutContext, env.EnvContext); err != nil {
 			logrus.Errorf("Unable to copy contents to directory %s, dp: %s", env.OutSource, env.EnvSource, err)
 		}
-		env.OutSource, err = ioutil.TempDir(env.TempPath, workspaceDir)
+		env.OutSource, err = os.MkdirTemp(env.TempPath, workspaceDir)
 		if err != nil {
 			logrus.Errorf("Unable to create temp dir : %s", err)
 		}

@@ -18,7 +18,6 @@ package apiresource
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -71,7 +70,7 @@ func writeObjects(outputPath string, objs []runtime.Object) ([]string, error) {
 			continue
 		}
 		yamlPath := filepath.Join(outputPath, getFilename(obj))
-		if err := ioutil.WriteFile(yamlPath, objYamlBytes, common.DefaultFilePermission); err != nil {
+		if err := os.WriteFile(yamlPath, objYamlBytes, common.DefaultFilePermission); err != nil {
 			logrus.Errorf("failed to write the yaml to file at path %s . Error: %q", yamlPath, err)
 			continue
 		}

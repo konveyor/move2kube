@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -113,7 +112,7 @@ func (t *EurekaReplaceEngine) GetConfig() (transformertypes.Transformer, *enviro
 
 // DirectoryDetect runs detect in each sub directory
 func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	destEntries, err := ioutil.ReadDir(dir)
+	destEntries, err := os.ReadDir(dir)
 	var ec EurekaConfig
 	var pomWithEureka []string
 	var javaWithFeign []string
@@ -128,7 +127,7 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (services map[string][
 			if de.Name() == maven.PomXMLFileName {
 
 				// filled with previously declared xml
-				pomStr, err := ioutil.ReadFile(filepath.Join(dir, de.Name()))
+				pomStr, err := os.ReadFile(filepath.Join(dir, de.Name()))
 				if err != nil {
 					return nil, err
 				}
@@ -186,7 +185,7 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (services map[string][
 					}
 					for _, path := range yamlpaths {
 						t := yaml.Node{}
-						sourceYaml, _ := ioutil.ReadFile(path)
+						sourceYaml, _ := os.ReadFile(path)
 						_ = yaml.Unmarshal(sourceYaml, &t)
 						for _, n := range t.Content {
 							for _, n1 := range n.Content {
@@ -300,7 +299,7 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 
 		for _, path := range pomWithEureka {
 			// filled with previously declared xml
-			pomStr, err := ioutil.ReadFile(path)
+			pomStr, err := os.ReadFile(path)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -330,7 +329,7 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 				logrus.Errorf("Unable to convert struct to bytes Reason: %s", err)
 				return nil, nil, err
 			}
-			err = ioutil.WriteFile(path, pombytes, 0644)
+			err = os.WriteFile(path, pombytes, 0644)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -433,7 +432,7 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 		for _, path := range propertiesWithEureka {
 			// remove it from spring config file
 			t := yaml.Node{}
-			sourceYaml, _ := ioutil.ReadFile(path)
+			sourceYaml, _ := os.ReadFile(path)
 			_ = yaml.Unmarshal(sourceYaml, &t)
 			// delete eureka node
 			eurekaNodeIndex := -1
@@ -448,11 +447,11 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 
 			if eurekaNodeIndex != -1 {
 				out, _ := yaml.Marshal(&t)
-				_ = ioutil.WriteFile(path, out, 0644)
+				_ = os.WriteFile(path, out, 0644)
 			}
 
 			t = yaml.Node{}
-			sourceYaml, _ = ioutil.ReadFile(path)
+			sourceYaml, _ = os.ReadFile(path)
 			_ = yaml.Unmarshal(sourceYaml, &t)
 
 			for _, n := range t.Content {
@@ -462,13 +461,13 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 				}
 			}
 			out, _ := yaml.Marshal(&t)
-			_ = ioutil.WriteFile(path, out, 0644)
+			_ = os.WriteFile(path, out, 0644)
 
 		}
 		for _, path := range propertiesWithConfig {
 			// access config through url (remove eureka)
 			t := yaml.Node{}
-			sourceYaml, _ := ioutil.ReadFile(path)
+			sourceYaml, _ := os.ReadFile(path)
 			_ = yaml.Unmarshal(sourceYaml, &t)
 			insert := false
 			for _, n := range t.Content {
@@ -486,7 +485,7 @@ func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact
 			}
 
 			out, _ := yaml.Marshal(&t)
-			_ = ioutil.WriteFile(path, out, 0644)
+			_ = os.WriteFile(path, out, 0644)
 		}
 
 		// copy project code from source to destination

@@ -18,7 +18,7 @@ package kubernetes
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -95,7 +95,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldA
 	}
 	for _, a := range newArtifacts {
 		yamlsPath := a.Paths[artifacts.KubernetesYamlsPathType][0]
-		tempPath, err := ioutil.TempDir(t.Env.TempPath, "*")
+		tempPath, err := os.MkdirTemp(t.Env.TempPath, "*")
 		if err != nil {
 			logrus.Errorf("Unable to create temp dir : %s", err)
 		}

@@ -18,7 +18,6 @@ package filesystem
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -88,7 +87,7 @@ func (p *processor) processFile(source, destination string) error {
 
 func (p *processor) processDirectory(source, destination string) error {
 	destEntryNames := map[string]bool{}
-	entries, err := ioutil.ReadDir(source)
+	entries, err := os.ReadDir(source)
 	if err != nil {
 		return err
 	}
@@ -103,7 +102,7 @@ func (p *processor) processDirectory(source, destination string) error {
 			logrus.Errorf("Error during mismatch callback for %s, %s", source, destination)
 		}
 	} else {
-		destEntries, err := ioutil.ReadDir(destination)
+		destEntries, err := os.ReadDir(destination)
 		if err != nil {
 			logrus.Errorf("Unable to process directory %s : %s", destination, err)
 		} else {

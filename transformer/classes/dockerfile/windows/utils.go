@@ -18,7 +18,6 @@ package windows
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"runtime"
@@ -65,7 +64,7 @@ func isWeb(configuration dotnet.CSProj) (bool, error) {
 
 // parseSolutionFile parses the solution file for cs project file paths
 func parseSolutionFile(inputPath string) ([]string, error) {
-	solFileTxt, err := ioutil.ReadFile(inputPath)
+	solFileTxt, err := os.ReadFile(inputPath)
 	if err != nil {
 		return nil, fmt.Errorf("could not open the solution file: %s", err)
 	}

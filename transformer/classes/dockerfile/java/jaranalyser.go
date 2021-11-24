@@ -17,7 +17,6 @@
 package java
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -112,12 +111,12 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArt
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
 		}
-		jarRunDockerfile, err := ioutil.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.embedded"))
+		jarRunDockerfile, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.embedded"))
 		if err != nil {
 			logrus.Errorf("Unable to read Dockerfile embedded template : %s", err)
 		}
 		dockerfileBuildDockerfile := a.Paths[artifacts.BuildContainerFileType][0]
-		buildDockerfile, err := ioutil.ReadFile(dockerfileBuildDockerfile)
+		buildDockerfile, err := os.ReadFile(dockerfileBuildDockerfile)
 		if err != nil {
 			logrus.Errorf("Unable to read build Dockerfile template : %s", err)
 		}
@@ -125,7 +124,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArt
 		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
 		dockerfileTemplate := filepath.Join(tempDir, common.DefaultDockerfileName)
 		template := string(buildDockerfile) + "\n" + string(jarRunDockerfile)
-		err = ioutil.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
+		err = os.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
 		if err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}

@@ -18,7 +18,6 @@ package filesystem
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -151,7 +150,7 @@ func writeTemplateToFile(tpl string, config interface{}, writepath string,
 		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)
 		return err
 	}
-	err = ioutil.WriteFile(writepath, tplbuffer.Bytes(), filemode)
+	err = os.WriteFile(writepath, tplbuffer.Bytes(), filemode)
 	if err != nil {
 		logrus.Warnf("Error writing file at %s : %s", writepath, err)
 		return err

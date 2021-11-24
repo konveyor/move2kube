@@ -17,7 +17,7 @@
 package lib_test
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -56,11 +56,11 @@ func TestGettingAndParameterizingResources(t *testing.T) {
 			continue
 		}
 		wantDataPath := filepath.Join(wantDataDir, relFilePath)
-		wantBytes, err := ioutil.ReadFile(wantDataPath)
+		wantBytes, err := os.ReadFile(wantDataPath)
 		if err != nil {
 			t.Fatalf("Failed to read the test data at path %s . Error: %q", wantDataPath, err)
 		}
-		actualBytes, err := ioutil.ReadFile(fileWritten)
+		actualBytes, err := os.ReadFile(fileWritten)
 		if err != nil {
 			t.Fatalf("Failed to read the output data at path %s . Error: %q", fileWritten, err)
 		}
