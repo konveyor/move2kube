@@ -19,7 +19,7 @@ package qaengine
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -160,7 +160,7 @@ func (h *HTTPRESTEngine) problemHandler(w http.ResponseWriter, r *http.Request) 
 func (h *HTTPRESTEngine) solutionHandler(w http.ResponseWriter, r *http.Request) {
 	logrus.Debugf("QA Engine reading solution: %s", r.Body)
 	// Read out the solution
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		errstr := fmt.Sprintf("Error in reading posted solution: %s", err)
 		http.Error(w, "errstr", http.StatusInternalServerError)

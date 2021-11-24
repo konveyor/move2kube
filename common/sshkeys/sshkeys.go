@@ -22,7 +22,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/user"
 	"path/filepath"
 
@@ -112,7 +112,7 @@ Do you want to load the private ssh keys from [%s]?:`
 	}
 
 	// Ask which keys we should consider
-	finfos, err := ioutil.ReadDir(privateKeyDir)
+	finfos, err := os.ReadDir(privateKeyDir)
 	if err != nil {
 		logrus.Errorf("Failed to read the ssh directory at path %q Error: %q", privateKeyDir, err)
 		return
@@ -154,7 +154,7 @@ func marshalECDSAIntoPEM(key *ecdsa.PrivateKey) string {
 
 func loadSSHKey(filename string) (string, error) {
 	path := filepath.Join(privateKeyDir, filename)
-	fileBytes, err := ioutil.ReadFile(path)
+	fileBytes, err := os.ReadFile(path)
 	if err != nil {
 		logrus.Errorf("Failed to read the private key file at path %q Error: %q", path, err)
 		return "", err

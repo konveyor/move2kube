@@ -18,7 +18,6 @@ package parameterizer
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -230,7 +229,7 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Packagi
 			for k, v := range params {
 				finalParams = append(finalParams, fmt.Sprintf("%s=%s", k, v))
 			}
-			if err := ioutil.WriteFile(finalKPath, []byte(strings.Join(finalParams, "\n")), common.DefaultFilePermission); err != nil {
+			if err := os.WriteFile(finalKPath, []byte(strings.Join(finalParams, "\n")), common.DefaultFilePermission); err != nil {
 				return filesWritten, err
 			}
 			filesWritten = append(filesWritten, finalKPath)

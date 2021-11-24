@@ -19,7 +19,6 @@ package environment
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -87,7 +86,7 @@ type EnvironmentInstance interface {
 
 // NewEnvironment creates a new environment
 func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr, c environmenttypes.Container) (env *Environment, err error) {
-	tempPath, err := ioutil.TempDir(common.TempPath, "environment-"+envInfo.Name+"-*")
+	tempPath, err := os.MkdirTemp(common.TempPath, "environment-"+envInfo.Name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return env, err
@@ -369,7 +368,7 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 			pathStr := path.String()
 			logrus.Debugf("Output of environment template: %s\n", pathStr)
 			if filepath.IsAbs(pathStr) {
-				tempOutputPath, err := ioutil.TempDir(e.TempPath, "*")
+				tempOutputPath, err := os.MkdirTemp(e.TempPath, "*")
 				if err != nil {
 					logrus.Errorf("Unable to create temp dir : %s", err)
 					continue

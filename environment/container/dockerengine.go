@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -74,7 +74,7 @@ func (e *dockerEngine) pullImage(image string) bool {
 		e.availableImages[image] = false
 		return false
 	}
-	if b, err := ioutil.ReadAll(out); err == nil {
+	if b, err := io.ReadAll(out); err == nil {
 		logrus.Debug(cast.ToString(b))
 	}
 	e.availableImages[image] = true
@@ -118,11 +118,11 @@ func (e *dockerEngine) RunCmdInContainer(containerID string, cmd environmenttype
 		return "", "", 0, e.ctx.Err()
 	}
 
-	stdoutbytes, err := ioutil.ReadAll(&outBuf)
+	stdoutbytes, err := io.ReadAll(&outBuf)
 	if err != nil {
 		return
 	}
-	stderrbytes, err := ioutil.ReadAll(&errBuf)
+	stderrbytes, err := io.ReadAll(&errBuf)
 	if err != nil {
 		return
 	}
@@ -249,7 +249,7 @@ func (e *dockerEngine) BuildImage(image, context, dockerfile string) (err error)
 		return err
 	}
 	defer resp.Body.Close()
-	response, err := ioutil.ReadAll(resp.Body)
+	response, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Errorf("Unable to read data from image build process : %s", err)
 		return err
@@ -344,7 +344,7 @@ func (e *dockerEngine) RunContainer(image string, cmd environmenttypes.Command, 
 			return "", true, err
 		}
 		logs := ""
-		if b, err := ioutil.ReadAll(out); err == nil {
+		if b, err := io.ReadAll(out); err == nil {
 			logs = cast.ToString(b)
 		}
 		if status.StatusCode != 0 {

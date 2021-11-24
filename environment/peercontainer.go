@@ -18,8 +18,8 @@ package environment
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -139,7 +139,7 @@ func (e *PeerContainer) Destroy() error {
 
 // Download downloads the path to outside the environment
 func (e *PeerContainer) Download(path string) (string, error) {
-	output, err := ioutil.TempDir(e.TempPath, "*")
+	output, err := os.MkdirTemp(e.TempPath, "*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return path, err

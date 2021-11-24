@@ -19,7 +19,7 @@ package qaengine
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -56,7 +56,7 @@ func (c *Config) Load() (err error) {
 	yamlDatas := []string{}
 	// config files specified later override earlier config files
 	for _, configFile := range c.configFiles {
-		yamlData, err := ioutil.ReadFile(configFile)
+		yamlData, err := os.ReadFile(configFile)
 		if err != nil {
 			logrus.Errorf("Failed to read the config file %s Error: %q", configFile, err)
 			continue

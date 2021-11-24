@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -262,7 +261,7 @@ func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
 			return starlark.None, fmt.Errorf("data is missing in write parameters")
 		}
 		numBytesWritten := len(data)
-		err := ioutil.WriteFile(filePath, []byte(data), fs.FileMode(permissions))
+		err := os.WriteFile(filePath, []byte(data), fs.FileMode(permissions))
 		if err != nil {
 			return starlark.None, fmt.Errorf("could not write to file %s", filePath)
 		}
@@ -410,7 +409,7 @@ func (t *Starlark) getStarlarkFSRead() *starlark.Builtin {
 		if err := starlark.UnpackPositionalArgs(fsreadFnName, args, kwargs, 1, &path); err != nil {
 			return nil, err
 		}
-		fileBytes, err := ioutil.ReadFile(path)
+		fileBytes, err := os.ReadFile(path)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				return starlark.None, nil
@@ -428,7 +427,7 @@ func (t *Starlark) getStarlarkFSReadDir() *starlark.Builtin {
 		if err := starlark.UnpackPositionalArgs(fsreadFnName, args, kwargs, 1, &path); err != nil {
 			return nil, err
 		}
-		fileInfos, err := ioutil.ReadDir(path)
+		fileInfos, err := os.ReadDir(path)
 		if err != nil {
 			return nil, err
 		}

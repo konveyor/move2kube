@@ -19,7 +19,7 @@ package k8sschema
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -120,7 +120,7 @@ func GetK8sResourcesWithPaths(k8sResourcesPath string) (map[string][]parameteriz
 	}
 	k8sResources := map[string][]parameterizertypes.K8sResourceT{}
 	for _, yamlPath := range yamlPaths {
-		k8sYamlBytes, err := ioutil.ReadFile(yamlPath)
+		k8sYamlBytes, err := os.ReadFile(yamlPath)
 		if err != nil {
 			logrus.Errorf("Failed to read the yaml file at path %s . Error: %q", yamlPath, err)
 			continue

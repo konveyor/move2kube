@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -48,12 +47,12 @@ func NewLocal(envInfo EnvInfo, grpcQAReceiver net.Addr) (ei EnvironmentInstance,
 		EnvInfo:        envInfo,
 		GRPCQAReceiver: grpcQAReceiver,
 	}
-	local.WorkspaceContext, err = ioutil.TempDir(local.TempPath, types.AppNameShort)
+	local.WorkspaceContext, err = os.MkdirTemp(local.TempPath, types.AppNameShort)
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return local, err
 	}
-	local.WorkspaceSource, err = ioutil.TempDir(local.TempPath, workspaceDir)
+	local.WorkspaceSource, err = os.MkdirTemp(local.TempPath, workspaceDir)
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 	}
@@ -122,7 +121,7 @@ func (e *Local) Destroy() error {
 
 // Download downloads the path to outside the environment
 func (e *Local) Download(path string) (string, error) {
-	output, err := ioutil.TempDir(e.TempPath, "*")
+	output, err := os.MkdirTemp(e.TempPath, "*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return path, err
@@ -145,7 +144,7 @@ func (e *Local) Download(path string) (string, error) {
 
 // Upload uploads the path from outside the environment into it
 func (e *Local) Upload(outpath string) (envpath string, err error) {
-	envpath, err = ioutil.TempDir(e.TempPath, "*")
+	envpath, err = os.MkdirTemp(e.TempPath, "*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)
 		return outpath, err

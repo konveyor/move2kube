@@ -18,7 +18,6 @@ package windows
 
 import (
 	"encoding/xml"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -81,7 +80,7 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (s
 
 		for _, csPath := range csProjPaths {
 			projPath := filepath.Join(strings.TrimSpace(dir), strings.TrimSpace(csPath))
-			byteValue, err := ioutil.ReadFile(projPath)
+			byteValue, err := os.ReadFile(projPath)
 			if err != nil {
 				logrus.Debugf("Could not read the project file: %s", err)
 				continue

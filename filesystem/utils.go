@@ -17,7 +17,6 @@
 package filesystem
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -40,12 +39,12 @@ func copyFile(sf, df string) error {
 		logrus.Errorf("Unable to make dir %s : %s", filepath.Dir(df), err)
 		return err
 	}
-	sbytes, err := ioutil.ReadFile(sf)
+	sbytes, err := os.ReadFile(sf)
 	if err != nil {
 		logrus.Errorf("Unable to read file %s : %s", sf, err)
 		return err
 	}
-	err = ioutil.WriteFile(df, sbytes, si.Mode())
+	err = os.WriteFile(df, sbytes, si.Mode())
 	if err != nil {
 		logrus.Errorf("Unable to write file %s : %s", df, err)
 		return err

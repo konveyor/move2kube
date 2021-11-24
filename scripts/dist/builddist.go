@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 /*
@@ -22,13 +23,12 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 
-	"github.com/konveyor/move2kube/internal/common"
+	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -58,7 +58,7 @@ func sha256sum(source, target string) error {
 	}
 	filename := filepath.Base(source)
 	hashAndFilename := fmt.Sprintf("%x  %s", hasher.Sum(nil), filename) // Same format as the output of shasum -a 256 myarchive.tar.gz
-	if err := ioutil.WriteFile(target, []byte(hashAndFilename), common.DefaultFilePermission); err != nil {
+	if err := os.WriteFile(target, []byte(hashAndFilename), common.DefaultFilePermission); err != nil {
 		return fmt.Errorf("Failed to write the checksum to file at path %q Error %q", target, err)
 	}
 	return file.Close()
@@ -94,7 +94,7 @@ func findDistDirs() []string {
 	osArchRegex := regexp.MustCompile("^[^-]+-[^-]+$")
 	distDirs := []string{}
 
-	err := filepath.Walk(".", func(path string, finfo os.FileInfo, err error) error {
+	err := filepath.WalkDir(".", func(path string, finfo os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

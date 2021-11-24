@@ -18,7 +18,6 @@ package cloudfoundry
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -228,7 +227,7 @@ func (t *CloudFoundry) readApplicationManifest(path string, serviceName string) 
 		return nil, nil, err
 	}
 
-	rawManifest, err := ioutil.ReadFile(path)
+	rawManifest, err := os.ReadFile(path)
 	if err != nil {
 		logrus.Errorf("Unable to read manifest file at path %q Error: %q", path, err)
 		return nil, nil, err

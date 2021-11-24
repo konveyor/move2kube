@@ -58,7 +58,7 @@ func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]
 	} else if !info.IsDir() {
 		logrus.Warnf("The path %q is not a directory.", dir)
 	}
-	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	err = filepath.WalkDir(dir, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			logrus.Warnf("Skipping path %s due to error: %s", path, err)
 			return nil

@@ -20,7 +20,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -154,7 +154,7 @@ func getYamlAsProperties(yamlStr string) (props *properties.Properties, err erro
 }
 
 func getSegmentsFromFile(fileName string) (segments []string) {
-	filebytes, err := ioutil.ReadFile(fileName)
+	filebytes, err := os.ReadFile(fileName)
 	if err != nil {
 		logrus.Errorf("Unable to read file : %s", err)
 		return nil
