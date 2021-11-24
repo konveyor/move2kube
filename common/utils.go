@@ -97,7 +97,13 @@ func GetFilesByExtInCurrDir(inputPath string, exts []string) ([]string, error) {
 		logrus.Warnf("Error in walking through files due to : %q", err)
 		return nil, err
 	} else if !info.IsDir() {
-		logrus.Warnf("The path %q is not a directory.", inputPath)
+		fext := filepath.Ext(inputPath)
+		for _, ext := range exts {
+			if fext == ext {
+				return []string{inputPath}, nil
+			}
+		}
+		return []string{}, nil
 	}
 	dirhandle, err := os.Open(inputPath)
 	if err != nil {

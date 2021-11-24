@@ -17,11 +17,10 @@
 package dockerfile
 
 import (
-	"bufio"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"path/filepath"
-	"regexp"
+	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -34,24 +33,18 @@ import (
 
 const (
 	pythonExt           = ".py"
-	pythonMain          = "main"
-	pythonManage        = "manage"
-	pythonService       = "python"
-	djangoService       = "django"
+	pythonMain1         = "__name__ == '__main__'"
+	pythonMain2         = "__name__ == \"__main__\""
+	django              = "django"
 	requirementsTxtFile = "requirements.txt"
 	//DetectedPortsConfigType contains the detected ports
 	DetectedPortsConfigType transformertypes.ConfigType = "DetectedPortsConfigType"
-	//RequirementsTxtConfigType points to the requirements.txt file if it's present
-	RequirementsTxtConfigType transformertypes.ConfigType = "RequirementsTxtConfigType"
+	//RequirementsTxtPathType points to the requirements.txt file if it's present
+	RequirementsTxtPathType transformertypes.PathType = "RequirementsTxtPathType"
 	// DjangoProjectConfigType is set to true for Django projects
 	DjangoProjectConfigType transformertypes.ConfigType = "DjangoProjectConfigType"
 	// MainPythonFilesPathType points to the .py file path which contains main function
 	MainPythonFilesPathType transformertypes.PathType = "MainPythonFilesPathType"
-)
-
-var (
-	pythonMainRegex       = regexp.MustCompile(`__main__`)
-	djangoDependencyRegex = regexp.MustCompile(`django`)
 )
 
 // PythonDockerfileGenerator implements the Transformer interface
@@ -88,14 +81,11 @@ func findMainScripts(pythonFilesPath []string) ([]string, error) {
 	}
 	var pythonMainFiles []string
 	for _, pythonFilePath := range pythonFilesPath {
-		pythonFile, err := os.Open(pythonFilePath)
+		pythonFile, err := ioutil.ReadFile(pythonFilePath)
 		if err != nil {
-			logrus.Debugf("Failed to open the file %s", pythonFilePath)
-		}
-		scanner := bufio.NewScanner(pythonFile)
-		scanner.Split(bufio.ScanLines)
-		for scanner.Scan() {
-			if pythonMainRegex.MatchString(scanner.Text()) {
+			logrus.Warnf("Error in reading python file %s: %s.", pythonFilePath, err)
+		} else {
+			if strings.Contains(string(pythonFile), pythonMain1) || strings.Contains(string(pythonFile), pythonMain2) {
 				pythonMainFiles = append(pythonMainFiles, pythonFilePath)
 			}
 		}
@@ -108,18 +98,12 @@ func findMainScripts(pythonFilesPath []string) ([]string, error) {
 
 // findDjangoDependency checks for django dependency in the requirements.txt file
 func findDjangoDependency(reqTxtFilePath string) bool {
-	reqTxtFile, err := os.Open(reqTxtFilePath)
+	reqTxtFile, err := ioutil.ReadFile(reqTxtFilePath)
 	if err != nil {
-		logrus.Debugf("Failed to open the file %s", reqTxtFilePath)
+		logrus.Warnf("Error in reading the file %s: %s.", reqTxtFilePath, err)
+		return false
 	}
-	scanner := bufio.NewScanner(reqTxtFile)
-	scanner.Split(bufio.ScanLines)
-	for scanner.Scan() {
-		if djangoDependencyRegex.MatchString(scanner.Text()) {
-			return true
-		}
-	}
-	return false
+	return strings.Contains(string(reqTxtFile), django)
 }
 
 // getMainPythonFileForService returns the main file used by a service
@@ -135,7 +119,6 @@ func getMainPythonFileForService(mainPythonFilesPath []string, baseDir string, s
 
 // DirectoryDetect runs detect in each sub directory
 func (t *PythonDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-
 	pythonFiles, err := common.GetFilesByExtInCurrDir(dir, []string{pythonExt})
 	if err != nil {
 		logrus.Errorf("Error while finding python files %s", err)
@@ -153,28 +136,23 @@ func (t *PythonDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 		var isDjangoProject bool
 		var detectedPorts []int32
 		detectedPorts = append(detectedPorts, 8080) //TODO: Write parser to parse and identify port
-		requirementsTxtFiles, err := common.GetFilesByName(dir, []string{requirementsTxtFile}, nil)
+		requirementsTxtFiles, err := common.GetFilesInCurrentDirectory(dir, []string{requirementsTxtFile}, nil)
 		if err != nil {
 			logrus.Debugf("Cannot get the requirements.txt file: %s", err)
 		}
 		if len(requirementsTxtFiles) == 1 {
-			requirementsTxt, err := filepath.Rel(dir, requirementsTxtFiles[0])
-			if err != nil {
-				logrus.Errorf("Error in getting the relative path %s", err)
-			} else {
-				requirementsTxtPath = requirementsTxt
-				isDjangoProject = findDjangoDependency(requirementsTxtFiles[0])
-			}
+			requirementsTxtPath = requirementsTxtFiles[0]
+			isDjangoProject = findDjangoDependency(requirementsTxtFiles[0])
 		}
 		services = map[string][]transformertypes.Artifact{
 			serviceName: {{
 				Paths: map[string][]string{
 					artifacts.ProjectPathPathType: {dir},
 					MainPythonFilesPathType:       mainPythonFilesPath,
+					RequirementsTxtPathType:       {requirementsTxtPath},
 				}, Configs: map[string]interface{}{
-					DjangoProjectConfigType:   isDjangoProject,
-					RequirementsTxtConfigType: requirementsTxtPath,
-					DetectedPortsConfigType:   detectedPorts,
+					DjangoProjectConfigType: isDjangoProject,
+					DetectedPortsConfigType: detectedPorts,
 				},
 			}},
 		}
@@ -191,6 +169,7 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+			continue
 		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
@@ -210,7 +189,9 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			pythonConfig.IsDjangoProject = IsDjangoProject.(bool)
 		}
 		pythonConfig.Port = commonqa.GetPortForService(a.Configs[DetectedPortsConfigType].([]int32), a.Name)
-		pythonConfig.RequirementsTxt = a.Configs[RequirementsTxtConfigType].(string)
+		if requirementsTxt, err := filepath.Rel(a.Paths[artifacts.ProjectPathPathType][0], a.Paths[RequirementsTxtPathType][0]); err == nil {
+			pythonConfig.RequirementsTxt = requirementsTxt
+		}
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
