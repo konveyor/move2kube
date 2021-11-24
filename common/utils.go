@@ -56,7 +56,7 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 	} else if !info.IsDir() {
 		logrus.Warnf("The path %q is not a directory.", inputPath)
 	}
-	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(inputPath, func(path string, info os.DirEntry, err error) error {
 		if err != nil && path == inputPath { // if walk for root search path return gets error
 			// then stop walking and return this error
 			return err
@@ -108,7 +108,7 @@ func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]s
 		}
 		compiledNameRegexes = append(compiledNameRegexes, compiledNameRegex)
 	}
-	err := filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(inputPath, func(path string, info os.DirEntry, err error) error {
 		if err != nil && path == inputPath { // if walk for root search path return gets error
 			// then stop walking and return this error
 			return err

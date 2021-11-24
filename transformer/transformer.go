@@ -330,7 +330,7 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
 	knownProjectPaths := []string{}
 
-	err = filepath.Walk(inputPath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.WalkDir(inputPath, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			logrus.Warnf("Skipping path %q due to error. Error: %q", path, err)
 			return nil

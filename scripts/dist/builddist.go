@@ -94,7 +94,7 @@ func findDistDirs() []string {
 	osArchRegex := regexp.MustCompile("^[^-]+-[^-]+$")
 	distDirs := []string{}
 
-	err := filepath.Walk(".", func(path string, finfo os.FileInfo, err error) error {
+	err := filepath.WalkDir(".", func(path string, finfo os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
