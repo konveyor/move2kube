@@ -1,9 +1,8 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Transformer
 metadata:
-  name: Python
+  name: Python-Dockerfile
 spec:
-  class: "Executable"
-  config:
-    directoryDetectCMD: ["./m2kdetect.sh"]
-    platforms: ["linux", "darwin"]
+  mode: "Container"
+  class: "PythonDockerfileGenerator"
+

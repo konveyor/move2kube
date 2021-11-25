@@ -90,6 +90,40 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 	return files, nil
 }
 
+// GetFilesByExtInCurrDir returns the files present in current directory which have one of the specified extensions
+func GetFilesByExtInCurrDir(inputPath string, exts []string) ([]string, error) {
+	var files []string
+	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
+		logrus.Warnf("Error in walking through files due to : %q", err)
+		return nil, err
+	} else if !info.IsDir() {
+		fext := filepath.Ext(inputPath)
+		for _, ext := range exts {
+			if fext == ext {
+				return []string{inputPath}, nil
+			}
+		}
+		return []string{}, nil
+	}
+	dirEntries, err := os.ReadDir(inputPath)
+	if err != nil {
+		logrus.Warnf("Error while trying to read directory : %s", err)
+		return []string{}, err
+	}
+	for _, de := range dirEntries {
+		if de.IsDir() {
+			continue
+		}
+		fext := filepath.Ext(de.Name())
+		for _, ext := range exts {
+			if fext == ext {
+				files = append(files, filepath.Join(inputPath, de.Name()))
+			}
+		}
+	}
+	return files, nil
+}
+
 //GetFilesByName returns files by name
 func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]string, error) {
 	var files []string
