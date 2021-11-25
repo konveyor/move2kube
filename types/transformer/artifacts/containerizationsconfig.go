@@ -19,10 +19,11 @@ package artifacts
 import transformertypes "github.com/konveyor/move2kube/types/transformer"
 
 const (
-	// ContainerizationOptionsC represents the image push script path type
+	// ContainerizationOptionsConfigType represents containerization options config type
 	ContainerizationOptionsConfigType transformertypes.ConfigType = "ContainerizationOptions"
 )
 
+// ContainerizationOptionsConfig stores the containerization options config
 type ContainerizationOptionsConfig struct {
 	ContainerizationOptions []string `yaml:"containerizationOptions,omitempty" json:"containerizationOptions,omitempty"`
 }
