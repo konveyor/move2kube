@@ -20,7 +20,7 @@ RUN pip install -r {{ .RequirementsTxt }}
 {{- end }}
 EXPOSE {{ .Port }}
 {{- if .IsDjangoProject }}
-CMD ["python", "{{ .MainScriptRelPath }}", "runserver", "0.0.0.0:{{ .Port }}"]
+CMD ["python", "{{ .StartingScriptRelPath }}", "runserver", "0.0.0.0:{{ .Port }}"]
 {{- else}}
-CMD ["python", "{{ .MainScriptRelPath }}"]
+CMD ["python", "{{ .StartingScriptRelPath }}"]
 {{- end }}

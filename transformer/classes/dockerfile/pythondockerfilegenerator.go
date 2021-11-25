@@ -17,9 +17,12 @@
 package dockerfile
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
@@ -43,8 +46,10 @@ const (
 	RequirementsTxtPathType transformertypes.PathType = "RequirementsTxtPathType"
 	// DjangoProjectConfigType is set to true for Django projects
 	DjangoProjectConfigType transformertypes.ConfigType = "DjangoProjectConfigType"
-	// MainPythonFilesPathType points to the .py file path which contains main function
+	// MainPythonFilesPathType points to the .py files path which contain main function
 	MainPythonFilesPathType transformertypes.PathType = "MainPythonFilesPathType"
+	// PythonFilesPathType points to the .py files path
+	PythonFilesPathType transformertypes.PathType = "PythonFilesPathType"
 )
 
 // PythonDockerfileGenerator implements the Transformer interface
@@ -55,12 +60,16 @@ type PythonDockerfileGenerator struct {
 
 // PythonTemplateConfig implements python config interface
 type PythonTemplateConfig struct {
-	AppName           string
-	Port              int32
-	MainScriptRelPath string
-	RequirementsTxt   string
-	IsDjangoProject   bool
+	AppName               string
+	Port                  int32
+	StartingScriptRelPath string
+	RequirementsTxt       string
+	IsDjangoProject       bool
 }
+
+var (
+	pythonMainRegex = regexp.MustCompile(`^if\s*__name__\s*==\s*['"]__main__['"]\s*.$`)
+)
 
 // Init Initializes the transformer
 func (t *PythonDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
@@ -81,11 +90,14 @@ func findMainScripts(pythonFilesPath []string) ([]string, error) {
 	}
 	var pythonMainFiles []string
 	for _, pythonFilePath := range pythonFilesPath {
-		pythonFile, err := ioutil.ReadFile(pythonFilePath)
+		pythonFile, err := os.Open(pythonFilePath)
 		if err != nil {
-			logrus.Warnf("Error in reading python file %s: %s.", pythonFilePath, err)
-		} else {
-			if strings.Contains(string(pythonFile), pythonMain1) || strings.Contains(string(pythonFile), pythonMain2) {
+			logrus.Debugf("Failed to open the file %s", pythonFilePath)
+		}
+		scanner := bufio.NewScanner(pythonFile)
+		scanner.Split(bufio.ScanLines)
+		for scanner.Scan() {
+			if pythonMainRegex.MatchString(scanner.Text()) {
 				pythonMainFiles = append(pythonMainFiles, pythonFilePath)
 			}
 		}
@@ -117,25 +129,32 @@ func getMainPythonFileForService(mainPythonFilesPath []string, baseDir string, s
 	return qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigMainPythonFileForServiceKeySegment, fmt.Sprintf("Select the main file to be used for the service %s :", serviceName), []string{fmt.Sprintf("Selected main file will be used for the service %s", serviceName)}, mainPythonFilesRelPath[0], mainPythonFilesRelPath)
 }
 
+// getStartingPythonFileForService returns the starting python file used by a service
+func getStartingPythonFileForService(pythonFilesPath []string, baseDir string, serviceName string) string {
+	var pythonFilesRelPath []string
+	for _, pythonFilePath := range pythonFilesPath {
+		if pythonFileRelPath, err := filepath.Rel(baseDir, pythonFilePath); err == nil {
+			pythonFilesRelPath = append(pythonFilesRelPath, pythonFileRelPath)
+		}
+	}
+	return qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigStartingPythonFileForServiceKeySegment, fmt.Sprintf("Select the python file to be used for the service %s :", serviceName), []string{fmt.Sprintf("Selected python file will be used for starting the service %s", serviceName)}, pythonFilesRelPath[0], pythonFilesRelPath)
+}
+
 // DirectoryDetect runs detect in each sub directory
 func (t *PythonDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	pythonFiles, err := common.GetFilesByExtInCurrDir(dir, []string{pythonExt})
+	pythonFilesPath, err := common.GetFilesByExtInCurrDir(dir, []string{pythonExt})
 	if err != nil {
 		logrus.Errorf("Error while finding python files %s", err)
 		return nil, nil
 	}
-	if len(pythonFiles) == 0 {
+	if len(pythonFilesPath) == 0 {
 		return nil, nil
 	}
-	mainPythonFilesPath, err := findMainScripts(pythonFiles)
-	if err != nil {
-		return nil, err
-	}
-	if len(mainPythonFilesPath) != 0 {
+	mainPythonFilesPath, err := findMainScripts(pythonFilesPath)
+	if err == nil || len(pythonFilesPath) > 0 {
 		var serviceName, requirementsTxtPath string
 		var isDjangoProject bool
-		var detectedPorts []int32
-		detectedPorts = append(detectedPorts, 8080) //TODO: Write parser to parse and identify port
+		detectedPorts := []int32{8080} //TODO: Write parser to parse and identify port
 		requirementsTxtFiles, err := common.GetFilesInCurrentDirectory(dir, []string{requirementsTxtFile}, nil)
 		if err != nil {
 			logrus.Debugf("Cannot get the requirements.txt file: %s", err)
@@ -149,6 +168,7 @@ func (t *PythonDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 				Paths: map[string][]string{
 					artifacts.ProjectPathPathType: {dir},
 					MainPythonFilesPathType:       mainPythonFilesPath,
+					PythonFilesPathType:           pythonFilesPath,
 					RequirementsTxtPathType:       {requirementsTxtPath},
 				}, Configs: map[string]interface{}{
 					DjangoProjectConfigType: isDjangoProject,
@@ -169,7 +189,6 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
-			continue
 		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
@@ -183,7 +202,11 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
 		var pythonConfig PythonTemplateConfig
-		pythonConfig.MainScriptRelPath = getMainPythonFileForService(a.Paths[MainPythonFilesPathType], a.Paths[artifacts.ProjectPathPathType][0], a.Name)
+		if len(a.Paths[MainPythonFilesPathType]) > 0 {
+			pythonConfig.StartingScriptRelPath = getMainPythonFileForService(a.Paths[MainPythonFilesPathType], a.Paths[artifacts.ProjectPathPathType][0], a.Name)
+		} else {
+			pythonConfig.StartingScriptRelPath = getStartingPythonFileForService(a.Paths[PythonFilesPathType], a.Paths[artifacts.ProjectPathPathType][0], a.Name)
+		}
 		pythonConfig.AppName = a.Name
 		if IsDjangoProject, ok := a.Configs[DjangoProjectConfigType]; ok {
 			pythonConfig.IsDjangoProject = IsDjangoProject.(bool)

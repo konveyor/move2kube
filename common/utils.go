@@ -105,24 +105,19 @@ func GetFilesByExtInCurrDir(inputPath string, exts []string) ([]string, error) {
 		}
 		return []string{}, nil
 	}
-	dirhandle, err := os.Open(inputPath)
+	dirEntries, err := os.ReadDir(inputPath)
 	if err != nil {
-		logrus.Warnf("Error in accessing %s due to %s", inputPath, err)
+		logrus.Warnf("Error while trying to read directory : %s", err)
 		return []string{}, err
 	}
-	defer dirhandle.Close()
-	currDirFiles, err := dirhandle.Readdir(-1)
-	if err != nil {
-		logrus.Warnf("Error while reading the directory: %s", err)
-		return []string{}, err
-	}
-	for _, currDirFile := range currDirFiles {
-		if currDirFile.Mode().IsRegular() {
-			fext := filepath.Ext(currDirFile.Name())
-			for _, ext := range exts {
-				if fext == ext {
-					files = append(files, filepath.Join(inputPath, currDirFile.Name()))
-				}
+	for _, de := range dirEntries {
+		if de.IsDir() {
+			continue
+		}
+		fext := filepath.Ext(de.Name())
+		for _, ext := range exts {
+			if fext == ext {
+				files = append(files, filepath.Join(inputPath, de.Name()))
 			}
 		}
 	}
