@@ -31,12 +31,7 @@
 "inbuilt/transformers/dockerfile/dockerimagebuildscript/dockerfilebuildscriptgenerator.yaml" : 0644
 "inbuilt/transformers/dockerfile/dockerimagebuildscript/templates/builddockerimages.bat" : 0755
 "inbuilt/transformers/dockerfile/dockerimagebuildscript/templates/builddockerimages.sh" : 0755
-"inbuilt/transformers/dockerfile/python/python.yaml" : 0644
-"inbuilt/transformers/dockerfile/python/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/common/Dockerfile.license" : 0644
-"inbuilt/transformers/dockerfilegenerator/django/django.yaml" : 0644
-"inbuilt/transformers/dockerfilegenerator/django/m2kdetect.sh" : 0755
-"inbuilt/transformers/dockerfilegenerator/django/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/dotnet5/dotnet5.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/dotnet5/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/golang/golang.yaml" : 0644
@@ -52,7 +47,6 @@
 "inbuilt/transformers/dockerfilegenerator/nodejs/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/php/php.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/php/templates/Dockerfile" : 0644
-"inbuilt/transformers/dockerfilegenerator/python/m2kdetect.sh" : 0755
 "inbuilt/transformers/dockerfilegenerator/python/python.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/python/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/ruby/ruby.yaml" : 0644
