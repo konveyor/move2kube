@@ -1,0 +1,10 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: Nodejs-Dockerfile
+  labels: 
+    type: containerizer
+spec:
+  class: "NodejsDockerfileGenerator"
+  config:
+    defaultNodejsVersion: "12"

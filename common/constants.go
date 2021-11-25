@@ -88,6 +88,8 @@ const (
 	ConfigMainPythonFileForServiceKeySegment = "pythonmainfile"
 	//ConfigStartingPythonFileForServiceKeySegment represents the starting python file used for service
 	ConfigStartingPythonFileForServiceKeySegment = "pythonstartingfile"
+	//ConfigContainerizationOptionServiceKeySegment represents containerization option to use
+	ConfigContainerizationOptionServiceKeySegment = "containerizationoption"
 	//ConfigApacheConfFileForServiceKeySegment represents the conf file used for service
 	ConfigApacheConfFileForServiceKeySegment = "apacheconfig"
 	//ConfigSpawnContainersKey represents spwan containers option Key

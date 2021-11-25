@@ -41,6 +41,8 @@ type TypeMeta struct {
 type ObjectMeta struct {
 	// Name represents the name of the resource
 	Name string `yaml:"name,omitempty"`
+	// Labels are Map of string keys and values that can be used to organize and categorize (scope and select) objects.
+	Labels map[string]string `yaml:"labels,omitempty"`
 }
 
 // Kind stores the kind of the file

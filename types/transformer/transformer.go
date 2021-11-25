@@ -47,7 +47,6 @@ type Transformer struct {
 // TransformerSpec stores the data
 type TransformerSpec struct {
 	FilePath           string                              `yaml:"-"`
-	Mode               Mode                                `yaml:"mode"`
 	Class              string                              `yaml:"class"`
 	DirectoryDetect    DirectoryDetect                     `yaml:"directoryDetect"`
 	ExternalFiles      map[string]string                   `yaml:"externalFiles"` // [source]destination

@@ -25,15 +25,14 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/qaengine"
-	transformer "github.com/konveyor/move2kube/transformer/classes"
-	"github.com/konveyor/move2kube/transformer/classes/cloudfoundry"
-	"github.com/konveyor/move2kube/transformer/classes/compose"
-	"github.com/konveyor/move2kube/transformer/classes/container"
-	"github.com/konveyor/move2kube/transformer/classes/dockerfile"
-	"github.com/konveyor/move2kube/transformer/classes/dockerfile/java"
-	"github.com/konveyor/move2kube/transformer/classes/dockerfile/windows"
-	"github.com/konveyor/move2kube/transformer/classes/external"
-	"github.com/konveyor/move2kube/transformer/classes/kubernetes"
+	"github.com/konveyor/move2kube/transformer/compose"
+	"github.com/konveyor/move2kube/transformer/containerimage"
+	"github.com/konveyor/move2kube/transformer/dockerfile"
+	"github.com/konveyor/move2kube/transformer/dockerfilegenerator"
+	"github.com/konveyor/move2kube/transformer/dockerfilegenerator/java"
+	"github.com/konveyor/move2kube/transformer/dockerfilegenerator/windows"
+	"github.com/konveyor/move2kube/transformer/external"
+	"github.com/konveyor/move2kube/transformer/kubernetes"
 	collectiontypes "github.com/konveyor/move2kube/types/collection"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -65,12 +64,12 @@ func init() {
 		new(dockerfile.DockerfileDetector),
 		new(dockerfile.DockerfileParser),
 		new(dockerfile.DockerfileImageBuildScript),
-		new(dockerfile.NodejsDockerfileGenerator),
-		new(dockerfile.GolangDockerfileGenerator),
-		new(dockerfile.PHPDockerfileGenerator),
-		new(dockerfile.RubyDockerfileGenerator),
-		new(dockerfile.PythonDockerfileGenerator),
-		new(dockerfile.DotNet5DockerfileGenerator),
+		new(dockerfilegenerator.NodejsDockerfileGenerator),
+		new(dockerfilegenerator.GolangDockerfileGenerator),
+		new(dockerfilegenerator.PHPDockerfileGenerator),
+		new(dockerfilegenerator.PythonDockerfileGenerator),
+		new(dockerfilegenerator.RubyDockerfileGenerator),
+		new(dockerfilegenerator.DotNet5DockerfileGenerator),
 		new(java.JarAnalyser),
 		new(java.MavenAnalyser),
 		new(java.ZuulAnalyser),
@@ -82,10 +81,10 @@ func init() {
 		new(compose.ComposeAnalyser),
 		new(compose.ComposeGenerator),
 
-		new(cloudfoundry.CloudFoundry),
+		new(CloudFoundry),
 
-		new(container.ContainerImagesPushScript),
-		new(container.ContainerImagesBuildScript),
+		new(containerimage.ContainerImagesPushScript),
+		new(containerimage.ContainerImagesBuildScript),
 
 		new(kubernetes.Kubernetes),
 		new(kubernetes.Knative),
@@ -93,7 +92,7 @@ func init() {
 		new(kubernetes.BuildConfig),
 		new(kubernetes.Parameterizer),
 
-		new(transformer.ReadMeGenerator),
+		new(ReadMeGenerator),
 	}
 	transformerTypes = common.GetTypesMap(transformerObjs)
 }
