@@ -219,7 +219,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			containerizationOption := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment, fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName), []string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)}, cConfig.ContainerizationOptions[0], cConfig.ContainerizationOptions)
 			containerizationArtifact := getContainerizationConfig(a.Paths[artifacts.ProjectPathPathType], a.Paths[artifacts.BuildArtifactPathType], containerizationOption)
 			if containerizationArtifact.Artifact == "" {
-				logrus.Errorf("No containerization option found for service %s")
+				logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)
 			} else {
 				containerizationArtifact.Name = sConfig.ServiceName
 				if containerizationArtifact.Configs == nil {
