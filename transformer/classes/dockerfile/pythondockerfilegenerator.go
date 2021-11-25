@@ -36,16 +36,12 @@ import (
 
 const (
 	pythonExt           = ".py"
-	pythonMain1         = "__name__ == '__main__'"
-	pythonMain2         = "__name__ == \"__main__\""
 	django              = "django"
 	requirementsTxtFile = "requirements.txt"
-	//DetectedPortsConfigType contains the detected ports
-	DetectedPortsConfigType transformertypes.ConfigType = "DetectedPortsConfigType"
 	//RequirementsTxtPathType points to the requirements.txt file if it's present
 	RequirementsTxtPathType transformertypes.PathType = "RequirementsTxtPathType"
-	// DjangoProjectConfigType is set to true for Django projects
-	DjangoProjectConfigType transformertypes.ConfigType = "DjangoProjectConfigType"
+	// PythonProjectConfigType points to python config
+	PythonProjectConfigType transformertypes.ConfigType = "PythonConfig"
 	// MainPythonFilesPathType points to the .py files path which contain main function
 	MainPythonFilesPathType transformertypes.PathType = "MainPythonFilesPathType"
 	// PythonFilesPathType points to the .py files path
@@ -67,8 +63,14 @@ type PythonTemplateConfig struct {
 	IsDjangoProject       bool
 }
 
+// PythonConfig implements python config interface
+type PythonConfig struct {
+	Ports           []int32 `json:"Ports" yaml:"Ports"`
+	IsDjangoProject bool    `json:"IsDjangoProject" yaml:"IsDjangoProject"`
+}
+
 var (
-	pythonMainRegex = regexp.MustCompile(`^if\s*__name__\s*==\s*['"]__main__['"]\s*.$`)
+	pythonMainRegex = regexp.MustCompile(`^if\s+__name__\s*==\s*['"]__main__['"]\s*:\s+$`)
 )
 
 // Init Initializes the transformer
@@ -163,18 +165,23 @@ func (t *PythonDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 			requirementsTxtPath = requirementsTxtFiles[0]
 			isDjangoProject = findDjangoDependency(requirementsTxtFiles[0])
 		}
-		services = map[string][]transformertypes.Artifact{
-			serviceName: {{
-				Paths: map[string][]string{
-					artifacts.ProjectPathPathType: {dir},
-					MainPythonFilesPathType:       mainPythonFilesPath,
-					PythonFilesPathType:           pythonFilesPath,
-					RequirementsTxtPathType:       {requirementsTxtPath},
-				}, Configs: map[string]interface{}{
-					DjangoProjectConfigType: isDjangoProject,
-					DetectedPortsConfigType: detectedPorts,
+		pythonService := transformertypes.Artifact{
+			Paths: map[string][]string{
+				artifacts.ProjectPathPathType: {dir},
+				MainPythonFilesPathType:       mainPythonFilesPath,
+				PythonFilesPathType:           pythonFilesPath,
+			}, Configs: map[string]interface{}{
+				PythonProjectConfigType: PythonConfig{
+					IsDjangoProject: isDjangoProject,
+					Ports:           detectedPorts,
 				},
-			}},
+			},
+		}
+		if requirementsTxtPath != "" {
+			pythonService.Paths[RequirementsTxtPathType] = []string{requirementsTxtPath}
+		}
+		services = map[string][]transformertypes.Artifact{
+			serviceName: {pythonService},
 		}
 		return services, nil
 	}
@@ -201,19 +208,22 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
-		var pythonConfig PythonTemplateConfig
+		var pythonTemplateConfig PythonTemplateConfig
 		if len(a.Paths[MainPythonFilesPathType]) > 0 {
-			pythonConfig.StartingScriptRelPath = getMainPythonFileForService(a.Paths[MainPythonFilesPathType], a.Paths[artifacts.ProjectPathPathType][0], a.Name)
+			pythonTemplateConfig.StartingScriptRelPath = getMainPythonFileForService(a.Paths[MainPythonFilesPathType], a.Paths[artifacts.ProjectPathPathType][0], a.Name)
 		} else {
-			pythonConfig.StartingScriptRelPath = getStartingPythonFileForService(a.Paths[PythonFilesPathType], a.Paths[artifacts.ProjectPathPathType][0], a.Name)
+			pythonTemplateConfig.StartingScriptRelPath = getStartingPythonFileForService(a.Paths[PythonFilesPathType], a.Paths[artifacts.ProjectPathPathType][0], a.Name)
 		}
-		pythonConfig.AppName = a.Name
-		if IsDjangoProject, ok := a.Configs[DjangoProjectConfigType]; ok {
-			pythonConfig.IsDjangoProject = IsDjangoProject.(bool)
+		pythonTemplateConfig.AppName = a.Name
+		var pythonConfig PythonConfig
+		err = a.GetConfig(PythonProjectConfigType, &pythonConfig)
+		if err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
-		pythonConfig.Port = commonqa.GetPortForService(a.Configs[DetectedPortsConfigType].([]int32), a.Name)
+		pythonTemplateConfig.IsDjangoProject = pythonConfig.IsDjangoProject
+		pythonTemplateConfig.Port = commonqa.GetPortForService(pythonConfig.Ports, a.Name)
 		if requirementsTxt, err := filepath.Rel(a.Paths[artifacts.ProjectPathPathType][0], a.Paths[RequirementsTxtPathType][0]); err == nil {
-			pythonConfig.RequirementsTxt = requirementsTxt
+			pythonTemplateConfig.RequirementsTxt = requirementsTxt
 		}
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
@@ -225,7 +235,7 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			Type:           transformertypes.TemplatePathMappingType,
 			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
-			TemplateConfig: pythonConfig,
+			TemplateConfig: pythonTemplateConfig,
 		})
 		paths := a.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
