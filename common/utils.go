@@ -885,7 +885,7 @@ func removeDollarPrefixFromHiddenDir(name string) string {
 // CopyFile copies a file from src to dst.
 // The dst file will be truncated if it exists.
 // Returns an error if it failed to copy all the bytes.
-func CopyFile(src, dst string) error {
+func CopyFile(dst, src string) error {
 	srcfile, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("failed to open the source file at path %q Error: %q", src, err)

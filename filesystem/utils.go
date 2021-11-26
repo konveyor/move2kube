@@ -25,8 +25,8 @@ import (
 )
 
 // Copies file and sets mod time
-func copyFile(sf, df string, modTime time.Time) error {
-	err := common.CopyFile(sf, df)
+func copyFile(df, sf string, modTime time.Time) error {
+	err := common.CopyFile(df, sf)
 	if err != nil {
 		logrus.Errorf("Unable to copy file %s to %s : %s", sf, df, err)
 		return err
