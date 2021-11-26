@@ -45,7 +45,7 @@ func replicateProcessFileCallBack(sourceFilePath, destinationFilePath string, co
 			return nil
 		}
 	}
-	return copyFile(sourceFilePath, destinationFilePath)
+	return copyFile(destinationFilePath, sourceFilePath, si.ModTime())
 }
 
 func replicateAdditionCallBack(source, destination string, config interface{}) error {

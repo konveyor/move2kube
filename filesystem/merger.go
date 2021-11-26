@@ -51,7 +51,7 @@ func mergeProcessFileCallBack(sourceFilePath, destinationFilePath string, config
 			logrus.Debugf("Overwriting file : %s with %s", destinationFilePath, sourceFilePath)
 		}
 	}
-	return copyFile(sourceFilePath, destinationFilePath)
+	return copyFile(destinationFilePath, sourceFilePath, si.ModTime())
 }
 
 func mergeAdditionCallBack(source, destination string, config interface{}) error {
