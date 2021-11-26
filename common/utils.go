@@ -186,12 +186,25 @@ func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]s
 // GetFilesInCurrentDirectory returns the name of the file present in the current directory which matches the pattern
 func GetFilesInCurrentDirectory(path string, fileNames, fileNameRegexes []string) (files []string, err error) {
 	files = []string{}
-	dirhandle, err := os.Open(path)
-	if err != nil {
-		logrus.Errorf("Unable to open directory: %s", err)
+	currFileNames := []string{}
+	if info, err := os.Stat(path); os.IsNotExist(err) {
+		logrus.Warnf("Error in walking through files due to : %q", err)
 		return nil, err
+	} else if !info.IsDir() {
+		currFileNames = append(currFileNames, path)
+	} else {
+		dirhandle, err := os.Open(path)
+		if err != nil {
+			logrus.Errorf("Unable to open directory: %s", err)
+			return nil, err
+		}
+		defer dirhandle.Close()
+		currFileNames, err = dirhandle.Readdirnames(0) // 0 to read all files and folders
+		if err != nil {
+			logrus.Errorf("Unable to read dir names in %s : %s", path, err)
+			return nil, err
+		}
 	}
-	defer dirhandle.Close()
 	compiledNameRegexes := []*regexp.Regexp{}
 	for _, nameRegex := range fileNameRegexes {
 		compiledNameRegex, err := regexp.Compile(nameRegex)
@@ -201,20 +214,15 @@ func GetFilesInCurrentDirectory(path string, fileNames, fileNameRegexes []string
 		}
 		compiledNameRegexes = append(compiledNameRegexes, compiledNameRegex)
 	}
-	currFileNames, err := dirhandle.Readdirnames(0) // 0 to read all files and folders
-	if err != nil {
-		logrus.Errorf("Unable to read dir names in %s : %s", path, err)
-		return nil, err
-	}
-	for _, fname := range currFileNames {
+	for _, fName := range currFileNames {
 		for _, name := range fileNames {
-			if name == fname {
-				files = append(files, filepath.Join(path, fname))
+			if name == fName {
+				files = append(files, filepath.Join(path, fName))
 			}
 		}
 		for _, compiledNameRegex := range compiledNameRegexes {
-			if compiledNameRegex.MatchString(fname) {
-				files = append(files, filepath.Join(path, fname))
+			if compiledNameRegex.MatchString(fName) {
+				files = append(files, filepath.Join(path, fName))
 			}
 		}
 	}

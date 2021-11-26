@@ -377,12 +377,12 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 				Artifact: artifacts.JarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.JarConfigType: artifacts.JarArtifactConfig{
-						DeploymentFile:              deploymentFileName + ".jar",
-						JavaVersion:                 javaVersion,
-						DeploymentFileDir:           filepath.Join(defaultAppPathInContainer, "target"),
-						IsDeploymentFileInContainer: true,
-						EnvVariables:                envVariablesMap,
-						Port:                        common.DefaultServicePort,
+						DeploymentFile:                    deploymentFileName + ".jar",
+						JavaVersion:                       javaVersion,
+						BuildContainerName:                common.DefaultBuildContainerName,
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						EnvVariables:                      envVariablesMap,
+						Port:                              common.DefaultServicePort,
 					},
 				},
 			}
