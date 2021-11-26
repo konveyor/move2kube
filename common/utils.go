@@ -891,11 +891,6 @@ func CopyFile(dst, src string) error {
 		return fmt.Errorf("failed to open the source file at path %q Error: %q", src, err)
 	}
 	defer srcfile.Close()
-	err = os.MkdirAll(filepath.Dir(dst), DefaultDirectoryPermission)
-	if err != nil {
-		logrus.Errorf("Unable to make dir for %s : %s", filepath.Dir(dst), err)
-		return err
-	}
 	srcfileinfo, err := srcfile.Stat()
 	if err != nil {
 		return fmt.Errorf("failed to get size of the source file at path %q Error: %q", src, err)

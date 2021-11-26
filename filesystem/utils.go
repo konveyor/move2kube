@@ -18,6 +18,7 @@ package filesystem
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/konveyor/move2kube/common"
@@ -26,7 +27,12 @@ import (
 
 // Copies file and sets mod time
 func copyFile(df, sf string, modTime time.Time) error {
-	err := common.CopyFile(df, sf)
+	err := os.MkdirAll(filepath.Dir(df), common.DefaultDirectoryPermission)
+	if err != nil {
+		logrus.Errorf("Unable to make dir for %s : %s", filepath.Dir(df), err)
+		return err
+	}
+	err = common.CopyFile(df, sf)
 	if err != nil {
 		logrus.Errorf("Unable to copy file %s to %s : %s", sf, df, err)
 		return err
