@@ -19,7 +19,6 @@ package main
 import (
 	"io"
 	"os"
-	"syscall"
 
 	"github.com/konveyor/move2kube/assets"
 	"github.com/konveyor/move2kube/common"
@@ -31,8 +30,6 @@ import (
 func main() {
 	loglevel := logrus.InfoLevel.String()
 	logFile := ""
-	logrus.Debug("setting umask to 0 for this process")
-	syscall.Umask(0)
 
 	// RootCmd root level flags and commands
 	rootCmd := &cobra.Command{
