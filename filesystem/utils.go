@@ -18,38 +18,20 @@ package filesystem
 
 import (
 	"os"
-	"path/filepath"
+	"time"
 
+	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 )
 
-func copyFile(sf, df string) error {
-	si, err := os.Stat(sf)
+// Copies file and sets mod time
+func copyFile(sf, df string, modTime time.Time) error {
+	err := common.CopyFile(sf, df)
 	if err != nil {
-		logrus.Errorf("Unable to stat file %s : %s", sf, err)
+		logrus.Errorf("Unable to copy file %s to %s : %s", sf, df, err)
 		return err
 	}
-	sdi, err := os.Stat(filepath.Dir(sf))
-	if err != nil {
-		logrus.Errorf("Unable to stat parent dir of %s : %s", sf, err)
-		return err
-	}
-	err = os.MkdirAll(filepath.Dir(df), sdi.Mode())
-	if err != nil {
-		logrus.Errorf("Unable to make dir %s : %s", filepath.Dir(df), err)
-		return err
-	}
-	sbytes, err := os.ReadFile(sf)
-	if err != nil {
-		logrus.Errorf("Unable to read file %s : %s", sf, err)
-		return err
-	}
-	err = os.WriteFile(df, sbytes, si.Mode())
-	if err != nil {
-		logrus.Errorf("Unable to write file %s : %s", df, err)
-		return err
-	}
-	err = os.Chtimes(df, si.ModTime(), si.ModTime())
+	err = os.Chtimes(df, modTime, modTime)
 	if err != nil {
 		logrus.Errorf("Unable to change timestamp for file %s : %s", df, err)
 		return err

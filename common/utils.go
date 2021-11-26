@@ -885,25 +885,27 @@ func removeDollarPrefixFromHiddenDir(name string) string {
 // CopyFile copies a file from src to dst.
 // The dst file will be truncated if it exists.
 // Returns an error if it failed to copy all the bytes.
-func CopyFile(dst, src string) error {
+func CopyFile(src, dst string) error {
 	srcfile, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("failed to open the source file at path %q Error: %q", src, err)
 	}
 	defer srcfile.Close()
-
+	err = os.MkdirAll(filepath.Dir(dst), DefaultDirectoryPermission)
+	if err != nil {
+		logrus.Errorf("Unable to make dir for %s : %s", filepath.Dir(dst), err)
+		return err
+	}
 	srcfileinfo, err := srcfile.Stat()
 	if err != nil {
 		return fmt.Errorf("failed to get size of the source file at path %q Error: %q", src, err)
 	}
 	srcfilesize := srcfileinfo.Size()
-
-	dstfile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, DefaultFilePermission)
+	dstfile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, srcfileinfo.Mode())
 	if err != nil {
 		return fmt.Errorf("failed to create the destination file at path %q Error: %q", dst, err)
 	}
 	defer dstfile.Close()
-
 	written, err := io.Copy(dstfile, srcfile)
 	if written != srcfilesize {
 		return fmt.Errorf("failed to copy all the bytes from source %q to destination %q. %d out of %d bytes written. Error: %v", src, dst, written, srcfilesize, err)
@@ -911,7 +913,6 @@ func CopyFile(dst, src string) error {
 	if err != nil {
 		return fmt.Errorf("failed to copy from source %q to destination %q. Error: %q", src, dst, err)
 	}
-
 	return dstfile.Close()
 }
 

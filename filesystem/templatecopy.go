@@ -55,6 +55,10 @@ func TemplateCopy(source, destination string, config interface{}) error {
 func templateCopyProcessFileCallBack(sourceFilePath, destinationFilePath string, addOnConfigAsIface interface{}) error {
 	addOnConfig := AddOnConfig{}
 	err := common.GetObjFromInterface(addOnConfigAsIface, &addOnConfig)
+	if err != nil {
+		logrus.Errorf("Unable to get addOnConfig : %s", err)
+		return err
+	}
 	si, err := os.Stat(sourceFilePath)
 	if err != nil {
 		logrus.Errorf("Unable to stat file %s : %s", sourceFilePath, err)
@@ -111,6 +115,10 @@ func templateCopyAdditionCallBack(source, destination string, config interface{}
 func templateCopyDeletionCallBack(source, destination string, addOnConfigAsIface interface{}) error {
 	addOnConfig := AddOnConfig{}
 	err := common.GetObjFromInterface(addOnConfigAsIface, &addOnConfig)
+	if err != nil {
+		logrus.Errorf("Unable to get addOnConfig : %s", err)
+		return err
+	}
 	si, err := os.Stat(source)
 	if err != nil {
 		logrus.Errorf("Unable to stat source-path [%s] while detecting template copy: %s", source, err)

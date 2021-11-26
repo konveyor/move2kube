@@ -71,7 +71,7 @@ func generateDeltaProcessFileCallBack(sourceFilePath, destinationFilePath string
 			logrus.Errorf("Unable to compare files to check if files are same %s and %s. Marking as modification: %s", sourceFilePath, destinationFilePath, err)
 		}
 	}
-	return copyFile(sourceFilePath, modifiedFilePath)
+	return copyFile(sourceFilePath, modifiedFilePath, si.ModTime())
 }
 
 func generateDeltaAdditionCallBack(source, destination string, config interface{}) error {
