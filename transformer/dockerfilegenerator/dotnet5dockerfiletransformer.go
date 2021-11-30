@@ -43,14 +43,14 @@ type DotNet5DockerfileGenerator struct {
 
 const (
 	csproj             = ".csproj"
-	dotNETCore5        = "net5.0"
 	launchSettingsJSON = "launchSettings.json"
 	// CsprojFilePathType points to the .csproj file path
 	CsprojFilePathType transformertypes.PathType = "CsprojFilePath"
 )
 
 var (
-	portRegex = regexp.MustCompile(`[0-9]+`)
+	portRegex          = regexp.MustCompile(`[0-9]+`)
+	dotNetCoreVersions = []string{"net5.0", "netcoreapp2.1", "netstandard2.0"}
 )
 
 // DotNet5TemplateConfig implements Nodejs config interface
@@ -120,7 +120,7 @@ func (t *DotNet5DockerfileGenerator) DirectoryDetect(dir string) (services map[s
 			logrus.Errorf("Could not parse the project file %s", err)
 		}
 		serviceName := strings.TrimSuffix(filepath.Base(csprojFile), filepath.Ext(csprojFile))
-		if configuration.PropertyGroup.TargetFramework == dotNETCore5 {
+		if common.IsStringPresent(dotNetCoreVersions, configuration.PropertyGroup.TargetFramework) {
 			services = map[string][]transformertypes.Artifact{
 				serviceName: {{
 					Paths: map[string][]string{
