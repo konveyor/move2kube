@@ -251,6 +251,8 @@ jobs:
               "move2kube-api",
               "move2kube-operator",
               "move2kube-tests",
+              "move2kube-demos",
+              "move2kube-transformers",
             ];
             const promises = repos.map(repo => github.actions.createWorkflowDispatch({
               owner: context.repo.owner,
