@@ -17,23 +17,29 @@
 package transformer
 
 import (
-	"strings"
-
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 )
 
 // getContainerizationOptions returns possible containerization options for a directory
 func getContainerizationOptions(directory string) []string {
 	options := []string{}
-	for tn, t := range transformers {
+	filters := labels.NewSelector()
+	req, err := labels.NewRequirement("move2kube.konveyor.io/task", selection.Equals, []string{"containerization"})
+	if err != nil {
+		logrus.Errorf("Unable to parse requirement : %s", err)
+	}
+	filters = filters.Add(*req)
+	for tn, t := range GetTransformers() {
 		tc, env := t.GetConfig()
 		env.Reset()
 		if tc.ObjectMeta.Labels == nil {
 			continue
 		}
-		if !strings.EqualFold(tc.ObjectMeta.Labels["type"], "containerizer") {
+		if !filters.Matches(labels.Set(tc.ObjectMeta.Labels)) {
 			continue
 		}
 		newoptions, err := t.DirectoryDetect(directory)
@@ -53,7 +59,7 @@ func getContainerizationOptions(directory string) []string {
 
 // getContainerizationConfig returns possible containerization config for a directory while using a transformer
 func getContainerizationConfig(projectDirectory, buildArtifacts []string, transformerName string) transformertypes.Artifact {
-	t := transformers[transformerName]
+	t := GetTransformers()[transformerName]
 	tc, env := t.GetConfig()
 	env.Reset()
 	newoptions, err := t.DirectoryDetect(projectDirectory[0])

@@ -39,6 +39,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 var (
@@ -98,7 +99,7 @@ func init() {
 }
 
 // Init initializes the transformers
-func Init(assetsPath, sourcePath string, targetCluster collectiontypes.ClusterMetadata, outputPath, projName string) (err error) {
+func Init(assetsPath, sourcePath string, selector labels.Selector, targetCluster collectiontypes.ClusterMetadata, outputPath, projName string) (err error) {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
 		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
@@ -116,35 +117,16 @@ func Init(assetsPath, sourcePath string, targetCluster collectiontypes.ClusterMe
 		}
 		transformerFiles[tc.Name] = filePath
 	}
-	InitTransformers(transformerFiles, targetCluster, sourcePath, outputPath, projName, false)
+	InitTransformers(transformerFiles, selector, targetCluster, sourcePath, outputPath, projName, false)
 	return nil
 }
 
 // InitTransformers initializes a subset of transformers
-func InitTransformers(transformerToInit map[string]string, targetCluster collectiontypes.ClusterMetadata, sourcePath string, outputPath, projName string, warn bool) error {
+func InitTransformers(transformerToInit map[string]string, selector labels.Selector, targetCluster collectiontypes.ClusterMetadata, sourcePath string, outputPath, projName string, logError bool) error {
 	if initialized {
 		return nil
 	}
-	transformerConfigs := map[string]transformertypes.Transformer{}
-	for tn, tfilepath := range transformerToInit {
-		tc, err := getTransformerConfig(tfilepath)
-		if err != nil {
-			if warn {
-				logrus.Errorf("Unable to load %s as Transformer config : %s", tfilepath, err)
-			} else {
-				logrus.Debugf("Unable to load %s as Transformer config : %s", tfilepath, err)
-			}
-			continue
-		}
-		if ot, ok := transformerConfigs[tc.Name]; ok {
-			logrus.Errorf("Found two conflicting transformer Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath, ot.Spec.FilePath)
-		}
-		if _, ok := transformerTypes[tc.Spec.Class]; ok {
-			transformerConfigs[tc.Name] = tc
-			continue
-		}
-		transformerConfigs[tn] = tc
-	}
+	transformerConfigs := getFilteredTransformers(transformerToInit, selector, logError)
 	tns := []string{}
 	for tn := range transformerConfigs {
 		tns = append(tns, tn)

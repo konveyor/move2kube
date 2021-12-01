@@ -33,11 +33,12 @@ import (
 )
 
 type planFlags struct {
-	progressServerPort int
-	planfile           string
-	srcpath            string
-	name               string
-	customizationsPath string
+	progressServerPort  int
+	planfile            string
+	srcpath             string
+	name                string
+	customizationsPath  string
+	transformerSelector string
 	//Configs contains a list of config files
 	configs []string
 	//Configs contains a list of key-value configs
@@ -97,7 +98,7 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	if flags.progressServerPort != 0 {
 		startPlanProgressServer(flags.progressServerPort)
 	}
-	p := lib.CreatePlan(ctx, srcpath, "", customizationsPath, name)
+	p := lib.CreatePlan(ctx, srcpath, "", customizationsPath, flags.transformerSelector, name)
 	if err = plantypes.WritePlan(planfile, p); err != nil {
 		logrus.Errorf("Unable to write plan file (%s) : %s", planfile, err)
 		return
@@ -126,6 +127,7 @@ func getPlanCommand() *cobra.Command {
 	planCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	planCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored.")
 	planCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations")
+	planCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "l", "", "Specify the transformer selector")
 	planCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use")
 	planCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs")
 	planCmd.Flags().IntVar(&flags.progressServerPort, planProgressPortFlag, 0, "Port for the plan progress server. If not provided, the server won't be started.")

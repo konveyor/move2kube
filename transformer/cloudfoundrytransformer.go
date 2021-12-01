@@ -118,9 +118,7 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 			}
 			containerizationOptions := getContainerizationOptions(servicedirectory)
 			if len(containerizationOptions) != 0 {
-				ct.Configs[artifacts.ContainerizationOptionsConfigType] = artifacts.ContainerizationOptionsConfig{
-					ContainerizationOptions: containerizationOptions,
-				}
+				ct.Configs[artifacts.ContainerizationOptionsConfigType] = artifacts.ContainerizationOptionsConfig(containerizationOptions)
 			}
 			_, appinstance := getCfInstanceApp(cfInstanceApps, applicationName)
 			if application.DockerImage != "" || appinstance.Application.DockerImage != "" {
@@ -215,8 +213,8 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, oldAr
 			serviceConfig.Containers = []core.Container{serviceContainer}
 			ir.Services[config.ServiceName] = serviceConfig
 		}
-		if len(cConfig.ContainerizationOptions) != 0 {
-			containerizationOption := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment, fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName), []string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)}, cConfig.ContainerizationOptions[0], cConfig.ContainerizationOptions)
+		if len(cConfig) != 0 {
+			containerizationOption := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment, fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName), []string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)}, cConfig[0], cConfig)
 			containerizationArtifact := getContainerizationConfig(a.Paths[artifacts.ProjectPathPathType], a.Paths[artifacts.BuildArtifactPathType], containerizationOption)
 			if containerizationArtifact.Artifact == "" {
 				logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)

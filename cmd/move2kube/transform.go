@@ -45,7 +45,8 @@ type transformFlags struct {
 	// overwrite lets you overwrite the output directory if it exists
 	overwrite bool
 	// CustomizationsPaths contains the path to the customizations directory
-	customizationsPath string
+	customizationsPath  string
+	transformerSelector string
 }
 
 func transformHandler(cmd *cobra.Command, flags transformFlags) {
@@ -106,7 +107,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
-		p = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.name)
+		p = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.planfile)
 		rootDir := ""
@@ -142,7 +143,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 	}
-	p = lib.CuratePlan(p, flags.outpath)
+	p = lib.CuratePlan(p, flags.outpath, flags.transformerSelector)
 	lib.Transform(ctx, p, flags.outpath)
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
 }
@@ -176,6 +177,7 @@ func getTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use")
 	transformCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs")
 	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored.")
+	transformCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "l", "", "Specify the transformer selector")
 
 	// Advanced options
 	transformCmd.Flags().BoolVar(&flags.ignoreEnv, ignoreEnvFlag, false, "Ignore data from local machine.")

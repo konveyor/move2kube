@@ -26,9 +26,11 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/deepcopy"
+	"github.com/konveyor/move2kube/types"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 func getTransformerConfig(path string) (transformertypes.Transformer, error) {
@@ -43,6 +45,7 @@ func getTransformerConfig(path string) (transformertypes.Transformer, error) {
 		logrus.Debug(err)
 		return tc, err
 	}
+	tc.Labels[types.GroupName+"/name"] = tc.Name
 	return tc, nil
 }
 
@@ -191,4 +194,32 @@ func getNamedAndUnNamedServicesLogMessage(services map[string][]transformertypes
 		nuntransformers -= 1
 	}
 	return fmt.Sprintf("Identified %d namedservices and %d unnamed transformer plans", nnservices, nuntransformers)
+}
+
+func getFilteredTransformers(transformerPaths map[string]string, selector labels.Selector, logError bool) (transformerConfigs map[string]transformertypes.Transformer) {
+	transformerConfigs = map[string]transformertypes.Transformer{}
+	for tn, tfilepath := range transformerPaths {
+		tc, err := getTransformerConfig(tfilepath)
+		if err != nil {
+			if logError {
+				logrus.Errorf("Unable to load %s as Transformer config : %s", tfilepath, err)
+			} else {
+				logrus.Debugf("Unable to load %s as Transformer config : %s", tfilepath, err)
+			}
+			continue
+		}
+		if ot, ok := transformerConfigs[tc.Name]; ok {
+			logrus.Errorf("Found two conflicting transformer Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath, ot.Spec.FilePath)
+		}
+		if !selector.Matches(labels.Set(tc.Labels)) {
+			logrus.Debugf("Ignoring tranformer %s because of filter", tn)
+			continue
+		}
+		if _, ok := transformerTypes[tc.Spec.Class]; ok {
+			transformerConfigs[tc.Name] = tc
+			continue
+		}
+		transformerConfigs[tn] = tc
+	}
+	return transformerConfigs
 }
