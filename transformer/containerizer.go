@@ -28,7 +28,11 @@ import (
 func getContainerizationOptions(directory string) []string {
 	options := []string{}
 	filters := labels.NewSelector()
-	labels.NewRequirement("move2kube.konveyor.io/task", selection.Equals, []string{"containerization"})
+	req, err := labels.NewRequirement("move2kube.konveyor.io/task", selection.Equals, []string{"containerization"})
+	if err != nil {
+		logrus.Errorf("Unable to parse requirement : %s", err)
+	}
+	filters = filters.Add(*req)
 	for tn, t := range GetTransformers() {
 		tc, env := t.GetConfig()
 		env.Reset()

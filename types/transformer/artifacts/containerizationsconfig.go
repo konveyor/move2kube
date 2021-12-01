@@ -24,6 +24,4 @@ const (
 )
 
 // ContainerizationOptionsConfig stores the containerization options config
-type ContainerizationOptionsConfig struct {
-	ContainerizationOptions []string `yaml:"containerizationOptions,omitempty" json:"containerizationOptions,omitempty"`
-}
+type ContainerizationOptionsConfig []string
