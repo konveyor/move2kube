@@ -76,6 +76,8 @@ const (
 	d = Delim // for readability
 	// BaseKey is the prefix for every key
 	BaseKey = types.AppName
+	//TransformerSelectorKey represents transformers selector Key
+	TransformerSelectorKey = BaseKey + d + "transformerselector"
 	//ConfigServicesKey represents Services Key
 	ConfigServicesKey = BaseKey + d + "services"
 	//ConfigStoragesKey represents Storages Key
