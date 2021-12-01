@@ -3,7 +3,7 @@ kind: Transformer
 metadata:
   name: Ruby-Dockerfile
   labels: 
-    move2kube.konveyor.io/task: containerizer
+    move2kube.konveyor.io/task: containerization
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "RubyDockerfileGenerator"

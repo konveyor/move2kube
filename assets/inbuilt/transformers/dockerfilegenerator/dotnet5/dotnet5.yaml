@@ -3,7 +3,7 @@ kind: Transformer
 metadata:
   name: DotNet5-Dockerfile
   labels: 
-    move2kube.konveyor.io/task: containerizer
+    move2kube.konveyor.io/task: containerization
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "DotNet5DockerfileGenerator"

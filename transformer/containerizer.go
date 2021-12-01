@@ -17,23 +17,25 @@
 package transformer
 
 import (
-	"strings"
-
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 )
 
 // getContainerizationOptions returns possible containerization options for a directory
 func getContainerizationOptions(directory string) []string {
 	options := []string{}
+	filters := labels.NewSelector()
+	labels.NewRequirement("move2kube.konveyor.io/task", selection.Equals, []string{"containerization"})
 	for tn, t := range GetTransformers() {
 		tc, env := t.GetConfig()
 		env.Reset()
 		if tc.ObjectMeta.Labels == nil {
 			continue
 		}
-		if !strings.EqualFold(tc.ObjectMeta.Labels["type"], "containerizer") {
+		if !filters.Matches(labels.Set(tc.ObjectMeta.Labels)) {
 			continue
 		}
 		newoptions, err := t.DirectoryDetect(directory)

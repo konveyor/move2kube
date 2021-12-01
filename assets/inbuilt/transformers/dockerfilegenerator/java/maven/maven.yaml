@@ -3,7 +3,7 @@ kind: Transformer
 metadata:
   name: Maven
   labels: 
-    move2kube.konveyor.io/task: containerizer
+    move2kube.konveyor.io/task: containerization
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "MavenAnalyser"

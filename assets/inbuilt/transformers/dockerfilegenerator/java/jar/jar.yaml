@@ -3,7 +3,7 @@ kind: Transformer
 metadata:
   name: Jar
   labels:
-    move2kube.konveyor.io/task: containerizer
+    move2kube.konveyor.io/task: containerization
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "JarAnalyser"
