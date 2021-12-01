@@ -24,7 +24,7 @@
     "format": "prettier --write '**/*.{scss,js,json}'",
     "stylelint-check": "stylelint-config-prettier-check",
     "build": "yarn install && tsc",
-    "bundle": "yarn bin browserify -o assets/js/internalpages/releaseui-bundle.js assets/js/internalpages/releaseui.js",
+    "bundle": "\"$(yarn bin browserify)\" -o assets/js/internalpages/releaseui-bundle.js assets/js/internalpages/releaseui.js",
     "start": "bundle exec jekyll serve",
     "all": "yarn run build && yarn run bundle && yarn run start"
   },
