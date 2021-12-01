@@ -126,6 +126,16 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 	if initialized {
 		return nil
 	}
+	transformerFilterString := qaengine.FetchStringAnswer(common.TransformerSelectorKey, "", []string{"Set the transfor selector config."}, "")
+	if transformerFilterString != "" {
+		transformerFilter, err := common.ConvertStringSelectorsToSelectors(transformerFilterString)
+		if err != nil {
+			logrus.Errorf("Unable to parse transformer filter string : %s", err)
+		} else {
+			reqs, _ := transformerFilter.Requirements()
+			selector = selector.Add(reqs...)
+		}
+	}
 	transformerConfigs := getFilteredTransformers(transformerToInit, selector, logError)
 	tns := []string{}
 	for tn := range transformerConfigs {

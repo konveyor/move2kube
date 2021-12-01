@@ -59,6 +59,7 @@ type Problem struct {
 	Options []string         `yaml:"options,omitempty" json:"options,omitempty"`
 	Default interface{}      `yaml:"default,omitempty" json:"default,omitempty"`
 	Answer  interface{}      `yaml:"answer,omitempty" json:"answer,omitempty"`
+	Silent  bool             `yaml:"silent,omitempty" json:"silent,omitempty"`
 }
 
 // NewProblem creates a new problem object from a GRPC problem
@@ -201,10 +202,14 @@ func NewSelectProblem(probid, desc string, hints []string, def string, opts []st
 		answer = opts[0]
 	}
 	return Problem{
-		ID:    probid,
-		Desc:  desc,
-		Hints: hints,
-		Type:  SelectSolutionFormType, Default: def, Options: opts, Answer: answer,
+		ID:      probid,
+		Desc:    desc,
+		Hints:   hints,
+		Type:    SelectSolutionFormType,
+		Default: def,
+		Options: opts,
+		Answer:  answer,
+		Silent:  desc == "",
 	}, nil
 }
 
@@ -222,6 +227,7 @@ func NewMultiSelectProblem(probid, desc string, hints []string, def []string, op
 		Options: opts,
 		Default: def,
 		Answer:  answer,
+		Silent:  desc == "",
 	}, nil
 }
 
@@ -235,6 +241,7 @@ func NewConfirmProblem(probid, desc string, hints []string, def bool) (Problem, 
 		Options: nil,
 		Default: def,
 		Answer:  nil,
+		Silent:  desc == "",
 	}, nil
 }
 
@@ -248,6 +255,7 @@ func NewInputProblem(probid, desc string, hints []string, def string) (Problem, 
 		Options: nil,
 		Default: def,
 		Answer:  nil,
+		Silent:  desc == "",
 	}, nil
 }
 
@@ -261,6 +269,7 @@ func NewMultilineInputProblem(probid, desc string, hints []string, def string) (
 		Options: nil,
 		Default: def,
 		Answer:  nil,
+		Silent:  desc == "",
 	}, nil
 }
 
@@ -274,5 +283,6 @@ func NewPasswordProblem(probid, desc string, hints []string) (p Problem, err err
 		Options: nil,
 		Default: nil,
 		Answer:  nil,
+		Silent:  desc == "",
 	}, nil
 }

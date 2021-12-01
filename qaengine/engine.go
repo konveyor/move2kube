@@ -33,8 +33,9 @@ type Engine interface {
 }
 
 var (
-	engines     []Engine
-	writeStores []qatypes.Store
+	engines       []Engine
+	writeStores   []qatypes.Store
+	defaultEngine = NewDefaultEngine()
 )
 
 // StartEngine starts the QA Engines
@@ -117,6 +118,9 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	}
 	var err error
 	for _, e := range engines {
+		if prob.Silent && e.IsInteractiveEngine() {
+			return defaultEngine.FetchAnswer(prob)
+		}
 		prob, err = e.FetchAnswer(prob)
 		if err != nil {
 			logrus.Debugf("Error while fetching answer using engine %T Error: %q", e, err)
