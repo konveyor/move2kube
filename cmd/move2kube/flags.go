@@ -42,10 +42,11 @@ const (
 	// overwriteFlag is the name of the flag that lets you overwrite the output directory if it exists
 	overwriteFlag = "overwrite"
 	// customizationsFlag is the path to customizations directory
-	customizationsFlag   = "customizations"
-	qadisablecliFlag     = "qa-disable-cli"
-	qaportFlag           = "qa-port"
-	planProgressPortFlag = "plan-progress-port"
+	customizationsFlag      = "customizations"
+	qadisablecliFlag        = "qa-disable-cli"
+	qaportFlag              = "qa-port"
+	planProgressPortFlag    = "plan-progress-port"
+	transformerSelectorFlag = "transformer-selector"
 )
 
 type qaflags struct {

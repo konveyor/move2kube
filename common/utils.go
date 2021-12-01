@@ -43,6 +43,7 @@ import (
 	"github.com/xrash/smetrics"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -1203,4 +1204,19 @@ func GetTypesMap(typeInstances interface{}) (typesMap map[string]reflect.Type) {
 		typesMap[tn] = t
 	}
 	return typesMap
+}
+
+// ConvertStringSelectorsToSelectors converts selector string to selector object
+func ConvertStringSelectorsToSelectors(transformerSelector string) (labels.Selector, error) {
+	transformerSelectorObj, err := metav1.ParseToLabelSelector(transformerSelector)
+	if err != nil {
+		logrus.Errorf("Unable to parse the transformer selector string : %s", err)
+		return labels.Everything(), err
+	}
+	lblSelector, err := metav1.LabelSelectorAsSelector(transformerSelectorObj)
+	if err != nil {
+		logrus.Errorf("Unable to conver label selector to selector : %s", err)
+		return labels.Everything(), err
+	}
+	return lblSelector, err
 }

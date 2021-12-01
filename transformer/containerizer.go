@@ -27,7 +27,7 @@ import (
 // getContainerizationOptions returns possible containerization options for a directory
 func getContainerizationOptions(directory string) []string {
 	options := []string{}
-	for tn, t := range transformers {
+	for tn, t := range GetTransformers() {
 		tc, env := t.GetConfig()
 		env.Reset()
 		if tc.ObjectMeta.Labels == nil {
@@ -53,7 +53,7 @@ func getContainerizationOptions(directory string) []string {
 
 // getContainerizationConfig returns possible containerization config for a directory while using a transformer
 func getContainerizationConfig(projectDirectory, buildArtifacts []string, transformerName string) transformertypes.Artifact {
-	t := transformers[transformerName]
+	t := GetTransformers()[transformerName]
 	tc, env := t.GetConfig()
 	env.Reset()
 	newoptions, err := t.DirectoryDetect(projectDirectory[0])

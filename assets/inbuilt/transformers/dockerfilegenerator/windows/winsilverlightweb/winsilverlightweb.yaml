@@ -3,6 +3,7 @@ kind: Transformer
 metadata:
   name: WinSLWebApp-Dockerfile
   labels: 
-    type: containerizer
+    move2kube.konveyor.io/task: containerizer
+    move2kube.konveyor.io/inbuilt: true
 spec:
   class: "WinSilverLightWebAppDockerfileGenerator"

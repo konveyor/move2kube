@@ -59,6 +59,7 @@ type Problem struct {
 	Options []string         `yaml:"options,omitempty" json:"options,omitempty"`
 	Default interface{}      `yaml:"default,omitempty" json:"default,omitempty"`
 	Answer  interface{}      `yaml:"answer,omitempty" json:"answer,omitempty"`
+	Silent  bool             `yaml:"silent,omitempty" json:"silent,omitempty"`
 }
 
 // NewProblem creates a new problem object from a GRPC problem

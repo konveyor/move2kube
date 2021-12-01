@@ -26,10 +26,11 @@ import (
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 //CreatePlan creates the plan from all planners
-func CreatePlan(ctx context.Context, inputPath, outputPath string, customizationsPath, prjName string) plantypes.Plan {
+func CreatePlan(ctx context.Context, inputPath, outputPath string, customizationsPath, transformerSelector, prjName string) plantypes.Plan {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	p := plantypes.NewPlan()
 	p.Name = prjName
@@ -53,7 +54,17 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	if err != nil {
 		logrus.Errorf("Unable to load cluster metadata : %s", err)
 	}
-	transformer.Init(common.AssetsPath, inputPath, tc, outputPath, p.Name)
+	transformerSelectorObj, err := metav1.ParseToLabelSelector(transformerSelector)
+	if err != nil {
+		logrus.Errorf("Unable to parse the transformer selector string : %s", err)
+	} else {
+		p.Spec.TransformerSelector = *transformerSelectorObj
+	}
+	lblSelector, err := metav1.LabelSelectorAsSelector(transformerSelectorObj)
+	if err != nil {
+		logrus.Errorf("Unable to conver label selector to selector : %s", err)
+	}
+	transformer.Init(common.AssetsPath, inputPath, lblSelector, tc, outputPath, p.Name)
 	ts := transformer.GetTransformers()
 	for tn, t := range ts {
 		config, _ := t.GetConfig()
@@ -70,7 +81,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 }
 
 // CuratePlan allows curation the plan with the qa engine
-func CuratePlan(p plantypes.Plan, outputPath string) plantypes.Plan {
+func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) plantypes.Plan {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	transformers := []string{}
 	for tn := range p.Spec.Configuration.Transformers {
@@ -101,8 +112,18 @@ func CuratePlan(p plantypes.Plan, outputPath string) plantypes.Plan {
 	if err != nil {
 		logrus.Errorf("Unable to load cluster metadata : %s", err)
 	}
-	transformer.InitTransformers(p.Spec.Configuration.Transformers, tc, p.Spec.RootDir, outputPath, p.Name, true)
-
+	transformerSelectorObj, err := common.ConvertStringSelectorsToSelectors(transformerSelector)
+	if err != nil {
+		logrus.Errorf("Unable to parse the transformer selector string : %s", err)
+	}
+	selectorsInPlan, err := metav1.LabelSelectorAsSelector(&p.Spec.TransformerSelector)
+	if err != nil {
+		logrus.Errorf("Unable to convert label selector to selector : %s", err)
+	} else {
+		requirements, _ := selectorsInPlan.Requirements()
+		transformerSelectorObj = transformerSelectorObj.Add(requirements...)
+	}
+	transformer.InitTransformers(p.Spec.Configuration.Transformers, transformerSelectorObj, tc, p.Spec.RootDir, outputPath, p.Name, true)
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
 	planServices := map[string][]transformertypes.Artifact{}
 	for _, s := range selectedServices {

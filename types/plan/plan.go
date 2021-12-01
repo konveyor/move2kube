@@ -20,6 +20,7 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/types"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PlanKind is kind of plan file
@@ -34,8 +35,9 @@ type Plan struct {
 
 // Spec stores the data about the plan
 type Spec struct {
-	RootDir           string `yaml:"rootDir"`
-	CustomizationsDir string `yaml:"customizationsDir,omitempty"`
+	RootDir             string               `yaml:"rootDir"`
+	CustomizationsDir   string               `yaml:"customizationsDir,omitempty"`
+	TransformerSelector metav1.LabelSelector `yaml:"transformerSelector,omitempty"`
 
 	Services map[string][]transformertypes.Artifact `yaml:"services"` //[servicename]
 

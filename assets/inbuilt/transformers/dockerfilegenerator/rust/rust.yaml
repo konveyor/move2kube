@@ -3,7 +3,8 @@ kind: Transformer
 metadata:
   name: Rust
   labels: 
-    type: containerizer
+    move2kube.konveyor.io/task: containerizer
+    move2kube.konveyor.io/inbuilt: true
 spec:
   class: "Executable"
   config:

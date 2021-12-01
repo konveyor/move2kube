@@ -3,7 +3,8 @@ kind: Transformer
 metadata:
   name: Golang-Dockerfile
   labels: 
-    type: containerizer
+    move2kube.konveyor.io/task: containerizer
+    move2kube.konveyor.io/inbuilt: true
 spec:
   class: "GolangDockerfileGenerator"
   config:
