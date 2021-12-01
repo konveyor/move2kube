@@ -39,7 +39,9 @@ const owner_repos = [
     ['konveyor', 'move2kube-api'],
     ['konveyor', 'move2kube-ui'],
     ['konveyor', 'move2kube-operator'],
-    ['konveyor', 'move2kube-tests']
+    ['konveyor', 'move2kube-tests'],
+    ['konveyor', 'move2kube-demos'],
+    ['konveyor', 'move2kube-transformers'],
 ];
 let PA_TOKEN = '';
 function on_document_ready(fn) {
