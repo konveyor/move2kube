@@ -19,7 +19,6 @@ package windows
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"runtime"
 	"strings"
 
@@ -69,8 +68,7 @@ func parseSolutionFile(inputPath string) ([]string, error) {
 		return nil, fmt.Errorf("could not open the solution file: %s", err)
 	}
 	projectPaths := make([]string, 0)
-	projBlockRegex := regexp.MustCompile(dotnet.ProjBlock)
-	l := projBlockRegex.FindAllStringSubmatch(string(solFileTxt), -1)
+	l := dotnet.ProjBlockRegex.FindAllStringSubmatch(string(solFileTxt), -1)
 	for _, path := range l {
 		if len(path) == 0 {
 			continue

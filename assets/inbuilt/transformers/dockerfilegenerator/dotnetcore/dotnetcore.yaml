@@ -1,0 +1,13 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: DotNetCore-Dockerfile
+  labels:
+    move2kube.konveyor.io/task: containerization
+    move2kube.konveyor.io/inbuilt: true
+spec:
+  class: "DotNetCoreDockerfileGenerator"
+  externalFiles:
+    "./mappings/dotnetcoreversions.yaml" : mappings/dotnetcoreversions.yaml
+  config:
+      defaultDotNetCoreVersion: "5.0"

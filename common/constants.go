@@ -96,6 +96,10 @@ const (
 	ConfigMainPythonFileForServiceKeySegment = "pythonmainfile"
 	//ConfigStartingPythonFileForServiceKeySegment represents the starting python file used for service
 	ConfigStartingPythonFileForServiceKeySegment = "pythonstartingfile"
+	//ConfigCsprojFileForServiceKeySegment represents the csproj file used for service
+	ConfigCsprojFileForServiceKeySegment = "csprojfile"
+	//ConfigPublishProfileForServiceKeySegment represents the publish profile used for service
+	ConfigPublishProfileForServiceKeySegment = "publishprofile"
 	//ConfigContainerizationOptionServiceKeySegment represents containerization option to use
 	ConfigContainerizationOptionServiceKeySegment = "containerizationoption"
 	//ConfigApacheConfFileForServiceKeySegment represents the conf file used for service
@@ -186,7 +190,7 @@ var (
 	// IgnoreEnvironment indicates whether to ignore the current environment or not
 	IgnoreEnvironment = false
 	// DefaultIgnoreDirRegexps specifies directory name regexes that would be ignored
-	DefaultIgnoreDirRegexps = []*regexp.Regexp{regexp.MustCompile("[.].*")}
+	DefaultIgnoreDirRegexps = []*regexp.Regexp{regexp.MustCompile("^[.].*")}
 	// Characters not allowed in a DNS Name
 	disallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
 )
