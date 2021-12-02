@@ -17,6 +17,8 @@
 package transformer
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -185,6 +187,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
 			}
+			// Manifest
 			for varname, value := range application.EnvironmentVariables {
 				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: value})
 			}
@@ -194,6 +197,17 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			} else if cfinstanceapp.Application.Instances != 0 {
 				serviceConfig.Replicas = cfinstanceapp.Application.Instances
 			}
+			if cfinstanceapp.Application.Name != "" {
+				var b bytes.Buffer
+				encoder := json.NewEncoder(&b)
+				if err := encoder.Encode(cfinstanceapp.Environment.SystemEnv["VCAP_SERVICES"]); err != nil {
+					logrus.Error("Error while Encoding object to json in cf transform")
+				} else {
+					vcapValues := string(b.Bytes())
+					serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: "VCAP_SERVICES", Value: strings.TrimSpace(vcapValues)})
+				}
+			}
+			// Runtime
 			for varname, value := range cfinstanceapp.Application.Environment {
 				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)})
 			}
