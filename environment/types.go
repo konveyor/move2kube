@@ -24,6 +24,8 @@ type EnvInfo struct {
 	ProjectName   string
 	TargetCluster collection.ClusterMetadata
 
+	Isolated bool
+
 	Source                string
 	Output                string
 	Context               string

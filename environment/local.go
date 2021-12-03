@@ -47,14 +47,19 @@ func NewLocal(envInfo EnvInfo, grpcQAReceiver net.Addr) (ei EnvironmentInstance,
 		EnvInfo:        envInfo,
 		GRPCQAReceiver: grpcQAReceiver,
 	}
-	local.WorkspaceContext, err = os.MkdirTemp(local.TempPath, types.AppNameShort)
-	if err != nil {
-		logrus.Errorf("Unable to create temp dir : %s", err)
-		return local, err
-	}
-	local.WorkspaceSource, err = os.MkdirTemp(local.TempPath, workspaceDir)
-	if err != nil {
-		logrus.Errorf("Unable to create temp dir : %s", err)
+	if envInfo.Isolated {
+		local.WorkspaceContext, err = os.MkdirTemp(local.TempPath, types.AppNameShort)
+		if err != nil {
+			logrus.Errorf("Unable to create temp dir : %s", err)
+			return local, err
+		}
+		local.WorkspaceSource, err = os.MkdirTemp(local.TempPath, workspaceDir)
+		if err != nil {
+			logrus.Errorf("Unable to create temp dir : %s", err)
+		}
+	} else {
+		local.WorkspaceContext = local.Context
+		local.WorkspaceSource = local.Source
 	}
 
 	local.Reset()
@@ -63,13 +68,15 @@ func NewLocal(envInfo EnvInfo, grpcQAReceiver net.Addr) (ei EnvironmentInstance,
 
 // Reset resets the environment to fresh state
 func (e *Local) Reset() error {
-	if err := filesystem.Replicate(e.Context, e.WorkspaceContext); err != nil {
-		logrus.Errorf("Unable to copy contents to directory %s, %s : %s", e.Context, e.WorkspaceContext, err)
-		return err
-	}
-	if err := filesystem.Replicate(e.Source, e.WorkspaceSource); err != nil {
-		logrus.Errorf("Unable to copy contents to directory %s, %s : %s", e.Source, e.WorkspaceSource, err)
-		return err
+	if e.Isolated {
+		if err := filesystem.Replicate(e.Context, e.WorkspaceContext); err != nil {
+			logrus.Errorf("Unable to copy contents to directory %s, %s : %s", e.Context, e.WorkspaceContext, err)
+			return err
+		}
+		if err := filesystem.Replicate(e.Source, e.WorkspaceSource); err != nil {
+			logrus.Errorf("Unable to copy contents to directory %s, %s : %s", e.Source, e.WorkspaceSource, err)
+			return err
+		}
 	}
 	return nil
 }
@@ -108,13 +115,15 @@ func (e *Local) Exec(cmd environmenttypes.Command) (stdout string, stderr string
 
 // Destroy destroys all artifacts specific to the environment
 func (e *Local) Destroy() error {
-	err := os.RemoveAll(e.WorkspaceSource)
-	if err != nil {
-		logrus.Errorf("Unable to remove directory %s : %s", e.WorkspaceSource, err)
-	}
-	err = os.RemoveAll(e.WorkspaceContext)
-	if err != nil {
-		logrus.Errorf("Unable to remove directory %s : %s", e.WorkspaceContext, err)
+	if e.Isolated {
+		err := os.RemoveAll(e.WorkspaceSource)
+		if err != nil {
+			logrus.Errorf("Unable to remove directory %s : %s", e.WorkspaceSource, err)
+		}
+		err = os.RemoveAll(e.WorkspaceContext)
+		if err != nil {
+			logrus.Errorf("Unable to remove directory %s : %s", e.WorkspaceContext, err)
+		}
 	}
 	return nil
 }
