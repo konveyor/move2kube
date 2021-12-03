@@ -1,0 +1,4 @@
+
+FROM registry.access.redhat.com/jboss-eap-6/eap64-openshift:1.9-32.1604502274
+COPY {{ if .BuildContainerName }}--from=builder {{ .DeploymentFileDirInBuildContainer }}/{{end}}{{ .DeploymentFile }} /opt/eap/standalone/deployments/
+EXPOSE {{ .Port }}

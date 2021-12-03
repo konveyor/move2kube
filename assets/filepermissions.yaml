@@ -39,6 +39,10 @@
 "inbuilt/transformers/dockerfilegenerator/java/eurekareplaceengine/eureka.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/jar/jar.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/jar/templates/Dockerfile.embedded" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/jboss/jboss.yaml" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/jboss/templates/Dockerfile.jboss" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/liberty/liberty.yaml" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/liberty/templates/Dockerfile.liberty" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/mappings/javapackageversions.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/maven/maven.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/maven/templates/Dockerfile.maven-build" : 0644
