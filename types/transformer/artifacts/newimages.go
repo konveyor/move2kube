@@ -33,6 +33,7 @@ type NewImages struct {
 	ImageNames []string `yaml:"imageNames" json:"imageNames"`
 }
 
+// Merge implements the Config interface allowing artifacts to be merged
 func (ni *NewImages) Merge(newni interface{}) bool {
 	newniptr, ok := newni.(*NewImages)
 	if !ok {

@@ -114,6 +114,7 @@ func (t *Router) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 	return nil, artifactsCreated, nil
 }
 
+// GetStringFromTemplate Translates question properties from templates to string
 func (t *Router) GetStringFromTemplate(templateString string, artifact transformertypes.Artifact) (filledString string, err error) {
 	// To ensure we use the artifact json struct tags instead of artifact property names
 	objJSONBytes, err := json.Marshal(artifact)
