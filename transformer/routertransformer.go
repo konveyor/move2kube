@@ -107,6 +107,7 @@ func (t *Router) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 			}
 			filledHints = append(filledHints, filledHint)
 		}
+		logrus.Debugf("Using %s router to route %s artifact between %+v", t.Config.Name, a.Artifact, transformerNames)
 		transformerName := qaengine.FetchSelectAnswer(filledID, filledDesc, filledHints, transformerNames[0], transformerNames)
 		a.Artifact = transformerName
 		artifactsCreated = append(artifactsCreated, a)

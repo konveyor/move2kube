@@ -76,6 +76,8 @@ func init() {
 		new(java.JarAnalyser),
 		new(java.WarAnalyser),
 		new(java.Tomcat),
+		new(java.Liberty),
+		new(java.Jboss),
 		new(java.MavenAnalyser),
 		new(java.ZuulAnalyser),
 		new(java.EurekaReplaceEngine),
