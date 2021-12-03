@@ -1,0 +1,20 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: WarRouter
+  labels:
+    move2kube.konveyor.io/inbuilt: true
+spec:
+  class: "Router"
+  consumes: 
+    War:
+      merge: true
+  directoryDetect:
+    levels: 0
+  config:
+    transformerSelector: 
+      matchLabels: 
+        move2kube.konveyor.io/artifacttoprocess: war
+    question: 
+      id: "move2kube.services.{{ .name }}.wartransformer"
+      description: "Select the transformer to use for service {{ .name }}"

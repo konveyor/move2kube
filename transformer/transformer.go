@@ -62,6 +62,8 @@ func init() {
 		new(external.Starlark),
 		new(external.Executable),
 
+		new(Router),
+
 		new(dockerfile.DockerfileDetector),
 		new(dockerfile.DockerfileParser),
 		new(dockerfile.DockerfileImageBuildScript),
@@ -72,6 +74,8 @@ func init() {
 		new(dockerfilegenerator.RubyDockerfileGenerator),
 		new(dockerfilegenerator.DotNet5DockerfileGenerator),
 		new(java.JarAnalyser),
+		new(java.WarAnalyser),
+		new(java.Tomcat),
 		new(java.MavenAnalyser),
 		new(java.ZuulAnalyser),
 		new(java.EurekaReplaceEngine),
@@ -126,7 +130,7 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 	if initialized {
 		return nil
 	}
-	transformerFilterString := qaengine.FetchStringAnswer(common.TransformerSelectorKey, "", []string{"Set the transfor selector config."}, "")
+	transformerFilterString := qaengine.FetchStringAnswer(common.TransformerSelectorKey, "", []string{"Set the transformer selector config."}, "")
 	if transformerFilterString != "" {
 		transformerFilter, err := common.ConvertStringSelectorsToSelectors(transformerFilterString)
 		if err != nil {
@@ -194,9 +198,25 @@ func Destroy() {
 	}
 }
 
-// GetTransformers returns the list of initialized transformers
-func GetTransformers() map[string]Transformer {
+// GetInitializedTransformers returns the list of initialized transformers
+func GetInitializedTransformers() map[string]Transformer {
 	return transformers
+}
+
+// GetInitializedTransformersF returns the list of initialized transformers after filtering
+func GetInitializedTransformersF(filters labels.Selector) map[string]Transformer {
+	filteredTransformers := map[string]Transformer{}
+	for tn, t := range GetInitializedTransformers() {
+		tc, _ := t.GetConfig()
+		if tc.ObjectMeta.Labels == nil {
+			tc.ObjectMeta.Labels = map[string]string{}
+		}
+		if !filters.Matches(labels.Set(tc.ObjectMeta.Labels)) {
+			continue
+		}
+		filteredTransformers[tn] = t
+	}
+	return filteredTransformers
 }
 
 // GetServices returns the list of services detected in a directory
@@ -269,6 +289,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 		newArtifactsCreated := []transformertypes.Artifact{}
 		logrus.Infof("Iteration %d", iteration)
 		for tn, t := range transformers {
+			logrus.Debugf("Starting processing for Transformer %s", tn)
 			config, env := t.GetConfig()
 			env.Reset()
 			artifactsToProcess := []transformertypes.Artifact{}
@@ -280,6 +301,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 					artifactsToProcess = append(artifactsToProcess, na)
 				}
 			}
+			logrus.Debugf("Transformer %s will be processing %d artifacts", config.Name, len(artifactsToProcess))
 			if len(artifactsToProcess) == 0 {
 				continue
 			}

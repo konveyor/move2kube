@@ -345,7 +345,9 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 					artifacts.WarConfigType: artifacts.WarArtifactConfig{
 						DeploymentFile:                    deploymentFileName + ".war",
 						JavaVersion:                       javaVersion,
+						BuildContainerName:                common.DefaultBuildContainerName,
 						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						EnvVariables:                      envVariablesMap,
 					},
 				},
 			}
@@ -357,7 +359,9 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 					artifacts.EarConfigType: artifacts.EarArtifactConfig{
 						DeploymentFile:                    deploymentFileName + ".ear",
 						JavaVersion:                       javaVersion,
+						BuildContainerName:                common.DefaultBuildContainerName,
 						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						EnvVariables:                      envVariablesMap,
 					},
 				},
 			}
