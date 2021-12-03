@@ -100,7 +100,7 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts
 		}
 		jbossRunDockerfile, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.jboss"))
 		if err != nil {
-			logrus.Errorf("Unable to read Dockerfile Jboss template : %s", err)
+			logrus.Errorf("Unable to read Dockerfile jboss template : %s", err)
 		}
 		dockerFileHead := ""
 		isBuildContainerPresent := false
@@ -128,18 +128,53 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts
 		if err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}
+		dft := JbossDockerfileTemplate{}
 		jbossArtifactConfig := artifacts.WarArtifactConfig{}
 		err = a.GetConfig(artifacts.WarConfigType, &jbossArtifactConfig)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", jbossArtifactConfig, err)
-		}
-		if jbossArtifactConfig.JavaVersion == "" {
-			jbossArtifactConfig.JavaVersion = t.JbossConfig.JavaVersion
-		}
-		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/javapackageversions.yaml"), jbossArtifactConfig.JavaVersion)
-		if err != nil {
-			logrus.Errorf("Unable to find mapping version for java version %s : %s", jbossArtifactConfig.JavaVersion, err)
-			javaPackage = "java-1.8.0-openjdk-devel"
+			jbossEarArtifactConfig := artifacts.EarArtifactConfig{}
+			err = a.GetConfig(artifacts.EarConfigType, &jbossEarArtifactConfig)
+			if err != nil {
+				logrus.Debugf("unable to load config for Transformer into %T : %s", jbossEarArtifactConfig, err)
+			}
+			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jbossEarArtifactConfig.JavaVersion)
+			if err != nil {
+				logrus.Errorf("Unable to find mapping version for java version %s : %s", jbossEarArtifactConfig.JavaVersion, err)
+				javaPackage = "java-1.8.0-openjdk-devel"
+			}
+			if isBuildContainerPresent {
+				dft.JavaPackageName = javaPackage
+				dft.DeploymentFile = jbossEarArtifactConfig.DeploymentFile
+				dft.BuildContainerName = jbossEarArtifactConfig.BuildContainerName
+				dft.DeploymentFileDirInBuildContainer = jbossEarArtifactConfig.DeploymentFileDirInBuildContainer
+				dft.Port = jbossDefaultPort
+				dft.EnvVariables = jbossEarArtifactConfig.EnvVariables
+			} else {
+				dft.JavaPackageName = javaPackage
+				dft.DeploymentFile = jbossEarArtifactConfig.DeploymentFile
+				dft.Port = jbossDefaultPort
+				dft.EnvVariables = jbossEarArtifactConfig.EnvVariables
+			}
+		} else {
+			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jbossArtifactConfig.JavaVersion)
+			if err != nil {
+				logrus.Errorf("Unable to find mapping version for java version %s : %s", jbossArtifactConfig.JavaVersion, err)
+				javaPackage = "java-1.8.0-openjdk-devel"
+			}
+			if isBuildContainerPresent {
+				dft.JavaPackageName = javaPackage
+				dft.DeploymentFile = jbossArtifactConfig.DeploymentFile
+				dft.BuildContainerName = jbossArtifactConfig.BuildContainerName
+				dft.DeploymentFileDirInBuildContainer = jbossArtifactConfig.DeploymentFileDirInBuildContainer
+				dft.Port = jbossDefaultPort
+				dft.EnvVariables = jbossArtifactConfig.EnvVariables
+			} else {
+				dft.JavaPackageName = javaPackage
+				dft.DeploymentFile = jbossArtifactConfig.DeploymentFile
+				dft.Port = jbossDefaultPort
+				dft.EnvVariables = jbossArtifactConfig.EnvVariables
+			}
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
@@ -148,33 +183,12 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts
 		if t.JbossConfig.DefaultPort != 0 {
 			jbossDefaultPort = t.JbossConfig.DefaultPort
 		}
-		if isBuildContainerPresent {
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:     transformertypes.TemplatePathMappingType,
-				SrcPath:  dockerfileTemplate,
-				DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
-				TemplateConfig: JbossDockerfileTemplate{
-					JavaPackageName:                   javaPackage,
-					DeploymentFile:                    jbossArtifactConfig.DeploymentFile,
-					BuildContainerName:                jbossArtifactConfig.BuildContainerName,
-					DeploymentFileDirInBuildContainer: jbossArtifactConfig.DeploymentFileDirInBuildContainer,
-					Port:                              jbossDefaultPort,
-					EnvVariables:                      jbossArtifactConfig.EnvVariables,
-				},
-			})
-		} else {
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:     transformertypes.TemplatePathMappingType,
-				SrcPath:  dockerfileTemplate,
-				DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
-				TemplateConfig: TomcatDockerfileTemplate{
-					JavaPackageName: javaPackage,
-					DeploymentFile:  jbossArtifactConfig.DeploymentFile,
-					Port:            jbossDefaultPort,
-					EnvVariables:    jbossArtifactConfig.EnvVariables,
-				},
-			})
-		}
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:           transformertypes.TemplatePathMappingType,
+			SrcPath:        dockerfileTemplate,
+			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
+			TemplateConfig: dft,
+		})
 		paths := a.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{

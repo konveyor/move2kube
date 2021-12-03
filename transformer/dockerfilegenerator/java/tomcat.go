@@ -135,7 +135,7 @@ func (t *Tomcat) Transform(newArtifacts []transformertypes.Artifact, oldArtifact
 		if tomcatArtifactConfig.JavaVersion == "" {
 			tomcatArtifactConfig.JavaVersion = t.TomcatConfig.JavaVersion
 		}
-		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/javapackageversions.yaml"), tomcatArtifactConfig.JavaVersion)
+		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), tomcatArtifactConfig.JavaVersion)
 		if err != nil {
 			logrus.Errorf("Unable to find mapping version for java version %s : %s", tomcatArtifactConfig.JavaVersion, err)
 			javaPackage = "java-1.8.0-openjdk-devel"

@@ -4,7 +4,8 @@ metadata:
   name: Liberty
   labels:
     move2kube.konveyor.io/inbuilt: true
-    move2kube.konveyor.io/artifacttoprocess: war
+    move2kube.konveyor.io/warprocessor: true
+    move2kube.konveyor.io/earprocessor: true
 spec:
   class: "Liberty"
   consumes: 
