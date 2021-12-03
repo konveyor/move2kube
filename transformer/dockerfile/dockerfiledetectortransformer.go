@@ -90,7 +90,7 @@ func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]
 }
 
 // Transform transforms the artifacts
-func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	pathMappings := []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {

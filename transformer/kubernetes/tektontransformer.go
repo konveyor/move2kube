@@ -82,7 +82,7 @@ func (t *Tekton) DirectoryDetect(dir string) (services map[string][]transformert
 }
 
 // Transform transforms artifacts understood by the transformer
-func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
+func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	logrus.Debugf("Translating IR using Kubernetes transformer")
 	pathMappings = []transformertypes.PathMapping{}
 	createdArtifacts = []transformertypes.Artifact{}

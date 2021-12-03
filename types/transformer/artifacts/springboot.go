@@ -17,7 +17,9 @@
 package artifacts
 
 import (
+	"github.com/konveyor/move2kube/common"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/sirupsen/logrus"
 )
 
 // SpringBootConfig stores spring boot related configuration information
@@ -31,3 +33,27 @@ const (
 	// SpringBootConfigType stores the springboot config
 	SpringBootConfigType transformertypes.ConfigType = "SpringBoot"
 )
+
+// Merge implements the Config interface allowing artifacts to be merged
+func (sb *SpringBootConfig) Merge(newsbobj interface{}) bool {
+	newsbptr, ok := newsbobj.(*SpringBootConfig)
+	if !ok {
+		newsb, ok := newsbobj.(SpringBootConfig)
+		if !ok {
+			logrus.Error("Unable to cast to ContainerizationOptionsConfig for merge")
+			return false
+		}
+		newsbptr = &newsb
+	}
+	if sb.SpringBootAppName != newsbptr.SpringBootAppName {
+		return false
+	}
+	if sb.SpringBootVersion == "" {
+		sb.SpringBootVersion = newsbptr.SpringBootVersion
+	}
+	if sb.SpringBootVersion != newsbptr.SpringBootVersion {
+		logrus.Errorf("Incompatible springboot version found during merge for app %s", sb.SpringBootAppName)
+	}
+	*sb.SpringBootProfiles = common.MergeStringSlices(*sb.SpringBootProfiles, *newsbptr.SpringBootProfiles...)
+	return true
+}

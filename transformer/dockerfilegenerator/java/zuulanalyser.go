@@ -105,7 +105,7 @@ func (t *ZuulAnalyser) DirectoryDetect(dir string) (services map[string][]transf
 }
 
 // Transform transforms the artifacts
-func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		var config ZuulConfig

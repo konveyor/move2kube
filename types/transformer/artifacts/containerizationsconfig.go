@@ -16,7 +16,11 @@
 
 package artifacts
 
-import transformertypes "github.com/konveyor/move2kube/types/transformer"
+import (
+	"github.com/konveyor/move2kube/common"
+	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/sirupsen/logrus"
+)
 
 const (
 	// ContainerizationOptionsConfigType represents containerization options config type
@@ -25,3 +29,18 @@ const (
 
 // ContainerizationOptionsConfig stores the containerization options config
 type ContainerizationOptionsConfig []string
+
+// Merge implements the Config interface allowing artifacts to be merged
+func (co *ContainerizationOptionsConfig) Merge(newcoobj interface{}) bool {
+	newcoptr, ok := newcoobj.(*ContainerizationOptionsConfig)
+	if !ok {
+		newco, ok := newcoobj.(ContainerizationOptionsConfig)
+		if !ok {
+			logrus.Error("Unable to cast to ContainerizationOptionsConfig for merge")
+			return false
+		}
+		newcoptr = &newco
+	}
+	*co = common.MergeStringSlices(*co, *newcoptr...)
+	return true
+}

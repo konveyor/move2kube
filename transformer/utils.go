@@ -81,9 +81,9 @@ func getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContent
 	return ignoreDirectories, ignoreContents
 }
 
-func updatedArtifacts(oldArtifacts []transformertypes.Artifact, newArtifacts ...transformertypes.Artifact) (updatedArtifacts []transformertypes.Artifact) {
+func updatedArtifacts(alreadySeenArtifacts []transformertypes.Artifact, newArtifacts ...transformertypes.Artifact) (updatedArtifacts []transformertypes.Artifact) {
 	for ai, a := range newArtifacts {
-		for _, oa := range oldArtifacts {
+		for _, oa := range alreadySeenArtifacts {
 			if mergeda, merged := mergeArtifact(a, oa); merged {
 				newArtifacts[ai] = mergeda
 			}

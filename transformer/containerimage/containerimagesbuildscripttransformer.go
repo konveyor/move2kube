@@ -26,6 +26,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	buildImagesFileName = "buildimages"
+)
+
 // ContainerImagesBuildScript implements Transformer interface
 type ContainerImagesBuildScript struct {
 	Config transformertypes.Transformer
@@ -57,59 +61,68 @@ func (t *ContainerImagesBuildScript) DirectoryDetect(dir string) (services map[s
 }
 
 // Transform transforms the artifacts
-func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	shScripts := []ImageBuildTemplateConfig{}
 	batScripts := []ImageBuildTemplateConfig{}
-	for _, a := range newArtifacts {
-		if a.Artifact == artifacts.ContainerImageBuildScriptArtifactType {
-			for _, shScript := range a.Paths[artifacts.ContainerImageBuildShScriptPathType] {
-				contextPath := filepath.Dir(shScript)
-				if ctxPath, ok := a.Paths[artifacts.ContainerImageBuildShScriptContextPathType]; ok {
-					contextPath = ctxPath[0]
-				}
-				relPath, err := filepath.Rel(t.Env.GetEnvironmentOutput(), contextPath)
-				if err != nil {
-					logrus.Errorf("Unable to make path relative : %s", err)
-					continue
-				}
-				scriptPath, err := filepath.Rel(contextPath, shScript)
-				if err != nil {
-					logrus.Errorf("Unable to make path relative : %s", err)
-					continue
-				}
-				shScripts = append(shScripts, ImageBuildTemplateConfig{
-					BuildScript: scriptPath,
-					PathUnix:    common.GetUnixPath(relPath),
-				})
+	for _, a := range append(newArtifacts, alreadySeenArtifacts...) {
+		if a.Artifact != artifacts.ContainerImageBuildScriptArtifactType {
+			continue
+		}
+		for _, shScript := range a.Paths[artifacts.ContainerImageBuildShScriptPathType] {
+			contextPath := filepath.Dir(shScript)
+			if ctxPath, ok := a.Paths[artifacts.ContainerImageBuildShScriptContextPathType]; ok {
+				contextPath = ctxPath[0]
 			}
-			for _, batScript := range a.Paths[artifacts.ContainerImageBuildBatScriptPathType] {
-				contextPath := filepath.Dir(batScript)
-				if ctxPath, ok := a.Paths[artifacts.ContainerImageBuildShScriptContextPathType]; ok {
-					contextPath = ctxPath[0]
-				}
-				relPath, err := filepath.Rel(t.Env.GetEnvironmentOutput(), contextPath)
-				if err != nil {
-					logrus.Errorf("Unable to make path relative : %s", err)
-					continue
-				}
-				scriptPath, err := filepath.Rel(contextPath, batScript)
-				if err != nil {
-					logrus.Errorf("Unable to make path relative : %s", err)
-					continue
-				}
-				batScripts = append(batScripts, ImageBuildTemplateConfig{
-					BuildScript: scriptPath,
-					PathWindows: common.GetWindowsPath(relPath),
-				})
+			relPath, err := filepath.Rel(t.Env.GetEnvironmentOutput(), contextPath)
+			if err != nil {
+				logrus.Errorf("Unable to make path relative : %s", err)
+				continue
 			}
+			scriptPath, err := filepath.Rel(contextPath, shScript)
+			if err != nil {
+				logrus.Errorf("Unable to make path relative : %s", err)
+				continue
+			}
+			n := ImageBuildTemplateConfig{
+				BuildScript: scriptPath,
+				PathUnix:    common.GetUnixPath(relPath),
+			}
+			if t.scriptExists(shScripts, n) {
+				continue
+			}
+			shScripts = append(shScripts, n)
+		}
+		for _, batScript := range a.Paths[artifacts.ContainerImageBuildBatScriptPathType] {
+			contextPath := filepath.Dir(batScript)
+			if ctxPath, ok := a.Paths[artifacts.ContainerImageBuildShScriptContextPathType]; ok {
+				contextPath = ctxPath[0]
+			}
+			relPath, err := filepath.Rel(t.Env.GetEnvironmentOutput(), contextPath)
+			if err != nil {
+				logrus.Errorf("Unable to make path relative : %s", err)
+				continue
+			}
+			scriptPath, err := filepath.Rel(contextPath, batScript)
+			if err != nil {
+				logrus.Errorf("Unable to make path relative : %s", err)
+				continue
+			}
+			n := ImageBuildTemplateConfig{
+				BuildScript: scriptPath,
+				PathWindows: common.GetWindowsPath(relPath),
+			}
+			if t.scriptExists(batScripts, n) {
+				continue
+			}
+			batScripts = append(batScripts, n)
 		}
 	}
 	if len(shScripts) == 0 {
 		return nil, nil, nil
 	}
-	buildImagesShFileName := "buildimages.sh"
-	buildImagesBatFileName := "buildimages.bat"
+	buildImagesShFileName := buildImagesFileName + common.ShExt
+	buildImagesBatFileName := buildImagesFileName + common.BatExt
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
 		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir, buildImagesShFileName),
@@ -121,12 +134,21 @@ func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.A
 		DestPath:       filepath.Join(common.ScriptsDir, buildImagesBatFileName),
 		TemplateConfig: batScripts,
 	})
-	artifacts := []transformertypes.Artifact{{
+	as := []transformertypes.Artifact{{
 		Name:     artifacts.ContainerImagesBuildScriptArtifactType,
 		Artifact: artifacts.ContainerImagesBuildScriptArtifactType,
 		Paths: map[string][]string{
 			artifacts.ContainerImagesBuildShScriptPathType:  {filepath.Join(common.ScriptsDir, buildImagesShFileName)},
 			artifacts.ContainerImagesBuildBatScriptPathType: {filepath.Join(common.ScriptsDir, buildImagesBatFileName)}},
 	}}
-	return pathMappings, artifacts, nil
+	return pathMappings, as, nil
+}
+
+func (t *ContainerImagesBuildScript) scriptExists(configs []ImageBuildTemplateConfig, newconfig ImageBuildTemplateConfig) bool {
+	for _, config := range configs {
+		if config == newconfig {
+			return true
+		}
+	}
+	return false
 }

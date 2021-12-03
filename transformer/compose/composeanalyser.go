@@ -91,7 +91,7 @@ func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]tra
 }
 
 // Transform transforms the artifacts
-func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		var config ComposeConfig

@@ -57,7 +57,7 @@ func (t *DockerfileParser) DirectoryDetect(dir string) (services map[string][]tr
 }
 
 // Transform transforms the artifacts
-func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	nartifacts := []transformertypes.Artifact{}
 	processedImages := map[string]bool{}
 	for _, a := range newArtifacts {

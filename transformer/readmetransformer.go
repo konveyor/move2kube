@@ -47,7 +47,7 @@ func (t *ReadMeGenerator) DirectoryDetect(dir string) (services map[string][]tra
 }
 
 // Transform transforms the artifacts
-func (t *ReadMeGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *ReadMeGenerator) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:    transformertypes.TemplatePathMappingType,

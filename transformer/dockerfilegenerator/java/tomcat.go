@@ -78,7 +78,7 @@ func (t *Tomcat) DirectoryDetect(dir string) (services map[string][]transformert
 }
 
 // Transform transforms the artifacts
-func (t *Tomcat) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *Tomcat) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {

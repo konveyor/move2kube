@@ -58,12 +58,12 @@ func (t *DockerfileImageBuildScript) DirectoryDetect(dir string) (namedServices 
 }
 
 // Transform transforms the artifacts
-func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	dfs := []DockerfileImageBuildScriptTemplateConfig{}
 	nartifacts := []transformertypes.Artifact{}
 	processedImages := map[string]bool{}
-	for _, a := range append(newArtifacts, oldArtifacts...) {
+	for _, a := range append(newArtifacts, alreadySeenArtifacts...) {
 		if a.Artifact != artifacts.DockerfileArtifactType {
 			continue
 		}

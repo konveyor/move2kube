@@ -112,7 +112,7 @@ const (
 )
 
 // Transform transforms the artifacts
-func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
+func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	pathMappings = []transformertypes.PathMapping{}
 	createdArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {

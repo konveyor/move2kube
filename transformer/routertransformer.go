@@ -73,7 +73,7 @@ func (t *Router) DirectoryDetect(dir string) (services map[string][]transformert
 }
 
 // Transform transforms the artifacts
-func (t *Router) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *Router) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	filters, err := metav1.LabelSelectorAsSelector(&t.RouterConfig.TransformerSelector)
 	if err != nil {

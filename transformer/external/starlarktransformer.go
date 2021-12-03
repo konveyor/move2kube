@@ -140,7 +140,7 @@ func (t *Starlark) DirectoryDetect(dir string) (services map[string][]transforme
 }
 
 // Transform transforms the artifacts
-func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
+func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	naObj, err := common.GetMapInterfaceFromObj(newArtifacts)
 	if err != nil {
 		logrus.Errorf("Unable to convert new artifacts to map[string]interface{}")
@@ -151,14 +151,14 @@ func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, oldArtifa
 		logrus.Errorf("Unable to convert %s to starlark value : %s", newArtifacts, err)
 		return nil, nil, err
 	}
-	oaObj, err := common.GetMapInterfaceFromObj(oldArtifacts)
+	oaObj, err := common.GetMapInterfaceFromObj(alreadySeenArtifacts)
 	if err != nil {
 		logrus.Errorf("Unable to convert new artifacts to map[string]interface{}")
 		return nil, nil, err
 	}
 	starOldArtifacts, err := starutil.Marshal(oaObj)
 	if err != nil {
-		logrus.Errorf("Unable to convert %s to starlark value : %s", oldArtifacts, err)
+		logrus.Errorf("Unable to convert %s to starlark value : %s", alreadySeenArtifacts, err)
 		return nil, nil, err
 	}
 	val, err := starlark.Call(t.StarThread, t.transformFn, starlark.Tuple{starNewArtifacts, starOldArtifacts}, nil)

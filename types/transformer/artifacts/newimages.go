@@ -34,10 +34,10 @@ type NewImages struct {
 }
 
 // Merge implements the Config interface allowing artifacts to be merged
-func (ni *NewImages) Merge(newni interface{}) bool {
-	newniptr, ok := newni.(*NewImages)
+func (ni *NewImages) Merge(newniobj interface{}) bool {
+	newniptr, ok := newniobj.(*NewImages)
 	if !ok {
-		newni, ok := newni.(NewImages)
+		newni, ok := newniobj.(NewImages)
 		if !ok {
 			logrus.Error("Unable to cast to NewImages for merge")
 			return false
