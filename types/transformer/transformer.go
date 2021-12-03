@@ -48,6 +48,7 @@ type Transformer struct {
 type TransformerSpec struct {
 	FilePath           string                              `yaml:"-"`
 	Class              string                              `yaml:"class"`
+	Isolated           bool                                `yaml:"isolated"`
 	DirectoryDetect    DirectoryDetect                     `yaml:"directoryDetect"`
 	ExternalFiles      map[string]string                   `yaml:"externalFiles"` // [source]destination
 	ArtifactsToProcess map[string]ArtifactPreprocessConfig `yaml:"consumes"`      // plantypes.ArtifactType

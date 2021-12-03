@@ -159,6 +159,7 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 			envInfo := environment.EnvInfo{
 				Name:            tc.Name,
 				ProjectName:     projName,
+				Isolated:        tc.Spec.Isolated,
 				TargetCluster:   targetCluster,
 				Source:          sourcePath,
 				Output:          outputPath,
