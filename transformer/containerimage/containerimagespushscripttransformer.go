@@ -27,6 +27,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	pushImagesFileName = "pushimages"
+)
+
 // ContainerImagesPushScript implements Transformer interface
 type ContainerImagesPushScript struct {
 	Config transformertypes.Transformer
@@ -58,18 +62,19 @@ func (t *ContainerImagesPushScript) DirectoryDetect(dir string) (services map[st
 }
 
 // Transform transforms the artifacts
-func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	ipt := ImagePushTemplateConfig{}
 	for _, a := range newArtifacts {
-		if a.Artifact == artifacts.NewImagesArtifactType {
-			images := artifacts.NewImages{}
-			err := a.GetConfig(artifacts.NewImagesConfigType, &images)
-			if err != nil {
-				logrus.Errorf("Unable to read Image config : %s", err)
-			}
-			ipt.Images = common.MergeStringSlices(ipt.Images, images.ImageNames...)
+		if a.Artifact != artifacts.NewImagesArtifactType {
+			continue
 		}
+		images := artifacts.NewImages{}
+		err := a.GetConfig(artifacts.NewImagesConfigType, &images)
+		if err != nil {
+			logrus.Errorf("Unable to read Image config : %s", err)
+		}
+		ipt.Images = common.MergeStringSlices(ipt.Images, images.ImageNames...)
 	}
 	if len(ipt.Images) == 0 {
 		return nil, nil, nil
@@ -85,8 +90,8 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 	artifacts := []transformertypes.Artifact{{
 		Name:     artifacts.ContainerImagesPushScriptArtifactType,
 		Artifact: artifacts.ContainerImagesPushScriptArtifactType,
-		Paths: map[string][]string{artifacts.ContainerImagesPushShScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.sh")},
-			artifacts.ContainerImagesPushBatScriptPathType: {filepath.Join(common.ScriptsDir, "pushimages.bat")}},
+		Paths: map[string][]string{artifacts.ContainerImagesPushShScriptPathType: {filepath.Join(common.ScriptsDir, pushImagesFileName+common.ShExt)},
+			artifacts.ContainerImagesPushBatScriptPathType: {filepath.Join(common.ScriptsDir, pushImagesFileName+common.ShExt)}},
 	}}
 	return pathMappings, artifacts, nil
 }

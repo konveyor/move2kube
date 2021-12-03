@@ -33,6 +33,9 @@ func init() {
 	configObjs := []transformertypes.Config{
 		new(ir.IR),
 		new(NewImages),
+		new(MavenConfig),
+		new(SpringBootConfig),
+		new(ContainerizationOptionsConfig),
 	}
 	ConfigTypes = common.GetTypesMap(configObjs)
 }

@@ -26,14 +26,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// WarAnalyser implements Transformer interface
-type WarAnalyser struct {
+// EarAnalyser implements Transformer interface
+type EarAnalyser struct {
 	Config transformertypes.Transformer
 	Env    *environment.Environment
 }
 
-// WarDockerfileTemplate stores parameters for the dockerfile template
-type WarDockerfileTemplate struct {
+// EarDockerfileTemplate stores parameters for the dockerfile template
+type EarDockerfileTemplate struct {
 	DeploymentFile                    string
 	BuildContainerName                string
 	DeploymentFileDirInBuildContainer string
@@ -41,36 +41,36 @@ type WarDockerfileTemplate struct {
 }
 
 // Init Initializes the transformer
-func (t *WarAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *EarAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *WarAnalyser) GetConfig() (transformertypes.Transformer, *environment.Environment) {
+func (t *EarAnalyser) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *WarAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	services = map[string][]transformertypes.Artifact{}
-	warFilePaths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{".*[.]war"})
+	earFilePaths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{".*[.]ear"})
 	if err != nil {
 		logrus.Errorf("Error while parsing directory %s for jar file : %s", dir, err)
 		return nil, err
 	}
-	if len(warFilePaths) == 0 {
+	if len(earFilePaths) == 0 {
 		return nil, nil
 	}
-	for _, path := range warFilePaths {
+	for _, path := range earFilePaths {
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
-				artifacts.WarPathType:         {path},
+				artifacts.EarPathType:         {path},
 				artifacts.ProjectPathPathType: {filepath.Dir(path)},
 			},
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.WarConfigType: artifacts.WarArtifactConfig{
+				artifacts.EarConfigType: artifacts.EarArtifactConfig{
 					DeploymentFile: filepath.Base(path),
 				},
 			},
@@ -81,11 +81,11 @@ func (t *WarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 }
 
 // Transform transforms the artifacts
-func (t *WarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *EarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		a.Artifact = artifacts.WarArtifactType
+		a.Artifact = artifacts.EarArtifactType
 		createdArtifacts = append(createdArtifacts, a)
 	}
 	return pathMappings, createdArtifacts, nil

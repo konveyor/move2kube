@@ -61,6 +61,10 @@ const (
 	TODOAnnotation = types.GroupName + "/todo."
 	// DefaultBuildContainerName stores default build container name
 	DefaultBuildContainerName = "builder"
+	// ShExt is the extension of sh file
+	ShExt = ".sh"
+	// BatExt is the extension of bat file
+	BatExt = ".bat"
 )
 
 const (

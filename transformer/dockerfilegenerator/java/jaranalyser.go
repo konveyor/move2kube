@@ -86,7 +86,7 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.JarPathType:         {path},
-				artifacts.ProjectPathPathType: {path},
+				artifacts.ProjectPathPathType: {filepath.Dir(path)},
 			},
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.JarConfigType: artifacts.JarArtifactConfig{
@@ -102,7 +102,7 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 }
 
 // Transform transforms the artifacts
-func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {

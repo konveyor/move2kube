@@ -82,7 +82,7 @@ func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]
 }
 
 // Transform transforms artifacts
-func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
+func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	pathMappings = []transformertypes.PathMapping{}
 	psmap, err := parameterizer.CollectParamsFromPath(t.Env.Context)
 	if err != nil {

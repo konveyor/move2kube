@@ -672,6 +672,10 @@ func MakeStringDNSNameCompliant(s string) string {
 
 // MakeStringContainerImageNameCompliant makes the string into a valid image name.
 func MakeStringContainerImageNameCompliant(s string) string {
+	if strings.TrimSpace(s) == "" {
+		logrus.Errorf("Empty string given to create container name")
+		return s
+	}
 	name := strings.ToLower(s)
 	name = regexp.MustCompile(`[^a-z0-9-.:]`).ReplaceAllLiteralString(name, "-")
 	start, end := name[0], name[len(name)-1]

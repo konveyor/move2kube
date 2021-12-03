@@ -273,7 +273,7 @@ func (t *EurekaReplaceEngine) DirectoryDetect(dir string) (services map[string][
 }
 
 // Transform transforms the artifacts
-func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *EurekaReplaceEngine) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
 		var feignclients []string

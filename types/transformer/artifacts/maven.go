@@ -17,7 +17,9 @@
 package artifacts
 
 import (
+	"github.com/konveyor/move2kube/common"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/sirupsen/logrus"
 )
 
 // MavenConfig stores maven related configuration information
@@ -33,3 +35,21 @@ const (
 	// MavenPomPathType stores the Maven POM file Path
 	MavenPomPathType transformertypes.PathType = "MavenPom"
 )
+
+// Merge implements the Config interface allowing artifacts to be merged
+func (mc *MavenConfig) Merge(newmcobj interface{}) bool {
+	newmcptr, ok := newmcobj.(*MavenConfig)
+	if !ok {
+		newmc, ok := newmcobj.(MavenConfig)
+		if !ok {
+			logrus.Error("Unable to cast to ContainerizationOptionsConfig for merge")
+			return false
+		}
+		newmcptr = &newmc
+	}
+	if mc.ArtifactType != newmcptr.ArtifactType || mc.MavenAppName != newmcptr.MavenAppName {
+		return false
+	}
+	mc.MavenProfiles = common.MergeStringSlices(mc.MavenProfiles, newmcptr.MavenProfiles...)
+	return true
+}

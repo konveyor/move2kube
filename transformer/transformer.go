@@ -54,7 +54,7 @@ type Transformer interface {
 	// GetConfig returns the transformer config
 	GetConfig() (transformertypes.Transformer, *environment.Environment)
 	DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error)
-	Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error)
+	Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error)
 }
 
 func init() {
@@ -75,6 +75,7 @@ func init() {
 		new(dockerfilegenerator.DotNet5DockerfileGenerator),
 		new(java.JarAnalyser),
 		new(java.WarAnalyser),
+		new(java.EarAnalyser),
 		new(java.Tomcat),
 		new(java.Liberty),
 		new(java.Jboss),
