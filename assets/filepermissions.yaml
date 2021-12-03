@@ -36,6 +36,7 @@
 "inbuilt/transformers/dockerfilegenerator/dotnet5/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/golang/golang.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/golang/templates/Dockerfile" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/earanalyser/ear.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/earrouter/earrouter.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/eurekareplaceengine/eureka.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/jar/jar.yaml" : 0644

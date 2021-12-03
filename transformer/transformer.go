@@ -75,6 +75,7 @@ func init() {
 		new(dockerfilegenerator.DotNet5DockerfileGenerator),
 		new(java.JarAnalyser),
 		new(java.WarAnalyser),
+		new(java.EarAnalyser),
 		new(java.Tomcat),
 		new(java.Liberty),
 		new(java.Jboss),
