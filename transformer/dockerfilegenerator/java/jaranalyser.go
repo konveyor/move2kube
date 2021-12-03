@@ -86,7 +86,7 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.JarPathType:         {path},
-				artifacts.ProjectPathPathType: {path},
+				artifacts.ProjectPathPathType: {filepath.Dir(path)},
 			},
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.JarConfigType: artifacts.JarArtifactConfig{

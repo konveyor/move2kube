@@ -67,7 +67,7 @@ func (t *WarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.WarPathType:         {path},
-				artifacts.ProjectPathPathType: {path},
+				artifacts.ProjectPathPathType: {filepath.Dir(path)},
 			},
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.WarConfigType: artifacts.WarArtifactConfig{

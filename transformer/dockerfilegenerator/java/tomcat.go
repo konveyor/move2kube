@@ -93,6 +93,9 @@ func (t *Tomcat) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
+		if sImageName.ImageName == "" {
+			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
+		}
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)

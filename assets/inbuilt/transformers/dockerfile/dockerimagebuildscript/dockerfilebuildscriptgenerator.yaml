@@ -5,7 +5,6 @@ metadata:
   labels:
     move2kube.konveyor.io/inbuilt: true
 spec:
-  mode: "Container"
   class: "DockerfileImageBuildScript"
   consumes: 
     Dockerfile:
