@@ -1,20 +1,20 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Transformer
 metadata:
-  name: WarRouter
+  name: EarRouter
   labels:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "Router"
   consumes: 
-    War:
+    Ear:
       merge: true
   directoryDetect:
     levels: 0
   config:
     transformerSelector: 
       matchLabels: 
-        move2kube.konveyor.io/warprocessor: "true"
+        move2kube.konveyor.io/earprocessor: "true"
     question: 
-      id: "move2kube.services.{{ .name }}.wartransformer"
+      id: "move2kube.services.{{ .name }}.eartransformer"
       description: "Select the transformer to use for service {{ .name }}"

@@ -128,18 +128,53 @@ func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, oldArtifac
 		if err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}
+		dft := LibertyDockerfileTemplate{}
 		libertyArtifactConfig := artifacts.WarArtifactConfig{}
 		err = a.GetConfig(artifacts.WarConfigType, &libertyArtifactConfig)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", libertyArtifactConfig, err)
-		}
-		if libertyArtifactConfig.JavaVersion == "" {
-			libertyArtifactConfig.JavaVersion = t.LibertyConfig.JavaVersion
-		}
-		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/javapackageversions.yaml"), libertyArtifactConfig.JavaVersion)
-		if err != nil {
-			logrus.Errorf("Unable to find mapping version for java version %s : %s", libertyArtifactConfig.JavaVersion, err)
-			javaPackage = "java-1.8.0-openjdk-devel"
+			libertyEarArtifactConfig := artifacts.EarArtifactConfig{}
+			err = a.GetConfig(artifacts.EarConfigType, &libertyEarArtifactConfig)
+			if err != nil {
+				logrus.Debugf("unable to load config for Transformer into %T : %s", libertyEarArtifactConfig, err)
+			}
+			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), libertyEarArtifactConfig.JavaVersion)
+			if err != nil {
+				logrus.Errorf("Unable to find mapping version for java version %s : %s", libertyEarArtifactConfig.JavaVersion, err)
+				javaPackage = "java-1.8.0-openjdk-devel"
+			}
+			if isBuildContainerPresent {
+				dft.JavaPackageName = javaPackage
+				dft.DeploymentFile = libertyEarArtifactConfig.DeploymentFile
+				dft.BuildContainerName = libertyEarArtifactConfig.BuildContainerName
+				dft.DeploymentFileDirInBuildContainer = libertyEarArtifactConfig.DeploymentFileDirInBuildContainer
+				dft.Port = libertyDefaultPort
+				dft.EnvVariables = libertyEarArtifactConfig.EnvVariables
+			} else {
+				dft.JavaPackageName = javaPackage
+				dft.DeploymentFile = libertyEarArtifactConfig.DeploymentFile
+				dft.Port = libertyDefaultPort
+				dft.EnvVariables = libertyEarArtifactConfig.EnvVariables
+			}
+		} else {
+			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), libertyArtifactConfig.JavaVersion)
+			if err != nil {
+				logrus.Errorf("Unable to find mapping version for java version %s : %s", libertyArtifactConfig.JavaVersion, err)
+				javaPackage = "java-1.8.0-openjdk-devel"
+			}
+			if isBuildContainerPresent {
+				dft.JavaPackageName = javaPackage
+				dft.DeploymentFile = libertyArtifactConfig.DeploymentFile
+				dft.BuildContainerName = libertyArtifactConfig.BuildContainerName
+				dft.DeploymentFileDirInBuildContainer = libertyArtifactConfig.DeploymentFileDirInBuildContainer
+				dft.Port = libertyDefaultPort
+				dft.EnvVariables = libertyArtifactConfig.EnvVariables
+			} else {
+				dft.JavaPackageName = javaPackage
+				dft.DeploymentFile = libertyArtifactConfig.DeploymentFile
+				dft.Port = libertyDefaultPort
+				dft.EnvVariables = libertyArtifactConfig.EnvVariables
+			}
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
@@ -148,33 +183,12 @@ func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, oldArtifac
 		if t.LibertyConfig.DefaultPort != 0 {
 			libertyDefaultPort = t.LibertyConfig.DefaultPort
 		}
-		if isBuildContainerPresent {
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:     transformertypes.TemplatePathMappingType,
-				SrcPath:  dockerfileTemplate,
-				DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
-				TemplateConfig: LibertyDockerfileTemplate{
-					JavaPackageName:                   javaPackage,
-					DeploymentFile:                    libertyArtifactConfig.DeploymentFile,
-					BuildContainerName:                libertyArtifactConfig.BuildContainerName,
-					DeploymentFileDirInBuildContainer: libertyArtifactConfig.DeploymentFileDirInBuildContainer,
-					Port:                              libertyDefaultPort,
-					EnvVariables:                      libertyArtifactConfig.EnvVariables,
-				},
-			})
-		} else {
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:     transformertypes.TemplatePathMappingType,
-				SrcPath:  dockerfileTemplate,
-				DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
-				TemplateConfig: TomcatDockerfileTemplate{
-					JavaPackageName: javaPackage,
-					DeploymentFile:  libertyArtifactConfig.DeploymentFile,
-					Port:            libertyDefaultPort,
-					EnvVariables:    libertyArtifactConfig.EnvVariables,
-				},
-			})
-		}
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:           transformertypes.TemplatePathMappingType,
+			SrcPath:        dockerfileTemplate,
+			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
+			TemplateConfig: dft,
+		})
 		paths := a.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{

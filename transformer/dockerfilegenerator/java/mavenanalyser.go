@@ -300,7 +300,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldA
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
-		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/javapackageversions.yaml"), javaVersion)
+		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), javaVersion)
 		if err != nil {
 			logrus.Errorf("Unable to find mapping version for java version %s : %s", javaVersion, err)
 			javaPackage = "java-1.8.0-openjdk-devel"

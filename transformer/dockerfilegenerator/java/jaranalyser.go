@@ -159,7 +159,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, oldArt
 		if jarArtifactConfig.JavaVersion == "" {
 			jarArtifactConfig.JavaVersion = t.JarConfig.JavaVersion
 		}
-		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/javapackageversions.yaml"), jarArtifactConfig.JavaVersion)
+		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jarArtifactConfig.JavaVersion)
 		if err != nil {
 			logrus.Errorf("Unable to find mapping version for java version %s : %s", jarArtifactConfig.JavaVersion, err)
 			javaPackage = "java-1.8.0-openjdk-devel"

@@ -4,7 +4,7 @@ metadata:
   name: Tomcat
   labels:
     move2kube.konveyor.io/inbuilt: true
-    move2kube.konveyor.io/artifacttoprocess: war
+    move2kube.konveyor.io/warprocessor: true
 spec:
   class: "Tomcat"
   consumes: 

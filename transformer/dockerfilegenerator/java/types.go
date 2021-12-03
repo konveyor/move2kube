@@ -20,8 +20,11 @@ import (
 	"github.com/konveyor/move2kube/types"
 )
 
-// JavaPackageNamesMappingKind defines kind of JavaPackageNamesMappingKind
-const JavaPackageNamesMappingKind types.Kind = "JavaPackageVersions"
+const (
+	versionMappingFilePath = "mappings/javapackageversions.yaml"
+	// JavaPackageNamesMappingKind defines kind of JavaPackageNamesMappingKind
+	JavaPackageNamesMappingKind types.Kind = "JavaPackageVersions"
+)
 
 // JavaPackageNamesMapping stores the java package version mappings
 type JavaPackageNamesMapping struct {
