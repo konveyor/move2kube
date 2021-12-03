@@ -118,7 +118,7 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	}
 	var err error
 	for _, e := range engines {
-		if prob.Silent && e.IsInteractiveEngine() {
+		if prob.Desc == "" && e.IsInteractiveEngine() {
 			return defaultEngine.FetchAnswer(prob)
 		}
 		prob, err = e.FetchAnswer(prob)

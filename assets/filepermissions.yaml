@@ -42,6 +42,10 @@
 "inbuilt/transformers/dockerfilegenerator/java/mappings/javapackageversions.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/maven/maven.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/maven/templates/Dockerfile.maven-build" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/tomcat/templates/Dockerfile.tomcat" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/tomcat/tomcat.yaml" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/waranalyser/war.yaml" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/warrouter/warrouter.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/zuul/zuulanalyser.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/nodejs/nodejs.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/nodejs/templates/Dockerfile" : 0644

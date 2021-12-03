@@ -32,6 +32,7 @@ var (
 func init() {
 	configObjs := []transformertypes.Config{
 		new(ir.IR),
+		new(NewImages),
 	}
 	ConfigTypes = common.GetTypesMap(configObjs)
 }

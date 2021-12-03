@@ -17,7 +17,9 @@
 package artifacts
 
 import (
+	"github.com/konveyor/move2kube/common"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/sirupsen/logrus"
 )
 
 // NewImagesArtifactType represents New Image Artifact Type
@@ -29,4 +31,19 @@ const NewImagesConfigType transformertypes.ConfigType = "NewImages"
 // NewImages represents the strut having configuration about new images
 type NewImages struct {
 	ImageNames []string `yaml:"imageNames" json:"imageNames"`
+}
+
+// Merge implements the Config interface allowing artifacts to be merged
+func (ni *NewImages) Merge(newni interface{}) bool {
+	newniptr, ok := newni.(*NewImages)
+	if !ok {
+		newni, ok := newni.(NewImages)
+		if !ok {
+			logrus.Error("Unable to cast to NewImages for merge")
+			return false
+		}
+		newniptr = &newni
+	}
+	ni.ImageNames = common.MergeStringSlices(ni.ImageNames, newniptr.ImageNames...)
+	return true
 }

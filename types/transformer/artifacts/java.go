@@ -58,14 +58,18 @@ type JarArtifactConfig struct {
 
 // WarArtifactConfig defines a WarArtifactConfig struct
 type WarArtifactConfig struct {
-	DeploymentFile                    string `yaml:"DeploymentFile"`
-	JavaVersion                       string `yaml:"JavaVersion"`
-	DeploymentFileDirInBuildContainer string `yaml:"DeploymentFileDirInBuildContainer"`
+	DeploymentFile                    string            `yaml:"deploymentFile"`
+	JavaVersion                       string            `yaml:"javaVersion"`
+	BuildContainerName                string            `yaml:"buildContainerName"`
+	DeploymentFileDirInBuildContainer string            `yaml:"deploymentFileDirInBuildContainer"`
+	EnvVariables                      map[string]string `yaml:"envVariables"`
 }
 
 // EarArtifactConfig defines a EarArtifactConfig struct
 type EarArtifactConfig struct {
-	DeploymentFile                    string `yaml:"DeploymentFile"`
-	JavaVersion                       string `yaml:"JavaVersion"`
-	DeploymentFileDirInBuildContainer string `yaml:"DeploymentFileDirInBuildContainer"`
+	DeploymentFile                    string            `yaml:"deploymentFile"`
+	JavaVersion                       string            `yaml:"javaVersion"`
+	BuildContainerName                string            `yaml:"buildContainerName"`
+	DeploymentFileDirInBuildContainer string            `yaml:"deploymentFileDirInBuildContainer"`
+	EnvVariables                      map[string]string `yaml:"envVariables"`
 }
