@@ -37,8 +37,16 @@ To run locally using `docker`:
 ```shell
 $ docker run --rm -it -p 8080:8080 quay.io/konveyor/move2kube-ui:latest
 ```
-(Optional: If you need persistence then add `-v "${PWD}/move2kube-api-data:/move2kube-api/data"` to mount the current directory).  
-(Optional: If you need advanced features of Move2Kube then add `-v //var/run/docker.sock:/var/run/docker.sock` to mount the docker socket).
+
+Optionally if you need persistence then mount the current directory:
+```
+$ docker run --rm -it -p 8080:8080 -v "${PWD}/move2kube-api-data:/move2kube-api/data" quay.io/konveyor/move2kube-ui:latest
+```
+
+And if you also need more advanced features of Move2Kube then mount the docker socket. This will allow Move2Kube to run container based transformers:
+```
+$ docker run --rm -it -p 8080:8080 -v "${PWD}/move2kube-api-data:/move2kube-api/data" -v //var/run/docker.sock:/var/run/docker.sock quay.io/konveyor/move2kube-ui:latest
+```
 
 To run locally using `podman`:
 
