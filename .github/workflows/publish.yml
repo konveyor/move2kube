@@ -24,9 +24,10 @@ jobs:
             const promises = owner_repo_ids.map(owner_repo_id => github.repos.updateRelease({...owner_repo_id, draft: false}));
             await Promise.all(promises);
             await github.actions.createWorkflowDispatch({
-              ...context.repo,
+              owner: context.repo.owner,
+              repo: 'move2kube-website',
               workflow_id: 'releaseinfo.yml',
-              ref: context.ref,
+              ref: 'main',
             });
 
             // create a homebrew formula

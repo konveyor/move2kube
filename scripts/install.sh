@@ -171,7 +171,7 @@ installDependencies() {
 getLatestVersion() {
     # Get tag from releaseinfo.json
     local json_data=''
-    local release_info_url='https://raw.githubusercontent.com/konveyor/move2kube/gh-pages/_data/releaseinfo.json'
+    local release_info_url='https://raw.githubusercontent.com/konveyor/move2kube-website/main/_data/releaseinfo.json'
     if [ "$HAS_CURL" = 'true' ]; then
         json_data="$(curl -fsSL "$release_info_url")"
     elif [ "$HAS_WGET" = 'true' ]; then
