@@ -10,315 +10,300 @@ nav_order: 4
 
 ## Description
 
-Similar to the command line tool, Move2Kube Web-UI can also be used to do the translation. The Web-UI has all the capabilities that are there in the command line tool. This document explains the steps to bring up the UI and backend using docker-compose and use it for translation.
+Similar to the command line tool, Move2Kube Web-UI can also be used to do the transformation. The Web-UI has all the capabilities that are there in the command line tool. This document explains the steps to bring up the UI and backend using docker and use it for transformation.
 
 ## Prerequisites
 
-1. Install [Docker Engine](https://www.docker.com/get-started) and [Docker Compose](https://docs.docker.com/compose/install/#install-compose).
+1. Install [Docker Engine](https://www.docker.com/get-started).
 
-2. Clone the [move2kube-ui](https://github.com/konveyor/move2kube-ui) repository
-
-   ```console
-   $ git clone https://github.com/konveyor/move2kube-ui.git
-
-   $ cd move2kube-ui
-   ```
-
-   Now, let's see the structure inside the directory.
-   ```console
-   move2kube-ui git:(main) $ ls
-   Dockerfile         README.md          contributing.md    package.json       tsconfig.json      webpack.prod.js
-   LICENSE            code-of-conduct.md docker-compose.yml server.js          webpack.common.js  wksps
-   Makefile           containers.txt     dr-surge.js        src                webpack.dev.js     yarn.lock
-   ```
-3. Download [language-platforms.zip](https://github.com/konveyor/move2kube-demos/raw/main/samples/language-platforms.zip) which we will be using for this tutorial. The language-platforms.zip file has a combination of multiple applications in different languages (Java, Go, Python, Ruby, etc.) which needs to be containerized and then put into Kubernetes.
+1. Download [language-platforms.zip](https://github.com/konveyor/move2kube-demos/raw/main/samples/language-platforms.zip) which we will be using for this tutorial. The language-platforms.zip file has a combination of multiple applications in different languages (Java, Go, Python, Ruby, etc.) which needs to be containerized and then put into Kubernetes.
 
 ## Steps to generate target artifacts
 
-1. Do a `docker-compose up`.
+1. Do a `docker run --rm -it -p 8080:8080 quay.io/konveyor/move2kube-ui`.  
+(Optional: If you need persistence then add `-v "${PWD}/data:/move2kube-api/data"` to mount the current directory).  
+(Optional: If you need advanced features of Move2Kube then add `-v //var/run/docker.sock:/var/run/docker.sock` to mount the docker socket).
     ```console
-    move2kube-ui git:(main) $ docker-compose up
-    Creating network "move2kube-ui_default" with the default driver
-    Creating move2kube-ui_move2kubeapi_1 ... done
-    Creating move2kube-ui_move2kubeui_1  ... done
-    Attaching to move2kube-ui_move2kubeui_1, move2kube-ui_move2kubeapi_1
-    move2kubeapi_1  | time="2020-11-25T09:24:44Z" level=info msg="Got files : %!s(<nil>), []"
-    move2kubeapi_1  | time="2020-11-25T09:24:44Z" level=info msg="Application : {Name:vmapps Status:[assets artifacts plan]}"
-    move2kubeapi_1  | time="2020-11-25T09:24:44Z" level=info msg="About to start translation of application vmapps"
-    move2kubeapi_1  | time="2020-11-25T09:24:44Z" level=info msg="About to start translation of application vmapps"
-    move2kubeui_1   |
-    move2kubeui_1   | > move2kube@0.1.0 start /app
-    move2kubeui_1   | > node server.js
-    move2kubeui_1   |
-    move2kubeui_1   | [HPM] Proxy created: /  -> http://move2kubeapi:8080
-    move2kubeui_1   | Listening on port 8080
+    $ docker run --rm -it -p 8080:8080 quay.io/konveyor/move2kube-ui
+    INFO[0000] Starting Move2Kube API server at port: 8080
     ```
 
-    It starts the Move2Kube components that are required for the UI to run. Once it's up, then the UI will be available on the `8080` port.
+    It starts a container using the Move2Kube UI image. Once it's up the UI will be available on port `8080`.
 
-1. Open `http://localhost:8080/` on your browser.
+1. Open `http://localhost:8080/` in your browser.
 
-1. Create a new project `vmapps` by clicking on the `New Application` button.
+1. Create a new workspace `Workspace 1` by clicking on the `New Workspace` button.
 
-    ![Create a New Application](../../assets/images/samples/ui/new-application.png)
+    ![No workspaces](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/01-no-workspaces.png)
+    ![Create workspace](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/03-create-workspace.png)
+    ![New workspace](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/04-new-workspace.jpeg)
 
-1. Click on the three dots in the end of `vmapps` and select `details`.
+1. Scroll down and create a new project `Project 1` by clicking on the `New Project` button.
 
-    ![Project details](../../assets/images/samples/ui/project-details.png)
+    ![No projects](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/05-no-projects.png)
+    ![Create project](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/07-create-project.jpeg)
+    ![New project](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/08-new-project.jpeg)
 
-1. Click on the `Assets` tab and upload the [language-platforms.zip](https://github.com/konveyor/move2kube-demos/blob/main/samples/language-platforms.zip) file which we downloaded earlier in this tutorial.
+1. Scroll down to the `Project inputs` section and upload the [language-platforms.zip](https://github.com/konveyor/move2kube-demos/blob/main/samples/language-platforms.zip) file which we downloaded earlier in this tutorial and wait for it to finish uploading.
 
-    ![Upload Asset](../../assets/images/samples/ui/upload-asset.png)
+    ![No project inputs](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/09-no-project-inputs.jpeg)
+    ![Create project input](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/11-create-project-input.jpeg)
+    ![New project input](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/12-new-project-input.png)
 
-1. Now, go to the `Plan` tab and click on the `Generate Plan` button. Wait for the plan to get generated. It takes about three to five minutes to generate the plan.
+1. Now scroll down to the `Plan` section and click on the `Start Planning` button. Wait for the plan to get generated. It takes about three to five minutes to generate the plan.
 
-    ![Generate Plan](../../assets/images/samples/ui/generate-plan.png)
+    ![No plan](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/13-no-plan.png)
+    ![Start planning](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/14-start-planning.png)
 
-1. Click on `Refresh` in the plan tab. Once the plan is generated you can see the different services there. You can view the plan by clicking on `View Plan`.
+1. Once the plan is generated you can scroll to see the different services. The plan is in YAML format. If you edit the plan don't forget to click `Save`.
 
-    ![Plan Generated](../../assets/images/samples/ui/plan-generated.png)
+    ![Planning finished](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/15-planning-finished.png)
 
-1. Go to `Target Artifacts` tab.
+1. Now scroll down to `Outputs` section and click on the `Start Transformation` button.
 
-    ![Translate Artifacts](../../assets/images/samples/ui/translate.png)
+    ![No outputs](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/16-no-project-outputs.png)
 
-1. Click on `Translate` button.
-1. Answer the questions as apt.
+1. Move2Kube will ask some questions to aid in the transfomation process. You can keep clicking the `Next` button and go with the default answers for now.
 
-    ```console
-    Move2Kube will ask you a few questions, if it requires any assistance. Click Next to start.
+    ![Start transformation](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/17-qa-1.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/18-qa-2.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/19-qa-3.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/20-qa-4.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/21-qa-5.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/22-qa-6.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/23-qa-7.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/24-qa-8.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/25-qa-9.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/26-qa-10.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/27-qa-11.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/28-qa-12.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/29-qa-13.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/30-qa-14.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/31-qa-15.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/32-qa-16.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/33-qa-17.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/34-qa-18.jpeg)
 
-    Dynamic 1 : Select all services that are needed:
-    [✓] java-gradle
-    [✓] java-gradle-war
-    [✓] java-maven-war
-    [✓] nodejs
-    [✓] php
-    [✓] python
-    [✓] ruby
-    [✓] golang
-    [✓] java-maven
+1. After the questions are finished wait a few minutes for it to finish processing. Once it's done, you can click on the output to download the generated artifacts as a zip file (here `workspace-1-project-1-output-1989fd2d-4be1-4316-b368-309f5349cfad.zip`), extract it and browse them. The applications can now be deployed to Kubernetes using these generated artifacts.
 
-    Dynamic 2 : Select all containerization modes that is of interest:
-    [✓] NewDockerfile
-    [ ] S2I
-    [ ] CNB
-
-    Dynamic 3 : Select containerization technique's mode for service java-gradle:
-      language-platforms/language-platforms/custom-java-gradle-containerizer
-    > m2kassets/dockerfiles/javagradle
-
-    Dynamic 4 : Select containerization technique's mode for service java-gradle-war:
-    > m2kassets/dockerfiles/java-war-jboss
-      m2kassets/dockerfiles/java-war-liberty
-      m2kassets/dockerfiles/java-war-tomcat
-
-    Dynamic 5 : Select containerization technique's mode for service java-maven-war:
-    > m2kassets/dockerfiles/java-war-jboss
-      m2kassets/dockerfiles/java-war-liberty
-      m2kassets/dockerfiles/java-war-tomcat
-
-    Dynamic 6 : Choose the artifact type:
-    > Yamls
-      Helm
-      Knative
-
-    Dynamic 7 : Choose the cluster type:
-      IBM-IKS
-      IBM-Openshift
-    > Kubernetes
-      Openshift
-      AWS-EKS
-      Azure-AKS
-      GCP-GKE
-
-    Dynamic 8 : Select all services that should be exposed:
-    [✓] java-maven-war
-    [✓] python
-    [✓] nodejs
-    [✓] java-gradle
-    [✓] java-gradle-war
-    [✓] golang
-    [✓] java-maven
-    [✓] ruby
-    [✓] php
-
-    Dynamic 9 : What URL/path should we expose the service java-maven-war on?
-    java-maven-war
-
-    Dynamic 10 : What URL/path should we expose the service python on?
-    python
-
-    Dynamic 11 : What URL/path should we expose the service nodejs on?
-    nodejs
-
-    Dynamic 12 : What URL/path should we expose the service java-gradle on?
-    java-gradle
-
-    Dynamic 13 : What URL/path should we expose the service java-gradle-war on?
-    java-gradle-war
-
-    Dynamic 14 : What URL/path should we expose the service golang on?
-    golang
-
-    Dynamic 15 : What URL/path should we expose the service java-maven on?
-    java-maven
-
-    Dynamic 16 : What URL/path should we expose the service ruby on?
-    ruby
-
-    Dynamic 17 : What URL/path should we expose the service php on?
-    php
-
-    Dynamic 18 : Select the registry where your images are hosted:
-    > Other
-      docker.io
-
-    Dynamic 19 : Enter the name of the registry :
-    us.icr.io
-
-    Dynamic 20 : Enter the namespace where the new images are pushed :
-    m2k-tutorial
-
-    Dynamic 21 : [us.icr.io] What type of container registry login do you want to use?
-    > Use existing pull secret
-      No authentication
-      UserName/Password
-
-    Dynamic 22 : [us.icr.io] Enter the name of the pull secret :
-    all-icr-io
-
-    Dynamic 23 : Provide the ingress host domain
-    irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud
-
-    Dynamic 24 : Provide the TLS secret for ingress
-
-
-    ```
-
-1. Click on `Get` button to download the generated artifacts as a zip file (here, `vmapps.zip`), extract it and browse them. The applications can now be deployed to Kubernetes using these generated artifacts.
-
-    ![Get Target Artifacts](../../assets/images/samples/ui/target-artifacts.png)
+    ![Transformation finished](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/35-transformation-finished.png)
+    ![Download output](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/36-download-output.jpeg)
 
 ## Deploying the application to Kubernetes with the generated target artifacts
 
-1. Extract the `vmapps.zip` file. Now, let's get inside the extracted `vmapps` directory.
+1. After extracting the output zip file, let's go inside the extracted `output` directory.
+
+    ![Downloaded zip file](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/37-output-zip-file-in-finder.png)
+    ![Output extracted](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/38-output-extracted-in-finder.png)
+    ![Output extracted](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/39-inside-output-folder-in-finder.png)
+
+1. Looking at the output folder in VSCode we can see the following structure:
+
+    ![Output file structure](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/40-output-folder-in-vscode.jpeg)
+
+    The full structure of the `output` folder can be seen by executing the `tree` command.
 
     ```console
-    $ cd vmapps/
-    ```
-
-    The structure of the `vmapps` folder can be seen by executing the below command.
-
-    ```console
-    vmapps $ tree
+    $ cd output/
+    $ tree
     .
-    ├── NOTES.txt
-    ├── Readme.md
-    ├── buildimages.sh
-    ├── cicd
-    │   ├── vmapps-clone-build-push-pipeline.yaml
-    │   ├── vmapps-clone-push-serviceaccount.yaml
-    │   ├── vmapps-git-event-triggerbinding.yaml
-    │   ├── vmapps-git-repo-eventlistener.yaml
-    │   ├── vmapps-git-repo-ingress.yaml
-    │   ├── vmapps-image-registry-secret.yaml
-    │   ├── vmapps-run-clone-build-push-triggertemplate.yaml
-    │   ├── vmapps-tekton-triggers-admin-role.yaml
-    │   ├── vmapps-tekton-triggers-admin-rolebinding.yaml
-    │   └── vmapps-tekton-triggers-admin-serviceaccount.yaml
-    ├── containers
-    │   └── language-platforms
-    │       └── language-platforms
-    │           ├── golang
-    │           │   ├── Dockerfile.golang
-    │           │   └── golang-docker-build.sh
-    │           ├── java-gradle
-    │           │   ├── Dockerfile.java-gradle
-    │           │   └── java-gradle-docker-build.sh
-    │           ├── java-gradle-war
-    │           │   ├── Dockerfile.java-gradle-war
-    │           │   └── java-gradle-war-docker-build.sh
-    │           ├── java-maven
-    │           │   ├── Dockerfile.java-maven
-    │           │   └── java-maven-docker-build.sh
-    │           ├── java-maven-war
-    │           │   ├── Dockerfile.java-maven-war
-    │           │   └── java-maven-war-docker-build.sh
-    │           ├── nodejs
-    │           │   ├── Dockerfile.nodejs
-    │           │   └── nodejs-docker-build.sh
-    │           ├── php
-    │           │   ├── Dockerfile.php
-    │           │   └── php-docker-build.sh
-    │           ├── python
-    │           │   ├── Dockerfile.python
-    │           │   └── python-docker-build.sh
-    │           └── ruby
-    │               ├── Dockerfile.ruby
-    │               └── ruby-docker-build.sh
-    ├── deploy.sh
-    ├── docker-compose.yaml
+    ├── m2k.plan
+    ├── m2kconfig.yaml
     ├── m2kqacache.yaml
-    ├── pushimages.sh
-    └── vmapps
-        ├── golang-deployment.yaml
-        ├── golang-service.yaml
-        ├── java-gradle-deployment.yaml
-        ├── java-gradle-service.yaml
-        ├── java-gradle-war-deployment.yaml
-        ├── java-gradle-war-service.yaml
-        ├── java-maven-deployment.yaml
-        ├── java-maven-service.yaml
-        ├── java-maven-war-deployment.yaml
-        ├── java-maven-war-service.yaml
-        ├── nodejs-deployment.yaml
-        ├── nodejs-service.yaml
-        ├── php-deployment.yaml
-        ├── php-service.yaml
-        ├── python-deployment.yaml
-        ├── python-service.yaml
-        ├── ruby-deployment.yaml
-        ├── ruby-service.yaml
-        └── vmapps-ingress.yaml
+    └── project-1
+        ├── Readme.md
+        ├── deploy
+        │   ├── cicd
+        │   │   ├── tekton
+        │   │   │   ├── project-1-clone-build-push-pipeline.yaml
+        │   │   │   ├── project-1-clone-push-serviceaccount.yaml
+        │   │   │   ├── project-1-git-event-triggerbinding.yaml
+        │   │   │   ├── project-1-git-repo-eventlistener.yaml
+        │   │   │   ├── project-1-image-registry-secret.yaml
+        │   │   │   ├── project-1-ingress.yaml
+        │   │   │   ├── project-1-run-clone-build-push-triggertemplate.yaml
+        │   │   │   ├── project-1-tekton-triggers-admin-role.yaml
+        │   │   │   ├── project-1-tekton-triggers-admin-rolebinding.yaml
+        │   │   │   └── project-1-tekton-triggers-admin-serviceaccount.yaml
+        │   │   └── tekton-parameterized
+        │   │       ├── helm-chart
+        │   │       │   └── project-1
+        │   │       │       ├── Chart.yaml
+        │   │       │       └── templates
+        │   │       │           ├── project-1-clone-build-push-pipeline.yaml
+        │   │       │           ├── project-1-clone-push-serviceaccount.yaml
+        │   │       │           ├── project-1-git-event-triggerbinding.yaml
+        │   │       │           ├── project-1-git-repo-eventlistener.yaml
+        │   │       │           ├── project-1-image-registry-secret.yaml
+        │   │       │           ├── project-1-ingress.yaml
+        │   │       │           ├── project-1-run-clone-build-push-triggertemplate.yaml
+        │   │       │           ├── project-1-tekton-triggers-admin-role.yaml
+        │   │       │           ├── project-1-tekton-triggers-admin-rolebinding.yaml
+        │   │       │           └── project-1-tekton-triggers-admin-serviceaccount.yaml
+        │   │       ├── kustomize
+        │   │       │   └── base
+        │   │       │       ├── kustomization.yaml
+        │   │       │       ├── project-1-clone-build-push-pipeline.yaml
+        │   │       │       ├── project-1-clone-push-serviceaccount.yaml
+        │   │       │       ├── project-1-git-event-triggerbinding.yaml
+        │   │       │       ├── project-1-git-repo-eventlistener.yaml
+        │   │       │       ├── project-1-image-registry-secret.yaml
+        │   │       │       ├── project-1-ingress.yaml
+        │   │       │       ├── project-1-run-clone-build-push-triggertemplate.yaml
+        │   │       │       ├── project-1-tekton-triggers-admin-role.yaml
+        │   │       │       ├── project-1-tekton-triggers-admin-rolebinding.yaml
+        │   │       │       └── project-1-tekton-triggers-admin-serviceaccount.yaml
+        │   │       └── openshift-template
+        │   │           └── template.yaml
+        │   ├── compose
+        │   │   └── docker-compose.yaml
+        │   ├── knative
+        │   │   ├── app-service.yaml
+        │   │   ├── main-service.yaml
+        │   │   ├── project-1-php-service.yaml
+        │   │   └── project-1-python-service.yaml
+        │   ├── knative-parameterized
+        │   │   ├── helm-chart
+        │   │   │   └── project-1
+        │   │   │       ├── Chart.yaml
+        │   │   │       └── templates
+        │   │   │           ├── app-service.yaml
+        │   │   │           ├── main-service.yaml
+        │   │   │           ├── project-1-php-service.yaml
+        │   │   │           └── project-1-python-service.yaml
+        │   │   ├── kustomize
+        │   │   │   └── base
+        │   │   │       ├── app-service.yaml
+        │   │   │       ├── kustomization.yaml
+        │   │   │       ├── main-service.yaml
+        │   │   │       ├── project-1-php-service.yaml
+        │   │   │       └── project-1-python-service.yaml
+        │   │   └── openshift-template
+        │   │       └── template.yaml
+        │   ├── yamls
+        │   │   ├── app-deployment.yaml
+        │   │   ├── app-service.yaml
+        │   │   ├── main-deployment.yaml
+        │   │   ├── main-service.yaml
+        │   │   ├── project-1-ingress.yaml
+        │   │   ├── project-1-php-deployment.yaml
+        │   │   ├── project-1-php-service.yaml
+        │   │   ├── project-1-python-deployment.yaml
+        │   │   └── project-1-python-service.yaml
+        │   └── yamls-parameterized
+        │       ├── helm-chart
+        │       │   └── project-1
+        │       │       ├── Chart.yaml
+        │       │       └── templates
+        │       │           ├── app-deployment.yaml
+        │       │           ├── app-service.yaml
+        │       │           ├── main-deployment.yaml
+        │       │           ├── main-service.yaml
+        │       │           ├── project-1-ingress.yaml
+        │       │           ├── project-1-php-deployment.yaml
+        │       │           ├── project-1-php-service.yaml
+        │       │           ├── project-1-python-deployment.yaml
+        │       │           └── project-1-python-service.yaml
+        │       ├── kustomize
+        │       │   └── base
+        │       │       ├── app-deployment.yaml
+        │       │       ├── app-service.yaml
+        │       │       ├── kustomization.yaml
+        │       │       ├── main-deployment.yaml
+        │       │       ├── main-service.yaml
+        │       │       ├── project-1-ingress.yaml
+        │       │       ├── project-1-php-deployment.yaml
+        │       │       ├── project-1-php-service.yaml
+        │       │       ├── project-1-python-deployment.yaml
+        │       │       └── project-1-python-service.yaml
+        │       └── openshift-template
+        │           └── template.yaml
+        ├── scripts
+        │   ├── builddockerimages.bat
+        │   ├── builddockerimages.sh
+        │   ├── buildimages.bat
+        │   ├── buildimages.sh
+        │   ├── pushimages.bat
+        │   └── pushimages.sh
+        └── source
+            └── language-platforms
+                └── language-platforms
+                    ├── golang
+                    │   └── main.go
+                    ├── java-gradle
+                    │   ├── build.gradle
+                    │   └── src
+                    │       └── main
+                    │           ├── java
+                    │           │   └── simplewebapp
+                    │           │       └── MainServlet.java
+                    │           └── webapp
+                    │               └── WEB-INF
+                    │                   └── web.xml
+                    ├── java-gradle-war
+                    │   └── java-gradle-war.war
+                    ├── java-maven
+                    │   ├── pom.xml
+                    │   └── src
+                    │       └── main
+                    │           └── webapp
+                    │               ├── WEB-INF
+                    │               │   └── web.xml
+                    │               └── index.jsp
+                    ├── java-maven-war
+                    │   └── java-maven-war.war
+                    ├── nodejs
+                    │   ├── Dockerfile
+                    │   ├── main.js
+                    │   └── package.json
+                    ├── php
+                    │   └── php
+                    │       ├── Dockerfile
+                    │       └── index.php
+                    ├── python
+                    │   ├── Dockerfile
+                    │   ├── main.py
+                    │   └── requirements.txt
+                    └── ruby
+                        ├── Dockerfile
+                        ├── Gemfile
+                        ├── app.rb
+                        ├── config.ru
+                        └── views
+                            └── main.erb
+
+    53 directories, 111 files
     ```
 
-    The UI has created Yamls for us which are stored inside the *./vmapps* directory. For each of the folders and the services identified, it has created the deployment artifacts, service artifacts and the ingress as required.  The *./containers* folder contains the scripts for building the images for the applications using Dockerfiles.
+    The UI has created Kubernetes YAMLs for us which are stored inside the `project-1/deploy/yamls` directory. For each of the folders and the services identified, it has created the deployment artifacts, service artifacts and the ingress as required.  The `project-1/scripts` folder contains the scripts for building the images for the applications using Dockerfiles.
 
-    Many scripts like *buildimages.sh* and *deploy.sh* are also present inside the folder. It has also created a simple *docker-compose.yaml* for you, so that you can test the images locally if you want. It has also created Tekton artifacts inside the *./cicd* directory that are required if you want to use Tekton as your CI/CD pipeline.
+    Many scripts like `buildimages.sh` and `pushimages.sh` are also present inside the folder. It has also created a simple `project-1/deploy/compose/docker-compose.yaml` for you, so that you can test the images locally if you want. It has also created Tekton artifacts inside the `project-1/deploy/cicd/tekton` directory that are required if you want to use Tekton as your CI/CD pipeline.
 
-    The *Readme.md* file guides on the next steps to be followed.
+    The `Readme.md` file guides on the next steps to be followed.
 
-    ```console
-    vmapps $ cat Readme.md
+    ```
     Move2Kube
     ---------
     Congratulations! Move2Kube has generated the necessary build artfiacts for moving all your application components to Kubernetes. Using the artifacts in this directory you can deploy your application in a kubernetes cluster.
 
-    Prerequisites
-    -------------
-    * Docker
-    * Helm
-    * Kubectl
-    * Source-To-Image (S2I) https://github.com/openshift/source-to-image
-
     Next Steps
     ----------
-    * Build your images using "buildimages.sh"
-    * Push images to registry "pushimages.sh <REGISTRY_URL> <REGISTRY_NAMESPACE>"
-    * Use "deploy.sh" to deploy your artifacts into a kubernetes cluster.
+    To try locally use the scripts in the "./scripts" directory, to build, push and deploy. 
+
+    For production usage use the CI/CD pipelines for deployment.
     ```
 
-2. Next we run the *buildimages.sh* script. This step may take some time to complete.
+2. Next we run the `buildimages.sh` script. Make sure to run this from the `project-1` directory. This step may take some time to complete.
 
     ```console
-    vmapps $ ./buildimages.sh
+    $ cd project-1/
+    $ ./scripts/buildimages.sh
     ```
 
-3. Now using the *pushimages.sh* script we can push our applications images to the registry that we specified during the *translate* phase. For this step, you are required to log in to the Docker registry. To log in to IBM Cloud `us.icr.io` registry refer [here](https://cloud.ibm.com/docs/Registry?topic=Registry-registry_access#registry_access_apikey_auth_docker).
+3. Now using the `pushimages.sh` script we can push our applications images to the registry that we specified during the `transform` phase. For this step, you are required to log in to the Docker registry. To log in to IBM Cloud `us.icr.io` registry refer [here](https://cloud.ibm.com/docs/Registry?topic=Registry-registry_access#registry_access_apikey_auth_docker).
 
     ```console
-    vmapps $ ./pushimages.sh
+    $ ./scripts/pushimages.sh
     The push refers to repository [us.icr.io/m2k-tutorial/java-gradle]
     ffa6465f54ab: Layer already exists
     86b4d79b8cb0: Layer already exists
@@ -390,10 +375,10 @@ Similar to the command line tool, Move2Kube Web-UI can also be used to do the tr
     latest: digest: sha256:524b1308fb013f37570db1eb9375d2a71340d01c85e438b206cbec90a542086b size: 1158
     ```
 
-4. Finally we are going to deploy the applications using the *deploy.sh* script.
+4. Finally we are going to deploy the applications using the `deploy.sh` script. If the deploy script is missing, you can also deploy by doing `kubectl apply -f ./deploy/yamls`
 
    ```console
-   vmapps $ ./deploy.sh
+   $ ./scripts/deploy.sh
    deployment.apps/golang configured
    service/golang configured
    deployment.apps/java-gradle configured
@@ -412,48 +397,48 @@ Similar to the command line tool, Move2Kube Web-UI can also be used to do the tr
    service/python configured
    deployment.apps/ruby configured
    service/ruby configured
-   ingress.networking.k8s.io/vmapps configured
+   ingress.networking.k8s.io/project-1 configured
 
 
    The services are accessible on the following paths:
-   golang : http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/golang
-   java-gradle : http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-gradle
-   java-gradle-war : http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-gradle-war
-   java-maven : http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-maven
-   java-maven-war : http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-maven-war
-   nodejs : http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/nodejs
-   php : http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/php
-   python : http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/python
-   ruby : http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/ruby
+   golang : http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/golang
+   java-gradle : http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-gradle
+   java-gradle-war : http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-gradle-war
+   java-maven : http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-maven
+   java-maven-war : http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-maven-war
+   nodejs : http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/nodejs
+   php : http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/php
+   python : http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/python
+   ruby : http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/ruby
    ```
 
-Now, all our applications are accessible on the paths given below.
+Now all our applications are accessible on the paths given below.
 
-* golang app- `http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/golang`
+* golang app- `http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/golang`
 
    ![golang](../../assets/images/samples/ui/go.png)
 
-* java-gradle app- `http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-gradle`
+* java-gradle app- `http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-gradle`
 
   ![java-gradle](../../assets/images/samples/ui/java-gradle.png)
 
-* java-maven app- `http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-maven`
+* java-maven app- `http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/java-maven`
 
    ![java-maven](../../assets/images/samples/ui/java-maven.png)
 
-* nodejs app- `http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/nodejs`
+* nodejs app- `http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/nodejs`
 
    ![nodejs](../../assets/images/samples/ui/nodejs.png)
 
-* php app- `http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/php`
+* php app- `http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/php`
 
    ![php](../../assets/images/samples/ui/php.png)
 
-* python app- `http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/python`
+* python app- `http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/python`
 
    ![python](../../assets/images/samples/ui/python.png)
 
-* ruby app- `http://vmapps.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/ruby`
+* ruby app- `http://project-1.irlhc12-cf7808d3396a7c1915bd1818afbfb3c0-0000.us-south.containers.appdomain.cloud/ruby`
 
    ![ruby](../../assets/images/samples/ui/ruby.png)
 
