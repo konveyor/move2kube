@@ -21,7 +21,7 @@ Similar to the command line tool, Move2Kube Web-UI can also be used to do the tr
 ## Steps to generate target artifacts
 
 1. Do a `docker run --rm -it -p 8080:8080 quay.io/konveyor/move2kube-ui`.  
-(Optional: If you need persistence then add `-v "${PWD}/data:/move2kube-api/data"` to mount the current directory).  
+(Optional: If you need persistence then add `-v "${PWD}/move2kube-api-data:/move2kube-api/data"` to mount the current directory).  
 (Optional: If you need advanced features of Move2Kube then add `-v //var/run/docker.sock:/var/run/docker.sock` to mount the docker socket).
     ```console
     $ docker run --rm -it -p 8080:8080 quay.io/konveyor/move2kube-ui
