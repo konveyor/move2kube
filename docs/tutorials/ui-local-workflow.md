@@ -32,72 +32,72 @@ Similar to the command line tool, Move2Kube Web-UI can also be used to do the tr
 
 1. Create a new workspace `Workspace 1` by clicking on the `New Workspace` button.
 
-    ![No workspaces](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/01-no-workspaces.png)
-    ![Create workspace](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/03-create-workspace.png)
-    ![New workspace](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/04-new-workspace.jpeg)
+    ![No workspaces](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/01-no-workspaces.png)
+    ![Create workspace](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/03-create-workspace.png)
+    ![New workspace](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/04-new-workspace.jpeg)
 
 1. Scroll down and create a new project `Project 1` by clicking on the `New Project` button.
 
-    ![No projects](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/05-no-projects.png)
-    ![Create project](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/07-create-project.jpeg)
-    ![New project](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/08-new-project.jpeg)
+    ![No projects](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/05-no-projects.png)
+    ![Create project](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/07-create-project.jpeg)
+    ![New project](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/08-new-project.jpeg)
 
 1. Scroll down to the `Project inputs` section and upload the [language-platforms.zip](https://github.com/konveyor/move2kube-demos/blob/main/samples/language-platforms.zip) file which we downloaded earlier in this tutorial and wait for it to finish uploading.
 
-    ![No project inputs](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/09-no-project-inputs.jpeg)
-    ![Create project input](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/11-create-project-input.jpeg)
-    ![New project input](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/12-new-project-input.png)
+    ![No project inputs](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/09-no-project-inputs.jpeg)
+    ![Create project input](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/11-create-project-input.jpeg)
+    ![New project input](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/12-new-project-input.png)
 
 1. Now scroll down to the `Plan` section and click on the `Start Planning` button. Wait for the plan to get generated. It takes about three to five minutes to generate the plan.
 
-    ![No plan](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/13-no-plan.png)
-    ![Start planning](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/14-start-planning.png)
+    ![No plan](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/13-no-plan.png)
+    ![Start planning](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/14-start-planning.png)
 
 1. Once the plan is generated you can scroll to see the different services. The plan is in YAML format. If you edit the plan don't forget to click `Save`.
 
-    ![Planning finished](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/15-planning-finished.png)
+    ![Planning finished](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/15-planning-finished.png)
 
 1. Now scroll down to `Outputs` section and click on the `Start Transformation` button.
 
-    ![No outputs](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/16-no-project-outputs.png)
+    ![No outputs](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/16-no-project-outputs.png)
 
 1. Move2Kube will ask some questions to aid in the transfomation process. You can keep clicking the `Next` button and go with the default answers for now.
 
-    ![Start transformation](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/17-qa-1.png)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/18-qa-2.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/19-qa-3.png)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/20-qa-4.png)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/21-qa-5.png)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/22-qa-6.png)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/23-qa-7.png)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/24-qa-8.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/25-qa-9.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/26-qa-10.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/27-qa-11.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/28-qa-12.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/29-qa-13.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/30-qa-14.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/31-qa-15.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/32-qa-16.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/33-qa-17.jpeg)
-    ![Transformation QA](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/34-qa-18.jpeg)
+    ![Start transformation](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/17-qa-1.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/18-qa-2.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/19-qa-3.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/20-qa-4.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/21-qa-5.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/22-qa-6.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/23-qa-7.png)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/24-qa-8.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/25-qa-9.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/26-qa-10.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/27-qa-11.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/28-qa-12.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/29-qa-13.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/30-qa-14.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/31-qa-15.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/32-qa-16.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/33-qa-17.jpeg)
+    ![Transformation QA](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/34-qa-18.jpeg)
 
 1. After the questions are finished wait a few minutes for it to finish processing. Once it's done, you can click on the output to download the generated artifacts as a zip file (here `workspace-1-project-1-output-1989fd2d-4be1-4316-b368-309f5349cfad.zip`), extract it and browse them. The applications can now be deployed to Kubernetes using these generated artifacts.
 
-    ![Transformation finished](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/35-transformation-finished.png)
-    ![Download output](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/36-download-output.jpeg)
+    ![Transformation finished](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/35-transformation-finished.png)
+    ![Download output](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/36-download-output.jpeg)
 
 ## Deploying the application to Kubernetes with the generated target artifacts
 
 1. After extracting the output zip file, let's go inside the extracted `output` directory.
 
-    ![Downloaded zip file](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/37-output-zip-file-in-finder.png)
-    ![Output extracted](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/38-output-extracted-in-finder.png)
-    ![Output extracted](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/39-inside-output-folder-in-finder.png)
+    ![Downloaded zip file](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/37-output-zip-file-in-finder.png)
+    ![Output extracted](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/38-output-extracted-in-finder.png)
+    ![Output extracted](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/39-inside-output-folder-in-finder.png)
 
 1. Looking at the output folder in VSCode we can see the following structure:
 
-    ![Output file structure](https://raw.githubusercontent.com/konveyor/move2kube-website/main/assets/images/new-m2k-ui-screenshots/40-output-folder-in-vscode.jpeg)
+    ![Output file structure](https://konveyor.github.io/move2kube-website/assets/images/new-m2k-ui-screenshots/40-output-folder-in-vscode.jpeg)
 
     The full structure of the `output` folder can be seen by executing the `tree` command.
 
