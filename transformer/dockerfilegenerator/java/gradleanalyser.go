@@ -27,69 +27,67 @@ import (
 	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
-	"github.com/konveyor/move2kube/types/source/maven"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
-// MavenAnalyser implements Transformer interface
-type MavenAnalyser struct {
-	Config      transformertypes.Transformer
-	Env         *environment.Environment
-	MavenConfig *MavenYamlConfig
+// GradleAnalyser implements Transformer interface
+type GradleAnalyser struct {
+	Config       transformertypes.Transformer
+	Env          *environment.Environment
+	GradleConfig *GradleYamlConfig
 }
 
-// MavenYamlConfig stores the maven related information
-type MavenYamlConfig struct {
-	MavenVersion            string `yaml:"defaultMavenVersion"`
+// GradleYamlConfig stores the Gradle related information
+type GradleYamlConfig struct {
+	GradleVersion           string `yaml:"defaultGradleVersion"`
 	JavaVersion             string `yaml:"defaultJavaVersion"`
 	AppPathInBuildContainer string `yaml:"appPathInBuildContainer"`
 }
 
-// MavenBuildDockerfileTemplate defines the information for the build dockerfile template
-type MavenBuildDockerfileTemplate struct {
+// GradleBuildDockerfileTemplate defines the information for the build dockerfile template
+type GradleBuildDockerfileTemplate struct {
 	JavaPackageName string
-	MavenProfiles   []string
 }
 
 // Init Initializes the transformer
-func (t *MavenAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *GradleAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
-	t.MavenConfig = &MavenYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.MavenConfig)
+	t.GradleConfig = &GradleYamlConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.GradleConfig)
 	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.MavenConfig, err)
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.GradleConfig, err)
 		return err
 	}
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *MavenAnalyser) GetConfig() (transformertypes.Transformer, *environment.Environment) {
+func (t *GradleAnalyser) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+func (t *GradleAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	services = map[string][]transformertypes.Artifact{}
-	mavenFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{maven.PomXMLFileName}, nil)
+	GradleFilePaths, err := common.GetFilesByExtInCurrDir(dir, []string{".gradle"})
 	if err != nil {
-		logrus.Errorf("Error while parsing directory %s for maven file : %s", dir, err)
+		logrus.Errorf("Error while parsing directory %s for Gradle file : %s", dir, err)
 		return nil, err
 	}
-	if len(mavenFilePaths) == 0 {
+	if len(GradleFilePaths) == 0 {
 		return nil, nil
 	}
-	pom := &maven.Pom{}
-	err = pom.Load(mavenFilePaths[0])
+	pom := &Gradle.Pom{}
+	err = pom.Load(GradleFilePaths[0])
 	if err != nil {
-		logrus.Errorf("Unable to unmarshal pom file (%s): %s", mavenFilePaths[0], err)
+		logrus.Errorf("Unable to unmarshal pom file (%s): %s", GradleFilePaths[0], err)
 		return nil, err
 	}
 	if pom.Modules != nil && len(*(pom.Modules)) != 0 {
-		logrus.Debugf("Parent pom detected (%s). Ignoring.", mavenFilePaths[0])
+		logrus.Debugf("Parent pom detected (%s). Ignoring.", GradleFilePaths[0])
 		return nil, nil
 	}
 	appName := pom.ArtifactID
@@ -102,22 +100,22 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]trans
 	ct := transformertypes.Artifact{
 		Configs: map[transformertypes.ConfigType]interface{}{},
 		Paths: map[transformertypes.PathType][]string{
-			artifacts.MavenPomPathType:    {filepath.Join(dir, maven.PomXMLFileName)},
-			artifacts.ProjectPathPathType: {dir},
+			artifacts.GradleBuildFilePathType: {filepath.Join(dir, Gradle.PomXMLFileName)},
+			artifacts.ProjectPathPathType:     {dir},
 		},
 	}
-	mc := artifacts.MavenConfig{}
+	mc := artifacts.GradleConfig{}
 	mc.ArtifactType = pom.Packaging
 	if len(profiles) != 0 {
-		mc.MavenProfiles = profiles
+		mc.GradleProfiles = profiles
 	}
 	if mc.ArtifactType == "" {
 		mc.ArtifactType = "jar"
 	}
 	if pom.ArtifactID != "" {
-		mc.MavenAppName = pom.ArtifactID
+		mc.GradleAppName = pom.ArtifactID
 	}
-	ct.Configs[artifacts.MavenConfigType] = mc
+	ct.Configs[artifacts.GradleConfigType] = mc
 	if pom.Dependencies != nil {
 		for _, dependency := range *pom.Dependencies {
 			if dependency.GroupID == "org.springframework.boot" {
@@ -140,18 +138,18 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]trans
 }
 
 // Transform transforms the artifacts
-func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		javaVersion := ""
-		var pom maven.Pom
-		if len(a.Paths[artifacts.MavenPomPathType]) == 0 {
+		var pom Gradle.Pom
+		if len(a.Paths[artifacts.GradlePomPathType]) == 0 {
 			err := fmt.Errorf("unable to find pom for %s", a.Name)
 			logrus.Errorf("%s", err)
 			return nil, nil, err
 		}
-		err := pom.Load(a.Paths[artifacts.MavenPomPathType][0])
+		err := pom.Load(a.Paths[artifacts.GradlePomPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to load pom for %s : %s", a.Name, err)
 		}
@@ -162,25 +160,25 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			}
 		}
 		if javaVersion == "" {
-			jv, err := pom.GetProperty("maven.compiler.target")
+			jv, err := pom.GetProperty("Gradle.compiler.target")
 			if err == nil {
 				javaVersion = jv
 			}
 		}
 		if javaVersion == "" && pom.Build != nil && pom.Build.Plugins != nil {
 			for _, dep := range *pom.Build.Plugins {
-				if dep.ArtifactID == "maven-compiler-plugin" {
+				if dep.ArtifactID == "Gradle-compiler-plugin" {
 					javaVersion = dep.Configuration.Target
 				}
 			}
 		}
 		if javaVersion == "" {
-			javaVersion = t.MavenConfig.JavaVersion
+			javaVersion = t.GradleConfig.JavaVersion
 		}
-		mavenConfig := artifacts.MavenConfig{}
-		err = a.GetConfig(artifacts.MavenConfigType, &mavenConfig)
+		GradleConfig := artifacts.GradleConfig{}
+		err = a.GetConfig(artifacts.GradleConfigType, &GradleConfig)
 		if err != nil {
-			logrus.Debugf("Unable to load maven config object: %s", err)
+			logrus.Debugf("Unable to load Gradle config object: %s", err)
 		}
 		ir := irtypes.IR{}
 		irPresent := true
@@ -192,55 +190,55 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		defaultProfiles := []string{}
 		if pom.Profiles != nil {
 			for _, profile := range *pom.Profiles {
-				if profile.Activation != nil && profile.Activation.ActiveByDefault && common.IsStringPresent(mavenConfig.MavenProfiles, profile.ID) {
+				if profile.Activation != nil && profile.Activation.ActiveByDefault && common.IsStringPresent(GradleConfig.GradleProfiles, profile.ID) {
 					defaultProfiles = append(defaultProfiles, profile.ID)
 				}
 			}
 		}
 		if len(defaultProfiles) == 0 {
-			defaultProfiles = mavenConfig.MavenProfiles
+			defaultProfiles = GradleConfig.GradleProfiles
 		}
-		selectedMavenProfiles := qaengine.FetchMultiSelectAnswer(
-			common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ConfigActiveMavenProfilesForServiceKeySegment,
-			fmt.Sprintf("Choose the Maven profile to be used for the service %s", a.Name),
-			[]string{fmt.Sprintf("Selected Maven profiles will be used for setting configuration for the service %s", a.Name)},
+		selectedGradleProfiles := qaengine.FetchMultiSelectAnswer(
+			common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ConfigActiveGradleProfilesForServiceKeySegment,
+			fmt.Sprintf("Choose the Gradle profile to be used for the service %s", a.Name),
+			[]string{fmt.Sprintf("Selected Gradle profiles will be used for setting configuration for the service %s", a.Name)},
 			defaultProfiles,
-			mavenConfig.MavenProfiles,
+			GradleConfig.GradleProfiles,
 		)
-		if len(selectedMavenProfiles) == 0 {
-			logrus.Debugf("No maven profiles selected")
+		if len(selectedGradleProfiles) == 0 {
+			logrus.Debugf("No Gradle profiles selected")
 		}
 		classifier := ""
 		if pom.Build != nil && pom.Build.Plugins != nil {
 			// Iterate over existing plugins
-			for _, mavenPlugin := range *pom.Build.Plugins {
-				// Check if spring-boot-maven-plugin is present
-				if mavenPlugin.ArtifactID != "spring-boot-maven-plugin" || mavenPlugin.Executions == nil {
+			for _, GradlePlugin := range *pom.Build.Plugins {
+				// Check if spring-boot-Gradle-plugin is present
+				if GradlePlugin.ArtifactID != "spring-boot-Gradle-plugin" || GradlePlugin.Executions == nil {
 					continue
 				}
 				isRepackageEnabled := false
-				for _, mavenPluginExecution := range *mavenPlugin.Executions {
-					if mavenPluginExecution.Goals == nil {
+				for _, GradlePluginExecution := range *GradlePlugin.Executions {
+					if GradlePluginExecution.Goals == nil {
 						continue
 					}
-					if common.IsStringPresent(*mavenPluginExecution.Goals, "repackage") {
+					if common.IsStringPresent(*GradlePluginExecution.Goals, "repackage") {
 						isRepackageEnabled = true
 					}
 				}
 				if !isRepackageEnabled {
 					continue
 				}
-				if mavenPlugin.Configuration.ConfigurationProfiles == nil || len(*mavenPlugin.Configuration.ConfigurationProfiles) == 0 {
-					classifier = mavenPlugin.Configuration.Classifier
+				if GradlePlugin.Configuration.ConfigurationProfiles == nil || len(*GradlePlugin.Configuration.ConfigurationProfiles) == 0 {
+					classifier = GradlePlugin.Configuration.Classifier
 					break
 				}
-				for _, configProfile := range *mavenPlugin.Configuration.ConfigurationProfiles {
+				for _, configProfile := range *GradlePlugin.Configuration.ConfigurationProfiles {
 					// we check if any of these profiles is contained in the list of profiles
 					// selected by the user
 					// if yes, we look for the classifier property of this plugin and
 					// assign it to the classifier variable
-					if common.IsStringPresent(selectedMavenProfiles, configProfile) {
-						classifier = mavenPlugin.Configuration.Classifier
+					if common.IsStringPresent(selectedGradleProfiles, configProfile) {
+						classifier = GradlePlugin.Configuration.Classifier
 						break
 					}
 				}
@@ -301,14 +299,14 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		if err != nil {
 			logrus.Errorf("Unable to read Dockerfile license template : %s", err)
 		}
-		mavenBuild, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.maven-build"))
+		GradleBuild, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.Gradle-build"))
 		if err != nil {
 			logrus.Errorf("Unable to read Dockerfile license template : %s", err)
 		}
 		tempDir := filepath.Join(t.Env.TempPath, a.Name)
 		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
 		dockerfileTemplate := filepath.Join(tempDir, "Dockerfile.template")
-		template := string(license) + "\n" + string(mavenBuild)
+		template := string(license) + "\n" + string(GradleBuild)
 		err = os.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
 		if err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
@@ -318,9 +316,9 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			Type:     transformertypes.TemplatePathMappingType,
 			SrcPath:  dockerfileTemplate,
 			DestPath: buildDockerfile,
-			TemplateConfig: MavenBuildDockerfileTemplate{
+			TemplateConfig: GradleBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
-				MavenProfiles:   selectedMavenProfiles,
+				GradleProfiles:  selectedGradleProfiles,
 			},
 		})
 		deploymentFileName := pom.ArtifactID + "-" + pom.Version
@@ -378,7 +376,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						BuildContainerName:                common.DefaultBuildContainerName,
 						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
 						EnvVariables:                      envVariablesMap,
-						Port:                              port,
+						Port:                              common.DefaultServicePort,
 					},
 				},
 			}

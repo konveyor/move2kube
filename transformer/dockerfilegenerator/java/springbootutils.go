@@ -31,6 +31,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var (
+	defaultSpringBootResourcesPath = filepath.Join("src", "main", "resources")
+)
+
 const (
 	springbootAppNameConfig  = "spring.application.name"
 	springbootProfilesConfig = "spring.profiles"
@@ -53,10 +57,10 @@ func getSpringBootAppNameAndProfilesFromDir(dir string) (appName string, profile
 }
 
 func getSpringBootMetadataFiles(dir string) (springbootMetadataFiles SpringBootMetadataFiles) {
-	springbootMetadataFiles.bootstrapFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultResourcesPath), []string{"bootstrap.properties"}, nil)
-	springbootMetadataFiles.bootstrapYamlFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultResourcesPath), nil, []string{"bootstrap.ya?ml"})
-	springbootMetadataFiles.appPropFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultResourcesPath), nil, []string{"application(-.+)?.properties"})
-	springbootMetadataFiles.appYamlFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultResourcesPath), nil, []string{"application(-.+)?.ya?ml"})
+	springbootMetadataFiles.bootstrapFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultSpringBootResourcesPath), []string{"bootstrap.properties"}, nil)
+	springbootMetadataFiles.bootstrapYamlFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultSpringBootResourcesPath), nil, []string{"bootstrap.ya?ml"})
+	springbootMetadataFiles.appPropFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultSpringBootResourcesPath), nil, []string{"application(-.+)?.properties"})
+	springbootMetadataFiles.appYamlFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultSpringBootResourcesPath), nil, []string{"application(-.+)?.ya?ml"})
 	return
 }
 

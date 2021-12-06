@@ -34,6 +34,7 @@ func init() {
 		new(ir.IR),
 		new(NewImages),
 		new(MavenConfig),
+		new(GradleConfig),
 		new(SpringBootConfig),
 		new(ContainerizationOptionsConfig),
 	}
