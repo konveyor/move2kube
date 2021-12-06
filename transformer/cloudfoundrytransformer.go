@@ -17,8 +17,6 @@
 package transformer
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -44,6 +42,18 @@ import (
 type CloudFoundry struct {
 	Config transformertypes.Transformer
 	Env    *environment.Environment
+}
+
+// VCAPService defines the VCAP service data from JSON
+type VCAPService struct {
+	ServiceName        string                 `json:"name"`
+	ServiceCredentials map[string]interface{} `json:"credentials"`
+}
+
+// FlattenedVcapEnv defines the flattened environment key and value pair
+type FlattenedVcapEnv struct {
+	EnvKey   string
+	EnvValue string
 }
 
 // Init Initializes the transformer
@@ -187,9 +197,11 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
 			}
+			addedAlready := map[string]bool{}
 			// Manifest
 			for varname, value := range application.EnvironmentVariables {
 				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: value})
+				addedAlready[varname] = true
 			}
 			//TODO: Add support for services, health check, memory
 			if application.Instances.IsSet {
@@ -197,18 +209,26 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			} else if cfinstanceapp.Application.Instances != 0 {
 				serviceConfig.Replicas = cfinstanceapp.Application.Instances
 			}
-			if cfinstanceapp.Application.Name != "" {
-				var b bytes.Buffer
-				encoder := json.NewEncoder(&b)
-				if err := encoder.Encode(cfinstanceapp.Environment.SystemEnv["VCAP_SERVICES"]); err != nil {
-					logrus.Error("Error while Encoding object to json in cf transform")
-				} else {
-					vcapValues := string(b.Bytes())
-					serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: "VCAP_SERVICES", Value: strings.TrimSpace(vcapValues)})
-				}
-			}
+			// if cfinstanceapp.Application.Name != "" {
+			// 	var b bytes.Buffer
+			// 	encoder := json.NewEncoder(&b)
+			// 	if err := encoder.Encode(cfinstanceapp.Environment.SystemEnv["VCAP_SERVICES"]); err != nil {
+			// 		logrus.Error("Error while Encoding object to json in cf transform")
+			// 	} else {
+			// 		vcapVariables, err := parseVcapVariables(string(b.Bytes()))
+			// 		if err != nil {
+			// 			logrus.Debugf("Error while parsing vcap variables : %s", err)
+			// 		} else {
+			// 			ir.Storages = append(ir.Storages, irtypes.Storage{Name: config.ServiceName, Content: vcapVariables})
+			// 		}
+			// 	}
+			// }
 			// Runtime
 			for varname, value := range cfinstanceapp.Application.Environment {
+				// Silently ignore variables already set in manifest
+				if _, ok := addedAlready[varname]; ok {
+					continue
+				}
 				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)})
 			}
 			serviceContainer.Env = append(serviceContainer.Env, t.prioritizeAndAddEnvironmentVariables(cfinstanceapp)...)
