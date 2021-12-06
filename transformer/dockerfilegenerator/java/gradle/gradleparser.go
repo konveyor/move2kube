@@ -17,142 +17,32 @@
 package gradle
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
-	"regexp"
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/qaengine"
-	irtypes "github.com/konveyor/move2kube/types/ir"
-	"github.com/konveyor/move2kube/types/qaengine/commonqa"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
-type GradleBuild struct {
+// Based on https://github.com/ninetwozero/gradle-to-js/blob/master/lib/parser.js
 
-}
-
-type GradleGav struct {
-	Group string `yaml:"group" json:"group"`
-	Name string `yaml:"name" json:"name"`
-	Version string `yaml:"version" json:"version"`
-}
-
-type GradleDependencyItem struct {
-	GradleGav
-	Type string `yaml:"type" json:"type"`
-	Excludes []string `yaml:"excludes" json:"excludes"`
-}
-
-type GradleRepository struct {
-	Type string `yaml:"type" json:"type"`
-	Data GradleRepositoryData `yaml:"data" json:"data"`
-}
-
-type GradleRepositoryData struct {
-	Name string `yaml:"name" json:"name"`
-}
-
-type gradleParseState struct {
-	index   int
-	comment gradleComment
-}
-
-type gradleComment struct {
-	parsing, singleLine, multiLine bool
-}
-
-func (g *gradleComment) setSingleLine() {
-	g.setCommentState(true, false)
-}
-
-func (g *gradleComment) setMultiLine() {
-	g.setCommentState(false, true)
-}
-
-func (g *gradleComment) reset() {
-	g.setCommentState(false, false)
-}
-
-func (g *gradleComment) setCommentState(singleLine, multiLine bool) {
-	g.singleLine = singleLine
-	g.multiLine = multiLine
-	g.parsing = singleLine || multiLine
-}
-
-func parseGardleBuildFile(buildFilePath string) (out map[string]interface{}, err error) {
+func parseGardleBuildFile(buildFilePath string) (out GradleBuild, err error) {
 	state := gradleParseState{}
 	buildFile, err := os.ReadFile(buildFilePath)
 	if err != nil {
 		logrus.Errorf("Unable to read gradle build file : %s", err)
-		return nil, err
+		return GradleBuild{}, err
 	}
-	return deepParse(buildFile, &state, false, true), nil
+	return deepParse(string(buildFile), &state, false, true), nil
 }
 
-// Based on https://github.com/ninetwozero/gradle-to-js/blob/master/lib/parser.js
-const (
-	charTab              = '\t'
-	charNewLine          = '\n'
-	charCarriageReturn   = '\r'
-	charSpace            = ' '
-	charLeftParanthesis  = '('
-	charRightParanthesis = ')'
-	charPeriod           = '.'
-	charSlash            = '/'
-	charEquals           = '='
-	charArrayStart       = '['
-	charArrayEnd         = ']'
-	charBlockStart       = '{'
-	charBlockend         = '}'
-
-	keywordDef = "def"
-	keywordIf  = "if"
-
-	singleLineCommentStart = `//`
-	blockCommentStart      = `/*`
-	blockCommentEnd        = `*/`
-)
-
-var (
-	depsKeywordString        = `(?m)\s*([A-Za-z0-9_-]+)\s*`
-	depsKeywordStringPattern = regexp.MustCompile(depsKeywordString)
-	depsEasyGavStringRegex   = regexp.MustCompile(`(["']?)([\w.-]+):([\w.-]+):([\w\[\]\(\),+.-]+)\1`)
-	depsHardGavStringRegex   = regexp.MustCompile(depsKeywordString + `(?:\((.*)\)|(.*))`)
-	depsItemBlockRegex       = regexp.MustCompile(depsKeywordString + `(?m)\(((["']?)(.*)\3)\)\s*\{`)
-	depsExcludeLineRegex     = regexp.MustCompile(`exclude[ \\t]+([^\\n]+)`)
-	pluginsLinePattern       = regexp.MustCompile(`(?m)(id|version)(?:\s)(["']?)([A-Za-z0-9.]+)\2`)
-
-	functionRegex = regexp.MustCompile(`\w+\(.*\);?$`)
-
-	specialKeys = map[string]func(chunk string, state gradleParseState){
-		"repositories": parseRepositoryClosure,
-		"dependencies": parseDependencyClosure,
-		"plugins":      parsePluginsClosure,
-	}
-
-	whitespacecharacters = map[rune]bool{
-		charTab:            true,
-		charNewLine:        true,
-		charCarriageReturn: true,
-		charSpace:          true,
-	}
-)
-
-//TODO: skipEmptyValues - default should be true
-func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmptyValues bool) (out map[string]interface{}) {
+func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmptyValues bool) (parsedGradleOutput GradleBuild) {
+	parsedGradleOutput = GradleBuild{}
 	var character rune
 	var tempString, commentText string
 	var currentKey string
 	parsingKey := true
 	isBeginningOfLine := true
-
-	for chunkLength := len(chunk); state.index < chunkLength; state.index++ {
+	for chunkLength := len([]rune(chunk)); state.index < chunkLength; state.index++ {
 		character = ([]rune(chunk))[state.index]
 		if isBeginningOfLine && isWhitespace(character) {
 			continue
@@ -197,7 +87,7 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 			continue
 		}
 		if isLineBreakCharacter(character) {
-			if !currentKey && tempString {
+			if currentKey == "" && tempString != "" {
 				if parsingKey {
 					if isFunctionCall(tempString) && !keepFunctionCalls {
 						continue
@@ -207,8 +97,8 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 					}
 				}
 			}
-			if tempString || (currentKey && !skipEmptyValues) {
-				addValueToStructure(out, currentKey, trimWrappingQuotes(tempString))
+			if tempString != "" || (currentKey != "" && !skipEmptyValues) {
+				addValueToStructure(&parsedGradleOutput, currentKey, trimWrappingQuotes(tempString))
 				currentKey = ""
 				tempString = ""
 			}
@@ -219,8 +109,8 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 			continue
 		}
 		// Only parse as an array if the first *real* char is a [
-		if !parsingKey && !tempString && character == charArrayStart {
-			out[currentKey] = parseArray(chunk, state)
+		if !parsingKey && tempString == "" && character == charArrayStart {
+			addValueToStructure(&parsedGradleOutput, currentKey, parseArray(chunk, state)...)
 			currentKey = ""
 			tempString = ""
 			continue
@@ -228,12 +118,19 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 		if character == charBlockStart {
 			// We need to skip the current (=start) character so that we literally "step into" the next closure/block
 			state.index++
-			if sk, ok := specialKeys[currentKey]; ok {
-				out[currentKey] = sk(chunk, state)
-			} else if out[currentKey] {
-				out[currentKey] = deepAssign(map[string]string{}, out[currentKey], deepParse(chunk, state, keepFunctionCalls, skipEmptyValues))
-			} else {
-				out[currentKey] = deepParse(chunk, state, keepFunctionCalls, skipEmptyValues)
+			switch currentKey {
+			case repositoriesProp:
+				parsedGradleOutput.Repositories = append(parsedGradleOutput.Repositories, parseRepositoryClosure(chunk, state)...)
+			case dependenciesProp:
+				parsedGradleOutput.Dependencies = append(parsedGradleOutput.Dependencies, parseDependencyClosure(chunk, state)...)
+			case pluginsProp:
+				parsedGradleOutput.Plugins = append(parsedGradleOutput.Plugins, parsePluginsClosure(chunk, state)...)
+			default:
+				if _, ok := parsedGradleOutput.Blocks[currentKey]; ok {
+					parsedGradleOutput.Metadata[currentKey] = parsedGradleOutput.Metadata[currentKey].Merge(deepParse(chunk, state, keepFunctionCalls, skipEmptyValues))
+				} else {
+					parsedGradleOutput.Blocks[currentKey] = deepParse(chunk, state, keepFunctionCalls, skipEmptyValues)
+				}
 			}
 			currentKey = ""
 		} else if character == charBlockEnd {
@@ -266,321 +163,338 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 		}
 	}
 	// Add the last value to the structure
-	addValueToStructure(out, currentKey, trimWrappingQuotes(tempString))
-	return out
+	addValueToStructure(&parsedGradleOutput, currentKey, trimWrappingQuotes(tempString))
+	return parsedGradleOutput
+}
+
+func skipIfStatement(chunk string, state *gradleParseState) bool {
+	skipFunctionCall(chunk, state)
+	chunkAsRune := []rune(chunk)
+	var character rune
+	var hasFoundTheCurlyBraces, hasFoundAStatementWithoutBraces bool
+	curlyBraceCount := 0
+	for max := len(chunkAsRune); state.index < max; state.index++ {
+		character = chunkAsRune[state.index]
+		if hasFoundAStatementWithoutBraces {
+			if isLineBreakCharacter(character) {
+				break
+			}
+		} else {
+			if character == charBlockStart {
+				hasFoundTheCurlyBraces = true
+				curlyBraceCount++
+			} else if character == charBlockEnd {
+				curlyBraceCount--
+			} else if !hasFoundTheCurlyBraces && !isWhitespace(character) {
+				hasFoundAStatementWithoutBraces = true
+			}
+			if hasFoundTheCurlyBraces && curlyBraceCount == 0 {
+				break
+			}
+		}
+	}
+	return curlyBraceCount == 0
+}
+
+func skipFunctionDefinition(chunk string, state *gradleParseState) {
+	parenthesisNest := 1
+	state.index += 1
+	chunkAsRuneA := []rune(chunk)
+	chunkLen := len(chunkAsRuneA)
+	var character rune
+	for chunkLen < state.index && parenthesisNest != 0 {
+		character = chunkAsRuneA[state.index]
+		if character == charLeftParanthesis {
+			parenthesisNest++
+		} else if character == charRightParanthesis {
+			parenthesisNest--
+		}
+		state.index += 1
+		character = chunkAsRuneA[state.index]
+	}
+	for chunkLen < state.index && character != charBlockStart {
+		state.index += 1
+		character = chunkAsRuneA[state.index]
+	}
+	state.index += 1
+	character = chunkAsRuneA[state.index]
+	blockNest := 1
+	for chunkLen < state.index && blockNest != 0 {
+		if character == charBlockStart {
+			blockNest++
+		} else if character == charBlockEnd {
+			blockNest--
+		}
+		state.index += 1
+		character = chunkAsRuneA[state.index]
+	}
+	state.index -= 1
+}
+
+func parseDependencyClosure(chunk string, state *gradleParseState) []GradleDependency {
+	specialClosures := parseSpecialClosure(chunk, state)
+	gradleDependencies := []GradleDependency{}
+	for _, specialClosure := range specialClosures {
+		gradleDependencies = append(gradleDependencies, createStructureForDependencyItem(specialClosure))
+	}
+	return gradleDependencies
+}
+
+func createStructureForDependencyItem(data string) GradleDependency {
+	gdi := GradleDependency{}
+	if match := depsItemBlockRegex.FindStringSubmatch(data); len(match) > 2 {
+		excludes := []map[string]string{}
+		excludeMatches := depsExcludeLineRegex.FindAllStringSubmatch(data, -1)
+		for _, excludeMatch := range excludeMatches {
+			excludes = append(excludes, parseMapNotation(excludeMatch[0][findFirstSpaceOrTabPosition(excludeMatch[0]):]))
+		}
+		gdi.GradleGAV = parseGavString(match[2])
+		gdi.Type = match[1]
+		gdi.Excludes = excludes
+	} else {
+		gdi.GradleGAV = parseGavString(data)
+		parsed := depsKeywordStringRegex.FindStringSubmatch(data)
+		if len(parsed) > 1 {
+			gdi.Type = parsed[1]
+		}
+	}
+	return gdi
+}
+
+func parsePluginsClosure(chunk string, state *gradleParseState) []GradlePlugin {
+	specialClosures := parseSpecialClosure(chunk, state)
+	gradlePlugins := []GradlePlugin{}
+	for _, specialClosure := range specialClosures {
+		gradlePlugins = append(gradlePlugins, createStructureForPlugin(specialClosure))
+	}
+	return gradlePlugins
+}
+
+func createStructureForPlugin(pluginRow string) map[string]string {
+	plugin := map[string]string{}
+	matches := pluginsLinePattern.FindAllStringSubmatch(pluginRow, -1)
+	for _, match := range matches {
+		if len(match) > 1 {
+			plugin[match[1]] = match[3]
+		}
+	}
+	return plugin
+}
+
+func findFirstSpaceOrTabPosition(input string) int {
+	position := strings.Index(input, " ")
+	if position == -1 {
+		position = strings.Index(input, "\t")
+	}
+	return position
+}
+
+func parseGavString(gavString string) (gav GradleGAV) {
+	gav = GradleGAV{}
+	easyGavStringMatches := depsEasyGavStringRegex.FindStringSubmatch(gavString)
+	if len(easyGavStringMatches) > 4 {
+		gav.Group = easyGavStringMatches[2]
+		gav.Name = easyGavStringMatches[3]
+		gav.Version = easyGavStringMatches[4]
+	} else if strings.Contains(gavString, `project(`) {
+		gav.Name = projectRegex.FindString(gavString)
+	} else {
+		hardGavMatches := depsHardGavStringRegex.FindStringSubmatch(gavString)
+		if len(hardGavMatches) > 3 {
+			gav = parseMapNotationWithFallback(gav, hardGavMatches[3], "")
+		} else if len(hardGavMatches) > 3 {
+			gav = parseMapNotationWithFallback(gav, hardGavMatches[2], "")
+		} else {
+			gav = parseMapNotationWithFallback(gav, gavString, gavString[findFirstSpaceOrTabPosition(gavString):])
+		}
+	}
+	return gav
+}
+
+func parseMapNotationWithFallback(gav GradleGAV, str, name string) GradleGAV {
+	parsedMap := parseMapNotation(str)
+	if _, ok := parsedMap["name"]; ok {
+		return GradleGAV{
+			Group:   parsedMap["group"],
+			Name:    parsedMap["name"],
+			Version: parsedMap["version"],
+		}
+	}
+	if name == "" {
+		name = str
+	}
+	gav.Name = name
+	return gav
+}
+
+func parseMapNotation(input string) (parsedMap map[string]string) {
+	parsedMap = map[string]string{}
+	currentKey := ""
+	var quotation rune
+	inputAsRune := []rune(input)
+	for i, max := 0, len(inputAsRune); i < max; i++ {
+		if inputAsRune[i] == ':' {
+			currentKey = strings.TrimSpace(currentKey)
+			parsedMap[currentKey] = ""
+			var innerLoop rune
+			for i = i + 1; i < max; i++ {
+				if innerLoop == 0 {
+					// Skip any leading spaces before the actual value
+					if isWhitespace(inputAsRune[i]) {
+						continue
+					}
+				}
+				// We just take note of what the "latest" quote was so that we can
+				if inputAsRune[i] == '"' || inputAsRune[i] == '\'' {
+					quotation = inputAsRune[i]
+					continue
+				}
+				// Moving on to the next value if we find a comma
+				if inputAsRune[i] == ',' {
+					parsedMap[currentKey] = strings.TrimSpace(parsedMap[currentKey])
+					currentKey = ""
+					break
+				}
+				parsedMap[currentKey] += string(inputAsRune[i])
+				innerLoop++
+			}
+		} else {
+			currentKey += string(inputAsRune[i])
+		}
+	}
+	// If the last character contains a quotation mark, we remove it
+	if val, ok := parsedMap[currentKey]; ok {
+		parsedMap[currentKey] = strings.TrimSuffix(strings.TrimSpace(val), string(quotation))
+	}
+	return parsedMap
 }
 
 func parseRepositoryClosure(chunk string, state *gradleParseState) (repositories []GradleRepository) {
-	repositories := []GradleRepository{}
+	repositories = []GradleRepository{}
 	parsedRepos := deepParse(chunk, state, true, false)
 	for parsedRepoType, value := range parsedRepos {
 		if parsedRepos[item] == nil {
-			reposiitories = append(repositories, GradleRepository{Type: parsedRepoType, Data: value})
-		  } else {
+			repositories = append(repositories, GradleRepository{Type: parsedRepoType, Data: value})
+		} else {
 			repositories = append(repositories, GradleRepository{Type: "unknown", Data: {Name: parsedRepoType}})
-		  }
+		}
 	}
 	return repositories
 }
 
-type mappingFn func(string) string
-  
-  func parseSpecialClosure(chunk string, state *gradleParseState, mapFunction mappingFn) (out []string) {
-	out := []string{}
+func parseSpecialClosure(chunk string, state *gradleParseState) (closures []string) {
+	closures = []string{}
 	// openBlockCount starts at 1 due to us entering after "<key> {"
-	var openBlockCount = 1
-	var currentKey = ""
-	var currentValue = ""
-  
-	var isInItemBlock = false;
-	for ; state.index < chunk.length; state.index++ {
-	  if chunk[state.index] == charBlockStart {
-		openBlockCount++;
-	  } else if chunk[state.index] == charBlockEnd {
-		openBlockCount--;
-	  } else {
-		currentKey += String.fromCharCode(chunk[state.index]);
-	  }
-  
-	  // Keys shouldn't have any leading nor trailing whitespace
-	  currentKey = currentKey.trim();
-  
-	  if (isStartOfComment(currentKey)) {
-		var commentText = currentKey;
-		for state.index = state.index + 1; state.index < chunk.length; state.index++ {
-		  if (isCommentComplete(commentText, chunk[state.index])) {
-			currentKey = ""
-			break;
-		  }
-		  commentText += String.fromCharCode(chunk[state.index]);
+	openBlockCount := 1
+	currentKey := ""
+	currentValue := ""
+	chunkAsRune := []rune(chunk)
+
+	isInItemBlock := false
+	for ; state.index < len(chunkAsRune); state.index++ {
+		if chunkAsRune[state.index] == charBlockStart {
+			openBlockCount++
+		} else if chunkAsRune[state.index] == charBlockEnd {
+			openBlockCount--
+		} else {
+			currentKey += string(chunkAsRune[state.index])
 		}
-	  }
-  
-  
-	  if currentKey && isWhitespace(chunk[state.index]) {
-		var character = ""
-		for state.index = state.index + 1; state.index < chunk.length; state.index++ {
-		  character = chunk[state.index];
-		  currentValue += String.fromCharCode(character);
-  
-		  if character == charBlockStart {
-			isInItemBlock = true;
-		  } else if isInItemBlock && character == charBlockEnd {
-			isInItemBlock = false;
-		  } else if !isInItemBlock {
-			if isLineBreakCharacter(character) && currentValue {
-			  break;
+
+		// Keys shouldn't have any leading nor trailing whitespace
+		currentKey = strings.TrimSpace(currentKey)
+
+		if isStartOfComment(currentKey) {
+			var commentText = currentKey
+			for state.index++; state.index < len(chunkAsRune); state.index++ {
+				if isCommentComplete(commentText, chunkAsRune[state.index]) {
+					currentKey = ""
+					break
+				}
+				commentText += string(chunkAsRune[state.index])
 			}
-		  }
 		}
-  
-		out = append(out, mapFunction(currentKey + ' ' + currentValue))
-		currentKey = ""
-		currentValue = ""
-	  }
-  
-	  if (openBlockCount == 0) {
-		break;
-	  }
+
+		if currentKey != "" && isWhitespace(chunkAsRune[state.index]) {
+			var character rune
+			for state.index++; state.index < len(chunkAsRune); state.index++ {
+				character = chunkAsRune[state.index]
+				currentValue += string(character)
+				if character == charBlockStart {
+					isInItemBlock = true
+				} else if isInItemBlock && character == charBlockEnd {
+					isInItemBlock = false
+				} else if !isInItemBlock {
+					if isLineBreakCharacter(character) && currentValue != "" {
+						break
+					}
+				}
+			}
+
+			closures = append(closures, currentKey+" "+currentValue)
+			currentKey = ""
+			currentValue = ""
+		}
+
+		if openBlockCount == 0 {
+			break
+		}
 	}
-	return out;
-  }
-  
-
-
-func skipIfStatement(chunk string, state *gradleParseState) {
-  skipFunctionCall(chunk, state)
-  var character rune
-  var hasFoundTheCurlyBraces, hasFoundAStatementWithoutBraces
-  curlyBraceCount := 0
-  for max := len(chunk); state.index < max; state.index++ {
-    character = chunk[state.index]
-    if hasFoundAStatementWithoutBraces {
-      if isLineBreakCharacter(character) {
-        break
-      }
-    } else {
-      if character == charBlockStart {
-        hasFoundTheCurlyBraces = true
-        curlyBraceCount++
-      } else if character == charBlockEnd {
-        curlyBraceCount--
-      } else if !hasFoundTheCurlyBraces && !isWhitespace(character) {
-        hasFoundAStatementWithoutBraces = true
-      }
-      if hasFoundTheCurlyBraces && curlyBraceCount == 0 {
-        break
-      }
-    }
-  }
-  return curlyBraceCount == 0
-}
-
-func skipFunctionDefinition(chunk string, state *gradleParseState) {
-  start := state.index
-  parenthesisNest := 1
-  state.index+=1
-  for character := ([]rune(chunk))[state.index]; character != 0 && parenthesisNest; {
-    if character == charLeftParanthesis {
-      parenthesisNest++
-    } else if character == charRightParanthesis {
-      parenthesisNest--
-    }
-	state.index+=1
-    character = chunk[state.index]
-  }
-  for ;character && character != charBlockStart; {
-	  state.index+=1
-    character = chunk[state.index]
-  }
-  state.index+=1
-  character = chunk[state.index]
- blockNest := 1
-  for ;character != 0 && blockNest; {
-    if (character == charBlockStart) {
-      blockNest++
-    } else if character == charBlockEnd {
-      blockNest--
-    }
-	state.index+=1
-    character = chunk[state.index]
-  }
-  state.index-=1
-}
-
-func parseDependencyClosure(chunk, state) []string {
-  return parseSpecialClosure(chunk, state, createStructureForDependencyItem)
-}
-
-func createStructureForDependencyItem(data string) GradleDependencyItem {
-  gdi := GradleDependencyItem{}
-  matches := depsItemBlockRegex.FindAll(data);
-  if (matches && matches[2]) {
-    excludes = []string{}
-    var match
-    while((match = depsExcludeLineRegex.exec(data))) {
-      excludes.push(parseMapNotation(match[0].substring(findFirstSpaceOrTabPosition(match[0]))));
-    }
-    out = parseGavString(matches[2])
-    out['type'] = matches[1]
-    out['excludes'] = excludes
-  } else {
-    out = parseGavString(data)
-    parsed := depsKeywordStringRegex.FindString(data)
-    out['type'] = (parsed && parsed[1]) || ''
-    out['excludes'] = []
-  }
-  return out
-}
-
-func parsePluginsClosure(chunk string, state *gradleParseState) []string {
-  return parseSpecialClosure(chunk, state, createStructureForPlugin);
-}
-
-func createStructureForPlugin(pluginRow) {
-  var out = {};
-
-  var match;
-  while(match = pluginsLinePattern. exec(pluginRow)) {
-    if (match && match[1]) {
-      out[match[1]] = match[3];
-    }
-  }
-  return out;
-}
-
-func findFirstSpaceOrTabPosition(input) {
-  var position = input.indexOf(' ');
-  if (position === -1) {
-    position = input.indexOf('\t');
-  }
-  return position;
-}
-
-func parseGavString(gavString) (out Gav) {
-  out = Gav{}
-  easyGavStringMatches := depsEasyGavStringRegex.FindAll(gavString)
-  if len(easyGavStringMatches)!=0 {
-    out.Group = easyGavStringMatches[2]
-    out.Name = easyGavStringMatches[3]
-    out.Version = easyGavStringMatches[4]
-  } else if strings.Contains(gavString,`project(`) {
-    out.Name = gavString.match(`(project\([^\)]+\))`)[0]
-  } else {
-    var hardGavMatches = depsHardGavStringRegex DEPS_HARD_GAV_STRING_REGEX.exec(gavString)
-    if (hardGavMatches && (hardGavMatches[3] || hardGavMatches[2])) {
-      out = parseMapNotationWithFallback(out, hardGavMatches[3] || hardGavMatches[2])
-    } else {
-      out = parseMapNotationWithFallback(out, gavString, gavString.slice(findFirstSpaceOrTabPosition(gavString)))
-    }
-  }
-  return out
-}
-
-func parseMapNotationWithFallback(currMap map[string]string, str , name string) map[string]string {
-  outFromMapNotation := parseMapNotation(str)
-  if _, ok := outFromMapNotation["name"]; ok {
-    return outFromMapNotation
-  }
-  if name == "" {
-	  name = str
-  }
-  currMap["name"] = name
-  return currMap
-}
-
-func parseMapNotation(input string) (outMap map[string]string) {
-outMap := map[string]string
-  currentKey := ""
-  quotation := ""
-  for i, max := 0,len(input); i < max; i++ {
-    if input[i] == ':' {
-      currentKey = strings.TrimSpace(currentKey)
-      outMap[currentKey] = ''
-      for innerLoop := rune(0), i = i + 1; i < max; i++ {
-        if innerLoop == 0 {
-          // Skip any leading spaces before the actual value
-          if isWhitespaceLiteral(input[i]) {
-            continue
-          }
-        }
-        // We just take note of what the "latest" quote was so that we can
-        if input[i] == '"' || input[i] == "'" {
-          quotation = input[i]
-          continue
-        }
-        // Moving on to the next value if we find a comma
-        if input[i] === ',' {
-			outMap[currentKey] = strings.TrimSpace(out[currentKey])
-          currentKey = ''
-          break
-        }
-        outMap[currentKey] += input[i]
-        innerLoop++
-      }
-    } else {
-      currentKey += input[i]
-    }
-  }
-  // If the last character contains a quotation mark, we remove it
-  if val, ok := outMap[currentKey]; ok {
-    val = strings.TrimSuffix(strings.TrimSpace(val), quotation)
-	outMap[currentKey] = val
-  }
-  return outMap
+	return closures
 }
 
 func fetchDefinedNameOrSkipFunctionDefinition(chunk string, state *gradleParseState) string {
-  var character rune
-  temp := ""
-  isVariableDefinition := true
-  for max := len([]rune(chunk)); state.index < max; state.index++ {
-    character = chunk[state.index]
+	var character rune
+	checkAsRune := []rune(chunk)
+	temp := ""
+	isVariableDefinition := true
+	for max := len(checkAsRune); state.index < max; state.index++ {
+		character = checkAsRune[state.index]
 
-    if character == charEquals {
-      // Variable definition, break and return name
-      break
-    } else if character == charLeftParanthesis {
-      // Function definition, skip parsing
-      isVariableDefinition = false
-      skipFunctionDefinition(chunk, state)
-      break
-    }
-    temp += string(character)
-  }
+		if character == charEquals {
+			// Variable definition, break and return name
+			break
+		} else if character == charLeftParanthesis {
+			// Function definition, skip parsing
+			isVariableDefinition = false
+			skipFunctionDefinition(chunk, state)
+			break
+		}
+		temp += string(character)
+	}
 
-  if isVariableDefinition {
-    values := strings.Split(strings.TrimSpace(temp),' ')
-    return values[values.length - 1]
-  } else {
-    return ''
-  }
+	if isVariableDefinition {
+		values := strings.Split(strings.TrimSpace(temp), " ")
+		return values[len(values)-1]
+	}
+	return ""
 }
 
 func parseArray(chunk string, state *gradleParseState) []string {
-  var character rune
-  temp = ""
-  for max := len([]rune(chunk)); state.index < max; state.index++ {
-    character = chunk[state.index]
-    if character == charArrayStart {
-      continue
-    } else if character == charArrayEnd {
-      break
-    }
-    temp += string(character)
-  }
-  elems := strings.Split(temp, ",")
-  for elemI, elem := range elems {
-	  elems[elemI] = trimWrappingQuotes(strings.TrimSpace(elem)
-  }
-  return elems
+	var character rune
+	chunkAsRune := []rune(chunk)
+	temp := ""
+	for max := len(chunkAsRune); state.index < max; state.index++ {
+		character = chunkAsRune[state.index]
+		if character == charArrayStart {
+			continue
+		} else if character == charArrayEnd {
+			break
+		}
+		temp += string(character)
+	}
+	elems := strings.Split(temp, ",")
+	for elemI, elem := range elems {
+		elems[elemI] = trimWrappingQuotes(strings.TrimSpace(elem))
+	}
+	return elems
 }
 
 func skipFunctionCall(chunk string, state *gradleParseState) bool {
 	openParenthesisCount := 0
+	checkAsRune := []rune(chunk)
 	var character rune
-	for max := len(chunk); state.index < max; state.index++ {
-		character = ([]rune(chunk))[state.index]
+	for max := len(checkAsRune); state.index < max; state.index++ {
+		character = checkAsRune[state.index]
 		if character == charLeftParanthesis {
 			openParenthesisCount++
 		} else if character == charRightParanthesis {
@@ -594,27 +508,19 @@ func skipFunctionCall(chunk string, state *gradleParseState) bool {
 	return openParenthesisCount == 0
 }
 
-  func addValueToStructure(structure, currentKey, value) {
-	if currentKey {
-	  if structure.hasOwnProperty(currentKey) {
-		if structure[currentKey].constructor == Array {
-		  structure[currentKey].push(getRealValue(value));
-		} else {
-		  oldValue := structure[currentKey]
-		  structure[currentKey] = [oldValue, getRealValue(value)];
-		}
-	  } else {
-		structure[currentKey] = getRealValue(value);
-	  }
+func addValueToStructure(gradleBuild *GradleBuild, currentKey string, value ...string) {
+	switch currentKey {
+	case "":
+		return
+	case repositoriesProp:
+		fallthrough
+	case dependenciesProp:
+		fallthrough
+	case pluginsProp:
+		logrus.Errorf("Incompatible value while parsing for %s", currentKey)
+	default:
+		gradleBuild.Metadata[currentKey] = append(gradleBuild.Metadata[currentKey], value...)
 	}
-  }
-
-  // FIXME
-func getRealValue(value bool) bool {
-	if value == true || value == false {
-		return value == true
-	}
-	return value
 }
 
 func trimWrappingQuotes(str string) string {
@@ -634,10 +540,6 @@ func isDelimiter(character rune) bool {
 
 func isWhitespace(character rune) bool {
 	return whitespacecharacters[character]
-}
-
-func isWhitespaceLiteral(character string) bool {
-	return isWhitespace(rune(character[0]))
 }
 
 func isLineBreakCharacter(character rune) bool {

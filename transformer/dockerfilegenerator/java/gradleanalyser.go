@@ -318,7 +318,6 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			DestPath: buildDockerfile,
 			TemplateConfig: GradleBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
-				GradleProfiles:  selectedGradleProfiles,
 			},
 		})
 		deploymentFileName := pom.ArtifactID + "-" + pom.Version
