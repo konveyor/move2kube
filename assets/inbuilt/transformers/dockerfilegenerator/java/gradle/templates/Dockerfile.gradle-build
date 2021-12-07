@@ -1,0 +1,11 @@
+
+FROM registry.access.redhat.com/ubi8/ubi:latest AS builder
+RUN yum install -y {{ .JavaPackageName }}
+RUN yum install -y wget
+RUN yum install -y unzip
+RUN wget https://services.gradle.org/distributions/gradle-6.6-bin.zip -P /tmp
+RUN unzip -d /opt/gradle /tmp/gradle-6.6-bin.zip
+ENV PATH="$PATH:/opt/gradle/gradle-6.6/bin/"
+COPY . /app
+WORKDIR /app
+RUN gradle build

@@ -21,6 +21,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	defaultAppPathInContainer = "/app/"
+)
+
 func getJavaPackage(mappingFile string, version string) (pkg string, err error) {
 	var javaPackageNamesMapping JavaPackageNamesMapping
 	if err := common.ReadMove2KubeYaml(mappingFile, &javaPackageNamesMapping); err != nil {

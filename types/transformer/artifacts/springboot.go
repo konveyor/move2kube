@@ -40,7 +40,7 @@ func (sb *SpringBootConfig) Merge(newsbobj interface{}) bool {
 	if !ok {
 		newsb, ok := newsbobj.(SpringBootConfig)
 		if !ok {
-			logrus.Error("Unable to cast to ContainerizationOptionsConfig for merge")
+			logrus.Error("Unable to cast to SpringBootConfig for merge")
 			return false
 		}
 		newsbptr = &newsb

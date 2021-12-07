@@ -40,6 +40,8 @@
 "inbuilt/transformers/dockerfilegenerator/java/earanalyser/ear.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/earrouter/earrouter.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/eurekareplaceengine/eureka.yaml" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/gradle/gradle.yaml" : 0644
+"inbuilt/transformers/dockerfilegenerator/java/gradle/templates/Dockerfile.gradle-build" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/jar/jar.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/jar/templates/Dockerfile.embedded" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/jboss/jboss.yaml" : 0644
