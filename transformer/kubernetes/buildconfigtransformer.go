@@ -96,7 +96,7 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alread
 		apis := []apiresource.IAPIResource{new(apiresource.BuildConfig), new(apiresource.Storage)}
 		deployCICDDir := filepath.Join(common.DeployDir, common.CICDDir, "buildconfig")
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
-		logrus.Infof("Generating Tekton pipeline for CI/CD")
+		logrus.Infof("Generating Buildconfig pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
 		files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, t.Env.TargetCluster)
 		if err != nil {
@@ -146,6 +146,9 @@ func (t *BuildConfig) setupEnhancedIR(oldir irtypes.IR, planName string) irtypes
 	ir.Storages = []irtypes.Storage{}
 	gitRepoToWebHookURLs := map[string][]string{}
 	for imageName, irContainer := range ir.ContainerImages {
+		if irContainer.Build.ContextPath == "" {
+			continue
+		}
 		imageStreamName, imageStreamTag := new(apiresource.ImageStream).GetImageStreamNameAndTag(imageName)
 		_, _, gitHostName, gitURL, _, _ := common.GatherGitInfo(irContainer.Build.ContextPath)
 		if gitURL == "" {

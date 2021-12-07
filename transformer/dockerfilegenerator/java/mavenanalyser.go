@@ -386,7 +386,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						BuildContainerName:                common.DefaultBuildContainerName,
 						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
 						EnvVariables:                      envVariablesMap,
-						Port:                              common.DefaultServicePort,
+						Port:                              port,
 					},
 				},
 			}

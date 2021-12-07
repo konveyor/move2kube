@@ -237,19 +237,20 @@ func (t *Tekton) setupEnhancedIR(oldir irtypes.IR, name string) irtypes.Enhanced
 	secrets := []irtypes.Storage{imageRegistrySecret}
 	gitDomains := []string{}
 	for _, container := range ir.ContainerImages {
-		if container.Build.ContextPath != "" {
-			_, _, gitRepoHostName, gitRepoURL, _, err := common.GatherGitInfo(container.Build.ContextPath)
-			if err != nil {
-				if gitRepoURL != "" {
-					logrus.Warnf("Failed to parse git repo url %q Error: %q", gitRepoURL, err)
-				}
-				continue
-			}
-			if gitRepoHostName == "" {
-				continue
-			}
-			gitDomains = append(gitDomains, gitRepoHostName)
+		if container.Build.ContextPath == "" {
+			continue
 		}
+		_, _, gitRepoHostName, gitRepoURL, _, err := common.GatherGitInfo(container.Build.ContextPath)
+		if err != nil {
+			if gitRepoURL != "" {
+				logrus.Warnf("Failed to parse git repo url %q Error: %q", gitRepoURL, err)
+			}
+			continue
+		}
+		if gitRepoHostName == "" {
+			continue
+		}
+		gitDomains = append(gitDomains, gitRepoHostName)
 	}
 	gitDomains = common.UniqueStrings(gitDomains)
 	if len(gitDomains) == 0 {
