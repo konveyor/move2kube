@@ -42,7 +42,7 @@ func (mc *MavenConfig) Merge(newmcobj interface{}) bool {
 	if !ok {
 		newmc, ok := newmcobj.(MavenConfig)
 		if !ok {
-			logrus.Error("Unable to cast to ContainerizationOptionsConfig for merge")
+			logrus.Error("Unable to cast to MavenConfig for merge")
 			return false
 		}
 		newmcptr = &newmc

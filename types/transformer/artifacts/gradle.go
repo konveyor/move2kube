@@ -34,17 +34,17 @@ const (
 )
 
 // Merge implements the Config interface allowing artifacts to be merged
-func (mc *GradleConfig) Merge(newmcobj interface{}) bool {
-	newmcptr, ok := newmcobj.(*GradleConfig)
+func (gc *GradleConfig) Merge(newgcobj interface{}) bool {
+	newgcptr, ok := newgcobj.(*GradleConfig)
 	if !ok {
-		newmc, ok := newmcobj.(GradleConfig)
+		newgc, ok := newgcobj.(GradleConfig)
 		if !ok {
-			logrus.Error("Unable to cast to ContainerizationOptionsConfig for merge")
+			logrus.Error("Unable to cast to GradleConfig for merge")
 			return false
 		}
-		newmcptr = &newmc
+		newgcptr = &newgc
 	}
-	if mc.ArtifactType != newmcptr.ArtifactType {
+	if gc.ArtifactType != newgcptr.ArtifactType {
 		return false
 	}
 	return true
