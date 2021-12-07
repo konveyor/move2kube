@@ -149,7 +149,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		if len(a.Paths[artifacts.MavenPomPathType]) == 0 {
 			err := fmt.Errorf("unable to find pom for %s", a.Name)
 			logrus.Errorf("%s", err)
-			return nil, nil, err
+			continue
 		}
 		err := pom.Load(a.Paths[artifacts.MavenPomPathType][0])
 		if err != nil {

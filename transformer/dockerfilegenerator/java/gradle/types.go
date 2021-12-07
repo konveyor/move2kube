@@ -16,15 +16,15 @@
 
 package gradle
 
-type GradleBuild struct {
+type GradleBlock struct {
 	Repositories []GradleRepository     `yaml:"repositories,omitempty" json:"repositories,omitempty"`
 	Dependencies []GradleDependency     `yaml:"dependencies,omitempty" json:"dependencies,omitempty"`
 	Plugins      []GradlePlugin         `yaml:"plugins,omitempty" json:"plugins,omitempty"`
 	Metadata     map[string][]string    `yaml:"metadata,omitempty" json:"metadata,omitempty"`
-	Blocks       map[string]GradleBuild `yaml:"blocks,omitempty" json:"blocks,omitempty"`
+	Blocks       map[string]GradleBlock `yaml:"blocks,omitempty" json:"blocks,omitempty"`
 }
 
-func (g *GradleBuild) Merge(newg GradleBuild) {
+func (g *GradleBlock) Merge(newg GradleBlock) {
 	g.Repositories = append(g.Repositories, newg.Repositories...)
 	g.Dependencies = append(g.Dependencies, newg.Dependencies...)
 	g.Plugins = append(g.Plugins, newg.Plugins...)

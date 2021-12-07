@@ -34,7 +34,8 @@ import (
 )
 
 const (
-	gradleBuildFileName = "gradle.build"
+	gradleBuildFileName = "build.gradle"
+	archiveNameC        = "archiveName"
 )
 
 // GradleAnalyser implements Transformer interface
@@ -132,40 +133,19 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		javaVersion := ""
-		var pom Gradle.Pom
-		if len(a.Paths[artifacts.GradlePomPathType]) == 0 {
-			err := fmt.Errorf("unable to find pom for %s", a.Name)
+		if len(a.Paths[artifacts.GradleBuildFilePathType]) == 0 {
+			err := fmt.Errorf("unable to find gradle build file for %s", a.Name)
 			logrus.Errorf("%s", err)
-			return nil, nil, err
+			continue
 		}
-		err := pom.Load(a.Paths[artifacts.GradlePomPathType][0])
+		gradleBuild, err := gradle.ParseGardleBuildFile(a.Paths[artifacts.GradleBuildFilePathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to load pom for %s : %s", a.Name, err)
+			logrus.Errorf("Error while parsing gradle build file : %s", err)
+			continue
 		}
-		if _, ok := a.Configs[artifacts.SpringBootConfigType]; ok {
-			jv, err := pom.GetProperty("java.version")
-			if err == nil {
-				javaVersion = jv
-			}
-		}
-		if javaVersion == "" {
-			jv, err := pom.GetProperty("Gradle.compiler.target")
-			if err == nil {
-				javaVersion = jv
-			}
-		}
-		if javaVersion == "" && pom.Build != nil && pom.Build.Plugins != nil {
-			for _, dep := range *pom.Build.Plugins {
-				if dep.ArtifactID == "Gradle-compiler-plugin" {
-					javaVersion = dep.Configuration.Target
-				}
-			}
-		}
-		if javaVersion == "" {
-			javaVersion = t.GradleConfig.JavaVersion
-		}
-		GradleConfig := artifacts.GradleConfig{}
-		err = a.GetConfig(artifacts.GradleConfigType, &GradleConfig)
+		javaVersion = t.GradleConfig.JavaVersion
+		gradleConfig := artifacts.GradleConfig{}
+		err = a.GetConfig(artifacts.GradleConfigType, &gradleConfig)
 		if err != nil {
 			logrus.Debugf("Unable to load Gradle config object: %s", err)
 		}
@@ -176,64 +156,11 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			irPresent = false
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
-		defaultProfiles := []string{}
-		if pom.Profiles != nil {
-			for _, profile := range *pom.Profiles {
-				if profile.Activation != nil && profile.Activation.ActiveByDefault && common.IsStringPresent(GradleConfig.GradleProfiles, profile.ID) {
-					defaultProfiles = append(defaultProfiles, profile.ID)
-				}
+		archiveName := ""
+		if gb, ok := gradleBuild.Blocks[gradleConfig.ArtifactType]; ok {
+			if len(gb.Metadata[archiveNameC]) > 0 {
+				archiveName = gb.Metadata[archiveNameC][0]
 			}
-		}
-		if len(defaultProfiles) == 0 {
-			defaultProfiles = GradleConfig.GradleProfiles
-		}
-		selectedGradleProfiles := qaengine.FetchMultiSelectAnswer(
-			common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ConfigActiveGradleProfilesForServiceKeySegment,
-			fmt.Sprintf("Choose the Gradle profile to be used for the service %s", a.Name),
-			[]string{fmt.Sprintf("Selected Gradle profiles will be used for setting configuration for the service %s", a.Name)},
-			defaultProfiles,
-			GradleConfig.GradleProfiles,
-		)
-		if len(selectedGradleProfiles) == 0 {
-			logrus.Debugf("No Gradle profiles selected")
-		}
-		classifier := ""
-		if pom.Build != nil && pom.Build.Plugins != nil {
-			// Iterate over existing plugins
-			for _, GradlePlugin := range *pom.Build.Plugins {
-				// Check if spring-boot-Gradle-plugin is present
-				if GradlePlugin.ArtifactID != "spring-boot-Gradle-plugin" || GradlePlugin.Executions == nil {
-					continue
-				}
-				isRepackageEnabled := false
-				for _, GradlePluginExecution := range *GradlePlugin.Executions {
-					if GradlePluginExecution.Goals == nil {
-						continue
-					}
-					if common.IsStringPresent(*GradlePluginExecution.Goals, "repackage") {
-						isRepackageEnabled = true
-					}
-				}
-				if !isRepackageEnabled {
-					continue
-				}
-				if GradlePlugin.Configuration.ConfigurationProfiles == nil || len(*GradlePlugin.Configuration.ConfigurationProfiles) == 0 {
-					classifier = GradlePlugin.Configuration.Classifier
-					break
-				}
-				for _, configProfile := range *GradlePlugin.Configuration.ConfigurationProfiles {
-					// we check if any of these profiles is contained in the list of profiles
-					// selected by the user
-					// if yes, we look for the classifier property of this plugin and
-					// assign it to the classifier variable
-					if common.IsStringPresent(selectedGradleProfiles, configProfile) {
-						classifier = GradlePlugin.Configuration.Classifier
-						break
-					}
-				}
-				break
-			}
-			logrus.Debugf("classifier: %s", classifier)
 		}
 		// Springboot profiles handling
 		// We collect the springboot profiles from the current service
@@ -288,14 +215,14 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		if err != nil {
 			logrus.Errorf("Unable to read Dockerfile license template : %s", err)
 		}
-		GradleBuild, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.Gradle-build"))
+		gradleBuildDf, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.gradle-build"))
 		if err != nil {
 			logrus.Errorf("Unable to read Dockerfile license template : %s", err)
 		}
 		tempDir := filepath.Join(t.Env.TempPath, a.Name)
 		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
 		dockerfileTemplate := filepath.Join(tempDir, "Dockerfile.template")
-		template := string(license) + "\n" + string(GradleBuild)
+		template := string(license) + "\n" + string(gradleBuildDf)
 		err = os.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
 		if err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
@@ -309,19 +236,18 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 				JavaPackageName: javaPackage,
 			},
 		})
-		deploymentFileName := pom.ArtifactID + "-" + pom.Version
-		if classifier != "" {
-			deploymentFileName = deploymentFileName + "-" + classifier
+		if archiveName == "" {
+			archiveName = sConfig.ServiceName + gradleConfig.ArtifactType
 		}
 		var newArtifact transformertypes.Artifact
-		switch pom.Packaging {
+		switch gradleConfig.ArtifactType {
 		case WarPackaging:
 			newArtifact = transformertypes.Artifact{
 				Name:     a.Name,
 				Artifact: artifacts.WarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.WarConfigType: artifacts.WarArtifactConfig{
-						DeploymentFile:                    deploymentFileName + ".war",
+						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
 						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
@@ -335,7 +261,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 				Artifact: artifacts.EarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.EarConfigType: artifacts.EarArtifactConfig{
-						DeploymentFile:                    deploymentFileName + ".ear",
+						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
 						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
@@ -359,7 +285,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 				Artifact: artifacts.JarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.JarConfigType: artifacts.JarArtifactConfig{
-						DeploymentFile:                    deploymentFileName + ".jar",
+						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
 						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),

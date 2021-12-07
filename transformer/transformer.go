@@ -80,6 +80,7 @@ func init() {
 		new(java.Liberty),
 		new(java.Jboss),
 		new(java.MavenAnalyser),
+		new(java.GradleAnalyser),
 		new(java.ZuulAnalyser),
 		new(java.EurekaReplaceEngine),
 		new(windows.WinConsoleAppDockerfileGenerator),
