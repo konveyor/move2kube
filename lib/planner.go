@@ -108,6 +108,17 @@ func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) planty
 		p.Spec.Services[sn] = sArtifacts
 		serviceNames = append(serviceNames, sn)
 	}
+
+	// Choose cluster type to target
+	clusters := new(configuration.ClusterMDLoader).GetClusters(p)
+	clusterTypeList := []string{}
+	for c := range clusters {
+		clusterTypeList = append(clusterTypeList, c)
+	}
+	clusterType := qaengine.FetchSelectAnswer(common.ConfigTargetClusterTypeKey, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, string(common.DefaultClusterType), clusterTypeList)
+	p.Spec.TargetCluster.Type = clusterType
+	p.Spec.TargetCluster.Path = ""
+
 	tc, err := (&configuration.ClusterMDLoader{}).GetTargetClusterMetadataForPlan(p)
 	if err != nil {
 		logrus.Errorf("Unable to load cluster metadata : %s", err)
@@ -123,6 +134,7 @@ func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) planty
 		requirements, _ := selectorsInPlan.Requirements()
 		transformerSelectorObj = transformerSelectorObj.Add(requirements...)
 	}
+
 	transformer.InitTransformers(p.Spec.Configuration.Transformers, transformerSelectorObj, tc, p.Spec.RootDir, outputPath, p.Name, true)
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
 	planServices := map[string][]transformertypes.Artifact{}
@@ -130,16 +142,6 @@ func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) planty
 		planServices[s] = p.Spec.Services[s]
 	}
 	p.Spec.Services = planServices
-
-	// Choose cluster type to target
-	clusters := new(configuration.ClusterMDLoader).GetClusters(p)
-	clusterTypeList := []string{}
-	for c := range clusters {
-		clusterTypeList = append(clusterTypeList, c)
-	}
-	clusterType := qaengine.FetchSelectAnswer(common.ConfigTargetClusterTypeKey, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, string(common.DefaultClusterType), clusterTypeList)
-	p.Spec.TargetCluster.Type = clusterType
-	p.Spec.TargetCluster.Path = ""
 
 	logrus.Debugf("Plan : %+v", p)
 	return p

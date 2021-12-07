@@ -99,9 +99,13 @@ func (bc *BuildConfig) createNewResource(irBuildConfig irtypes.BuildConfig, ir i
 
 func (*BuildConfig) getBuildSource(irBuildConfig irtypes.BuildConfig, ir irtypes.EnhancedIR) okdbuildv1.BuildSource {
 	contextPath := irBuildConfig.ContainerBuild.ContextPath
-	_, repoDir, _, repoURL, repoBranchName, err := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
-	if err != nil {
-		logrus.Debugf("Unable to identify git repo for %s : %s", irBuildConfig.ContainerBuild.ContextPath, err)
+	var repoDir, repoURL, repoBranchName string
+	var err error
+	if contextPath != "" {
+		_, repoDir, _, repoURL, repoBranchName, err = common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
+		if err != nil {
+			logrus.Debugf("Unable to identify git repo for %s : %s", irBuildConfig.ContainerBuild.ContextPath, err)
+		}
 	}
 	if repoDir != "" {
 		relDockerfilePath, err := filepath.Rel(repoDir, contextPath)
@@ -128,9 +132,13 @@ func (*BuildConfig) getBuildSource(irBuildConfig irtypes.BuildConfig, ir irtypes
 }
 
 func (*BuildConfig) getBuildStrategy(irBuildConfig irtypes.BuildConfig, ir irtypes.EnhancedIR) okdbuildv1.BuildStrategy {
-	_, repoDir, _, _, _, err := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
-	if err != nil {
-		logrus.Debugf("Unable to identify git repo for %s : %s", irBuildConfig.ContainerBuild.ContextPath, err)
+	var repoDir string
+	var err error
+	if irBuildConfig.ContainerBuild.ContextPath != "" {
+		_, repoDir, _, _, _, err = common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
+		if err != nil {
+			logrus.Debugf("Unable to identify git repo for %s : %s", irBuildConfig.ContainerBuild.ContextPath, err)
+		}
 	}
 	dockerfilePath := dockerfilePathPlaceholder
 	if repoDir != "" {
@@ -149,17 +157,19 @@ func (*BuildConfig) getBuildStrategy(irBuildConfig irtypes.BuildConfig, ir irtyp
 
 func (bc *BuildConfig) getBuildTriggerPolicy(irBuildConfig irtypes.BuildConfig, ir irtypes.EnhancedIR) okdbuildv1.BuildTriggerPolicy {
 	webHookType := okdbuildv1.GenericWebHookBuildTriggerType
-	_, _, _, repoURL, _, _ := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
-	if repoURL != "" {
-		gitRepoURLObj, err := giturls.Parse(repoURL)
-		if err != nil {
-			if repoURL != "" {
-				logrus.Warnf("Failed to parse git repo url %s Error: %q", repoURL, err)
+	if irBuildConfig.ContainerBuild.ContextPath != "" {
+		_, _, _, repoURL, _, _ := common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
+		if repoURL != "" {
+			gitRepoURLObj, err := giturls.Parse(repoURL)
+			if err != nil {
+				if repoURL != "" {
+					logrus.Warnf("Failed to parse git repo url %s Error: %q", repoURL, err)
+				}
+			} else if gitRepoURLObj.Hostname() == "" {
+				logrus.Warnf("Successfully parsed git repo url %s but the host name is empty: %+v", repoURL, gitRepoURLObj)
+			} else {
+				webHookType = bc.getWebHookType(gitRepoURLObj.Hostname())
 			}
-		} else if gitRepoURLObj.Hostname() == "" {
-			logrus.Warnf("Successfully parsed git repo url %s but the host name is empty: %+v", repoURL, gitRepoURLObj)
-		} else {
-			webHookType = bc.getWebHookType(gitRepoURLObj.Hostname())
 		}
 	}
 	policy := okdbuildv1.BuildTriggerPolicy{Type: webHookType}
@@ -172,7 +182,6 @@ func (bc *BuildConfig) getBuildTriggerPolicy(irBuildConfig irtypes.BuildConfig, 
 	case okdbuildv1.BitbucketWebHookBuildTriggerType:
 		policy.BitbucketWebHook = &webHookTrigger
 	default:
-		logrus.Warnf("the git repo is not on github, gitlab or bitbucket. Using generic webhook")
 		policy.GenericWebHook = &webHookTrigger
 	}
 	return policy
