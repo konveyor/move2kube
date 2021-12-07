@@ -274,6 +274,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 			return nil, nil
 		}
 		appName = strings.TrimSuffix(filepath.Base(de.Name()), filepath.Ext(de.Name()))
+		appName = common.NormalizeForServiceName(appName)
 		solutionFilePath = filepath.Join(dir, de.Name())
 
 		// Exit soon of after the solution file is found
