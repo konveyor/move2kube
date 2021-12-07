@@ -274,7 +274,6 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 			return nil, nil
 		}
 		appName = strings.TrimSuffix(filepath.Base(de.Name()), filepath.Ext(de.Name()))
-		appName = common.NormalizeForServiceName(appName)
 		solutionFilePath = filepath.Join(dir, de.Name())
 
 		// Exit soon of after the solution file is found
@@ -316,6 +315,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 	if appName == "" {
 		return nil, nil
 	}
+	appName = common.NormalizeForServiceName(appName)
 
 	dotnetcoreService := transformertypes.Artifact{
 		Paths: map[string][]string{
@@ -361,7 +361,6 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 		}
 		ports := ir.GetAllServicePorts()
 		var dotNetCoreTemplateConfig DotNetCoreTemplateConfig
-		dotNetCoreTemplateConfig.AppName = a.Name
 		var csprojRelFilePath string
 		if len(a.Paths[DotNetCoreCsprojFilesPathType]) == 1 {
 			csprojRelFilePath, err = filepath.Rel(a.Paths[artifacts.ProjectPathPathType][0], a.Paths[DotNetCoreCsprojFilesPathType][0])
@@ -375,7 +374,7 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 		publishProfileFilesPath := findPublishProfiles(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], csprojRelFilePath))
 		dotNetCoreTemplateConfig.PublishProfileFilePath, dotNetCoreTemplateConfig.PublishUrl = getPublishProfile(publishProfileFilesPath, a.Name, a.Paths[artifacts.ProjectPathPathType][0])
 		dotNetCoreTemplateConfig.CsprojFilePath = csprojRelFilePath
-		projectName := strings.TrimSuffix(filepath.Base(dotNetCoreTemplateConfig.CsprojFilePath), filepath.Ext(dotNetCoreTemplateConfig.CsprojFilePath))
+		dotNetCoreTemplateConfig.AppName = strings.TrimSuffix(filepath.Base(dotNetCoreTemplateConfig.CsprojFilePath), filepath.Ext(dotNetCoreTemplateConfig.CsprojFilePath))
 		jsonFiles, err := common.GetFilesByName(a.Paths[artifacts.ProjectPathPathType][0], []string{launchSettingsJSON, packageJSONFile}, nil)
 		if err != nil {
 			logrus.Debugf("Error while finding json files %s", err)
@@ -387,9 +386,9 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 					logrus.Errorf("Unable to read the launchSettings.json file: %s", err)
 					continue
 				}
-				if _, ok := launchSettings.Profiles[projectName]; ok {
-					if launchSettings.Profiles[projectName].ApplicationURL != "" {
-						Urls := strings.Split(launchSettings.Profiles[projectName].ApplicationURL, ";")
+				if _, ok := launchSettings.Profiles[dotNetCoreTemplateConfig.AppName]; ok {
+					if launchSettings.Profiles[dotNetCoreTemplateConfig.AppName].ApplicationURL != "" {
+						Urls := strings.Split(launchSettings.Profiles[dotNetCoreTemplateConfig.AppName].ApplicationURL, ";")
 						for _, url := range Urls {
 							portStr := portRegex.FindAllString(url, 1)[0]
 							port, err := strconv.ParseInt(strings.TrimPrefix(portStr, ":"), 10, 32)
