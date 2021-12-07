@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package main
+package gradle
 
 import (
 	"regexp"
@@ -29,7 +29,6 @@ func (q *quotedRegex) Init(regex string) {
 	q.regexes = []regexp.Regexp{}
 	q.regexes = append(q.regexes, *regexp.MustCompile(regex))
 	q.regexes = append(q.regexes, *regexp.MustCompile(strings.ReplaceAll(regex, `"`, "'")))
-	q.regexes = append(q.regexes, *regexp.MustCompile(strings.ReplaceAll(regex, `"`, "")))
 }
 
 func (q *quotedRegex) FindStringSubmatch(str string) []string {
@@ -38,7 +37,7 @@ func (q *quotedRegex) FindStringSubmatch(str string) []string {
 	for _, r := range q.regexes {
 		match := r.FindStringSubmatchIndex(str)
 		if len(match) > 0 {
-			if matchIndex > match[0] {
+			if matchIndex == -1 || matchIndex > match[0] {
 				matchIndex = match[0]
 				regex = r
 			}

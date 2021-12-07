@@ -14,14 +14,14 @@
  *  limitations under the License.
  */
 
-package main
+package gradle
 
 type GradleBuild struct {
-	Repositories []GradleRepository     `yaml:"repositories" json:"repositories"`
-	Dependencies []GradleDependency     `yaml:"dependencies" json:"dependencies"`
-	Plugins      []GradlePlugin         `yaml:"plugins" json:"plugins"`
-	Metadata     map[string][]string    `yaml:"metadata" json:"metadata"`
-	Blocks       map[string]GradleBuild `yaml:"blocks" json:"blocks"`
+	Repositories []GradleRepository     `yaml:"repositories,omitempty" json:"repositories,omitempty"`
+	Dependencies []GradleDependency     `yaml:"dependencies,omitempty" json:"dependencies,omitempty"`
+	Plugins      []GradlePlugin         `yaml:"plugins,omitempty" json:"plugins,omitempty"`
+	Metadata     map[string][]string    `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+	Blocks       map[string]GradleBuild `yaml:"blocks,omitempty" json:"blocks,omitempty"`
 }
 
 func (g *GradleBuild) Merge(newg GradleBuild) {
@@ -50,12 +50,12 @@ type GradleGAV struct {
 type GradleDependency struct {
 	GradleGAV
 	Type     string              `yaml:"type" json:"type"`
-	Excludes []map[string]string `yaml:"excludes" json:"excludes"`
+	Excludes []map[string]string `yaml:"excludes,omitempty" json:"excludes,omitempty"`
 }
 
 type GradleRepository struct {
 	Type string               `yaml:"type" json:"type"`
-	Data GradleRepositoryData `yaml:"data" json:"data"`
+	Data GradleRepositoryData `yaml:"data,omitempty" json:"data,omitempty"`
 }
 
 type GradleRepositoryData struct {

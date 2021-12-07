@@ -38,6 +38,7 @@ var (
 const (
 	springbootAppNameConfig  = "spring.application.name"
 	springbootProfilesConfig = "spring.profiles"
+	springbootGroup          = "org.springframework.boot"
 )
 
 const (

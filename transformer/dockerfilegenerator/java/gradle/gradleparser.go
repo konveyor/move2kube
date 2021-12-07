@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package main
+package gradle
 
 import (
 	"os"
@@ -23,18 +23,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func main() {
-	gradleBuild, err := parseGardleBuildFile(os.Args[1])
-	if err != nil {
-		logrus.Errorf("Error while parsing Gardle Build file : %s", err)
-	} else {
-		logrus.Infof("%+v", gradleBuild)
-	}
-}
+// Inspired from https://github.com/ninetwozero/gradle-to-js/blob/master/lib/parser.js
 
-// Based on https://github.com/ninetwozero/gradle-to-js/blob/master/lib/parser.js
-
-func parseGardleBuildFile(buildFilePath string) (gradleBuild GradleBuild, err error) {
+// ParseGardleBuildFile parses a gradle build file
+func ParseGardleBuildFile(buildFilePath string) (gradleBuild GradleBuild, err error) {
 	state := gradleParseState{}
 	buildFile, err := os.ReadFile(buildFilePath)
 	if err != nil {
@@ -51,11 +43,13 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 	var currentKey string
 	parsingKey := true
 	isBeginningOfLine := true
+
 	for chunkLength := len([]rune(chunk)); state.index < chunkLength; state.index++ {
 		character = ([]rune(chunk))[state.index]
 		if isBeginningOfLine && isWhitespace(character) {
 			continue
 		}
+
 		if !state.comment.parsing && isBeginningOfLine && isStartOfComment(tempString) {
 			isBeginningOfLine = false
 			if isSingleLineComment(tempString) {
@@ -65,18 +59,20 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 			}
 			continue
 		}
+
 		if state.comment.multiLine && isEndOfMultiLineComment(commentText) {
 			state.comment.reset()
-
 			isBeginningOfLine = true
 			tempString = ""
 			commentText = ""
 			continue
 		}
+
 		if state.comment.parsing && character != charNewLine {
 			commentText += string(character)
 			continue
 		}
+
 		if state.comment.parsing && isLineBreakCharacter(character) {
 			if state.comment.singleLine {
 				state.comment.reset()
@@ -88,6 +84,7 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 			}
 			continue
 		}
+
 		if parsingKey && !keepFunctionCalls && character == charLeftParanthesis {
 			skipFunctionCall(chunk, state)
 			currentKey = ""
@@ -135,6 +132,9 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 			case pluginsProp:
 				parsedGradleOutput.Plugins = append(parsedGradleOutput.Plugins, parsePluginsClosure(chunk, state)...)
 			default:
+				if parsedGradleOutput.Blocks == nil {
+					parsedGradleOutput.Blocks = map[string]GradleBuild{}
+				}
 				if _, ok := parsedGradleOutput.Blocks[currentKey]; ok {
 					gb := parsedGradleOutput.Blocks[currentKey]
 					gb.Merge(deepParse(chunk, state, keepFunctionCalls, skipEmptyValues))
@@ -254,6 +254,7 @@ func parseDependencyClosure(chunk string, state *gradleParseState) []GradleDepen
 func createStructureForDependencyItem(data string) GradleDependency {
 	gdi := GradleDependency{}
 	if match := depsItemBlockRegex.FindStringSubmatch(data); len(match) > 2 {
+		logrus.Infof("Parsing GAV 1 : %s", data)
 		excludes := []map[string]string{}
 		excludeMatches := depsExcludeLineRegex.FindAllStringSubmatch(data, -1)
 		for _, excludeMatch := range excludeMatches {
@@ -263,6 +264,7 @@ func createStructureForDependencyItem(data string) GradleDependency {
 		gdi.Type = match[1]
 		gdi.Excludes = excludes
 	} else {
+		logrus.Infof("Parsing GAV else : %s", data)
 		gdi.GradleGAV = parseGavString(data)
 		parsed := depsKeywordStringRegex.FindStringSubmatch(data)
 		if len(parsed) > 1 {
@@ -303,7 +305,7 @@ func findFirstSpaceOrTabPosition(input string) int {
 func parseGavString(gavString string) (gav GradleGAV) {
 	gav = GradleGAV{}
 	easyGavStringMatches := depsEasyGavStringRegex.FindStringSubmatch(gavString)
-	if len(easyGavStringMatches) > 4 {
+	if len(easyGavStringMatches) > 3 {
 		gav.Group = easyGavStringMatches[2]
 		gav.Name = easyGavStringMatches[3]
 		gav.Version = easyGavStringMatches[4]
@@ -311,10 +313,12 @@ func parseGavString(gavString string) (gav GradleGAV) {
 		gav.Name = projectRegex.FindString(gavString)
 	} else {
 		hardGavMatches := depsHardGavStringRegex.FindStringSubmatch(gavString)
-		if len(hardGavMatches) > 3 {
-			gav = parseMapNotationWithFallback(gav, hardGavMatches[3], "")
-		} else if len(hardGavMatches) > 3 {
-			gav = parseMapNotationWithFallback(gav, hardGavMatches[2], "")
+		if len(hardGavMatches) > 2 {
+			if hardGavMatches[3] != "" {
+				gav = parseMapNotationWithFallback(gav, hardGavMatches[3], "")
+			} else {
+				gav = parseMapNotationWithFallback(gav, hardGavMatches[2], "")
+			}
 		} else {
 			gav = parseMapNotationWithFallback(gav, gavString, gavString[findFirstSpaceOrTabPosition(gavString):])
 		}
@@ -372,6 +376,7 @@ func parseMapNotation(input string) (parsedMap map[string]string) {
 		} else {
 			currentKey += string(inputAsRune[i])
 		}
+		logrus.Infof("%s", currentKey)
 	}
 	// If the last character contains a quotation mark, we remove it
 	if val, ok := parsedMap[currentKey]; ok {
@@ -384,7 +389,7 @@ func parseRepositoryClosure(chunk string, state *gradleParseState) (repositories
 	repositories = []GradleRepository{}
 	parsedRepos := deepParse(chunk, state, true, false)
 	for parsedRepoType, value := range parsedRepos.Metadata {
-		if value != nil {
+		if len(value) > 0 && value[0] != "" {
 			repositories = append(repositories, GradleRepository{Type: parsedRepoType, Data: GradleRepositoryData{
 				Name: value[0],
 			}})
@@ -532,17 +537,21 @@ func addValueToStructure(gradleBuild *GradleBuild, currentKey string, value ...s
 	case pluginsProp:
 		logrus.Errorf("Incompatible value while parsing for %s", currentKey)
 	default:
+		if gradleBuild.Metadata == nil {
+			gradleBuild.Metadata = map[string][]string{}
+		}
 		gradleBuild.Metadata[currentKey] = append(gradleBuild.Metadata[currentKey], value...)
 	}
 }
 
 func trimWrappingQuotes(str string) string {
 	doubleQuote := `"`
-	singleQuote := `'`
+	singleQuote := "'"
+	str = strings.TrimSpace(str)
 	if strings.HasPrefix(str, doubleQuote) {
-		return strings.TrimPrefix(strings.TrimSuffix(str, doubleQuote), doubleQuote)
+		str = strings.TrimPrefix(strings.TrimSuffix(str, doubleQuote), doubleQuote)
 	} else if strings.HasPrefix(str, singleQuote) {
-		return strings.TrimPrefix(strings.TrimSuffix(str, singleQuote), singleQuote)
+		str = strings.TrimPrefix(strings.TrimSuffix(str, singleQuote), singleQuote)
 	}
 	return str
 }
@@ -576,6 +585,9 @@ func isCommentComplete(text string, next rune) bool {
 }
 
 func isEndOfMultiLineComment(comment string) bool {
+	if len(comment) < 2 {
+		return false
+	}
 	return comment[len(comment)-2:] == blockCommentEnd
 }
 

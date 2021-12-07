@@ -112,7 +112,7 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]trans
 		mc.MavenProfiles = profiles
 	}
 	if mc.ArtifactType == "" {
-		mc.ArtifactType = "jar"
+		mc.ArtifactType = JarPackaging
 	}
 	if pom.ArtifactID != "" {
 		mc.MavenAppName = pom.ArtifactID
@@ -120,7 +120,7 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]trans
 	ct.Configs[artifacts.MavenConfigType] = mc
 	if pom.Dependencies != nil {
 		for _, dependency := range *pom.Dependencies {
-			if dependency.GroupID == "org.springframework.boot" {
+			if dependency.GroupID == springbootGroup {
 				sbc := artifacts.SpringBootConfig{}
 				appName, sbps := getSpringBootAppNameAndProfilesFromDir(dir)
 				sbc.SpringBootAppName = appName

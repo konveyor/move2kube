@@ -25,11 +25,16 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/transformer/dockerfilegenerator/java/gradle"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	gradleBuildFileName = "gradle.build"
 )
 
 // GradleAnalyser implements Transformer interface
@@ -72,65 +77,49 @@ func (t *GradleAnalyser) GetConfig() (transformertypes.Transformer, *environment
 // DirectoryDetect runs detect in each sub directory
 func (t *GradleAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	services = map[string][]transformertypes.Artifact{}
-	GradleFilePaths, err := common.GetFilesByExtInCurrDir(dir, []string{".gradle"})
+	gradleFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{gradleBuildFileName}, nil)
 	if err != nil {
 		logrus.Errorf("Error while parsing directory %s for Gradle file : %s", dir, err)
 		return nil, err
 	}
-	if len(GradleFilePaths) == 0 {
+	if len(gradleFilePaths) == 0 {
 		return nil, nil
 	}
-	pom := &Gradle.Pom{}
-	err = pom.Load(GradleFilePaths[0])
+	gradleBuild, err := gradle.ParseGardleBuildFile(gradleFilePaths[0])
 	if err != nil {
-		logrus.Errorf("Unable to unmarshal pom file (%s): %s", GradleFilePaths[0], err)
+		logrus.Errorf("Error while parsing gradle build file : %s", err)
 		return nil, err
-	}
-	if pom.Modules != nil && len(*(pom.Modules)) != 0 {
-		logrus.Debugf("Parent pom detected (%s). Ignoring.", GradleFilePaths[0])
-		return nil, nil
-	}
-	appName := pom.ArtifactID
-	profiles := []string{}
-	if pom.Profiles != nil {
-		for _, profile := range *pom.Profiles {
-			profiles = append(profiles, profile.ID)
-		}
 	}
 	ct := transformertypes.Artifact{
 		Configs: map[transformertypes.ConfigType]interface{}{},
 		Paths: map[transformertypes.PathType][]string{
-			artifacts.GradleBuildFilePathType: {filepath.Join(dir, Gradle.PomXMLFileName)},
+			artifacts.GradleBuildFilePathType: {filepath.Join(dir, gradleBuildFileName)},
 			artifacts.ProjectPathPathType:     {dir},
 		},
 	}
-	mc := artifacts.GradleConfig{}
-	mc.ArtifactType = pom.Packaging
-	if len(profiles) != 0 {
-		mc.GradleProfiles = profiles
+	gc := artifacts.GradleConfig{}
+	gc.ArtifactType = JarPackaging
+	if _, ok := gradleBuild.Metadata[EarPackaging]; ok {
+		gc.ArtifactType = artifacts.EarArtifactType
+	} else if _, ok := gradleBuild.Metadata[WarPackaging]; ok {
+		gc.ArtifactType = artifacts.WarArtifactType
 	}
-	if mc.ArtifactType == "" {
-		mc.ArtifactType = "jar"
-	}
-	if pom.ArtifactID != "" {
-		mc.GradleAppName = pom.ArtifactID
-	}
-	ct.Configs[artifacts.GradleConfigType] = mc
-	if pom.Dependencies != nil {
-		for _, dependency := range *pom.Dependencies {
-			if dependency.GroupID == "org.springframework.boot" {
-				sbc := artifacts.SpringBootConfig{}
-				appName, sbps := getSpringBootAppNameAndProfilesFromDir(dir)
-				sbc.SpringBootAppName = appName
-				if len(sbps) != 0 {
-					sbc.SpringBootProfiles = &sbps
-				}
-				if dependency.Version != "" {
-					sbc.SpringBootVersion = dependency.Version
-				}
-				ct.Configs[artifacts.SpringBootConfigType] = sbc
-				break
+	ct.Configs[artifacts.GradleConfigType] = gc
+	appName := ""
+	for _, dependency := range gradleBuild.Dependencies {
+		if dependency.Group == springbootGroup {
+			sbc := artifacts.SpringBootConfig{}
+			sbps := []string{}
+			appName, sbps = getSpringBootAppNameAndProfilesFromDir(dir)
+			sbc.SpringBootAppName = appName
+			if len(sbps) != 0 {
+				sbc.SpringBootProfiles = &sbps
 			}
+			if dependency.Version != "" {
+				sbc.SpringBootVersion = dependency.Version
+			}
+			ct.Configs[artifacts.SpringBootConfigType] = sbc
+			break
 		}
 	}
 	services[appName] = append(services[appName], ct)

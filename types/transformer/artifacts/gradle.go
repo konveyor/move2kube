@@ -23,8 +23,7 @@ import (
 
 // GradleConfig stores gradle related configuration information
 type GradleConfig struct {
-	GradleAppName string `yaml:"gradleAppName,omitempty" json:"gradleAppName,omitempty"`
-	ArtifactType  string `yaml:"artifactType"`
+	ArtifactType string `yaml:"artifactType"`
 }
 
 const (
@@ -45,7 +44,7 @@ func (mc *GradleConfig) Merge(newmcobj interface{}) bool {
 		}
 		newmcptr = &newmc
 	}
-	if mc.ArtifactType != newmcptr.ArtifactType || mc.GradleAppName != newmcptr.GradleAppName {
+	if mc.ArtifactType != newmcptr.ArtifactType {
 		return false
 	}
 	return true
