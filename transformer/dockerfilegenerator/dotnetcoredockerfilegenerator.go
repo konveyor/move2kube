@@ -56,7 +56,7 @@ type DotNetCoreTemplateConfig struct {
 	Ports                  []int32
 	HTTPPort               int32
 	HTTPSPort              int32
-	AppName                string
+	CsprojFileName         string
 	CsprojFilePath         string
 	IsNodeJSProject        bool
 	DotNetVersion          string
@@ -374,7 +374,8 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 		publishProfileFilesPath := findPublishProfiles(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], csprojRelFilePath))
 		dotNetCoreTemplateConfig.PublishProfileFilePath, dotNetCoreTemplateConfig.PublishUrl = getPublishProfile(publishProfileFilesPath, a.Name, a.Paths[artifacts.ProjectPathPathType][0])
 		dotNetCoreTemplateConfig.CsprojFilePath = csprojRelFilePath
-		dotNetCoreTemplateConfig.AppName = strings.TrimSuffix(filepath.Base(dotNetCoreTemplateConfig.CsprojFilePath), filepath.Ext(dotNetCoreTemplateConfig.CsprojFilePath))
+		dotnetProjectName := strings.TrimSuffix(filepath.Base(dotNetCoreTemplateConfig.CsprojFilePath), filepath.Ext(dotNetCoreTemplateConfig.CsprojFilePath))
+		dotNetCoreTemplateConfig.CsprojFileName = dotnetProjectName
 		jsonFiles, err := common.GetFilesByName(a.Paths[artifacts.ProjectPathPathType][0], []string{launchSettingsJSON, packageJSONFile}, nil)
 		if err != nil {
 			logrus.Debugf("Error while finding json files %s", err)
@@ -386,9 +387,9 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 					logrus.Errorf("Unable to read the launchSettings.json file: %s", err)
 					continue
 				}
-				if _, ok := launchSettings.Profiles[dotNetCoreTemplateConfig.AppName]; ok {
-					if launchSettings.Profiles[dotNetCoreTemplateConfig.AppName].ApplicationURL != "" {
-						Urls := strings.Split(launchSettings.Profiles[dotNetCoreTemplateConfig.AppName].ApplicationURL, ";")
+				if _, ok := launchSettings.Profiles[dotnetProjectName]; ok {
+					if launchSettings.Profiles[dotnetProjectName].ApplicationURL != "" {
+						Urls := strings.Split(launchSettings.Profiles[dotnetProjectName].ApplicationURL, ";")
 						for _, url := range Urls {
 							portStr := portRegex.FindAllString(url, 1)[0]
 							port, err := strconv.ParseInt(strings.TrimPrefix(portStr, ":"), 10, 32)
