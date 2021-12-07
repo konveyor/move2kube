@@ -32,8 +32,9 @@
 "inbuilt/transformers/dockerfile/dockerimagebuildscript/templates/builddockerimages.bat" : 0755
 "inbuilt/transformers/dockerfile/dockerimagebuildscript/templates/builddockerimages.sh" : 0755
 "inbuilt/transformers/dockerfilegenerator/common/Dockerfile.license" : 0644
-"inbuilt/transformers/dockerfilegenerator/dotnet5/dotnet5.yaml" : 0644
-"inbuilt/transformers/dockerfilegenerator/dotnet5/templates/Dockerfile" : 0644
+"inbuilt/transformers/dockerfilegenerator/dotnetcore/dotnetcore.yaml" : 0644
+"inbuilt/transformers/dockerfilegenerator/dotnetcore/mappings/dotnetcoreversions.yaml" : 0644
+"inbuilt/transformers/dockerfilegenerator/dotnetcore/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/golang/golang.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/golang/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/java/earanalyser/ear.yaml" : 0644

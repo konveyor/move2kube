@@ -12,12 +12,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM mcr.microsoft.com/dotnet/sdk:5.0 AS builder
+FROM mcr.microsoft.com/dotnet/sdk:{{ .DotNetVersion }} AS builder
 WORKDIR /src
 COPY . .
 RUN mkdir app
 RUN dotnet restore {{ .CsprojFilePath }}
-RUN dotnet build {{ .CsprojFilePath }} -c Release -o /src/app
 
 {{- if .IsNodeJSProject}}
 RUN curl https://deb.nodesource.com/setup_10.x -o setup_10.x && \
@@ -25,12 +24,24 @@ RUN curl https://deb.nodesource.com/setup_10.x -o setup_10.x && \
     apt-get install -y build-essential nodejs
 {{- end }}
 
+{{- if and .PublishProfileFilePath .PublishUrl }}
+RUN dotnet publish {{ .CsprojFilePath }} /p:PublishProfile={{ .PublishProfileFilePath}} -o /{{ .PublishUrl }}
+{{- else }}
 RUN dotnet publish {{ .CsprojFilePath }} -c Release -o /src/app/publish
+{{- end }}
 
 # Run Stage
-FROM mcr.microsoft.com/dotnet/aspnet:5.0
+FROM mcr.microsoft.com/dotnet/aspnet:{{ .DotNetVersion }}
 WORKDIR /app
-EXPOSE {{ .Port }}
-ENV ASPNETCORE_URLS=http://+:{{ .Port }}
+{{- range $port := .Ports }}
+EXPOSE {{ $port }}
+{{- end }}
+{{- if .HTTPPort }}
+ENV ASPNETCORE_URLS=http://+:{{ .HTTPPort }}
+{{- end}}
+{{- if and .PublishProfileFilePath .PublishUrl }}
+COPY --from=builder /{{ .PublishUrl }} .
+{{- else }}
 COPY --from=builder /src/app/publish .
+{{- end }}
 CMD ["dotnet", "{{ .AppName }}.dll"]

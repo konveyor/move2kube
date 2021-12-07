@@ -25,20 +25,17 @@ import (
 var (
 	// FourXPattern is the framework version pattern
 	FourXPattern = regexp.MustCompile("v4*")
-
 	// WebLib is the key library used in web applications
 	WebLib = regexp.MustCompile("^System.Web*")
-
 	// WebSLLib is the key library used in web sliverlight applications
 	WebSLLib = regexp.MustCompile("Silverlight.js")
+	// ProjBlockRegex pattern
+	ProjBlockRegex = regexp.MustCompile(`(?m)^Project\([^,]+\s*,\s*\"([^,]+)\"`)
 )
 
 const (
 	// CsSln is the solution file extension
 	CsSln = ".sln"
-
-	// ProjBlock pattern
-	ProjBlock = "[\\w_\\-\\.(/|\\\\)]+\\.csproj"
 
 	// DefaultBaseImageVersion is the default base image version tag
 	DefaultBaseImageVersion = "4.8"

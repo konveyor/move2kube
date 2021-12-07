@@ -72,7 +72,7 @@ func init() {
 		new(dockerfilegenerator.PHPDockerfileGenerator),
 		new(dockerfilegenerator.PythonDockerfileGenerator),
 		new(dockerfilegenerator.RubyDockerfileGenerator),
-		new(dockerfilegenerator.DotNet5DockerfileGenerator),
+		new(dockerfilegenerator.DotNetCoreDockerfileGenerator),
 		new(java.JarAnalyser),
 		new(java.WarAnalyser),
 		new(java.EarAnalyser),
