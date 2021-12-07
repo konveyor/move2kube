@@ -26,18 +26,18 @@ import (
 // Inspired from https://github.com/ninetwozero/gradle-to-js/blob/master/lib/parser.js
 
 // ParseGardleBuildFile parses a gradle build file
-func ParseGardleBuildFile(buildFilePath string) (gradleBuild GradleBlock, err error) {
+func ParseGardleBuildFile(buildFilePath string) (gradleBuild Gradle, err error) {
 	state := gradleParseState{}
 	buildFile, err := os.ReadFile(buildFilePath)
 	if err != nil {
 		logrus.Errorf("Unable to read gradle build file : %s", err)
-		return GradleBlock{}, err
+		return Gradle{}, err
 	}
 	return deepParse(string(buildFile), &state, false, true), nil
 }
 
-func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmptyValues bool) (parsedGradleOutput GradleBlock) {
-	parsedGradleOutput = GradleBlock{}
+func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmptyValues bool) (parsedGradleOutput Gradle) {
+	parsedGradleOutput = Gradle{}
 	var character rune
 	var tempString, commentText string
 	var currentKey string
@@ -133,7 +133,7 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 				parsedGradleOutput.Plugins = append(parsedGradleOutput.Plugins, parsePluginsClosure(chunk, state)...)
 			default:
 				if parsedGradleOutput.Blocks == nil {
-					parsedGradleOutput.Blocks = map[string]GradleBlock{}
+					parsedGradleOutput.Blocks = map[string]Gradle{}
 				}
 				if _, ok := parsedGradleOutput.Blocks[currentKey]; ok {
 					gb := parsedGradleOutput.Blocks[currentKey]
@@ -526,7 +526,7 @@ func skipFunctionCall(chunk string, state *gradleParseState) bool {
 	return openParenthesisCount == 0
 }
 
-func addValueToStructure(gradleBuild *GradleBlock, currentKey string, value ...string) {
+func addValueToStructure(gradleBuild *Gradle, currentKey string, value ...string) {
 	switch currentKey {
 	case "":
 		return

@@ -25,12 +25,14 @@ type quotedRegex struct {
 	regexes []regexp.Regexp
 }
 
+// Init initializes the regexes
 func (q *quotedRegex) Init(regex string) {
 	q.regexes = []regexp.Regexp{}
 	q.regexes = append(q.regexes, *regexp.MustCompile(regex))
 	q.regexes = append(q.regexes, *regexp.MustCompile(strings.ReplaceAll(regex, `"`, "'")))
 }
 
+// FindStringSubmatch mimics regexp's FindStringSubmatch
 func (q *quotedRegex) FindStringSubmatch(str string) []string {
 	var regex regexp.Regexp
 	matchIndex := -1
@@ -49,6 +51,7 @@ func (q *quotedRegex) FindStringSubmatch(str string) []string {
 	return nil
 }
 
+// FindAllStringSubmatch mimics regexp's FindAllStringSubmatch
 func (q *quotedRegex) FindAllStringSubmatch(str string) (matches [][]string) {
 	matches = [][]string{}
 	for _, r := range q.regexes {

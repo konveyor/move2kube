@@ -16,15 +16,17 @@
 
 package gradle
 
-type GradleBlock struct {
-	Repositories []GradleRepository     `yaml:"repositories,omitempty" json:"repositories,omitempty"`
-	Dependencies []GradleDependency     `yaml:"dependencies,omitempty" json:"dependencies,omitempty"`
-	Plugins      []GradlePlugin         `yaml:"plugins,omitempty" json:"plugins,omitempty"`
-	Metadata     map[string][]string    `yaml:"metadata,omitempty" json:"metadata,omitempty"`
-	Blocks       map[string]GradleBlock `yaml:"blocks,omitempty" json:"blocks,omitempty"`
+// Gradle stores parsed gradle
+type Gradle struct {
+	Repositories []GradleRepository  `yaml:"repositories,omitempty" json:"repositories,omitempty"`
+	Dependencies []GradleDependency  `yaml:"dependencies,omitempty" json:"dependencies,omitempty"`
+	Plugins      []GradlePlugin      `yaml:"plugins,omitempty" json:"plugins,omitempty"`
+	Metadata     map[string][]string `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+	Blocks       map[string]Gradle   `yaml:"blocks,omitempty" json:"blocks,omitempty"`
 }
 
-func (g *GradleBlock) Merge(newg GradleBlock) {
+// Merge merges two parsed gradles
+func (g *Gradle) Merge(newg Gradle) {
 	g.Repositories = append(g.Repositories, newg.Repositories...)
 	g.Dependencies = append(g.Dependencies, newg.Dependencies...)
 	g.Plugins = append(g.Plugins, newg.Plugins...)
@@ -41,27 +43,32 @@ func (g *GradleBlock) Merge(newg GradleBlock) {
 	}
 }
 
+// GradleGAV stores GAV
 type GradleGAV struct {
 	Group   string `yaml:"group" json:"group"`
 	Name    string `yaml:"name" json:"name"`
 	Version string `yaml:"version" json:"version"`
 }
 
+// GradleDependency stores dependency
 type GradleDependency struct {
 	GradleGAV
 	Type     string              `yaml:"type" json:"type"`
 	Excludes []map[string]string `yaml:"excludes,omitempty" json:"excludes,omitempty"`
 }
 
+// GradleRepository stores repository
 type GradleRepository struct {
 	Type string               `yaml:"type" json:"type"`
 	Data GradleRepositoryData `yaml:"data,omitempty" json:"data,omitempty"`
 }
 
+// GradleRepositoryData stores respository data
 type GradleRepositoryData struct {
 	Name string `yaml:"name" json:"name"`
 }
 
+// GradlePlugin stores repository plugin
 type GradlePlugin map[string]string
 
 type gradleParseState struct {
