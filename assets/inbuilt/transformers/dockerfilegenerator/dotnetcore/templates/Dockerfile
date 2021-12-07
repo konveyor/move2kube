@@ -44,4 +44,4 @@ COPY --from=builder /{{ .PublishUrl }} .
 {{- else }}
 COPY --from=builder /src/app/publish .
 {{- end }}
-CMD ["dotnet", "{{ .AppName }}.dll"]
+CMD ["dotnet", "{{ .CsprojFileName }}.dll"]
