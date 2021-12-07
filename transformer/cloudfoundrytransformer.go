@@ -40,8 +40,14 @@ import (
 
 // CloudFoundry implements Transformer interface
 type CloudFoundry struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config             transformertypes.Transformer
+	Env                *environment.Environment
+	CloudFoundryConfig *CloudFoundryConfig
+}
+
+// CloudFoundryConfig stores the k8s related information
+type CloudFoundryConfig struct {
+	VcapStorageType string `yaml:"vcapStorageType"`
 }
 
 // VCAPService defines the VCAP service data from JSON
@@ -60,6 +66,12 @@ type FlattenedVcapEnv struct {
 func (t *CloudFoundry) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
+	t.CloudFoundryConfig = &CloudFoundryConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.CloudFoundryConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.CloudFoundryConfig, err)
+		return err
+	}
 	return nil
 }
 

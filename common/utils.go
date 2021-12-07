@@ -36,6 +36,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Masterminds/sprig"
 	"github.com/go-git/go-git/v5"
 	"github.com/konveyor/move2kube/types"
 	"github.com/mitchellh/mapstructure"
@@ -566,7 +567,7 @@ func IsInt32Present(list []int32, value int32) bool {
 // GetStringFromTemplate returns string for a template
 func GetStringFromTemplate(tpl string, config interface{}) (string, error) {
 	var tplbuffer bytes.Buffer
-	var packageTemplate = template.Must(template.New("").Parse(tpl))
+	var packageTemplate = template.Must(template.New("").Funcs(sprig.TxtFuncMap()).Parse(tpl))
 	err := packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
 		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)
