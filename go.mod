@@ -7,6 +7,7 @@ require (
 	github.com/Akash-Nayak/GopacheConfig v0.0.0-20210730101443-d5bfa3109be4
 	github.com/AlecAivazis/survey/v2 v2.2.16
 	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/cloudfoundry-community/go-cfclient v0.0.0-20211117203709-9b81b3940cc7
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/docker/cli v20.10.8+incompatible
@@ -19,7 +20,6 @@ require (
 	github.com/magiconair/properties v1.8.5
 	github.com/mikefarah/yq/v4 v4.13.3
 	github.com/mitchellh/mapstructure v1.4.1
-	github.com/cloudfoundry-community/go-cfclient v0.0.0-20211117203709-9b81b3940cc7
 	github.com/moby/buildkit v0.9.0
 	github.com/openshift/api v0.0.0-20210621070332-ea13be50ba2d
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
@@ -83,6 +83,7 @@ require (
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/glenn-brown/golang-pkg-pcre v0.0.0-20120522223659-48bb82a8b8ce // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-logr/logr v0.4.0 // indirect

@@ -14,14 +14,31 @@
  *  limitations under the License.
  */
 
-package gradle
+package main
 
 type GradleBuild struct {
 	Repositories []GradleRepository     `yaml:"repositories" json:"repositories"`
 	Dependencies []GradleDependency     `yaml:"dependencies" json:"dependencies"`
 	Plugins      []GradlePlugin         `yaml:"plugins" json:"plugins"`
-	Metadata     map[string][]string    `yaml:"metadata", json:"metadata"`
+	Metadata     map[string][]string    `yaml:"metadata" json:"metadata"`
 	Blocks       map[string]GradleBuild `yaml:"blocks" json:"blocks"`
+}
+
+func (g *GradleBuild) Merge(newg GradleBuild) {
+	g.Repositories = append(g.Repositories, newg.Repositories...)
+	g.Dependencies = append(g.Dependencies, newg.Dependencies...)
+	g.Plugins = append(g.Plugins, newg.Plugins...)
+	for mi, m := range newg.Metadata {
+		g.Metadata[mi] = append(g.Metadata[mi], m...)
+	}
+	for bi, b := range newg.Blocks {
+		if ob, ok := g.Blocks[bi]; ok {
+			ob.Merge(b)
+			g.Blocks[bi] = ob
+		} else {
+			g.Blocks[bi] = b
+		}
+	}
 }
 
 type GradleGAV struct {

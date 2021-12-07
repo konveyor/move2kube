@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package gradle
+package main
 
 import (
 	"os"
@@ -23,9 +23,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func main() {
+	gradleBuild, err := parseGardleBuildFile(os.Args[1])
+	if err != nil {
+		logrus.Errorf("Error while parsing Gardle Build file : %s", err)
+	} else {
+		logrus.Infof("%+v", gradleBuild)
+	}
+}
+
 // Based on https://github.com/ninetwozero/gradle-to-js/blob/master/lib/parser.js
 
-func parseGardleBuildFile(buildFilePath string) (out GradleBuild, err error) {
+func parseGardleBuildFile(buildFilePath string) (gradleBuild GradleBuild, err error) {
 	state := gradleParseState{}
 	buildFile, err := os.ReadFile(buildFilePath)
 	if err != nil {
@@ -127,7 +136,9 @@ func deepParse(chunk string, state *gradleParseState, keepFunctionCalls, skipEmp
 				parsedGradleOutput.Plugins = append(parsedGradleOutput.Plugins, parsePluginsClosure(chunk, state)...)
 			default:
 				if _, ok := parsedGradleOutput.Blocks[currentKey]; ok {
-					parsedGradleOutput.Metadata[currentKey] = parsedGradleOutput.Metadata[currentKey].Merge(deepParse(chunk, state, keepFunctionCalls, skipEmptyValues))
+					gb := parsedGradleOutput.Blocks[currentKey]
+					gb.Merge(deepParse(chunk, state, keepFunctionCalls, skipEmptyValues))
+					parsedGradleOutput.Blocks[currentKey] = gb
 				} else {
 					parsedGradleOutput.Blocks[currentKey] = deepParse(chunk, state, keepFunctionCalls, skipEmptyValues)
 				}
@@ -272,7 +283,7 @@ func parsePluginsClosure(chunk string, state *gradleParseState) []GradlePlugin {
 
 func createStructureForPlugin(pluginRow string) map[string]string {
 	plugin := map[string]string{}
-	matches := pluginsLinePattern.FindAllStringSubmatch(pluginRow, -1)
+	matches := pluginsLineRegex.FindAllStringSubmatch(pluginRow)
 	for _, match := range matches {
 		if len(match) > 1 {
 			plugin[match[1]] = match[3]
@@ -372,11 +383,13 @@ func parseMapNotation(input string) (parsedMap map[string]string) {
 func parseRepositoryClosure(chunk string, state *gradleParseState) (repositories []GradleRepository) {
 	repositories = []GradleRepository{}
 	parsedRepos := deepParse(chunk, state, true, false)
-	for parsedRepoType, value := range parsedRepos {
-		if parsedRepos[item] == nil {
-			repositories = append(repositories, GradleRepository{Type: parsedRepoType, Data: value})
+	for parsedRepoType, value := range parsedRepos.Metadata {
+		if value != nil {
+			repositories = append(repositories, GradleRepository{Type: parsedRepoType, Data: GradleRepositoryData{
+				Name: value[0],
+			}})
 		} else {
-			repositories = append(repositories, GradleRepository{Type: "unknown", Data: {Name: parsedRepoType}})
+			repositories = append(repositories, GradleRepository{Type: "unknown", Data: GradleRepositoryData{Name: parsedRepoType}})
 		}
 	}
 	return repositories

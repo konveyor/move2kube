@@ -14,9 +14,11 @@
  *  limitations under the License.
  */
 
-package gradle
+package main
 
-import "regexp"
+import (
+	"regexp"
+)
 
 const (
 	repositoriesProp = "repositories"
@@ -50,11 +52,8 @@ const (
 var (
 	depsKeywordString      = `(?m)\s*([A-Za-z0-9_-]+)\s*`
 	depsKeywordStringRegex = regexp.MustCompile(depsKeywordString)
-	depsEasyGavStringRegex = regexp.MustCompile(`(["']?)([\w.-]+):([\w.-]+):([\w\[\]\(\),+.-]+)\1`)
 	depsHardGavStringRegex = regexp.MustCompile(depsKeywordString + `(?:\((.*)\)|(.*))`)
-	depsItemBlockRegex     = regexp.MustCompile(depsKeywordString + `(?m)\(((["']?)(.*)\3)\)\s*\{`)
 	depsExcludeLineRegex   = regexp.MustCompile(`exclude[ \\t]+([^\\n]+)`)
-	pluginsLinePattern     = regexp.MustCompile(`(?m)(id|version)(?:\s)(["']?)([A-Za-z0-9.]+)\2`)
 
 	projectRegex  = regexp.MustCompile(`(project\([^\)]+\))`)
 	functionRegex = regexp.MustCompile(`\w+\(.*\);?$`)
@@ -65,4 +64,16 @@ var (
 		charCarriageReturn: true,
 		charSpace:          true,
 	}
+
+	depsEasyGavStringPattern = `"([\w.-]+):([\w.-]+):([\w\[\]\(\),+.-]+)"`
+	depsItemBlockPattern     = depsKeywordString + `(?m)\(("(.*)")\)\s*\{`
+	pluginsLinePattern       = `(?m)(id|version)(?:\s)"([A-Za-z0-9.]+)"`
+
+	depsEasyGavStringRegex, depsItemBlockRegex, pluginsLineRegex quotedRegex
 )
+
+func init() {
+	depsEasyGavStringRegex.Init(depsEasyGavStringPattern)
+	depsItemBlockRegex.Init(depsItemBlockPattern)
+	pluginsLineRegex.Init(pluginsLinePattern)
+}
