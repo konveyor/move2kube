@@ -196,20 +196,16 @@ func parsePublishProfileFile(publishProfileFilePath string) (string, error) {
 	return publishUrl, nil
 }
 
-// findDefaultCsprojFileIndexForQA returns the index of the first csproj which has publish profile
-func findDefaultCsprojFileIndexForQA(csprojFilesPath []string) int {
+// getCsprojFileForService returns the start-up csproj file used by a service
+func getCsprojFileForService(csprojFilesPath []string, baseDir string, serviceName string) string {
+	var defaultCsprojFileIndex int
 	for i, csprojFilePath := range csprojFilesPath {
 		publishProfileFiles := findPublishProfiles(csprojFilePath)
 		if len(publishProfileFiles) != 0 {
-			return i
+			defaultCsprojFileIndex = i
+			break
 		}
 	}
-	return 0
-}
-
-// getCsprojFileForService returns the start-up csproj file used by a service
-func getCsprojFileForService(csprojFilesPath []string, baseDir string, serviceName string) string {
-	defaultCsprojFileIndex := findDefaultCsprojFileIndexForQA(csprojFilesPath)
 	var csprojFilesRelPath []string
 	for _, csprojFilePath := range csprojFilesPath {
 		if csprojFileRelPath, err := filepath.Rel(baseDir, csprojFilePath); err == nil {
