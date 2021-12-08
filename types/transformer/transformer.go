@@ -52,6 +52,7 @@ type TransformerSpec struct {
 	DirectoryDetect    DirectoryDetect                     `yaml:"directoryDetect"`
 	ExternalFiles      map[string]string                   `yaml:"externalFiles"` // [source]destination
 	ArtifactsToProcess map[string]ArtifactPreprocessConfig `yaml:"consumes"`      // plantypes.ArtifactType
+	Produces           map[string]ProducedArtifact         `yaml:"produces"`      // plantypes.ArtifactType
 	TemplatesDir       string                              `yaml:"templates"`     // Relative to yaml directory or working directory in image
 	Config             interface{}                         `yaml:"config"`
 }
@@ -66,6 +67,11 @@ type DirectoryDetect struct {
 // ArtifactPreprocessConfig stores config for how to preprocess artifacts
 type ArtifactPreprocessConfig struct {
 	Merge bool `yaml:"merge"`
+}
+
+// ProducedArtifact stores config for postprocessing produced artifact
+type ProducedArtifact struct {
+	ChangeTypeTo string `yaml:"changeTypeTo"`
 }
 
 // NewTransformer creates a new instance of tansformer

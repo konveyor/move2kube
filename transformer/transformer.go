@@ -323,6 +323,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 				logrus.Errorf("Unable to process path mappings")
 			}
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
+			newArtifacts = postProcessArtifacts(newArtifacts, config)
 			pathMappings = append(pathMappings, newPathMappings...)
 			newArtifactsCreated = append(newArtifactsCreated, newArtifacts...)
 			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(allartifacts))
