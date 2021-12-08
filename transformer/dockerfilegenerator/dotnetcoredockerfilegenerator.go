@@ -165,7 +165,7 @@ func getPublishProfile(publishProfileFilesPath []string, serviceName, baseDir st
 			return publishProfileFileRelPath, ""
 		}
 	}
-	return publishProfileFileRelPath, publishUrl
+	return common.GetUnixPath(publishProfileFileRelPath), publishUrl
 }
 
 // findPublishProfiles returns the publish profiles of the cs project
@@ -187,11 +187,10 @@ func parsePublishProfileFile(publishProfileFilePath string) (string, error) {
 		logrus.Errorf("Unable to read publish profile file (%s) : %s", publishProfileFilePath, err)
 		return "", err
 	}
-	separator := fmt.Sprintf("%c", os.PathSeparator)
 	if publishProfile.PropertyGroup.PublishUrl != "" {
-		publishUrl = strings.ReplaceAll(publishProfile.PropertyGroup.PublishUrl, `\`, separator)
+		publishUrl = common.GetUnixPath(publishProfile.PropertyGroup.PublishUrl)
 	} else if publishProfile.PropertyGroup.PublishUrlS != "" {
-		publishUrl = strings.ReplaceAll(publishProfile.PropertyGroup.PublishUrlS, `\`, separator)
+		publishUrl = common.GetUnixPath(publishProfile.PropertyGroup.PublishUrlS)
 	}
 	return publishUrl, nil
 }
