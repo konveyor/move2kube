@@ -223,3 +223,14 @@ func getFilteredTransformers(transformerPaths map[string]string, selector labels
 	}
 	return transformerConfigs
 }
+
+func postProcessArtifacts(artifacts []transformertypes.Artifact, t transformertypes.Transformer) []transformertypes.Artifact {
+	newArtifacts := []transformertypes.Artifact{}
+	for _, a := range artifacts {
+		if p, ok := t.Spec.Produces[a.Artifact]; ok && p.ChangeTypeTo != "" {
+			a.Artifact = p.ChangeTypeTo
+		}
+		newArtifacts = append(newArtifacts, a)
+	}
+	return newArtifacts
+}
