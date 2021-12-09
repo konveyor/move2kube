@@ -30,6 +30,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
@@ -46,6 +47,21 @@ func getTransformerConfig(path string) (transformertypes.Transformer, error) {
 		return tc, err
 	}
 	tc.Labels[types.GroupName+"/name"] = tc.Name
+	tc.Spec.Override = nil
+	if tc.Spec.OverrideAsObj != nil {
+		s := metav1.LabelSelector{}
+		err := common.GetObjFromInterface(tc.Spec.OverrideAsObj, &s)
+		if err != nil {
+			logrus.Errorf("Unable to parse Override configuration for %s, ignoring override : %s", tc.Name, err)
+		} else {
+			if len(s.MatchExpressions) != 0 || len(s.MatchLabels) != 0 {
+				tc.Spec.Override, err = metav1.LabelSelectorAsSelector(&s)
+				if err != nil {
+					logrus.Errorf("Unable to convert label selector to selector : %s", err)
+				}
+			}
+		}
+	}
 	return tc, nil
 }
 
@@ -197,7 +213,8 @@ func getNamedAndUnNamedServicesLogMessage(services map[string][]transformertypes
 }
 
 func getFilteredTransformers(transformerPaths map[string]string, selector labels.Selector, logError bool) (transformerConfigs map[string]transformertypes.Transformer) {
-	transformerConfigs = map[string]transformertypes.Transformer{}
+	filteredTransformerConfigs := map[string]transformertypes.Transformer{}
+	overrideSelectors := []labels.Selector{}
 	for tn, tfilepath := range transformerPaths {
 		tc, err := getTransformerConfig(tfilepath)
 		if err != nil {
@@ -208,18 +225,37 @@ func getFilteredTransformers(transformerPaths map[string]string, selector labels
 			}
 			continue
 		}
-		if ot, ok := transformerConfigs[tc.Name]; ok {
+		if ot, ok := filteredTransformerConfigs[tc.Name]; ok {
 			logrus.Errorf("Found two conflicting transformer Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath, ot.Spec.FilePath)
 		}
 		if !selector.Matches(labels.Set(tc.Labels)) {
-			logrus.Debugf("Ignoring tranformer %s because of filter", tn)
+			logrus.Debugf("Ignoring transformer %s because of filter", tn)
 			continue
+		}
+		if tc.Spec.Override != nil {
+			overrideSelectors = append(overrideSelectors, tc.Spec.Override)
 		}
 		if _, ok := transformerTypes[tc.Spec.Class]; ok {
-			transformerConfigs[tc.Name] = tc
+			filteredTransformerConfigs[tc.Name] = tc
 			continue
 		}
-		transformerConfigs[tn] = tc
+		logrus.Errorf("Ignoring transformer %s since the class %s not found", tn, tc.Spec.Class)
+	}
+	transformerConfigs = map[string]transformertypes.Transformer{}
+	for tn, tc := range filteredTransformerConfigs {
+		if ot, ok := transformerConfigs[tc.Name]; ok {
+			logrus.Errorf("Found two conflicting transformer Names %s : %s, %s. Ignoring %s.", tc.Name, ot.Spec.FilePath, tc.Spec.FilePath, ot.Spec.FilePath)
+		}
+		ignore := false
+		for _, overrideSelector := range overrideSelectors {
+			if overrideSelector.Matches(labels.Set(tc.Labels)) {
+				ignore = true
+				break
+			}
+		}
+		if !ignore {
+			transformerConfigs[tn] = tc
+		}
 	}
 	return transformerConfigs
 }

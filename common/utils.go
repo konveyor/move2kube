@@ -1219,7 +1219,7 @@ func ConvertStringSelectorsToSelectors(transformerSelector string) (labels.Selec
 	}
 	lblSelector, err := metav1.LabelSelectorAsSelector(transformerSelectorObj)
 	if err != nil {
-		logrus.Errorf("Unable to conver label selector to selector : %s", err)
+		logrus.Errorf("Unable to convert label selector to selector : %s", err)
 		return labels.Everything(), err
 	}
 	return lblSelector, err

@@ -18,6 +18,7 @@ package transformer
 
 import (
 	"github.com/konveyor/move2kube/types"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // TransformerKind represents the Transformer kind
@@ -53,7 +54,9 @@ type TransformerSpec struct {
 	ExternalFiles      map[string]string                   `yaml:"externalFiles"` // [source]destination
 	ArtifactsToProcess map[string]ArtifactPreprocessConfig `yaml:"consumes"`      // plantypes.ArtifactType
 	Produces           map[string]ProducedArtifact         `yaml:"produces"`      // plantypes.ArtifactType
-	TemplatesDir       string                              `yaml:"templates"`     // Relative to yaml directory or working directory in image
+	Override           labels.Selector                     `yaml:"-"`
+	OverrideAsObj      interface{}                         `yaml:"override"`  // Will be parsed and loaded into TransformersToOverride
+	TemplatesDir       string                              `yaml:"templates"` // Relative to yaml directory or working directory in image
 	Config             interface{}                         `yaml:"config"`
 }
 
