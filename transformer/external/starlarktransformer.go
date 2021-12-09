@@ -89,7 +89,7 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Enviro
 	t.setDefaultGlobals()
 	tcmapobj, err := common.GetMapInterfaceFromObj(tc)
 	if err != nil {
-		logrus.Errorf("Unable to conver transformer config to map[string]interface{}")
+		logrus.Errorf("Unable to convert transformer config to map[string]interface{}")
 		return err
 	}
 	t.StarGlobals[env.ProjectName], err = starutil.Marshal(env.ProjectName)

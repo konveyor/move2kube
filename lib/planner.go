@@ -62,7 +62,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	}
 	lblSelector, err := metav1.LabelSelectorAsSelector(transformerSelectorObj)
 	if err != nil {
-		logrus.Errorf("Unable to conver label selector to selector : %s", err)
+		logrus.Errorf("Unable to convert label selector to selector : %s", err)
 	}
 	transformer.Init(common.AssetsPath, inputPath, lblSelector, tc, outputPath, p.Name)
 	ts := transformer.GetInitializedTransformers()
