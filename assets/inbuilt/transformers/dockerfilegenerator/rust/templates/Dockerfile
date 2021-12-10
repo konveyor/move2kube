@@ -12,9 +12,18 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM rust:1.24.0
-WORKDIR /{{ .app_name }}
+
+FROM rust:1 as builder
+WORKDIR /{{ .AppName }}
 COPY . .
-RUN cargo install
-EXPOSE {{ .port }}
-CMD ["{{ .app_name }}"]
+RUN cargo build --release
+
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.3-201
+WORKDIR /{{ .AppName }}
+COPY --from=builder /{{ .AppName }}/target/release/{{ .AppName }} /{{ .AppName }}/
+{{- if .RocketToml}}
+COPY --from=builder /{{ .AppName }}/{{ .RocketToml }} /{{ .AppName }}/
+ENV ROCKET_ADDRESS={{ .RocketAddress }}
+{{- end }}
+EXPOSE {{ .Port }}
+CMD ["./{{ .AppName }}"]

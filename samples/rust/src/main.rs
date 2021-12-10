@@ -12,12 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::net::TcpListener;
+#[macro_use] extern crate rocket;
 
-fn main() {
-    let listener = TcpListener::bind("0.0.0.0:8080").unwrap();
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
-        println!("Connection established!");
-    }
+#[get("/rust")]
+fn index() -> &'static str {
+    "This is a rust app!"
+}
+
+#[get("/")]
+fn hello() -> &'static str {
+    "Hello, world! This is a rust app."
+}
+
+
+#[launch]
+fn rocket() -> _ {
+    rocket::build()
+        .mount("/", routes![index])
+        .mount("/", routes![hello])
 }
