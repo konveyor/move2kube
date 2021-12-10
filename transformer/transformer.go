@@ -22,6 +22,7 @@ import (
 	"reflect"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/deepcopy"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/qaengine"
@@ -46,6 +47,7 @@ var (
 	initialized      = false
 	transformerTypes = map[string]reflect.Type{}
 	transformers     = map[string]Transformer{}
+	intercepts       = map[string][]string{} // artifact types get redirected
 )
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
@@ -186,6 +188,9 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 				}
 			} else {
 				transformers[tn] = t
+				for _, in := range tc.Spec.Intercepts {
+					intercepts[in] = append(intercepts[in], tc.Name)
+				}
 			}
 		}
 	}
@@ -325,7 +330,25 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 			newArtifacts = postProcessArtifacts(newArtifacts, config)
 			pathMappings = append(pathMappings, newPathMappings...)
-			newArtifactsCreated = append(newArtifactsCreated, newArtifacts...)
+			intercepted := false
+			for _, na := range newArtifacts {
+				for in, incs := range intercepts {
+					if na.Artifact == in && len(incs) > 0 {
+						for _, i := range incs {
+							if i == tn {
+								continue
+							}
+							nac := deepcopy.DeepCopy(na).(transformertypes.Artifact)
+							nac.Artifact = i
+							newArtifactsCreated = append(newArtifactsCreated, nac)
+							intercepted = true
+						}
+					}
+				}
+			}
+			if !intercepted {
+				newArtifactsCreated = append(newArtifactsCreated, newArtifacts...)
+			}
 			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(allartifacts))
 			logrus.Infof("Transformer %s Done", config.Name)
 		}
