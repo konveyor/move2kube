@@ -6,6 +6,7 @@ require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
 	github.com/Akash-Nayak/GopacheConfig v0.0.0-20210730101443-d5bfa3109be4
 	github.com/AlecAivazis/survey/v2 v2.2.16
+	github.com/BurntSushi/toml v0.4.1
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/cloudfoundry-community/go-cfclient v0.0.0-20211117203709-9b81b3940cc7
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible

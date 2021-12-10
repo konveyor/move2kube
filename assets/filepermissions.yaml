@@ -64,7 +64,6 @@
 "inbuilt/transformers/dockerfilegenerator/python/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/ruby/ruby.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/ruby/templates/Dockerfile" : 0644
-"inbuilt/transformers/dockerfilegenerator/rust/m2kdetect.sh" : 0755
 "inbuilt/transformers/dockerfilegenerator/rust/rust.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/rust/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/windows/winconsole/templates/Dockerfile" : 0644

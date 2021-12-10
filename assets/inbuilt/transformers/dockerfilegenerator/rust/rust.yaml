@@ -1,12 +1,9 @@
 apiVersion: move2kube.konveyor.io/v1alpha1
 kind: Transformer
 metadata:
-  name: Rust
+  name: Rust-Dockerfile
   labels: 
     move2kube.konveyor.io/task: containerization
     move2kube.konveyor.io/inbuilt: true
 spec:
-  class: "Executable"
-  config:
-    directoryDetectCMD: ["./m2kdetect.sh"]
-    platforms: ["linux", "darwin"]
+  class: "RustDockerfileGenerator"
