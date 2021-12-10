@@ -24,20 +24,6 @@ import (
 // TransformerKind represents the Transformer kind
 const TransformerKind = "Transformer"
 
-// Mode represents the mode of deployment artifacts
-type Mode = string
-
-const (
-	// ModeContainer represents artifacts for container mode of deployment
-	ModeContainer Mode = "Container"
-	// ModeCR represents artifacts for custom resource mode of deployment
-	ModeCR Mode = "CustomResource"
-	// ModeService represents artifacts for service mode of deployment
-	ModeService Mode = "Service" // Possibly Terraform
-	// ModeCustom represents artifacts for custom mode of deployment
-	ModeCustom Mode = "Custom"
-)
-
 // Transformer defines definition of cf runtime instance apps file
 type Transformer struct {
 	types.TypeMeta   `yaml:",inline"`
