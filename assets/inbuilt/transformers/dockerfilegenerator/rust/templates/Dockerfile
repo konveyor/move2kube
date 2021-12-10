@@ -18,7 +18,7 @@ WORKDIR /{{ .AppName }}
 COPY . .
 RUN cargo build --release
 
-FROM debian:buster-slim
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.3-201
 WORKDIR /{{ .AppName }}
 COPY --from=builder /{{ .AppName }}/target/release/{{ .AppName }} /{{ .AppName }}/
 {{- if .RocketToml}}
