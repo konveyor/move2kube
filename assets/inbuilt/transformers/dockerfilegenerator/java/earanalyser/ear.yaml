@@ -7,3 +7,11 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "EarAnalyser"
+  directoryDetect:
+    levels: -1
+  consumes:
+    Service: 
+      merge: false
+  produces:
+    Ear:
+      disabled: false

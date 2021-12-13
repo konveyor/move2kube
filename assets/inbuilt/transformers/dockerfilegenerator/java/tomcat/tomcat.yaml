@@ -7,11 +7,16 @@ metadata:
     move2kube.konveyor.io/warprocessor: true
 spec:
   class: "Tomcat"
-  consumes: 
-    Tomcat:
-      merge: false
   directoryDetect:
     levels: 0
+  consumes: 
+    War:
+      merge: false
+  produces:
+    Dockerfile:
+      disabled: false
+    DockerfileForService:
+      disabled: false
   externalFiles:
     "../../common/Dockerfile.license" : templates/Dockerfile.license
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml

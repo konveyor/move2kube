@@ -8,11 +8,18 @@ metadata:
     move2kube.konveyor.io/earprocessor: true
 spec:
   class: "Liberty"
-  consumes: 
-    Liberty:
-      merge: false
   directoryDetect:
     levels: 0
+  consumes: 
+    War:
+      merge: false
+    Ear:
+      merge: false
+  produces:
+    Dockerfile:
+      disabled: false
+    DockerfileForService:
+      disabled: false
   externalFiles:
     "../../common/Dockerfile.license" : templates/Dockerfile.license
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml

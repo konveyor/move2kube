@@ -6,11 +6,11 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "Parameterizer"
+  directoryDetect:
+    levels: 0
   consumes:
     KubernetesYamls:
       merge: true
-  directoryDetect:
-    levels: 0
   config:
     helmPath: "{{ OutputRel .YamlsPath }}/../{{ FilePathBase .YamlsPath }}-parameterized/helm-chart"
     ocTemplatePath: "{{ OutputRel .YamlsPath }}/../{{ FilePathBase .YamlsPath }}-parameterized/openshift-template"

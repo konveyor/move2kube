@@ -6,8 +6,11 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "DockerfileParser"
+  directoryDetect:
+    levels: 0
   consumes: 
     DockerfileForService:
       merge: false
-  directoryDetect:
-    levels: 0
+  produces:
+    IR:
+      disabled: false

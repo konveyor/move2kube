@@ -8,3 +8,11 @@ spec:
   class: "CloudFoundry"
   directoryDetect:
     levels: 1
+  consumes:
+    Service:
+      disabled: false
+  produces:
+    IR:
+      disabled: false
+    Service:
+      disabled: false
