@@ -416,7 +416,7 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 			case preprocess:
 				processConfig = tconfig.Spec.Preprocesses
 			}
-			if preprocessSpec, ok := processConfig[na.Type]; ok {
+			if processSpec, ok := processConfig[na.Type]; ok && !processSpec.Disabled {
 				selected := true
 				if na.ProcessWith.String() != "" {
 					s, err := selectTransformer(na.ProcessWith, tconfig)
@@ -430,7 +430,7 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 					artifactsNotProcessed = append(artifactsNotProcessed, na)
 					continue
 				}
-				if preprocessSpec.Merge {
+				if processSpec.Merge {
 					artifactsToProcess = mergeArtifacts(append(artifactsToProcess, updatedArtifacts(allArtifacts, na)...))
 				}
 				artifactsToProcess = append(artifactsToProcess, na)
