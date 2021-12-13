@@ -23,7 +23,7 @@ import (
 )
 
 // K8sResourceT is a k8s resource
-type K8sResourceT map[string]interface{}
+type K8sResourceT = map[string]interface{}
 
 // PatchOpT has Patch
 type PatchOpT string
