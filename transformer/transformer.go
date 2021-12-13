@@ -448,6 +448,15 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 			logrus.Errorf("Unable to transform artifacts using %s : %s", tconfig.Name, err)
 			continue
 		}
+		filteredArtifacts := []transformertypes.Artifact{}
+		for _, na := range newArtifacts {
+			if ps, ok := tconfig.Spec.ProducedArtifacts[na.Type]; ok && !ps.Disabled {
+				filteredArtifacts = append(filteredArtifacts, na)
+			} else {
+				logrus.Warnf("Ignoring artifact %s of type %s in transformer %s", na.Name, na.Type, tconfig.Name)
+			}
+		}
+		newArtifacts = filteredArtifacts
 		newPathMappings = env.ProcessPathMappings(newPathMappings)
 		newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
 		err = processPathMappings(newPathMappings, env.Source, env.Output)

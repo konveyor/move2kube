@@ -6,8 +6,13 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "DockerfileImageBuildScript"
+  directoryDetect:
+    levels: 0
   consumes: 
     Dockerfile:
       merge: true
-  directoryDetect:
-    levels: 0
+  produces:
+    NewImages:
+      disabled: false
+    ContainerImageBuildScript:
+      disabled: false

@@ -6,8 +6,11 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "ContainerImagesPushScript"
+  directoryDetect:
+    levels: 0
   consumes: 
     NewImages:
       merge: true
-  directoryDetect:
-    levels: 0
+  produces:
+    ContainerImagesPushScript:
+      disabled: false

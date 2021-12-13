@@ -8,3 +8,9 @@ spec:
   class: "ComposeAnalyser"
   directoryDetect:
     levels: 1
+  consumes:
+    Service:
+      disabled: false
+  produces:
+    IR:
+      disabled: false

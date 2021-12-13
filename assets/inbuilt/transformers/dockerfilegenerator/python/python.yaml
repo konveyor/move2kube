@@ -7,6 +7,13 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "PythonDockerfileGenerator"
+  directoryDetect:
+    levels: -1
   consumes:
     Service: 
       merge: false
+  produces:
+    Dockerfile:
+      disabled: false
+    DockerfileForService:
+      disabled: false

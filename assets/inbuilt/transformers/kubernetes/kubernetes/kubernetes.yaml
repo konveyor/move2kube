@@ -6,11 +6,14 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "Kubernetes"
-  consumes:
-    IR: 
-      merge: true
   directoryDetect:
     levels: 0
+  consumes:
+    IR:
+      merge: true
+  produces:
+    KubernetesYamls:
+      disabled: false
   config:
     outputPath: "deploy/yamls"
     ingressName: "{{ .ProjectName }}"

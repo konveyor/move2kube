@@ -6,6 +6,8 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "ReadMeGenerator"
+  directoryDetect:
+    levels: 0
   consumes: 
     ContainerImagesPushScript:
       merge: true
@@ -13,5 +15,3 @@ spec:
       merge: true
     KubernetesYamls:
       merge: true
-  directoryDetect:
-    levels: 0

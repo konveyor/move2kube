@@ -7,9 +7,18 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "MavenAnalyser"
+  directoryDetect:
+    levels: -1
   consumes:
-    Service: 
-      merge: false
+    Service:
+      disabled: false
+  produces:
+    Jar:
+      disabled: false
+    War:
+      disabled: false
+    Ear:
+      disabled: false
   externalFiles:
     "../../common/Dockerfile.license" : templates/Dockerfile.license
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml

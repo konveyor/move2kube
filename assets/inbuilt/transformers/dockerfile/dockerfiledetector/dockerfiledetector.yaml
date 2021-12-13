@@ -8,3 +8,11 @@ spec:
   class: "DockerfileDetector"
   directoryDetect:
     levels: 1
+  consumes:
+    Service:
+      disabled: false
+  produces:
+    Dockerfile:
+      disabled: false
+    DockerfileForService:
+      disabled: false
