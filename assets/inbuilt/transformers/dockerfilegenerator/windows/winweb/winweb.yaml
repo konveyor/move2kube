@@ -7,3 +7,6 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "WinWebAppDockerfileGenerator"
+  consumes:
+    Service: 
+      merge: false

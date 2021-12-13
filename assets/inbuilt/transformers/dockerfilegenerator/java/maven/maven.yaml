@@ -7,6 +7,9 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "MavenAnalyser"
+  consumes:
+    Service: 
+      merge: false
   externalFiles:
     "../../common/Dockerfile.license" : templates/Dockerfile.license
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml

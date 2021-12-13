@@ -66,7 +66,7 @@ func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.A
 	shScripts := []ImageBuildTemplateConfig{}
 	batScripts := []ImageBuildTemplateConfig{}
 	for _, a := range append(newArtifacts, alreadySeenArtifacts...) {
-		if a.Artifact != artifacts.ContainerImageBuildScriptArtifactType {
+		if a.Type != artifacts.ContainerImageBuildScriptArtifactType {
 			continue
 		}
 		for _, shScript := range a.Paths[artifacts.ContainerImageBuildShScriptPathType] {
@@ -135,9 +135,9 @@ func (t *ContainerImagesBuildScript) Transform(newArtifacts []transformertypes.A
 		TemplateConfig: batScripts,
 	})
 	as := []transformertypes.Artifact{{
-		Name:     artifacts.ContainerImagesBuildScriptArtifactType,
-		Artifact: artifacts.ContainerImagesBuildScriptArtifactType,
-		Paths: map[string][]string{
+		Name: string(artifacts.ContainerImagesBuildScriptArtifactType),
+		Type: artifacts.ContainerImagesBuildScriptArtifactType,
+		Paths: map[transformertypes.PathType][]string{
 			artifacts.ContainerImagesBuildShScriptPathType:  {filepath.Join(common.ScriptsDir, buildImagesShFileName)},
 			artifacts.ContainerImagesBuildBatScriptPathType: {filepath.Join(common.ScriptsDir, buildImagesBatFileName)}},
 	}}

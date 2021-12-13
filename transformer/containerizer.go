@@ -34,18 +34,15 @@ func getContainerizationOptions(directory string) []string {
 	}
 	filters = filters.Add(*req)
 	for tn, t := range GetInitializedTransformersF(filters) {
-		tc, env := t.GetConfig()
+		_, env := t.GetConfig()
 		env.Reset()
 		newoptions, err := t.DirectoryDetect(directory)
 		if err != nil {
 			logrus.Warnf("[%s] Failed during containerization option fetch : %s", tn, err)
 			continue
 		}
-		newoptions = setTransformerInfoForServices(*env.Decode(&newoptions).(*map[string][]transformertypes.Artifact), tc)
-		for _, nos := range newoptions {
-			for _, no := range nos {
-				options = append(options, no.Artifact)
-			}
+		if len(newoptions) > 0 {
+			options = append(options, tn)
 		}
 	}
 	return options

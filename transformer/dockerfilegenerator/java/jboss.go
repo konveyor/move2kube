@@ -195,18 +195,18 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenA
 		paths := a.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
-			Name:     sImageName.ImageName,
-			Artifact: artifacts.DockerfileArtifactType,
-			Paths:    paths,
-			Configs: map[string]interface{}{
+			Name:  sImageName.ImageName,
+			Type:  artifacts.DockerfileArtifactType,
+			Paths: paths,
+			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 			},
 		}
 		dfs := transformertypes.Artifact{
-			Name:     sConfig.ServiceName,
-			Artifact: artifacts.DockerfileForServiceArtifactType,
-			Paths:    a.Paths,
-			Configs: map[string]interface{}{
+			Name:  sConfig.ServiceName,
+			Type:  artifacts.DockerfileForServiceArtifactType,
+			Paths: a.Paths,
+			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 				artifacts.ServiceConfigType:   sConfig,
 			},

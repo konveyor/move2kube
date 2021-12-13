@@ -64,7 +64,7 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 	nartifacts := []transformertypes.Artifact{}
 	processedImages := map[string]bool{}
 	for _, a := range append(newArtifacts, alreadySeenArtifacts...) {
-		if a.Artifact != artifacts.DockerfileArtifactType {
+		if a.Type != artifacts.DockerfileArtifactType {
 			continue
 		}
 		sImageName := artifacts.ImageName{}
@@ -114,9 +114,9 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 				})
 			}
 			nartifacts = append(nartifacts, transformertypes.Artifact{
-				Name:     t.Env.ProjectName,
-				Artifact: artifacts.NewImagesArtifactType,
-				Configs: map[string]interface{}{
+				Name: t.Env.ProjectName,
+				Type: artifacts.NewImagesArtifactType,
+				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.NewImagesConfigType: artifacts.NewImages{
 						ImageNames: []string{sImageName.ImageName},
 					},
@@ -134,9 +134,9 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 		TemplateConfig: dfs,
 	})
 	nartifacts = append(nartifacts, transformertypes.Artifact{
-		Name:     artifacts.ContainerImageBuildScriptArtifactType,
-		Artifact: artifacts.ContainerImageBuildScriptArtifactType,
-		Paths: map[string][]string{artifacts.ContainerImageBuildShScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.sh")},
+		Name: string(artifacts.ContainerImageBuildScriptArtifactType),
+		Type: artifacts.ContainerImageBuildScriptArtifactType,
+		Paths: map[transformertypes.PathType][]string{artifacts.ContainerImageBuildShScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.sh")},
 			artifacts.ContainerImageBuildShScriptContextPathType:  {"."},
 			artifacts.ContainerImageBuildBatScriptPathType:        {filepath.Join(common.ScriptsDir, "builddockerimages.bat")},
 			artifacts.ContainerImageBuildBatScriptContextPathType: {"."},

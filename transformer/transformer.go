@@ -22,7 +22,6 @@ import (
 	"reflect"
 
 	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/common/deepcopy"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/qaengine"
@@ -41,13 +40,14 @@ import (
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/labels"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
 	initialized      = false
 	transformerTypes = map[string]reflect.Type{}
 	transformers     = map[string]Transformer{}
-	intercepts       = map[string][]string{} // artifact types get redirected
 )
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
@@ -189,9 +189,6 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 				}
 			} else {
 				transformers[tn] = t
-				for _, in := range tc.Spec.Intercepts {
-					intercepts[in] = append(intercepts[in], tc.Name)
-				}
 			}
 		}
 	}
@@ -267,106 +264,8 @@ func GetServices(prjName string, dir string) (services map[string][]transformert
 	}
 	logrus.Infof("[Directory Walk] %s", getNamedAndUnNamedServicesLogMessage(services))
 	services = nameServices(prjName, services)
-	logrus.Infof("[Named Services] Identified %d namedservices", len(services))
+	logrus.Infof("[Named Services] Identified %d named services", len(services))
 	return
-}
-
-// Transform transforms as per the plan
-func Transform(plan plantypes.Plan, outputPath string) (err error) {
-	allartifacts := []transformertypes.Artifact{}
-	newArtifactsToProcess := []transformertypes.Artifact{}
-	pathMappings := []transformertypes.PathMapping{}
-	iteration := 1
-	logrus.Infof("Iteration %d", iteration)
-	for sn, sas := range plan.Spec.Services {
-		if len(sas) == 0 {
-			logrus.Errorf("Ignoring service %s, since it has no artifacts", sn)
-			continue
-		}
-		a := sas[0]
-		a.Name = sn
-		serviceConfig := artifacts.ServiceConfig{
-			ServiceName: sn,
-		}
-		if a.Configs == nil {
-			a.Configs = map[string]interface{}{}
-		}
-		a.Configs[artifacts.ServiceConfigType] = serviceConfig
-		newArtifactsToProcess = append(newArtifactsToProcess, a)
-	}
-	allartifacts = newArtifactsToProcess
-	for {
-		iteration++
-		newArtifactsCreated := []transformertypes.Artifact{}
-		logrus.Infof("Iteration %d", iteration)
-		for tn, t := range transformers {
-			logrus.Debugf("Starting processing for Transformer %s", tn)
-			config, env := t.GetConfig()
-			env.Reset()
-			artifactsToProcess := []transformertypes.Artifact{}
-			for _, na := range newArtifactsToProcess {
-				if preprocessSpec, ok := config.Spec.ArtifactsToProcess[na.Artifact]; ok || na.Artifact == tn {
-					if preprocessSpec.Merge {
-						artifactsToProcess = mergeArtifacts(append(artifactsToProcess, updatedArtifacts(allartifacts, na)...))
-					}
-					artifactsToProcess = append(artifactsToProcess, na)
-				}
-			}
-			logrus.Debugf("Transformer %s will be processing %d artifacts", config.Name, len(artifactsToProcess))
-			if len(artifactsToProcess) == 0 {
-				continue
-			}
-			logrus.Infof("Transformer %s processing %d artifacts", config.Name, len(artifactsToProcess))
-			newPathMappings, newArtifacts, err := t.Transform(*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact), *env.Encode(&allartifacts).(*[]transformertypes.Artifact))
-			if err != nil {
-				logrus.Errorf("Unable to transform artifacts using %s : %s", tn, err)
-				continue
-			}
-			newPathMappings = env.ProcessPathMappings(newPathMappings)
-			newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
-			err = processPathMappings(newPathMappings, plan.Spec.RootDir, outputPath)
-			if err != nil {
-				logrus.Errorf("Unable to process path mappings")
-			}
-			newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
-			newArtifacts = postProcessArtifacts(newArtifacts, config)
-			pathMappings = append(pathMappings, newPathMappings...)
-			intercepted := false
-			for _, na := range newArtifacts {
-				for in, incs := range intercepts {
-					if na.Artifact == in && len(incs) > 0 {
-						for _, i := range incs {
-							if i == tn {
-								continue
-							}
-							nac := deepcopy.DeepCopy(na).(transformertypes.Artifact)
-							nac.Artifact = i
-							newArtifactsCreated = append(newArtifactsCreated, nac)
-							intercepted = true
-						}
-					}
-				}
-			}
-			if !intercepted {
-				newArtifactsCreated = append(newArtifactsCreated, newArtifacts...)
-			}
-			logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(allartifacts))
-			logrus.Infof("Transformer %s Done", config.Name)
-		}
-		if err = os.RemoveAll(outputPath); err != nil {
-			logrus.Errorf("Unable to delete %s : %s", outputPath, err)
-		}
-		err = processPathMappings(pathMappings, plan.Spec.RootDir, outputPath)
-		if err != nil {
-			logrus.Errorf("Unable to process path mappings")
-		}
-		if len(newArtifactsCreated) == 0 {
-			break
-		}
-		newArtifactsToProcess = newArtifactsCreated
-		allartifacts = append(allartifacts, newArtifactsToProcess...)
-	}
-	return nil
 }
 
 func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string][]transformertypes.Artifact) (services map[string][]transformertypes.Artifact, err error) {
@@ -434,4 +333,141 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 		logrus.Errorf("Error occurred while walking through the directory at path %q Error: %q", inputPath, err)
 	}
 	return
+}
+
+type processType int
+
+const (
+	consume processType = iota
+	preprocess
+)
+
+// Transform transforms as per the plan
+func Transform(plan plantypes.Plan, outputPath string) (err error) {
+	allArtifacts := []transformertypes.Artifact{}
+	newArtifactsToProcess := []transformertypes.Artifact{}
+	pathMappings := []transformertypes.PathMapping{}
+	iteration := 1
+	logrus.Infof("Iteration %d", iteration)
+	for sn, sas := range plan.Spec.Services {
+		if len(sas) == 0 {
+			logrus.Errorf("Ignoring service %s, since it has no artifacts", sn)
+			continue
+		}
+		a := sas[0]
+		a.Name = sn
+		a.ProcessWith = *metav1.AddLabelToSelector(&a.ProcessWith, transformertypes.LabelName, string(a.Type))
+		a.Type = artifacts.ServiceArtifactType
+		serviceConfig := artifacts.ServiceConfig{
+			ServiceName: sn,
+		}
+		if a.Configs == nil {
+			a.Configs = map[transformertypes.ConfigType]interface{}{}
+		}
+		a.Configs[artifacts.ServiceConfigType] = serviceConfig
+		newArtifactsToProcess = append(newArtifactsToProcess, a)
+	}
+	allArtifacts = newArtifactsToProcess
+	for {
+		iteration++
+		logrus.Infof("Iteration %d", iteration)
+		newPathMappings, newArtifacts := transform(newArtifactsToProcess, allArtifacts, consume)
+		pathMappings = append(pathMappings, newPathMappings...)
+		if err = os.RemoveAll(outputPath); err != nil {
+			logrus.Errorf("Unable to delete %s : %s", outputPath, err)
+		}
+		err = processPathMappings(pathMappings, plan.Spec.RootDir, outputPath)
+		if err != nil {
+			logrus.Errorf("Unable to process path mappings")
+		}
+		logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(allArtifacts))
+		if len(newArtifacts) == 0 {
+			break
+		}
+		logrus.Infof("Preprocessing %d artifacts", len(newArtifacts))
+		newPathMappings, newArtifacts = transform(newArtifacts, allArtifacts, preprocess)
+		pathMappings = append(pathMappings, newPathMappings...)
+		if err = os.RemoveAll(outputPath); err != nil {
+			logrus.Errorf("Unable to delete %s : %s", outputPath, err)
+		}
+		err = processPathMappings(pathMappings, plan.Spec.RootDir, outputPath)
+		if err != nil {
+			logrus.Errorf("Unable to process path mappings")
+		}
+		newArtifactsToProcess = newArtifacts
+		logrus.Infof("Created %d pathMappings and %d artifacts. Total Path Mappings : %d. Total Artifacts : %d.", len(newPathMappings), len(newArtifacts), len(pathMappings), len(allArtifacts))
+		allArtifacts = append(allArtifacts, newArtifacts...)
+	}
+	return nil
+}
+
+func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, pt processType) (pathMappings []transformertypes.PathMapping, newArtifactsCreated []transformertypes.Artifact) {
+	for _, t := range transformers {
+		tconfig, env := t.GetConfig()
+		env.Reset()
+		logrus.Debugf("Starting processing for Transformer %s", tconfig.Name)
+		artifactsNotProcessed := []transformertypes.Artifact{}
+		artifactsToProcess := []transformertypes.Artifact{}
+		for _, na := range newArtifactsToProcess {
+			var processConfig map[transformertypes.ArtifactType]transformertypes.ArtifactProcessConfig
+			switch pt {
+			case consume:
+				processConfig = tconfig.Spec.ConsumedArtifacts
+			case preprocess:
+				processConfig = tconfig.Spec.Preprocesses
+			}
+			if processSpec, ok := processConfig[na.Type]; ok && !processSpec.Disabled {
+				selected := true
+				if na.ProcessWith.String() != "" {
+					s, err := selectTransformer(na.ProcessWith, tconfig)
+					if err != nil {
+						logrus.Errorf("Unable to process selector for transformer %s : %s", tconfig.Name, err)
+					} else if !s {
+						selected = false
+					}
+				}
+				if !selected {
+					artifactsNotProcessed = append(artifactsNotProcessed, na)
+					continue
+				}
+				if processSpec.Merge {
+					artifactsToProcess = mergeArtifacts(append(artifactsToProcess, updatedArtifacts(allArtifacts, na)...))
+				}
+				artifactsToProcess = append(artifactsToProcess, na)
+			} else {
+				artifactsNotProcessed = append(artifactsNotProcessed, na)
+			}
+		}
+		logrus.Debugf("Transformer %s will be processing %d artifacts", tconfig.Name, len(artifactsToProcess))
+		if len(artifactsToProcess) == 0 {
+			continue
+		}
+		logrus.Infof("Transformer %s processing %d artifacts", tconfig.Name, len(artifactsToProcess))
+		newPathMappings, newArtifacts, err := t.Transform(*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact), *env.Encode(&allArtifacts).(*[]transformertypes.Artifact))
+		if err != nil {
+			logrus.Errorf("Unable to transform artifacts using %s : %s", tconfig.Name, err)
+			continue
+		}
+		newPathMappings = env.ProcessPathMappings(newPathMappings)
+		newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
+		err = processPathMappings(newPathMappings, env.Source, env.Output)
+		if err != nil {
+			logrus.Errorf("Unable to process path mappings")
+		}
+		newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
+		newArtifacts = postProcessArtifacts(newArtifacts, tconfig)
+		pathMappings = append(pathMappings, newPathMappings...)
+		if pt == preprocess {
+			newArtifactsToProcess = append(artifactsNotProcessed, newArtifacts...)
+		}
+		newArtifactsCreated = append(newArtifactsCreated, newArtifacts...)
+		logrus.Infof("Created %d pathMappings and %d artifacts.", len(newPathMappings), len(newArtifacts))
+		logrus.Infof("Transformer %s Done", tconfig.Name)
+	}
+	if pt == preprocess {
+		logrus.Infof("Created %d pathMappings and %d artifacts during preprocessing.", len(pathMappings), len(newArtifactsToProcess))
+		return pathMappings, newArtifactsToProcess
+	}
+	logrus.Infof("Created %d pathMappings and %d artifacts during consumption.", len(pathMappings), len(newArtifactsCreated))
+	return pathMappings, newArtifactsCreated
 }

@@ -125,8 +125,8 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 			}
 		}
 		p := transformertypes.Artifact{
-			Name:     t.Env.GetProjectName(),
-			Artifact: irtypes.IRArtifactType,
+			Name: t.Env.GetProjectName(),
+			Type: irtypes.IRArtifactType,
 			Configs: map[transformertypes.ConfigType]interface{}{
 				irtypes.IRConfigType: ir,
 			},

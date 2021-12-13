@@ -254,7 +254,6 @@ func parseDependencyClosure(chunk string, state *gradleParseState) []GradleDepen
 func createStructureForDependencyItem(data string) GradleDependency {
 	gdi := GradleDependency{}
 	if match := depsItemBlockRegex.FindStringSubmatch(data); len(match) > 2 {
-		logrus.Infof("Parsing GAV 1 : %s", data)
 		excludes := []map[string]string{}
 		excludeMatches := depsExcludeLineRegex.FindAllStringSubmatch(data, -1)
 		for _, excludeMatch := range excludeMatches {
@@ -264,7 +263,6 @@ func createStructureForDependencyItem(data string) GradleDependency {
 		gdi.Type = match[1]
 		gdi.Excludes = excludes
 	} else {
-		logrus.Infof("Parsing GAV else : %s", data)
 		gdi.GradleGAV = parseGavString(data)
 		parsed := depsKeywordStringRegex.FindStringSubmatch(data)
 		if len(parsed) > 1 {

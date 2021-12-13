@@ -99,11 +99,11 @@ func (t *GradleAnalyser) DirectoryDetect(dir string) (services map[string][]tran
 		},
 	}
 	gc := artifacts.GradleConfig{}
-	gc.ArtifactType = JarPackaging
-	if _, ok := gradleBuild.Metadata[EarPackaging]; ok {
-		gc.ArtifactType = artifacts.EarArtifactType
-	} else if _, ok := gradleBuild.Metadata[WarPackaging]; ok {
-		gc.ArtifactType = artifacts.WarArtifactType
+	gc.ArtifactType = artifacts.JarPackaging
+	if _, ok := gradleBuild.Metadata[string(artifacts.EarPackaging)]; ok {
+		gc.ArtifactType = artifacts.EarPackaging
+	} else if _, ok := gradleBuild.Metadata[string(artifacts.WarPackaging)]; ok {
+		gc.ArtifactType = artifacts.WarPackaging
 	}
 	ct.Configs[artifacts.GradleConfigType] = gc
 	appName := ""
@@ -145,6 +145,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		}
 		javaVersion = t.GradleConfig.JavaVersion
 		gradleConfig := artifacts.GradleConfig{}
+		logrus.Infof("%+v", a.Configs[artifacts.GradleConfigType])
 		err = a.GetConfig(artifacts.GradleConfigType, &gradleConfig)
 		if err != nil {
 			logrus.Debugf("Unable to load Gradle config object: %s", err)
@@ -157,7 +158,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
 		archiveName := ""
-		if gb, ok := gradleBuild.Blocks[gradleConfig.ArtifactType]; ok {
+		if gb, ok := gradleBuild.Blocks[string(gradleConfig.ArtifactType)]; ok {
 			if len(gb.Metadata[archiveNameC]) > 0 {
 				archiveName = gb.Metadata[archiveNameC][0]
 			}
@@ -237,14 +238,14 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			},
 		})
 		if archiveName == "" {
-			archiveName = sConfig.ServiceName + gradleConfig.ArtifactType
+			archiveName = sConfig.ServiceName + string(gradleConfig.ArtifactType)
 		}
 		var newArtifact transformertypes.Artifact
 		switch gradleConfig.ArtifactType {
-		case WarPackaging:
+		case artifacts.WarPackaging:
 			newArtifact = transformertypes.Artifact{
-				Name:     a.Name,
-				Artifact: artifacts.WarArtifactType,
+				Name: a.Name,
+				Type: artifacts.WarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.WarConfigType: artifacts.WarArtifactConfig{
 						DeploymentFile:                    archiveName,
@@ -255,10 +256,10 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 					},
 				},
 			}
-		case EarPackaging:
+		case artifacts.EarPackaging:
 			newArtifact = transformertypes.Artifact{
-				Name:     a.Name,
-				Artifact: artifacts.EarArtifactType,
+				Name: a.Name,
+				Type: artifacts.EarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.EarConfigType: artifacts.EarArtifactConfig{
 						DeploymentFile:                    archiveName,
@@ -281,8 +282,8 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 				envVariablesMap["PORT"] = fmt.Sprintf("%d", port)
 			}
 			newArtifact = transformertypes.Artifact{
-				Name:     a.Name,
-				Artifact: artifacts.JarArtifactType,
+				Name: a.Name,
+				Type: artifacts.JarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.JarConfigType: artifacts.JarArtifactConfig{
 						DeploymentFile:                    archiveName,
@@ -299,12 +300,12 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			newArtifact.Configs[irtypes.IRConfigType] = ir
 		}
 		if newArtifact.Configs == nil {
-			newArtifact.Configs = map[string]interface{}{}
+			newArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
 		}
 		newArtifact.Configs[artifacts.ImageNameConfigType] = sImageName
 		newArtifact.Configs[artifacts.ServiceConfigType] = sConfig
 		if newArtifact.Paths == nil {
-			newArtifact.Paths = map[string][]string{}
+			newArtifact.Paths = map[transformertypes.PathType][]string{}
 		}
 		newArtifact.Paths[artifacts.BuildContainerFileType] = []string{buildDockerfile}
 		newArtifact.Paths[artifacts.ProjectPathPathType] = a.Paths[artifacts.ProjectPathPathType]

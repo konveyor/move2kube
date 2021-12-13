@@ -74,7 +74,7 @@ func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]
 		}
 		if isdf, _ := isDockerFile(path); isdf {
 			trans := transformertypes.Artifact{
-				Paths: map[string][]string{
+				Paths: map[transformertypes.PathType][]string{
 					artifacts.ProjectPathPathType: {filepath.Dir(path)},
 					artifacts.DockerfilePathType:  {path},
 				},
@@ -113,18 +113,18 @@ func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact,
 			DestPath: common.DefaultSourceDir,
 		})
 		p := transformertypes.Artifact{
-			Name:     sImageName.ImageName,
-			Artifact: artifacts.DockerfileArtifactType,
-			Paths:    a.Paths,
-			Configs: map[string]interface{}{
+			Name:  sImageName.ImageName,
+			Type:  artifacts.DockerfileArtifactType,
+			Paths: a.Paths,
+			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 			},
 		}
 		dfs := transformertypes.Artifact{
-			Name:     sConfig.ServiceName,
-			Artifact: artifacts.DockerfileForServiceArtifactType,
-			Paths:    a.Paths,
-			Configs: map[string]interface{}{
+			Name:  sConfig.ServiceName,
+			Type:  artifacts.DockerfileForServiceArtifactType,
+			Paths: a.Paths,
+			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 				artifacts.ServiceConfigType:   sConfig,
 			},

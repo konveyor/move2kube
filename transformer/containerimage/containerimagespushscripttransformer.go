@@ -66,7 +66,7 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 	pathMappings := []transformertypes.PathMapping{}
 	ipt := ImagePushTemplateConfig{}
 	for _, a := range newArtifacts {
-		if a.Artifact != artifacts.NewImagesArtifactType {
+		if a.Type != artifacts.NewImagesArtifactType {
 			continue
 		}
 		images := artifacts.NewImages{}
@@ -88,9 +88,9 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 		TemplateConfig: ipt,
 	})
 	artifacts := []transformertypes.Artifact{{
-		Name:     artifacts.ContainerImagesPushScriptArtifactType,
-		Artifact: artifacts.ContainerImagesPushScriptArtifactType,
-		Paths: map[string][]string{artifacts.ContainerImagesPushShScriptPathType: {filepath.Join(common.ScriptsDir, pushImagesFileName+common.ShExt)},
+		Name: string(artifacts.ContainerImagesPushScriptArtifactType),
+		Type: artifacts.ContainerImagesPushScriptArtifactType,
+		Paths: map[transformertypes.PathType][]string{artifacts.ContainerImagesPushShScriptPathType: {filepath.Join(common.ScriptsDir, pushImagesFileName+common.ShExt)},
 			artifacts.ContainerImagesPushBatScriptPathType: {filepath.Join(common.ScriptsDir, pushImagesFileName+common.ShExt)}},
 	}}
 	return pathMappings, artifacts, nil

@@ -26,7 +26,6 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/deepcopy"
-	"github.com/konveyor/move2kube/types"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -46,7 +45,7 @@ func getTransformerConfig(path string) (transformertypes.Transformer, error) {
 		logrus.Debug(err)
 		return tc, err
 	}
-	tc.Labels[types.GroupName+"/name"] = tc.Name
+	tc.Labels[transformertypes.LabelName] = tc.Name
 	tc.Spec.Override = nil
 	if tc.Spec.OverrideAsObj != nil {
 		s := metav1.LabelSelector{}
@@ -127,16 +126,16 @@ func mergeArtifacts(artifacts []transformertypes.Artifact) (newArtifacts []trans
 }
 
 func mergeArtifact(a transformertypes.Artifact, b transformertypes.Artifact) (c transformertypes.Artifact, merged bool) {
-	if a.Artifact == b.Artifact && a.Name == b.Name {
+	if a.Type == b.Type && a.Name == b.Name {
 		mergedConfig, merged := mergeConfigs(a.Configs, b.Configs)
 		if !merged {
 			return c, false
 		}
 		c = transformertypes.Artifact{
-			Name:     a.Name,
-			Artifact: a.Artifact,
-			Paths:    mergePathSliceMaps(a.Paths, b.Paths),
-			Configs:  mergedConfig,
+			Name:    a.Name,
+			Type:    a.Type,
+			Paths:   mergePathSliceMaps(a.Paths, b.Paths),
+			Configs: mergedConfig,
 		}
 		return c, true
 	}
@@ -155,7 +154,7 @@ func mergeConfigs(configs1 map[transformertypes.ConfigType]interface{}, configs2
 			configs1[cn2] = cg2
 			continue
 		}
-		if ct, ok := artifacts.ConfigTypes[cn2]; ok {
+		if ct, ok := artifacts.ConfigTypes[string(cn2)]; ok {
 			c1 := reflect.New(ct).Interface().(transformertypes.Config)
 			err := common.GetObjFromInterface(configs1[cn2], c1)
 			if err != nil {
@@ -196,7 +195,9 @@ func mergePathSliceMaps(map1 map[transformertypes.PathType][]string, map2 map[tr
 func setTransformerInfoForServices(services map[string][]transformertypes.Artifact, t transformertypes.Transformer) map[string][]transformertypes.Artifact {
 	for sn, s := range services {
 		for sti, st := range s {
-			st.Artifact = t.Name
+			// To make the plan yaml look better we do this
+			st.Type = transformertypes.ArtifactType(t.Name) //artifacts.ServiceArtifactType
+			//st.ProcessWith = *metav1.AddLabelToSelector(&st.ProcessWith, transformertypes.LabelName, t.Name)
 			services[sn][sti] = st
 		}
 	}
@@ -209,7 +210,7 @@ func getNamedAndUnNamedServicesLogMessage(services map[string][]transformertypes
 	if _, ok := services[""]; ok {
 		nuntransformers -= 1
 	}
-	return fmt.Sprintf("Identified %d namedservices and %d unnamed transformer plans", nnservices, nuntransformers)
+	return fmt.Sprintf("Identified %d named services and %d to-be-named services", nnservices, nuntransformers)
 }
 
 func getFilteredTransformers(transformerPaths map[string]string, selector labels.Selector, logError bool) (transformerConfigs map[string]transformertypes.Transformer) {
@@ -263,10 +264,21 @@ func getFilteredTransformers(transformerPaths map[string]string, selector labels
 func postProcessArtifacts(artifacts []transformertypes.Artifact, t transformertypes.Transformer) []transformertypes.Artifact {
 	newArtifacts := []transformertypes.Artifact{}
 	for _, a := range artifacts {
-		if p, ok := t.Spec.Produces[a.Artifact]; ok && p.ChangeTypeTo != "" {
-			a.Artifact = p.ChangeTypeTo
+		if p, ok := t.Spec.ProducedArtifacts[a.Type]; ok && p.ChangeTypeTo != "" {
+			a.Type = p.ChangeTypeTo
 		}
 		newArtifacts = append(newArtifacts, a)
 	}
 	return newArtifacts
+}
+
+func selectTransformer(selector metav1.LabelSelector, t transformertypes.Transformer) (bool, error) {
+	ls, err := metav1.LabelSelectorAsSelector(&selector)
+	if err != nil {
+		return false, err
+	}
+	if ls.Matches(labels.Set(t.Labels)) {
+		return true, nil
+	}
+	return false, nil
 }

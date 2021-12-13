@@ -87,7 +87,7 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 	pathMappings = []transformertypes.PathMapping{}
 	createdArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != irtypes.IRArtifactType {
+		if a.Type != irtypes.IRArtifactType {
 			continue
 		}
 		var ir irtypes.IR
@@ -136,7 +136,7 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 		}
 		a := transformertypes.Artifact{
 			Name:     t.Config.Name,
-			Artifact: artifacts.KubernetesYamlsArtifactType,
+			Type: artifacts.KubernetesYamlsArtifactType,
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.KubernetesYamlsPathType: {deployCICDDir},
 			},

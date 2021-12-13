@@ -43,7 +43,9 @@ type EventListener struct {
 }
 
 // TriggerBinding holds the details about the git event trigger binding resource
-type TriggerBinding struct{ Name string }
+type TriggerBinding struct {
+	Name string
+}
 
 // TriggerTemplate holds the details about the git event trigger template resource
 type TriggerTemplate struct {

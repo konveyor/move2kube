@@ -17,7 +17,7 @@
 package transformer
 
 // PathMappingType refers to the Path Mapping type
-type PathMappingType = string
+type PathMappingType string
 
 const (
 	// DefaultPathMappingType allows normal copy with overwrite

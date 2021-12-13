@@ -77,7 +77,7 @@ type EnvironmentInstance interface {
 	Reset() error
 	Download(envpath string) (outpath string, err error)
 	Upload(outpath string) (envpath string, err error)
-	Exec(cmd []string) (stdout string, stderr string, exitcode int, err error)
+	Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error)
 	Destroy() error
 
 	GetSource() string
@@ -155,7 +155,7 @@ func (e *Environment) Reset() error {
 }
 
 // Exec executes an executable within the environment
-func (e *Environment) Exec(cmd []string) (stdout string, stderr string, exitcode int, err error) {
+func (e *Environment) Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error) {
 	if !e.active {
 		err = &EnvironmentNotActiveError{}
 		logrus.Debug(err)
@@ -346,7 +346,7 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 
 	tempMappings := []transformertypes.PathMapping{}
 	for pmi, pm := range dupPathMappings {
-		if strings.EqualFold(pm.Type, transformertypes.PathTemplatePathMappingType) {
+		if strings.EqualFold(string(pm.Type), string(transformertypes.PathTemplatePathMappingType)) {
 			// Process path template
 			methodMap := template.FuncMap{
 				"SourceRel":    e.SourceRel,
@@ -389,8 +389,8 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 					logrus.Errorf("Error while processing path mappings : %s", err)
 				}
 			}
-			if (strings.EqualFold(pm.Type, transformertypes.TemplatePathMappingType) ||
-				strings.EqualFold(pm.Type, transformertypes.SpecialTemplatePathMappingType)) &&
+			if (strings.EqualFold(string(pm.Type), string(transformertypes.TemplatePathMappingType)) ||
+				strings.EqualFold(string(pm.Type), string(transformertypes.SpecialTemplatePathMappingType))) &&
 				(pm.SrcPath == "" || !filepath.IsAbs(pm.SrcPath)) {
 				dupPathMappings[pmi].SrcPath = filepath.Join(e.GetEnvironmentContext(), e.RelTemplatesDir, pm.SrcPath)
 			}

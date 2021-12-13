@@ -7,6 +7,9 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "DotNetCoreDockerfileGenerator"
+  consumes:
+    Service: 
+      merge: false
   externalFiles:
     "./mappings/dotnetcoreversions.yaml" : mappings/dotnetcoreversions.yaml
   config:
