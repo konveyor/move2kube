@@ -33,18 +33,18 @@ type Transformer struct {
 
 // TransformerSpec stores the data
 type TransformerSpec struct {
-	FilePath           string                              `yaml:"-"`
-	Class              string                              `yaml:"class"`
-	Isolated           bool                                `yaml:"isolated"`
-	DirectoryDetect    DirectoryDetect                     `yaml:"directoryDetect"`
-	ExternalFiles      map[string]string                   `yaml:"externalFiles"` // [source]destination
-	ArtifactsToProcess map[string]ArtifactPreprocessConfig `yaml:"consumes"`      // plantypes.ArtifactType
-	Produces           map[string]ProducedArtifact         `yaml:"produces"`      // plantypes.ArtifactType
-	Intercepts         []string                            `yaml:"intercepts"`
-	Override           labels.Selector                     `yaml:"-"`
-	OverrideAsObj      interface{}                         `yaml:"override"`  // Will be parsed and loaded into TransformersToOverride
-	TemplatesDir       string                              `yaml:"templates"` // Relative to yaml directory or working directory in image
-	Config             interface{}                         `yaml:"config"`
+	FilePath          string                                 `yaml:"-"`
+	Class             string                                 `yaml:"class"`
+	Isolated          bool                                   `yaml:"isolated"`
+	DirectoryDetect   DirectoryDetect                        `yaml:"directoryDetect"`
+	ExternalFiles     map[string]string                      `yaml:"externalFiles"` // [source]destination
+	ConsumedArtifacts map[ArtifactType]ArtifactProcessConfig `yaml:"consumes"`      // plantypes.ArtifactType
+	ProducedArtifacts map[ArtifactType]ProducedArtifact      `yaml:"produces"`      // plantypes.ArtifactType
+	Preprocesses      map[ArtifactType]ArtifactProcessConfig `yaml:"preprocesses"`
+	Override          labels.Selector                        `yaml:"-"`
+	OverrideAsObj     interface{}                            `yaml:"override"`  // Will be parsed and loaded into TransformersToOverride
+	TemplatesDir      string                                 `yaml:"templates"` // Relative to yaml directory or working directory in image
+	Config            interface{}                            `yaml:"config"`
 }
 
 // DirectoryDetect stores the config on how to iterate over the directories
@@ -54,14 +54,16 @@ type DirectoryDetect struct {
 	IgnoreServiceSubdirectories bool `yaml:"ignoreServiceSubdirectories"` // TODO: Add support
 }
 
-// ArtifactPreprocessConfig stores config for how to preprocess artifacts
-type ArtifactPreprocessConfig struct {
-	Merge bool `yaml:"merge"`
+// ArtifactProcessConfig stores config for preprocessing artifact
+type ArtifactProcessConfig struct {
+	Merge    bool `yaml:"merge"`
+	Disabled bool `yaml:"disabled"` // default is false
 }
 
 // ProducedArtifact stores config for postprocessing produced artifact
 type ProducedArtifact struct {
-	ChangeTypeTo string `yaml:"changeTypeTo"`
+	ChangeTypeTo ArtifactType `yaml:"changeTypeTo"`
+	Disabled     bool         `yaml:"disabled"`
 }
 
 // NewTransformer creates a new instance of tansformer

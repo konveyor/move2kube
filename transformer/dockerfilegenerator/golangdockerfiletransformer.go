@@ -93,7 +93,7 @@ func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 	serviceName := filepath.Base(prefix)
 	services = map[string][]transformertypes.Artifact{
 		serviceName: {{
-			Paths: map[string][]string{
+			Paths: map[transformertypes.PathType][]string{
 				artifacts.ProjectPathPathType: {dir},
 				GolangModFilePathType:         {modFilePath},
 			},
@@ -168,18 +168,18 @@ func (t *GolangDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		paths := a.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
-			Name:     sImageName.ImageName,
-			Artifact: artifacts.DockerfileArtifactType,
-			Paths:    paths,
-			Configs: map[string]interface{}{
+			Name:  sImageName.ImageName,
+			Type:  artifacts.DockerfileArtifactType,
+			Paths: paths,
+			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 			},
 		}
 		dfs := transformertypes.Artifact{
-			Name:     sConfig.ServiceName,
-			Artifact: artifacts.DockerfileForServiceArtifactType,
-			Paths:    a.Paths,
-			Configs: map[string]interface{}{
+			Name:  sConfig.ServiceName,
+			Type:  artifacts.DockerfileForServiceArtifactType,
+			Paths: a.Paths,
+			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 				artifacts.ServiceConfigType:   sConfig,
 			},

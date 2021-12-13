@@ -9,8 +9,10 @@ metadata:
 spec:
   class: "Jboss"
   consumes: 
-    Jobss:
+    Jboss:
       merge: false
+  directoryDetect:
+    levels: 0
   externalFiles:
     "../../common/Dockerfile.license" : templates/Dockerfile.license
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml

@@ -1158,6 +1158,7 @@ func GetObjFromInterface(obj interface{}, loadinto interface{}) error {
 		Result:   &loadinto,
 		TagName:  "yaml",
 	})
+	logrus.Debugf("Loading data into %+v from %+v", loadinto, obj)
 	if err := decoder.Decode(obj); err != nil {
 		logrus.Errorf("Unable to load obj %+v into %T : %s", obj, loadinto, err)
 		return err

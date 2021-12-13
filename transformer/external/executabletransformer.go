@@ -95,7 +95,7 @@ func (t *Executable) DirectoryDetect(dir string) (services map[string][]transfor
 	for sn, ns := range services {
 		for nsi, nst := range ns {
 			if len(nst.Paths) == 0 {
-				nst.Paths = map[string][]string{
+				nst.Paths = map[transformertypes.PathType][]string{
 					artifacts.ProjectPathPathType: {dir},
 				}
 				ns[nsi] = nst
@@ -198,7 +198,7 @@ func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (se
 		}
 	}
 	trans := transformertypes.Artifact{
-		Paths: map[string][]string{artifacts.ProjectPathPathType: {dir}},
+		Paths: map[transformertypes.PathType][]string{artifacts.ProjectPathPathType: {dir}},
 		Configs: map[transformertypes.ConfigType]interface{}{
 			TemplateConfigType: config,
 		},

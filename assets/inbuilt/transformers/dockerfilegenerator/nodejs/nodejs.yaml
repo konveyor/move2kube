@@ -7,5 +7,8 @@ metadata:
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "NodejsDockerfileGenerator"
+  consumes:
+    Service: 
+      merge: false
   config:
     defaultNodejsVersion: "12"

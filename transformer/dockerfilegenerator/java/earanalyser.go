@@ -85,7 +85,7 @@ func (t *EarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		a.Artifact = artifacts.EarArtifactType
+		a.Type = artifacts.EarArtifactType
 		createdArtifacts = append(createdArtifacts, a)
 	}
 	return pathMappings, createdArtifacts, nil

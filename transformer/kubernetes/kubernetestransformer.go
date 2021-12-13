@@ -82,7 +82,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 	pathMappings = []transformertypes.PathMapping{}
 	createdArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		if a.Artifact != irtypes.IRArtifactType {
+		if a.Type != irtypes.IRArtifactType {
 			continue
 		}
 		var ir irtypes.IR
@@ -139,8 +139,8 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 			DestPath: outputPath,
 		})
 		na := transformertypes.Artifact{
-			Name:     t.Config.Name,
-			Artifact: artifacts.KubernetesYamlsArtifactType,
+			Name: t.Config.Name,
+			Type: artifacts.KubernetesYamlsArtifactType,
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.KubernetesYamlsPathType: {outputPath},
 			},

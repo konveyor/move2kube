@@ -127,8 +127,8 @@ func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, alrea
 		serviceConfig := irtypes.Service{Name: sConfig.ServiceName, Annotations: map[string]string{common.ExposeSelector: common.AnnotationLabelValue}}
 		ir.Services[sConfig.ServiceName] = serviceConfig
 		artifactsCreated = append(artifactsCreated, transformertypes.Artifact{
-			Name:     t.Env.GetProjectName(),
-			Artifact: irtypes.IRArtifactType,
+			Name: t.Env.GetProjectName(),
+			Type: irtypes.IRArtifactType,
 			Configs: map[transformertypes.ConfigType]interface{}{
 				irtypes.IRConfigType: ir,
 			},

@@ -8,6 +8,8 @@ metadata:
 spec:
   class: "JarAnalyser"
   consumes: 
+    Service: 
+      merge: false
     Jar:
       merge: false
   externalFiles:

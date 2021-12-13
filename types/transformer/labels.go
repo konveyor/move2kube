@@ -14,7 +14,13 @@
  *  limitations under the License.
  */
 
-package environment
+package transformer
 
-// Command type stores information about a command
-type Command []string
+import (
+	"github.com/konveyor/move2kube/types"
+)
+
+const (
+	// LabelName stores label of Name
+	LabelName = types.GroupName + "/name"
+)

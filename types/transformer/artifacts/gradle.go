@@ -23,7 +23,7 @@ import (
 
 // GradleConfig stores gradle related configuration information
 type GradleConfig struct {
-	ArtifactType string `yaml:"artifactType"`
+	ArtifactType JavaPackaging `yaml:"artifactType" json:"artifactType"`
 }
 
 const (

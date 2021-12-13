@@ -85,7 +85,7 @@ func (t *WarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		a.Artifact = artifacts.WarArtifactType
+		a.Type = artifacts.WarArtifactType
 		createdArtifacts = append(createdArtifacts, a)
 	}
 	return pathMappings, createdArtifacts, nil

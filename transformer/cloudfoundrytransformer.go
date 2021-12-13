@@ -216,12 +216,12 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 		if len(cConfig) != 0 {
 			containerizationOption := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment, fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName), []string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)}, cConfig[0], cConfig)
 			containerizationArtifact := getContainerizationConfig(a.Paths[artifacts.ProjectPathPathType], a.Paths[artifacts.BuildArtifactPathType], containerizationOption)
-			if containerizationArtifact.Artifact == "" {
+			if containerizationArtifact.Type == "" {
 				logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)
 			} else {
 				containerizationArtifact.Name = sConfig.ServiceName
 				if containerizationArtifact.Configs == nil {
-					containerizationArtifact.Configs = map[string]interface{}{}
+					containerizationArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
 				}
 				containerizationArtifact.Configs[irtypes.IRConfigType] = ir
 				containerizationArtifact.Configs[artifacts.ServiceConfigType] = sConfig
@@ -229,8 +229,8 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			}
 		}
 		artifactsCreated = append(artifactsCreated, transformertypes.Artifact{
-			Name:     t.Env.GetProjectName(),
-			Artifact: irtypes.IRArtifactType,
+			Name: t.Env.GetProjectName(),
+			Type: irtypes.IRArtifactType,
 			Configs: map[transformertypes.ConfigType]interface{}{
 				irtypes.IRConfigType: ir,
 			},

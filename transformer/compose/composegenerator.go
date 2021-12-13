@@ -65,7 +65,7 @@ func (t *ComposeGenerator) DirectoryDetect(dir string) (services map[string][]tr
 func (t *ComposeGenerator) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	pathMappings = []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
-		if a.Artifact != irtypes.IRArtifactType {
+		if a.Type != irtypes.IRArtifactType {
 			continue
 		}
 		var ir irtypes.IR

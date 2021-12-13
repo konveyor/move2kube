@@ -44,7 +44,17 @@ const (
 
 	// BuildContainerFileType defines the build container file type
 	BuildContainerFileType transformertypes.PathType = "BuildContainerFile"
+
+	// JarPackaging defines jar packaging
+	JarPackaging JavaPackaging = "jar"
+	// WarPackaging defines war packaging
+	WarPackaging JavaPackaging = "war"
+	// EarPackaging defines ear packaging
+	EarPackaging JavaPackaging = "ear"
 )
+
+// JavaPackaging represents JavaPackaging type
+type JavaPackaging string
 
 // JarArtifactConfig defines a JarArtifactConfig struct
 type JarArtifactConfig struct {

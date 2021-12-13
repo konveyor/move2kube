@@ -62,7 +62,7 @@ func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, a
 	processedImages := map[string]bool{}
 	for _, a := range newArtifacts {
 		sConfig := artifacts.ServiceConfig{}
-		err := a.GetConfig(artifacts.ServiceArtifactType, &sConfig)
+		err := a.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sConfig, err)
 		}
@@ -153,12 +153,12 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 	}
 	ir.Services[serviceName] = irService
 	return &transformertypes.Artifact{
-		Name:     t.Env.GetProjectName(),
-		Artifact: irtypes.IRArtifactType,
+		Name: t.Env.GetProjectName(),
+		Type: irtypes.IRArtifactType,
 		Paths: map[transformertypes.PathType][]string{
 			artifacts.ProjectPathPathType: {serviceFsPath},
 		},
-		Configs: map[string]interface{}{
+		Configs: map[transformertypes.ConfigType]interface{}{
 			irtypes.IRConfigType: ir,
 		}}
 }

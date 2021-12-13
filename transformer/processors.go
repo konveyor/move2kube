@@ -38,7 +38,7 @@ func getpair(a, b string) pair {
 func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputPath string) error {
 	copiedSourceDests := map[pair]bool{}
 	for _, pm := range pms {
-		if !strings.EqualFold(pm.Type, transformertypes.SourcePathMappingType) ||
+		if !strings.EqualFold(string(pm.Type), string(transformertypes.SourcePathMappingType)) ||
 			copiedSourceDests[getpair(pm.SrcPath, pm.DestPath)] {
 			continue
 		}
@@ -58,19 +58,19 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 		if !filepath.IsAbs(pm.DestPath) {
 			destPath = filepath.Join(outputPath, pm.DestPath)
 		}
-		switch strings.ToLower(pm.Type) {
-		case strings.ToLower(transformertypes.SourcePathMappingType): // skip sources
-		case strings.ToLower(transformertypes.DeletePathMappingType): // skip deletes
-		case strings.ToLower(transformertypes.ModifiedSourcePathMappingType):
+		switch strings.ToLower(string(pm.Type)) {
+		case strings.ToLower(string(transformertypes.SourcePathMappingType)): // skip sources
+		case strings.ToLower(string(transformertypes.DeletePathMappingType)): // skip deletes
+		case strings.ToLower(string(transformertypes.ModifiedSourcePathMappingType)):
 			if err := filesystem.Merge(pm.SrcPath, destPath, false); err != nil {
 				logrus.Errorf("Error while copying sourcepath for %+v . Error: %q", pm, err)
 			}
-		case strings.ToLower(transformertypes.TemplatePathMappingType):
+		case strings.ToLower(string(transformertypes.TemplatePathMappingType)):
 			if err := filesystem.TemplateCopy(pm.SrcPath, destPath,
 				filesystem.AddOnConfig{Config: pm.TemplateConfig}); err != nil {
 				logrus.Errorf("Error while copying sourcepath for %+v . Error: %q", pm, err)
 			}
-		case strings.ToLower(transformertypes.SpecialTemplatePathMappingType):
+		case strings.ToLower(string(transformertypes.SpecialTemplatePathMappingType)):
 			if err := filesystem.TemplateCopy(pm.SrcPath, destPath,
 				filesystem.AddOnConfig{OpeningDelimiter: filesystem.SpecialOpeningDelimiter,
 					ClosingDelimiter: filesystem.SpecialClosingDelimiter,
@@ -88,7 +88,7 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 	}
 
 	for _, pm := range pms {
-		if !strings.EqualFold(pm.Type, transformertypes.DeletePathMappingType) {
+		if !strings.EqualFold(string(pm.Type), string(transformertypes.DeletePathMappingType)) {
 			continue
 		}
 		destPath := pm.DestPath

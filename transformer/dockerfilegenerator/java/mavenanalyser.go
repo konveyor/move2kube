@@ -107,12 +107,12 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]trans
 		},
 	}
 	mc := artifacts.MavenConfig{}
-	mc.ArtifactType = pom.Packaging
+	mc.ArtifactType = artifacts.JavaPackaging(pom.Packaging)
 	if len(profiles) != 0 {
 		mc.MavenProfiles = profiles
 	}
 	if mc.ArtifactType == "" {
-		mc.ArtifactType = JarPackaging
+		mc.ArtifactType = artifacts.JarPackaging
 	}
 	if pom.ArtifactID != "" {
 		mc.MavenAppName = pom.ArtifactID
@@ -328,11 +328,11 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			deploymentFileName = deploymentFileName + "-" + classifier
 		}
 		var newArtifact transformertypes.Artifact
-		switch pom.Packaging {
-		case WarPackaging:
+		switch artifacts.JavaPackaging(pom.Packaging) {
+		case artifacts.WarPackaging:
 			newArtifact = transformertypes.Artifact{
-				Name:     a.Name,
-				Artifact: artifacts.WarArtifactType,
+				Name: a.Name,
+				Type: artifacts.WarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.WarConfigType: artifacts.WarArtifactConfig{
 						DeploymentFile:                    deploymentFileName + ".war",
@@ -343,10 +343,10 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 					},
 				},
 			}
-		case EarPackaging:
+		case artifacts.EarPackaging:
 			newArtifact = transformertypes.Artifact{
-				Name:     a.Name,
-				Artifact: artifacts.EarArtifactType,
+				Name: a.Name,
+				Type: artifacts.EarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.EarConfigType: artifacts.EarArtifactConfig{
 						DeploymentFile:                    deploymentFileName + ".ear",
@@ -369,8 +369,8 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 				envVariablesMap["PORT"] = fmt.Sprintf("%d", port)
 			}
 			newArtifact = transformertypes.Artifact{
-				Name:     a.Name,
-				Artifact: artifacts.JarArtifactType,
+				Name: a.Name,
+				Type: artifacts.JarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.JarConfigType: artifacts.JarArtifactConfig{
 						DeploymentFile:                    deploymentFileName + ".jar",
@@ -387,12 +387,12 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			newArtifact.Configs[irtypes.IRConfigType] = ir
 		}
 		if newArtifact.Configs == nil {
-			newArtifact.Configs = map[string]interface{}{}
+			newArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
 		}
 		newArtifact.Configs[artifacts.ImageNameConfigType] = sImageName
 		newArtifact.Configs[artifacts.ServiceConfigType] = sConfig
 		if newArtifact.Paths == nil {
-			newArtifact.Paths = map[string][]string{}
+			newArtifact.Paths = map[transformertypes.PathType][]string{}
 		}
 		newArtifact.Paths[artifacts.BuildContainerFileType] = []string{buildDockerfile}
 		newArtifact.Paths[artifacts.ProjectPathPathType] = a.Paths[artifacts.ProjectPathPathType]
