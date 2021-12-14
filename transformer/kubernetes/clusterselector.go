@@ -33,7 +33,7 @@ const (
 	defaultStorageClassName = "default"
 	// defaultClusterType defines the default cluster type chosen by plan
 	defaultClusterType = "Kubernetes"
-	// Stores cluster configuration of selected cluster
+	// ClusterMetadata config stores cluster configuration of selected cluster
 	ClusterMetadata transformertypes.ConfigType = "ClusterMetadata"
 )
 

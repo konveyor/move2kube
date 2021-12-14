@@ -53,12 +53,16 @@ type DirectoryDetect struct {
 	Levels int `yaml:"levels"` // Supports only 0,1 and -1 currently - default behaviour is -1, when directory detect section is missing
 }
 
+// ArtifactProcessingMode denotes the artifact processing mode
 type ArtifactProcessingMode string
 
 const (
-	Normal               ArtifactProcessingMode = "Normal"
+	// Normal denotes normal consumes
+	Normal ArtifactProcessingMode = "Normal"
+	// MandatoryPassThrough denotes pass through
 	MandatoryPassThrough ArtifactProcessingMode = "MandatoryPassThrough"
-	OnDemandPassThrough  ArtifactProcessingMode = "OnDemandPassThrough"
+	// OnDemandPassThrough is generally used for dependencies
+	OnDemandPassThrough ArtifactProcessingMode = "OnDemandPassThrough"
 )
 
 // ArtifactProcessConfig stores config for preprocessing artifact
