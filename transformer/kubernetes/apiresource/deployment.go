@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/k8sschema"
+	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	okdappsv1 "github.com/openshift/api/apps/v1"

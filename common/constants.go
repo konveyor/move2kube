@@ -29,8 +29,6 @@ const (
 	DefaultProjectName = "myproject"
 	// VolumePrefix defines the prefix to be used for volumes
 	VolumePrefix = "vol"
-	// DefaultStorageClassName defines the default storage class to be used
-	DefaultStorageClassName = "default"
 	// DefaultDirectoryPermission defines the default permission used when a directory is created
 	DefaultDirectoryPermission os.FileMode = 0755
 	// DefaultExecutablePermission defines the default permission used when an executable file is created
@@ -45,8 +43,6 @@ const (
 	QACacheFile = types.AppNameShort + "qacache.yaml"
 	// ConfigFile defines the location of the config file
 	ConfigFile = types.AppNameShort + "config.yaml"
-	// DefaultClusterType defines the default cluster type chosen by plan
-	DefaultClusterType = "Kubernetes"
 	// IgnoreFilename is the name of the file containing the ignore rules and exceptions
 	IgnoreFilename = "." + types.AppNameShort + "ignore"
 	// ExposeSelector tag is used to annotate services that are externally exposed

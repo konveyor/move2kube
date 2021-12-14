@@ -17,7 +17,7 @@
 package apiresource
 
 import (
-	"github.com/konveyor/move2kube/k8sschema"
+	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

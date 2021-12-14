@@ -88,7 +88,7 @@ func removeNonExistentEnvFilesV2(path string) preprocessFunc {
 }
 
 // parseV2 parses version 2 compose files
-func parseV2(path string) (*project.Project, error) {
+func parseV2(path string, interpolate bool) (*project.Project, error) {
 	context := project.Context{}
 	context.ComposeFiles = []string{path}
 	context.ResourceLookup = new(lookup.FileResourceLookup)
@@ -109,7 +109,7 @@ func parseV2(path string) (*project.Project, error) {
 		},
 	}
 	parseOptions := config.ParseOptions{
-		Interpolate: true,
+		Interpolate: interpolate,
 		Validate:    true,
 		Preprocess:  removeNonExistentEnvFilesV2(path),
 	}
@@ -128,7 +128,7 @@ func parseV2(path string) (*project.Project, error) {
 
 // ConvertToIR loads a compose file to IR
 func (c *v1v2Loader) ConvertToIR(composefilepath string, serviceName string) (ir irtypes.IR, err error) {
-	proj, err := parseV2(composefilepath)
+	proj, err := parseV2(composefilepath, true)
 	if err != nil {
 		return irtypes.IR{}, err
 	}

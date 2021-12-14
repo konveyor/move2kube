@@ -33,8 +33,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-func getTransformerConfig(path string) (transformertypes.Transformer, error) {
-	tc := transformertypes.NewTransformer()
+func getTransformerConfig(path string) (tc transformertypes.Transformer, err error) {
+	tc = transformertypes.NewTransformer()
 	tc.Spec.FilePath = path
 	if err := common.ReadMove2KubeYaml(path, &tc); err != nil {
 		logrus.Debugf("Failed to read the transformer metadata at path %q Error: %q", path, err)
@@ -45,23 +45,36 @@ func getTransformerConfig(path string) (transformertypes.Transformer, error) {
 		logrus.Debug(err)
 		return tc, err
 	}
-	tc.Labels[transformertypes.LabelName] = tc.Name
-	tc.Spec.Override = nil
-	if tc.Spec.OverrideAsObj != nil {
-		s := metav1.LabelSelector{}
-		err := common.GetObjFromInterface(tc.Spec.OverrideAsObj, &s)
-		if err != nil {
-			logrus.Errorf("Unable to parse Override configuration for %s, ignoring override : %s", tc.Name, err)
-		} else {
-			if len(s.MatchExpressions) != 0 || len(s.MatchLabels) != 0 {
-				tc.Spec.Override, err = metav1.LabelSelectorAsSelector(&s)
-				if err != nil {
-					logrus.Errorf("Unable to convert label selector to selector : %s", err)
-				}
-			}
-		}
+	if tc.Labels == nil {
+		tc.Labels = map[string]string{}
 	}
+	tc.Labels[transformertypes.LabelName] = tc.Name
+	if tc.Spec.OverrideSelector, err = getSelectorFromInterface(tc.Spec.Override); err != nil {
+		logrus.Errorf("Unable to parse override selector for %s, Ignoring selector : %+v", tc.Name, tc.Spec.Override)
+		tc.Spec.OverrideSelector = nil
+	}
+	if tc.Spec.DependencySelector, err = getSelectorFromInterface(tc.Spec.Dependency); err != nil {
+		logrus.Errorf("Unable to parse dependency selector for %s, Ignoring selector : %+v", tc.Name, tc.Spec.Dependency)
+		tc.Spec.DependencySelector = nil
+	}
+	// TODO: Add check for consistency between consumes and produces
 	return tc, nil
+}
+
+func getSelectorFromInterface(sel interface{}) (labels.Selector, error) {
+	if sel == nil {
+		return nil, nil
+	}
+	s := metav1.LabelSelector{}
+	err := common.GetObjFromInterface(sel, &s)
+	if err != nil {
+		logrus.Errorf("Unable to parse Override configuration, ignoring override : %s", err)
+		return nil, err
+	}
+	if len(s.MatchExpressions) != 0 || len(s.MatchLabels) != 0 {
+		return metav1.LabelSelectorAsSelector(&s)
+	}
+	return nil, nil
 }
 
 func getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContents []string) {
@@ -233,8 +246,8 @@ func getFilteredTransformers(transformerPaths map[string]string, selector labels
 			logrus.Debugf("Ignoring transformer %s because of filter", tn)
 			continue
 		}
-		if tc.Spec.Override != nil {
-			overrideSelectors = append(overrideSelectors, tc.Spec.Override)
+		if tc.Spec.OverrideSelector != nil {
+			overrideSelectors = append(overrideSelectors, tc.Spec.OverrideSelector)
 		}
 		if _, ok := transformerTypes[tc.Spec.Class]; ok {
 			filteredTransformerConfigs[tc.Name] = tc

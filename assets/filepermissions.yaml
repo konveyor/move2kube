@@ -14,8 +14,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-"inbuilt/clusters/kubernetes.yaml" : 0644
-"inbuilt/clusters/openshift.yaml" : 0644
 "inbuilt/presets/dc.yaml" : 0644
 "inbuilt/transformers/cloudfoundry/cloudfoundry.yaml" : 0644
 "inbuilt/transformers/compose/composeanalyser/composeanalyser.yaml" : 0644
@@ -73,6 +71,9 @@
 "inbuilt/transformers/dockerfilegenerator/windows/winweb/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/windows/winweb/winweb.yaml" : 0644
 "inbuilt/transformers/kubernetes/buildconfig/buildconfig.yaml" : 0644
+"inbuilt/transformers/kubernetes/clusterselector/clusters/kubernetes.yaml" : 0644
+"inbuilt/transformers/kubernetes/clusterselector/clusters/openshift.yaml" : 0644
+"inbuilt/transformers/kubernetes/clusterselector/clusterselector.yaml" : 0644
 "inbuilt/transformers/kubernetes/knative/knative.yaml" : 0644
 "inbuilt/transformers/kubernetes/kubernetes/kubernetes.yaml" : 0644
 "inbuilt/transformers/kubernetes/parameterizers/parameterizers.yaml" : 0644

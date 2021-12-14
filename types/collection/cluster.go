@@ -19,6 +19,7 @@ package collection
 import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/types"
+	"github.com/sirupsen/logrus"
 )
 
 // ClusterMetadataKind defines the kind of cluster metadata file
@@ -31,50 +32,46 @@ type ClusterMetadata struct {
 	Spec             ClusterMetadataSpec `yaml:"spec,omitempty"`
 }
 
+// Merge merges two ClusterMetadatas
+func (c *ClusterMetadata) Merge(nc interface{}) bool {
+	newcptr, ok := nc.(*ClusterMetadata)
+	if !ok {
+		newc, ok := nc.(ClusterMetadata)
+		if !ok {
+			logrus.Error("Unable to cast to ClusterMetadata for merge")
+			return false
+		}
+		newcptr = &newc
+	}
+	if newcptr.isEmpty() {
+		return true
+	}
+	if c.isEmpty() {
+		c.Kind = newcptr.Kind
+		c.Name = newcptr.Name
+	} else if c.Kind != newcptr.Kind {
+		// If neither metadata is empty then their kinds should match
+		return false
+	}
+	if newcptr.Name != "" {
+		c.Name = newcptr.Name
+	}
+	if newcptr.ObjectMeta.Name != c.ObjectMeta.Name {
+		return false
+	}
+	c.ObjectMeta.Labels = common.MergeStringMaps(c.ObjectMeta.Labels, newcptr.ObjectMeta.Labels)
+	return c.Spec.Merge(newcptr.Spec)
+}
+
+func (c *ClusterMetadata) isEmpty() bool {
+	return c.Kind == ""
+}
+
 // ClusterMetadataSpec stores the data
 type ClusterMetadataSpec struct {
 	StorageClasses    []string            `yaml:"storageClasses"`
 	APIKindVersionMap map[string][]string `yaml:"apiKindVersionMap"` //[kubernetes kind]["gv1", "gv2",...,"gvn"] prioritized group-version
 	Host              string              `yaml:"host,omitempty"`    // Optional field, either collected with move2kube collect or by asking the user.
-}
-
-// Merge helps merge clustermetadata
-func (c *ClusterMetadata) Merge(newc ClusterMetadata) bool {
-	if newc.isEmpty() {
-		return true
-	}
-	if c.isEmpty() {
-		c.Kind = newc.Kind
-		c.Name = newc.Name
-	} else if c.Kind != newc.Kind {
-		// If neither metadata is empty then their kinds should match
-		return false
-	}
-	if newc.Name != "" {
-		c.Name = newc.Name
-	}
-
-	// Allow only intersection of storage classes
-	newslice := []string{}
-	for _, sc := range c.Spec.StorageClasses {
-		if common.IsStringPresent(newc.Spec.StorageClasses, sc) {
-			newslice = append(newslice, sc)
-		}
-	}
-	c.Spec.StorageClasses = newslice
-	if len(c.Spec.StorageClasses) == 0 {
-		c.Spec.StorageClasses = []string{"default"}
-	}
-	//TODO: Do Intelligent merge of version
-	apiversionkindmap := map[string][]string{}
-	for kindname, gvList := range newc.Spec.APIKindVersionMap {
-		if _, ok := c.Spec.APIKindVersionMap[kindname]; ok {
-			apiversionkindmap[kindname] = gvList
-		}
-	}
-	c.Spec.APIKindVersionMap = apiversionkindmap
-	c.Spec.Host = newc.Spec.Host
-	return true
 }
 
 // Merge helps merge clustermetadata
@@ -87,6 +84,9 @@ func (c *ClusterMetadataSpec) Merge(newc ClusterMetadataSpec) bool {
 		}
 	}
 	c.StorageClasses = newslice
+	if len(c.StorageClasses) == 0 {
+		c.StorageClasses = []string{"default"}
+	}
 	//TODO: Do Intelligent merge of version
 	apiversionkindmap := map[string][]string{}
 	for kindname, gvList := range newc.APIKindVersionMap {
@@ -97,10 +97,6 @@ func (c *ClusterMetadataSpec) Merge(newc ClusterMetadataSpec) bool {
 	c.APIKindVersionMap = apiversionkindmap
 	c.Host = newc.Host
 	return true
-}
-
-func (c *ClusterMetadata) isEmpty() bool {
-	return c.Kind == ""
 }
 
 // GetSupportedVersions returns all the group version supported for the kind in this cluster

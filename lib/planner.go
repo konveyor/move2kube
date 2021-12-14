@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/configuration"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/transformer"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -39,21 +38,6 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	if customizationsPath != "" {
 		CheckAndCopyCustomizations(customizationsPath)
 	}
-	logrus.Infoln("Loading Configuration")
-	configurationLoaders := configuration.GetLoaders()
-	for _, l := range configurationLoaders {
-		logrus.Infof("[%T] Loading configuration", l)
-		err := l.UpdatePlan(&p)
-		if err != nil {
-			logrus.Warnf("[%T] Failed : %s", l, err)
-		} else {
-			logrus.Infof("[%T] Done", l)
-		}
-	}
-	tc, err := (&configuration.ClusterMDLoader{}).GetTargetClusterMetadataForPlan(p)
-	if err != nil {
-		logrus.Errorf("Unable to load cluster metadata : %s", err)
-	}
 	transformerSelectorObj, err := metav1.ParseToLabelSelector(transformerSelector)
 	if err != nil {
 		logrus.Errorf("Unable to parse the transformer selector string : %s", err)
@@ -64,11 +48,11 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	if err != nil {
 		logrus.Errorf("Unable to convert label selector to selector : %s", err)
 	}
-	transformer.Init(common.AssetsPath, inputPath, lblSelector, tc, outputPath, p.Name)
+	transformer.Init(common.AssetsPath, inputPath, lblSelector, outputPath, p.Name)
 	ts := transformer.GetInitializedTransformers()
 	for tn, t := range ts {
 		config, _ := t.GetConfig()
-		p.Spec.Configuration.Transformers[tn] = config.Spec.FilePath
+		p.Spec.Transformers[tn] = config.Spec.FilePath
 	}
 	logrus.Infoln("Configuration loading done")
 
@@ -84,7 +68,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) plantypes.Plan {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	transformers := []string{}
-	for tn := range p.Spec.Configuration.Transformers {
+	for tn := range p.Spec.Transformers {
 		if !common.IsStringPresent(transformers, tn) {
 			transformers = append(transformers, tn)
 		}
@@ -109,20 +93,6 @@ func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) planty
 		serviceNames = append(serviceNames, sn)
 	}
 
-	// Choose cluster type to target
-	clusters := new(configuration.ClusterMDLoader).GetClusters(p)
-	clusterTypeList := []string{}
-	for c := range clusters {
-		clusterTypeList = append(clusterTypeList, c)
-	}
-	clusterType := qaengine.FetchSelectAnswer(common.ConfigTargetClusterTypeKey, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, string(common.DefaultClusterType), clusterTypeList)
-	p.Spec.TargetCluster.Type = clusterType
-	p.Spec.TargetCluster.Path = ""
-
-	tc, err := (&configuration.ClusterMDLoader{}).GetTargetClusterMetadataForPlan(p)
-	if err != nil {
-		logrus.Errorf("Unable to load cluster metadata : %s", err)
-	}
 	transformerSelectorObj, err := common.ConvertStringSelectorsToSelectors(transformerSelector)
 	if err != nil {
 		logrus.Errorf("Unable to parse the transformer selector string : %s", err)
@@ -135,7 +105,7 @@ func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) planty
 		transformerSelectorObj = transformerSelectorObj.Add(requirements...)
 	}
 
-	transformer.InitTransformers(p.Spec.Configuration.Transformers, transformerSelectorObj, tc, p.Spec.RootDir, outputPath, p.Name, true)
+	transformer.InitTransformers(p.Spec.Transformers, transformerSelectorObj, p.Spec.RootDir, outputPath, p.Name, true)
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
 	planServices := map[string][]transformertypes.Artifact{}
 	for _, s := range selectedServices {

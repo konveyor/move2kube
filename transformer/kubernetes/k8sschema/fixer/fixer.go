@@ -17,7 +17,7 @@
 package fixer
 
 import (
-	"github.com/konveyor/move2kube/k8sschema"
+	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"

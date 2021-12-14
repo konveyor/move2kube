@@ -145,7 +145,6 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		}
 		javaVersion = t.GradleConfig.JavaVersion
 		gradleConfig := artifacts.GradleConfig{}
-		logrus.Infof("%+v", a.Configs[artifacts.GradleConfigType])
 		err = a.GetConfig(artifacts.GradleConfigType, &gradleConfig)
 		if err != nil {
 			logrus.Debugf("Unable to load Gradle config object: %s", err)

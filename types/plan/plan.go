@@ -35,20 +35,13 @@ type Plan struct {
 
 // Spec stores the data about the plan
 type Spec struct {
-	RootDir             string               `yaml:"rootDir"`
-	CustomizationsDir   string               `yaml:"customizationsDir,omitempty"`
-	TransformerSelector metav1.LabelSelector `yaml:"transformerSelector,omitempty"`
+	RootDir           string `yaml:"rootDir"`
+	CustomizationsDir string `yaml:"customizationsDir,omitempty"`
 
 	Services map[string][]transformertypes.Artifact `yaml:"services"` //[servicename]
 
-	TargetCluster TargetClusterType `yaml:"targetCluster,omitempty"`
-	Configuration Configuration     `yaml:"configuration,omitempty"`
-}
-
-// Configuration stores all configurations related to the plan
-type Configuration struct {
-	Transformers   map[string]string `yaml:"transformers,omitempty" m2kpath:"normal"`   //[name]filepath
-	TargetClusters map[string]string `yaml:"targetClusters,omitempty" m2kpath:"normal"` //[clustername]filepath
+	TransformerSelector metav1.LabelSelector `yaml:"transformerSelector,omitempty"`
+	Transformers        map[string]string    `yaml:"transformers,omitempty" m2kpath:"normal"` //[name]filepath
 }
 
 // TargetClusterType contains either the type of the target cluster or path to a file containing the target cluster metadata.
@@ -70,12 +63,8 @@ func NewPlan() Plan {
 			Name: common.DefaultProjectName,
 		},
 		Spec: Spec{
-			Services:      map[string][]transformertypes.Artifact{},
-			TargetCluster: TargetClusterType{Type: common.DefaultClusterType},
-			Configuration: Configuration{
-				Transformers:   map[string]string{},
-				TargetClusters: map[string]string{},
-			},
+			Services:     map[string][]transformertypes.Artifact{},
+			Transformers: map[string]string{},
 		},
 	}
 	return plan

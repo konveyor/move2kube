@@ -35,7 +35,7 @@ func getIRPreprocessors() []irpreprocessor {
 // Preprocess preprocesses IR before application artifacts are generated
 func Preprocess(ir irtypes.IR) (irtypes.IR, error) {
 	optimizers := getIRPreprocessors()
-	logrus.Infoln("Begin Optimization")
+	logrus.Debug("Begin Optimization")
 	for _, o := range optimizers {
 		logrus.Debugf("[%T] Begin Optimization", o)
 		var err error
@@ -46,6 +46,6 @@ func Preprocess(ir irtypes.IR) (irtypes.IR, error) {
 			logrus.Debugf("[%T] Done", o)
 		}
 	}
-	logrus.Infoln("Optimization done")
+	logrus.Debug("Optimization done")
 	return ir, nil
 }

@@ -20,6 +20,7 @@ import (
 	"reflect"
 
 	"github.com/konveyor/move2kube/common"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	"github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
@@ -37,6 +38,7 @@ func init() {
 		new(GradleConfig),
 		new(SpringBootConfig),
 		new(ContainerizationOptionsConfig),
+		new(collecttypes.ClusterMetadata),
 	}
 	ConfigTypes = common.GetTypesMap(configObjs)
 }
