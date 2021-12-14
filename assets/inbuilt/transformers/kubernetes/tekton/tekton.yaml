@@ -11,6 +11,9 @@ spec:
   consumes:
     IR:
       merge: true
+  dependency:
+    matchLabels:
+      move2kube.konveyor.io/kubernetesclusterselector: "true"
   produces:
     KubernetesYamls:
       disabled: false

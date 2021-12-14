@@ -23,11 +23,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/konveyor/move2kube/apiresource"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/sshkeys"
 	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/irpreprocessor"
+	"github.com/konveyor/move2kube/transformer/kubernetes/apiresource"
+	"github.com/konveyor/move2kube/transformer/kubernetes/irpreprocessor"
+	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -82,6 +83,11 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alread
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
+		var clusterConfig collecttypes.ClusterMetadata
+		if err := a.GetConfig(ClusterMetadata, &clusterConfig); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", clusterConfig, err)
+			continue
+		}
 		ir.Name = a.Name
 		preprocessedIR, err := irpreprocessor.Preprocess(ir)
 		if err != nil {
@@ -89,7 +95,7 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alread
 		} else {
 			ir = preprocessedIR
 		}
-		if !(len(t.Env.TargetCluster.Spec.GetSupportedVersions("BuildConfig")) > 0) {
+		if !(len(clusterConfig.Spec.GetSupportedVersions("BuildConfig")) > 0) {
 			logrus.Debugf("BuildConfig was not found on the target cluster.")
 			return nil, nil, nil
 		}
@@ -98,7 +104,7 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alread
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Infof("Generating Buildconfig pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
-		files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, t.Env.TargetCluster)
+		files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, clusterConfig)
 		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err

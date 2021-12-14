@@ -18,6 +18,7 @@ package compose
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -174,20 +175,27 @@ func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string,
 
 func (t *ComposeAnalyser) getServicesFromComposeFile(composeFilePath string, imageMetadataPaths map[string]string) map[string][]transformertypes.Artifact {
 	services := map[string][]transformertypes.Artifact{}
+	interpolate := true
 	// Try v3 first and if it fails try v1v2
 	if dc, errV3 := parseV3(composeFilePath); errV3 == nil {
 		logrus.Debugf("Found a docker compose file at path %s", composeFilePath)
 		for _, service := range dc.Services {
 			services[service.Name] = []transformertypes.Artifact{t.getService(composeFilePath, service.Name, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)}
 		}
-	} else if dc, errV1V2 := parseV2(composeFilePath); errV1V2 == nil {
-		logrus.Debugf("Found a docker compose file at path %s", composeFilePath)
-		servicesMap := dc.ServiceConfigs.All()
-		for serviceName, service := range servicesMap {
-			services[serviceName] = []transformertypes.Artifact{t.getService(composeFilePath, serviceName, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)}
-		}
 	} else {
-		logrus.Debugf("Failed to parse file at path %s as a docker compose file. Error V3: %q Error V1V2: %q", composeFilePath, errV3, errV1V2)
+		if strings.HasPrefix(errV3.Error(), "invalid interpolation format") {
+			// With interpolation error v2 parser panics. This prevents the panic
+			interpolate = false
+		}
+		if dc, errV1V2 := parseV2(composeFilePath, interpolate); errV1V2 == nil {
+			logrus.Debugf("Found a docker compose file at path %s", composeFilePath)
+			servicesMap := dc.ServiceConfigs.All()
+			for serviceName, service := range servicesMap {
+				services[serviceName] = []transformertypes.Artifact{t.getService(composeFilePath, serviceName, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)}
+			}
+		} else {
+			logrus.Debugf("Failed to parse file at path %s as a docker compose file. Error V3: %q Error V1V2: %q", composeFilePath, errV3, errV1V2)
+		}
 	}
 	return services
 }

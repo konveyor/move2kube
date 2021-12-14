@@ -23,7 +23,7 @@ import (
 	composetypes "github.com/docker/cli/cli/compose/types"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/irpreprocessor"
+	"github.com/konveyor/move2kube/transformer/kubernetes/irpreprocessor"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"

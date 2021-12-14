@@ -38,9 +38,10 @@ const (
 
 // Parameterizer implements Transformer interface
 type Parameterizer struct {
-	Config     transformertypes.Transformer
-	Env        *environment.Environment
-	PathConfig ParameterizerPathConfig
+	Config         transformertypes.Transformer
+	Env            *environment.Environment
+	PathConfig     ParameterizerPathConfig
+	parameterizers []parameterizertypes.ParameterizerT
 }
 
 // ParameterizerPathConfig implements Parameterizer path config interface
@@ -68,6 +69,14 @@ func (t *Parameterizer) Init(tc transformertypes.Transformer, e *environment.Env
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.PathConfig, err)
 		return err
 	}
+	psmap, err := parameterizer.CollectParamsFromPath(t.Env.Context)
+	if err != nil {
+		logrus.Errorf("Error while parsing for params : %s", err)
+		return err
+	}
+	for _, p := range psmap {
+		t.parameterizers = append(t.parameterizers, p...)
+	}
 	return nil
 }
 
@@ -84,15 +93,6 @@ func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]
 // Transform transforms artifacts
 func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	pathMappings = []transformertypes.PathMapping{}
-	psmap, err := parameterizer.CollectParamsFromPath(t.Env.Context)
-	if err != nil {
-		logrus.Errorf("Error while parsing for params : %s", err)
-		return nil, nil, err
-	}
-	ps := []parameterizertypes.ParameterizerT{}
-	for _, p := range psmap {
-		ps = append(ps, p...)
-	}
 	for _, a := range newArtifacts {
 		yamlsPath := a.Paths[artifacts.KubernetesYamlsPathType][0]
 		tempPath, err := os.MkdirTemp(t.Env.TempPath, "*")
@@ -125,7 +125,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 			pt.OCTemplates = ""
 		}
 
-		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, pt, ps)
+		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, pt, t.parameterizers)
 		if err != nil {
 			logrus.Errorf("Unable to parameterize : %s", err)
 			continue

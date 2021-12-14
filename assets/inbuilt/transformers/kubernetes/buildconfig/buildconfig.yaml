@@ -14,3 +14,6 @@ spec:
   produces:
     KubernetesYamls:
       disabled: false
+  dependency:
+    matchLabels:
+      move2kube.konveyor.io/kubernetesclusterselector: "true"

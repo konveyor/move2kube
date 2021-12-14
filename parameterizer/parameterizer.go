@@ -25,8 +25,8 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/deepcopy"
-	"github.com/konveyor/move2kube/k8sschema"
 	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	log "github.com/sirupsen/logrus"

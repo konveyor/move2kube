@@ -16,13 +16,10 @@
 
 package environment
 
-import "github.com/konveyor/move2kube/types/collection"
-
 // EnvInfo stores the envionment generic info
 type EnvInfo struct {
-	Name          string
-	ProjectName   string
-	TargetCluster collection.ClusterMetadata
+	Name        string
+	ProjectName string
 
 	Isolated bool
 

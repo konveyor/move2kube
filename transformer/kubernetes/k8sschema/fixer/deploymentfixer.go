@@ -20,31 +20,29 @@ import (
 	"fmt"
 
 	"github.com/konveyor/move2kube/common"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	networking "k8s.io/kubernetes/pkg/apis/networking"
+	apps "k8s.io/kubernetes/pkg/apis/apps"
 )
 
-type ingressFixer struct {
+type deploymentFixer struct {
 }
 
-func (f ingressFixer) getGroupVersionKind() schema.GroupVersionKind {
-	return networking.SchemeGroupVersion.WithKind(common.IngressKind)
+func (f deploymentFixer) getGroupVersionKind() schema.GroupVersionKind {
+	return apps.SchemeGroupVersion.WithKind(common.DeploymentKind)
 }
 
-func (f ingressFixer) fix(obj runtime.Object) (runtime.Object, error) {
-	ptf := networking.PathTypePrefix
-	i, ok := obj.(*networking.Ingress)
+func (f deploymentFixer) fix(obj runtime.Object) (runtime.Object, error) {
+	d, ok := obj.(*apps.Deployment)
 	if !ok {
-		return obj, fmt.Errorf("Non Matching type. Expected Ingress : Got %T", obj)
+		return obj, fmt.Errorf("non Matching type. Expected Deployment : Got %T", obj)
 	}
-	for ri, r := range i.Spec.Rules {
-		for pi, p := range r.HTTP.Paths {
-			if p.PathType == nil {
-				i.Spec.Rules[ri].HTTP.Paths[pi].PathType = &ptf
-			}
+	if d.Spec.Selector == nil {
+		d.Spec.Selector = &metav1.LabelSelector{
+			MatchLabels: d.Spec.Template.Labels,
 		}
 	}
-	obj = i
+	obj = d
 	return obj, nil
 }

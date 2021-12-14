@@ -26,44 +26,52 @@ const TransformerKind = "Transformer"
 
 // Transformer defines definition of cf runtime instance apps file
 type Transformer struct {
-	types.TypeMeta   `yaml:",inline"`
-	types.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec             TransformerSpec `yaml:"spec,omitempty"`
+	types.TypeMeta   `yaml:",inline" json:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+	Spec             TransformerSpec `yaml:"spec,omitempty" json:"spec,omitempty"`
 }
 
 // TransformerSpec stores the data
 type TransformerSpec struct {
-	FilePath          string                                 `yaml:"-"`
-	Class             string                                 `yaml:"class"`
-	Isolated          bool                                   `yaml:"isolated"`
-	DirectoryDetect   DirectoryDetect                        `yaml:"directoryDetect"`
-	ExternalFiles     map[string]string                      `yaml:"externalFiles"` // [source]destination
-	ConsumedArtifacts map[ArtifactType]ArtifactProcessConfig `yaml:"consumes"`      // plantypes.ArtifactType
-	ProducedArtifacts map[ArtifactType]ProducedArtifact      `yaml:"produces"`      // plantypes.ArtifactType
-	Preprocesses      map[ArtifactType]ArtifactProcessConfig `yaml:"preprocesses"`
-	Override          labels.Selector                        `yaml:"-"`
-	OverrideAsObj     interface{}                            `yaml:"override"`  // Will be parsed and loaded into TransformersToOverride
-	TemplatesDir      string                                 `yaml:"templates"` // Relative to yaml directory or working directory in image
-	Config            interface{}                            `yaml:"config"`
+	FilePath           string                                 `yaml:"-" json:"-"`
+	Class              string                                 `yaml:"class" json:"class"`
+	Isolated           bool                                   `yaml:"isolated" json:"isolated"`
+	DirectoryDetect    DirectoryDetect                        `yaml:"directoryDetect" json:"directoryDetect"`
+	ExternalFiles      map[string]string                      `yaml:"externalFiles" json:"externalFiles"` // [source]destination
+	ConsumedArtifacts  map[ArtifactType]ArtifactProcessConfig `yaml:"consumes" json:"consumes"`
+	ProducedArtifacts  map[ArtifactType]ProducedArtifact      `yaml:"produces" json:"produces"`
+	Dependency         interface{}                            `yaml:"dependency" json:"dependency"` // metav1.LabelSelector
+	Override           interface{}                            `yaml:"override" json:"override"`     // metav1.LabelSelector
+	DependencySelector labels.Selector                        `yaml:"-" json:"-"`
+	OverrideSelector   labels.Selector                        `yaml:"-" json:"-"`
+	TemplatesDir       string                                 `yaml:"templates" json:"templates"` // Relative to yaml directory or working directory in image
+	Config             interface{}                            `yaml:"config" json:"config"`
 }
 
 // DirectoryDetect stores the config on how to iterate over the directories
 type DirectoryDetect struct {
-	Levels                      int  `yaml:"levels"`                      // Supports only 0,1 and -1 currently
-	HonorM2KIgnore              bool `yaml:"honorM2KIgnore"`              // TODO: Add support
-	IgnoreServiceSubdirectories bool `yaml:"ignoreServiceSubdirectories"` // TODO: Add support
+	Levels int `yaml:"levels"` // Supports only 0,1 and -1 currently - default behaviour is -1, when directory detect section is missing
 }
+
+type ArtifactProcessingMode string
+
+const (
+	Normal               ArtifactProcessingMode = "Normal"
+	MandatoryPassThrough ArtifactProcessingMode = "MandatoryPassThrough"
+	OnDemandPassThrough  ArtifactProcessingMode = "OnDemandPassThrough"
+)
 
 // ArtifactProcessConfig stores config for preprocessing artifact
 type ArtifactProcessConfig struct {
-	Merge    bool `yaml:"merge"`
-	Disabled bool `yaml:"disabled"` // default is false
+	Merge    bool                   `yaml:"merge" json:"merge"`
+	Mode     ArtifactProcessingMode `yaml:"mode" json:"mode"`
+	Disabled bool                   `yaml:"disabled" json:"disabled"` // default is false
 }
 
 // ProducedArtifact stores config for postprocessing produced artifact
 type ProducedArtifact struct {
-	ChangeTypeTo ArtifactType `yaml:"changeTypeTo"`
-	Disabled     bool         `yaml:"disabled"`
+	ChangeTypeTo ArtifactType `yaml:"changeTypeTo" json:"changeTypeTo"`
+	Disabled     bool         `yaml:"disabled" json:"disabled"`
 }
 
 // NewTransformer creates a new instance of tansformer
@@ -73,12 +81,13 @@ func NewTransformer() Transformer {
 			Kind:       TransformerKind,
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
+		ObjectMeta: types.ObjectMeta{
+			Labels: map[string]string{},
+		},
 		Spec: TransformerSpec{
 			TemplatesDir: "templates/",
 			DirectoryDetect: DirectoryDetect{
-				Levels:                      -1,
-				HonorM2KIgnore:              true,
-				IgnoreServiceSubdirectories: true,
+				Levels: 0,
 			},
 		},
 	}
