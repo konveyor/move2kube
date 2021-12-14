@@ -43,14 +43,28 @@ func (c *ClusterMetadata) Merge(nc interface{}) bool {
 		}
 		newcptr = &newc
 	}
-	if newcptr.TypeMeta != c.TypeMeta {
+	if newcptr.isEmpty() {
+		return true
+	}
+	if c.isEmpty() {
+		c.Kind = newcptr.Kind
+		c.Name = newcptr.Name
+	} else if c.Kind != newcptr.Kind {
+		// If neither metadata is empty then their kinds should match
 		return false
+	}
+	if newcptr.Name != "" {
+		c.Name = newcptr.Name
 	}
 	if newcptr.ObjectMeta.Name != c.ObjectMeta.Name {
 		return false
 	}
 	c.ObjectMeta.Labels = common.MergeStringMaps(c.ObjectMeta.Labels, newcptr.ObjectMeta.Labels)
 	return c.Spec.Merge(newcptr.Spec)
+}
+
+func (c *ClusterMetadata) isEmpty() bool {
+	return c.Kind == ""
 }
 
 // ClusterMetadataSpec stores the data
@@ -70,6 +84,9 @@ func (c *ClusterMetadataSpec) Merge(newc ClusterMetadataSpec) bool {
 		}
 	}
 	c.StorageClasses = newslice
+	if len(c.StorageClasses) == 0 {
+		c.StorageClasses = []string{"default"}
+	}
 	//TODO: Do Intelligent merge of version
 	apiversionkindmap := map[string][]string{}
 	for kindname, gvList := range newc.APIKindVersionMap {
