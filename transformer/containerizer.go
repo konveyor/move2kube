@@ -20,6 +20,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 )
@@ -71,6 +72,8 @@ func getContainerizationConfig(projectDirectory, buildArtifacts []string, transf
 		if buildArtifacts != nil {
 			nos[0].Paths[artifacts.BuildArtifactPathType] = buildArtifacts
 		}
+		nos[0].ProcessWith = *metav1.AddLabelToSelector(&nos[0].ProcessWith, transformertypes.LabelName, string(nos[0].Type))
+		nos[0].Type = artifacts.ServiceArtifactType
 		return nos[0]
 	}
 	return transformertypes.Artifact{}
