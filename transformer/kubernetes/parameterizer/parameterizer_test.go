@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package lib_test
+package parameterizer_test
 
 import (
 	"os"
@@ -23,7 +23,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/konveyor/move2kube/lib"
+	"github.com/konveyor/move2kube/transformer/kubernetes/parameterizer"
+	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,8 +40,20 @@ func TestGettingAndParameterizingResources(t *testing.T) {
 	parameterizersPath := filepath.Join(baseDir, "parameterizers")
 	k8sResourcesPath := filepath.Join(baseDir, "k8s-resources")
 	outputPath := t.TempDir()
-
-	filesWritten, err := lib.Parameterize(k8sResourcesPath, parameterizersPath, outputPath)
+	psp := parameterizertypes.ParameterizerPathsT{
+		Helm:        "helm-chart",
+		Kustomize:   "kustomize",
+		OCTemplates: "openshift-templates",
+	}
+	ps, err := parameterizer.CollectParamsFromPath(parameterizersPath)
+	if err != nil {
+		t.Fatalf("Unable to collect parameterizers. Error: %q", err)
+	}
+	psl := []parameterizertypes.ParameterizerT{}
+	for _, p := range ps {
+		psl = append(psl, p...)
+	}
+	filesWritten, err := parameterizer.Parameterize(k8sResourcesPath, outputPath, psp, psl)
 	if err != nil {
 		t.Fatalf("Failed to apply all the parameterizations. Error: %q", err)
 	}

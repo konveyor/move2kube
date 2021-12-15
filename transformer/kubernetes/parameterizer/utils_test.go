@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/konveyor/move2kube/parameterizer"
+	"github.com/konveyor/move2kube/transformer/kubernetes/parameterizer"
 )
 
 func TestGetSubKeys(t *testing.T) {
