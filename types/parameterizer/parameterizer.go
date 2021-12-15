@@ -34,23 +34,8 @@ type ParamTargetT string
 // HelmValuesT has Helm Values
 type HelmValuesT map[string]interface{}
 
-// PackagingFileT is the file format for the packaging
-type PackagingFileT struct {
-	metav1.TypeMeta   `yaml:",inline" json:",inline"`
-	metav1.ObjectMeta `yaml:"metadata" json:"metadata"`
-	Spec              PackagingSpecT `yaml:"spec" json:"spec"`
-}
-
-// PackagingSpecT is the spec inside the packaging file
-type PackagingSpecT struct {
-	FilePath string `yaml:"-" json:"-"`
-	PackagingSpecPathT
-	ParameterizerRefs []string         `yaml:"parameterizerRefs,omitempty" json:"parameterizerRefs,omitempty"`
-	Parameterizers    []ParameterizerT `yaml:"parameterizers,omitempty" json:"parameterizers,omitempty"`
-}
-
-// PackagingSpecPathT is the set of source paths to be parameterized
-type PackagingSpecPathT struct {
+// ParameterizerPathsT is the set of paths to be parameterized
+type ParameterizerPathsT struct {
 	Helm          string   `yaml:"helm,omitempty" json:"helm,omitempty"`
 	HelmChartName string   `yaml:"helmChartName,omitempty" json:"helmChartName,omitempty"`
 	Kustomize     string   `yaml:"kustomize,omitempty" json:"kustomize,omitempty"`

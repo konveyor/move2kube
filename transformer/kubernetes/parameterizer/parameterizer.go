@@ -42,7 +42,7 @@ var (
 )
 
 // Parameterize does the parameterization based on a spec
-func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.PackagingSpecPathT, ps []parameterizertypes.ParameterizerT) ([]string, error) {
+func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.ParameterizerPathsT, ps []parameterizertypes.ParameterizerT) ([]string, error) {
 	filesWritten := []string{}
 	cleanSrcDir, err := filepath.Abs(srcDir)
 	if err != nil {

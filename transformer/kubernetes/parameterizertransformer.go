@@ -23,7 +23,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/parameterizer"
+	"github.com/konveyor/move2kube/transformer/kubernetes/parameterizer"
 	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -110,7 +110,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 			continue
 		}
 
-		pt := parameterizertypes.PackagingSpecPathT{Helm: "helm",
+		pt := parameterizertypes.ParameterizerPathsT{Helm: "helm",
 			Kustomize:     "kustomize",
 			OCTemplates:   "octemplates",
 			HelmChartName: helmChartName}
