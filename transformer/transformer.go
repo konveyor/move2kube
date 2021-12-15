@@ -403,7 +403,7 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 		if len(artifactsToProcess) == 0 {
 			continue
 		}
-		logrus.Debugf("Transformer %s will be processing %d artifacts", tconfig.Name, len(artifactsToProcess))
+		logrus.Debugf("Transformer %s will be processing %d artifacts in %d mode", tconfig.Name, len(artifactsToProcess), pt)
 		// Dependency processing
 		dependencyCreatedNewPathMappings, dependencyCreatedNewArtifacts, dependencyUpdatedArtifacts := transform(artifactsToProcess, allArtifacts, dependency, tconfig.Spec.DependencySelector)
 		logrus.Debugf("Dependency processing resulted in %d pathmappings, %d new artifacts and %d updated artifacts", len(dependencyCreatedNewPathMappings), len(dependencyCreatedNewArtifacts), len(dependencyUpdatedArtifacts))
@@ -423,7 +423,7 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 			artifactsToPassThrough = append(dependencyCreatedNewArtifacts, producedNewArtifacts...)
 		} else if pt == passthrough || pt == dependency {
 			for _, a := range producedNewArtifacts {
-				if c, ok := tconfig.Spec.ConsumedArtifacts[a.Type]; ok && (c.Mode == transformertypes.MandatoryPassThrough || c.Mode == transformertypes.OnDemandPassThrough) {
+				if c, ok := tconfig.Spec.ConsumedArtifacts[a.Type]; ok && (c.Mode != transformertypes.MandatoryPassThrough && c.Mode != transformertypes.OnDemandPassThrough) {
 					artifactsToPassThrough = append(artifactsToPassThrough, a)
 				} else {
 					artifactsAlreadyPassedThrough = append(artifactsAlreadyPassedThrough, a)
