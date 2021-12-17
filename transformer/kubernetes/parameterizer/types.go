@@ -22,9 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// K8sResourceT is a k8s resource
-type K8sResourceT = map[string]interface{}
-
 // PatchOpT has Patch
 type PatchOpT string
 
@@ -34,8 +31,8 @@ type ParamTargetT string
 // HelmValuesT has Helm Values
 type HelmValuesT map[string]interface{}
 
-// ParameterizerPathsT is the set of paths to be parameterized
-type ParameterizerPathsT struct {
+// ParameterizerConfigT is the set of paths to be parameterized
+type ParameterizerConfigT struct {
 	Helm          string   `yaml:"helm,omitempty" json:"helm,omitempty"`
 	HelmChartName string   `yaml:"helmChartName,omitempty" json:"helmChartName,omitempty"`
 	Kustomize     string   `yaml:"kustomize,omitempty" json:"kustomize,omitempty"`

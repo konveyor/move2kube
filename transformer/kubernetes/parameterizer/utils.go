@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
-	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
+	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
@@ -291,7 +291,7 @@ func getIndex(key string) (int, bool) {
 }
 
 // writeResourceAppendToFile is like WriteResource but appends to the file
-func writeResourceAppendToFile(k8sResource parameterizertypes.K8sResourceT, outputPath string) error {
+func writeResourceAppendToFile(k8sResource k8sschema.K8sResourceT, outputPath string) error {
 	logrus.Trace("start WriteResourceAppendToFile")
 	defer logrus.Trace("end WriteResourceAppendToFile")
 	yamlBytes, err := yaml.Marshal(k8sResource)
@@ -312,7 +312,7 @@ func writeResourceAppendToFile(k8sResource parameterizertypes.K8sResourceT, outp
 }
 
 // writeResourceStripQuotesAndAppendToFile is like WriteResource but strips quotes around Helm templates and appends to file
-func writeResourceStripQuotesAndAppendToFile(k8sResource parameterizertypes.K8sResourceT, outputPath string) error {
+func writeResourceStripQuotesAndAppendToFile(k8sResource k8sschema.K8sResourceT, outputPath string) error {
 	logrus.Trace("start WriteResourceStripQuotesAndAppendToFile")
 	defer logrus.Trace("end WriteResourceStripQuotesAndAppendToFile")
 	yamlBytes, err := yaml.Marshal(k8sResource)
@@ -334,15 +334,15 @@ func writeResourceStripQuotesAndAppendToFile(k8sResource parameterizertypes.K8sR
 }
 
 // CollectParamsFromPath returns parameterizers found in a directory
-func CollectParamsFromPath(parameterizersDir string) (map[string][]parameterizertypes.ParameterizerT, error) {
+func CollectParamsFromPath(parameterizersDir string) (map[string][]ParameterizerT, error) {
 	yamlPaths, err := common.GetFilesByExt(parameterizersDir, []string{".yaml", ".yml"})
 	if err != nil {
 		return nil, err
 	}
-	params := map[string][]parameterizertypes.ParameterizerT{}
+	params := map[string][]ParameterizerT{}
 	for _, yamlPath := range yamlPaths {
-		var paramFile parameterizertypes.ParameterizerFileT
-		if err := common.ReadMove2KubeYamlStrict(yamlPath, &paramFile, parameterizertypes.ParameterizerKind); err == nil {
+		var paramFile ParameterizerFileT
+		if err := common.ReadMove2KubeYamlStrict(yamlPath, &paramFile, ParameterizerKind); err == nil {
 			logrus.Debugf("found paramterizer yaml at path %s", yamlPath)
 			params[paramFile.ObjectMeta.Name] = paramFile.Spec.Parameterizers
 		}

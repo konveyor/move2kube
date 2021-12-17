@@ -77,6 +77,7 @@
 "inbuilt/transformers/kubernetes/knative/knative.yaml" : 0644
 "inbuilt/transformers/kubernetes/kubernetes/kubernetes.yaml" : 0644
 "inbuilt/transformers/kubernetes/parameterizers/parameterizers.yaml" : 0644
+"inbuilt/transformers/kubernetes/sourceparameterizer/parameterizers.yaml" : 0644
 "inbuilt/transformers/kubernetes/tekton/tekton.yaml" : 0644
 "inbuilt/transformers/readmegenerator/readmegenerator.yaml" : 0644
 "inbuilt/transformers/readmegenerator/templates/Readme.md" : 0644

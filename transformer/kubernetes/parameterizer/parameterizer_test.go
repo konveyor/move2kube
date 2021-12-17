@@ -24,13 +24,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/transformer/kubernetes/parameterizer"
-	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func TestGettingAndParameterizingResources(t *testing.T) {
-	log.SetLevel(log.TraceLevel)
+	logrus.SetLevel(logrus.TraceLevel)
 	relBaseDir := "testdata"
 	baseDir, err := filepath.Abs(relBaseDir)
 	if err != nil {
@@ -40,7 +38,7 @@ func TestGettingAndParameterizingResources(t *testing.T) {
 	parameterizersPath := filepath.Join(baseDir, "parameterizers")
 	k8sResourcesPath := filepath.Join(baseDir, "k8s-resources")
 	outputPath := t.TempDir()
-	psp := parameterizertypes.ParameterizerPathsT{
+	psp := parameterizer.ParameterizerConfigT{
 		Helm:        "helm-chart",
 		Kustomize:   "kustomize",
 		OCTemplates: "openshift-templates",
@@ -49,7 +47,7 @@ func TestGettingAndParameterizingResources(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to collect parameterizers. Error: %q", err)
 	}
-	psl := []parameterizertypes.ParameterizerT{}
+	psl := []parameterizer.ParameterizerT{}
 	for _, p := range ps {
 		psl = append(psl, p...)
 	}
