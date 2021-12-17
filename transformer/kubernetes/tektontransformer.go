@@ -121,7 +121,7 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 		}
 		deployCICDDir := filepath.Join(common.DeployDir, common.CICDDir, "tekton")
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
-		logrus.Infof("Generating Tekton pipeline for CI/CD")
+		logrus.Debugf("Generating Tekton pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
 		files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, clusterConfig)
 		if err != nil {
@@ -260,7 +260,7 @@ func (t *Tekton) setupEnhancedIR(oldir irtypes.IR, name string) irtypes.Enhanced
 	}
 	gitDomains = common.UniqueStrings(gitDomains)
 	if len(gitDomains) == 0 {
-		logrus.Info("No remote git repos detected. You might want to configure the git repository links manually.")
+		logrus.Debug("No remote git repos detected. You might want to configure the git repository links manually.")
 	} else {
 		for _, gitDomain := range gitDomains {
 			// This name is also used by tekton to create a volume to hold secrets. If there is a dot k8s will complain.
