@@ -162,7 +162,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 			}
 		}
 		createdArtifacts = append(createdArtifacts, na)
-		logrus.Infof("Total transformed objects : %d", len(files))
+		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
 	return pathMappings, createdArtifacts, nil
 }

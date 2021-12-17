@@ -448,7 +448,7 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 		logrus.Debugf("Created %d pathMappings, %d artifacts, %d updated artifacts from transform while passing through/dependency.", len(pathMappings), len(newArtifactsCreated), len(newArtifactsToProcess))
 		return pathMappings, newArtifactsCreated, newArtifactsToProcess
 	}
-	logrus.Infof("Created %d pathMappings and %d artifacts from transform.", len(pathMappings), len(newArtifactsCreated))
+	logrus.Debugf("Created %d pathMappings and %d artifacts from transform.", len(pathMappings), len(newArtifactsCreated))
 	return pathMappings, newArtifactsCreated, nil
 }
 

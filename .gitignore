@@ -27,6 +27,7 @@ coverage.txt
 .jekyll-cache/
 _site/
 node_modules
+target/
 
 # brew bottling creates .brew_home directory
 # add this to avoid git tree start becoming dirty
