@@ -76,3 +76,7 @@ spec:
             value: mysql-dev
             custom:
               containerName: mysqlcontainer
+    - target: "spec.template.spec.containers.[0].name"
+      filters:
+        - kind: Deployment
+          apiVersion: "apps/v1"
