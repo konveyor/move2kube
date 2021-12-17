@@ -38,8 +38,10 @@ import (
 )
 
 var (
-	portRegex            = regexp.MustCompile(`:(\d+)`)
-	dotNetCoreFrameworks = []string{"net5.0", "netcoreapp2.1", "netstandard2.0"}
+	portRegex        = regexp.MustCompile(`:(\d+)`)
+	dotnetcoreRegex1 = regexp.MustCompile(`net\d+\.\d+`)
+	dotnetcoreRegex2 = regexp.MustCompile(`netcoreapp\d+\.\d+`)
+	dotnetcoreRegex3 = regexp.MustCompile(`netstandard\d+\.\d+`)
 )
 
 const (
@@ -97,7 +99,6 @@ type LaunchSettings struct {
 //LaunchProfile implements launch profile properties
 type LaunchProfile struct {
 	CommandName          string            `json:"CommandName"`
-	DotnetRunMessages    string            `json:"dotnetRunMessages"`
 	LaunchBrowser        bool              `json:"launchBrowser"`
 	ApplicationURL       string            `json:"applicationUrl"`
 	EnvironmentVariables map[string]string `json:"environmentVariables"`
@@ -128,7 +129,18 @@ func getDotNetCoreVersion(mappingFile string, name string) (version string, err 
 		logrus.Debugf("Could not load mapping at %s", mappingFile)
 		return "", err
 	}
-	return dotNetCoreNameVersionMapping.Spec.NameVersion[name], nil
+	var dotNetCoreFramework string
+	if dotnetcoreRegex1.MatchString(name) {
+		dotNetCoreFramework = dotnetcoreRegex1.FindString(name)
+	} else if dotnetcoreRegex2.MatchString(name) {
+		dotNetCoreFramework = dotnetcoreRegex2.FindString(name)
+	} else if dotnetcoreRegex3.MatchString(name) {
+		dotNetCoreFramework = dotnetcoreRegex3.FindString(name)
+	}
+	if _, ok := dotNetCoreNameVersionMapping.Spec.NameVersion[dotNetCoreFramework]; ok {
+		return dotNetCoreNameVersionMapping.Spec.NameVersion[dotNetCoreFramework], nil
+	}
+	return "", fmt.Errorf("could not find compatible .NET Core framework version")
 }
 
 // DotNetCoreNameVersionMapping stores the dotnetcore name version mappings
@@ -263,7 +275,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 				logrus.Debugf("Error while reading the csproj file (%s) : %s", projPath, err)
 				continue
 			}
-			if common.IsStringPresent(dotNetCoreFrameworks, csprojConfiguration.PropertyGroup.TargetFramework) {
+			if dotnetcoreRegex1.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex2.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex3.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
 				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, projPath)
 			} else {
 				logrus.Warnf("Unable to find compatible ASP.NET Core target framework %s hence skipping.", csprojConfiguration.PropertyGroup.TargetFramework)
@@ -299,7 +311,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 				logrus.Errorf("Unable to read the csproj file (%s) : %s", csprojFile, err)
 				continue
 			}
-			if common.IsStringPresent(dotNetCoreFrameworks, csprojConfiguration.PropertyGroup.TargetFramework) {
+			if dotnetcoreRegex1.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex2.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex3.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
 				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, csprojFile)
 				appName = strings.TrimSuffix(filepath.Base(csprojFile), filepath.Ext(csprojFile))
 				break
@@ -400,7 +412,9 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 								dotNetCoreTemplateConfig.HTTPPort = int32(port)
 							}
 						}
-						ports = append(ports, dotNetCoreTemplateConfig.HTTPPort)
+						if !common.IsInt32Present(ports, dotNetCoreTemplateConfig.HTTPPort) {
+							ports = append(ports, dotNetCoreTemplateConfig.HTTPPort)
+						}
 					}
 				}
 			}
