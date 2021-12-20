@@ -27,22 +27,23 @@ import (
 	"github.com/konveyor/move2kube/common/deepcopy"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
-	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	stringInterpRegex            = regexp.MustCompile(`\${([^}]+)}`)
-	invalidOCTemplateChars       = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
-	specialJSONPathChars         = regexp.MustCompile(`(~|\/)`)
-	templateInnerParametersRegex = regexp.MustCompile(`\$\([^)]+\)`)
+	stringInterpRegex                 = regexp.MustCompile(`\${([^}]+)}`)
+	invalidOCTemplateChars            = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
+	specialJSONPathChars              = regexp.MustCompile(`(~|\/)`)
+	templateInnerParametersRegex      = regexp.MustCompile(`\$\([^)]+\)`)
+	invalidHelmChartNameChars         = regexp.MustCompile("[^a-zA-Z0-9-]+")
+	invalidHelmChartNameStartEndChars = regexp.MustCompile("(^-[-]*)|([-]*-$)")
 )
 
 // Parameterize does the parameterization based on a spec
-func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.ParameterizerPathsT, ps []parameterizertypes.ParameterizerT) ([]string, error) {
+func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps []ParameterizerT) ([]string, error) {
 	filesWritten := []string{}
 	cleanSrcDir, err := filepath.Abs(srcDir)
 	if err != nil {
@@ -53,21 +54,18 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Paramet
 		return nil, err
 	}
 
-	if len(packSpecPath.Envs) == 0 {
-		packSpecPath.Envs = []string{"dev", "staging", "prod"}
+	if len(packSpecConfig.Envs) == 0 {
+		packSpecConfig.Envs = []string{"dev", "staging", "prod"}
 	}
 	pathedKs, err := k8sschema.GetK8sResourcesWithPaths(cleanSrcDir)
 	if err != nil {
 		return filesWritten, err
 	}
-	if packSpecPath.Helm != "" {
+	if packSpecConfig.Helm != "" {
 		// helm chart with multiple values.yaml
-		helmChartName := packSpecPath.HelmChartName
-		if helmChartName == "" {
-			helmChartName = common.DefaultProjectName
-		}
-		namedValues := map[string]parameterizertypes.HelmValuesT{}
-		helmChartDir := filepath.Join(cleanOutDir, packSpecPath.Helm, helmChartName)
+		helmChartName := normalizeForHelmChartName(packSpecConfig.HelmChartName)
+		namedValues := map[string]HelmValuesT{}
+		helmChartDir := filepath.Join(cleanOutDir, packSpecConfig.Helm, helmChartName)
 
 		helmTemplatesDir := filepath.Join(helmChartDir, "templates")
 		if err := os.MkdirAll(helmTemplatesDir, common.DefaultDirectoryPermission); err != nil {
@@ -75,8 +73,8 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Paramet
 		}
 		for kPath, ks := range pathedKs {
 			for _, k := range ks {
-				k = deepcopy.DeepCopy(k).(parameterizertypes.K8sResourceT)
-				if err := parameterize(parameterizertypes.TargetHelm, packSpecPath.Envs, k, ps, namedValues, nil, nil); err != nil {
+				k = deepcopy.DeepCopy(k).(k8sschema.K8sResourceT)
+				if err := parameterize(TargetHelm, packSpecConfig.Envs, k, ps, namedValues, nil, nil); err != nil {
 					return filesWritten, err
 				}
 				finalKPath := filepath.Join(helmTemplatesDir, kPath)
@@ -106,16 +104,16 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Paramet
 		}
 		filesWritten = append(filesWritten, finalKPath)
 	}
-	if packSpecPath.Kustomize != "" {
+	if packSpecConfig.Kustomize != "" {
 		// kustomize json patches with multiple overlays
 
-		kustDir := filepath.Join(cleanOutDir, packSpecPath.Kustomize)
+		kustDir := filepath.Join(cleanOutDir, packSpecConfig.Kustomize)
 
 		baseDir := filepath.Join(kustDir, "base")
 		if err := os.MkdirAll(baseDir, common.DefaultDirectoryPermission); err != nil {
 			return filesWritten, err
 		}
-		kustPatches := map[string]map[parameterizertypes.PatchMetadataT][]parameterizertypes.PatchT{}
+		kustPatches := map[string]map[PatchMetadataT][]PatchT{}
 		kPaths := []string{}
 		for kPath, ks := range pathedKs {
 			for _, k := range ks {
@@ -126,8 +124,8 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Paramet
 				}
 				filesWritten = append(filesWritten, finalKPath)
 				// compute the json patch
-				currKustPatches := map[string]map[string]parameterizertypes.PatchT{} // keyed by env and json pointer/path
-				if err := parameterize(parameterizertypes.TargetKustomize, packSpecPath.Envs, k, ps, nil, currKustPatches, nil); err != nil {
+				currKustPatches := map[string]map[string]PatchT{} // keyed by env and json pointer/path
+				if err := parameterize(TargetKustomize, packSpecConfig.Envs, k, ps, nil, currKustPatches, nil); err != nil {
 					return filesWritten, err
 				}
 				// patch metadata to put in kustomization.yaml
@@ -140,13 +138,13 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Paramet
 					patchFilename = fmt.Sprintf("%s-%s-%s.yaml", version, kind, metadataName)
 				}
 				patchFilename = strings.ToLower(common.MakeFileNameCompliant(patchFilename))
-				patchMetadata := parameterizertypes.PatchMetadataT{
+				patchMetadata := PatchMetadataT{
 					Path:   patchFilename,
-					Target: parameterizertypes.PatchMetadataTargetT{Kind: kind, Group: group, Version: version, Name: metadataName},
+					Target: PatchMetadataTargetT{Kind: kind, Group: group, Version: version, Name: metadataName},
 				}
 				for env, patches := range currKustPatches {
 					if _, ok := kustPatches[env]; !ok {
-						kustPatches[env] = map[parameterizertypes.PatchMetadataT][]parameterizertypes.PatchT{}
+						kustPatches[env] = map[PatchMetadataT][]PatchT{}
 					}
 					for _, v := range patches {
 						kustPatches[env][patchMetadata] = append(kustPatches[env][patchMetadata], v)
@@ -167,7 +165,7 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Paramet
 			if err := os.MkdirAll(envDir, common.DefaultDirectoryPermission); err != nil {
 				return filesWritten, err
 			}
-			metas := []parameterizertypes.PatchMetadataT{}
+			metas := []PatchMetadataT{}
 			for kMeta, patches := range kMetaPatches {
 				finalKPath := filepath.Join(envDir, kMeta.Path)
 				if err := common.WriteYaml(finalKPath, patches); err != nil {
@@ -184,24 +182,24 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Paramet
 			filesWritten = append(filesWritten, finalKPath)
 		}
 	}
-	if packSpecPath.OCTemplates != "" {
+	if packSpecConfig.OCTemplates != "" {
 		// openshift templates for each env
-		newKs := []parameterizertypes.K8sResourceT{}
+		newKs := []k8sschema.K8sResourceT{}
 		ocParams := map[string]map[string]string{}
 		for _, ks := range pathedKs {
 			for _, k := range ks {
-				k = deepcopy.DeepCopy(k).(parameterizertypes.K8sResourceT)
-				if err := parameterize(parameterizertypes.TargetOCTemplates, packSpecPath.Envs, k, ps, nil, nil, ocParams); err != nil {
+				k = deepcopy.DeepCopy(k).(k8sschema.K8sResourceT)
+				if err := parameterize(TargetOCTemplates, packSpecConfig.Envs, k, ps, nil, nil, ocParams); err != nil {
 					return filesWritten, err
 				}
 				newKs = append(newKs, k)
 			}
 		}
-		singleSet := []parameterizertypes.OCParamT{}
+		singleSet := []OCParamT{}
 		if len(ocParams) > 0 {
 			for _, kvs := range ocParams {
 				for k, v := range kvs {
-					singleSet = append(singleSet, parameterizertypes.OCParamT{Name: k, Value: v})
+					singleSet = append(singleSet, OCParamT{Name: k, Value: v})
 				}
 				break
 			}
@@ -213,7 +211,7 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Paramet
 			"objects":    newKs,
 			"parameters": singleSet,
 		}
-		ocDir := filepath.Join(cleanOutDir, packSpecPath.OCTemplates)
+		ocDir := filepath.Join(cleanOutDir, packSpecConfig.OCTemplates)
 
 		if err := os.MkdirAll(ocDir, common.DefaultDirectoryPermission); err != nil {
 			return filesWritten, err
@@ -241,7 +239,7 @@ func Parameterize(srcDir, outDir string, packSpecPath parameterizertypes.Paramet
 // ------------------------------
 // Utilities
 
-func getGVKNFromK(k parameterizertypes.K8sResourceT) (group string, version string, kind string, metadataName string, err error) {
+func getGVKNFromK(k k8sschema.K8sResourceT) (group string, version string, kind string, metadataName string, err error) {
 	var apiVersion string
 	kind, apiVersion, metadataName, err = k8sschema.GetInfoFromK8sResource(k)
 	if err != nil {
@@ -272,7 +270,7 @@ func getParameters(templ string) ([]string, error) {
 	return parameters, nil
 }
 
-func doesMatchEnv(p parameterizertypes.ParameterValueT, env, kind, apiVersion, metadataName string, matches map[string]string) bool {
+func doesMatchEnv(p ParameterValueT, env, kind, apiVersion, metadataName string, matches map[string]string) bool {
 	if p.Envs != nil && !common.IsStringPresent(p.Envs, string(env)) {
 		return false
 	}
@@ -293,7 +291,7 @@ func doesMatchEnv(p parameterizertypes.ParameterValueT, env, kind, apiVersion, m
 	return true
 }
 
-func parseTemplate(templ, orig, regex string) ([]string, []parameterizertypes.ParamOrStringT, error) {
+func parseTemplate(templ, orig, regex string) ([]string, []ParamOrStringT, error) {
 	parameters := stringInterpRegex.FindAllStringSubmatchIndex(templ, -1)
 	if len(parameters) == 0 {
 		return nil, nil, fmt.Errorf("no parameters found in the template: %s", templ)
@@ -329,12 +327,12 @@ func parseTemplate(templ, orig, regex string) ([]string, []parameterizertypes.Pa
 	return orignalValues[0][1:], paramsAndStrings, nil
 }
 
-func splitOnIdxs(s string, idxs []int) []parameterizertypes.ParamOrStringT {
-	ss := []parameterizertypes.ParamOrStringT{}
+func splitOnIdxs(s string, idxs []int) []ParamOrStringT {
+	ss := []ParamOrStringT{}
 	prevIdx := 0
 	isParam := false
 	for _, idx := range idxs {
-		currs := parameterizertypes.ParamOrStringT{IsParam: isParam, Data: s[prevIdx:idx]}
+		currs := ParamOrStringT{IsParam: isParam, Data: s[prevIdx:idx]}
 		prevIdx = idx
 		isParam = !isParam
 		ss = append(ss, currs)
@@ -393,7 +391,7 @@ func fillCustomTemplate(templ, kind, apiVersion, metadataName string, matches ma
 // ------------------------------
 // Parameterization
 
-func parameterize(target parameterizertypes.ParamTargetT, envs []string, k parameterizertypes.K8sResourceT, ps []parameterizertypes.ParameterizerT, namedValues map[string]parameterizertypes.HelmValuesT, namedKustPatches map[string]map[string]parameterizertypes.PatchT, namedOCParams map[string]map[string]string) error {
+func parameterize(target ParamTargetT, envs []string, k k8sschema.K8sResourceT, ps []ParameterizerT, namedValues map[string]HelmValuesT, namedKustPatches map[string]map[string]PatchT, namedOCParams map[string]map[string]string) error {
 	for _, p := range ps {
 		ok, err := parameterizeFilter(envs, k, p)
 		if err != nil {
@@ -403,15 +401,15 @@ func parameterize(target parameterizertypes.ParamTargetT, envs []string, k param
 			continue
 		}
 		switch target {
-		case parameterizertypes.TargetHelm:
+		case TargetHelm:
 			if err := parameterizeHelperHelm(envs, k, p, namedValues, namedKustPatches, namedOCParams); err != nil {
 				return err
 			}
-		case parameterizertypes.TargetKustomize:
+		case TargetKustomize:
 			if err := parameterizeHelperKustomize(envs, k, p, namedValues, namedKustPatches, namedOCParams); err != nil {
 				return err
 			}
-		case parameterizertypes.TargetOCTemplates:
+		case TargetOCTemplates:
 			if err := parameterizeHelperOCTemplates(envs, k, p, namedValues, namedKustPatches, namedOCParams); err != nil {
 				return err
 			}
@@ -423,9 +421,9 @@ func parameterize(target parameterizertypes.ParamTargetT, envs []string, k param
 }
 
 // parameterizeFilter returns true if this parameterizer can be applied to the given k8s resource
-func parameterizeFilter(envs []string, k parameterizertypes.K8sResourceT, p parameterizertypes.ParameterizerT) (bool, error) {
-	log.Trace("start parameterizeFilter")
-	defer log.Trace("end parameterizeFilter")
+func parameterizeFilter(envs []string, k k8sschema.K8sResourceT, p ParameterizerT) (bool, error) {
+	logrus.Trace("start parameterizeFilter")
+	defer logrus.Trace("end parameterizeFilter")
 	kind, apiVersion, metadataName, err := k8sschema.GetInfoFromK8sResource(k)
 	if err != nil {
 		return false, err
@@ -482,9 +480,9 @@ func parameterizeFilter(envs []string, k parameterizertypes.K8sResourceT, p para
 	return false, nil
 }
 
-func parameterizeHelperHelm(envs []string, k parameterizertypes.K8sResourceT, p parameterizertypes.ParameterizerT, namedValues map[string]parameterizertypes.HelmValuesT, namedKustPatches map[string]map[string]parameterizertypes.PatchT, namedOCParams map[string]map[string]string) error {
-	log.Trace("start parameterizeHelperHelm")
-	defer log.Trace("end parameterizeHelperHelm")
+func parameterizeHelperHelm(envs []string, k k8sschema.K8sResourceT, p ParameterizerT, namedValues map[string]HelmValuesT, namedKustPatches map[string]map[string]PatchT, namedOCParams map[string]map[string]string) error {
+	logrus.Trace("start parameterizeHelperHelm")
+	defer logrus.Trace("end parameterizeHelperHelm")
 
 	if len(p.Target) == 0 {
 		return fmt.Errorf("the target is empty")
@@ -521,7 +519,7 @@ func parameterizeHelperHelm(envs []string, k parameterizertypes.K8sResourceT, p 
 			}
 			flagNoID := p.Question.ID == ""
 			if flagNoID {
-				p.Question.ID = parameterizertypes.ParamQuesIDPrefix + common.Delim + apiVersion + common.Delim + kind + common.Delim + key
+				p.Question.ID = ParamQuesIDPrefix + common.Delim + apiVersion + common.Delim + kind + common.Delim + key
 			}
 			filledDesc, err := fillCustomTemplate(p.Question.Desc, kind, apiVersion, metadataName, resultKV.Matches)
 			if err != nil {
@@ -601,7 +599,7 @@ func parameterizeHelperHelm(envs []string, k parameterizertypes.K8sResourceT, p 
 				}
 				// set the key in the values.yaml
 				if _, ok := namedValues[env]; !ok {
-					namedValues[env] = parameterizertypes.HelmValuesT{}
+					namedValues[env] = HelmValuesT{}
 				}
 				if err := setCreatingNew(paramKey, paramValue, namedValues[env]); err != nil {
 					return fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml %+v for the env %s . Error: %q", paramKey, paramValue, namedValues[env], env, err)
@@ -716,7 +714,7 @@ Actual value is %+v of type %T`,
 				}
 				// set the key in the values.yaml
 				if _, ok := namedValues[env]; !ok {
-					namedValues[env] = parameterizertypes.HelmValuesT{}
+					namedValues[env] = HelmValuesT{}
 				}
 				if err := setCreatingNew(paramKey, paramValue, namedValues[env]); err != nil {
 					return fmt.Errorf("failed to set the key %s to the value %+v in the values.yaml %+v for the env %s . Error: %q", paramKey, paramValue, namedValues[env], env, err)
@@ -728,9 +726,9 @@ Actual value is %+v of type %T`,
 	return nil
 }
 
-func parameterizeHelperKustomize(envs []string, k parameterizertypes.K8sResourceT, p parameterizertypes.ParameterizerT, namedValues map[string]parameterizertypes.HelmValuesT, namedKustPatches map[string]map[string]parameterizertypes.PatchT, namedOCParams map[string]map[string]string) error {
-	log.Trace("start parameterizeHelperKustomize")
-	defer log.Trace("end parameterizeHelperKustomize")
+func parameterizeHelperKustomize(envs []string, k k8sschema.K8sResourceT, p ParameterizerT, namedValues map[string]HelmValuesT, namedKustPatches map[string]map[string]PatchT, namedOCParams map[string]map[string]string) error {
+	logrus.Trace("start parameterizeHelperKustomize")
+	defer logrus.Trace("end parameterizeHelperKustomize")
 
 	if len(p.Target) == 0 {
 		return fmt.Errorf("the target is empty")
@@ -760,7 +758,7 @@ func parameterizeHelperKustomize(envs []string, k parameterizertypes.K8sResource
 			}
 			flagNoID := p.Question.ID == ""
 			if flagNoID {
-				p.Question.ID = parameterizertypes.ParamQuesIDPrefix + common.Delim + apiVersion + common.Delim + kind + common.Delim + key
+				p.Question.ID = ParamQuesIDPrefix + common.Delim + apiVersion + common.Delim + kind + common.Delim + key
 			}
 			filledDesc, err := fillCustomTemplate(p.Question.Desc, kind, apiVersion, metadataName, resultKV.Matches)
 			if err != nil {
@@ -786,7 +784,7 @@ func parameterizeHelperKustomize(envs []string, k parameterizertypes.K8sResource
 			origParamValue := paramValue
 			if len(p.Parameters) > 0 {
 				if len(p.Parameters) > 1 {
-					log.Debugf("more than one parameter specified for kustomize parameterization, ignoring all of them. Actual length: %d Parameters: %+v", len(p.Parameters), p.Parameters)
+					logrus.Debugf("more than one parameter specified for kustomize parameterization, ignoring all of them. Actual length: %d Parameters: %+v", len(p.Parameters), p.Parameters)
 				} else {
 					param := p.Parameters[0]
 					// no need to check the parameter name since for kustomize there should be at most one parameter
@@ -799,19 +797,19 @@ func parameterizeHelperKustomize(envs []string, k parameterizertypes.K8sResource
 				}
 			}
 			if _, ok := namedKustPatches[env]; !ok {
-				namedKustPatches[env] = map[string]parameterizertypes.PatchT{}
+				namedKustPatches[env] = map[string]PatchT{}
 			}
 			// set the key in the parameters.yaml
-			namedKustPatches[env][JSONPointer] = parameterizertypes.PatchT{Op: parameterizertypes.ReplaceOp, Path: JSONPointer, Value: paramValue}
+			namedKustPatches[env][JSONPointer] = PatchT{Op: ReplaceOp, Path: JSONPointer, Value: paramValue}
 			paramValue = origParamValue
 		}
 	}
 	return nil
 }
 
-func parameterizeHelperOCTemplates(envs []string, k parameterizertypes.K8sResourceT, p parameterizertypes.ParameterizerT, namedValues map[string]parameterizertypes.HelmValuesT, namedKustPatches map[string]map[string]parameterizertypes.PatchT, namedOCParams map[string]map[string]string) error {
-	log.Trace("start parameterizeHelperOCTemplates")
-	defer log.Trace("end parameterizeHelperOCTemplates")
+func parameterizeHelperOCTemplates(envs []string, k k8sschema.K8sResourceT, p ParameterizerT, namedValues map[string]HelmValuesT, namedKustPatches map[string]map[string]PatchT, namedOCParams map[string]map[string]string) error {
+	logrus.Trace("start parameterizeHelperOCTemplates")
+	defer logrus.Trace("end parameterizeHelperOCTemplates")
 
 	if len(p.Target) == 0 {
 		return fmt.Errorf("the target is empty")
@@ -848,7 +846,7 @@ func parameterizeHelperOCTemplates(envs []string, k parameterizertypes.K8sResour
 			}
 			flagNoID := p.Question.ID == ""
 			if flagNoID {
-				p.Question.ID = parameterizertypes.ParamQuesIDPrefix + common.Delim + apiVersion + common.Delim + kind + common.Delim + key
+				p.Question.ID = ParamQuesIDPrefix + common.Delim + apiVersion + common.Delim + kind + common.Delim + key
 			}
 			filledDesc, err := fillCustomTemplate(p.Question.Desc, kind, apiVersion, metadataName, resultKV.Matches)
 			if err != nil {
@@ -1068,4 +1066,26 @@ Actual value is %+v of type %T`,
 		}
 	}
 	return nil
+}
+
+func normalizeForHelmChartName(name string) string {
+	if len(name) == 0 {
+		logrus.Error("The input helm chart name is empty.")
+		return common.DefaultProjectName
+	}
+	processedName := invalidHelmChartNameChars.ReplaceAllLiteralString(name, "-")
+	if len(processedName) > 53 {
+		logrus.Debugf("Warning: The processed helm name %q is longer than 53 characters long. Trimming.", processedName)
+		processedName = processedName[:53]
+	}
+	first := processedName[0]
+	last := processedName[len(processedName)-1]
+	if first == '-' || last == '-' {
+		logrus.Debugf("Warning: The first and/or last characters of the name %q are not alphanumeric.", processedName)
+		processedName = invalidHelmChartNameStartEndChars.ReplaceAllLiteralString(name, "a")
+	}
+	if name != processedName {
+		logrus.Warnf("Invalid Helm chart name %s proposed. Change to %s.", name, processedName)
+	}
+	return processedName
 }

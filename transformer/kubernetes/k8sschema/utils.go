@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
-	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
 	"gopkg.in/yaml.v3"
 
 	"github.com/google/go-cmp/cmp"
@@ -50,7 +49,7 @@ func Intersection(objs1 []runtime.Object, objs2 []runtime.Object) []runtime.Obje
 }
 
 // GetInfoFromK8sResource returns some useful information given a k8s resource
-func GetInfoFromK8sResource(k8sResource parameterizertypes.K8sResourceT) (kind string, apiVersion string, name string, err error) {
+func GetInfoFromK8sResource(k8sResource K8sResourceT) (kind string, apiVersion string, name string, err error) {
 	logrus.Trace("start getInfoFromK8sResource")
 	defer logrus.Trace("end getInfoFromK8sResource")
 	kindI, ok := k8sResource["kind"]
@@ -111,14 +110,14 @@ func getNameFromMetadata(metadataI interface{}) (string, error) {
 // GetK8sResourcesWithPaths gets the k8s resources from a folder along
 // with the relaive paths where they were found.
 // Mutiple resources maybe specified in the same yaml file.
-func GetK8sResourcesWithPaths(k8sResourcesPath string) (map[string][]parameterizertypes.K8sResourceT, error) {
+func GetK8sResourcesWithPaths(k8sResourcesPath string) (map[string][]K8sResourceT, error) {
 	logrus.Trace("start GetK8sResourcesWithPaths")
 	defer logrus.Trace("end GetK8sResourcesWithPaths")
 	yamlPaths, err := common.GetFilesByExt(k8sResourcesPath, []string{".yaml"})
 	if err != nil {
 		return nil, err
 	}
-	k8sResources := map[string][]parameterizertypes.K8sResourceT{}
+	k8sResources := map[string][]K8sResourceT{}
 	for _, yamlPath := range yamlPaths {
 		k8sYamlBytes, err := os.ReadFile(yamlPath)
 		if err != nil {
@@ -141,7 +140,7 @@ func GetK8sResourcesWithPaths(k8sResourcesPath string) (map[string][]parameteriz
 }
 
 // getK8sResourcesFromYaml decodes k8s resources from yaml
-func getK8sResourcesFromYaml(k8sYaml string) ([]parameterizertypes.K8sResourceT, error) {
+func getK8sResourcesFromYaml(k8sYaml string) ([]K8sResourceT, error) {
 	// TODO: split yaml file into multiple resources
 
 	// NOTE: This roundabout method is required to avoid yaml.v3 unmarshalling timestamps into time.Time
@@ -155,7 +154,7 @@ func getK8sResourcesFromYaml(k8sYaml string) ([]parameterizertypes.K8sResourceT,
 		logrus.Errorf("Failed to marshal the k8s resource into json. K8s resource:\n+%v\nError: %q", resourceI, err)
 		return nil, err
 	}
-	var k8sResource parameterizertypes.K8sResourceT
+	var k8sResource K8sResourceT
 	err = json.Unmarshal(resourceJSONBytes, &k8sResource)
-	return []parameterizertypes.K8sResourceT{k8sResource}, err
+	return []K8sResourceT{k8sResource}, err
 }

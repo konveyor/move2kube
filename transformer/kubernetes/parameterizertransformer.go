@@ -18,16 +18,20 @@ package kubernetes
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	"github.com/konveyor/move2kube/transformer/kubernetes/parameterizer"
-	parameterizertypes "github.com/konveyor/move2kube/types/parameterizer"
+	"github.com/konveyor/move2kube/types"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
 const (
@@ -41,7 +45,7 @@ type Parameterizer struct {
 	Config         transformertypes.Transformer
 	Env            *environment.Environment
 	PathConfig     ParameterizerPathConfig
-	parameterizers []parameterizertypes.ParameterizerT
+	parameterizers []parameterizer.ParameterizerT
 }
 
 // ParameterizerPathConfig implements Parameterizer path config interface
@@ -87,6 +91,35 @@ func (t *Parameterizer) GetConfig() (transformertypes.Transformer, *environment.
 
 // DirectoryDetect runs detect in each subdirectory
 func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.Artifact, err error) {
+	codecs := serializer.NewCodecFactory(k8sschema.GetSchema())
+	filePaths, err := common.GetFilesByExtInCurrDir(dir, []string{".yml", ".yaml"})
+	if err != nil {
+		logrus.Errorf("Unable to fetch yaml files at path %q Error: %q", dir, err)
+		return nil, err
+	}
+	for _, filePath := range filePaths {
+		data, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			logrus.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
+			continue
+		}
+		obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
+		if err != nil {
+			logrus.Debugf("Failed to decode the file at path %q as a k8s file. Error: %q", filePath, err)
+			continue
+		}
+		objGroupName := obj.GetObjectKind().GroupVersionKind().Group
+		if objGroupName == types.GroupName {
+			continue
+		}
+		na := transformertypes.Artifact{
+			Paths: map[transformertypes.PathType][]string{
+				artifacts.KubernetesYamlsPathType: {dir},
+				artifacts.ProjectPathPathType:     {dir},
+			},
+		}
+		return map[string][]transformertypes.Artifact{"": {na}}, nil
+	}
 	return nil, nil
 }
 
@@ -110,7 +143,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 			continue
 		}
 
-		pt := parameterizertypes.ParameterizerPathsT{Helm: "helm",
+		pt := parameterizer.ParameterizerConfigT{Helm: "helm",
 			Kustomize:     "kustomize",
 			OCTemplates:   "octemplates",
 			HelmChartName: helmChartName}
