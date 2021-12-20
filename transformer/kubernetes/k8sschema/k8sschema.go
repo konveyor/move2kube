@@ -63,6 +63,9 @@ import (
 	k8sapischeme "k8s.io/client-go/kubernetes/scheme"
 )
 
+// K8sResourceT represents type used to process K8s objects. Not using type alias breaks parameterizer currently.
+type K8sResourceT = map[string]interface{}
+
 var (
 	scheme       = runtime.NewScheme()
 	liasonscheme = runtime.NewScheme()

@@ -30,8 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type K8sResourceT = map[string]interface{}
-
 // Intersection finds overlapping objects between the two arrays
 func Intersection(objs1 []runtime.Object, objs2 []runtime.Object) []runtime.Object {
 	objs := []runtime.Object{}
