@@ -11,8 +11,6 @@ spec:
   consumes:
     Service:
       merge: false
-    KubernetesYamls:
-      merge: true
   config:
     helmPath: "source/{{ SourceRel .YamlsPath }}/../{{ FilePathBase .YamlsPath }}-parameterized/helm-chart"
     ocTemplatePath: "source/{{ SourceRel .YamlsPath }}/../{{ FilePathBase .YamlsPath }}-parameterized/openshift-template"
