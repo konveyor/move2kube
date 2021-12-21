@@ -28,7 +28,6 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/qaengine"
-	"github.com/konveyor/move2kube/types"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/konveyor/move2kube/types/source/dotnet"
@@ -39,6 +38,7 @@ import (
 
 var (
 	portRegex        = regexp.MustCompile(`:(\d+)`)
+	versionRegex     = regexp.MustCompile(`\d+\.\d+`)
 	dotnetcoreRegex1 = regexp.MustCompile(`net\d+\.\d+`)
 	dotnetcoreRegex2 = regexp.MustCompile(`netcoreapp\d+\.\d+`)
 	dotnetcoreRegex3 = regexp.MustCompile(`netstandard\d+\.\d+`)
@@ -120,39 +120,6 @@ func (t *DotNetCoreDockerfileGenerator) Init(tc transformertypes.Transformer, en
 // GetConfig returns the transformer config
 func (t *DotNetCoreDockerfileGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
-}
-
-// getDotNetCoreVersion fetches the dotnetcore version from the name-version mapping
-func getDotNetCoreVersion(mappingFile string, name string) (version string, err error) {
-	var dotNetCoreNameVersionMapping DotNetCoreNameVersionMapping
-	if err := common.ReadMove2KubeYaml(mappingFile, &dotNetCoreNameVersionMapping); err != nil {
-		logrus.Debugf("Could not load mapping at %s", mappingFile)
-		return "", err
-	}
-	var dotNetCoreFramework string
-	if dotnetcoreRegex1.MatchString(name) {
-		dotNetCoreFramework = dotnetcoreRegex1.FindString(name)
-	} else if dotnetcoreRegex2.MatchString(name) {
-		dotNetCoreFramework = dotnetcoreRegex2.FindString(name)
-	} else if dotnetcoreRegex3.MatchString(name) {
-		dotNetCoreFramework = dotnetcoreRegex3.FindString(name)
-	}
-	if _, ok := dotNetCoreNameVersionMapping.Spec.NameVersion[dotNetCoreFramework]; ok {
-		return dotNetCoreNameVersionMapping.Spec.NameVersion[dotNetCoreFramework], nil
-	}
-	return "", fmt.Errorf("could not find compatible .NET Core framework version")
-}
-
-// DotNetCoreNameVersionMapping stores the dotnetcore name version mappings
-type DotNetCoreNameVersionMapping struct {
-	types.TypeMeta   `yaml:",inline"`
-	types.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec             DotNetCoreNameVersionMappingSpec `yaml:"spec,omitempty"`
-}
-
-// DotNetCoreNameVersionMappingSpec stores the dotnetcore name version spec
-type DotNetCoreNameVersionMappingSpec struct {
-	NameVersion map[string]string `yaml:"nameVersions"`
 }
 
 // getPublishProfile returns the publish profile for the service
@@ -434,8 +401,10 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 			logrus.Errorf("Could not read the project file (%s) : %s", filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], csprojRelFilePath), err)
 			continue
 		}
-		dotNetCoreTemplateConfig.DotNetVersion, err = getDotNetCoreVersion(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/dotnetcoreversions.yaml"), csprojConfiguration.PropertyGroup.TargetFramework)
-		if err != nil || dotNetCoreTemplateConfig.DotNetVersion == "" {
+		if dotnetcoreRegex1.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex2.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex3.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
+			dotNetCoreTemplateConfig.DotNetVersion = versionRegex.FindString(csprojConfiguration.PropertyGroup.TargetFramework)
+		}
+		if dotNetCoreTemplateConfig.DotNetVersion == "" {
 			logrus.Warnf("Unable to find compatible version for %s service %s target framework. Using default version: %s", a.Name, csprojConfiguration.PropertyGroup.TargetFramework, t.DotNetCoreConfig.DefaultDotNetCoreVersion)
 			dotNetCoreTemplateConfig.DotNetVersion = t.DotNetCoreConfig.DefaultDotNetCoreVersion
 		}

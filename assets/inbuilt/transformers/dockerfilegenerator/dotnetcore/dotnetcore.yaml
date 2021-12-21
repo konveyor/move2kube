@@ -17,7 +17,5 @@ spec:
       disabled: false
     DockerfileForService:
       disabled: false
-  externalFiles:
-    "./mappings/dotnetcoreversions.yaml" : mappings/dotnetcoreversions.yaml
   config:
       defaultDotNetCoreVersion: "5.0"
