@@ -399,10 +399,8 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 			continue
 		}
 		frameworkVersion := dotnetcoreRegex.FindAllStringSubmatch(csprojConfiguration.PropertyGroup.TargetFramework, -1)
-		if len(frameworkVersion) != 0 {
-			if len(frameworkVersion[0]) == 2 {
-				dotNetCoreTemplateConfig.DotNetVersion = frameworkVersion[0][1]
-			}
+		if len(frameworkVersion) != 0 && len(frameworkVersion[0]) == 2 {
+			dotNetCoreTemplateConfig.DotNetVersion = frameworkVersion[0][1]
 		}
 		if dotNetCoreTemplateConfig.DotNetVersion == "" {
 			logrus.Warnf("Unable to find compatible version for %s service %s target framework. Using default version: %s", a.Name, csprojConfiguration.PropertyGroup.TargetFramework, t.DotNetCoreConfig.DefaultDotNetCoreVersion)
