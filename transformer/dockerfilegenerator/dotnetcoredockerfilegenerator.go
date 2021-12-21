@@ -28,7 +28,6 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/qaengine"
-	"github.com/konveyor/move2kube/types"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/konveyor/move2kube/types/source/dotnet"
@@ -38,8 +37,8 @@ import (
 )
 
 var (
-	portRegex            = regexp.MustCompile(`:(\d+)`)
-	dotNetCoreFrameworks = []string{"net5.0", "netcoreapp2.1", "netstandard2.0"}
+	portRegex       = regexp.MustCompile(`:(\d+)`)
+	dotnetcoreRegex = regexp.MustCompile(`net(?:(?:coreapp)|(?:standard))?(\d+\.\d+)`)
 )
 
 const (
@@ -97,7 +96,6 @@ type LaunchSettings struct {
 //LaunchProfile implements launch profile properties
 type LaunchProfile struct {
 	CommandName          string            `json:"CommandName"`
-	DotnetRunMessages    string            `json:"dotnetRunMessages"`
 	LaunchBrowser        bool              `json:"launchBrowser"`
 	ApplicationURL       string            `json:"applicationUrl"`
 	EnvironmentVariables map[string]string `json:"environmentVariables"`
@@ -119,28 +117,6 @@ func (t *DotNetCoreDockerfileGenerator) Init(tc transformertypes.Transformer, en
 // GetConfig returns the transformer config
 func (t *DotNetCoreDockerfileGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
-}
-
-// getDotNetCoreVersion fetches the dotnetcore version from the name-version mapping
-func getDotNetCoreVersion(mappingFile string, name string) (version string, err error) {
-	var dotNetCoreNameVersionMapping DotNetCoreNameVersionMapping
-	if err := common.ReadMove2KubeYaml(mappingFile, &dotNetCoreNameVersionMapping); err != nil {
-		logrus.Debugf("Could not load mapping at %s", mappingFile)
-		return "", err
-	}
-	return dotNetCoreNameVersionMapping.Spec.NameVersion[name], nil
-}
-
-// DotNetCoreNameVersionMapping stores the dotnetcore name version mappings
-type DotNetCoreNameVersionMapping struct {
-	types.TypeMeta   `yaml:",inline"`
-	types.ObjectMeta `yaml:"metadata,omitempty"`
-	Spec             DotNetCoreNameVersionMappingSpec `yaml:"spec,omitempty"`
-}
-
-// DotNetCoreNameVersionMappingSpec stores the dotnetcore name version spec
-type DotNetCoreNameVersionMappingSpec struct {
-	NameVersion map[string]string `yaml:"nameVersions"`
 }
 
 // getPublishProfile returns the publish profile for the service
@@ -263,7 +239,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 				logrus.Debugf("Error while reading the csproj file (%s) : %s", projPath, err)
 				continue
 			}
-			if common.IsStringPresent(dotNetCoreFrameworks, csprojConfiguration.PropertyGroup.TargetFramework) {
+			if dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
 				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, projPath)
 			} else {
 				logrus.Warnf("Unable to find compatible ASP.NET Core target framework %s hence skipping.", csprojConfiguration.PropertyGroup.TargetFramework)
@@ -299,7 +275,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 				logrus.Errorf("Unable to read the csproj file (%s) : %s", csprojFile, err)
 				continue
 			}
-			if common.IsStringPresent(dotNetCoreFrameworks, csprojConfiguration.PropertyGroup.TargetFramework) {
+			if dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
 				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, csprojFile)
 				appName = strings.TrimSuffix(filepath.Base(csprojFile), filepath.Ext(csprojFile))
 				break
@@ -400,7 +376,9 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 								dotNetCoreTemplateConfig.HTTPPort = int32(port)
 							}
 						}
-						ports = append(ports, dotNetCoreTemplateConfig.HTTPPort)
+						if !common.IsInt32Present(ports, dotNetCoreTemplateConfig.HTTPPort) {
+							ports = append(ports, dotNetCoreTemplateConfig.HTTPPort)
+						}
 					}
 				}
 			}
@@ -420,8 +398,11 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 			logrus.Errorf("Could not read the project file (%s) : %s", filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], csprojRelFilePath), err)
 			continue
 		}
-		dotNetCoreTemplateConfig.DotNetVersion, err = getDotNetCoreVersion(filepath.Join(t.Env.GetEnvironmentContext(), "mappings/dotnetcoreversions.yaml"), csprojConfiguration.PropertyGroup.TargetFramework)
-		if err != nil || dotNetCoreTemplateConfig.DotNetVersion == "" {
+		frameworkVersion := dotnetcoreRegex.FindAllStringSubmatch(csprojConfiguration.PropertyGroup.TargetFramework, -1)
+		if len(frameworkVersion) != 0 && len(frameworkVersion[0]) == 2 {
+			dotNetCoreTemplateConfig.DotNetVersion = frameworkVersion[0][1]
+		}
+		if dotNetCoreTemplateConfig.DotNetVersion == "" {
 			logrus.Warnf("Unable to find compatible version for %s service %s target framework. Using default version: %s", a.Name, csprojConfiguration.PropertyGroup.TargetFramework, t.DotNetCoreConfig.DefaultDotNetCoreVersion)
 			dotNetCoreTemplateConfig.DotNetVersion = t.DotNetCoreConfig.DefaultDotNetCoreVersion
 		}

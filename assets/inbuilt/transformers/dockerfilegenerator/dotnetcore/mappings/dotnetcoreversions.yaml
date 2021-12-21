@@ -1,9 +1,0 @@
-apiVersion: move2kube.konveyor.io/v1alpha1
-kind: DotNetCoreVersions
-metadata:
-  name: DotNetCoreVersions
-spec:
-  nameVersions:
-    "net5.0": "5.0"
-    "netcoreapp2.1": "2.1"
-    "netstandard2.0": "2.0"
