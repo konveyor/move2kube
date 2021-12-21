@@ -38,7 +38,6 @@ import (
 
 var (
 	portRegex       = regexp.MustCompile(`:(\d+)`)
-	versionRegex    = regexp.MustCompile(`\d+\.\d+`)
 	dotnetcoreRegex = regexp.MustCompile(`net(?:(?:coreapp)|(?:standard))?(\d+\.\d+)`)
 )
 
@@ -399,8 +398,9 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 			logrus.Errorf("Could not read the project file (%s) : %s", filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], csprojRelFilePath), err)
 			continue
 		}
-		if dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
-			dotNetCoreTemplateConfig.DotNetVersion = versionRegex.FindString(csprojConfiguration.PropertyGroup.TargetFramework)
+		frameworkVersion := dotnetcoreRegex.FindAllStringSubmatch(csprojConfiguration.PropertyGroup.TargetFramework, -1)
+		if len(frameworkVersion[0]) == 2 {
+			dotNetCoreTemplateConfig.DotNetVersion = frameworkVersion[0][1]
 		}
 		if dotNetCoreTemplateConfig.DotNetVersion == "" {
 			logrus.Warnf("Unable to find compatible version for %s service %s target framework. Using default version: %s", a.Name, csprojConfiguration.PropertyGroup.TargetFramework, t.DotNetCoreConfig.DefaultDotNetCoreVersion)
