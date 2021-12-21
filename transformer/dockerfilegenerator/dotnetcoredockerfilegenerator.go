@@ -37,11 +37,9 @@ import (
 )
 
 var (
-	portRegex        = regexp.MustCompile(`:(\d+)`)
-	versionRegex     = regexp.MustCompile(`\d+\.\d+`)
-	dotnetcoreRegex1 = regexp.MustCompile(`net\d+\.\d+`)
-	dotnetcoreRegex2 = regexp.MustCompile(`netcoreapp\d+\.\d+`)
-	dotnetcoreRegex3 = regexp.MustCompile(`netstandard\d+\.\d+`)
+	portRegex       = regexp.MustCompile(`:(\d+)`)
+	versionRegex    = regexp.MustCompile(`\d+\.\d+`)
+	dotnetcoreRegex = regexp.MustCompile(`net(?:(?:coreapp)|(?:standard))?(\d+\.\d+)`)
 )
 
 const (
@@ -242,7 +240,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 				logrus.Debugf("Error while reading the csproj file (%s) : %s", projPath, err)
 				continue
 			}
-			if dotnetcoreRegex1.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex2.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex3.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
+			if dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
 				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, projPath)
 			} else {
 				logrus.Warnf("Unable to find compatible ASP.NET Core target framework %s hence skipping.", csprojConfiguration.PropertyGroup.TargetFramework)
@@ -278,7 +276,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 				logrus.Errorf("Unable to read the csproj file (%s) : %s", csprojFile, err)
 				continue
 			}
-			if dotnetcoreRegex1.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex2.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex3.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
+			if dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
 				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, csprojFile)
 				appName = strings.TrimSuffix(filepath.Base(csprojFile), filepath.Ext(csprojFile))
 				break
@@ -401,7 +399,7 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 			logrus.Errorf("Could not read the project file (%s) : %s", filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], csprojRelFilePath), err)
 			continue
 		}
-		if dotnetcoreRegex1.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex2.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) || dotnetcoreRegex3.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
+		if dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
 			dotNetCoreTemplateConfig.DotNetVersion = versionRegex.FindString(csprojConfiguration.PropertyGroup.TargetFramework)
 		}
 		if dotNetCoreTemplateConfig.DotNetVersion == "" {
