@@ -13,6 +13,11 @@ spec:
     IR:
       merge: true
       mode: OnDemandPassThrough
+    KubernetesOrgYamlsInSource:
+      merge: false
+      mode: OnDemandPassThrough
   produces:
     IR:
+      disabled: false
+    KubernetesOrgYamlsInSource:
       disabled: false

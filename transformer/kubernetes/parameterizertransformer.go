@@ -18,7 +18,6 @@ package kubernetes
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -26,12 +25,9 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	"github.com/konveyor/move2kube/transformer/kubernetes/parameterizer"
-	"github.com/konveyor/move2kube/types"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
-
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
 const (
@@ -56,7 +52,7 @@ type ParameterizerPathConfig struct {
 	HelmChartName  string `yaml:"helmChartName"`
 }
 
-// ParameterizerPathTemplateConfig implements Parameterizer template config interface
+// ParameterizerPathTemplateConfig stores the template config
 type ParameterizerPathTemplateConfig struct {
 	YamlsPath        string
 	ServiceFsPath    string
@@ -91,27 +87,7 @@ func (t *Parameterizer) GetConfig() (transformertypes.Transformer, *environment.
 
 // DirectoryDetect runs detect in each subdirectory
 func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.Artifact, err error) {
-	codecs := serializer.NewCodecFactory(k8sschema.GetSchema())
-	filePaths, err := common.GetFilesByExtInCurrDir(dir, []string{".yml", ".yaml"})
-	if err != nil {
-		logrus.Errorf("Unable to fetch yaml files at path %q Error: %q", dir, err)
-		return nil, err
-	}
-	for _, filePath := range filePaths {
-		data, err := ioutil.ReadFile(filePath)
-		if err != nil {
-			logrus.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
-			continue
-		}
-		obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
-		if err != nil {
-			logrus.Debugf("Failed to decode the file at path %q as a k8s file. Error: %q", filePath, err)
-			continue
-		}
-		objGroupName := obj.GetObjectKind().GroupVersionKind().Group
-		if objGroupName == types.GroupName {
-			continue
-		}
+	if len(k8sschema.GetKubernetesObjsInDir(dir)) != 0 {
 		na := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.KubernetesYamlsPathType: {dir},
@@ -134,15 +110,20 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 		}
 		baseDirName := filepath.Base(yamlsPath) + "-parameterized"
 		destPath := filepath.Join(tempPath, baseDirName)
-
+		var sConfig artifacts.ServiceConfig
+		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		if err != nil {
+			logrus.Debugf("Unable to load config for Transformer into %T : %s", sConfig, err)
+		}
 		helmChartName, err := common.GetStringFromTemplate(t.PathConfig.HelmChartName,
 			map[string]string{common.ProjectNameTemplatizedStringKey: t.Env.ProjectName,
-				common.ArtifactNameTemplatizedStringKey: a.Name})
+				common.ArtifactNameTemplatizedStringKey: a.Name,
+				common.ServiceNameTemplatizedStringKey:  sConfig.ServiceName,
+				common.ArtifactTypeTemplatizedStringKey: string(a.Type)})
 		if err != nil {
 			logrus.Errorf("Unable to evaluate helm chart name : %s", err)
 			continue
 		}
-
 		pt := parameterizer.ParameterizerConfigT{Helm: "helm",
 			Kustomize:     "kustomize",
 			OCTemplates:   "octemplates",
@@ -157,13 +138,11 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 		if len(t.PathConfig.OCTemplatePath) == 0 {
 			pt.OCTemplates = ""
 		}
-
 		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, pt, t.parameterizers)
 		if err != nil {
 			logrus.Errorf("Unable to parameterize : %s", err)
 			continue
 		}
-
 		logrus.Debugf("Number of files written by parameterizer: %d", len(filesWritten))
 
 		helmKey := helmPathTemplateName + common.GetRandomString()
@@ -174,7 +153,6 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 		if serviceFsPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(serviceFsPaths) > 0 {
 			serviceFsPath = serviceFsPaths[0]
 		}
-
 		if len(t.PathConfig.HelmPath) != 0 {
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:           transformertypes.PathTemplatePathMappingType,

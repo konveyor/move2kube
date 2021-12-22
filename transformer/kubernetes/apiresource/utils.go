@@ -33,17 +33,43 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// TransformAndPersist transforms IR to yamls and writes to filesystem
-func TransformAndPersist(ir irtypes.EnhancedIR, outputPath string, apis []IAPIResource, targetCluster collecttypes.ClusterMetadata) (files []string, err error) {
+// TransformIRAndPersist transforms IR to yamls and writes to filesystem
+func TransformIRAndPersist(ir irtypes.EnhancedIR, outputPath string, apis []IAPIResource, targetCluster collecttypes.ClusterMetadata) (files []string, err error) {
 	targetObjs := []runtime.Object{}
 	for _, apiResource := range apis {
-		newObjs := (&APIResource{IAPIResource: apiResource}).ConvertIRToObjects(ir, targetCluster)
+		newObjs := (&APIResource{IAPIResource: apiResource}).convertIRToObjects(ir, targetCluster)
 		targetObjs = append(targetObjs, newObjs...)
 	}
 	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
 		logrus.Errorf("Unable to create deploy directory at path %s Error: %q", outputPath, err)
 	}
-	// deploy/yamls/
+	logrus.Debugf("Total %d services to be serialized.", len(targetObjs))
+	convertedObjs, err := convertVersion(targetObjs, targetCluster.Spec)
+	if err != nil {
+		logrus.Errorf("Failed to fix, convert and transform the objects. Error: %q", err)
+	}
+	filesWritten, err := writeObjects(outputPath, convertedObjs)
+	if err != nil {
+		logrus.Errorf("Failed to write the transformed objects to the directory at path %s . Error: %q", outputPath, err)
+		return nil, err
+	}
+	return filesWritten, nil
+}
+
+// TransformObjsAndPersist transforms versions of yamls in current directory and writes to filesystem
+func TransformObjsAndPersist(inputPath, outputPath string, apis []IAPIResource, targetCluster collecttypes.ClusterMetadata) (files []string, err error) {
+	targetObjs := []runtime.Object{}
+	if pendingObjs := k8sschema.GetKubernetesObjsInDir(inputPath); len(pendingObjs) != 0 {
+		for _, apiResource := range apis {
+			var newObjs []runtime.Object
+			newObjs, pendingObjs = (&APIResource{IAPIResource: apiResource}).convertObjectsToSupportedVersion(pendingObjs, targetCluster)
+			targetObjs = append(targetObjs, newObjs...)
+		}
+		targetObjs = append(targetObjs, pendingObjs...)
+	}
+	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
+		logrus.Errorf("Unable to create deploy directory at path %s Error: %q", outputPath, err)
+	}
 	logrus.Debugf("Total %d services to be serialized.", len(targetObjs))
 	convertedObjs, err := convertVersion(targetObjs, targetCluster.Spec)
 	if err != nil {

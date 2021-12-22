@@ -178,6 +178,8 @@ const (
 	ArtifactNameTemplatizedStringKey = "ArtifactName"
 	// ServiceNameTemplatizedStringKey is the key for denoting service name in a templatized string
 	ServiceNameTemplatizedStringKey = "ServiceName"
+	// ArtifactTypeTemplatizedStringKey is the key for denoting artifact type in a templatized string
+	ArtifactTypeTemplatizedStringKey = "ArtifactType"
 )
 
 var (

@@ -1,0 +1,22 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: Parameterizer
+  labels:
+    move2kube.konveyor.io/inbuilt: true
+spec:
+  class: "Parameterizer"
+  directoryDetect:
+    levels: -1
+  consumes:
+    Service:
+      merge: false
+    KubernetesYamlsInSource:
+      merge: false
+    KubernetesYamls:
+      merge: true
+  config:
+    helmPath: "{{ $pathType := EnvPathType .YamlsPath}}{{ $rel := Rel .YamlsPath }}{{ if eq $pathType \"Source\" }}source/{{end}}{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-parameterized/helm-chart"
+    ocTemplatePath: "{{ $pathType := EnvPathType .YamlsPath}}{{ $rel := Rel .YamlsPath }}{{ if eq $pathType \"Source\" }}source/{{end}}{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-parameterized/openshift-template"
+    kustomizePath: "{{ $pathType := EnvPathType .YamlsPath}}{{ $rel := Rel .YamlsPath }}{{ if eq $pathType \"Source\" }}source/{{end}}{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-parameterized/kustomize"
+    helmChartName: "{{ if eq .ArtifactType \"KubernetesYamls\" }}{{ .ProjectName }}{{ else }}{{ if eq .ArtifactType \"KubernetesYamlsInSource\" }}{{ .ArtifactName }}{{ else }}{{ .ServiceName }}{{end}}{{end}}"

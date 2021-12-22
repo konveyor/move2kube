@@ -123,7 +123,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 		apis := []apiresource.IAPIResource{new(apiresource.Deployment), new(apiresource.Storage), new(apiresource.Service), new(apiresource.ImageStream), new(apiresource.NetworkPolicy)}
-		files, err := apiresource.TransformAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, clusterConfig)
+		files, err := apiresource.TransformIRAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, clusterConfig)
 		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err

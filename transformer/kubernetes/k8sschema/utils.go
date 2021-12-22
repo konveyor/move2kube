@@ -19,15 +19,18 @@ package k8sschema
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/types"
 	"gopkg.in/yaml.v3"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
 // Intersection finds overlapping objects between the two arrays
@@ -157,4 +160,33 @@ func getK8sResourcesFromYaml(k8sYaml string) ([]K8sResourceT, error) {
 	var k8sResource K8sResourceT
 	err = json.Unmarshal(resourceJSONBytes, &k8sResource)
 	return []K8sResourceT{k8sResource}, err
+}
+
+// GetKubernetesObjsInDir returns returns all kubernetes objects in a dir
+func GetKubernetesObjsInDir(dir string) []runtime.Object {
+	objs := []runtime.Object{}
+	codecs := serializer.NewCodecFactory(GetSchema())
+	filePaths, err := common.GetFilesByExtInCurrDir(dir, []string{".yml", ".yaml"})
+	if err != nil {
+		logrus.Errorf("Unable to fetch yaml files at path %q Error: %q", dir, err)
+		return nil
+	}
+	for _, filePath := range filePaths {
+		data, err := ioutil.ReadFile(filePath)
+		if err != nil {
+			logrus.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
+			continue
+		}
+		obj, _, err := codecs.UniversalDeserializer().Decode(data, nil, nil)
+		if err != nil {
+			logrus.Debugf("Failed to decode the file at path %q as a k8s file. Error: %q", filePath, err)
+			continue
+		}
+		objGroupName := obj.GetObjectKind().GroupVersionKind().Group
+		if objGroupName == types.GroupName {
+			continue
+		}
+		objs = append(objs, obj)
+	}
+	return objs
 }
