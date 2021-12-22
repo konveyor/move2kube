@@ -1,0 +1,291 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: ClusterMetadata
+metadata: 
+  name: IBM-Openshift
+spec:
+  storageClasses:
+    - default
+    - ibmc-block-bronze
+    - ibmc-block-custom
+    - ibmc-block-gold
+    - ibmc-block-retain-bronze
+    - ibmc-block-retain-custom
+    - ibmc-block-retain-gold
+    - ibmc-block-retain-silver
+    - ibmc-block-silver
+    - ibmc-file-bronze
+    - ibmc-file-bronze-gid
+    - ibmc-file-custom
+    - ibmc-file-gold
+    - ibmc-file-gold-gid
+    - ibmc-file-retain-bronze
+    - ibmc-file-retain-custom
+    - ibmc-file-retain-gold
+    - ibmc-file-retain-silver
+    - ibmc-file-silver
+    - ibmc-file-silver-gid
+  apiKindVersionMap:
+    APIService:
+      - apiregistration.k8s.io/v1
+      - apiregistration.k8s.io/v1beta1
+    Alertmanager:
+      - monitoring.coreos.com/v1
+    AppliedClusterResourceQuota:
+      - quota.openshift.io/v1
+    BinaryBuildRequestOptions:
+      - build.openshift.io/v1
+    Binding:
+      - v1
+    BrokerTemplateInstance:
+      - template.openshift.io/v1
+    Build:
+      - build.openshift.io/v1
+    BuildConfig:
+      - build.openshift.io/v1
+    BuildLog:
+      - build.openshift.io/v1
+    BuildRequest:
+      - build.openshift.io/v1
+    Bundle:
+      - automationbroker.io/v1alpha1
+    BundleBinding:
+      - automationbroker.io/v1alpha1
+    BundleInstance:
+      - automationbroker.io/v1alpha1
+    CertificateSigningRequest:
+      - certificates.k8s.io/v1beta1
+    ClusterNetwork:
+      - network.openshift.io/v1
+    ClusterResourceQuota:
+      - quota.openshift.io/v1
+    ClusterRole:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
+    ClusterRoleBinding:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
+    ClusterServiceBroker:
+      - servicecatalog.k8s.io/v1beta1
+    ClusterServiceClass:
+      - servicecatalog.k8s.io/v1beta1
+    ClusterServicePlan:
+      - servicecatalog.k8s.io/v1beta1
+    ComponentStatus:
+      - v1
+    ConfigMap:
+      - v1
+    ControllerRevision:
+      - apps/v1
+      - apps/v1beta1
+      - apps/v1beta2
+    CronJob:
+      - batch/v1beta1
+    CustomResourceDefinition:
+      - apiextensions.k8s.io/v1beta1
+    DaemonSet:
+      - apps/v1
+      - apps/v1beta2
+      - extensions/v1beta1
+    Deployment:
+      - apps/v1
+      - apps/v1beta1
+      - apps/v1beta2
+      - extensions/v1beta1
+    DeploymentConfig:
+      - apps.openshift.io/v1
+    DeploymentConfigRollback:
+      - apps.openshift.io/v1
+    DeploymentLog:
+      - apps.openshift.io/v1
+    DeploymentRequest:
+      - apps.openshift.io/v1
+    DeploymentRollback:
+      - apps/v1beta1
+      - extensions/v1beta1
+    EgressNetworkPolicy:
+      - network.openshift.io/v1
+    Endpoints:
+      - v1
+    Event:
+      - events.k8s.io/v1beta1
+      - v1
+    Eviction:
+      - v1
+    Group:
+      - user.openshift.io/v1
+    HorizontalPodAutoscaler:
+      - autoscaling/v1
+      - autoscaling/v2beta1
+    HostSubnet:
+      - network.openshift.io/v1
+    Identity:
+      - user.openshift.io/v1
+    Image:
+      - image.openshift.io/v1
+    ImageSignature:
+      - image.openshift.io/v1
+    ImageStream:
+      - image.openshift.io/v1
+    ImageStreamImage:
+      - image.openshift.io/v1
+    ImageStreamImport:
+      - image.openshift.io/v1
+    ImageStreamLayers:
+      - image.openshift.io/v1
+    ImageStreamMapping:
+      - image.openshift.io/v1
+    ImageStreamTag:
+      - image.openshift.io/v1
+    Ingress:
+      - extensions/v1beta1
+    Job:
+      - batch/v1
+    LimitRange:
+      - v1
+    LocalResourceAccessReview:
+      - authorization.openshift.io/v1
+    LocalSubjectAccessReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
+    MutatingWebhookConfiguration:
+      - admissionregistration.k8s.io/v1beta1
+    Namespace:
+      - v1
+    NetNamespace:
+      - network.openshift.io/v1
+    NetworkPolicy:
+      - networking.k8s.io/v1
+      - extensions/v1beta1
+    Node:
+      - v1
+    OAuthAccessToken:
+      - oauth.openshift.io/v1
+    OAuthAuthorizeToken:
+      - oauth.openshift.io/v1
+    OAuthClient:
+      - oauth.openshift.io/v1
+    OAuthClientAuthorization:
+      - oauth.openshift.io/v1
+    PersistentVolume:
+      - v1
+    PersistentVolumeClaim:
+      - v1
+    Pod:
+      - v1
+    PodDisruptionBudget:
+      - policy/v1beta1
+    PodSecurityPolicy:
+      - policy/v1beta1
+      - extensions/v1beta1
+    PodSecurityPolicyReview:
+      - security.openshift.io/v1
+    PodSecurityPolicySelfSubjectReview:
+      - security.openshift.io/v1
+    PodSecurityPolicySubjectReview:
+      - security.openshift.io/v1
+    PodTemplate:
+      - v1
+    PriorityClass:
+      - scheduling.k8s.io/v1beta1
+    Project:
+      - project.openshift.io/v1
+    ProjectRequest:
+      - project.openshift.io/v1
+    Prometheus:
+      - monitoring.coreos.com/v1
+    PrometheusRule:
+      - monitoring.coreos.com/v1
+    RangeAllocation:
+      - security.openshift.io/v1
+    ReplicaSet:
+      - apps/v1
+      - apps/v1beta2
+      - extensions/v1beta1
+    ReplicationController:
+      - v1
+    ReplicationControllerDummy:
+      - extensions/v1beta1
+    ResourceAccessReview:
+      - authorization.openshift.io/v1
+    ResourceQuota:
+      - v1
+    Role:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
+    RoleBinding:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
+    RoleBindingRestriction:
+      - authorization.openshift.io/v1
+    Route:
+      - route.openshift.io/v1
+    Scale:
+      - apps/v1
+      - apps/v1beta1
+      - apps/v1beta2
+      - extensions/v1beta1
+      - v1
+      - apps.openshift.io/v1
+    Secret:
+      - v1
+    SecretList:
+      - image.openshift.io/v1
+    SecurityContextConstraints:
+      - v1
+      - security.openshift.io/v1
+    SelfSubjectAccessReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+    SelfSubjectRulesReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
+    Service:
+      - v1
+    ServiceAccount:
+      - v1
+    ServiceBinding:
+      - servicecatalog.k8s.io/v1beta1
+    ServiceBroker:
+      - servicecatalog.k8s.io/v1beta1
+    ServiceClass:
+      - servicecatalog.k8s.io/v1beta1
+    ServiceInstance:
+      - servicecatalog.k8s.io/v1beta1
+    ServiceMonitor:
+      - monitoring.coreos.com/v1
+    ServicePlan:
+      - servicecatalog.k8s.io/v1beta1
+    StatefulSet:
+      - apps/v1
+      - apps/v1beta1
+      - apps/v1beta2
+    StorageClass:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
+    SubjectAccessReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+      - authorization.openshift.io/v1
+    SubjectRulesReview:
+      - authorization.openshift.io/v1
+    Template:
+      - template.openshift.io/v1
+    TemplateInstance:
+      - template.openshift.io/v1
+    TokenReview:
+      - authentication.k8s.io/v1
+      - authentication.k8s.io/v1beta1
+    User:
+      - user.openshift.io/v1
+    UserIdentityMapping:
+      - user.openshift.io/v1
+    ValidatingWebhookConfiguration:
+      - admissionregistration.k8s.io/v1beta1
+    VolumeAttachment:
+      - storage.k8s.io/v1beta1

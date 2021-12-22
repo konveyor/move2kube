@@ -70,6 +70,11 @@
 "inbuilt/transformers/dockerfilegenerator/windows/winweb/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/windows/winweb/winweb.yaml" : 0644
 "inbuilt/transformers/kubernetes/buildconfig/buildconfig.yaml" : 0644
+"inbuilt/transformers/kubernetes/clusterselector/clusters/aws-eks.yaml" : 0664
+"inbuilt/transformers/kubernetes/clusterselector/clusters/azure-aks.yaml" : 0664
+"inbuilt/transformers/kubernetes/clusterselector/clusters/gcp-gke.yaml" : 0664
+"inbuilt/transformers/kubernetes/clusterselector/clusters/ibm-iks.yaml" : 0664
+"inbuilt/transformers/kubernetes/clusterselector/clusters/ibm-openshift.yaml" : 0664
 "inbuilt/transformers/kubernetes/clusterselector/clusters/kubernetes.yaml" : 0644
 "inbuilt/transformers/kubernetes/clusterselector/clusters/openshift.yaml" : 0644
 "inbuilt/transformers/kubernetes/clusterselector/clusterselector.yaml" : 0644
