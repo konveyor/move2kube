@@ -1,0 +1,155 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: ClusterMetadata
+metadata:
+  name: AWS-EKS
+spec:
+  storageClasses:
+    - gp2
+  apiKindVersionMap:
+    APIService:
+      - apiregistration.k8s.io/v1
+      - apiregistration.k8s.io/v1beta1
+    Binding:
+      - v1
+    CSIDriver:
+      - storage.k8s.io/v1beta1
+    CSINode:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
+    CertificateSigningRequest:
+      - certificates.k8s.io/v1beta1
+    ClusterRole:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+    ClusterRoleBinding:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+    ComponentStatus:
+      - v1
+    ConfigMap:
+      - v1
+    ControllerRevision:
+      - apps/v1
+    CronJob:
+      - batch/v1beta1
+    CustomResourceDefinition:
+      - apiextensions.k8s.io/v1
+      - apiextensions.k8s.io/v1beta1
+    DaemonSet:
+      - apps/v1
+    Deployment:
+      - apps/v1
+    ENIConfig:
+      - crd.k8s.amazonaws.com/v1alpha1
+    EndpointSlice:
+      - discovery.k8s.io/v1beta1
+    Endpoints:
+      - v1
+    Event:
+      - events.k8s.io/v1beta1
+      - v1
+    Eviction:
+      - v1
+    HorizontalPodAutoscaler:
+      - autoscaling/v1
+      - autoscaling/v2beta1
+      - autoscaling/v2beta2
+    Ingress:
+      - networking.k8s.io/v1beta1
+      - extensions/v1beta1
+    Job:
+      - batch/v1
+    Lease:
+      - coordination.k8s.io/v1
+      - coordination.k8s.io/v1beta1
+    LimitRange:
+      - v1
+    LocalSubjectAccessReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+    MutatingWebhookConfiguration:
+      - admissionregistration.k8s.io/v1
+      - admissionregistration.k8s.io/v1beta1
+    Namespace:
+      - v1
+    NetworkPolicy:
+      - networking.k8s.io/v1
+    Node:
+      - v1
+    NodeProxyOptions:
+      - v1
+    PersistentVolume:
+      - v1
+    PersistentVolumeClaim:
+      - v1
+    Pod:
+      - v1
+    PodAttachOptions:
+      - v1
+    PodDisruptionBudget:
+      - policy/v1beta1
+    PodExecOptions:
+      - v1
+    PodPortForwardOptions:
+      - v1
+    PodProxyOptions:
+      - v1
+    PodSecurityPolicy:
+      - policy/v1beta1
+    PodTemplate:
+      - v1
+    PriorityClass:
+      - scheduling.k8s.io/v1
+      - scheduling.k8s.io/v1beta1
+    ReplicaSet:
+      - apps/v1
+    ReplicationController:
+      - v1
+    ResourceQuota:
+      - v1
+    Role:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+    RoleBinding:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+    RuntimeClass:
+      - node.k8s.io/v1beta1
+    Scale:
+      - apps/v1
+      - v1
+    Secret:
+      - v1
+    SecurityGroupPolicy:
+      - vpcresources.k8s.aws/v1beta1
+    SelfSubjectAccessReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+    SelfSubjectRulesReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+    Service:
+      - v1
+    ServiceAccount:
+      - v1
+    ServiceProxyOptions:
+      - v1
+    StatefulSet:
+      - apps/v1
+    StorageClass:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
+    SubjectAccessReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+    TokenRequest:
+      - v1
+    TokenReview:
+      - authentication.k8s.io/v1
+      - authentication.k8s.io/v1beta1
+    ValidatingWebhookConfiguration:
+      - admissionregistration.k8s.io/v1
+      - admissionregistration.k8s.io/v1beta1
+    VolumeAttachment:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1

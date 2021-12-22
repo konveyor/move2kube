@@ -1,0 +1,195 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: ClusterMetadata
+metadata:
+  name: IBM-IKS
+spec:
+  storageClasses:
+    - default
+    - ibmc-block-bronze
+    - ibmc-block-custom
+    - ibmc-block-gold
+    - ibmc-block-retain-bronze
+    - ibmc-block-retain-custom
+    - ibmc-block-retain-gold
+    - ibmc-block-retain-silver
+    - ibmc-block-silver
+    - ibmc-file-bronze
+    - ibmc-file-bronze-gid
+    - ibmc-file-custom
+    - ibmc-file-gold
+    - ibmc-file-gold-gid
+    - ibmc-file-retain-bronze
+    - ibmc-file-retain-custom
+    - ibmc-file-retain-gold
+    - ibmc-file-retain-silver
+    - ibmc-file-silver
+    - ibmc-file-silver-gid
+  apiKindVersionMap:
+    APIService:
+      - apiregistration.k8s.io/v1
+    BGPConfiguration:
+      - crd.projectcalico.org/v1
+    BGPPeer:
+      - crd.projectcalico.org/v1
+    Binding:
+      - v1
+    BlockAffinity:
+      - crd.projectcalico.org/v1
+    CSIDriver:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
+    CSINode:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
+    CatalogSource:
+      - operators.coreos.com/v1alpha1
+    CertificateSigningRequest:
+      - certificates.k8s.io/v1beta1
+    ClusterInformation:
+      - crd.projectcalico.org/v1
+    ClusterRole:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+    ClusterRoleBinding:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+    ClusterServiceVersion:
+      - operators.coreos.com/v1alpha1
+    ComponentStatus:
+      - v1
+    ConfigMap:
+      - v1
+    ControllerRevision:
+      - apps/v1
+    CronJob:
+      - batch/v1beta1
+      - batch/v2alpha1
+    CustomResourceDefinition:
+      - apiextensions.k8s.io/v1
+    DaemonSet:
+      - apps/v1
+    Deployment:
+      - apps/v1
+    EndpointSlice:
+      - discovery.k8s.io/v1beta1
+    Endpoints:
+      - v1
+    Event:
+      - events.k8s.io/v1beta1
+      - v1
+    FelixConfiguration:
+      - crd.projectcalico.org/v1
+    GlobalNetworkPolicy:
+      - crd.projectcalico.org/v1
+    GlobalNetworkSet:
+      - crd.projectcalico.org/v1
+    HorizontalPodAutoscaler:
+      - autoscaling/v1
+      - autoscaling/v2beta1
+      - autoscaling/v2beta2
+    HostEndpoint:
+      - crd.projectcalico.org/v1
+    IPAMBlock:
+      - crd.projectcalico.org/v1
+    IPAMConfig:
+      - crd.projectcalico.org/v1
+    IPAMHandle:
+      - crd.projectcalico.org/v1
+    IPPool:
+      - crd.projectcalico.org/v1
+    Ingress:
+      - networking.k8s.io/v1
+      - networking.k8s.io/v1beta1
+      - extensions/v1beta1
+    IngressClass:
+      - networking.k8s.io/v1
+      - networking.k8s.io/v1beta1
+    InstallPlan:
+      - operators.coreos.com/v1alpha1
+    Job:
+      - batch/v1
+    KubeControllersConfiguration:
+      - crd.projectcalico.org/v1
+    Lease:
+      - coordination.k8s.io/v1beta1
+      - coordination.k8s.io/v1
+    LimitRange:
+      - v1
+    LocalSubjectAccessReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+    MutatingWebhookConfiguration:
+      - admissionregistration.k8s.io/v1beta1
+      - admissionregistration.k8s.io/v1
+    Namespace:
+      - v1
+    NetworkPolicy:
+      - networking.k8s.io/v1
+    NetworkSet:
+      - crd.projectcalico.org/v1
+    Node:
+      - v1
+    Operator:
+      - operators.coreos.com/v1
+    OperatorGroup:
+      - operators.coreos.com/v1
+    PersistentVolume:
+      - v1
+    PersistentVolumeClaim:
+      - v1
+    Pod:
+      - v1
+    PodDisruptionBudget:
+      - policy/v1beta1
+    PodSecurityPolicy:
+      - policy/v1beta1
+    PodTemplate:
+      - v1
+    PriorityClass:
+      - scheduling.k8s.io/v1beta1
+      - scheduling.k8s.io/v1
+    RBACSync:
+      - ibm.com/v1alpha1
+    ReplicaSet:
+      - apps/v1
+    ReplicationController:
+      - v1
+    ResourceQuota:
+      - v1
+    Role:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+    RoleBinding:
+      - rbac.authorization.k8s.io/v1
+      - rbac.authorization.k8s.io/v1beta1
+    Secret:
+      - v1
+    SelfSubjectAccessReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+    SelfSubjectRulesReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+    Service:
+      - v1
+    ServiceAccount:
+      - v1
+    StatefulSet:
+      - apps/v1
+    StorageClass:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
+    SubjectAccessReview:
+      - authorization.k8s.io/v1
+      - authorization.k8s.io/v1beta1
+    Subscription:
+      - operators.coreos.com/v1alpha1
+    TokenReview:
+      - authentication.k8s.io/v1
+      - authentication.k8s.io/v1beta1
+    ValidatingWebhookConfiguration:
+      - admissionregistration.k8s.io/v1beta1
+      - admissionregistration.k8s.io/v1
+    VolumeAttachment:
+      - storage.k8s.io/v1
+      - storage.k8s.io/v1beta1
