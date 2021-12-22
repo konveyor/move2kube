@@ -220,7 +220,7 @@ func getNamedAndUnNamedServicesLogMessage(services map[string][]transformertypes
 	nnservices := len(services)
 	nuntransformers := len(services[""])
 	if _, ok := services[""]; ok {
-		nuntransformers -= 1
+		nuntransformers--
 	}
 	return fmt.Sprintf("Identified %d named services and %d to-be-named services", nnservices, nuntransformers)
 }
