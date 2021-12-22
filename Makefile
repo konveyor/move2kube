@@ -38,7 +38,7 @@ GIT_TAG    = $(shell git tag --points-at | tail -n 1)
 GIT_DIRTY  = $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
 HAS_UPX    = $(shell command -v upx >/dev/null && echo true || echo false)
 
-GOGET     := cd / && GO111MODULE=on go get -u 
+GOGET     := cd / && GO111MODULE=on go install 
 
 ifdef VERSION
 	BINARY_VERSION = $(VERSION)
