@@ -444,7 +444,9 @@ func (e *Environment) Rel(destPath string) (string, error) {
 type EnvPathType string
 
 const (
+	// SourcePathType represents source path type
 	SourcePathType EnvPathType = "Source"
+	// OutputPathType represents output path type
 	OutputPathType EnvPathType = "Output"
 )
 
