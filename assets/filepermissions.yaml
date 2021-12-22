@@ -31,7 +31,6 @@
 "inbuilt/transformers/dockerfile/dockerimagebuildscript/templates/builddockerimages.sh" : 0755
 "inbuilt/transformers/dockerfilegenerator/common/Dockerfile.license" : 0644
 "inbuilt/transformers/dockerfilegenerator/dotnetcore/dotnetcore.yaml" : 0644
-"inbuilt/transformers/dockerfilegenerator/dotnetcore/mappings/dotnetcoreversions.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/dotnetcore/templates/Dockerfile" : 0644
 "inbuilt/transformers/dockerfilegenerator/golang/golang.yaml" : 0644
 "inbuilt/transformers/dockerfilegenerator/golang/templates/Dockerfile" : 0644
@@ -76,8 +75,8 @@
 "inbuilt/transformers/kubernetes/clusterselector/clusterselector.yaml" : 0644
 "inbuilt/transformers/kubernetes/knative/knative.yaml" : 0644
 "inbuilt/transformers/kubernetes/kubernetes/kubernetes.yaml" : 0644
-"inbuilt/transformers/kubernetes/parameterizers/parameterizers.yaml" : 0644
-"inbuilt/transformers/kubernetes/sourceparameterizer/parameterizers.yaml" : 0644
+"inbuilt/transformers/kubernetes/kubernetesversionchanger/kubernetesversionchanger.yaml" : 0644
+"inbuilt/transformers/kubernetes/parameterizer/parameterizer.yaml" : 0644
 "inbuilt/transformers/kubernetes/tekton/tekton.yaml" : 0644
 "inbuilt/transformers/readmegenerator/readmegenerator.yaml" : 0644
 "inbuilt/transformers/readmegenerator/templates/Readme.md" : 0644

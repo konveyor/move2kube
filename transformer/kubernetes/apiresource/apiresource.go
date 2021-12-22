@@ -51,8 +51,8 @@ type APIResource struct {
 	cachedobjs []runtime.Object
 }
 
-// ConvertIRToObjects converts IR to a runtime objects
-func (o *APIResource) ConvertIRToObjects(ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) (newObjs []runtime.Object) {
+// convertIRToObjects converts IR to a runtime objects
+func (o *APIResource) convertIRToObjects(ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) (newObjs []runtime.Object) {
 	objs := o.createNewResources(ir, o.getClusterSupportedKinds(targetCluster), targetCluster)
 	for _, obj := range objs {
 		if !o.loadResource(obj, objs, ir, targetCluster) {
@@ -60,6 +60,24 @@ func (o *APIResource) ConvertIRToObjects(ir irtypes.EnhancedIR, targetCluster co
 		}
 	}
 	return o.cachedobjs
+}
+
+// convertObjsToSupportedVersion converts objs to supported version
+func (o *APIResource) convertObjectsToSupportedVersion(objs []runtime.Object, targetCluster collecttypes.ClusterMetadata) (newObjs []runtime.Object, unprocessedObjs []runtime.Object) {
+	newObjs = []runtime.Object{}
+	unprocessedObjs = []runtime.Object{}
+	for _, obj := range objs {
+		if !o.isSupportedKind(obj) {
+			unprocessedObjs = append(unprocessedObjs, obj)
+			continue
+		}
+		if newcobjs, ok := o.convertToClusterSupportedKinds(obj, o.getClusterSupportedKinds(targetCluster), nil, irtypes.NewEnhancedIRFromIR(irtypes.NewIR()), targetCluster); ok {
+			newObjs = append(newObjs, newcobjs...)
+		} else {
+			unprocessedObjs = append(unprocessedObjs, obj)
+		}
+	}
+	return newObjs, unprocessedObjs
 }
 
 func (o *APIResource) isSupportedKind(obj runtime.Object) bool {

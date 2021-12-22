@@ -209,8 +209,7 @@ func setTransformerInfoForServices(services map[string][]transformertypes.Artifa
 	for sn, s := range services {
 		for sti, st := range s {
 			// To make the plan yaml look better we do this
-			st.Type = transformertypes.ArtifactType(t.Name) //artifacts.ServiceArtifactType
-			//st.ProcessWith = *metav1.AddLabelToSelector(&st.ProcessWith, transformertypes.LabelName, t.Name)
+			st.Name = t.Name
 			services[sn][sti] = st
 		}
 	}

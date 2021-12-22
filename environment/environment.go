@@ -349,6 +349,8 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 		if strings.EqualFold(string(pm.Type), string(transformertypes.PathTemplatePathMappingType)) {
 			// Process path template
 			methodMap := template.FuncMap{
+				"EnvPathType":  e.PathType,
+				"Rel":          e.Rel,
 				"SourceRel":    e.SourceRel,
 				"OutputRel":    e.OutputRel,
 				"TempRoot":     e.CreateTempRoot,
@@ -401,10 +403,10 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 	return dupPathMappings
 }
 
-// SourceRel makes the path base-dir relative. Exposed to be used within path-mapping destination-path template.
+// SourceRel makes the path relative. Exposed to be used within path-mapping destination-path template.
 func (e *Environment) SourceRel(destPath string) (string, error) {
 	if !common.IsParent(destPath, e.GetEnvironmentSource()) {
-		return "", fmt.Errorf("%s not parent of %s", destPath, e.GetEnvironmentSource())
+		return "", fmt.Errorf("%s not parent of source", destPath)
 	}
 	dp, err := filepath.Rel(e.GetEnvironmentSource(), destPath)
 	if err != nil {
@@ -414,17 +416,47 @@ func (e *Environment) SourceRel(destPath string) (string, error) {
 	return dp, nil
 }
 
-// OutputRel makes the path output-dir relative. Exposed to be used within path-mapping destination-path template.
+// OutputRel makes the path relative. Exposed to be used within path-mapping destination-path template.
 func (e *Environment) OutputRel(destPath string) (string, error) {
-	if !common.IsParent(destPath, e.CurrEnvOutputBasePath) {
-		return "", fmt.Errorf("%s not parent of %s", destPath, e.GetEnvironmentSource())
+	if !common.IsParent(destPath, e.GetEnvironmentOutput()) {
+		return "", fmt.Errorf("%s not parent of output", destPath)
 	}
-	dp, err := filepath.Rel(e.CurrEnvOutputBasePath, destPath)
+	dp, err := filepath.Rel(e.GetEnvironmentOutput(), destPath)
 	if err != nil {
-		logrus.Errorf("Unable to convert destination path relative to env source : %s", err)
+		logrus.Errorf("Unable to convert destination path relative to env output : %s", err)
 		return "", err
 	}
 	return dp, nil
+}
+
+// Rel makes the path relative. Exposed to be used within path-mapping destination-path template.
+func (e *Environment) Rel(destPath string) (string, error) {
+	if r, err := e.SourceRel(destPath); err == nil {
+		return r, nil
+	} else if r, err = e.OutputRel(destPath); err == nil {
+		return r, nil
+	} else {
+		return "", fmt.Errorf("%s not parent of source or output", destPath)
+	}
+}
+
+// EnvPathType stores possible path types
+type EnvPathType string
+
+const (
+	SourcePathType EnvPathType = "Source"
+	OutputPathType EnvPathType = "Output"
+)
+
+// PathType makes the path relative. Exposed to be used within path-mapping destination-path template.
+func (e *Environment) PathType(destPath string) (EnvPathType, error) {
+	if _, err := e.SourceRel(destPath); err == nil {
+		return SourcePathType, nil
+	} else if _, err = e.OutputRel(destPath); err == nil {
+		return OutputPathType, nil
+	} else {
+		return "", fmt.Errorf("%s not parent of source or output", destPath)
+	}
 }
 
 // CreateTempRoot returns the "/" to indicate the temp-root creation. Exposed to be used within path-mapping destination-path template.

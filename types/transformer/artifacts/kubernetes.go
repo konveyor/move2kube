@@ -20,8 +20,16 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
-// KubernetesYamlsArtifactType is the name of the Kubernetes artifact type
-const KubernetesYamlsArtifactType transformertypes.ArtifactType = "KubernetesYamls"
+const (
+	// KubernetesYamlsArtifactType is the name of the Kubernetes artifact type
+	KubernetesYamlsArtifactType transformertypes.ArtifactType = "KubernetesYamls"
 
-// KubernetesYamlsPathType is points to the kubernetes Yamls
-const KubernetesYamlsPathType transformertypes.PathType = "KubernetesYamls"
+	// KubernetesYamlsInSourceArtifactType is the name of the Kubernetes artifact type
+	KubernetesYamlsInSourceArtifactType transformertypes.ArtifactType = "KubernetesYamlsInSource"
+
+	// KubernetesOrgYamlsInSourceArtifactType is the name of the Kubernetes original yamls artifact type
+	KubernetesOrgYamlsInSourceArtifactType transformertypes.ArtifactType = "KubernetesOrgYamlsInSource"
+
+	// KubernetesYamlsPathType is points to the kubernetes Yamls
+	KubernetesYamlsPathType transformertypes.PathType = "KubernetesYamls"
+)

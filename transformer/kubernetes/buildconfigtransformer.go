@@ -104,7 +104,7 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alread
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Infof("Generating Buildconfig pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
-		files, err := apiresource.TransformAndPersist(enhancedIR, tempDest, apis, clusterConfig)
+		files, err := apiresource.TransformIRAndPersist(enhancedIR, tempDest, apis, clusterConfig)
 		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err

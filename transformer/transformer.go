@@ -103,6 +103,7 @@ func init() {
 		new(kubernetes.Tekton),
 		new(kubernetes.BuildConfig),
 		new(kubernetes.Parameterizer),
+		new(kubernetes.KubernetesVersionChanger),
 
 		new(ReadMeGenerator),
 	}
@@ -355,9 +356,10 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			continue
 		}
 		a := sas[0]
-		a.Name = sn
-		a.ProcessWith = *metav1.AddLabelToSelector(&a.ProcessWith, transformertypes.LabelName, string(a.Type))
-		a.Type = artifacts.ServiceArtifactType
+		a.ProcessWith = *metav1.AddLabelToSelector(&a.ProcessWith, transformertypes.LabelName, string(a.Name))
+		if a.Type == "" {
+			a.Type = artifacts.ServiceArtifactType
+		}
 		serviceConfig := artifacts.ServiceConfig{
 			ServiceName: sn,
 		}

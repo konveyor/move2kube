@@ -78,7 +78,7 @@ func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) planty
 	for sn, st := range p.Spec.Services {
 		sArtifacts := []transformertypes.Artifact{}
 		for _, t := range st {
-			if common.IsStringPresent(transformers, string(t.Type)) {
+			if common.IsStringPresent(transformers, string(t.Name)) {
 				sArtifacts = append(sArtifacts, t)
 				break
 			}
