@@ -209,7 +209,7 @@ func skipIfStatement(chunk string, state *gradleParseState) bool {
 
 func skipFunctionDefinition(chunk string, state *gradleParseState) {
 	parenthesisNest := 1
-	state.index += 1
+	state.index++
 	chunkAsRuneA := []rune(chunk)
 	chunkLen := len(chunkAsRuneA)
 	var character rune
@@ -220,14 +220,14 @@ func skipFunctionDefinition(chunk string, state *gradleParseState) {
 		} else if character == charRightParanthesis {
 			parenthesisNest--
 		}
-		state.index += 1
+		state.index++
 		character = chunkAsRuneA[state.index]
 	}
 	for chunkLen < state.index && character != charBlockStart {
-		state.index += 1
+		state.index++
 		character = chunkAsRuneA[state.index]
 	}
-	state.index += 1
+	state.index++
 	character = chunkAsRuneA[state.index]
 	blockNest := 1
 	for chunkLen < state.index && blockNest != 0 {
@@ -236,10 +236,10 @@ func skipFunctionDefinition(chunk string, state *gradleParseState) {
 		} else if character == charBlockEnd {
 			blockNest--
 		}
-		state.index += 1
+		state.index++
 		character = chunkAsRuneA[state.index]
 	}
-	state.index -= 1
+	state.index--
 }
 
 func parseDependencyClosure(chunk string, state *gradleParseState) []GradleDependency {

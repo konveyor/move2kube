@@ -21,7 +21,6 @@ REGISTRYNS  := quay.io/konveyor
 
 GOPATH        = $(shell go env GOPATH)
 GOX           = $(GOPATH)/bin/gox
-GOLINT        = $(GOPATH)/bin/golint 
 GOTEST        = ${GOPATH}/bin/gotest
 GOLANGCILINT  = $(GOPATH)/bin/golangci-lint 
 GOLANGCOVER   = $(GOPATH)/bin/goveralls 
@@ -111,14 +110,14 @@ test: ## Run tests
 	@printf "\033[32m-------------------------------------\n TESTS PASSED\n-------------------------------------\033[0m\n"
 
 ${GOTEST}:
-	${GOGET} github.com/rakyll/gotest
+	${GOGET} github.com/rakyll/gotest@v0.0.6
 
 .PHONY: test-verbose
 test-verbose: ${GOTEST}
 	gotest -run . $(PKG) -race -v
 
 ${GOLANGCOVER}:
-	${GOGET} github.com/mattn/goveralls@v0.0.6
+	${GOGET} github.com/mattn/goveralls@v0.0.11
 
 .PHONY: test-coverage
 test-coverage: ${GOLANGCOVER} ## Run tests with coverage
@@ -127,13 +126,9 @@ test-coverage: ${GOLANGCOVER} ## Run tests with coverage
 ${GOLANGCILINT}:
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.31.0
 
-${GOLINT}:
-	${GOGET} golang.org/x/lint/golint
-
 .PHONY: test-style
-test-style: ${GOLANGCILINT} ${GOLINT} 
+test-style: ${GOLANGCILINT} 
 	${GOLANGCILINT} run --timeout 3m
-	${GOLINT} ${PKG}
 	scripts/licensecheck.sh
 	@printf "\033[32m-------------------------------------\n STYLE CHECK PASSED\n-------------------------------------\033[0m\n"
 
