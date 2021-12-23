@@ -3,9 +3,15 @@ kind: Transformer
 metadata:
   name: ZuulAnalyser
   labels: 
-    move2kube.konveyor.io/task: containerization
     move2kube.konveyor.io/inbuilt: true
 spec:
   class: "ZuulAnalyser"
   directoryDetect:
-    levels: 1
+    levels: 0
+  consumes:
+    IR: 
+      merge: true
+      mode: "MandatoryPassThrough"
+  produces:
+    IR:
+      disabled: false
