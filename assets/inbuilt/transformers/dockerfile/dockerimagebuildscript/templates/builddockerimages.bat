@@ -14,6 +14,6 @@
 
 {{range $dockerfile := . }}
 pushd {{ $dockerfile.ContextWindows }}
-docker build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
+{{ .ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 popd
 {{end}}
