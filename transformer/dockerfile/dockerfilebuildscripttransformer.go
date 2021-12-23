@@ -21,6 +21,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -34,10 +35,11 @@ type DockerfileImageBuildScript struct {
 
 // DockerfileImageBuildScriptTemplateConfig represents template config used by ImagePush script
 type DockerfileImageBuildScriptTemplateConfig struct {
-	DockerfileName string
-	ImageName      string
-	ContextUnix    string
-	ContextWindows string
+	DockerfileName   string
+	ImageName        string
+	ContextUnix      string
+	ContextWindows   string
+	ContainerRuntime string
 }
 
 // Init Initializes the transformer
@@ -88,10 +90,11 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 					continue
 				}
 				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:      sImageName.ImageName,
-					ContextUnix:    common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relPath)),
-					ContextWindows: common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relPath)),
-					DockerfileName: filepath.Base(path),
+					ImageName:        sImageName.ImageName,
+					ContextUnix:      common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relPath)),
+					ContextWindows:   common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relPath)),
+					DockerfileName:   filepath.Base(path),
+					ContainerRuntime: commonqa.GetContainerRuntime(),
 				})
 			} else if common.IsParent(path, t.Env.GetEnvironmentOutput()) {
 				relPath, err = filepath.Rel(t.Env.GetEnvironmentOutput(), filepath.Dir(path))
@@ -100,17 +103,19 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 					continue
 				}
 				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:      sImageName.ImageName,
-					ContextUnix:    common.GetUnixPath(relPath),
-					ContextWindows: common.GetWindowsPath(relPath),
-					DockerfileName: filepath.Base(path),
+					ImageName:        sImageName.ImageName,
+					ContextUnix:      common.GetUnixPath(relPath),
+					ContextWindows:   common.GetWindowsPath(relPath),
+					DockerfileName:   filepath.Base(path),
+					ContainerRuntime: commonqa.GetContainerRuntime(),
 				})
 			} else {
 				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:      sImageName.ImageName,
-					ContextUnix:    common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relPath)),
-					ContextWindows: common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relPath)),
-					DockerfileName: filepath.Base(path),
+					ImageName:        sImageName.ImageName,
+					ContextUnix:      common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relPath)),
+					ContextWindows:   common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relPath)),
+					DockerfileName:   filepath.Base(path),
+					ContainerRuntime: commonqa.GetContainerRuntime(),
 				})
 			}
 			nartifacts = append(nartifacts, transformertypes.Artifact{

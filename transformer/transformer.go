@@ -95,7 +95,6 @@ func init() {
 		new(CloudFoundry),
 
 		new(containerimage.ContainerImagesPushScript),
-		new(containerimage.ContainerImagesBuildScript),
 
 		new(kubernetes.ClusterSelectorTransformer),
 		new(kubernetes.Kubernetes),

@@ -1,5 +1,5 @@
 [![Build](https://github.com/konveyor/move2kube/workflows/Build/badge.svg "Github Actions")](https://github.com/konveyor/move2kube/actions?query=workflow%3ABuild)
-[![Docker Repository on Quay](https://quay.io/repository/konveyor/move2kube/status "Docker Repository on Quay")](https://quay.io/repository/konveyor/move2kube)
+[![Container Repository on Quay](https://quay.io/repository/konveyor/move2kube/status "Container Repository on Quay")](https://quay.io/repository/konveyor/move2kube)
 [![License](https://img.shields.io/:license-apache-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Go Report Card](https://goreportcard.com/badge/github.com/konveyor/move2kube)](https://goreportcard.com/report/github.com/konveyor/move2kube)
 [<img src="https://img.shields.io/badge/slack-konveyor/move2kube-green.svg?logo=slack">](https://kubernetes.slack.com/archives/CR85S82A2)
@@ -90,7 +90,7 @@ To browse code [![Open in VSCode](https://open.vscode.dev/badges/open-in-vscode.
 | Docker Compose/Swarm | Docker compose files | Deployment artifacts |
 | Docker Compose/Swarm | Docker compose files, Docker images | Deployment artifacts, CI/CD pipeline artifacts |
 | Source Directories | Source code with no source metadata |  Containerization options based on source code, Deployment artifacts, CI/CD artifacts |
-| Kubernetes Yamls | Kubernetes Yamls | Parameterize and create Helm chart, Kustomize yamls and Openshift templates. |
+| Kubernetes Yamls | Kubernetes Yamls | Change versions, parameterize and create Helm chart, Kustomize yamls and Openshift templates. |
 
 ## Output
 

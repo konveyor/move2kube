@@ -15,6 +15,6 @@
 
 {{range $dockerfile := . }}
 cd {{ $dockerfile.ContextUnix }}
-docker build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
+{{ .ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 cd -
 {{end}}
