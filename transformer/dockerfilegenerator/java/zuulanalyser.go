@@ -21,29 +21,14 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	// ZuulServiceConfigType defines config type
-	ZuulServiceConfigType transformertypes.ConfigType = "ZuulService"
-)
-
-const (
-	// ZuulSpringBootFile defines path type
-	ZuulSpringBootFile transformertypes.PathType = "SpringBootFile"
 )
 
 // ZuulAnalyser implements Transformer interface
 type ZuulAnalyser struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
-}
-
-// ZuulConfig defines service expose url path
-type ZuulConfig struct {
-	ServiceRelativePath string `yaml:"serviceRelativePath,omitempty"`
+	Config   transformertypes.Transformer
+	Env      *environment.Environment
+	Services map[string]string
 }
 
 // ZuulSpec defines zuul specification
@@ -60,6 +45,23 @@ type Zuul struct {
 func (t *ZuulAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
+	yamlpaths, err := common.GetFilesByExt(env.GetEnvironmentSource(), []string{".yaml", ".yml"})
+	if err != nil {
+		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", env.GetEnvironmentSource(), err)
+		return err
+	}
+	t.Services = map[string]string{}
+	for _, path := range yamlpaths {
+		z := Zuul{}
+		if err := common.ReadYaml(path, &z); err != nil || z.ZuulSpec.RouteSpec == nil {
+			continue
+		}
+		for servicename, routepath := range z.ZuulSpec.RouteSpec {
+			// TODO: routepath (ant style) to regex
+			routepath = routepath[:len(routepath)-2]
+			t.Services[servicename] = routepath
+		}
+	}
 	return nil
 }
 
@@ -70,69 +72,33 @@ func (t *ZuulAnalyser) GetConfig() (transformertypes.Transformer, *environment.E
 
 // DirectoryDetect runs detect in base directory
 func (t *ZuulAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	services = map[string][]transformertypes.Artifact{}
-	yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
-	if err != nil {
-		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
-		return nil, err
-	}
-	for _, path := range yamlpaths {
-		z := Zuul{}
-		if err := common.ReadYaml(path, &z); err != nil || z.ZuulSpec.RouteSpec == nil {
-			continue
-		}
-
-		for servicename, routepath := range z.ZuulSpec.RouteSpec {
-
-			// TODO: routepath (ant style) to regex
-
-			routepath = routepath[:len(routepath)-2]
-			ct := transformertypes.Artifact{
-				Configs: map[transformertypes.ConfigType]interface{}{
-					ZuulServiceConfigType: ZuulConfig{
-						ServiceRelativePath: routepath,
-					}},
-				Paths: map[transformertypes.PathType][]string{
-					ZuulSpringBootFile: {
-						path,
-					},
-				},
-			}
-			services[servicename] = append(services[servicename], ct)
-		}
-	}
-	return services, nil
+	return nil, nil
 }
 
 // Transform transforms the artifacts
 func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		var config ZuulConfig
-		err := a.GetConfig(ZuulServiceConfigType, &config)
+		var ir irtypes.IR
+		err := a.GetConfig(irtypes.IRConfigType, &ir)
 		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", config, err)
+			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
-		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
-			continue
+		for sn, s := range ir.Services {
+			if r, ok := t.Services[sn]; ok {
+				if len(s.ServiceToPodPortForwardings) > 0 {
+					s.ServiceToPodPortForwardings[0].ServiceRelPath = r
+				}
+				if s.Annotations == nil {
+					s.Annotations = map[string]string{}
+				}
+				s.Annotations[common.ExposeSelector] = common.AnnotationLabelValue
+			}
+			ir.Services[sn] = s
 		}
-
-		ir := irtypes.NewIR()
-		logrus.Debugf("Transforming %s", sConfig.ServiceName)
-		//TOFIX
-		serviceConfig := irtypes.Service{Name: sConfig.ServiceName, Annotations: map[string]string{common.ExposeSelector: common.AnnotationLabelValue}}
-		ir.Services[sConfig.ServiceName] = serviceConfig
-		artifactsCreated = append(artifactsCreated, transformertypes.Artifact{
-			Name: t.Env.GetProjectName(),
-			Type: irtypes.IRArtifactType,
-			Configs: map[transformertypes.ConfigType]interface{}{
-				irtypes.IRConfigType: ir,
-			},
-		})
+		a.Configs[irtypes.IRConfigType] = ir
+		artifactsCreated = append(artifactsCreated, a)
 	}
 	return nil, artifactsCreated, nil
 }
