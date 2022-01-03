@@ -36,7 +36,7 @@ func getVersionCommand() *cobra.Command {
 		Run:   func(*cobra.Command, []string) { fmt.Println(api.GetVersion(long)) },
 	}
 
-	versionCmd.Flags().BoolVarP(&long, "long", "l", false, "print the version details")
+	versionCmd.Flags().BoolVarP(&long, "long", "l", false, "Print the version details.")
 
 	return versionCmd
 }

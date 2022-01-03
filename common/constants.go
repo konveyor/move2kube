@@ -25,6 +25,11 @@ import (
 )
 
 const (
+	// DisableLocalExecutionFlag is the name of the flag that tells us whether to use allow execution of executables locally
+	DisableLocalExecutionFlag = "disable-local-execution"
+)
+
+const (
 	// DefaultProjectName represents the short app name
 	DefaultProjectName = "myproject"
 	// VolumePrefix defines the prefix to be used for volumes
@@ -189,6 +194,8 @@ var (
 	DefaultPVCSize, _ = resource.ParseQuantity("100Mi")
 	// IgnoreEnvironment indicates whether to ignore the current environment or not
 	IgnoreEnvironment = false
+	// DisableLocalExecution indicates whether to allow execution of local executables
+	DisableLocalExecution = false
 	// DefaultIgnoreDirRegexps specifies directory name regexes that would be ignored
 	DefaultIgnoreDirRegexps = []*regexp.Regexp{regexp.MustCompile("^[.].*")}
 	// Characters not allowed in a DNS Name

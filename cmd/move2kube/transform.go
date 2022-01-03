@@ -34,6 +34,8 @@ type transformFlags struct {
 	qaflags
 	// ignoreEnv tells us whether to use data collected from the local machine
 	ignoreEnv bool
+	// disableLocalExecution disables execution of executables locally
+	disableLocalExecution bool
 	// planfile is contains the path to the plan file
 	planfile string
 	// outpath contains the path to the output folder
@@ -77,6 +79,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 
 	// Global settings
 	common.IgnoreEnvironment = flags.ignoreEnv
+	common.DisableLocalExecution = flags.disableLocalExecution
 	// Global settings
 
 	// Parameter cleaning and curate plan
@@ -171,20 +174,21 @@ func getTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory to transform. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
 	transformCmd.Flags().StringVarP(&flags.outpath, outputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	transformCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location")
-	transformCmd.Flags().StringVar(&flags.qaCacheOut, qaCacheOutFlag, ".", "Specify cache file output location")
-	transformCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations")
-	transformCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use")
-	transformCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs")
+	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location.")
+	transformCmd.Flags().StringVar(&flags.qaCacheOut, qaCacheOutFlag, ".", "Specify cache file output location.")
+	transformCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations.")
+	transformCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use.")
+	transformCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs.")
 	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored.")
-	transformCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "t", "", "Specify the transformer selector")
+	transformCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "t", "", "Specify the transformer selector.")
+	transformCmd.Flags().BoolVar(&flags.qaskip, qaSkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 
 	// Advanced options
 	transformCmd.Flags().BoolVar(&flags.ignoreEnv, ignoreEnvFlag, false, "Ignore data from local machine.")
+	transformCmd.Flags().BoolVar(&flags.disableLocalExecution, common.DisableLocalExecutionFlag, false, "Allow files to be executed locally.")
 
 	// Hidden options
 	transformCmd.Flags().BoolVar(&flags.qadisablecli, qadisablecliFlag, false, "Enable/disable the QA Cli sub-system. Without this system, you will have to use the REST API to interact.")
-	transformCmd.Flags().BoolVar(&flags.qaskip, qaSkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 	transformCmd.Flags().IntVar(&flags.qaport, qaportFlag, 0, "Port for the QA service. By default it chooses a random free port.")
 
 	must(transformCmd.Flags().MarkHidden(qadisablecliFlag))

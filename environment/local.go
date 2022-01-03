@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/types"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
@@ -83,6 +84,11 @@ func (e *Local) Reset() error {
 
 // Exec executes an executable within the environment
 func (e *Local) Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error) {
+	if common.DisableLocalExecution {
+		err := fmt.Errorf("local execution prevented by %s flag", common.DisableLocalExecutionFlag)
+		logrus.Error(err)
+		return "", "", 0, err
+	}
 	var outb, errb bytes.Buffer
 	var execcmd *exec.Cmd
 	if len(cmd) > 0 {
