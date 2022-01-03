@@ -14,20 +14,19 @@
  *  limitations under the License.
  */
 
-package main
+package commands
 
 import (
 	"io"
 	"os"
 
-	"github.com/konveyor/move2kube/assets"
 	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
-func main() {
+// GetRootCmd returns the root command that contains all the other commands
+func GetRootCmd() *cobra.Command {
 	loglevel := logrus.InfoLevel.String()
 	logFile := ""
 
@@ -36,11 +35,11 @@ func main() {
 		Use:   "move2kube",
 		Short: "Move2Kube creates all the resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.",
 		Long: `Move2Kube creates all resources required for deploying your application into kubernetes, including containerisation and kubernetes resources.
-It supports translating from docker swarm/docker-compose, cloud foundry apps and even other non-containerized applications.
-Even if the app does not use any of the above, or even if it is not containerized it can still be transformed.
-
-For more documentation and support, visit https://move2kube.konveyor.io/
-`,
+	It supports translating from docker swarm/docker-compose, cloud foundry apps and even other non-containerized applications.
+	Even if the app does not use any of the above, or even if it is not containerized it can still be transformed.
+	
+	For more documentation and support, visit https://move2kube.konveyor.io/
+	`,
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			logl, err := logrus.ParseLevel(loglevel)
 			if err != nil {
@@ -62,24 +61,10 @@ For more documentation and support, visit https://move2kube.konveyor.io/
 	rootCmd.PersistentFlags().StringVar(&loglevel, "log-level", logrus.InfoLevel.String(), "Set logging levels.")
 	rootCmd.PersistentFlags().StringVar(&logFile, "log-file", "", "File to store the logs in. By default it only prints to console.")
 
-	rootCmd.AddCommand(getVersionCommand())
-	rootCmd.AddCommand(getCollectCommand())
-	rootCmd.AddCommand(getPlanCommand())
-	rootCmd.AddCommand(getTransformCommand())
-
-	assetsFilePermissions := map[string]int{}
-	err := yaml.Unmarshal([]byte(assets.AssetFilePermissions), &assetsFilePermissions)
-	if err != nil {
-		logrus.Fatalf("unable to convert permissions. Error: %q", err)
-	}
-	assetsPath, tempPath, err := common.CreateAssetsData(assets.AssetsDir, assetsFilePermissions)
-	if err != nil {
-		logrus.Fatalf("unable to create the assets directory. Error: %q", err)
-	}
-	common.TempPath = tempPath
-	common.AssetsPath = assetsPath
-	defer os.RemoveAll(tempPath)
-	if err := rootCmd.Execute(); err != nil {
-		logrus.Fatalf("Error: %q", err)
-	}
+	rootCmd.AddCommand(GetVersionCommand())
+	rootCmd.AddCommand(GetCollectCommand())
+	rootCmd.AddCommand(GetPlanCommand())
+	rootCmd.AddCommand(GetTransformCommand())
+	rootCmd.AddCommand(GetGenerateDocsCommand())
+	return rootCmd
 }

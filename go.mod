@@ -70,6 +70,7 @@ require (
 	github.com/containerd/containerd v1.5.8 // indirect
 	github.com/containerd/typeurl v1.0.2 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
@@ -126,6 +127,7 @@ require (
 	github.com/opencontainers/runc v1.0.3 // indirect
 	github.com/paulmach/orb v0.2.2 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
