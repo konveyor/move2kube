@@ -1073,6 +1073,10 @@ func StringifyMap(inputMap map[string]interface{}) map[string]interface{} {
 			inputMap[key] = nil
 			continue
 		}
+		if reflect.TypeOf(value).Kind() == reflect.String {
+			inputMap[key] = value.(string)
+			continue
+		}
 		var b bytes.Buffer
 		encoder := json.NewEncoder(&b)
 		if err := encoder.Encode(value); err != nil {
@@ -1081,10 +1085,7 @@ func StringifyMap(inputMap map[string]interface{}) map[string]interface{} {
 		}
 		strValue := string(b.Bytes())
 		strValue = strings.TrimSpace(strValue)
-		strValue = strings.Trim(strValue, `"\r\n`)
-		if strValue == "{}" {
-			strValue = ""
-		}
+		strValue = strings.Trim(strValue, `\r\n`)
 		inputMap[key] = strValue
 	}
 	return inputMap
