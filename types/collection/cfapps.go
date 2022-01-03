@@ -17,6 +17,7 @@
 package collection
 
 import (
+	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/types"
 
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
@@ -51,4 +52,19 @@ func NewCfApps() CfApps {
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
 	}
+}
+
+// FormatMapsWithInterface stringifies interfaces in cloud foundry data
+func FormatMapsWithInterface(cfAppInstances CfApps) CfApps {
+	for index, app := range cfAppInstances.Spec.CfApps {
+		app.Application.DockerCredentialsJSON = common.StringifyMap(app.Application.DockerCredentialsJSON)
+		app.Application.Environment = common.StringifyMap(app.Application.Environment)
+		app.Environment.Environment = common.StringifyMap(app.Environment.Environment)
+		app.Environment.ApplicationEnv = common.StringifyMap(app.Environment.ApplicationEnv)
+		app.Environment.RunningEnv = common.StringifyMap(app.Environment.RunningEnv)
+		app.Environment.StagingEnv = common.StringifyMap(app.Environment.StagingEnv)
+		app.Environment.SystemEnv = common.StringifyMap(app.Environment.SystemEnv)
+		cfAppInstances.Spec.CfApps[index] = app
+	}
+	return cfAppInstances
 }

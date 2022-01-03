@@ -71,6 +71,7 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		}
 		cfinstanceapps.Spec.CfApps = append(cfinstanceapps.Spec.CfApps, cfapp)
 	}
+	cfinstanceapps = collecttypes.FormatMapsWithInterface(cfinstanceapps)
 	fileName := "cfapps" + cli.ClientID
 	if fileName != "" {
 		outputPath = filepath.Join(outputPath, common.NormalizeForFilename(fileName)+".yaml")
