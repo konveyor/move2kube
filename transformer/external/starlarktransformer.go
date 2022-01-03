@@ -247,32 +247,6 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 	})
 }
 
-func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
-	return starlark.NewBuiltin(fswriteFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-		var filePath, data string
-		var permissions = common.DefaultFilePermission
-		if err := starlark.UnpackArgs(fswriteFnName, args, kwargs, "filepath", &filePath, "data", &data, "perm?", &permissions); err != nil {
-			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fswriteFnName, err)
-		}
-		if filePath == "" {
-			return starlark.None, fmt.Errorf("FilePath is missing in write parameters")
-		}
-		if len(data) == 0 {
-			return starlark.None, fmt.Errorf("data is missing in write parameters")
-		}
-		numBytesWritten := len(data)
-		err := os.WriteFile(filePath, []byte(data), fs.FileMode(permissions))
-		if err != nil {
-			return starlark.None, fmt.Errorf("could not write to file %s", filePath)
-		}
-		retValue, err := starutil.Marshal(numBytesWritten)
-		if err != nil {
-			return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", numBytesWritten, numBytesWritten, err)
-		}
-		return retValue, err
-	})
-}
-
 func (t *Starlark) setDefaultGlobals() {
 	t.StarGlobals = starlark.StringDict{}
 	t.addStarlibModules()
@@ -385,11 +359,43 @@ func (t *Starlark) loadTransformFn() (err error) {
 	return nil
 }
 
+func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
+	return starlark.NewBuiltin(fswriteFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var filePath, data string
+		var permissions = common.DefaultFilePermission
+		if err := starlark.UnpackArgs(fswriteFnName, args, kwargs, "filepath", &filePath, "data", &data, "perm?", &permissions); err != nil {
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fswriteFnName, err)
+		}
+		if filePath == "" {
+			return starlark.None, fmt.Errorf("FilePath is missing in write parameters")
+		}
+		if !t.Env.IsPathValid(filePath) {
+			return starlark.None, fmt.Errorf("invalid path")
+		}
+		if len(data) == 0 {
+			return starlark.None, fmt.Errorf("data is missing in write parameters")
+		}
+		numBytesWritten := len(data)
+		err := os.WriteFile(filePath, []byte(data), fs.FileMode(permissions))
+		if err != nil {
+			return starlark.None, fmt.Errorf("could not write to file %s", filePath)
+		}
+		retValue, err := starutil.Marshal(numBytesWritten)
+		if err != nil {
+			return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", numBytesWritten, numBytesWritten, err)
+		}
+		return retValue, err
+	})
+}
+
 func (t *Starlark) getStarlarkFSExists() *starlark.Builtin {
 	return starlark.NewBuiltin(qaFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var path string
 		if err := starlark.UnpackPositionalArgs(fsexistsFnName, args, kwargs, 1, &path); err != nil {
 			return nil, err
+		}
+		if !t.Env.IsPathValid(path) {
+			return starlark.None, fmt.Errorf("invalid path")
 		}
 		_, err := os.Stat(path)
 		if err != nil {
@@ -409,6 +415,9 @@ func (t *Starlark) getStarlarkFSRead() *starlark.Builtin {
 		if err := starlark.UnpackPositionalArgs(fsreadFnName, args, kwargs, 1, &path); err != nil {
 			return nil, err
 		}
+		if !t.Env.IsPathValid(path) {
+			return starlark.None, fmt.Errorf("invalid path")
+		}
 		fileBytes, err := os.ReadFile(path)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
@@ -426,6 +435,9 @@ func (t *Starlark) getStarlarkFSReadDir() *starlark.Builtin {
 		var path string
 		if err := starlark.UnpackPositionalArgs(fsreadFnName, args, kwargs, 1, &path); err != nil {
 			return nil, err
+		}
+		if !t.Env.IsPathValid(path) {
+			return starlark.None, fmt.Errorf("invalid path")
 		}
 		fileInfos, err := os.ReadDir(path)
 		if err != nil {
@@ -446,6 +458,9 @@ func (t *Starlark) getStarlarkFSPathJoin() *starlark.Builtin {
 			return nil, err
 		}
 		path := filepath.Join(pathelem1, pathelem2)
+		if !t.Env.IsPathValid(path) {
+			return starlark.None, fmt.Errorf("invalid path")
+		}
 		return starutil.Marshal(path)
 	})
 }

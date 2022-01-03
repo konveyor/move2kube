@@ -500,3 +500,12 @@ func (e *Environment) GetEnvironmentOutput() string {
 func (e *Environment) GetProjectName() string {
 	return e.ProjectName
 }
+
+// IsPathValid returns if the project path is valid or not
+func (e *Environment) IsPathValid(path string) bool {
+	cleanpath := filepath.Clean(path)
+	if common.IsParent(cleanpath, common.TempPath) || common.IsParent(cleanpath, e.GetEnvironmentContext()) || common.IsParent(cleanpath, e.GetEnvironmentSource()) || common.IsParent(cleanpath, e.GetEnvironmentOutput()) {
+		return true
+	}
+	return false
+}
