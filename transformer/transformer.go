@@ -84,7 +84,6 @@ func init() {
 		new(java.MavenAnalyser),
 		new(java.GradleAnalyser),
 		new(java.ZuulAnalyser),
-		new(java.EurekaReplaceEngine),
 		new(windows.WinConsoleAppDockerfileGenerator),
 		new(windows.WinSilverLightWebAppDockerfileGenerator),
 		new(windows.WinWebAppDockerfileGenerator),
