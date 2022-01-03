@@ -210,6 +210,11 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 			}
 			return filepath.Join(e.Env.GetContext(), rel), nil
 		}
+		if !common.IsParent(filepath.Clean(path), common.TempPath) {
+			err := fmt.Errorf("path %s points to a unknown path. Removing the path", path)
+			logrus.Error(err)
+			return "", err
+		}
 		return e.Env.Upload(path)
 	}
 	if reflect.ValueOf(obj).Kind() == reflect.String {
@@ -253,7 +258,7 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 		if common.IsParent(path, e.GetEnvironmentContext()) {
 			rel, err := filepath.Rel(e.GetEnvironmentContext(), path)
 			if err != nil {
-				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.GetEnvironmentContext(), err)
+				logrus.Errorf("Unable to make path (%s) relative to context (%s) : %s ", path, e.GetEnvironmentContext(), err)
 				return path, err
 			}
 			return filepath.Join(e.Context, rel), nil
@@ -261,10 +266,15 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 		if common.IsParent(path, e.GetEnvironmentOutput()) {
 			rel, err := filepath.Rel(e.GetEnvironmentOutput(), path)
 			if err != nil {
-				logrus.Errorf("Unable to make path (%s) relative to source (%s) : %s ", path, e.GetEnvironmentOutput(), err)
+				logrus.Errorf("Unable to make path (%s) relative to output (%s) : %s ", path, e.GetEnvironmentOutput(), err)
 				return path, err
 			}
 			return rel, nil
+		}
+		if !common.IsParent(filepath.Clean(path), common.TempPath) {
+			err := fmt.Errorf("path %s points to a unknown path. Removing the path", path)
+			logrus.Error(err)
+			return "", err
 		}
 		return path, nil
 	}
@@ -313,7 +323,7 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 		if common.IsParent(path, e.GetEnvironmentOutput()) {
 			relPath, err := filepath.Rel(e.GetEnvironmentOutput(), path)
 			if err != nil {
-				logrus.Errorf("Unable to convert source to rel path : %s", err)
+				logrus.Errorf("Unable to convert output to rel path : %s", err)
 				return path, err
 			}
 			return relPath, nil
@@ -321,6 +331,11 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 		if _, err := os.Stat(path); err != nil {
 			logrus.Debugf("Path [%s] does not exist", path)
 			return path, nil
+		}
+		if !common.IsParent(filepath.Clean(path), common.TempPath) {
+			err := fmt.Errorf("path %s points to a unknown path. Removing the path", path)
+			logrus.Error(err)
+			return "", err
 		}
 		outpath, err := e.Env.Download(path)
 		if err != nil {
