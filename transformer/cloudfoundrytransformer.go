@@ -398,6 +398,7 @@ func getCfAppInstance(path string, appname string) (collecttypes.CfApp, error) {
 	if err := common.ReadMove2KubeYaml(path, &cfinstanceappsfile); err != nil {
 		return collecttypes.CfApp{}, err
 	}
+	cfinstanceappsfile = collecttypes.FormatMapsWithInterface(cfinstanceappsfile)
 	for _, app := range cfinstanceappsfile.Spec.CfApps {
 		if app.Application.Name == appname {
 			return app, nil
