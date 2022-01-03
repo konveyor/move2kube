@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package main
+package commands
 
 import (
 	"context"
@@ -111,7 +111,8 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	logrus.Infof("Plan can be found at [%s].", planfile)
 }
 
-func getPlanCommand() *cobra.Command {
+// GetPlanCommand returns a command to do the planning
+func GetPlanCommand() *cobra.Command {
 	must := func(err error) {
 		if err != nil {
 			panic(err)

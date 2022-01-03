@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package main
+package commands
 
 import (
 	"context"
@@ -151,7 +151,8 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
 }
 
-func getTransformCommand() *cobra.Command {
+// GetTransformCommand returns a command to do the transformation
+func GetTransformCommand() *cobra.Command {
 	must := func(err error) {
 		if err != nil {
 			panic(err)

@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package main
+package commands
 
 import (
 	"os"
@@ -68,7 +68,8 @@ func collectHandler(flags collectFlags) {
 	logrus.Infof("Collect Output in [%s]. Copy this directory into the source directory to be used for planning.", outpath)
 }
 
-func getCollectCommand() *cobra.Command {
+// GetCollectCommand returns a command to collect information from running applications
+func GetCollectCommand() *cobra.Command {
 	viper.AutomaticEnv()
 
 	flags := collectFlags{}

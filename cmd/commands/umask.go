@@ -17,7 +17,7 @@
  *  limitations under the License.
  */
 
-package main
+package commands
 
 import (
 	"syscall"
