@@ -13,8 +13,17 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
+  echo 'please run this script from the "scripts" directory'
+  exit 1
+fi
+
+cd .. # go to the parent directory so that all the relative paths will be correct
+
 {{range $dockerfile := . }}
 cd {{ $dockerfile.ContextUnix }}
 {{ .ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 cd -
 {{end}}
+
+echo 'done'

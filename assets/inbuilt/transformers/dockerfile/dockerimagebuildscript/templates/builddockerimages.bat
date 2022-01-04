@@ -12,8 +12,19 @@
 ::  See the License for the specific language governing permissions and
 ::  limitations under the License.
 
+for /F "delims=" %%i in ("%cd%") do set basename="%%~ni"
+
+if not %basename% == "scripts" (
+    echo "please run this script from the 'scripts' directory"
+    exit 1
+)
+
+cd .. # go to the parent directory so that all the relative paths will be correct
+
 {{range $dockerfile := . }}
 pushd {{ $dockerfile.ContextWindows }}
 {{ .ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 popd
 {{end}}
+
+echo "done"
