@@ -14,7 +14,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-"inbuilt/presets/dc.yaml" : 0644
+"inbuilt/presets/usepodmaninscripts.yaml" : 0644
 "inbuilt/transformers/cloudfoundry/cloudfoundry.yaml" : 0644
 "inbuilt/transformers/compose/composeanalyser/composeanalyser.yaml" : 0644
 "inbuilt/transformers/compose/composegenerator/composegenerator.yaml" : 0644
