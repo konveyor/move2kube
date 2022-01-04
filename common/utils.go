@@ -1072,8 +1072,8 @@ func StringifyMap(inputMap map[string]interface{}) map[string]interface{} {
 			inputMap[key] = nil
 			continue
 		}
-		if reflect.TypeOf(value).Kind() == reflect.String {
-			inputMap[key] = value.(string)
+		if val, ok := value.(string); ok {
+			inputMap[key] = val
 			continue
 		}
 		var b bytes.Buffer
