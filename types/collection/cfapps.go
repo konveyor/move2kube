@@ -17,8 +17,12 @@
 package collection
 
 import (
-	"github.com/konveyor/move2kube/common"
+	"bytes"
+	"encoding/json"
+	"strings"
+
 	"github.com/konveyor/move2kube/types"
+	"github.com/sirupsen/logrus"
 
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 )
@@ -57,14 +61,38 @@ func NewCfApps() CfApps {
 // FormatMapsWithInterface stringifies interfaces in cloud foundry data
 func FormatMapsWithInterface(cfAppInstances CfApps) CfApps {
 	for index, app := range cfAppInstances.Spec.CfApps {
-		app.Application.DockerCredentialsJSON = common.StringifyMap(app.Application.DockerCredentialsJSON)
-		app.Application.Environment = common.StringifyMap(app.Application.Environment)
-		app.Environment.Environment = common.StringifyMap(app.Environment.Environment)
-		app.Environment.ApplicationEnv = common.StringifyMap(app.Environment.ApplicationEnv)
-		app.Environment.RunningEnv = common.StringifyMap(app.Environment.RunningEnv)
-		app.Environment.StagingEnv = common.StringifyMap(app.Environment.StagingEnv)
-		app.Environment.SystemEnv = common.StringifyMap(app.Environment.SystemEnv)
+		app.Application.DockerCredentialsJSON = stringifyMap(app.Application.DockerCredentialsJSON)
+		app.Application.Environment = stringifyMap(app.Application.Environment)
+		app.Environment.Environment = stringifyMap(app.Environment.Environment)
+		app.Environment.ApplicationEnv = stringifyMap(app.Environment.ApplicationEnv)
+		app.Environment.RunningEnv = stringifyMap(app.Environment.RunningEnv)
+		app.Environment.StagingEnv = stringifyMap(app.Environment.StagingEnv)
+		app.Environment.SystemEnv = stringifyMap(app.Environment.SystemEnv)
 		cfAppInstances.Spec.CfApps[index] = app
 	}
 	return cfAppInstances
+}
+
+// stringifyMap stringifies the map values
+func stringifyMap(inputMap map[string]interface{}) map[string]interface{} {
+	for key, value := range inputMap {
+		if value == nil {
+			continue
+		}
+		if val, ok := value.(string); ok {
+			inputMap[key] = val
+			continue
+		}
+		var b bytes.Buffer
+		encoder := json.NewEncoder(&b)
+		if err := encoder.Encode(value); err != nil {
+			logrus.Error("Unable to unmarshal data to json while converting map interfaces to string")
+			continue
+		}
+		strValue := string(b.Bytes())
+		strValue = strings.TrimSpace(strValue)
+		//strValue = strings.Trim(strValue, `\r\n`)
+		inputMap[key] = strValue
+	}
+	return inputMap
 }
