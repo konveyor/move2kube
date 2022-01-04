@@ -1,0 +1,2 @@
+move2kube:
+  containerruntime: podman 

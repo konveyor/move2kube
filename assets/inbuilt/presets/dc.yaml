@@ -1,8 +1,0 @@
-move2kube:
-  containerization:
-    types:
-      - Reuse
-      - ReuseDockerfile
-  sources:
-    types:
-      - DockerCompose
