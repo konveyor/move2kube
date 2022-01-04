@@ -119,7 +119,7 @@ func (c *ClusterCollector) getClusterCommand() string {
 func (c *ClusterCollector) getClusterContextName() (string, error) {
 	cmd := exec.Command(c.getClusterCommand(), "config", "current-context")
 	name, err := cmd.Output()
-	return string(name), err
+	return strings.TrimSpace(string(name)), err
 }
 
 func (c *ClusterCollector) getStorageClasses() ([]string, error) {
