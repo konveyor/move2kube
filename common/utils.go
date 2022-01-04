@@ -1066,31 +1066,6 @@ func MarshalObjToYaml(obj runtime.Object) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// StringifyMap stringifies the map values
-func StringifyMap(inputMap map[string]interface{}) map[string]interface{} {
-	for key, value := range inputMap {
-		if value == nil {
-			inputMap[key] = nil
-			continue
-		}
-		if val, ok := value.(string); ok {
-			inputMap[key] = val
-			continue
-		}
-		var b bytes.Buffer
-		encoder := json.NewEncoder(&b)
-		if err := encoder.Encode(value); err != nil {
-			logrus.Error("Unable to unmarshal data to json while converting map interfaces to string")
-			continue
-		}
-		strValue := string(b.Bytes())
-		strValue = strings.TrimSpace(strValue)
-		strValue = strings.Trim(strValue, `\r\n`)
-		inputMap[key] = strValue
-	}
-	return inputMap
-}
-
 // ConvertInterfaceToSliceOfStrings converts an interface{} to a []string type.
 // It can handle []interface{} as long as all the values are strings.
 func ConvertInterfaceToSliceOfStrings(xI interface{}) ([]string, error) {
