@@ -113,11 +113,11 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		p = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.planfile)
-		rootDir := ""
+		sourceDir := ""
 		if cmd.Flags().Changed(sourceFlag) {
-			rootDir = flags.srcpath
+			sourceDir = flags.srcpath
 		}
-		if p, err = plan.ReadPlan(flags.planfile, rootDir); err != nil {
+		if p, err = plan.ReadPlan(flags.planfile, sourceDir); err != nil {
 			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.planfile, err)
 		}
 		if len(p.Spec.Services) == 0 {
@@ -134,12 +134,12 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 
 		// Global settings
-		checkSourcePath(p.Spec.RootDir)
+		checkSourcePath(p.Spec.SourceDir)
 		lib.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)
 		flags.outpath = filepath.Join(flags.outpath, p.Name)
 		checkOutputPath(flags.outpath, flags.overwrite)
-		if p.Spec.RootDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.RootDir) || common.IsParent(p.Spec.RootDir, flags.outpath) {
-			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.RootDir, flags.outpath)
+		if p.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.SourceDir) || common.IsParent(p.Spec.SourceDir, flags.outpath) {
+			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.SourceDir, flags.outpath)
 		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
@@ -172,7 +172,7 @@ func GetTransformCommand() *cobra.Command {
 	// Basic options
 	transformCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	transformCmd.Flags().BoolVar(&flags.overwrite, overwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
-	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory to transform. If you already have a m2k.plan then this will override the rootdir value specified in that plan.")
+	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory to transform. If you already have a m2k.plan then this will override the sourceDir value specified in that plan.")
 	transformCmd.Flags().StringVarP(&flags.outpath, outputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	transformCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location.")

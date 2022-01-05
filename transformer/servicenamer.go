@@ -27,7 +27,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type project struct {
+type service struct {
 	path       string
 	pathsuffix string
 }
@@ -35,21 +35,21 @@ type project struct {
 func nameServices(projName string, services map[string][]transformertypes.Artifact) map[string][]transformertypes.Artifact {
 	sts := services[""]
 	delete(services, "")
-	// Collate services by project path or shared common base dir
+	// Collate services by service dir path or shared common base dir
 	knownServicePaths := map[string]string{} //[path]name
 	for sn, s := range services {
 		for _, st := range s {
-			if pps, ok := st.Paths[artifacts.ProjectPathPathType]; ok {
+			if pps, ok := st.Paths[artifacts.ServiceDirPathType]; ok {
 				for _, pp := range pps {
 					knownServicePaths[pp] = sn
 				}
 			}
 		}
 	}
-	// Collate services by project path or shared common base dir
+	// Collate services by service dir path or shared common base dir
 	servicePaths := map[string][]transformertypes.Artifact{}
 	for _, st := range sts {
-		pps, ok := st.Paths[artifacts.ProjectPathPathType]
+		pps, ok := st.Paths[artifacts.ServiceDirPathType]
 		bpp := common.CleanAndFindCommonDirectory(pps)
 		if !ok {
 			paths := []string{}
@@ -101,7 +101,7 @@ func nameServices(projName string, services map[string][]transformertypes.Artifa
 			delete(servicePaths, basePaths[0])
 		}
 	}
-	// Only one set of unnamed services, use project name
+	// Only one set of unnamed services, use service name
 	if len(services) == 0 && len(servicePaths) == 1 {
 		for _, ts := range servicePaths {
 			services[projName] = ts
@@ -109,41 +109,41 @@ func nameServices(projName string, services map[string][]transformertypes.Artifa
 		return services
 	}
 
-	repoProjects := map[string][]project{}
+	repoServices := map[string][]service{}
 	for sp := range servicePaths {
 		repo, ok := basePathRepos[sp]
 		if !ok {
 			repo = projName
 		}
-		p := project{sp, sp}
-		if ps, ok := repoProjects[repo]; !ok {
-			repoProjects[repo] = []project{p}
+		p := service{sp, sp}
+		if ps, ok := repoServices[repo]; !ok {
+			repoServices[repo] = []service{p}
 		} else {
-			repoProjects[repo] = append(ps, p)
+			repoServices[repo] = append(ps, p)
 		}
 	}
-	sProjects := map[string][]project{}
-	for repo, projects := range repoProjects {
-		if len(projects) == 1 {
-			sProjects[repo] = []project{projects[0]}
+	sServices := map[string][]service{}
+	for repo, services := range repoServices {
+		if len(services) == 1 {
+			sServices[repo] = []service{services[0]}
 			continue
 		}
-		for k, v := range bucketProjects(projects) {
+		for k, v := range bucketServices(services) {
 			separator := "-"
 			if repo == "" || k == "" {
 				separator = ""
 			}
 			nk := repo + separator + k
-			if v1, ok := sProjects[nk]; ok {
-				sProjects[nk] = append(v, v1...)
+			if v1, ok := sServices[nk]; ok {
+				sServices[nk] = append(v, v1...)
 			} else {
-				sProjects[nk] = v
+				sServices[nk] = v
 			}
 		}
 	}
 	//TODO: Consider whether we should take into consideration pre-existing serviceNames
 	svcs := map[string][]transformertypes.Artifact{}
-	for sn, ps := range sProjects {
+	for sn, ps := range sServices {
 		for _, p := range ps {
 			svcs[sn] = servicePaths[p.path]
 		}
@@ -151,13 +151,13 @@ func nameServices(projName string, services map[string][]transformertypes.Artifa
 	return plantypes.MergeServices(services, svcs)
 }
 
-func bucketProjects(projects []project) map[string][]project {
-	nProjects := map[string][]project{}
-	commonPath := findCommonPrefix(projects)
+func bucketServices(services []service) map[string][]service {
+	nServices := map[string][]service{}
+	commonPath := findCommonPrefix(services)
 	if commonPath != "." {
-		projects = trimPrefix(projects, commonPath)
+		services = trimPrefix(services, commonPath)
 	}
-	for _, df := range projects {
+	for _, df := range services {
 		parts := strings.Split(df.pathsuffix, string(filepath.Separator))
 		prefix := ""
 		if len(parts) == 0 {
@@ -165,43 +165,43 @@ func bucketProjects(projects []project) map[string][]project {
 		} else if len(parts) > 0 {
 			prefix = parts[0]
 		}
-		if pdfs, ok := nProjects[prefix]; !ok {
-			nProjects[prefix] = []project{df}
+		if pdfs, ok := nServices[prefix]; !ok {
+			nServices[prefix] = []service{df}
 		} else {
-			nProjects[prefix] = append(pdfs, df)
+			nServices[prefix] = append(pdfs, df)
 		}
 	}
-	sProjects := map[string][]project{}
-	for p, paths := range nProjects {
+	sServicess := map[string][]service{}
+	for p, paths := range nServices {
 		if len(paths) == 1 {
-			sProjects[p] = []project{paths[0]}
+			sServicess[p] = []service{paths[0]}
 		} else if p == "" {
 			for _, v := range paths {
-				if v1, ok := sProjects[p]; ok {
-					sProjects[p] = append(v1, v)
+				if v1, ok := sServicess[p]; ok {
+					sServicess[p] = append(v1, v)
 				} else {
-					sProjects[p] = []project{v}
+					sServicess[p] = []service{v}
 				}
 			}
 		} else {
-			for k, v := range bucketProjects(paths) {
+			for k, v := range bucketServices(paths) {
 				separator := "-"
 				if p == "" || k == "" {
 					separator = ""
 				}
 				nk := p + separator + k
-				if v1, ok := sProjects[nk]; ok {
-					sProjects[nk] = append(v, v1...)
+				if v1, ok := sServicess[nk]; ok {
+					sServicess[nk] = append(v, v1...)
 				} else {
-					sProjects[nk] = v
+					sServicess[nk] = v
 				}
 			}
 		}
 	}
-	return sProjects
+	return sServicess
 }
 
-func findCommonPrefix(files []project) string {
+func findCommonPrefix(files []service) string {
 	paths := make([]string, len(files))
 	for i, file := range files {
 		paths[i] = file.pathsuffix
@@ -209,7 +209,7 @@ func findCommonPrefix(files []project) string {
 	return common.CleanAndFindCommonDirectory(paths)
 }
 
-func trimPrefix(files []project, prefix string) []project {
+func trimPrefix(files []service, prefix string) []service {
 	for i, f := range files {
 		files[i].pathsuffix = strings.TrimPrefix(f.pathsuffix, prefix+string(filepath.Separator))
 	}

@@ -21,6 +21,6 @@ import (
 )
 
 const (
-	// ProjectPathPathType points to the project context directory
-	ProjectPathPathType transformertypes.PathType = "ProjectPath"
+	// ServiceDirPathType points to the service context directory
+	ServiceDirPathType transformertypes.PathType = "ServiceDirPath"
 )

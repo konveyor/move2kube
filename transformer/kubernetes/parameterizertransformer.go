@@ -91,7 +91,7 @@ func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]
 		na := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.KubernetesYamlsPathType: {dir},
-				artifacts.ProjectPathPathType:     {dir},
+				artifacts.ServiceDirPathType:      {dir},
 			},
 		}
 		return map[string][]transformertypes.Artifact{"": {na}}, nil
@@ -150,7 +150,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 		octKey := ocTemplatePathTemplateName + common.GetRandomString()
 
 		serviceFsPath := ""
-		if serviceFsPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(serviceFsPaths) > 0 {
+		if serviceFsPaths, ok := a.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
 			serviceFsPath = serviceFsPaths[0]
 		}
 		if len(t.PathConfig.HelmPath) != 0 {

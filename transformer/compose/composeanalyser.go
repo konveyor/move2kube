@@ -168,7 +168,7 @@ func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string,
 		}
 		// Add reuse Dockerfile containerization option
 		ct.Paths[artifacts.DockerfilePathType] = common.MergeStringSlices(ct.Paths[artifacts.DockerfilePathType], dockerfilePath)
-		ct.Paths[artifacts.ProjectPathPathType] = common.MergeStringSlices(ct.Paths[artifacts.ProjectPathPathType], contextPath)
+		ct.Paths[artifacts.ServiceDirPathType] = common.MergeStringSlices(ct.Paths[artifacts.ServiceDirPathType], contextPath)
 	}
 	return ct
 }

@@ -85,8 +85,8 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 		envVariablesMap["PORT"] = fmt.Sprintf("%d", common.DefaultServicePort)
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
-				artifacts.JarPathType:         {path},
-				artifacts.ProjectPathPathType: {filepath.Dir(path)},
+				artifacts.JarPathType:        {path},
+				artifacts.ServiceDirPathType: {filepath.Dir(path)},
 			},
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.JarConfigType: artifacts.JarArtifactConfig{
@@ -117,9 +117,9 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
 		}
 		jarRunDockerfile, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.embedded"))
 		if err != nil {

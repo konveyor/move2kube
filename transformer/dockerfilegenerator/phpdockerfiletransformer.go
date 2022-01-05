@@ -154,7 +154,7 @@ func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (services map[strin
 		}
 		return map[string][]transformertypes.Artifact{"": {{
 			Paths: map[transformertypes.PathType][]string{
-				artifacts.ProjectPathPathType: {dir},
+				artifacts.ServiceDirPathType: {dir},
 			},
 		}}}, nil
 	}
@@ -166,9 +166,9 @@ func (t *PHPDockerfileGenerator) Transform(newArtifacts []transformertypes.Artif
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
 		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
@@ -190,7 +190,7 @@ func (t *PHPDockerfileGenerator) Transform(newArtifacts []transformertypes.Artif
 		}
 		detectedPorts := ir.GetAllServicePorts()
 		var phpConfig PhpTemplateConfig
-		confFiles, err := detectConfFiles(a.Paths[artifacts.ProjectPathPathType][0])
+		confFiles, err := detectConfFiles(a.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
 			logrus.Debugf("Could not detect any conf files %s", err)
 		} else {
@@ -200,7 +200,7 @@ func (t *PHPDockerfileGenerator) Transform(newArtifacts []transformertypes.Artif
 				phpConfig.ConfFile = GetConfFileForService(confFiles, a.Name)
 			}
 			if phpConfig.ConfFile != "" {
-				phpConfig.ConfFilePort, err = parseConfFile(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], phpConfig.ConfFile))
+				phpConfig.ConfFilePort, err = parseConfFile(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], phpConfig.ConfFile))
 				if err != nil {
 					logrus.Errorf("Error while parsing configuration file : %s", err)
 				}

@@ -269,7 +269,7 @@ func GetServices(prjName string, dir string) (services map[string][]transformert
 func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string][]transformertypes.Artifact) (services map[string][]transformertypes.Artifact, err error) {
 	services = bservices
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
-	knownProjectPaths := []string{}
+	knownServiceDirPaths := []string{}
 
 	err = filepath.WalkDir(inputPath, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
@@ -284,7 +284,7 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 				return filepath.SkipDir
 			}
 		}
-		if common.IsStringPresent(knownProjectPaths, path) {
+		if common.IsStringPresent(knownServiceDirPaths, path) {
 			return filepath.SkipDir //TODO: Should we go inside the directory in this case?
 		}
 		if common.IsStringPresent(ignoreDirectories, path) {
@@ -376,7 +376,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 		if err = os.RemoveAll(outputPath); err != nil {
 			logrus.Errorf("Unable to delete %s : %s", outputPath, err)
 		}
-		err = processPathMappings(pathMappings, plan.Spec.RootDir, outputPath)
+		err = processPathMappings(pathMappings, plan.Spec.SourceDir, outputPath)
 		if err != nil {
 			logrus.Errorf("Unable to process path mappings")
 		}

@@ -102,8 +102,8 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]trans
 	ct := transformertypes.Artifact{
 		Configs: map[transformertypes.ConfigType]interface{}{},
 		Paths: map[transformertypes.PathType][]string{
-			artifacts.MavenPomPathType:    {filepath.Join(dir, maven.PomXMLFileName)},
-			artifacts.ProjectPathPathType: {dir},
+			artifacts.MavenPomPathType:   {filepath.Join(dir, maven.PomXMLFileName)},
+			artifacts.ServiceDirPathType: {dir},
 		},
 	}
 	mc := artifacts.MavenConfig{}
@@ -395,7 +395,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			newArtifact.Paths = map[transformertypes.PathType][]string{}
 		}
 		newArtifact.Paths[artifacts.BuildContainerFileType] = []string{buildDockerfile}
-		newArtifact.Paths[artifacts.ProjectPathPathType] = a.Paths[artifacts.ProjectPathPathType]
+		newArtifact.Paths[artifacts.ServiceDirPathType] = a.Paths[artifacts.ServiceDirPathType]
 		createdArtifacts = append(createdArtifacts, newArtifact)
 	}
 	return pathMappings, createdArtifacts, nil
