@@ -179,7 +179,7 @@ jobs:
 
       - run: VERSION='${{ github.event.inputs.tag }}' make dist
       - name: upload release assets
-        uses: HarikrishnanBalagopal/upload-release-action@v3
+        uses: konveyor/upload-release-action@v3
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.event.inputs.tag }}
