@@ -26,6 +26,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/deepcopy"
+	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -205,18 +206,20 @@ func mergePathSliceMaps(map1 map[transformertypes.PathType][]string, map2 map[tr
 	return map1
 }
 
-func setTransformerInfoForServices(services map[string][]transformertypes.Artifact, t transformertypes.Transformer) map[string][]transformertypes.Artifact {
+func getPlanArtifactsFromArtifacts(services map[string][]transformertypes.Artifact, t transformertypes.Transformer) map[string][]plantypes.PlanArtifact {
+	planServices := map[string][]plantypes.PlanArtifact{}
 	for sn, s := range services {
-		for sti, st := range s {
-			// To make the plan yaml look better we do this
-			st.Name = t.Name
-			services[sn][sti] = st
+		for _, st := range s {
+			planServices[sn] = append(planServices[sn], plantypes.PlanArtifact{
+				TransformerName: t.Name,
+				Artifact:        st,
+			})
 		}
 	}
-	return services
+	return planServices
 }
 
-func getNamedAndUnNamedServicesLogMessage(services map[string][]transformertypes.Artifact) string {
+func getNamedAndUnNamedServicesLogMessage(services map[string][]plantypes.PlanArtifact) string {
 	nnservices := len(services)
 	nuntransformers := len(services[""])
 	if _, ok := services[""]; ok {

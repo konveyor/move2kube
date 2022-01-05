@@ -23,7 +23,6 @@ import (
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/transformer"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -76,9 +75,9 @@ func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) planty
 	serviceNames := []string{}
 	transformers = qaengine.FetchMultiSelectAnswer(common.ConfigTransformerTypesKey, "Select all transformer types that you are interested in:", []string{"Services that don't support any of the transformer types you are interested in will be ignored."}, transformers, transformers)
 	for sn, st := range p.Spec.Services {
-		sArtifacts := []transformertypes.Artifact{}
+		sArtifacts := []plantypes.PlanArtifact{}
 		for _, t := range st {
-			if common.IsStringPresent(transformers, string(t.Name)) {
+			if common.IsStringPresent(transformers, string(t.TransformerName)) {
 				sArtifacts = append(sArtifacts, t)
 				break
 			}
@@ -107,7 +106,7 @@ func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) planty
 
 	transformer.InitTransformers(p.Spec.Transformers, transformerSelectorObj, p.Spec.SourceDir, outputPath, p.Name, true)
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
-	planServices := map[string][]transformertypes.Artifact{}
+	planServices := map[string][]plantypes.PlanArtifact{}
 	for _, s := range selectedServices {
 		planServices[s] = p.Spec.Services[s]
 	}

@@ -22,7 +22,6 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	plantypes "github.com/konveyor/move2kube/types/plan"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +31,7 @@ type service struct {
 	pathsuffix string
 }
 
-func nameServices(projName string, services map[string][]transformertypes.Artifact) map[string][]transformertypes.Artifact {
+func nameServices(projName string, services map[string][]plantypes.PlanArtifact) map[string][]plantypes.PlanArtifact {
 	sts := services[""]
 	delete(services, "")
 	// Collate services by service dir path or shared common base dir
@@ -47,7 +46,7 @@ func nameServices(projName string, services map[string][]transformertypes.Artifa
 		}
 	}
 	// Collate services by service dir path or shared common base dir
-	servicePaths := map[string][]transformertypes.Artifact{}
+	servicePaths := map[string][]plantypes.PlanArtifact{}
 	for _, st := range sts {
 		pps, ok := st.Paths[artifacts.ServiceDirPathType]
 		bpp := common.CleanAndFindCommonDirectory(pps)
@@ -142,7 +141,7 @@ func nameServices(projName string, services map[string][]transformertypes.Artifa
 		}
 	}
 	//TODO: Consider whether we should take into consideration pre-existing serviceNames
-	svcs := map[string][]transformertypes.Artifact{}
+	svcs := map[string][]plantypes.PlanArtifact{}
 	for sn, ps := range sServices {
 		for _, p := range ps {
 			svcs[sn] = servicePaths[p.path]

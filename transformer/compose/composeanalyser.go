@@ -85,7 +85,7 @@ func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]tra
 	services = map[string][]transformertypes.Artifact{}
 	for _, path := range yamlpaths {
 		currServices := t.getServicesFromComposeFile(path, imageMetadataPaths)
-		services = plantypes.MergeServices(services, currServices)
+		services = plantypes.MergeServicesT(services, currServices)
 	}
 	logrus.Debugf("Docker compose services : %+v", services)
 	return services, nil
