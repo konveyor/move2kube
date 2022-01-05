@@ -65,7 +65,7 @@ func (bc *BuildConfig) createNewResource(irBuildConfig irtypes.BuildConfig, ir i
 			source:
 				type: Git
 				git:
-					uri: git@gitlab.com:hari.balagopal/samplenodejs.git
+					uri: git@gitlab.com:myusername/myrepo.git
 					ref: splittest1
 				sourceSecret:
 					name: gitlab-secret
