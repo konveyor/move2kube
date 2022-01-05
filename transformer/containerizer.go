@@ -50,7 +50,7 @@ func getContainerizationOptions(directory string) []string {
 }
 
 // getContainerizationConfig returns possible containerization config for a directory while using a transformer
-func getContainerizationConfig(projectDirectory, buildArtifacts []string, transformerName string) transformertypes.Artifact {
+func getContainerizationConfig(serviceName string, projectDirectory, buildArtifacts []string, transformerName string) transformertypes.Artifact {
 	t := GetInitializedTransformers()[transformerName]
 	tc, env := t.GetConfig()
 	env.Reset()
@@ -58,7 +58,6 @@ func getContainerizationConfig(projectDirectory, buildArtifacts []string, transf
 	if err != nil {
 		logrus.Warnf("[%s] Failed during containerization option fetch : %s", tc.Name, err)
 	}
-	newoptions = setTransformerInfoForServices(*env.Decode(&newoptions).(*map[string][]transformertypes.Artifact), tc)
 	if len(newoptions) > 1 {
 		logrus.Warnf("More than one containerization option found for a directory. Choosing one for %s", projectDirectory)
 	}
@@ -72,6 +71,7 @@ func getContainerizationConfig(projectDirectory, buildArtifacts []string, transf
 		if buildArtifacts != nil {
 			nos[0].Paths[artifacts.BuildArtifactPathType] = buildArtifacts
 		}
+		nos[0].Name = serviceName
 		nos[0].ProcessWith = *metav1.AddLabelToSelector(&nos[0].ProcessWith, transformertypes.LabelName, string(nos[0].Type))
 		nos[0].Type = artifacts.ServiceArtifactType
 		return nos[0]

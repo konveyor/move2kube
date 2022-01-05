@@ -226,8 +226,8 @@ func GetInitializedTransformersF(filters labels.Selector) map[string]Transformer
 }
 
 // GetServices returns the list of services detected in a directory
-func GetServices(prjName string, dir string) (services map[string][]transformertypes.Artifact, err error) {
-	services = map[string][]transformertypes.Artifact{}
+func GetServices(prjName string, dir string) (services map[string][]plantypes.PlanArtifact, err error) {
+	services = map[string][]plantypes.PlanArtifact{}
 	logrus.Infoln("Planning Transformation - Base Directory")
 	logrus.Debugf("Transformers : %+v", transformers)
 	for tn, t := range transformers {
@@ -241,7 +241,7 @@ func GetServices(prjName string, dir string) (services map[string][]transformert
 		if err != nil {
 			logrus.Errorf("[%s] Failed : %s", tn, err)
 		} else {
-			nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string][]transformertypes.Artifact), config)
+			nservices := getPlanArtifactsFromArtifacts(*env.Decode(&nservices).(*map[string][]transformertypes.Artifact), config)
 			services = plantypes.MergeServices(services, nservices)
 			if len(nservices) > 0 {
 				logrus.Infof(getNamedAndUnNamedServicesLogMessage(nservices))
@@ -266,7 +266,7 @@ func GetServices(prjName string, dir string) (services map[string][]transformert
 	return
 }
 
-func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string][]transformertypes.Artifact) (services map[string][]transformertypes.Artifact, err error) {
+func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string][]plantypes.PlanArtifact) (services map[string][]plantypes.PlanArtifact, err error) {
 	services = bservices
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
 	knownServiceDirPaths := []string{}
@@ -307,7 +307,7 @@ func walkForServices(inputPath string, ts map[string]Transformer, bservices map[
 			if err != nil {
 				logrus.Warnf("[%s] Failed : %s", config.Name, err)
 			} else {
-				nservices = setTransformerInfoForServices(*env.Decode(&nservices).(*map[string][]transformertypes.Artifact), config)
+				nservices := getPlanArtifactsFromArtifacts(*env.Decode(&nservices).(*map[string][]transformertypes.Artifact), config)
 				services = plantypes.MergeServices(services, nservices)
 				logrus.Debugf("[%s] Done", config.Name)
 				if len(nservices) > 0 {
@@ -354,9 +354,12 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			continue
 		}
 		a := sas[0]
-		a.ProcessWith = *metav1.AddLabelToSelector(&a.ProcessWith, transformertypes.LabelName, string(a.Name))
+		a.ProcessWith = *metav1.AddLabelToSelector(&a.ProcessWith, transformertypes.LabelName, string(a.TransformerName))
 		if a.Type == "" {
 			a.Type = artifacts.ServiceArtifactType
+		}
+		if a.Name == "" {
+			a.Name = sn
 		}
 		serviceConfig := artifacts.ServiceConfig{
 			ServiceName: sn,
@@ -365,7 +368,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 			a.Configs = map[transformertypes.ConfigType]interface{}{}
 		}
 		a.Configs[artifacts.ServiceConfigType] = serviceConfig
-		newArtifactsToProcess = append(newArtifactsToProcess, a)
+		newArtifactsToProcess = append(newArtifactsToProcess, a.Artifact)
 	}
 	allArtifacts = newArtifactsToProcess
 	for {

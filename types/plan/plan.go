@@ -38,17 +38,16 @@ type Spec struct {
 	SourceDir         string `yaml:"sourceDir"`
 	CustomizationsDir string `yaml:"customizationsDir,omitempty"`
 
-	Services map[string][]transformertypes.Artifact `yaml:"services"` //[servicename]
+	Services map[string][]PlanArtifact `yaml:"services"` //[servicename]
 
 	TransformerSelector metav1.LabelSelector `yaml:"transformerSelector,omitempty"`
 	Transformers        map[string]string    `yaml:"transformers,omitempty" m2kpath:"normal"` //[name]filepath
 }
 
-// TargetClusterType contains either the type of the target cluster or path to a file containing the target cluster metadata.
-// Specify one or the other, not both.
-type TargetClusterType struct {
-	Type string `yaml:"type,omitempty"`
-	Path string `yaml:"path,omitempty" m2kpath:"normal"`
+// PlanArtifact stores the artifact with the transformerName
+type PlanArtifact struct {
+	TransformerName           string `yaml:"transformerName"`
+	transformertypes.Artifact `yaml:",inline"`
 }
 
 // NewPlan creates a new plan
@@ -63,7 +62,7 @@ func NewPlan() Plan {
 			Name: common.DefaultProjectName,
 		},
 		Spec: Spec{
-			Services:     map[string][]transformertypes.Artifact{},
+			Services:     map[string][]PlanArtifact{},
 			Transformers: map[string]string{},
 		},
 	}
@@ -71,7 +70,18 @@ func NewPlan() Plan {
 }
 
 // MergeServices merges two service maps
-func MergeServices(s1 map[string][]transformertypes.Artifact, s2 map[string][]transformertypes.Artifact) map[string][]transformertypes.Artifact {
+func MergeServices(s1 map[string][]PlanArtifact, s2 map[string][]PlanArtifact) map[string][]PlanArtifact {
+	if s1 == nil {
+		return s2
+	}
+	for s2n, s2t := range s2 {
+		s1[s2n] = append(s1[s2n], s2t...)
+	}
+	return s1
+}
+
+// MergeServicesT merges two service maps
+func MergeServicesT(s1 map[string][]transformertypes.Artifact, s2 map[string][]transformertypes.Artifact) map[string][]transformertypes.Artifact {
 	if s1 == nil {
 		return s2
 	}
