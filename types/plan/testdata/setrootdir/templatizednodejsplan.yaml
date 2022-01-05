@@ -4,7 +4,7 @@ metadata:
   name: nodejs-app
 spec:
   inputs:
-    rootDir: {{ .PWD }}/new/root/directory
+    sourceDir: {{ .PWD }}/new/root/directory
     services:
       nodejs:
         - serviceName: nodejs
