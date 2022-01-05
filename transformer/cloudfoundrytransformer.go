@@ -120,7 +120,7 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 			if len(containerizationOptions) != 0 {
 				ct.Configs[artifacts.ContainerizationOptionsConfigType] = artifacts.ContainerizationOptionsConfig(containerizationOptions)
 			}
-			_, appinstance := getCfInstanceApp(cfInstanceApps, applicationName)
+			runningManifestPath, appinstance := getCfInstanceApp(cfInstanceApps, applicationName)
 			if application.DockerImage != "" || appinstance.Application.DockerImage != "" {
 				dockerImageName := application.DockerImage
 				if dockerImageName == "" {
@@ -130,6 +130,9 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 				ctConfig.ImageName = dockerImageName
 				ct.Configs[artifacts.CloudFoundryConfigType] = ctConfig
 				continue
+			}
+			if runningManifestPath != "" {
+				ct.Paths[artifacts.CfRunningManifestPathType] = append(ct.Paths[artifacts.CfRunningManifestPathType], runningManifestPath)
 			}
 			services[applicationName] = []transformertypes.Artifact{ct}
 		}
@@ -159,8 +162,8 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			logrus.Debugf("Unable to get containerization config : %s", err)
 		}
 		ir := irtypes.NewIR()
-		logrus.Debugf("Transforming %s", config.ServiceName)
 		var cfinstanceapp collecttypes.CfApp
+		logrus.Debugf("Transforming %s", config.ServiceName)
 		if runninginstancefile, ok := a.Paths[artifacts.CfRunningManifestPathType]; ok {
 			var err error
 			cfinstanceapp, err = getCfAppInstance(runninginstancefile[0], config.ServiceName)
