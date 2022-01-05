@@ -96,7 +96,7 @@ func (t *Executable) DirectoryDetect(dir string) (services map[string][]transfor
 		for nsi, nst := range ns {
 			if len(nst.Paths) == 0 {
 				nst.Paths = map[transformertypes.PathType][]string{
-					artifacts.ProjectPathPathType: {dir},
+					artifacts.ServiceDirPathType: {dir},
 				}
 				ns[nsi] = nst
 			}
@@ -117,9 +117,9 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	createdArtifacts = []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		if t.ExecConfig.TransformCMD == nil {
-			relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
+			relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
 			if err != nil {
-				logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+				logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
 				continue
 			}
 			var config interface{}
@@ -138,8 +138,8 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 			})
 		} else {
 			path := ""
-			if a.Paths != nil && a.Paths[artifacts.ProjectPathPathType] != nil {
-				path = a.Paths[artifacts.ProjectPathPathType][0]
+			if a.Paths != nil && a.Paths[artifacts.ServiceDirPathType] != nil {
+				path = a.Paths[artifacts.ServiceDirPathType][0]
 			}
 			stdout, stderr, exitcode, err := t.Env.Exec(append(t.ExecConfig.TransformCMD, path))
 			if err != nil {
@@ -198,7 +198,7 @@ func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (se
 		}
 	}
 	trans := transformertypes.Artifact{
-		Paths: map[transformertypes.PathType][]string{artifacts.ProjectPathPathType: {dir}},
+		Paths: map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {dir}},
 		Configs: map[transformertypes.ConfigType]interface{}{
 			TemplateConfigType: config,
 		},

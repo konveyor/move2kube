@@ -33,7 +33,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	p := plantypes.NewPlan()
 	p.Name = prjName
-	p.Spec.RootDir = inputPath
+	p.Spec.SourceDir = inputPath
 	p.Spec.CustomizationsDir = customizationsPath
 	if customizationsPath != "" {
 		CheckAndCopyCustomizations(customizationsPath)
@@ -105,7 +105,7 @@ func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) planty
 		transformerSelectorObj = transformerSelectorObj.Add(requirements...)
 	}
 
-	transformer.InitTransformers(p.Spec.Transformers, transformerSelectorObj, p.Spec.RootDir, outputPath, p.Name, true)
+	transformer.InitTransformers(p.Spec.Transformers, transformerSelectorObj, p.Spec.SourceDir, outputPath, p.Name, true)
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
 	planServices := map[string][]transformertypes.Artifact{}
 	for _, s := range selectedServices {

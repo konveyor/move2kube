@@ -225,8 +225,8 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (services
 	services = map[string][]transformertypes.Artifact{
 		appName: {{
 			Paths: map[transformertypes.PathType][]string{
-				artifacts.ProjectPathPathType: {dir},
-				AppConfigFilePathListType:     appConfigList,
+				artifacts.ServiceDirPathType: {dir},
+				AppConfigFilePathListType:    appConfigList,
 			},
 		}},
 	}
@@ -238,9 +238,9 @@ func (t *WinConsoleAppDockerfileGenerator) Transform(newArtifacts []transformert
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
 		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)

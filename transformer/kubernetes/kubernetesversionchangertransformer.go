@@ -74,7 +74,7 @@ func (t *KubernetesVersionChanger) DirectoryDetect(dir string) (namedServices ma
 			Type: artifacts.KubernetesOrgYamlsInSourceArtifactType,
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.KubernetesYamlsPathType: {dir},
-				artifacts.ProjectPathPathType:     {dir},
+				artifacts.ServiceDirPathType:      {dir},
 			},
 		}
 		return map[string][]transformertypes.Artifact{"": {na}}, nil

@@ -67,21 +67,21 @@ func parseSolutionFile(inputPath string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not open the solution file: %s", err)
 	}
-	projectPaths := make([]string, 0)
+	serviceDirPaths := make([]string, 0)
 	l := dotnet.ProjBlockRegex.FindAllStringSubmatch(string(solFileTxt), -1)
 	for _, path := range l {
 		if len(path) == 0 {
 			continue
 		}
-		projectPaths = append(projectPaths, path[0])
+		serviceDirPaths = append(serviceDirPaths, path[0])
 	}
 	separator := fmt.Sprintf("%c", os.PathSeparator)
-	for i, c := range projectPaths {
+	for i, c := range serviceDirPaths {
 		c = strings.Trim(c, `"`)
 		if runtime.GOOS != "windows" {
 			c = strings.ReplaceAll(c, `\`, separator)
 		}
-		projectPaths[i] = c
+		serviceDirPaths[i] = c
 	}
-	return projectPaths, nil
+	return serviceDirPaths, nil
 }

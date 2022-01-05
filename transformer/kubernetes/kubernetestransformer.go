@@ -129,7 +129,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 			return nil, nil, err
 		}
 		serviceFsPath := ""
-		if serviceFsPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(serviceFsPaths) > 0 {
+		if serviceFsPaths, ok := a.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
 			serviceFsPath = serviceFsPaths[0]
 		}
 		outputPathKey := outputPathTemplateName + common.GetRandomString()
@@ -153,8 +153,8 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 		}
 		// Append the project path only if there is one-one mapping between services and artifacts
 		if len(ir.Services) == 1 {
-			if serviceFsPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(serviceFsPaths) > 0 {
-				na.Paths[artifacts.ProjectPathPathType] = append(na.Paths[artifacts.ProjectPathPathType], serviceFsPaths[0])
+			if serviceFsPaths, ok := a.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
+				na.Paths[artifacts.ServiceDirPathType] = append(na.Paths[artifacts.ServiceDirPathType], serviceFsPaths[0])
 				// Loop to get the single service name
 				for k := range ir.Services {
 					na.Name = k

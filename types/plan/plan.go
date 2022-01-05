@@ -35,7 +35,7 @@ type Plan struct {
 
 // Spec stores the data about the plan
 type Spec struct {
-	RootDir           string `yaml:"rootDir"`
+	SourceDir         string `yaml:"sourceDir"`
 	CustomizationsDir string `yaml:"customizationsDir,omitempty"`
 
 	Services map[string][]transformertypes.Artifact `yaml:"services"` //[servicename]

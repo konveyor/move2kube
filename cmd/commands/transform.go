@@ -134,12 +134,12 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 
 		// Global settings
-		checkSourcePath(p.Spec.RootDir)
+		checkSourcePath(p.Spec.SourceDir)
 		lib.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)
 		flags.outpath = filepath.Join(flags.outpath, p.Name)
 		checkOutputPath(flags.outpath, flags.overwrite)
-		if p.Spec.RootDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.RootDir) || common.IsParent(p.Spec.RootDir, flags.outpath) {
-			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.RootDir, flags.outpath)
+		if p.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.SourceDir) || common.IsParent(p.Spec.SourceDir, flags.outpath) {
+			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.SourceDir, flags.outpath)
 		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)

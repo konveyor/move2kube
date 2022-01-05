@@ -102,13 +102,13 @@ func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 		return nil, nil
 	}
 	if packageJSON.Name == "" {
-		err = fmt.Errorf("unable to get project name of nodejs project at %s. Ignoring", dir)
+		err = fmt.Errorf("unable to get name of nodejs service at %s. Ignoring", dir)
 		return nil, err
 	}
 	services = map[string][]transformertypes.Artifact{
 		packageJSON.Name: {{
 			Paths: map[transformertypes.PathType][]string{
-				artifacts.ProjectPathPathType: {dir},
+				artifacts.ServiceDirPathType: {dir},
 			},
 		}},
 	}
@@ -120,9 +120,9 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
 		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
@@ -145,7 +145,7 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		build := false
 		nodeVersion := t.NodejsConfig.DefaultNodejsVersion
 		var packageJSON PackageJSON
-		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], packageJSONFile), &packageJSON); err != nil {
+		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], packageJSONFile), &packageJSON); err != nil {
 			logrus.Debugf("unable to read the package.json file: %s", err)
 		} else {
 			if _, ok := packageJSON.Scripts["build"]; ok {
@@ -160,7 +160,7 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		}
 		ports := ir.GetAllServicePorts()
 		if len(ports) == 0 {
-			envMap, err := godotenv.Read(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], ".env"))
+			envMap, err := godotenv.Read(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], ".env"))
 			if err == nil {
 				portString, ok := envMap["PORT"]
 				if ok {

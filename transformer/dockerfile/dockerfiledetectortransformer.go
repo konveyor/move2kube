@@ -75,8 +75,8 @@ func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]
 		if isdf, _ := isDockerFile(path); isdf {
 			trans := transformertypes.Artifact{
 				Paths: map[transformertypes.PathType][]string{
-					artifacts.ProjectPathPathType: {filepath.Dir(path)},
-					artifacts.DockerfilePathType:  {path},
+					artifacts.ServiceDirPathType: {filepath.Dir(path)},
+					artifacts.DockerfilePathType: {path},
 				},
 			}
 			services[""] = append(services[""], trans)

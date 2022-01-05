@@ -76,7 +76,7 @@ func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (services map[stri
 		services = map[string][]transformertypes.Artifact{
 			serviceName: {{
 				Paths: map[transformertypes.PathType][]string{
-					artifacts.ProjectPathPathType: {dir},
+					artifacts.ServiceDirPathType: {dir},
 				},
 			}},
 		}
@@ -90,9 +90,9 @@ func (t *RubyDockerfileGenerator) Transform(newArtifacts []transformertypes.Arti
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
 		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)

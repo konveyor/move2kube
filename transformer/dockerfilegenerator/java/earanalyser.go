@@ -66,8 +66,8 @@ func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 	for _, path := range earFilePaths {
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
-				artifacts.EarPathType:         {path},
-				artifacts.ProjectPathPathType: {filepath.Dir(path)},
+				artifacts.EarPathType:        {path},
+				artifacts.ServiceDirPathType: {filepath.Dir(path)},
 			},
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.EarConfigType: artifacts.EarArtifactConfig{

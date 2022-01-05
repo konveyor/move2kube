@@ -95,7 +95,7 @@ func (t *GradleAnalyser) DirectoryDetect(dir string) (services map[string][]tran
 		Configs: map[transformertypes.ConfigType]interface{}{},
 		Paths: map[transformertypes.PathType][]string{
 			artifacts.GradleBuildFilePathType: {filepath.Join(dir, gradleBuildFileName)},
-			artifacts.ProjectPathPathType:     {dir},
+			artifacts.ServiceDirPathType:      {dir},
 		},
 	}
 	gc := artifacts.GradleConfig{}
@@ -307,7 +307,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			newArtifact.Paths = map[transformertypes.PathType][]string{}
 		}
 		newArtifact.Paths[artifacts.BuildContainerFileType] = []string{buildDockerfile}
-		newArtifact.Paths[artifacts.ProjectPathPathType] = a.Paths[artifacts.ProjectPathPathType]
+		newArtifact.Paths[artifacts.ServiceDirPathType] = a.Paths[artifacts.ServiceDirPathType]
 		createdArtifacts = append(createdArtifacts, newArtifact)
 	}
 	return pathMappings, createdArtifacts, nil

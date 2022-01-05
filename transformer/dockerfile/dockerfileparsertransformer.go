@@ -84,7 +84,7 @@ func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, a
 		processedImages[sImageName.ImageName] = true
 		if paths, ok := a.Paths[artifacts.DockerfilePathType]; ok && len(paths) > 0 {
 			serviceFsPath := filepath.Dir(paths[0])
-			if serviceFsPaths, ok := a.Paths[artifacts.ProjectPathPathType]; ok && len(serviceFsPaths) > 0 {
+			if serviceFsPaths, ok := a.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
 				serviceFsPath = serviceFsPaths[0]
 			}
 			na := t.getIRFromDockerfile(paths[0], sImageName.ImageName, sConfig.ServiceName, serviceFsPath, ir)
@@ -156,7 +156,7 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 		Name: t.Env.GetProjectName(),
 		Type: irtypes.IRArtifactType,
 		Paths: map[transformertypes.PathType][]string{
-			artifacts.ProjectPathPathType: {serviceFsPath},
+			artifacts.ServiceDirPathType: {serviceFsPath},
 		},
 		Configs: map[transformertypes.ConfigType]interface{}{
 			irtypes.IRConfigType: ir,

@@ -35,9 +35,9 @@ func ReadPlan(path string, rootDir string) (Plan, error) {
 		return plan, err
 	}
 	if rootDir != "" {
-		plan.Spec.RootDir = rootDir
+		plan.Spec.SourceDir = rootDir
 	}
-	absRootDir, err := filepath.Abs(plan.Spec.RootDir)
+	absRootDir, err := filepath.Abs(plan.Spec.SourceDir)
 	if err != nil {
 		logrus.Errorf("Unable to convert rootDir to full path : %s", err)
 		return plan, err
@@ -45,14 +45,14 @@ func ReadPlan(path string, rootDir string) (Plan, error) {
 	if err = pathconverters.MakePlanPathsAbsolute(&plan, absRootDir, common.TempPath); err != nil {
 		return plan, err
 	}
-	plan.Spec.RootDir = absRootDir
+	plan.Spec.SourceDir = absRootDir
 	return plan, err
 }
 
 // WritePlan encodes the plan to yaml converting absolute paths to relative.
 func WritePlan(path string, plan Plan) error {
 	newPlan := deepcopy.DeepCopy(plan).(Plan)
-	if err := pathconverters.ChangePaths(&newPlan, map[string]string{plan.Spec.RootDir: "", common.TempPath: ""}); err != nil {
+	if err := pathconverters.ChangePaths(&newPlan, map[string]string{plan.Spec.SourceDir: "", common.TempPath: ""}); err != nil {
 		logrus.Errorf("Unable to convert plan to use relative paths : %s", err)
 		return err
 	}
@@ -61,7 +61,7 @@ func WritePlan(path string, plan Plan) error {
 		logrus.Errorf("Unable to get current working dir : %s", err)
 		return err
 	}
-	if newPlan.Spec.RootDir, err = filepath.Rel(wd, plan.Spec.RootDir); err != nil {
+	if newPlan.Spec.SourceDir, err = filepath.Rel(wd, plan.Spec.SourceDir); err != nil {
 		return err
 	}
 	return common.WriteYaml(path, newPlan)

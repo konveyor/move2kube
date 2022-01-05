@@ -197,15 +197,15 @@ func getCsprojPathsFromSolutionFile(inputPath string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not open the solution file: %s", err)
 	}
-	projectPaths := make([]string, 0)
+	serviceDirPaths := make([]string, 0)
 	matches := dotnet.ProjBlockRegex.FindAllStringSubmatch(string(solFileTxt), -1)
 	for _, match := range matches {
-		projectPath := match[1]
-		projectPath = strings.TrimSpace(projectPath)
-		projectPath = common.GetUnixPath(projectPath)
-		projectPaths = append(projectPaths, projectPath)
+		serviceDirPath := match[1]
+		serviceDirPath = strings.TrimSpace(serviceDirPath)
+		serviceDirPath = common.GetUnixPath(serviceDirPath)
+		serviceDirPaths = append(serviceDirPaths, serviceDirPath)
 	}
-	return projectPaths, nil
+	return serviceDirPaths, nil
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -294,7 +294,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 
 	dotnetcoreService := transformertypes.Artifact{
 		Paths: map[transformertypes.PathType][]string{
-			artifacts.ProjectPathPathType: {dir},
+			artifacts.ServiceDirPathType:  {dir},
 			DotNetCoreCsprojFilesPathType: dotNetCoreCsprojPaths,
 		},
 	}
@@ -312,9 +312,9 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
 		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
@@ -338,20 +338,20 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 		var dotNetCoreTemplateConfig DotNetCoreTemplateConfig
 		var csprojRelFilePath string
 		if len(a.Paths[DotNetCoreCsprojFilesPathType]) == 1 {
-			csprojRelFilePath, err = filepath.Rel(a.Paths[artifacts.ProjectPathPathType][0], a.Paths[DotNetCoreCsprojFilesPathType][0])
+			csprojRelFilePath, err = filepath.Rel(a.Paths[artifacts.ServiceDirPathType][0], a.Paths[DotNetCoreCsprojFilesPathType][0])
 			if err != nil {
 				logrus.Errorf("Unable to convert csproj file path %s to be relative : %s", a.Paths[DotNetCoreCsprojFilesPathType][0], err)
 				continue
 			}
 		} else {
-			csprojRelFilePath = getCsprojFileForService(a.Paths[DotNetCoreCsprojFilesPathType], a.Paths[artifacts.ProjectPathPathType][0], a.Name)
+			csprojRelFilePath = getCsprojFileForService(a.Paths[DotNetCoreCsprojFilesPathType], a.Paths[artifacts.ServiceDirPathType][0], a.Name)
 		}
-		publishProfileFilesPath := findPublishProfiles(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], csprojRelFilePath))
-		dotNetCoreTemplateConfig.PublishProfileFilePath, dotNetCoreTemplateConfig.PublishUrl = getPublishProfile(publishProfileFilesPath, a.Name, a.Paths[artifacts.ProjectPathPathType][0])
+		publishProfileFilesPath := findPublishProfiles(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], csprojRelFilePath))
+		dotNetCoreTemplateConfig.PublishProfileFilePath, dotNetCoreTemplateConfig.PublishUrl = getPublishProfile(publishProfileFilesPath, a.Name, a.Paths[artifacts.ServiceDirPathType][0])
 		dotNetCoreTemplateConfig.CsprojFilePath = csprojRelFilePath
 		dotnetProjectName := strings.TrimSuffix(filepath.Base(dotNetCoreTemplateConfig.CsprojFilePath), filepath.Ext(dotNetCoreTemplateConfig.CsprojFilePath))
 		dotNetCoreTemplateConfig.CsprojFileName = dotnetProjectName
-		jsonFiles, err := common.GetFilesByName(a.Paths[artifacts.ProjectPathPathType][0], []string{launchSettingsJSON, packageJSONFile}, nil)
+		jsonFiles, err := common.GetFilesByName(a.Paths[artifacts.ServiceDirPathType][0], []string{launchSettingsJSON, packageJSONFile}, nil)
 		if err != nil {
 			logrus.Debugf("Error while finding json files %s", err)
 		}
@@ -393,9 +393,9 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 		}
 		dotNetCoreTemplateConfig.Ports = commonqa.GetPortsForService(ports, a.Name)
 		csprojConfiguration := &dotnet.CSProj{}
-		err = common.ReadXML(filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], csprojRelFilePath), csprojConfiguration)
+		err = common.ReadXML(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], csprojRelFilePath), csprojConfiguration)
 		if err != nil {
-			logrus.Errorf("Could not read the project file (%s) : %s", filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], csprojRelFilePath), err)
+			logrus.Errorf("Could not read the project file (%s) : %s", filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], csprojRelFilePath), err)
 			continue
 		}
 		frameworkVersion := dotnetcoreRegex.FindAllStringSubmatch(csprojConfiguration.PropertyGroup.TargetFramework, -1)

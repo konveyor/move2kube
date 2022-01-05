@@ -109,8 +109,8 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 						ServiceName: applicationName,
 					}},
 				Paths: map[transformertypes.PathType][]string{
-					artifacts.CfManifestPathType:  {filePath},
-					artifacts.ProjectPathPathType: {servicedirectory},
+					artifacts.CfManifestPathType: {filePath},
+					artifacts.ServiceDirPathType: {servicedirectory},
 				},
 			}
 			if buildArtifactDirectory != "" {
@@ -215,7 +215,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 		}
 		if len(cConfig) != 0 {
 			containerizationOption := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment, fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName), []string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)}, cConfig[0], cConfig)
-			containerizationArtifact := getContainerizationConfig(a.Paths[artifacts.ProjectPathPathType], a.Paths[artifacts.BuildArtifactPathType], containerizationOption)
+			containerizationArtifact := getContainerizationConfig(a.Paths[artifacts.ServiceDirPathType], a.Paths[artifacts.BuildArtifactPathType], containerizationOption)
 			if containerizationArtifact.Type == "" {
 				logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)
 			} else {

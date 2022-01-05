@@ -92,7 +92,7 @@ func (t *RustDockerfileGenerator) DirectoryDetect(dir string) (services map[stri
 			services = map[string][]transformertypes.Artifact{
 				serviceName: {{
 					Paths: map[transformertypes.PathType][]string{
-						artifacts.ProjectPathPathType: {dir},
+						artifacts.ServiceDirPathType: {dir},
 					},
 				}},
 			}
@@ -107,9 +107,9 @@ func (t *RustDockerfileGenerator) Transform(newArtifacts []transformertypes.Arti
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ProjectPathPathType][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ProjectPathPathType][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
 		}
 		var sConfig artifacts.ServiceConfig
 		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
@@ -132,7 +132,7 @@ func (t *RustDockerfileGenerator) Transform(newArtifacts []transformertypes.Arti
 		ports := ir.GetAllServicePorts()
 		var rustConfig RustTemplateConfig
 		rustConfig.AppName = a.Name
-		rocketTomlFilePath := filepath.Join(a.Paths[artifacts.ProjectPathPathType][0], rocketTomlFile)
+		rocketTomlFilePath := filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], rocketTomlFile)
 		if _, err := os.Stat(rocketTomlFilePath); err == nil {
 			rustConfig.RocketToml = rocketTomlFile
 			var rocketTomlConfig RocketTomlConfig
