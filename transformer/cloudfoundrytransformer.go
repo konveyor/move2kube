@@ -265,7 +265,7 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 	for _, value := range envOrderMap {
 		envList = append(envList, value)
 	}
-	logrus.Infof("Environment List: %v", envList)
+	logrus.Debugf("Environment List: %v", envList)
 	return envList
 }
 
