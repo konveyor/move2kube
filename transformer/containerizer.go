@@ -72,7 +72,7 @@ func getContainerizationConfig(serviceName string, projectDirectory, buildArtifa
 			nos[0].Paths[artifacts.BuildArtifactPathType] = buildArtifacts
 		}
 		nos[0].Name = serviceName
-		nos[0].ProcessWith = *metav1.AddLabelToSelector(&nos[0].ProcessWith, transformertypes.LabelName, string(nos[0].Type))
+		nos[0].ProcessWith = *metav1.AddLabelToSelector(&nos[0].ProcessWith, transformertypes.LabelName, string(transformerName))
 		nos[0].Type = artifacts.ServiceArtifactType
 		return nos[0]
 	}
