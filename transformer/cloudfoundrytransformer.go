@@ -120,7 +120,7 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 			if len(containerizationOptions) != 0 {
 				ct.Configs[artifacts.ContainerizationOptionsConfigType] = artifacts.ContainerizationOptionsConfig(containerizationOptions)
 			}
-			_, appinstance := getCfInstanceApp(cfInstanceApps, applicationName)
+			runningManifestPath, appinstance := getCfInstanceApp(cfInstanceApps, applicationName)
 			if application.DockerImage != "" || appinstance.Application.DockerImage != "" {
 				dockerImageName := application.DockerImage
 				if dockerImageName == "" {
@@ -130,6 +130,9 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 				ctConfig.ImageName = dockerImageName
 				ct.Configs[artifacts.CloudFoundryConfigType] = ctConfig
 				continue
+			}
+			if runningManifestPath != "" {
+				ct.Paths[artifacts.CfRunningManifestPathType] = append(ct.Paths[artifacts.CfRunningManifestPathType], runningManifestPath)
 			}
 			services[applicationName] = []transformertypes.Artifact{ct}
 		}
@@ -159,8 +162,8 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			logrus.Debugf("Unable to get containerization config : %s", err)
 		}
 		ir := irtypes.NewIR()
-		logrus.Debugf("Transforming %s", config.ServiceName)
 		var cfinstanceapp collecttypes.CfApp
+		logrus.Debugf("Transforming %s", config.ServiceName)
 		if runninginstancefile, ok := a.Paths[artifacts.CfRunningManifestPathType]; ok {
 			var err error
 			cfinstanceapp, err = getCfAppInstance(runninginstancefile[0], config.ServiceName)
@@ -195,6 +198,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			for varname, value := range cfinstanceapp.Application.Environment {
 				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)})
 			}
+			serviceContainer.Env = append(serviceContainer.Env, t.prioritizeAndAddEnvironmentVariables(cfinstanceapp)...)
 			ports := cfinstanceapp.Application.Ports
 			if len(ports) == 0 {
 				ports = []int{int(common.DefaultServicePort)}
@@ -237,6 +241,32 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 		})
 	}
 	return nil, artifactsCreated, nil
+}
+
+// prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
+func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp) []core.EnvVar {
+	envOrderMap := make(map[string]core.EnvVar, 0)
+	for varname, value := range cfApp.Environment.StagingEnv {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+	}
+	for varname, value := range cfApp.Environment.RunningEnv {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+	}
+	for varname, value := range cfApp.Environment.SystemEnv {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+	}
+	for varname, value := range cfApp.Environment.ApplicationEnv {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+	}
+	for varname, value := range cfApp.Environment.Environment {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+	}
+	var envList []core.EnvVar
+	for _, value := range envOrderMap {
+		envList = append(envList, value)
+	}
+	logrus.Debugf("Environment List: %v", envList)
+	return envList
 }
 
 // readApplicationManifest reads an application manifest
