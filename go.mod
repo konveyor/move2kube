@@ -8,6 +8,7 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.2.16
 	github.com/BurntSushi/toml v0.4.1
 	github.com/Masterminds/semver/v3 v3.1.1
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/cloudfoundry-community/go-cfclient v0.0.0-20211117203709-9b81b3940cc7
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
@@ -46,7 +47,6 @@ require (
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	k8s.io/kubernetes v1.21.4
 	knative.dev/serving v0.28.0
-	github.com/Masterminds/sprig v2.22.0+incompatible
 )
 
 require (
@@ -101,6 +101,7 @@ require (
 	github.com/google/cel-go v0.7.3 // indirect
 	github.com/google/go-containerregistry v0.7.1-0.20211118220127-abdc633f8305 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -121,6 +122,7 @@ require (
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/sys/mount v0.2.0 // indirect
 	github.com/moby/sys/mountinfo v0.4.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
