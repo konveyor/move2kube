@@ -242,6 +242,11 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 	return nil, artifactsCreated, nil
 }
 
+// filterAndAddInstanceEnvironments adds relevant environment variables relevant to the application deployment
+func (t *CloudFoundry) filterAndAddInstanceEnvironments(cfApp collecttypes.CfApp) {
+
+}
+
 // readApplicationManifest reads an application manifest
 func (t *CloudFoundry) readApplicationManifest(path string, serviceName string) ([]manifest.Application, []string, error) { // manifest, parameters
 	trimmedvariables, err := getMissingVariables(path)
