@@ -11,6 +11,7 @@ spec:
   consumes: 
     Ear:
       merge: true
+      mode: "MandatoryPassThrough"
   produces: 
     Ear:
       disabled: false

@@ -11,6 +11,7 @@ spec:
   consumes: 
     War:
       merge: true
+      mode: "MandatoryPassThrough"
   produces: 
     War:
       disabled: false
