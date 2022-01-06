@@ -91,7 +91,6 @@ func stringifyMap(inputMap map[string]interface{}) map[string]interface{} {
 		}
 		strValue := string(b.Bytes())
 		strValue = strings.TrimSpace(strValue)
-		//strValue = strings.Trim(strValue, `\r\n`)
 		inputMap[key] = strValue
 	}
 	return inputMap
