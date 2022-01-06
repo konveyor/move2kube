@@ -129,7 +129,6 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 				ctConfig := ct.Configs[artifacts.CloudFoundryConfigType].(artifacts.CloudFoundryConfig)
 				ctConfig.ImageName = dockerImageName
 				ct.Configs[artifacts.CloudFoundryConfigType] = ctConfig
-				continue
 			}
 			if runningManifestPath != "" {
 				ct.Paths[artifacts.CfRunningManifestPathType] = append(ct.Paths[artifacts.CfRunningManifestPathType], runningManifestPath)
@@ -180,8 +179,8 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			}
 			logrus.Debugf("Using cf manifest file at path %s to transform service %s", path, config.ServiceName)
 			application := applications[0]
-			serviceConfig := irtypes.Service{Name: config.ServiceName}
-			serviceContainer := core.Container{Name: config.ServiceName}
+			serviceConfig := irtypes.Service{Name: sConfig.ServiceName}
+			serviceContainer := core.Container{Name: sConfig.ServiceName}
 			serviceContainer.Image = config.ImageName
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
@@ -215,13 +214,15 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(ports[0])}
 			serviceContainer.Env = append(serviceContainer.Env, envvar)
 			serviceConfig.Containers = []core.Container{serviceContainer}
-			ir.Services[config.ServiceName] = serviceConfig
+			ir.Services[sConfig.ServiceName] = serviceConfig
 		}
 		if len(cConfig) != 0 {
 			containerizationOption := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment, fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName), []string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)}, cConfig[0], cConfig)
 			containerizationArtifact := getContainerizationConfig(sConfig.ServiceName, a.Paths[artifacts.ServiceDirPathType], a.Paths[artifacts.BuildArtifactPathType], containerizationOption)
 			if containerizationArtifact.Type == "" {
-				logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)
+				if config.ImageName == "" {
+					logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)
+				}
 			} else {
 				containerizationArtifact.Name = sConfig.ServiceName
 				if containerizationArtifact.Configs == nil {
@@ -245,7 +246,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 
 // prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
 func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp) []core.EnvVar {
-	envOrderMap := make(map[string]core.EnvVar, 0)
+	envOrderMap := map[string]core.EnvVar{}
 	for varname, value := range cfApp.Environment.StagingEnv {
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
 	}
