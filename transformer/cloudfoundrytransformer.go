@@ -231,7 +231,9 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			// 		if err != nil {
 			// 			logrus.Debugf("Error while parsing vcap variables : %s", err)
 			// 		} else {
-			// 			ir.Storages = append(ir.Storages, irtypes.Storage{Name: config.ServiceName, Content: vcapVariables})
+			// 			ir.Storages = append(ir.Storages, irtypes.Storage{Name: config.ServiceName,
+			// 				StorageType: irtypes.StorageKindType(t.CloudFoundryConfig.VcapStorageType),
+			// 				Content:     vcapVariables})
 			// 		}
 			// 	}
 			// }
