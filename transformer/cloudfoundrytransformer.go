@@ -198,6 +198,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			for varname, value := range cfinstanceapp.Application.Environment {
 				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)})
 			}
+			serviceContainer.Env = append(serviceContainer.Env, t.prioritizeAndAddEnvironmentVariables(cfinstanceapp)...)
 			ports := cfinstanceapp.Application.Ports
 			if len(ports) == 0 {
 				ports = []int{int(common.DefaultServicePort)}
@@ -242,9 +243,30 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 	return nil, artifactsCreated, nil
 }
 
-// filterAndAddInstanceEnvironments adds relevant environment variables relevant to the application deployment
-func (t *CloudFoundry) filterAndAddInstanceEnvironments(cfApp collecttypes.CfApp) {
-
+// prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
+func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp) []core.EnvVar {
+	envOrderMap := make(map[string]core.EnvVar, 0)
+	for varname, value := range cfApp.Environment.StagingEnv {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+	}
+	for varname, value := range cfApp.Environment.RunningEnv {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+	}
+	for varname, value := range cfApp.Environment.SystemEnv {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+	}
+	for varname, value := range cfApp.Environment.ApplicationEnv {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+	}
+	for varname, value := range cfApp.Environment.Environment {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+	}
+	var envList []core.EnvVar
+	for _, value := range envOrderMap {
+		envList = append(envList, value)
+	}
+	logrus.Infof("Environment List: %v", envList)
+	return envList
 }
 
 // readApplicationManifest reads an application manifest
