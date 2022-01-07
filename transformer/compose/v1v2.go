@@ -157,7 +157,23 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 		if serviceContainer.Image == "" {
 			serviceContainer.Image = name + ":latest"
 		}
-
+		if composeServiceConfig.Build.Dockerfile != "" || composeServiceConfig.Build.Context != "" {
+			if composeServiceConfig.Build.Dockerfile == "" {
+				composeServiceConfig.Build.Dockerfile = filepath.Join(composeServiceConfig.Build.Context, common.DefaultDockerfileName)
+			}
+			if ir.ContainerImages == nil {
+				ir.ContainerImages = map[string]irtypes.ContainerImage{}
+			}
+			ir.ContainerImages[serviceContainer.Image] = irtypes.ContainerImage{
+				Build: irtypes.ContainerBuild{
+					ContainerBuildType: irtypes.DockerfileContainerBuildType,
+					ContextPath:        filepath.Join(filedir, composeServiceConfig.Build.Context),
+					Artifacts: map[irtypes.ContainerBuildArtifactTypeValue][]string{
+						irtypes.DockerfileContainerBuildArtifactTypeValue: {filepath.Join(filedir, composeServiceConfig.Build.Dockerfile)},
+					},
+				},
+			}
+		}
 		serviceContainer.Name = common.NormalizeForServiceName(composeServiceConfig.ContainerName)
 		if serviceContainer.Name != composeServiceConfig.ContainerName {
 			logrus.Debugf("Container name in service %q has been changed from %q to %q", name, composeServiceConfig.ContainerName, serviceContainer.Name)

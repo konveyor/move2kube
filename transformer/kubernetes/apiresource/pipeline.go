@@ -114,14 +114,25 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 			contextPath := contextPathPlaceholder
 			// If there is a git repo, set the correct context and dockerfile paths.
 			if repoDir != "" {
-				relDockerfilePath, err := filepath.Rel(repoDir, container.Build.ContextPath)
+				if len(container.Build.Artifacts) != 0 && len(container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue]) != 0 {
+					relDFPath, err := filepath.Rel(repoDir, container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue][0])
+					if err != nil {
+						// TODO: Bump up the error after fixing abs path, rel path issues
+						logrus.Debugf("ERROR: Failed to make the df path %q relative to the path %q Error %q", repoDir, container.Build.ContextPath, err)
+					} else {
+						dockerfilePath = relDFPath
+					}
+				}
+				relContextPath, err := filepath.Rel(repoDir, container.Build.ContextPath)
 				if err != nil {
 					// TODO: Bump up the error after fixing abs path, rel path issues
 					logrus.Debugf("ERROR: Failed to make the path %q relative to the path %q Error %q", repoDir, container.Build.ContextPath, err)
 				} else {
-					dockerfilePath = relDockerfilePath
+					if dockerfilePath == dockerfilePathPlaceholder {
+						dockerfilePath = filepath.Join(relContextPath, common.DefaultDockerfileName)
+					}
 					// We can't figure out the context from the source. So assume the context is the directory containing the dockerfile.
-					contextPath = filepath.Dir(relDockerfilePath)
+					contextPath = relContextPath
 				}
 			}
 

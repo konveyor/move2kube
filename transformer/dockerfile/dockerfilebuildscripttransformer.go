@@ -82,7 +82,19 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 		}
 		processedImages[sImageName.ImageName] = true
 		for _, path := range a.Paths[artifacts.DockerfilePathType] {
-			relPath := filepath.Dir(path)
+			relPath := ""
+			dockerfileName := filepath.Base(path)
+			if len(a.Paths[artifacts.DockerfileContextPathType]) > 0 {
+				relPath = a.Paths[artifacts.DockerfileContextPathType][0]
+				dfrelPath, err := filepath.Rel(relPath, path)
+				if err != nil {
+					logrus.Errorf("Unable to convert dockerfile path as a relative path : %s", err)
+				} else {
+					dockerfileName = dfrelPath
+				}
+			} else {
+				relPath = filepath.Dir(path)
+			}
 			if common.IsParent(path, t.Env.GetEnvironmentSource()) {
 				relPath, err = filepath.Rel(t.Env.GetEnvironmentSource(), filepath.Dir(path))
 				if err != nil {
@@ -93,7 +105,7 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 					ImageName:        sImageName.ImageName,
 					ContextUnix:      common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relPath)),
 					ContextWindows:   common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relPath)),
-					DockerfileName:   filepath.Base(path),
+					DockerfileName:   dockerfileName,
 					ContainerRuntime: commonqa.GetContainerRuntime(),
 				})
 			} else if common.IsParent(path, t.Env.GetEnvironmentOutput()) {
@@ -106,7 +118,7 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 					ImageName:        sImageName.ImageName,
 					ContextUnix:      common.GetUnixPath(relPath),
 					ContextWindows:   common.GetWindowsPath(relPath),
-					DockerfileName:   filepath.Base(path),
+					DockerfileName:   dockerfileName,
 					ContainerRuntime: commonqa.GetContainerRuntime(),
 				})
 			} else {
@@ -114,7 +126,7 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 					ImageName:        sImageName.ImageName,
 					ContextUnix:      common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relPath)),
 					ContextWindows:   common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relPath)),
-					DockerfileName:   filepath.Base(path),
+					DockerfileName:   dockerfileName,
 					ContainerRuntime: commonqa.GetContainerRuntime(),
 				})
 			}

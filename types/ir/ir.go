@@ -45,6 +45,11 @@ const (
 	CNBContainerBuildTypeValue ContainerBuildTypeValue = "CNB"
 )
 
+const (
+	// DockerfileContainerBuildArtifactTypeValue represents dockerfile container build type artifact
+	DockerfileContainerBuildArtifactTypeValue ContainerBuildArtifactTypeValue = "Dockerfile"
+)
+
 // IR is the intermediate representation filled by source transformers
 type IR struct {
 	Name            string

@@ -14,3 +14,5 @@ spec:
   produces:
     IR:
       disabled: false
+    Dockerfile:
+      disabled: false
