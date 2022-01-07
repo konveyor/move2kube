@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"github.com/Masterminds/sprig"
 	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 )
@@ -149,9 +150,9 @@ func writeTemplateToFile(tpl string, config interface{}, writepath string,
 	var tplbuffer bytes.Buffer
 	var packageTemplate *template.Template
 	if openingDelimiter != "" && closingDelimiter != "" {
-		packageTemplate = template.Must(template.New("").Delims(openingDelimiter, closingDelimiter).Parse(tpl))
+		packageTemplate = template.Must(template.New("").Delims(openingDelimiter, closingDelimiter).Funcs(sprig.TxtFuncMap()).Parse(tpl))
 	} else {
-		packageTemplate = template.Must(template.New("").Parse(tpl))
+		packageTemplate = template.Must(template.New("").Funcs(sprig.TxtFuncMap()).Parse(tpl))
 	}
 	err := packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {

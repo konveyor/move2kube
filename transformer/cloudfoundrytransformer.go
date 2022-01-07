@@ -17,9 +17,11 @@
 package transformer
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"code.cloudfoundry.org/cli/util/manifest"
@@ -38,10 +40,19 @@ import (
 	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
+// VariableLiteralPattern to identify variable literals in environment names
+var VariableLiteralPattern = regexp.MustCompile("[-.+~`!@#$%^&*(){}\\[\\]:;\"',?<>/]")
+
 // CloudFoundry implements Transformer interface
 type CloudFoundry struct {
 	Config transformertypes.Transformer
 	Env    *environment.Environment
+}
+
+// VCAPService defines the VCAP service data from JSON
+type VCAPService struct {
+	ServiceName        string                 `json:"name"`
+	ServiceCredentials map[string]interface{} `json:"credentials"`
 }
 
 // Init Initializes the transformer
@@ -185,19 +196,14 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
 			}
-			for varname, value := range application.EnvironmentVariables {
-				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: value})
-			}
 			//TODO: Add support for services, health check, memory
 			if application.Instances.IsSet {
 				serviceConfig.Replicas = application.Instances.Value
 			} else if cfinstanceapp.Application.Instances != 0 {
 				serviceConfig.Replicas = cfinstanceapp.Application.Instances
 			}
-			for varname, value := range cfinstanceapp.Application.Environment {
-				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)})
-			}
-			serviceContainer.Env = append(serviceContainer.Env, t.prioritizeAndAddEnvironmentVariables(cfinstanceapp)...)
+			serviceContainer.Env = append(serviceContainer.Env,
+				t.prioritizeAndAddEnvironmentVariables(cfinstanceapp, application.EnvironmentVariables)...)
 			ports := cfinstanceapp.Application.Ports
 			if len(ports) == 0 {
 				ports = []int{int(common.DefaultServicePort)}
@@ -245,8 +251,12 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 }
 
 // prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
-func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp) []core.EnvVar {
+func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp, manifestEnvMap map[string]string) []core.EnvVar {
 	envOrderMap := map[string]core.EnvVar{}
+	// Manifest
+	for varname, value := range manifestEnvMap {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: value}
+	}
 	for varname, value := range cfApp.Environment.StagingEnv {
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
 	}
@@ -254,7 +264,14 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
 	}
 	for varname, value := range cfApp.Environment.SystemEnv {
-		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+		valueStr := fmt.Sprintf("%v", value)
+		if varname == "VCAP_SERVICES" {
+			flattenedEnvList := flattenVcapServiceVariables(valueStr)
+			for _, env := range flattenedEnvList {
+				envOrderMap[env.Name] = env
+			}
+		}
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: valueStr}
 	}
 	for varname, value := range cfApp.Environment.ApplicationEnv {
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
@@ -266,8 +283,45 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 	for _, value := range envOrderMap {
 		envList = append(envList, value)
 	}
-	logrus.Debugf("Environment List: %v", envList)
 	return envList
+}
+
+// flattenVariable flattens a given variable defined by <name, credential>
+func flattenVariable(prefix string, credential interface{}) []core.EnvVar {
+	var credentialList []core.EnvVar
+	switch credential.(type) {
+	case []interface{}:
+		for index, value := range credential.([]interface{}) {
+			envName := fmt.Sprintf("%s_%v", prefix, index)
+			credentialList = append(credentialList, flattenVariable(envName, value)...)
+		}
+	case map[string]interface{}:
+		for name, value := range credential.(map[string]interface{}) {
+			envName := fmt.Sprintf("%s_%s", prefix, name)
+			credentialList = append(credentialList, flattenVariable(envName, value)...)
+		}
+	default:
+		return []core.EnvVar{core.EnvVar{Name: strings.ToUpper(VariableLiteralPattern.ReplaceAllLiteralString(prefix, "_")),
+			Value: fmt.Sprintf("%#v", credential)}}
+	}
+	return credentialList
+}
+
+// flattenVcapServiceVariables flattens the variables specified in the "credentials" field of VCAP_SERVICES
+func flattenVcapServiceVariables(vcapService string) []core.EnvVar {
+	var flattenedEnvList []core.EnvVar
+	var serviceInstanceMap map[string][]VCAPService
+	err := json.Unmarshal([]byte(vcapService), &serviceInstanceMap)
+	if err != nil {
+		logrus.Errorf("Could not unmarshal the service map instance in VCAP_SERVICES: %s", err)
+		return nil
+	}
+	for _, serviceInstances := range serviceInstanceMap {
+		for _, serviceInstance := range serviceInstances {
+			flattenedEnvList = append(flattenedEnvList, flattenVariable(serviceInstance.ServiceName, serviceInstance.ServiceCredentials)...)
+		}
+	}
+	return flattenedEnvList
 }
 
 // readApplicationManifest reads an application manifest
