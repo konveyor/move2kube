@@ -300,13 +300,13 @@ func flattenVariable(prefix string, credential interface{}) []core.EnvVar {
 	var credentialList []core.EnvVar
 	switch credential.(type) {
 	case []interface{}:
-		for name, value := range credential.([]interface{}) {
-			envName := fmt.Sprintf("%s_%v", prefix, name)
+		for index, value := range credential.([]interface{}) {
+			envName := fmt.Sprintf("%s_%v", prefix, index)
 			credentialList = append(credentialList, flattenVariable(envName, value)...)
 		}
 	case map[string]interface{}:
 		for name, value := range credential.(map[string]interface{}) {
-			envName := prefix + "_" + name
+			envName := fmt.Sprintf("%s_%s", prefix, name)
 			credentialList = append(credentialList, flattenVariable(envName, value)...)
 		}
 	default:
@@ -320,7 +320,11 @@ func flattenVariable(prefix string, credential interface{}) []core.EnvVar {
 func flattenVcapServiceVariables(vcapService string) []core.EnvVar {
 	var flattenedEnvList []core.EnvVar
 	var serviceInstanceMap map[string][]VCAPService
-	json.Unmarshal([]byte(vcapService), &serviceInstanceMap)
+	err := json.Unmarshal([]byte(vcapService), &serviceInstanceMap)
+	if err != nil {
+		logrus.Errorf("Could not unmarshal the service map instance in VCAP_SERVICES: %s", err)
+		return nil
+	}
 	for _, serviceInstances := range serviceInstanceMap {
 		for _, serviceInstance := range serviceInstances {
 			flattenedEnvList = append(flattenedEnvList, flattenVariable(serviceInstance.ServiceName, serviceInstance.ServiceCredentials)...)
