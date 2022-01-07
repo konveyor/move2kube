@@ -166,10 +166,12 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 			ir.Services[sConfig.ServiceName] = s
 			break
 		}
-		pathMappings = append(pathMappings, transformertypes.PathMapping{
-			Type:     transformertypes.SourcePathMappingType,
-			DestPath: common.DefaultSourceDir,
-		})
+		if len(ir.ContainerImages) > 0 {
+			pathMappings = append(pathMappings, transformertypes.PathMapping{
+				Type:     transformertypes.SourcePathMappingType,
+				DestPath: common.DefaultSourceDir,
+			})
+		}
 		for name, ci := range ir.ContainerImages {
 			contextPath := ci.Build.ContextPath
 			dockerfilePath := filepath.Join(ci.Build.ContextPath, common.DefaultDockerfileName)
