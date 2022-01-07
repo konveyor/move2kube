@@ -115,7 +115,13 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 			// If there is a git repo, set the correct context and dockerfile paths.
 			if repoDir != "" {
 				if len(container.Build.Artifacts) != 0 && len(container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue]) != 0 {
-					dockerfilePath = container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue][0]
+					relDFPath, err := filepath.Rel(repoDir, container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue][0])
+					if err != nil {
+						// TODO: Bump up the error after fixing abs path, rel path issues
+						logrus.Debugf("ERROR: Failed to make the df path %q relative to the path %q Error %q", repoDir, container.Build.ContextPath, err)
+					} else {
+						dockerfilePath = relDFPath
+					}
 				}
 				relContextPath, err := filepath.Rel(repoDir, container.Build.ContextPath)
 				if err != nil {
