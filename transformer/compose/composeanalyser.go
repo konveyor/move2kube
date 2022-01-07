@@ -93,6 +93,7 @@ func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]tra
 
 // Transform transforms the artifacts
 func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
 		var config ComposeConfig
@@ -100,6 +101,17 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", config, err)
 			continue
+		}
+		var sConfig artifacts.ServiceConfig
+		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		if err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+			continue
+		}
+		sImageName := artifacts.ImageName{}
+		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		if err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
 		ir := irtypes.NewIR()
 		for _, path := range a.Paths[composeFilePathType] {
@@ -121,20 +133,75 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 				logrus.Errorf("Failed to read image info yaml at path %s Error: %q", path, err)
 				continue
 			}
-			for _, it := range imgMD.Spec.Tags {
-				ir.AddContainer(it, newContainerFromImageInfo(imgMD))
+			ir.AddContainer(sImageName.ImageName, newContainerFromImageInfo(imgMD))
+		}
+		if sImageName.ImageName == "" {
+			if len(ir.ContainerImages) != 0 {
+				for name := range ir.ContainerImages {
+					sImageName.ImageName = name
+					break
+				}
+			}
+		} else {
+			if len(ir.ContainerImages) > 1 {
+				logrus.Errorf("Expected only one image in %s. Resetting only the first image name.", sConfig.ServiceName)
+			}
+			for name, ci := range ir.ContainerImages {
+				delete(ir.ContainerImages, name)
+				ir.ContainerImages[sImageName.ImageName] = ci
+				break
+			}
+			for sn, s := range ir.Services {
+				if len(s.Containers) > 1 {
+					logrus.Errorf("Expected only one container. Finding more than one contaienr for service %s.", sn)
+				}
+				if len(s.Containers) != 0 {
+					s.Containers[0].Image = sImageName.ImageName
+					break
+				}
 			}
 		}
-		p := transformertypes.Artifact{
+		for name, s := range ir.Services {
+			delete(ir.Services, name)
+			ir.Services[sConfig.ServiceName] = s
+			break
+		}
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:     transformertypes.SourcePathMappingType,
+			DestPath: common.DefaultSourceDir,
+		})
+		for name, ci := range ir.ContainerImages {
+			contextPath := ci.Build.ContextPath
+			dockerfilePath := filepath.Join(ci.Build.ContextPath, common.DefaultDockerfileName)
+			if len(ci.Build.Artifacts) != 0 && len(ci.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue]) != 0 {
+				dockerfilePath = ci.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue][0]
+			}
+			if contextPath == "" && dockerfilePath != common.DefaultDockerfileName {
+				contextPath = filepath.Dir(dockerfilePath)
+			}
+			artifactsCreated = append(artifactsCreated, transformertypes.Artifact{
+				Name: name,
+				Type: artifacts.DockerfileArtifactType,
+				Paths: map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath},
+					artifacts.DockerfileContextPathType: {contextPath},
+				},
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.ImageNameConfigType: artifacts.ImageName{
+						ImageName: name,
+					},
+				},
+			})
+		}
+		ac := transformertypes.Artifact{
 			Name: t.Env.GetProjectName(),
 			Type: irtypes.IRArtifactType,
 			Configs: map[transformertypes.ConfigType]interface{}{
 				irtypes.IRConfigType: ir,
 			},
 		}
-		artifactsCreated = append(artifactsCreated, p)
+		artifactsCreated = append(artifactsCreated, ac)
 	}
-	return nil, artifactsCreated, nil
+	return pathMappings, artifactsCreated, nil
 }
 
 func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) transformertypes.Artifact {

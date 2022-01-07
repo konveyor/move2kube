@@ -153,6 +153,23 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		if serviceContainer.Image == "" {
 			serviceContainer.Image = name + ":latest"
 		}
+		if composeServiceConfig.Build.Dockerfile != "" || composeServiceConfig.Build.Context != "" {
+			if composeServiceConfig.Build.Dockerfile == "" {
+				composeServiceConfig.Build.Dockerfile = filepath.Join(composeServiceConfig.Build.Context, common.DefaultDockerfileName)
+			}
+			if ir.ContainerImages == nil {
+				ir.ContainerImages = map[string]irtypes.ContainerImage{}
+			}
+			ir.ContainerImages[serviceContainer.Image] = irtypes.ContainerImage{
+				Build: irtypes.ContainerBuild{
+					ContainerBuildType: irtypes.DockerfileContainerBuildType,
+					ContextPath:        filepath.Join(filedir, composeServiceConfig.Build.Context),
+					Artifacts: map[irtypes.ContainerBuildArtifactTypeValue][]string{
+						irtypes.DockerfileContainerBuildArtifactTypeValue: {filepath.Join(filedir, composeServiceConfig.Build.Dockerfile)},
+					},
+				},
+			}
+		}
 		serviceContainer.WorkingDir = composeServiceConfig.WorkingDir
 		serviceContainer.Command = composeServiceConfig.Entrypoint
 		serviceContainer.Args = composeServiceConfig.Command
