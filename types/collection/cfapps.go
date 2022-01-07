@@ -77,6 +77,7 @@ func FormatMapsWithInterface(cfAppInstances CfApps) CfApps {
 func stringifyMap(inputMap map[string]interface{}) map[string]interface{} {
 	for key, value := range inputMap {
 		if value == nil {
+			inputMap[key] = ""
 			continue
 		}
 		if val, ok := value.(string); ok {
@@ -89,7 +90,7 @@ func stringifyMap(inputMap map[string]interface{}) map[string]interface{} {
 			logrus.Error("Unable to unmarshal data to json while converting map interfaces to string")
 			continue
 		}
-		strValue := string(b.Bytes())
+		strValue := b.String()
 		strValue = strings.TrimSpace(strValue)
 		inputMap[key] = strValue
 	}
