@@ -258,14 +258,14 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: value}
 	}
 	for varname, value := range cfApp.Environment.StagingEnv {
-		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%s", value)}
 	}
 	for varname, value := range cfApp.Environment.RunningEnv {
-		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%s", value)}
 	}
 	for varname, value := range cfApp.Environment.SystemEnv {
-		valueStr := fmt.Sprintf("%v", value)
-		if varname == "VCAP_SERVICES" {
+		valueStr := fmt.Sprintf("%s", value)
+		if varname == "VCAP_SERVICES" && valueStr != "" {
 			flattenedEnvList := flattenVcapServiceVariables(valueStr)
 			for _, env := range flattenedEnvList {
 				envOrderMap[env.Name] = env
@@ -274,10 +274,10 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: valueStr}
 	}
 	for varname, value := range cfApp.Environment.ApplicationEnv {
-		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%s", value)}
 	}
 	for varname, value := range cfApp.Environment.Environment {
-		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%s", value)}
 	}
 	var envList []core.EnvVar
 	for _, value := range envOrderMap {
@@ -289,19 +289,19 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 // flattenVariable flattens a given variable defined by <name, credential>
 func flattenVariable(prefix string, credential interface{}) []core.EnvVar {
 	var credentialList []core.EnvVar
-	switch credential.(type) {
+	switch cred := credential.(type) {
 	case []interface{}:
-		for index, value := range credential.([]interface{}) {
+		for index, value := range cred {
 			envName := fmt.Sprintf("%s_%v", prefix, index)
 			credentialList = append(credentialList, flattenVariable(envName, value)...)
 		}
 	case map[string]interface{}:
-		for name, value := range credential.(map[string]interface{}) {
+		for name, value := range cred {
 			envName := fmt.Sprintf("%s_%s", prefix, name)
 			credentialList = append(credentialList, flattenVariable(envName, value)...)
 		}
 	default:
-		return []core.EnvVar{core.EnvVar{Name: strings.ToUpper(VariableLiteralPattern.ReplaceAllLiteralString(prefix, "_")),
+		return []core.EnvVar{{Name: strings.ToUpper(VariableLiteralPattern.ReplaceAllLiteralString(prefix, "_")),
 			Value: fmt.Sprintf("%#v", credential)}}
 	}
 	return credentialList
@@ -313,7 +313,7 @@ func flattenVcapServiceVariables(vcapService string) []core.EnvVar {
 	var serviceInstanceMap map[string][]VCAPService
 	err := json.Unmarshal([]byte(vcapService), &serviceInstanceMap)
 	if err != nil {
-		logrus.Errorf("Could not unmarshal the service map instance in VCAP_SERVICES: %s", err)
+		logrus.Errorf("Could not unmarshal the service map instance (%s) in VCAP_SERVICES: %s", vcapService, err)
 		return nil
 	}
 	for _, serviceInstances := range serviceInstanceMap {
