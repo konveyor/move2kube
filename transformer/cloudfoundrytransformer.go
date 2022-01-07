@@ -253,6 +253,10 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 // prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
 func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp, manifestEnvMap map[string]string) []core.EnvVar {
 	envOrderMap := map[string]core.EnvVar{}
+	// Manifest
+	for varname, value := range manifestEnvMap {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: value}
+	}
 	for varname, value := range cfApp.Environment.StagingEnv {
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
 	}
@@ -275,15 +279,10 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 	for varname, value := range cfApp.Environment.Environment {
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
 	}
-	// Manifest
-	for varname, value := range manifestEnvMap {
-		envOrderMap[varname] = core.EnvVar{Name: varname, Value: value}
-	}
 	var envList []core.EnvVar
 	for _, value := range envOrderMap {
 		envList = append(envList, value)
 	}
-
 	return envList
 }
 
