@@ -4,6 +4,6 @@ Congratulations! Move2Kube has generated the necessary build artfiacts for movin
 
 Next Steps
 ----------
-To try locally use the scripts in the "./scripts" directory, to build, push and deploy. 
+If container build artifacts are detected/created by Move2Kube, scripts to build them locally are put in "./scripts" directory. For production image build, use the CI/CD pipelines in "./deploy/cicd" directory.
 
-For production usage use the CI/CD pipelines for deployment.
+For deployment, use the artifacts in "./deploy" directory.
