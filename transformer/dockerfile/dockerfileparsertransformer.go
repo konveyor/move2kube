@@ -87,20 +87,26 @@ func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, a
 			if serviceFsPaths, ok := a.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
 				serviceFsPath = serviceFsPaths[0]
 			}
-			na := t.getIRFromDockerfile(paths[0], sImageName.ImageName, sConfig.ServiceName, serviceFsPath, ir)
-			if na != nil {
-				nartifacts = append(nartifacts, *na)
+			contextPath := filepath.Dir(paths[0])
+			if contextPaths, ok := a.Paths[artifacts.DockerfileContextPathType]; ok && len(contextPaths) > 0 {
+				contextPath = contextPaths[0]
+			}
+			na, err := t.getIRFromDockerfile(paths[0], contextPath, sImageName.ImageName, sConfig.ServiceName, serviceFsPath, ir)
+			if err != nil {
+				logrus.Errorf("Unable to convert dockerfile to IR : %s", err)
+			} else {
+				nartifacts = append(nartifacts, na)
 			}
 		}
 	}
 	return nil, nartifacts, nil
 }
 
-func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, serviceName, serviceFsPath string, ir irtypes.IR) *transformertypes.Artifact {
+func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, contextPath, imageName, serviceName, serviceFsPath string, ir irtypes.IR) (transformertypes.Artifact, error) {
 	df, err := t.getDockerFileAST(dockerfilepath)
 	if err != nil {
 		logrus.Errorf("Unable to parse dockerfile : %s", err)
-		return nil
+		return transformertypes.Artifact{}, err
 	}
 	ir.Name = t.Env.GetProjectName()
 	container := irtypes.NewContainer()
@@ -120,8 +126,11 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 			}
 		}
 	}
-	container.Build.ContextPath = dockerfilepath
 	container.Build.ContainerBuildType = irtypes.DockerfileContainerBuildType
+	container.Build.ContextPath = contextPath
+	container.Build.Artifacts = map[irtypes.ContainerBuildArtifactTypeValue][]string{
+		irtypes.DockerfileContainerBuildArtifactTypeValue: {dockerfilepath},
+	}
 	if len(container.ExposedPorts) == 0 {
 		logrus.Warnf("Unable to find ports in Dockerfile : %s. Using default port", dockerfilepath)
 		container.AddExposedPort(common.DefaultServicePort)
@@ -152,7 +161,7 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 		}}
 	}
 	ir.Services[serviceName] = irService
-	return &transformertypes.Artifact{
+	return transformertypes.Artifact{
 		Name: t.Env.GetProjectName(),
 		Type: irtypes.IRArtifactType,
 		Paths: map[transformertypes.PathType][]string{
@@ -160,7 +169,7 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, imageName, servic
 		},
 		Configs: map[transformertypes.ConfigType]interface{}{
 			irtypes.IRConfigType: ir,
-		}}
+		}}, nil
 }
 
 func (t *DockerfileParser) getDockerFileAST(path string) (*dockerparser.Result, error) {
