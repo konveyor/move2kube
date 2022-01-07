@@ -196,27 +196,14 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
 			}
-			addedAlready := map[string]bool{}
-			// Manifest
-			for varname, value := range application.EnvironmentVariables {
-				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: value})
-				addedAlready[varname] = true
-			}
 			//TODO: Add support for services, health check, memory
 			if application.Instances.IsSet {
 				serviceConfig.Replicas = application.Instances.Value
 			} else if cfinstanceapp.Application.Instances != 0 {
 				serviceConfig.Replicas = cfinstanceapp.Application.Instances
 			}
-			// Runtime
-			for varname, value := range cfinstanceapp.Application.Environment {
-				// Silently ignore variables already set in manifest
-				if _, ok := addedAlready[varname]; ok {
-					continue
-				}
-				serviceContainer.Env = append(serviceContainer.Env, core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)})
-			}
-			serviceContainer.Env = append(serviceContainer.Env, t.prioritizeAndAddEnvironmentVariables(cfinstanceapp)...)
+			serviceContainer.Env = append(serviceContainer.Env,
+				t.prioritizeAndAddEnvironmentVariables(cfinstanceapp, application.EnvironmentVariables)...)
 			ports := cfinstanceapp.Application.Ports
 			if len(ports) == 0 {
 				ports = []int{int(common.DefaultServicePort)}
@@ -264,7 +251,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 }
 
 // prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
-func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp) []core.EnvVar {
+func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp, manifestEnvMap map[string]string) []core.EnvVar {
 	envOrderMap := map[string]core.EnvVar{}
 	for varname, value := range cfApp.Environment.StagingEnv {
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
@@ -288,10 +275,15 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 	for varname, value := range cfApp.Environment.Environment {
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: fmt.Sprintf("%v", value)}
 	}
+	// Manifest
+	for varname, value := range manifestEnvMap {
+		envOrderMap[varname] = core.EnvVar{Name: varname, Value: value}
+	}
 	var envList []core.EnvVar
 	for _, value := range envOrderMap {
 		envList = append(envList, value)
 	}
+
 	return envList
 }
 
