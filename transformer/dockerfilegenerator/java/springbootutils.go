@@ -153,9 +153,8 @@ func flattenPropertyKey(prefix string, unflattenedValue interface{}) []Flattened
 		if unflattened != nil {
 			return []FlattenedProperty{{Name: prefix,
 				Value: fmt.Sprintf("%#v", unflattened)}}
-		} else {
-			return []FlattenedProperty{{Name: prefix, Value: ""}}
 		}
+		return []FlattenedProperty{{Name: prefix, Value: ""}}
 	}
 	return flattenedList
 }
