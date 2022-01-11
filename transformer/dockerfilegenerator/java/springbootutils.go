@@ -19,16 +19,20 @@ package java
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/magiconair/properties"
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
+	"k8s.io/kubernetes/pkg/apis/core"
 )
 
 var (
@@ -51,6 +55,145 @@ type SpringBootMetadataFiles struct {
 	bootstrapYamlFiles []string
 	appPropFiles       []string
 	appYamlFiles       []string
+}
+
+// FlattenedProperty defines the key value pair of the spring boot properties
+type FlattenedProperty struct {
+	Name  string
+	Value string
+}
+
+func injectProperties(ir irtypes.IR, serviceName string) irtypes.IR {
+	const vcapMountDir = "/vcap"
+	const vcapPropertyFile = "vcap-properties.yaml"
+	const vcapSecretPrefix = "vcapsecret"
+	const propertyImportEnvKey = "SPRING_CONFIG_IMPORT"
+	for serviceKey, service := range ir.Services {
+		if service.Name != serviceName {
+			continue
+		}
+		// Flatten the VCAP_* environment JSON values to create spring-boot properties
+		var vcapEnvList []FlattenedProperty
+		for _, c := range service.Containers {
+			for _, env := range c.Env {
+				if env.Name == common.VcapServiceEnvName {
+					vcapEnvList = append(vcapEnvList, flattenToVcapServicesProperties(env)...)
+				} else if env.Name == common.VcapApplicationEnvName {
+					vcapEnvList = append(vcapEnvList, flattenToVcapApplicationProperties(env)...)
+				}
+			}
+		}
+		if len(vcapEnvList) == 0 {
+			continue
+		}
+		// Dump the entire VCAP_* property key-value pair data as one large chunk of string data
+		// which will then be used as value to the VCAP property file name.
+		var data []string
+		for _, vcapEnv := range vcapEnvList {
+			data = append(data, strings.Join([]string{vcapEnv.Name, vcapEnv.Value}, ":"))
+		}
+		// Create a secret for VCAP_* property key-value pairs
+		ir.Storages = append(ir.Storages, irtypes.Storage{Name: serviceName,
+			StorageType: irtypes.SecretKind,
+			Content:     map[string][]byte{vcapPropertyFile: []byte(strings.Join(data, "\n"))}})
+		// Create volume mount path for by assigning a pre-defined directory and property file.
+		mountPath := filepath.Join(vcapMountDir, vcapPropertyFile)
+		for _, c := range service.Containers {
+			// Add an environment variable for SPRING_CONFIG_IMPORT and its value in every container
+			c.Env = append(c.Env, core.EnvVar{Name: propertyImportEnvKey, Value: mountPath})
+			// Create volume mounts for each container of the service
+			c.VolumeMounts = append(c.VolumeMounts, core.VolumeMount{Name: vcapSecretPrefix + "mount", MountPath: mountPath})
+		}
+		// Create a volume for each service which maps to the secret created for VCAP_* property key-value pairs
+		service.Volumes = append(service.Volumes,
+			core.Volume{Name: vcapSecretPrefix + "volume",
+				VolumeSource: core.VolumeSource{Secret: &core.SecretVolumeSource{SecretName: serviceName}}})
+		ir.Services[serviceKey] = service
+	}
+	return ir
+}
+
+// interfaceSliceToDelimitedString converts an interface slice to string slice
+func interfaceSliceToDelimitedString(intSlice []interface{}) string {
+	var stringSlice []string
+	for _, value := range intSlice {
+		stringSlice = append(stringSlice, value.(string))
+	}
+	return strings.Join(stringSlice, ",")
+}
+
+// flattenPropertyKey flattens a given variable defined by <name, credential>
+func flattenPropertyKey(prefix string, credential interface{}) []FlattenedProperty {
+	var credentialList []FlattenedProperty
+	switch credential.(type) {
+	case []interface{}:
+		credentialList = append(credentialList,
+			FlattenedProperty{Name: prefix, Value: interfaceSliceToDelimitedString(credential.([]interface{}))})
+		for index, value := range credential.([]interface{}) {
+			envName := fmt.Sprintf("%s[%v]", prefix, index)
+			credentialList = append(credentialList, flattenPropertyKey(envName, value)...)
+		}
+	case map[string]interface{}:
+		for name, value := range credential.(map[string]interface{}) {
+			envName := fmt.Sprintf("%s.%s", prefix, name)
+			credentialList = append(credentialList, flattenPropertyKey(envName, value)...)
+		}
+	case string:
+		return []FlattenedProperty{{Name: prefix,
+			Value: fmt.Sprintf("%s", credential)}}
+	case int:
+		return []FlattenedProperty{{Name: prefix,
+			Value: fmt.Sprintf("%d", credential)}}
+	case bool:
+		return []FlattenedProperty{{Name: prefix,
+			Value: fmt.Sprintf("%t", credential)}}
+	default:
+		if credential != nil {
+			return []FlattenedProperty{{Name: prefix,
+				Value: fmt.Sprintf("%#v", credential)}}
+		} else {
+			return []FlattenedProperty{{Name: prefix, Value: ""}}
+		}
+	}
+	return credentialList
+}
+
+// flattenToVcapServicesProperties flattens the variables specified in VCAP_SERVICES
+func flattenToVcapServicesProperties(env core.EnvVar) []FlattenedProperty {
+	var flattenedEnvList []FlattenedProperty
+	var serviceInstanceMap map[string][]interface{}
+	err := json.Unmarshal([]byte(env.Value), &serviceInstanceMap)
+	if err != nil {
+		logrus.Errorf("Could not unmarshal the service map instance (%s) in %s: %s", env.Name, err)
+		return nil
+	}
+	for _, serviceInstances := range serviceInstanceMap {
+		for _, serviceInstance := range serviceInstances {
+			mapOfInstance := serviceInstance.(map[string]interface{})
+			key := ""
+			if serviceName, ok := mapOfInstance["name"].(string); ok {
+				key = serviceName
+			} else {
+				if labelName, ok := mapOfInstance["label"].(string); ok {
+					key = labelName
+				}
+			}
+			flattenedEnvList = append(flattenedEnvList,
+				flattenPropertyKey("vcap.services."+key, serviceInstance)...)
+		}
+	}
+	return flattenedEnvList
+}
+
+// flattenToVcapApplicationProperties flattens the variables specified in VCAP_APPLICATION
+func flattenToVcapApplicationProperties(env core.EnvVar) []FlattenedProperty {
+	var serviceInstanceMap map[string]interface{}
+	err := json.Unmarshal([]byte(env.Value), &serviceInstanceMap)
+	if err != nil {
+		logrus.Errorf("Could not unmarshal the service map instance (%s) in %s: %s", env.Name, err)
+		return nil
+	}
+	return flattenPropertyKey("vcap.application", serviceInstanceMap)
 }
 
 func getSpringBootAppNameAndProfilesFromDir(dir string) (appName string, profiles []string) {
