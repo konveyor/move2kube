@@ -119,45 +119,45 @@ func injectProperties(ir irtypes.IR, serviceName string) irtypes.IR {
 func interfaceSliceToDelimitedString(intSlice []interface{}) string {
 	var stringSlice []string
 	for _, value := range intSlice {
-		stringSlice = append(stringSlice, value.(string))
+		stringSlice = append(stringSlice, fmt.Sprintf("%v", value))
 	}
 	return strings.Join(stringSlice, ",")
 }
 
-// flattenPropertyKey flattens a given variable defined by <name, credential>
-func flattenPropertyKey(prefix string, credential interface{}) []FlattenedProperty {
-	var credentialList []FlattenedProperty
-	switch credential.(type) {
+// flattenPropertyKey flattens a given variable defined by <name, unflattenedValue>
+func flattenPropertyKey(prefix string, unflattenedValue interface{}) []FlattenedProperty {
+	var flattenedList []FlattenedProperty
+	switch unflattened := unflattenedValue.(type) {
 	case []interface{}:
-		credentialList = append(credentialList,
-			FlattenedProperty{Name: prefix, Value: interfaceSliceToDelimitedString(credential.([]interface{}))})
-		for index, value := range credential.([]interface{}) {
+		flattenedList = append(flattenedList,
+			FlattenedProperty{Name: prefix, Value: interfaceSliceToDelimitedString(unflattened)})
+		for index, value := range unflattened {
 			envName := fmt.Sprintf("%s[%v]", prefix, index)
-			credentialList = append(credentialList, flattenPropertyKey(envName, value)...)
+			flattenedList = append(flattenedList, flattenPropertyKey(envName, value)...)
 		}
 	case map[string]interface{}:
-		for name, value := range credential.(map[string]interface{}) {
+		for name, value := range unflattened {
 			envName := fmt.Sprintf("%s.%s", prefix, name)
-			credentialList = append(credentialList, flattenPropertyKey(envName, value)...)
+			flattenedList = append(flattenedList, flattenPropertyKey(envName, value)...)
 		}
 	case string:
 		return []FlattenedProperty{{Name: prefix,
-			Value: fmt.Sprintf("%s", credential)}}
+			Value: fmt.Sprintf("%s", unflattened)}}
 	case int:
 		return []FlattenedProperty{{Name: prefix,
-			Value: fmt.Sprintf("%d", credential)}}
+			Value: fmt.Sprintf("%d", unflattened)}}
 	case bool:
 		return []FlattenedProperty{{Name: prefix,
-			Value: fmt.Sprintf("%t", credential)}}
+			Value: fmt.Sprintf("%t", unflattened)}}
 	default:
-		if credential != nil {
+		if unflattened != nil {
 			return []FlattenedProperty{{Name: prefix,
-				Value: fmt.Sprintf("%#v", credential)}}
+				Value: fmt.Sprintf("%#v", unflattened)}}
 		} else {
 			return []FlattenedProperty{{Name: prefix, Value: ""}}
 		}
 	}
-	return credentialList
+	return flattenedList
 }
 
 // flattenToVcapServicesProperties flattens the variables specified in VCAP_SERVICES
