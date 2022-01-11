@@ -132,7 +132,8 @@ func NewEnhancedIRFromIR(ir IR) EnhancedIR {
 	return EnhancedIR{IR: irCopy}
 }
 
-func (ir *IR) addService(service Service) {
+// AddService adds a service to the IR if it does not already exist. Else it merges with existing service.
+func (ir *IR) AddService(service Service) {
 	if os, ok := ir.Services[service.Name]; !ok {
 		ir.Services[service.Name] = service
 	} else {
@@ -318,7 +319,7 @@ func (ir *IR) Merge(newirC interface{}) bool {
 		newirptr = &newir
 	}
 	for _, sc := range newirptr.Services {
-		ir.addService(sc)
+		ir.AddService(sc)
 	}
 	for in, newcontainer := range newirptr.ContainerImages {
 		ir.AddContainer(in, newcontainer)

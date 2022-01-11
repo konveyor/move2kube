@@ -49,12 +49,6 @@ type CloudFoundry struct {
 	Env    *environment.Environment
 }
 
-// VCAPService defines the VCAP service data from JSON
-type VCAPService struct {
-	ServiceName        string                 `json:"name"`
-	ServiceCredentials map[string]interface{} `json:"credentials"`
-}
-
 // Init Initializes the transformer
 func (t *CloudFoundry) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
@@ -265,7 +259,7 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 	}
 	for varname, value := range cfApp.Environment.SystemEnv {
 		valueStr := fmt.Sprintf("%s", value)
-		if varname == "VCAP_SERVICES" && valueStr != "" {
+		if varname == common.VcapServiceEnvName && valueStr != "" {
 			flattenedEnvList := flattenVcapServiceVariables(valueStr)
 			for _, env := range flattenedEnvList {
 				envOrderMap[env.Name] = env
@@ -310,7 +304,7 @@ func flattenVariable(prefix string, credential interface{}) []core.EnvVar {
 // flattenVcapServiceVariables flattens the variables specified in the "credentials" field of VCAP_SERVICES
 func flattenVcapServiceVariables(vcapService string) []core.EnvVar {
 	var flattenedEnvList []core.EnvVar
-	var serviceInstanceMap map[string][]VCAPService
+	var serviceInstanceMap map[string][]artifacts.VCAPService
 	err := json.Unmarshal([]byte(vcapService), &serviceInstanceMap)
 	if err != nil {
 		logrus.Errorf("Could not unmarshal the service map instance (%s) in VCAP_SERVICES: %s", vcapService, err)

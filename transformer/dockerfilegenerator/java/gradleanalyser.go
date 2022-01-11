@@ -296,7 +296,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			}
 		}
 		if irPresent {
-			newArtifact.Configs[irtypes.IRConfigType] = ir
+			newArtifact.Configs[irtypes.IRConfigType] = injectProperties(ir, a.Name)
 		}
 		if newArtifact.Configs == nil {
 			newArtifact.Configs = map[transformertypes.ConfigType]interface{}{}

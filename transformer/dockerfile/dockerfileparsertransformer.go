@@ -160,7 +160,8 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, contextPath, imag
 			Value:  "Windows",
 		}}
 	}
-	ir.Services[serviceName] = irService
+	ir.AddService(irService)
+	// ir.Services[serviceName] = irService
 	return transformertypes.Artifact{
 		Name: t.Env.GetProjectName(),
 		Type: irtypes.IRArtifactType,

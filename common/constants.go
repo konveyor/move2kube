@@ -176,6 +176,10 @@ const (
 const (
 	// DefaultDockerfileName refers to the default Dockerfile name
 	DefaultDockerfileName = "Dockerfile"
+	// VcapServiceEnvName refers to the VCAP_SERVICES environment variable DefaultDockerfileName
+	VcapServiceEnvName = "VCAP_SERVICES"
+	// VcapApplicationEnvName refers to the VCAP_APPLICATION environment variable DefaultDockerfileName
+	VcapApplicationEnvName = "VCAP_APPLICATION"
 )
 
 const (

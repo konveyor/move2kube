@@ -37,3 +37,9 @@ type CloudFoundryConfig struct {
 	ServiceName string `yaml:"serviceName,omitempty"`
 	ImageName   string `yaml:"imageName,omitempty"`
 }
+
+// VCAPService defines the VCAP service data from JSON
+type VCAPService struct {
+	ServiceName        string                 `json:"name"`
+	ServiceCredentials map[string]interface{} `json:"credentials"`
+}
