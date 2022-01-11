@@ -166,7 +166,7 @@ func flattenToVcapServicesProperties(env core.EnvVar) []FlattenedProperty {
 	var serviceInstanceMap map[string][]interface{}
 	err := json.Unmarshal([]byte(env.Value), &serviceInstanceMap)
 	if err != nil {
-		logrus.Errorf("Could not unmarshal the service map instance (%s) in %s: %s", env.Name, err)
+		logrus.Errorf("Could not unmarshal the service map instance (%s): %s", env.Name, err)
 		return nil
 	}
 	for _, serviceInstances := range serviceInstanceMap {
@@ -192,7 +192,7 @@ func flattenToVcapApplicationProperties(env core.EnvVar) []FlattenedProperty {
 	var serviceInstanceMap map[string]interface{}
 	err := json.Unmarshal([]byte(env.Value), &serviceInstanceMap)
 	if err != nil {
-		logrus.Errorf("Could not unmarshal the service map instance (%s) in %s: %s", env.Name, err)
+		logrus.Errorf("Could not unmarshal the service map instance (%s): %s", env.Name, err)
 		return nil
 	}
 	return flattenPropertyKey("vcap.application", serviceInstanceMap)
