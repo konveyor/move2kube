@@ -384,8 +384,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			}
 		}
 		if irPresent {
-			ir = injectProperties(ir, a.Name)
-			newArtifact.Configs[irtypes.IRConfigType] = ir
+			newArtifact.Configs[irtypes.IRConfigType] = injectProperties(ir, a.Name)
 		}
 		if newArtifact.Configs == nil {
 			newArtifact.Configs = map[transformertypes.ConfigType]interface{}{}

@@ -103,7 +103,7 @@ func injectProperties(ir irtypes.IR, serviceName string) irtypes.IR {
 			c.Env = append(c.Env, core.EnvVar{Name: propertyImportEnvKey, Value: mountPath})
 			// Create volume mounts for each container of the service
 			c.VolumeMounts = append(c.VolumeMounts, core.VolumeMount{Name: vcapSecretPrefix + "mount", MountPath: mountPath})
-			service.Containers[index] = c
+			ir.Services[serviceKey].Containers[index] = c
 		}
 		// Create a volume for each service which maps to the secret created for VCAP_* property key-value pairs
 		service.Volumes = append(service.Volumes,
