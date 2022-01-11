@@ -66,8 +66,9 @@ type FlattenedProperty struct {
 func injectProperties(ir irtypes.IR, serviceName string) irtypes.IR {
 	const vcapMountDir = "/vcap"
 	const vcapPropertyFile = "vcap-properties.yaml"
-	const vcapSecretPrefix = "vcapsecret"
+	const vcapVolumeName = "vcapsecretvolume"
 	const propertyImportEnvKey = "SPRING_CONFIG_IMPORT"
+
 	for serviceKey, service := range ir.Services {
 		if service.Name != serviceName {
 			continue
@@ -102,12 +103,12 @@ func injectProperties(ir irtypes.IR, serviceName string) irtypes.IR {
 			// Add an environment variable for SPRING_CONFIG_IMPORT and its value in every container
 			c.Env = append(c.Env, core.EnvVar{Name: propertyImportEnvKey, Value: mountPath})
 			// Create volume mounts for each container of the service
-			c.VolumeMounts = append(c.VolumeMounts, core.VolumeMount{Name: vcapSecretPrefix + "mount", MountPath: mountPath})
-			ir.Services[serviceKey].Containers[index] = c
+			c.VolumeMounts = append(c.VolumeMounts, core.VolumeMount{Name: vcapVolumeName, MountPath: mountPath})
+			service.Containers[index] = c
 		}
 		// Create a volume for each service which maps to the secret created for VCAP_* property key-value pairs
 		service.Volumes = append(service.Volumes,
-			core.Volume{Name: vcapSecretPrefix + "volume",
+			core.Volume{Name: vcapVolumeName,
 				VolumeSource: core.VolumeSource{Secret: &core.SecretVolumeSource{SecretName: serviceName}}})
 		ir.Services[serviceKey] = service
 	}
