@@ -98,11 +98,12 @@ func injectProperties(ir irtypes.IR, serviceName string) irtypes.IR {
 			Content:     map[string][]byte{vcapPropertyFile: []byte(strings.Join(data, "\n"))}})
 		// Create volume mount path for by assigning a pre-defined directory and property file.
 		mountPath := filepath.Join(vcapMountDir, vcapPropertyFile)
-		for _, c := range service.Containers {
+		for index, c := range service.Containers {
 			// Add an environment variable for SPRING_CONFIG_IMPORT and its value in every container
 			c.Env = append(c.Env, core.EnvVar{Name: propertyImportEnvKey, Value: mountPath})
 			// Create volume mounts for each container of the service
 			c.VolumeMounts = append(c.VolumeMounts, core.VolumeMount{Name: vcapSecretPrefix + "mount", MountPath: mountPath})
+			service.Containers[index] = c
 		}
 		// Create a volume for each service which maps to the secret created for VCAP_* property key-value pairs
 		service.Volumes = append(service.Volumes,

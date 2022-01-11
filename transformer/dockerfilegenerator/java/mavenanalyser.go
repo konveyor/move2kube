@@ -189,7 +189,6 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			irPresent = false
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
-		ir = injectProperties(ir, a.Name)
 		defaultProfiles := []string{}
 		if pom.Profiles != nil {
 			for _, profile := range *pom.Profiles {
@@ -385,6 +384,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			}
 		}
 		if irPresent {
+			ir = injectProperties(ir, a.Name)
 			newArtifact.Configs[irtypes.IRConfigType] = ir
 		}
 		if newArtifact.Configs == nil {
