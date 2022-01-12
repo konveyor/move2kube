@@ -68,25 +68,28 @@ func injectProperties(ir irtypes.IR, serviceName string) irtypes.IR {
 	const vcapPropertyFile = "vcap-properties.yaml"
 	const vcapVolumeName = "vcapsecretvolume"
 	const propertyImportEnvKey = "SPRING_CONFIG_IMPORT"
-
-	for serviceKey, service := range ir.Services {
-		if service.Name != serviceName {
+	// Flatten the VCAP_* environment JSON values to create spring-boot properties
+	var vcapEnvList []FlattenedProperty
+	for _, s := range ir.Storages {
+		if s.StorageType != irtypes.SecretKind {
 			continue
 		}
-		// Flatten the VCAP_* environment JSON values to create spring-boot properties
-		var vcapEnvList []FlattenedProperty
-		for _, c := range service.Containers {
-			for _, env := range c.Env {
-				if env.Name == common.VcapServiceEnvName {
-					vcapEnvList = append(vcapEnvList, flattenToVcapServicesProperties(env)...)
-				} else if env.Name == common.VcapApplicationEnvName {
-					vcapEnvList = append(vcapEnvList, flattenToVcapApplicationProperties(env)...)
-				}
+		if serviceName+common.VcapCfSecretSuffix != s.Name {
+			continue
+		}
+		for key, value := range s.Content {
+			env := core.EnvVar{Name: key, Value: string(value)}
+			if key == common.VcapServiceEnvName {
+				vcapEnvList = append(vcapEnvList, flattenToVcapServicesProperties(env)...)
+			} else if key == common.VcapApplicationEnvName {
+				vcapEnvList = append(vcapEnvList, flattenToVcapApplicationProperties(env)...)
 			}
 		}
-		if len(vcapEnvList) == 0 {
-			continue
-		}
+	}
+	if len(vcapEnvList) == 0 {
+		return ir
+	}
+	if service, ok := ir.Services[serviceName]; ok {
 		// Dump the entire VCAP_* property key-value pair data as one large chunk of string data
 		// which will then be used as value to the VCAP property file name.
 		var data []string
@@ -94,7 +97,8 @@ func injectProperties(ir irtypes.IR, serviceName string) irtypes.IR {
 			data = append(data, strings.Join([]string{vcapEnv.Name, vcapEnv.Value}, ":"))
 		}
 		// Create a secret for VCAP_* property key-value pairs
-		ir.Storages = append(ir.Storages, irtypes.Storage{Name: serviceName,
+		secretName := serviceName + common.VcapSpringBootSecretSuffix
+		ir.Storages = append(ir.Storages, irtypes.Storage{Name: secretName,
 			StorageType: irtypes.SecretKind,
 			Content:     map[string][]byte{vcapPropertyFile: []byte(strings.Join(data, "\n"))}})
 		// Create volume mount path for by assigning a pre-defined directory and property file.
@@ -109,8 +113,8 @@ func injectProperties(ir irtypes.IR, serviceName string) irtypes.IR {
 		// Create a volume for each service which maps to the secret created for VCAP_* property key-value pairs
 		service.Volumes = append(service.Volumes,
 			core.Volume{Name: vcapVolumeName,
-				VolumeSource: core.VolumeSource{Secret: &core.SecretVolumeSource{SecretName: serviceName}}})
-		ir.Services[serviceKey] = service
+				VolumeSource: core.VolumeSource{Secret: &core.SecretVolumeSource{SecretName: secretName}}})
+		ir.Services[serviceName] = service
 	}
 	return ir
 }
