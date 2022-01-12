@@ -206,7 +206,7 @@ var (
 	DisableLocalExecution = false
 	// DefaultIgnoreDirRegexps specifies directory name regexes that would be ignored
 	DefaultIgnoreDirRegexps = []*regexp.Regexp{regexp.MustCompile("^[.].*")}
-	// Characters not allowed in a DNS Name
+	// DisallowedDNSCharactersRegex provides pattern for characters not allowed in a DNS Name
 	DisallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
 )
 
