@@ -497,7 +497,7 @@ func NormalizeForFilename(name string) string {
 
 // NormalizeForServiceName converts the string to be compatible for service name
 func NormalizeForServiceName(svcName string) string {
-	newName := disallowedDNSCharactersRegex.ReplaceAllLiteralString(strings.ToLower(svcName), "-")
+	newName := DisallowedDNSCharactersRegex.ReplaceAllLiteralString(strings.ToLower(svcName), "-")
 	if newName != svcName {
 		logrus.Infof("Changing service name to %s from %s", svcName, newName)
 	}

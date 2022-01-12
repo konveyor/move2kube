@@ -207,7 +207,7 @@ var (
 	// DefaultIgnoreDirRegexps specifies directory name regexes that would be ignored
 	DefaultIgnoreDirRegexps = []*regexp.Regexp{regexp.MustCompile("^[.].*")}
 	// Characters not allowed in a DNS Name
-	disallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
+	DisallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
 )
 
 // PlanProgressNumBaseDetectTransformers keeps track of the number of transformers that finished base directory detect during planning

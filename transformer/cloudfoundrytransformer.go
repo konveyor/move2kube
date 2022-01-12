@@ -198,6 +198,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			}
 			secretName := config.ServiceName + common.VcapCfSecretSuffix
 			envList, vcapEnvMap := t.prioritizeAndAddEnvironmentVariables(cfinstanceapp, application.EnvironmentVariables, secretName)
+			envList, vcapEnvMap = t.normalizeEnvironmentVariables(envList, vcapEnvMap)
 			serviceContainer.Env = append(serviceContainer.Env, envList...)
 			ir.Storages = append(ir.Storages, irtypes.Storage{Name: secretName,
 				StorageType: irtypes.SecretKind,
@@ -248,6 +249,34 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 	return nil, artifactsCreated, nil
 }
 
+// NormalizeForEnvironmentVariableName converts the string to be compatible for environment variable name
+func (t *CloudFoundry) normalizeForEnvironmentVariableName(envName string) string {
+	newName := common.DisallowedDNSCharactersRegex.ReplaceAllLiteralString(strings.ToLower(envName), "_")
+	newName = strings.ToUpper(newName)
+	if newName != envName {
+		logrus.Infof("Changing environment name to %s from %s", envName, newName)
+	}
+	return newName
+}
+
+// normalizeEnvironmentVariables normalizes environment variable names
+func (t *CloudFoundry) normalizeEnvironmentVariables(envList []core.EnvVar, vcapMap map[string][]byte) ([]core.EnvVar, map[string][]byte) {
+	newVcapMap := make(map[string][]byte)
+	for index, env := range envList {
+		newEnvName := t.normalizeForEnvironmentVariableName(env.Name)
+		if _, ok := vcapMap[env.Name]; ok {
+			env.ValueFrom.SecretKeyRef.Key = newEnvName
+		}
+		env.Name = newEnvName
+		envList[index] = env
+	}
+	for key, value := range vcapMap {
+		newKey := t.normalizeForEnvironmentVariableName(key)
+		newVcapMap[newKey] = value
+	}
+	return envList, newVcapMap
+}
+
 // prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
 func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp,
 	manifestEnvMap map[string]string, secretName string) ([]core.EnvVar, map[string][]byte) {
@@ -288,8 +317,8 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 		if _, ok := vcapEnvMap[env.Name]; ok {
 			vcapEnvMap[env.Name] = []byte(env.Value)
 			secretKeyRef := core.SecretKeySelector{}
-			secretKeyRef.Key = secretName
-			secretKeyRef.Name = env.Name
+			secretKeyRef.Name = secretName
+			secretKeyRef.Key = env.Name
 			envList = append(envList,
 				core.EnvVar{Name: env.Name,
 					ValueFrom: &core.EnvVarSource{SecretKeyRef: &secretKeyRef}})
@@ -297,6 +326,7 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 			envList = append(envList, env)
 		}
 	}
+	// envList = append(envList, core.EnvVar{Name: "DATABASE_URL", })
 	return envList, vcapEnvMap
 }
 
