@@ -23,11 +23,14 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/deepcopy"
+	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // IRArtifactType represents artifact type of IR
@@ -163,17 +166,17 @@ func (service *Service) merge(nService Service) {
 	if nService.BackendServiceName != "" {
 		service.BackendServiceName = nService.BackendServiceName
 	}
-	podSpecJSON, err1 := json.Marshal(service.PodSpec)
+	podSpecJSON, err1 := json.Marshal(k8sschema.ConvertToV1PodSpec(&service.PodSpec))
 	if err1 != nil {
 		logrus.Errorf("Merge failed. Failed to marshal the first object %v to json. Error: %q", service.PodSpec, err1)
 	}
-	nPodSpecJSON, err2 := json.Marshal(nService.PodSpec)
+	nPodSpecJSON, err2 := json.Marshal(k8sschema.ConvertToV1PodSpec(&nService.PodSpec))
 	if err2 != nil {
 		logrus.Errorf("Merge failed. Failed to marshal the second object %v to json. Error: %q", nService.PodSpec, err2)
 	}
-	if err1 != nil || err2 != nil {
-		podSpec := core.PodSpec{}
-		mergedJSON, err := strategicpatch.StrategicMergePatch(podSpecJSON, nPodSpecJSON, podSpec) // need to provide in reverse for proper ordering
+	if err1 == nil && err2 == nil {
+		podSpec := corev1.PodSpec{}
+		mergedJSON, err := strategicpatch.StrategicMergePatch(podSpecJSON, nPodSpecJSON, corev1.PodSpec{}) // need to provide in reverse for proper ordering
 		if err != nil {
 			logrus.Errorf("Failed to merge the objects \n%s\n and \n%s\n Error: %q", podSpecJSON, nPodSpecJSON, err)
 		} else {
@@ -181,7 +184,7 @@ func (service *Service) merge(nService Service) {
 			if err != nil {
 				logrus.Errorf("Failed to unmarshall object (%+v): %q", podSpec, err)
 			} else {
-				service.PodSpec = podSpec
+				service.PodSpec = k8sschema.ConvertToPodSpec(&podSpec)
 			}
 		}
 	}
