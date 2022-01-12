@@ -40,8 +40,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
-// VariableLiteralPattern to identify variable literals in environment names
-var VariableLiteralPattern = regexp.MustCompile("[-.+~`!@#$%^&*(){}\\[\\]:;\"',?<>/]")
+// variableLiteralPattern to identify variable literals in environment names
+var variableLiteralPattern = regexp.MustCompile("[-.+~`!@#$%^&*(){}\\[\\]:;\"',?<>/]")
 
 // CloudFoundry implements Transformer interface
 type CloudFoundry struct {
@@ -295,7 +295,7 @@ func flattenVariable(prefix string, credential interface{}) []core.EnvVar {
 			credentialList = append(credentialList, flattenVariable(envName, value)...)
 		}
 	default:
-		return []core.EnvVar{{Name: strings.ToUpper(VariableLiteralPattern.ReplaceAllLiteralString(prefix, "_")),
+		return []core.EnvVar{{Name: strings.ToUpper(variableLiteralPattern.ReplaceAllLiteralString(prefix, "_")),
 			Value: fmt.Sprintf("%#v", credential)}}
 	}
 	return credentialList

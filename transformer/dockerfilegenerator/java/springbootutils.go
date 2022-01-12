@@ -142,7 +142,7 @@ func flattenPropertyKey(prefix string, unflattenedValue interface{}) []Flattened
 		}
 	case string:
 		return []FlattenedProperty{{Name: prefix,
-			Value: fmt.Sprintf("%s", unflattened)}}
+			Value: unflattened}}
 	case int:
 		return []FlattenedProperty{{Name: prefix,
 			Value: fmt.Sprintf("%d", unflattened)}}

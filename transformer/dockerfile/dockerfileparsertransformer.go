@@ -161,7 +161,6 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, contextPath, imag
 		}}
 	}
 	ir.AddService(irService)
-	// ir.Services[serviceName] = irService
 	return transformertypes.Artifact{
 		Name: t.Env.GetProjectName(),
 		Type: irtypes.IRArtifactType,
