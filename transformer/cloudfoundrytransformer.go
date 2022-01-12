@@ -197,7 +197,8 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 				serviceConfig.Replicas = cfinstanceapp.Application.Instances
 			}
 			secretName := config.ServiceName + common.VcapCfSecretSuffix
-			envList, vcapEnvMap := t.prioritizeAndAddEnvironmentVariables(cfinstanceapp, application.EnvironmentVariables, secretName)
+			envList, vcapEnvMap := t.prioritizeAndAddEnvironmentVariables(cfinstanceapp, application.EnvironmentVariables,
+				secretName, config.ServiceName)
 			envList, vcapEnvMap = t.normalizeEnvironmentVariables(envList, vcapEnvMap)
 			serviceContainer.Env = append(serviceContainer.Env, envList...)
 			ir.Storages = append(ir.Storages, irtypes.Storage{Name: secretName,
@@ -279,7 +280,7 @@ func (t *CloudFoundry) normalizeEnvironmentVariables(envList []core.EnvVar, vcap
 
 // prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
 func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp,
-	manifestEnvMap map[string]string, secretName string) ([]core.EnvVar, map[string][]byte) {
+	manifestEnvMap map[string]string, secretName string, serviceName string) ([]core.EnvVar, map[string][]byte) {
 	vcapEnvMap := map[string][]byte{}
 	envOrderMap := map[string]core.EnvVar{}
 	// Manifest
@@ -300,6 +301,13 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 				envOrderMap[env.Name] = env
 				vcapEnvMap[env.Name] = []byte(env.Value)
 			}
+		}
+		dbEnv, err := createDbEnvironmentVariable(valueStr, serviceName)
+		if err != nil {
+			logrus.Errorf("Could not create DATABASE_URL environment: %v", err)
+		} else {
+			envOrderMap[dbEnv.Name] = dbEnv
+			vcapEnvMap[dbEnv.Name] = []byte(dbEnv.Value)
 		}
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: valueStr}
 		vcapEnvMap[varname] = []byte(valueStr)
@@ -349,6 +357,27 @@ func flattenVariable(prefix string, credential interface{}) []core.EnvVar {
 			Value: fmt.Sprintf("%#v", credential)}}
 	}
 	return credentialList
+}
+
+// createDbEnvironmentVariable creates a DATABASE_URL from the JSON value for VCAP_SERVICES
+func createDbEnvironmentVariable(vcapService string, serviceName string) (core.EnvVar, error) {
+	var serviceInstanceMap map[string][]artifacts.VCAPService
+	err := json.Unmarshal([]byte(vcapService), &serviceInstanceMap)
+	if err != nil {
+		return core.EnvVar{},
+			fmt.Errorf("Could not unmarshal the service map instance (%s) in VCAP_SERVICES during CF flattening: %s", vcapService, err)
+	}
+	for _, serviceInstances := range serviceInstanceMap {
+		for _, serviceInstance := range serviceInstances {
+			if serviceInstance.ServiceName == serviceName {
+				if uriValue, ok := serviceInstance.ServiceCredentials["uri"].(string); ok {
+					return core.EnvVar{Name: "DATABASE_URL", Value: uriValue}, nil
+				}
+				return core.EnvVar{}, fmt.Errorf("uri field is not available in service credential for the service VCAP_SERVICES")
+			}
+		}
+	}
+	return core.EnvVar{}, fmt.Errorf("service %s not available in VCAP_SERVICES", serviceName)
 }
 
 // flattenVcapServiceVariables flattens the variables specified in the "credentials" field of VCAP_SERVICES
