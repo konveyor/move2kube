@@ -176,7 +176,7 @@ func (service *Service) merge(nService Service) {
 	}
 	if err1 == nil && err2 == nil {
 		podSpec := corev1.PodSpec{}
-		mergedJSON, err := strategicpatch.StrategicMergePatch(podSpecJSON, nPodSpecJSON, corev1.PodSpec{}) // need to provide in reverse for proper ordering
+		mergedJSON, err := strategicpatch.StrategicMergePatch(podSpecJSON, nPodSpecJSON, podSpec) // need to provide in reverse for proper ordering
 		if err != nil {
 			logrus.Errorf("Failed to merge the objects \n%s\n and \n%s\n Error: %q", podSpecJSON, nPodSpecJSON, err)
 		} else {
