@@ -181,9 +181,9 @@ const (
 	// VcapApplicationEnvName refers to the VCAP_APPLICATION environment variable DefaultDockerfileName
 	VcapApplicationEnvName = "VCAP_APPLICATION"
 	// VcapSpringBootSecretSuffix refers to VCAP springboot secret suffix
-	VcapSpringBootSecretSuffix = "-vcapspringboot"
+	VcapSpringBootSecretSuffix = "-vcapasspringbootproperties"
 	// VcapCfSecretSuffix refers to VCAP secret suffix
-	VcapCfSecretSuffix = "-vcapcf"
+	VcapCfSecretSuffix = "-vcapasenv"
 )
 
 const (

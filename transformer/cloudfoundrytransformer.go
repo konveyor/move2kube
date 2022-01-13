@@ -199,7 +199,6 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			secretName := config.ServiceName + common.VcapCfSecretSuffix
 			envList, vcapEnvMap := t.prioritizeAndAddEnvironmentVariables(cfinstanceapp, application.EnvironmentVariables,
 				secretName, config.ServiceName)
-			envList, vcapEnvMap = t.normalizeEnvironmentVariables(envList, vcapEnvMap)
 			serviceContainer.Env = append(serviceContainer.Env, envList...)
 			ir.Storages = append(ir.Storages, irtypes.Storage{Name: secretName,
 				StorageType: irtypes.SecretKind,
@@ -260,24 +259,6 @@ func (t *CloudFoundry) normalizeForEnvironmentVariableName(envName string) strin
 	return newName
 }
 
-// normalizeEnvironmentVariables normalizes environment variable names
-func (t *CloudFoundry) normalizeEnvironmentVariables(envList []core.EnvVar, vcapMap map[string][]byte) ([]core.EnvVar, map[string][]byte) {
-	newVcapMap := make(map[string][]byte)
-	for index, env := range envList {
-		newEnvName := t.normalizeForEnvironmentVariableName(env.Name)
-		if _, ok := vcapMap[env.Name]; ok {
-			env.ValueFrom.SecretKeyRef.Key = newEnvName
-		}
-		env.Name = newEnvName
-		envList[index] = env
-	}
-	for key, value := range vcapMap {
-		newKey := t.normalizeForEnvironmentVariableName(key)
-		newVcapMap[newKey] = value
-	}
-	return envList, newVcapMap
-}
-
 // prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
 func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp,
 	manifestEnvMap map[string]string, secretName string, serviceName string) ([]core.EnvVar, map[string][]byte) {
@@ -296,18 +277,12 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 	for varname, value := range cfApp.Environment.SystemEnv {
 		valueStr := fmt.Sprintf("%s", value)
 		if varname == common.VcapServiceEnvName && valueStr != "" {
-			flattenedEnvList := flattenVcapServiceVariables(valueStr)
+			flattenedEnvList := flattenVcapServiceVariables(valueStr, serviceName)
 			for _, env := range flattenedEnvList {
+				env.Name = t.normalizeForEnvironmentVariableName(env.Name)
 				envOrderMap[env.Name] = env
 				vcapEnvMap[env.Name] = []byte(env.Value)
 			}
-		}
-		dbEnv, err := createDbEnvironmentVariable(valueStr, serviceName)
-		if err != nil {
-			logrus.Errorf("Could not create DATABASE_URL environment: %v", err)
-		} else {
-			envOrderMap[dbEnv.Name] = dbEnv
-			vcapEnvMap[dbEnv.Name] = []byte(dbEnv.Value)
 		}
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: valueStr}
 		vcapEnvMap[varname] = []byte(valueStr)
@@ -359,29 +334,8 @@ func flattenVariable(prefix string, credential interface{}) []core.EnvVar {
 	return credentialList
 }
 
-// createDbEnvironmentVariable creates a DATABASE_URL from the JSON value for VCAP_SERVICES
-func createDbEnvironmentVariable(vcapService string, serviceName string) (core.EnvVar, error) {
-	var serviceInstanceMap map[string][]artifacts.VCAPService
-	err := json.Unmarshal([]byte(vcapService), &serviceInstanceMap)
-	if err != nil {
-		return core.EnvVar{},
-			fmt.Errorf("Could not unmarshal the service map instance (%s) in VCAP_SERVICES during CF flattening: %s", vcapService, err)
-	}
-	for _, serviceInstances := range serviceInstanceMap {
-		for _, serviceInstance := range serviceInstances {
-			if serviceInstance.ServiceName == serviceName {
-				if uriValue, ok := serviceInstance.ServiceCredentials["uri"].(string); ok {
-					return core.EnvVar{Name: "DATABASE_URL", Value: uriValue}, nil
-				}
-				return core.EnvVar{}, fmt.Errorf("uri field is not available in service credential for the service VCAP_SERVICES")
-			}
-		}
-	}
-	return core.EnvVar{}, fmt.Errorf("service %s not available in VCAP_SERVICES", serviceName)
-}
-
 // flattenVcapServiceVariables flattens the variables specified in the "credentials" field of VCAP_SERVICES
-func flattenVcapServiceVariables(vcapService string) []core.EnvVar {
+func flattenVcapServiceVariables(vcapService string, serviceName string) []core.EnvVar {
 	var flattenedEnvList []core.EnvVar
 	var serviceInstanceMap map[string][]artifacts.VCAPService
 	err := json.Unmarshal([]byte(vcapService), &serviceInstanceMap)
@@ -391,6 +345,13 @@ func flattenVcapServiceVariables(vcapService string) []core.EnvVar {
 	}
 	for _, serviceInstances := range serviceInstanceMap {
 		for _, serviceInstance := range serviceInstances {
+			if serviceInstance.ServiceName == serviceName {
+				if uriValue, ok := serviceInstance.ServiceCredentials["uri"].(string); ok {
+					flattenedEnvList = append(flattenedEnvList, core.EnvVar{Name: "DATABASE_URL", Value: uriValue})
+				} else {
+					logrus.Errorf("uri field is not available in service credential for the service VCAP_SERVICES")
+				}
+			}
 			flattenedEnvList = append(flattenedEnvList, flattenVariable(serviceInstance.ServiceName, serviceInstance.ServiceCredentials)...)
 		}
 	}
