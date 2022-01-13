@@ -35,6 +35,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"unicode"
 
 	"github.com/Masterminds/sprig"
 	"github.com/go-git/go-git/v5"
@@ -497,7 +498,7 @@ func NormalizeForFilename(name string) string {
 
 // NormalizeForServiceName converts the string to be compatible for service name
 func NormalizeForServiceName(svcName string) string {
-	newName := DisallowedDNSCharactersRegex.ReplaceAllLiteralString(strings.ToLower(svcName), "-")
+	newName := disallowedDNSCharactersRegex.ReplaceAllLiteralString(strings.ToLower(svcName), "-")
 	if newName != svcName {
 		logrus.Infof("Changing service name to %s from %s", svcName, newName)
 	}
@@ -507,7 +508,11 @@ func NormalizeForServiceName(svcName string) string {
 // NormalizeForEnvironmentVariableName converts the string to be compatible for environment variable name convention specified below:
 // https://pubs.opengroup.org/onlinepubs/9699919799/
 func NormalizeForEnvironmentVariableName(envName string) string {
-	newName := DisallowedEnvironmentCharactersRegex.ReplaceAllLiteralString(envName, "_")
+	const characterToMakeValid = "_"
+	newName := disallowedEnvironmentCharactersRegex.ReplaceAllLiteralString(strings.ToUpper(envName), characterToMakeValid)
+	if unicode.IsDigit(rune(newName[0])) {
+		newName = characterToMakeValid + newName
+	}
 	if newName != envName {
 		logrus.Infof("Changing environment name to %s from %s", envName, newName)
 	}

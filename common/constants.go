@@ -206,10 +206,10 @@ var (
 	DisableLocalExecution = false
 	// DefaultIgnoreDirRegexps specifies directory name regexes that would be ignored
 	DefaultIgnoreDirRegexps = []*regexp.Regexp{regexp.MustCompile("^[.].*")}
-	// DisallowedDNSCharactersRegex provides pattern for characters not allowed in a DNS Name
-	DisallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
-	// DisallowedEnvironmentCharactersRegex provides pattern for characters not allowed in a DNS Name
-	DisallowedEnvironmentCharactersRegex = regexp.MustCompile(`^[^A-Z]|[^A-Z0-9\_]`)
+	// disallowedDNSCharactersRegex provides pattern for characters not allowed in a DNS Name
+	disallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
+	// disallowedEnvironmentCharactersRegex provides pattern for characters not allowed in a DNS Name
+	disallowedEnvironmentCharactersRegex = regexp.MustCompile(`[^A-Z0-9\_]`)
 )
 
 // PlanProgressNumBaseDetectTransformers keeps track of the number of transformers that finished base directory detect during planning
