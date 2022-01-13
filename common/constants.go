@@ -180,6 +180,10 @@ const (
 	VcapServiceEnvName = "VCAP_SERVICES"
 	// VcapApplicationEnvName refers to the VCAP_APPLICATION environment variable DefaultDockerfileName
 	VcapApplicationEnvName = "VCAP_APPLICATION"
+	// VcapSpringBootSecretSuffix refers to VCAP springboot secret suffix
+	VcapSpringBootSecretSuffix = "-vcapasspringbootproperties"
+	// VcapCfSecretSuffix refers to VCAP secret suffix
+	VcapCfSecretSuffix = "-vcapasenv"
 )
 
 const (
@@ -202,8 +206,10 @@ var (
 	DisableLocalExecution = false
 	// DefaultIgnoreDirRegexps specifies directory name regexes that would be ignored
 	DefaultIgnoreDirRegexps = []*regexp.Regexp{regexp.MustCompile("^[.].*")}
-	// Characters not allowed in a DNS Name
+	// disallowedDNSCharactersRegex provides pattern for characters not allowed in a DNS Name
 	disallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
+	// disallowedEnvironmentCharactersRegex provides pattern for characters not allowed in a DNS Name
+	disallowedEnvironmentCharactersRegex = regexp.MustCompile(`[^A-Z0-9\_]`)
 )
 
 // PlanProgressNumBaseDetectTransformers keeps track of the number of transformers that finished base directory detect during planning
