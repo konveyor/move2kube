@@ -504,6 +504,16 @@ func NormalizeForServiceName(svcName string) string {
 	return newName
 }
 
+// NormalizeForEnvironmentVariableName converts the string to be compatible for environment variable name convention specified below:
+// https://pubs.opengroup.org/onlinepubs/9699919799/
+func NormalizeForEnvironmentVariableName(envName string) string {
+	newName := DisallowedEnvironmentCharactersRegex.ReplaceAllLiteralString(envName, "_")
+	if newName != envName {
+		logrus.Infof("Changing environment name to %s from %s", envName, newName)
+	}
+	return newName
+}
+
 // IsStringPresent checks if a value is present in a slice
 func IsStringPresent(list []string, value string) bool {
 	for _, val := range list {

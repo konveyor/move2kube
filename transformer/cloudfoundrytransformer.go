@@ -249,16 +249,6 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 	return nil, artifactsCreated, nil
 }
 
-// NormalizeForEnvironmentVariableName converts the string to be compatible for environment variable name
-func (t *CloudFoundry) normalizeForEnvironmentVariableName(envName string) string {
-	newName := common.DisallowedDNSCharactersRegex.ReplaceAllLiteralString(strings.ToLower(envName), "_")
-	newName = strings.ToUpper(newName)
-	if newName != envName {
-		logrus.Infof("Changing environment name to %s from %s", envName, newName)
-	}
-	return newName
-}
-
 // prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
 func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp,
 	manifestEnvMap map[string]string, secretName string, serviceName string) ([]core.EnvVar, map[string][]byte) {
@@ -279,13 +269,13 @@ func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.C
 		if varname == common.VcapServiceEnvName && valueStr != "" {
 			flattenedEnvList := flattenVcapServiceVariables(valueStr, serviceName)
 			for _, env := range flattenedEnvList {
-				env.Name = t.normalizeForEnvironmentVariableName(env.Name)
+				env.Name = common.NormalizeForEnvironmentVariableName(env.Name)
 				envOrderMap[env.Name] = env
 				vcapEnvMap[env.Name] = []byte(env.Value)
 			}
+			vcapEnvMap[varname] = []byte(valueStr)
 		}
 		envOrderMap[varname] = core.EnvVar{Name: varname, Value: valueStr}
-		vcapEnvMap[varname] = []byte(valueStr)
 	}
 	for varname, value := range cfApp.Environment.ApplicationEnv {
 		valueStr := fmt.Sprintf("%s", value)
