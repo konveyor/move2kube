@@ -61,8 +61,6 @@ func (s *Storage) convertToClusterSupportedKinds(obj runtime.Object, supportedKi
 }
 
 func (s *Storage) createConfigMap(st irtypes.Storage) *core.ConfigMap {
-	cmName := common.MakeFileNameCompliant(st.Name)
-
 	data := map[string]string{}
 	for k, v := range st.Content {
 		data[k] = string(v)
@@ -74,7 +72,7 @@ func (s *Storage) createConfigMap(st irtypes.Storage) *core.ConfigMap {
 			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: cmName,
+			Name: st.Name,
 		},
 		Data: data,
 	}
@@ -82,7 +80,6 @@ func (s *Storage) createConfigMap(st irtypes.Storage) *core.ConfigMap {
 }
 
 func (s *Storage) createSecret(st irtypes.Storage) *core.Secret {
-	secretName := common.MakeFileNameCompliant(st.Name) // TODO: probably remove this. Names should be manipulated at a higher level.
 	secType := core.SecretTypeOpaque
 	if st.SecretType != "" {
 		secType = st.SecretType
@@ -95,7 +92,7 @@ func (s *Storage) createSecret(st irtypes.Storage) *core.Secret {
 			APIVersion: core.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        secretName,
+			Name:        st.Name,
 			Annotations: st.Annotations,
 		},
 		Type: secType,

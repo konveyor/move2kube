@@ -144,7 +144,7 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 		if name != serviceName {
 			continue
 		}
-		serviceConfig := irtypes.NewServiceWithName(common.NormalizeForServiceName(name))
+		serviceConfig := irtypes.NewServiceWithName(common.NormalizeForMetadataName(name))
 		serviceConfig.Annotations = map[string]string(composeServiceConfig.Labels)
 		if composeServiceConfig.Hostname != "" {
 			serviceConfig.Hostname = composeServiceConfig.Hostname
@@ -174,7 +174,7 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 				},
 			}
 		}
-		serviceContainer.Name = common.NormalizeForServiceName(composeServiceConfig.ContainerName)
+		serviceContainer.Name = common.NormalizeForMetadataName(composeServiceConfig.ContainerName)
 		if serviceContainer.Name != composeServiceConfig.ContainerName {
 			logrus.Debugf("Container name in service %q has been changed from %q to %q", name, composeServiceConfig.ContainerName, serviceContainer.Name)
 		}

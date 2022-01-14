@@ -20,6 +20,7 @@ import (
 	"github.com/konveyor/move2kube/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -56,9 +57,8 @@ func (tt *TriggerTemplate) createNewResources(ir irtypes.EnhancedIR, supportedKi
 }
 
 func (*TriggerTemplate) createNewResource(tt irtypes.TriggerTemplate, ir irtypes.EnhancedIR) *triggersv1alpha1.TriggerTemplate {
-	//TOFIX : Fill in customize
-	registryURL := common.DefaultRegistryURL
-	registryNamespace := registryNamespacePlaceholder
+	registryURL := commonqa.ImageRegistry()
+	registryNamespace := commonqa.ImageRegistryNamespace()
 
 	// pipelinerun
 	pipelineRun := new(v1beta1.PipelineRun)

@@ -32,12 +32,12 @@ func TestDefaultEngine(t *testing.T) {
 		engines = []Engine{}
 		e := NewDefaultEngine()
 		AddEngine(e)
-
+		defaultRegistryURL := "quay.io"
 		key := common.BaseKey + common.Delim + "input"
-		answer := FetchStringAnswer(key, "Enter the name of the registry : ", []string{"Ex : " + common.DefaultRegistryURL}, common.DefaultRegistryURL)
-		if answer != common.DefaultRegistryURL {
+		answer := FetchStringAnswer(key, "Enter the name of the registry : ", []string{"Ex : " + defaultRegistryURL}, defaultRegistryURL)
+		if answer != defaultRegistryURL {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
-				answer, common.DefaultRegistryURL)
+				answer, defaultRegistryURL)
 		}
 
 	})

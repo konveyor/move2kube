@@ -19,4 +19,4 @@ spec:
     helmPath: "{{ $pathType := EnvPathType .YamlsPath}}{{ $rel := Rel .YamlsPath }}{{ if eq $pathType \"Source\" }}source/{{end}}{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-parameterized/helm-chart"
     ocTemplatePath: "{{ $pathType := EnvPathType .YamlsPath}}{{ $rel := Rel .YamlsPath }}{{ if eq $pathType \"Source\" }}source/{{end}}{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-parameterized/openshift-template"
     kustomizePath: "{{ $pathType := EnvPathType .YamlsPath}}{{ $rel := Rel .YamlsPath }}{{ if eq $pathType \"Source\" }}source/{{end}}{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-parameterized/kustomize"
-    helmChartName: "{{ if eq .ArtifactType \"KubernetesYamls\" }}{{ .ProjectName }}{{ else }}{{ if eq .ArtifactType \"KubernetesYamlsInSource\" }}{{ .ArtifactName }}{{ else }}{{ .ServiceName }}{{end}}{{end}}"
+    projectName: "{{ if eq .ArtifactType \"KubernetesYamls\" }}{{ .ProjectName }}{{ else }}{{ if eq .ArtifactType \"KubernetesYamlsInSource\" }}{{ .ArtifactName }}{{ else }}{{ .ServiceName }}{{end}}{{end}}"

@@ -40,10 +40,6 @@ const (
 	DefaultExecutablePermission os.FileMode = 0744
 	// DefaultFilePermission defines the default permission used when a non-executable file is created
 	DefaultFilePermission os.FileMode = 0644
-	// DefaultRegistryURL points to the default registry url that will be used
-	DefaultRegistryURL = "quay.io"
-	// ImagePullSecretPrefix is the prefix that will be prepended to pull secret name
-	ImagePullSecretPrefix = "imagepullsecret"
 	// QACacheFile defines the location of the QA cache file
 	QACacheFile = types.AppNameShort + "qacache.yaml"
 	// ConfigFile defines the location of the config file

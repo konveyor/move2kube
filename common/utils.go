@@ -496,11 +496,15 @@ func NormalizeForFilename(name string) string {
 	return processedString + "-" + strconv.FormatUint(crc64Int, 16)
 }
 
-// NormalizeForServiceName converts the string to be compatible for service name
-func NormalizeForServiceName(svcName string) string {
-	newName := disallowedDNSCharactersRegex.ReplaceAllLiteralString(strings.ToLower(svcName), "-")
-	if newName != svcName {
-		logrus.Infof("Changing service name to %s from %s", svcName, newName)
+// NormalizeForMetadataName converts the string to be compatible for service name
+func NormalizeForMetadataName(metadataName string) string {
+	newName := disallowedDNSCharactersRegex.ReplaceAllLiteralString(strings.ToLower(metadataName), "-")
+	maxLength := 63
+	if len(newName) > maxLength {
+		newName = newName[0:maxLength]
+	}
+	if newName != metadataName {
+		logrus.Infof("Changing metadata name to %s from %s", metadataName, newName)
 	}
 	return newName
 }
@@ -651,8 +655,8 @@ func MergeStringSliceMaps(map1 map[string][]string, map2 map[string][]string) ma
 // Also see page 1 "ASSUMPTIONS" heading of https://tools.ietf.org/html/rfc952
 // Also see page 13 of https://tools.ietf.org/html/rfc1123#page-13
 func MakeFileNameCompliant(name string) string {
-	if len(name) == 0 {
-		logrus.Error("The input name is empty.")
+	if name == "" {
+		logrus.Error("The file name is empty.")
 		return ""
 	}
 	baseName := filepath.Base(name)

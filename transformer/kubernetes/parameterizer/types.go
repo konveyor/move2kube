@@ -33,11 +33,11 @@ type HelmValuesT map[string]interface{}
 
 // ParameterizerConfigT is the set of paths to be parameterized
 type ParameterizerConfigT struct {
-	Helm          string   `yaml:"helm,omitempty" json:"helm,omitempty"`
-	HelmChartName string   `yaml:"helmChartName,omitempty" json:"helmChartName,omitempty"`
-	Kustomize     string   `yaml:"kustomize,omitempty" json:"kustomize,omitempty"`
-	OCTemplates   string   `yaml:"openshiftTemplates,omitempty" json:"openshiftTemplates,omitempty"`
-	Envs          []string `yaml:"envs,omitempty" json:"envs,omitempty"`
+	ProjectName string   `yaml:"projectName,omitempty" json:"projectName,omitempty"`
+	Helm        string   `yaml:"helm,omitempty" json:"helm,omitempty"`
+	Kustomize   string   `yaml:"kustomize,omitempty" json:"kustomize,omitempty"`
+	OCTemplates string   `yaml:"openshiftTemplates,omitempty" json:"openshiftTemplates,omitempty"`
+	Envs        []string `yaml:"envs,omitempty" json:"envs,omitempty"`
 }
 
 // ParameterizerFileT is the file format for the parameterizers

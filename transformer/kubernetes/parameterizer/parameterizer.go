@@ -63,7 +63,7 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 	}
 	if packSpecConfig.Helm != "" {
 		// helm chart with multiple values.yaml
-		helmChartName := normalizeForHelmChartName(packSpecConfig.HelmChartName)
+		helmChartName := normalizeForHelmChartName(packSpecConfig.ProjectName)
 		namedValues := map[string]HelmValuesT{}
 		helmChartDir := filepath.Join(cleanOutDir, packSpecConfig.Helm, helmChartName)
 
@@ -207,7 +207,7 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 		templ := map[string]interface{}{
 			"apiVersion": "template.openshift.io/v1",
 			"kind":       "Template",
-			"metadata":   metav1.ObjectMeta{Name: common.MakeStringDNSNameCompliant(common.DefaultProjectName + "-template")},
+			"metadata":   metav1.ObjectMeta{Name: common.NormalizeForMetadataName(packSpecConfig.ProjectName + "-template")},
 			"objects":    newKs,
 			"parameters": singleSet,
 		}
