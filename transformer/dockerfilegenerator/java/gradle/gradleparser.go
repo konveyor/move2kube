@@ -374,7 +374,6 @@ func parseMapNotation(input string) (parsedMap map[string]string) {
 		} else {
 			currentKey += string(inputAsRune[i])
 		}
-		logrus.Infof("%s", currentKey)
 	}
 	// If the last character contains a quotation mark, we remove it
 	if val, ok := parsedMap[currentKey]; ok {
