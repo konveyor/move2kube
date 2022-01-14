@@ -49,6 +49,10 @@ const (
 	archiveVersionOldC     = "version"
 	archiveExtensionOldC   = "extension"
 	projectPrefixC         = "project."
+	destinationDirectoryC  = "destinationDirectory"
+	destinationDirOldC     = "destinationDir"
+	projectLibsDirNameC    = "libsDirName"
+	buildDirC              = "buildDir"
 )
 
 // GradleAnalyser implements Transformer interface
@@ -197,6 +201,15 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
 		archiveName := ""
+		buildPath := ""
+		destinationPath := ""
+		if len(gradleBuild.Metadata[projectPrefixC+buildDirC]) > 0 {
+			buildPath = gradleBuild.Metadata[projectPrefixC+buildDirC][0]
+		} else if len(gradleBuild.Metadata[buildDirC]) > 0 {
+			buildPath = gradleBuild.Metadata[buildDirC][0]
+		} else {
+			buildPath = "build"
+		}
 		if gb, ok := gradleBuild.Blocks[string(gradleConfig.ArtifactType)]; ok {
 			if len(gb.Metadata[archiveFileNameC]) > 0 {
 				archiveName = gb.Metadata[archiveFileNameC][0]
@@ -240,6 +253,15 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 					archiveName += "." + string(gradleConfig.ArtifactType)
 				}
 			}
+			if len(gb.Metadata[destinationDirectoryC]) > 0 {
+				destinationPath = gradle.GetDirNameFromDir(gb.Metadata[destinationDirectoryC][0])
+			} else if len(gb.Metadata[destinationDirOldC]) > 0 {
+				destinationPath = gradle.GetDirNameFromDir(gb.Metadata[destinationDirOldC][0])
+			} else if len(gradleBuild.Metadata[projectPrefixC+projectLibsDirNameC]) > 0 {
+				destinationPath = gradleBuild.Metadata[projectPrefixC+projectLibsDirNameC][0]
+			} else if len(gradleBuild.Metadata[projectLibsDirNameC]) > 0 {
+				destinationPath = gradleBuild.Metadata[projectLibsDirNameC][0]
+			}
 		}
 		if archiveName == "" {
 			archiveName = gradleConfig.AppName
@@ -253,6 +275,15 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 				archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC][0]
 			}
 			archiveName += "." + string(gradleConfig.ArtifactType)
+		}
+		if destinationPath == "" {
+			if len(gradleBuild.Metadata[projectPrefixC+projectLibsDirNameC]) > 0 {
+				destinationPath = gradleBuild.Metadata[projectPrefixC+projectLibsDirNameC][0]
+			} else if len(gradleBuild.Metadata[projectLibsDirNameC]) > 0 {
+				destinationPath = gradleBuild.Metadata[projectLibsDirNameC][0]
+			} else {
+				destinationPath = "libs"
+			}
 		}
 		// Springboot profiles handling
 		// We collect the springboot profiles from the current service
@@ -343,7 +374,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, buildPath, destinationPath),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -357,7 +388,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, buildPath, destinationPath),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -381,7 +412,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, buildPath, destinationPath),
 						EnvVariables:                      envVariablesMap,
 						Port:                              common.DefaultServicePort,
 					},
