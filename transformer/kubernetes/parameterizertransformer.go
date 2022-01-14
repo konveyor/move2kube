@@ -49,7 +49,7 @@ type ParameterizerPathConfig struct {
 	HelmPath       string `yaml:"helmPath"`
 	OCTemplatePath string `yaml:"ocTemplatePath"`
 	KustomizePath  string `yaml:"kustomizePath"`
-	HelmChartName  string `yaml:"helmChartName"`
+	ProjectName    string `yaml:"projectName"`
 }
 
 // ParameterizerPathTemplateConfig stores the template config
@@ -115,7 +115,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 		if err != nil {
 			logrus.Debugf("Unable to load config for Transformer into %T : %s", sConfig, err)
 		}
-		helmChartName, err := common.GetStringFromTemplate(t.PathConfig.HelmChartName,
+		projectName, err := common.GetStringFromTemplate(t.PathConfig.ProjectName,
 			map[string]string{common.ProjectNameTemplatizedStringKey: t.Env.ProjectName,
 				common.ArtifactNameTemplatizedStringKey: a.Name,
 				common.ServiceNameTemplatizedStringKey:  sConfig.ServiceName,
@@ -125,12 +125,11 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 			continue
 		}
 		pt := parameterizer.ParameterizerConfigT{Helm: "helm",
-			Kustomize:     "kustomize",
-			OCTemplates:   "octemplates",
-			HelmChartName: helmChartName}
+			Kustomize:   "kustomize",
+			OCTemplates: "octemplates",
+			ProjectName: projectName}
 		if len(t.PathConfig.HelmPath) == 0 {
 			pt.Helm = ""
-			pt.HelmChartName = ""
 		}
 		if len(t.PathConfig.KustomizePath) == 0 {
 			pt.Kustomize = ""

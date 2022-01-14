@@ -145,7 +145,7 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		if composeServiceConfig.Name != serviceName {
 			continue
 		}
-		name := common.NormalizeForServiceName(composeServiceConfig.Name)
+		name := common.NormalizeForMetadataName(composeServiceConfig.Name)
 		serviceConfig := irtypes.NewServiceWithName(name)
 		serviceContainer := core.Container{}
 
@@ -174,7 +174,7 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		serviceContainer.Command = composeServiceConfig.Entrypoint
 		serviceContainer.Args = composeServiceConfig.Command
 		serviceContainer.Stdin = composeServiceConfig.StdinOpen
-		serviceContainer.Name = common.NormalizeForServiceName(composeServiceConfig.ContainerName)
+		serviceContainer.Name = common.NormalizeForMetadataName(composeServiceConfig.ContainerName)
 		if serviceContainer.Name == "" {
 			serviceContainer.Name = strings.ToLower(serviceConfig.Name)
 		}

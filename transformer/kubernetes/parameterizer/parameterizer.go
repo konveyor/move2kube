@@ -34,12 +34,11 @@ import (
 )
 
 var (
-	stringInterpRegex                 = regexp.MustCompile(`\${([^}]+)}`)
-	invalidOCTemplateChars            = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
-	specialJSONPathChars              = regexp.MustCompile(`(~|\/)`)
-	templateInnerParametersRegex      = regexp.MustCompile(`\$\([^)]+\)`)
-	invalidHelmChartNameChars         = regexp.MustCompile("[^a-zA-Z0-9-]+")
-	invalidHelmChartNameStartEndChars = regexp.MustCompile("(^-[-]*)|([-]*-$)")
+	stringInterpRegex            = regexp.MustCompile(`\${([^}]+)}`)
+	invalidOCTemplateChars       = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
+	specialJSONPathChars         = regexp.MustCompile(`(~|\/)`)
+	templateInnerParametersRegex = regexp.MustCompile(`\$\([^)]+\)`)
+	invalidHelmChartNameChars    = regexp.MustCompile("[^a-zA-Z0-9-]+")
 )
 
 // Parameterize does the parameterization based on a spec
@@ -63,7 +62,7 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 	}
 	if packSpecConfig.Helm != "" {
 		// helm chart with multiple values.yaml
-		helmChartName := normalizeForHelmChartName(packSpecConfig.HelmChartName)
+		helmChartName := normalizeForHelmChartName(packSpecConfig.ProjectName)
 		namedValues := map[string]HelmValuesT{}
 		helmChartDir := filepath.Join(cleanOutDir, packSpecConfig.Helm, helmChartName)
 
@@ -207,7 +206,7 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 		templ := map[string]interface{}{
 			"apiVersion": "template.openshift.io/v1",
 			"kind":       "Template",
-			"metadata":   metav1.ObjectMeta{Name: common.MakeStringDNSNameCompliant(common.DefaultProjectName + "-template")},
+			"metadata":   metav1.ObjectMeta{Name: common.NormalizeForMetadataName(packSpecConfig.ProjectName + "-template")},
 			"objects":    newKs,
 			"parameters": singleSet,
 		}
@@ -1078,14 +1077,9 @@ func normalizeForHelmChartName(name string) string {
 		logrus.Debugf("Warning: The processed helm name %q is longer than 53 characters long. Trimming.", processedName)
 		processedName = processedName[:53]
 	}
-	first := processedName[0]
-	last := processedName[len(processedName)-1]
-	if first == '-' || last == '-' {
-		logrus.Debugf("Warning: The first and/or last characters of the name %q are not alphanumeric.", processedName)
-		processedName = invalidHelmChartNameStartEndChars.ReplaceAllLiteralString(name, "a")
-	}
+	processedName = common.ReplaceStartingTerminatingHyphens(processedName, "a", "z")
 	if name != processedName {
-		logrus.Warnf("Invalid Helm chart name %s proposed. Change to %s.", name, processedName)
+		logrus.Warnf("Invalid Helm chart name %s proposed. Changed to %s.", name, processedName)
 	}
 	return processedName
 }

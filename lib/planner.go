@@ -32,6 +32,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	p := plantypes.NewPlan()
 	p.Name = prjName
+	common.ProjectName = prjName
 	p.Spec.SourceDir = inputPath
 	p.Spec.CustomizationsDir = customizationsPath
 	if customizationsPath != "" {
@@ -65,6 +66,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 
 // CuratePlan allows curation the plan with the qa engine
 func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) plantypes.Plan {
+	common.ProjectName = p.Name
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	transformers := []string{}
 	for tn := range p.Spec.Transformers {

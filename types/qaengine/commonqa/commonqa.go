@@ -31,6 +31,8 @@ import (
 
 // ImageRegistry returns Image Registry URL
 func ImageRegistry() string {
+	// DefaultRegistryURL points to the default registry url that will be used
+	defaultRegistryURL := "quay.io"
 	registryList := []string{qatypes.OtherAnswer}
 	registryAuthList := map[string]string{} //Registry url and auth
 	defreg := ""
@@ -57,18 +59,18 @@ func ImageRegistry() string {
 			}
 		}
 	}
-	if !common.IsStringPresent(registryList, common.DefaultRegistryURL) {
-		registryList = append(registryList, common.DefaultRegistryURL)
+	if !common.IsStringPresent(registryList, defaultRegistryURL) {
+		registryList = append(registryList, defaultRegistryURL)
 	}
 	if defreg == "" {
-		defreg = common.DefaultRegistryURL
+		defreg = defaultRegistryURL
 	}
 	return qaengine.FetchSelectAnswer(common.ConfigImageRegistryURLKey, "Enter the URL of the image registry : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList)
 }
 
 // ImageRegistryNamespace returns Image Registry Namespace
-func ImageRegistryNamespace(def string) string {
-	return qaengine.FetchStringAnswer(common.ConfigImageRegistryNamespaceKey, "Enter the namespace where the new images should be pushed : ", []string{"Ex : " + def}, def)
+func ImageRegistryNamespace() string {
+	return qaengine.FetchStringAnswer(common.ConfigImageRegistryNamespaceKey, "Enter the namespace where the new images should be pushed : ", []string{"Ex : " + common.ProjectName}, common.ProjectName)
 }
 
 // IngressHost returns Ingress host

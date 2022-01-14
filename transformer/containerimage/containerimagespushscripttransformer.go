@@ -81,7 +81,7 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 		return nil, nil, nil
 	}
 	ipt.RegistryURL = commonqa.ImageRegistry()
-	ipt.RegistryNamespace = commonqa.ImageRegistryNamespace(t.Env.ProjectName)
+	ipt.RegistryNamespace = commonqa.ImageRegistryNamespace()
 	ipt.ContainerRuntime = commonqa.GetContainerRuntime()
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,

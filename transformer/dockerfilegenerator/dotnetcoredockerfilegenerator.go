@@ -290,7 +290,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 	if appName == "" {
 		return nil, nil
 	}
-	appName = common.NormalizeForServiceName(appName)
+	appName = common.NormalizeForMetadataName(appName)
 
 	dotnetcoreService := transformertypes.Artifact{
 		Paths: map[transformertypes.PathType][]string{

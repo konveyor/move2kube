@@ -34,6 +34,11 @@ import (
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
+const (
+	// imagePullSecretSuffix is the suffix that will be appended to pull secret name
+	imagePullSecretSuffix = "-imagepullsecret"
+)
+
 // registryPreProcessor preprocesses image registry related configurations
 type registryPreProcessor struct {
 }
@@ -63,7 +68,6 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		usedRegistries = append(usedRegistries, reg)
 	}
 	imagePullSecrets := map[string]string{} // registryurl, pull secret
-
 	registryAuthList := map[string]string{} //Registry url and auth
 	if !common.IgnoreEnvironment {
 		configFile, err := dockercliconfig.Load(dockercliconfig.Dir())
@@ -87,7 +91,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 			}
 		}
 	}
-	ns := commonqa.ImageRegistryNamespace(ir.Name)
+	ns := commonqa.ImageRegistryNamespace()
 	for _, registry := range usedRegistries {
 		dauth := dockerclitypes.AuthConfig{}
 		const dockerConfigLogin = "Docker login from config"
@@ -95,12 +99,13 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		const userLogin = "UserName/Password"
 		const useExistingPullSecret = "Use existing pull secret"
 		authOptions := []string{useExistingPullSecret, noAuthLogin, userLogin}
-		if auth, ok := registryAuthList[reg]; ok {
-			imagePullSecrets[registry] = common.ImagePullSecretPrefix + common.MakeFileNameCompliant(imagePullSecrets[registry])
+		if _, ok := imagePullSecrets[registry]; !ok {
+			imagePullSecrets[registry] = common.NormalizeForMetadataName(registry + imagePullSecretSuffix)
+		}
+		if auth, ok := registryAuthList[registry]; ok {
 			dauth.Auth = auth
 			authOptions = append(authOptions, dockerConfigLogin)
 		}
-
 		auth := qaengine.FetchSelectAnswer(common.ConfigImageRegistryLoginTypeKey, fmt.Sprintf("[%s] What type of container registry login do you want to use?", registry), []string{"Docker login from config mode, will use the default config from your local machine."}, noAuthLogin, authOptions)
 		if auth == noAuthLogin {
 			dauth.Auth = ""
@@ -114,7 +119,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		}
 		if dauth != (dockerclitypes.AuthConfig{}) {
 			dconfigfile := dockercliconfigfile.ConfigFile{
-				AuthConfigs: map[string]dockerclitypes.AuthConfig{reg: dauth},
+				AuthConfigs: map[string]dockerclitypes.AuthConfig{registry: dauth},
 			}
 			dconfigbuffer := new(bytes.Buffer)
 			err := dconfigfile.SaveToWriter(dconfigbuffer)
