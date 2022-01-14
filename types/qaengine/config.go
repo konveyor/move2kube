@@ -205,7 +205,7 @@ func (c *Config) AddSolution(p Problem) error {
 				logrus.Errorf("Failed to write to the config file. Error: %q", err)
 			}
 			return err
-		} else {
+		} else if p.Type == PasswordSolutionFormType {
 			logrus.Debug("passwords are not be added to the config")
 		}
 		return nil
