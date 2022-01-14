@@ -503,6 +503,7 @@ func NormalizeForMetadataName(metadataName string) string {
 	if len(newName) > maxLength {
 		newName = newName[0:maxLength]
 	}
+	newName = ReplaceStartingTerminatingHyphens(newName, "a", "z")
 	if newName != metadataName {
 		logrus.Infof("Changing metadata name to %s from %s", metadataName, newName)
 	}
@@ -1244,4 +1245,18 @@ func ConvertStringSelectorsToSelectors(transformerSelector string) (labels.Selec
 		return labels.Everything(), err
 	}
 	return lblSelector, err
+}
+
+func ReplaceStartingTerminatingHyphens(str string, startReplaceStr, endReplaceStr string) string {
+	first := str[0]
+	last := str[len(str)-1]
+	if first == '-' {
+		logrus.Debugf("Warning: The first character of the name %q are not alphanumeric.", str)
+		str = startReplaceStr + str[1:]
+	}
+	if last == '-' {
+		logrus.Debugf("Warning: The last character of the name %q are not alphanumeric.", str)
+		str = str[:len(str)-1] + endReplaceStr
+	}
+	return str
 }
