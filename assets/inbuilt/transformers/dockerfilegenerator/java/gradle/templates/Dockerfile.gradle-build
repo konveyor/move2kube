@@ -1,9 +1,9 @@
 
 FROM registry.access.redhat.com/ubi8/ubi:latest AS builder
 RUN yum install -y {{ .JavaPackageName }}
-{{ if not .GradleWPresent }}RUN yum install -y wget unzip
+{{ if not .GradleWPresent -}}RUN yum install -y wget unzip
 RUN wget https://services.gradle.org/distributions/gradle-7.3-bin.zip -P /tmp && unzip -d /opt/gradle /tmp/gradle-7.3-bin.zip && rm -rf /tmp/gradle-7.3-bin.zip
-ENV PATH="$PATH:/opt/gradle/gradle-7.3/bin/"{{ end }}
+ENV PATH="$PATH:/opt/gradle/gradle-7.3/bin/"{{- end }}
 WORKDIR /app
 COPY . .
 {{ if .GradleWPresent }}RUN ./gradlew assemble{{ else }}RUN gradle wrapper && ./gradlew assemble{{ end }}
