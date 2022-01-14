@@ -39,11 +39,12 @@ type nullLogBackend struct{}
 
 // Config stores the answers in a yaml file
 type Config struct {
-	configFiles   []string
-	configStrings []string
-	yamlMap       mapT
-	writeYamlMap  mapT
-	OutputPath    string
+	configFiles      []string
+	configStrings    []string
+	yamlMap          mapT
+	writeYamlMap     mapT
+	OutputPath       string
+	persistPasswords bool
 }
 
 var arrayIndexRegex = regexp.MustCompile(`^\[(\d+)\]$`)
@@ -190,11 +191,6 @@ func (c *Config) Write() error {
 // AddSolution adds a problem to the config
 func (c *Config) AddSolution(p Problem) error {
 	logrus.Debugf("Config.AddSolution the problem is:\n%+v", p)
-	if p.Type == PasswordSolutionFormType {
-		err := fmt.Errorf("passwords will not be added to the config")
-		logrus.Debug(err)
-		return err
-	}
 	if p.Answer == nil {
 		err := fmt.Errorf("unresolved problem. Not going to be added to config")
 		logrus.Warn(err)
@@ -202,12 +198,17 @@ func (c *Config) AddSolution(p Problem) error {
 	}
 	if p.Type != MultiSelectSolutionFormType {
 		set(p.ID, p.Answer, c.yamlMap)
-		set(p.ID, p.Answer, c.writeYamlMap)
-		err := c.Write()
-		if err != nil {
-			logrus.Errorf("Failed to write to the config file. Error: %q", err)
+		if c.persistPasswords || p.Type != PasswordSolutionFormType {
+			set(p.ID, p.Answer, c.writeYamlMap)
+			err := c.Write()
+			if err != nil {
+				logrus.Errorf("Failed to write to the config file. Error: %q", err)
+			}
+			return err
+		} else if p.Type == PasswordSolutionFormType {
+			logrus.Debug("passwords are not be added to the config")
 		}
-		return err
+		return nil
 	}
 
 	selectedAnswers, ok := p.Answer.([]string)
@@ -256,12 +257,13 @@ func (c *Config) Get(key string) (value interface{}, ok bool) {
 }
 
 // NewConfig creates a new config instance given config strings and paths to config files
-func NewConfig(outputPath string, configStrings, configFiles []string) (config *Config) {
+func NewConfig(outputPath string, configStrings, configFiles []string, persistPasswords bool) (config *Config) {
 	logrus.Debug("NewConfig create a new config")
 	return &Config{
-		configFiles:   configFiles,
-		configStrings: configStrings,
-		OutputPath:    outputPath,
+		configFiles:      configFiles,
+		configStrings:    configStrings,
+		OutputPath:       outputPath,
+		persistPasswords: persistPasswords,
 	}
 }
 

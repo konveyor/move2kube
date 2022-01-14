@@ -195,7 +195,7 @@ func getQAMessage(prob qatypes.Problem) string {
 		prob.Desc = "Default description for question with id: " + prob.ID
 	}
 	if len(prob.Hints) == 0 {
-		return fmt.Sprintf("%s\n", prob.Desc)
+		return fmt.Sprintf("%s\nID: %s\n", prob.Desc, prob.ID)
 	}
-	return fmt.Sprintf("%s\nHints:\n[%s]\n", prob.Desc, strings.Join(prob.Hints, ", "))
+	return fmt.Sprintf("%s\nID: %s\nHints:\n[%s]\n", prob.Desc, prob.ID, strings.Join(prob.Hints, ", "))
 }

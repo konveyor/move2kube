@@ -33,7 +33,7 @@ func TestCacheEngine(t *testing.T) {
 	t.Run("input type problem", func(t *testing.T) {
 
 		engines = []Engine{}
-		e := NewStoreEngineFromCache(qaTestPath)
+		e := NewStoreEngineFromCache(qaTestPath, false)
 		AddEngine(e)
 		// SetWriteConfig(tmpTestPath)
 
@@ -55,7 +55,7 @@ func TestCacheEngine(t *testing.T) {
 	t.Run("select type problem", func(t *testing.T) {
 
 		engines = []Engine{}
-		e := NewStoreEngineFromCache(qaTestPath)
+		e := NewStoreEngineFromCache(qaTestPath, false)
 		AddEngine(e)
 		// SetWriteConfig(tmpTestPath)
 
@@ -77,7 +77,7 @@ func TestCacheEngine(t *testing.T) {
 	t.Run("multi-line input type problem", func(t *testing.T) {
 
 		engines = []Engine{}
-		e := NewStoreEngineFromCache(qaTestPath)
+		e := NewStoreEngineFromCache(qaTestPath, false)
 		AddEngine(e)
 		// SetWriteConfig(tmpTestPath)
 
@@ -100,7 +100,7 @@ line3
 	t.Run("confirm type problem", func(t *testing.T) {
 
 		engines = []Engine{}
-		e := NewStoreEngineFromCache(qaTestPath)
+		e := NewStoreEngineFromCache(qaTestPath, false)
 		AddEngine(e)
 		// SetWriteConfig(tmpTestPath)
 
@@ -121,7 +121,7 @@ line3
 	t.Run("multi-select type problem", func(t *testing.T) {
 
 		engines = []Engine{}
-		e := NewStoreEngineFromCache(qaTestPath)
+		e := NewStoreEngineFromCache(qaTestPath, false)
 		AddEngine(e)
 		// SetWriteConfig(tmpTestPath)
 

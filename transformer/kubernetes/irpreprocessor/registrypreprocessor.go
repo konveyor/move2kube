@@ -100,7 +100,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		const useExistingPullSecret = "Use existing pull secret"
 		authOptions := []string{useExistingPullSecret, noAuthLogin, userLogin}
 		if _, ok := imagePullSecrets[registry]; !ok {
-			imagePullSecrets[registry] = common.NormalizeForMetadataName(registry + imagePullSecretSuffix)
+			imagePullSecrets[registry] = common.NormalizeForMetadataName(strings.ReplaceAll(registry, ".", "-") + imagePullSecretSuffix)
 		}
 		if auth, ok := registryAuthList[registry]; ok {
 			dauth.Auth = auth

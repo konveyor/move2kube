@@ -24,7 +24,7 @@ import (
 )
 
 func TestNewCache(t *testing.T) {
-	c := qaengine.NewCache("cache.yaml")
+	c := qaengine.NewCache("cache.yaml", false)
 	if c.Kind != string(qaengine.QACacheKind) || c.APIVersion != types.SchemeGroupVersion.String() {
 		t.Fatal("Failed to initialize QACache properly.")
 	}

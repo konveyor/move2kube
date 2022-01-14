@@ -29,6 +29,8 @@ const (
 	ignoreEnvFlag = "ignore-env"
 	// qaSkipFlag is the name of the flag that lets you skip all the question answers
 	qaSkipFlag = "qa-skip"
+	// qaPersistPasswords is the name of the flag that lets choose to persist passwords
+	qaPersistPasswords = "qa-persist-passwords"
 	// configOutFlag is the name of the flag that will point the location to output the config file
 	configOutFlag = "config-out"
 	// qaCacheOutFlag is the name of the flag that will point the location to output the cache file
@@ -64,4 +66,6 @@ type qaflags struct {
 	qaskip bool
 	// preSets contains a list of preset configurations
 	preSets []string
+	// persistPasswords sets whether to persist the password or not
+	persistPasswords bool
 }

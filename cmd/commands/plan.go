@@ -99,7 +99,7 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 		planfile = filepath.Join(planfile, common.DefaultPlanFile)
 	}
 	qaengine.StartEngine(true, 0, true)
-	qaengine.SetupConfigFile("", flags.setconfigs, flags.configs, flags.preSets)
+	qaengine.SetupConfigFile("", flags.setconfigs, flags.configs, flags.preSets, false)
 	if flags.progressServerPort != 0 {
 		startPlanProgressServer(flags.progressServerPort)
 	}
@@ -137,7 +137,6 @@ func GetPlanCommand() *cobra.Command {
 	planCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use.")
 	planCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs.")
 	planCmd.Flags().IntVar(&flags.progressServerPort, planProgressPortFlag, 0, "Port for the plan progress server. If not provided, the server won't be started.")
-
 	planCmd.Flags().BoolVar(&flags.disableLocalExecution, common.DisableLocalExecutionFlag, false, "Allow files to be executed locally.")
 
 	must(planCmd.MarkFlagRequired(sourceFlag))

@@ -75,7 +75,7 @@ func AddEngineHighestPriority(e Engine) error {
 func AddCaches(cacheFiles ...string) {
 	common.ReverseInPlace(cacheFiles)
 	for _, cacheFile := range cacheFiles {
-		e := NewStoreEngineFromCache(cacheFile)
+		e := NewStoreEngineFromCache(cacheFile, false)
 		if err := AddEngineHighestPriority(e); err != nil {
 			logrus.Errorf("Ignoring engine %T due to error : %s", e, err)
 			continue
@@ -84,22 +84,22 @@ func AddCaches(cacheFiles ...string) {
 }
 
 // SetupWriteCacheFile adds write cache
-func SetupWriteCacheFile(writeCachePath string) {
-	cache := qatypes.NewCache(writeCachePath)
+func SetupWriteCacheFile(writeCachePath string, persistPasswords bool) {
+	cache := qatypes.NewCache(writeCachePath, persistPasswords)
 	cache.Write()
 	writeStores = append(writeStores, cache)
 	AddCaches(writeCachePath)
 }
 
 // SetupConfigFile adds config responders - should be called only once
-func SetupConfigFile(writeConfigFile string, configStrings, configFiles, presets []string) {
+func SetupConfigFile(writeConfigFile string, configStrings, configFiles, presets []string, persistPasswords bool) {
 	presetPaths := []string{}
 	for _, preset := range presets {
 		presetPath := filepath.Join(common.AssetsPath, "inbuilt", "presets", preset+".yaml")
 		presetPaths = append(presetPaths, presetPath)
 	}
 	configFiles = append(presetPaths, configFiles...)
-	writeConfig := qatypes.NewConfig(writeConfigFile, configStrings, configFiles)
+	writeConfig := qatypes.NewConfig(writeConfigFile, configStrings, configFiles, persistPasswords)
 	if writeConfigFile != "" {
 		writeStores = append(writeStores, writeConfig)
 	}
