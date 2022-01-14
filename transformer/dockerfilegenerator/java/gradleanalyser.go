@@ -55,6 +55,7 @@ type GradleYamlConfig struct {
 // GradleBuildDockerfileTemplate defines the information for the build dockerfile template
 type GradleBuildDockerfileTemplate struct {
 	JavaPackageName string
+	UseGradleW      bool
 }
 
 // Init Initializes the transformer
@@ -99,11 +100,20 @@ func (t *GradleAnalyser) DirectoryDetect(dir string) (services map[string][]tran
 		},
 	}
 	gc := artifacts.GradleConfig{}
+	plugins := gradleBuild.GetPluginIDs()
 	gc.ArtifactType = artifacts.JarPackaging
-	if _, ok := gradleBuild.Metadata[string(artifacts.EarPackaging)]; ok {
+	if common.IsStringPresent(plugins, string(artifacts.EarPackaging)) {
 		gc.ArtifactType = artifacts.EarPackaging
-	} else if _, ok := gradleBuild.Metadata[string(artifacts.WarPackaging)]; ok {
+	} else if common.IsStringPresent(plugins, string(artifacts.WarPackaging)) {
 		gc.ArtifactType = artifacts.WarPackaging
+	}
+	gwfp, err := common.GetFilesInCurrentDirectory(dir, []string{"gradlew"}, nil)
+	if err != nil {
+		logrus.Errorf("Error while parsing directory %s for gradlew file : %s", dir, err)
+		return nil, err
+	}
+	if len(gwfp) > 0 {
+		gc.UseGradleW = true
 	}
 	ct.Configs[artifacts.GradleConfigType] = gc
 	appName := ""
@@ -234,10 +244,11 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			DestPath: buildDockerfile,
 			TemplateConfig: GradleBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
+				UseGradleW:      gradleConfig.UseGradleW,
 			},
 		})
 		if archiveName == "" {
-			archiveName = sConfig.ServiceName + string(gradleConfig.ArtifactType)
+			archiveName = sConfig.ServiceName + "." + string(gradleConfig.ArtifactType)
 		}
 		var newArtifact transformertypes.Artifact
 		switch gradleConfig.ArtifactType {

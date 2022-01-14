@@ -16,6 +16,16 @@
 
 package gradle
 
+import (
+	"strings"
+
+	"github.com/konveyor/move2kube/common"
+)
+
+const (
+	pluginPrefix = "plugin:"
+)
+
 // Gradle stores parsed gradle
 type Gradle struct {
 	Repositories []GradleRepository  `yaml:"repositories,omitempty" json:"repositories,omitempty"`
@@ -23,6 +33,27 @@ type Gradle struct {
 	Plugins      []GradlePlugin      `yaml:"plugins,omitempty" json:"plugins,omitempty"`
 	Metadata     map[string][]string `yaml:"metadata,omitempty" json:"metadata,omitempty"`
 	Blocks       map[string]Gradle   `yaml:"blocks,omitempty" json:"blocks,omitempty"`
+}
+
+// Returns plugins
+func (g *Gradle) GetPluginIDs() (plugins []string) {
+	for _, p := range g.Plugins {
+		if val, ok := p["id"]; ok {
+			plugins = append(plugins, val)
+		}
+	}
+	for mk, mv := range g.Metadata {
+		if mk != "apply" {
+			continue
+		}
+		for _, v := range mv {
+			if strings.HasPrefix(v, pluginPrefix) {
+				pluginValue := common.StripQuotes(strings.TrimSpace(strings.TrimPrefix(v, pluginPrefix)))
+				plugins = append(plugins, pluginValue)
+			}
+		}
+	}
+	return plugins
 }
 
 // Merge merges two parsed gradles
