@@ -41,6 +41,6 @@ func (*StoreEngine) IsInteractiveEngine() bool {
 }
 
 // NewStoreEngineFromCache creates a new cache instance
-func NewStoreEngineFromCache(cacheFile string) *StoreEngine {
-	return &StoreEngine{store: qatypes.NewCache(cacheFile)}
+func NewStoreEngineFromCache(cacheFile string, persistPasswords bool) *StoreEngine {
+	return &StoreEngine{store: qatypes.NewCache(cacheFile, persistPasswords)}
 }

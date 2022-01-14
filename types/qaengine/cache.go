@@ -36,19 +36,23 @@ type Cache struct {
 
 // CacheSpec stores the cache data
 type CacheSpec struct {
-	file string `yaml:"-"`
+	file             string `yaml:"-"`
+	persistPasswords bool   `yaml:"-"`
 	// Problems stores the list of problems with resolutions
 	Problems []Problem `yaml:"solutions"`
 }
 
 // NewCache creates new cache instance
-func NewCache(file string) (cache *Cache) {
+func NewCache(file string, persistPasswords bool) (cache *Cache) {
 	return &Cache{
 		TypeMeta: types.TypeMeta{
 			Kind:       string(QACacheKind),
 			APIVersion: types.SchemeGroupVersion.String(),
 		},
-		Spec: CacheSpec{file: file},
+		Spec: CacheSpec{
+			file:             file,
+			persistPasswords: persistPasswords,
+		},
 	}
 }
 
@@ -74,7 +78,7 @@ func (cache *Cache) Write() error {
 
 // AddSolution adds a problem to solution cache
 func (cache *Cache) AddSolution(p Problem) error {
-	if p.Type == PasswordSolutionFormType {
+	if !cache.Spec.persistPasswords && p.Type == PasswordSolutionFormType {
 		err := fmt.Errorf("passwords are not added to the cache")
 		logrus.Debug(err)
 		return err
