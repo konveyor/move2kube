@@ -1247,6 +1247,7 @@ func ConvertStringSelectorsToSelectors(transformerSelector string) (labels.Selec
 	return lblSelector, err
 }
 
+// ReplaceStartingTerminatingHyphens replaces the first and last characters of a string if they are hyphens
 func ReplaceStartingTerminatingHyphens(str string, startReplaceStr, endReplaceStr string) string {
 	first := str[0]
 	last := str[len(str)-1]
