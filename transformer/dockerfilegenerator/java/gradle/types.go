@@ -35,7 +35,7 @@ type Gradle struct {
 	Blocks       map[string]Gradle   `yaml:"blocks,omitempty" json:"blocks,omitempty"`
 }
 
-// Returns plugins
+// GetPluginIDs returns plugins
 func (g *Gradle) GetPluginIDs() (plugins []string) {
 	for _, p := range g.Plugins {
 		if val, ok := p["id"]; ok {

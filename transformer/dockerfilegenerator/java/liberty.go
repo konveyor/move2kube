@@ -144,7 +144,7 @@ func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), libertyEarArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping version for java version %s : %s", libertyEarArtifactConfig.JavaVersion, err)
-				javaPackage = "java-1.8.0-openjdk-devel"
+				javaPackage = "java-17-openjdk-devel"
 			}
 			if isBuildContainerPresent {
 				dft.JavaPackageName = javaPackage
@@ -163,7 +163,7 @@ func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), libertyArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping version for java version %s : %s", libertyArtifactConfig.JavaVersion, err)
-				javaPackage = "java-1.8.0-openjdk-devel"
+				javaPackage = "java-17-openjdk-devel"
 			}
 			if isBuildContainerPresent {
 				dft.JavaPackageName = javaPackage

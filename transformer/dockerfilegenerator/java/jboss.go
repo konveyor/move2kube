@@ -144,7 +144,7 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenA
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jbossEarArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping version for java version %s : %s", jbossEarArtifactConfig.JavaVersion, err)
-				javaPackage = "java-1.8.0-openjdk-devel"
+				javaPackage = "java-17-openjdk-devel"
 			}
 			if isBuildContainerPresent {
 				dft.JavaPackageName = javaPackage
@@ -163,7 +163,7 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenA
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jbossArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping version for java version %s : %s", jbossArtifactConfig.JavaVersion, err)
-				javaPackage = "java-1.8.0-openjdk-devel"
+				javaPackage = "java-17-openjdk-devel"
 			}
 			if isBuildContainerPresent {
 				dft.JavaPackageName = javaPackage

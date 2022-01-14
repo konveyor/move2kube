@@ -24,4 +24,4 @@ spec:
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml
   config: 
     defaultMavenVersion: "3.8.2"
-    defaultJavaVersion: "1.8"
+    defaultJavaVersion: "17"

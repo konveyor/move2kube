@@ -34,8 +34,21 @@ import (
 )
 
 const (
-	gradleBuildFileName = "build.gradle"
-	archiveNameC        = "archiveName"
+	gradleBuildFileName    = "build.gradle"
+	gradleSettingsFileName = "settings.gradle"
+	archiveFileNameC       = "archiveFileName"
+	archiveBaseNameC       = "archiveBaseName"
+	archiveAppendixC       = "archiveAppendix"
+	archiveClassifierC     = "archiveClassifier"
+	archiveVersionC        = "archiveVersion"
+	archiveExtensionC      = "archiveExtension"
+	archiveNameC           = "archiveName"
+	archiveBaseNameOldC    = "baseName"
+	archiveAppendixOldC    = "appendix"
+	archiveClassifierOldC  = "classifier"
+	archiveVersionOldC     = "version"
+	archiveExtensionOldC   = "extension"
+	projectPrefixC         = "project."
 )
 
 // GradleAnalyser implements Transformer interface
@@ -55,7 +68,7 @@ type GradleYamlConfig struct {
 // GradleBuildDockerfileTemplate defines the information for the build dockerfile template
 type GradleBuildDockerfileTemplate struct {
 	JavaPackageName string
-	UseGradleW      bool
+	GradleWPresent  bool
 }
 
 // Init Initializes the transformer
@@ -113,10 +126,28 @@ func (t *GradleAnalyser) DirectoryDetect(dir string) (services map[string][]tran
 		return nil, err
 	}
 	if len(gwfp) > 0 {
-		gc.UseGradleW = true
+		gc.GradleWPresent = true
+	}
+	appName := ""
+	gradleSettingsFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{gradleSettingsFileName}, nil)
+	if err != nil {
+		logrus.Errorf("Error while parsing directory %s for Gradle settings file : %s", dir, err)
+		return nil, err
+	}
+	if len(gradleSettingsFilePaths) != 0 {
+		gradleSetting, err := gradle.ParseGardleBuildFile(gradleSettingsFilePaths[0])
+		if err != nil {
+			logrus.Errorf("Error while parsing gradle settings file : %s", err)
+		} else {
+			if gradleSetting.Metadata != nil && len(gradleSetting.Metadata["rootProject.name"]) > 0 && gradleSetting.Metadata["rootProject.name"][0] != "" {
+				gc.AppName = gradleSetting.Metadata["rootProject.name"][0]
+			} else {
+				gc.AppName = filepath.Base(dir)
+			}
+			appName = gc.AppName
+		}
 	}
 	ct.Configs[artifacts.GradleConfigType] = gc
-	appName := ""
 	for _, dependency := range gradleBuild.Dependencies {
 		if dependency.Group == springbootGroup {
 			sbc := artifacts.SpringBootConfig{}
@@ -144,8 +175,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 	for _, a := range newArtifacts {
 		javaVersion := ""
 		if len(a.Paths[artifacts.GradleBuildFilePathType]) == 0 {
-			err := fmt.Errorf("unable to find gradle build file for %s", a.Name)
-			logrus.Errorf("%s", err)
+			logrus.Errorf("unable to find gradle build file for %s", a.Name)
 			continue
 		}
 		gradleBuild, err := gradle.ParseGardleBuildFile(a.Paths[artifacts.GradleBuildFilePathType][0])
@@ -168,8 +198,47 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		}
 		archiveName := ""
 		if gb, ok := gradleBuild.Blocks[string(gradleConfig.ArtifactType)]; ok {
-			if len(gb.Metadata[archiveNameC]) > 0 {
+			if len(gb.Metadata[archiveFileNameC]) > 0 {
+				archiveName = gb.Metadata[archiveFileNameC][0]
+			} else if len(gb.Metadata[archiveNameC]) > 0 {
 				archiveName = gb.Metadata[archiveNameC][0]
+			}
+			if archiveName == "" {
+				if len(gb.Metadata[archiveBaseNameC]) > 0 {
+					archiveName = gb.Metadata[archiveBaseNameC][0]
+				} else if len(gb.Metadata[archiveBaseNameOldC]) > 0 {
+					archiveName = gb.Metadata[archiveBaseNameOldC][0]
+				} else {
+					archiveName = gradleConfig.AppName
+				}
+				if len(gb.Metadata[archiveAppendixC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveAppendixC][0]
+				} else if len(gb.Metadata[archiveAppendixOldC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveAppendixOldC][0]
+				} else if len(gb.Metadata[archiveAppendixOldC]) > 0 {
+					archiveName += "-" + gb.Metadata[projectPrefixC+archiveAppendixOldC][0]
+				}
+				if len(gb.Metadata[archiveVersionC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveVersionC][0]
+				} else if len(gb.Metadata[archiveVersionOldC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveVersionOldC][0]
+				} else if len(gb.Metadata[archiveVersionOldC]) > 0 {
+					archiveName += "-" + gb.Metadata[projectPrefixC+archiveVersionOldC][0]
+				}
+				if len(gb.Metadata[archiveClassifierC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveClassifierC][0]
+				} else if len(gb.Metadata[archiveClassifierOldC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveClassifierOldC][0]
+				} else if len(gb.Metadata[archiveClassifierOldC]) > 0 {
+					archiveName += "-" + gb.Metadata[projectPrefixC+archiveClassifierOldC][0]
+				}
+				if len(gb.Metadata[archiveExtensionC]) > 0 {
+					archiveName += "." + gb.Metadata[archiveExtensionC][0]
+				} else if len(gb.Metadata[archiveExtensionOldC]) > 0 {
+					archiveName += "." + gb.Metadata[archiveExtensionOldC][0]
+				} else if len(gb.Metadata[archiveExtensionOldC]) > 0 {
+					archiveName += "." + string(gradleConfig.ArtifactType)
+				}
 			}
 		}
 		// Springboot profiles handling
@@ -219,7 +288,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), javaVersion)
 		if err != nil {
 			logrus.Errorf("Unable to find mapping version for java version %s : %s", javaVersion, err)
-			javaPackage = "java-1.8.0-openjdk-devel"
+			javaPackage = "java-17-openjdk-devel"
 		}
 		license, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license"))
 		if err != nil {
@@ -244,7 +313,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			DestPath: buildDockerfile,
 			TemplateConfig: GradleBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
-				UseGradleW:      gradleConfig.UseGradleW,
+				GradleWPresent:  gradleConfig.GradleWPresent,
 			},
 		})
 		if archiveName == "" {

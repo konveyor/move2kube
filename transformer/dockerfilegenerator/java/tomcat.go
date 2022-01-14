@@ -141,7 +141,7 @@ func (t *Tomcat) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), tomcatArtifactConfig.JavaVersion)
 		if err != nil {
 			logrus.Errorf("Unable to find mapping version for java version %s : %s", tomcatArtifactConfig.JavaVersion, err)
-			javaPackage = "java-1.8.0-openjdk-devel"
+			javaPackage = "java-17-openjdk-devel"
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,

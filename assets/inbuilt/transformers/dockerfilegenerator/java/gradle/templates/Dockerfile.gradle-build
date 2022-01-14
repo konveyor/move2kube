@@ -1,9 +1,9 @@
 
 FROM registry.access.redhat.com/ubi8/ubi:latest AS builder
 RUN yum install -y {{ .JavaPackageName }}
-{{ if not .UseGradleW }}RUN yum install -y wget unzip
-RUN wget https://services.gradle.org/distributions/gradle-6.6-bin.zip -P /tmp && unzip -d /opt/gradle /tmp/gradle-6.6-bin.zip && rm -rf /tmp/gradle-6.6-bin.zip
-ENV PATH="$PATH:/opt/gradle/gradle-6.6/bin/"{{ end }}
+{{ if not .GraldleWPresent }}RUN yum install -y wget unzip
+RUN wget https://services.gradle.org/distributions/gradle-7.3-bin.zip -P /tmp && unzip -d /opt/gradle /tmp/gradle-7.3-bin.zip && rm -rf /tmp/gradle-7.3-bin.zip
+ENV PATH="$PATH:/opt/gradle/gradle-7.3/bin/"{{ end -}}
 WORKDIR /app
 COPY . .
-{{ if .UseGradleW }}RUN ./gradlew build{{ else }}RUN gradle build{{ end }}
+{{ if .GraldleWPresent }}RUN ./gradlew assemble{{ else }}RUN gradle wrapper && ./gradlew assemble{{ end }}
