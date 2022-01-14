@@ -215,31 +215,44 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 					archiveName += "-" + gb.Metadata[archiveAppendixC][0]
 				} else if len(gb.Metadata[archiveAppendixOldC]) > 0 {
 					archiveName += "-" + gb.Metadata[archiveAppendixOldC][0]
-				} else if len(gb.Metadata[archiveAppendixOldC]) > 0 {
-					archiveName += "-" + gb.Metadata[projectPrefixC+archiveAppendixOldC][0]
+				} else if len(gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC]) > 0 {
+					archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC][0]
 				}
 				if len(gb.Metadata[archiveVersionC]) > 0 {
 					archiveName += "-" + gb.Metadata[archiveVersionC][0]
 				} else if len(gb.Metadata[archiveVersionOldC]) > 0 {
 					archiveName += "-" + gb.Metadata[archiveVersionOldC][0]
-				} else if len(gb.Metadata[archiveVersionOldC]) > 0 {
-					archiveName += "-" + gb.Metadata[projectPrefixC+archiveVersionOldC][0]
+				} else if len(gradleBuild.Metadata[projectPrefixC+archiveVersionOldC]) > 0 {
+					archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveVersionOldC][0]
 				}
 				if len(gb.Metadata[archiveClassifierC]) > 0 {
 					archiveName += "-" + gb.Metadata[archiveClassifierC][0]
 				} else if len(gb.Metadata[archiveClassifierOldC]) > 0 {
 					archiveName += "-" + gb.Metadata[archiveClassifierOldC][0]
-				} else if len(gb.Metadata[archiveClassifierOldC]) > 0 {
-					archiveName += "-" + gb.Metadata[projectPrefixC+archiveClassifierOldC][0]
+				} else if len(gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC]) > 0 {
+					archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC][0]
 				}
 				if len(gb.Metadata[archiveExtensionC]) > 0 {
 					archiveName += "." + gb.Metadata[archiveExtensionC][0]
 				} else if len(gb.Metadata[archiveExtensionOldC]) > 0 {
 					archiveName += "." + gb.Metadata[archiveExtensionOldC][0]
-				} else if len(gb.Metadata[archiveExtensionOldC]) > 0 {
+				} else {
 					archiveName += "." + string(gradleConfig.ArtifactType)
 				}
 			}
+		}
+		if archiveName == "" {
+			archiveName = gradleConfig.AppName
+			if len(gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC]) > 0 {
+				archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC][0]
+			}
+			if len(gradleBuild.Metadata[projectPrefixC+archiveVersionOldC]) > 0 {
+				archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveVersionOldC][0]
+			}
+			if len(gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC]) > 0 {
+				archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC][0]
+			}
+			archiveName += "." + string(gradleConfig.ArtifactType)
 		}
 		// Springboot profiles handling
 		// We collect the springboot profiles from the current service
