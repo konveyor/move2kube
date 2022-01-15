@@ -5,8 +5,8 @@ ENV {{$k}} {{$v}}
 {{- end}}
 RUN microdnf update && microdnf install -y {{ .JavaPackageName }} tar gzip shadow-utils && microdnf clean all
 # Set the WILDFLY_VERSION env variable
-ENV WILDFLY_VERSION 26.0.0.Final
-ENV WILDFLY_SHA1 836fdefc48b6008904b91b43e00bf6ee6d917486
+ENV WILDFLY_VERSION preview-26.0.0.Final
+ENV WILDFLY_SHA1 d70903c335dd7a5678484c56a3dc45388c7ff9bd
 ENV JBOSS_HOME /opt/jboss/wildfly
 USER root
 # Add the WildFly distribution to /opt, and make wildfly the owner of the extracted tar content
