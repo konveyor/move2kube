@@ -167,16 +167,6 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 				javaVersion = jv
 			}
 		}
-		if javaVersion == "" && pom.Build != nil && pom.Build.Plugins != nil {
-			for _, dep := range *pom.Build.Plugins {
-				if dep.ArtifactID == "maven-compiler-plugin" {
-					javaVersion = dep.Configuration.Target
-				}
-			}
-		}
-		if javaVersion == "" {
-			javaVersion = t.MavenConfig.JavaVersion
-		}
 		mavenConfig := artifacts.MavenConfig{}
 		err = a.GetConfig(artifacts.MavenConfigType, &mavenConfig)
 		if err != nil {
@@ -189,6 +179,12 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			irPresent = false
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
+
+		classifier := ""
+		deploymentDir := ""
+		deploymentFileName := ""
+
+		// Processing Maven profiles
 		defaultProfiles := []string{}
 		if pom.Profiles != nil {
 			for _, profile := range *pom.Profiles {
@@ -210,43 +206,89 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		if len(selectedMavenProfiles) == 0 {
 			logrus.Debugf("No maven profiles selected")
 		}
-		classifier := ""
-		if pom.Build != nil && pom.Build.Plugins != nil {
-			// Iterate over existing plugins
-			for _, mavenPlugin := range *pom.Build.Plugins {
-				// Check if spring-boot-maven-plugin is present
-				if mavenPlugin.ArtifactID != "spring-boot-maven-plugin" || mavenPlugin.Executions == nil {
-					continue
+		builds := []maven.Build{}
+		if pom.Build != nil {
+			builds = append(builds, *pom.Build)
+		}
+		if pom.Profiles != nil {
+			for _, profile := range *pom.Profiles {
+				if common.IsStringPresent(selectedMavenProfiles, profile.ID) {
+					if profile.Build != nil {
+						builds = append(builds, *pom.Build)
+					}
 				}
-				isRepackageEnabled := false
-				for _, mavenPluginExecution := range *mavenPlugin.Executions {
-					if mavenPluginExecution.Goals == nil {
+			}
+		}
+		for _, build := range builds {
+			if build.Plugins != nil {
+				// Iterate over existing plugins
+				for _, mavenPlugin := range *build.Plugins {
+					// Check if spring-boot-maven-plugin is present
+					if mavenPlugin.ArtifactID != "spring-boot-maven-plugin" || mavenPlugin.Executions == nil {
 						continue
 					}
-					if common.IsStringPresent(*mavenPluginExecution.Goals, "repackage") {
-						isRepackageEnabled = true
+					isRepackageEnabled := false
+					for _, mavenPluginExecution := range *mavenPlugin.Executions {
+						if mavenPluginExecution.Goals == nil {
+							continue
+						}
+						if common.IsStringPresent(*mavenPluginExecution.Goals, "repackage") {
+							isRepackageEnabled = true
+						}
 					}
-				}
-				if !isRepackageEnabled {
-					continue
-				}
-				if mavenPlugin.Configuration.ConfigurationProfiles == nil || len(*mavenPlugin.Configuration.ConfigurationProfiles) == 0 {
-					classifier = mavenPlugin.Configuration.Classifier
-					break
-				}
-				for _, configProfile := range *mavenPlugin.Configuration.ConfigurationProfiles {
-					// we check if any of these profiles is contained in the list of profiles
-					// selected by the user
-					// if yes, we look for the classifier property of this plugin and
-					// assign it to the classifier variable
-					if common.IsStringPresent(selectedMavenProfiles, configProfile) {
+					if !isRepackageEnabled {
+						continue
+					}
+					if mavenPlugin.Configuration.ConfigurationProfiles == nil || len(*mavenPlugin.Configuration.ConfigurationProfiles) == 0 {
 						classifier = mavenPlugin.Configuration.Classifier
 						break
 					}
+					for _, configProfile := range *mavenPlugin.Configuration.ConfigurationProfiles {
+						// we check if any of these profiles is contained in the list of profiles
+						// selected by the user
+						// if yes, we look for the classifier property of this plugin and
+						// assign it to the classifier variable
+						if common.IsStringPresent(selectedMavenProfiles, configProfile) {
+							classifier = mavenPlugin.Configuration.Classifier
+							break
+						}
+					}
+					break
 				}
-				break
+				logrus.Debugf("classifier: %s", classifier)
 			}
-			logrus.Debugf("classifier: %s", classifier)
+			if javaVersion == "" && build.Plugins != nil {
+				for _, dep := range *build.Plugins {
+					if dep.ArtifactID == "maven-compiler-plugin" {
+						javaVersion = dep.Configuration.Target
+					}
+				}
+			}
+			if build.FinalName != "" {
+				deploymentFileName = build.FinalName
+			}
+			if build.Directory != "" {
+				deploymentDir = build.Directory
+			}
+		}
+		if javaVersion == "" {
+			javaVersion = t.MavenConfig.JavaVersion
+		}
+		if deploymentFileName == "" {
+			if pom.ArtifactID != "" {
+				deploymentFileName = pom.ArtifactID
+				if pom.Version != "" {
+					deploymentFileName += "-" + pom.Version
+				}
+				if classifier != "" {
+					deploymentFileName += "-" + classifier
+				}
+			} else {
+				deploymentFileName = a.Name
+			}
+		}
+		if deploymentDir == "" {
+			deploymentDir = "target"
 		}
 		// Springboot profiles handling
 		// We collect the springboot profiles from the current service
@@ -323,20 +365,6 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 				MavenProfiles:   selectedMavenProfiles,
 			},
 		})
-		deploymentFileName := pom.ArtifactID + "-" + pom.Version
-		if classifier != "" {
-			deploymentFileName = deploymentFileName + "-" + classifier
-		}
-		if pom.Build != nil && pom.Build.FinalName != "" {
-			deploymentFileName = pom.Build.FinalName
-		}
-		if deploymentFileName == "" {
-			deploymentFileName = a.Name
-		}
-		deploymentDir := "target"
-		if pom.Build != nil && pom.Build.Directory != "" {
-			deploymentDir = pom.Build.Directory
-		}
 		var newArtifact transformertypes.Artifact
 		switch artifacts.JavaPackaging(pom.Packaging) {
 		case artifacts.WarPackaging:
