@@ -59,14 +59,19 @@ func getContainerizationConfig(serviceName string, projectDirectory, buildArtifa
 		logrus.Warnf("[%s] Failed during containerization option fetch : %s", tc.Name, err)
 	}
 	if len(newoptions) > 1 {
-		logrus.Warnf("More than one containerization option found for a directory. Choosing one for %s", projectDirectory)
+		logrus.Infof("More than one containerization option found for a directory. Choosing one for %s", projectDirectory)
+		if option, ok := newoptions[serviceName]; ok && len(option) > 0 {
+			newoptions = map[string][]transformertypes.Artifact{
+				serviceName: option,
+			}
+		}
 	}
 	for _, nos := range newoptions {
 		if len(nos) > 1 {
-			logrus.Warnf("More than one containerization option found for a directory. Choosing one for %s", projectDirectory)
+			logrus.Infof("More than one containerization option found for a directory. Choosing one for %s", projectDirectory)
 		}
 		if len(nos) == 0 {
-			return transformertypes.Artifact{}
+			continue
 		}
 		if buildArtifacts != nil {
 			nos[0].Paths[artifacts.BuildArtifactPathType] = buildArtifacts
