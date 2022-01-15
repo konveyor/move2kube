@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
@@ -53,6 +54,8 @@ const (
 	destinationDirOldC     = "destinationDir"
 	projectLibsDirNameC    = "libsDirName"
 	buildDirC              = "buildDir"
+	languageVersionC       = "languageVersion"
+	dirFnNameC             = "layout.buildDirectory.dir"
 )
 
 // GradleAnalyser implements Transformer interface
@@ -193,6 +196,22 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		if err != nil {
 			logrus.Debugf("Unable to load Gradle config object: %s", err)
 		}
+		if gb, ok := gradleBuild.Blocks["java"]; ok {
+			if gb, ok := gb.Blocks["toolchain"]; ok {
+				if len(gb.Metadata[languageVersionC]) > 0 {
+					gradleJavaVersion, err := strconv.Atoi(gradle.GetSingleArgumentFromFuntionCall(gb.Metadata[languageVersionC][0], "JavaLanguageVersion.of"))
+					if err != nil {
+						logrus.Errorf("Unable to get java version in gradle : %s", err)
+					} else {
+						if gradleJavaVersion < 10 {
+							javaVersion = "1." + fmt.Sprintf("%d", gradleJavaVersion)
+						} else {
+							javaVersion = fmt.Sprintf("%d", gradleJavaVersion)
+						}
+					}
+				}
+			}
+		}
 		ir := irtypes.IR{}
 		irPresent := true
 		err = a.GetConfig(irtypes.IRConfigType, &ir)
@@ -254,9 +273,9 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 				}
 			}
 			if len(gb.Metadata[destinationDirectoryC]) > 0 {
-				destinationPath = gradle.GetDirNameFromDir(gb.Metadata[destinationDirectoryC][0])
+				destinationPath = gradle.GetSingleArgumentFromFuntionCall(gb.Metadata[destinationDirectoryC][0], dirFnNameC)
 			} else if len(gb.Metadata[destinationDirOldC]) > 0 {
-				destinationPath = gradle.GetDirNameFromDir(gb.Metadata[destinationDirOldC][0])
+				destinationPath = gradle.GetSingleArgumentFromFuntionCall(gb.Metadata[destinationDirOldC][0], dirFnNameC)
 			} else if len(gradleBuild.Metadata[projectPrefixC+projectLibsDirNameC]) > 0 {
 				destinationPath = gradleBuild.Metadata[projectPrefixC+projectLibsDirNameC][0]
 			} else if len(gradleBuild.Metadata[projectLibsDirNameC]) > 0 {

@@ -592,8 +592,8 @@ func isFunctionCall(str string) bool {
 	return functionRegex.MatchString(str)
 }
 
-// GetDirNameFromDir returns the directory name from a dir obj
-func GetDirNameFromDir(str string) string {
-	str = trimWrappingQuotes(strings.TrimSpace(strings.Trim(strings.Trim(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(str), "layout.buildDirectory.dir")), "("), ")")))
+// GetSingleArgumentFromFuntionCall returns the single argument in a function call
+func GetSingleArgumentFromFuntionCall(str string, functionName string) string {
+	str = trimWrappingQuotes(strings.TrimSpace(strings.Trim(strings.Trim(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(str), functionName)), "("), ")")))
 	return str
 }
