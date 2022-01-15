@@ -1,0 +1,10 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: JavaVersionWebsphereImageMappings
+metadata:
+  name: JavaVersionWebsphereImageMappings
+spec:
+  mapping:
+    "1.7": "ibmcom/websphere-liberty:21.0.0.12-full-java8-openj9-ubi"
+    "1.8": "ibmcom/websphere-liberty:21.0.0.12-full-java8-openj9-ubi"
+    "11": "ibmcom/websphere-liberty:21.0.0.12-full-java11-openj9-ubi"
+    "17": "ibmcom/websphere-liberty:21.0.0.12-full-java11-openj9-ubi"

@@ -80,6 +80,9 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 	if len(jarFilePaths) == 0 {
 		return nil, nil
 	}
+	if t.JarConfig.JavaVersion == "" {
+		t.JarConfig.JavaVersion = defaultJavaVersion
+	}
 	for _, path := range jarFilePaths {
 		envVariablesMap := map[string]string{}
 		envVariablesMap["PORT"] = fmt.Sprintf("%d", common.DefaultServicePort)
@@ -93,6 +96,7 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 					DeploymentFile: filepath.Base(path),
 					EnvVariables:   envVariablesMap,
 					Port:           common.DefaultServicePort,
+					JavaVersion:    t.JarConfig.JavaVersion,
 				},
 			},
 		}
@@ -162,7 +166,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jarArtifactConfig.JavaVersion)
 		if err != nil {
 			logrus.Errorf("Unable to find mapping version for java version %s : %s", jarArtifactConfig.JavaVersion, err)
-			javaPackage = "java-1.8.0-openjdk-devel"
+			javaPackage = defaultJavaPackage
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,

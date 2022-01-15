@@ -50,6 +50,7 @@ type MavenYamlConfig struct {
 // MavenBuildDockerfileTemplate defines the information for the build dockerfile template
 type MavenBuildDockerfileTemplate struct {
 	JavaPackageName string
+	MavenVersion    string
 	MavenProfiles   []string
 }
 
@@ -167,16 +168,6 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 				javaVersion = jv
 			}
 		}
-		if javaVersion == "" && pom.Build != nil && pom.Build.Plugins != nil {
-			for _, dep := range *pom.Build.Plugins {
-				if dep.ArtifactID == "maven-compiler-plugin" {
-					javaVersion = dep.Configuration.Target
-				}
-			}
-		}
-		if javaVersion == "" {
-			javaVersion = t.MavenConfig.JavaVersion
-		}
 		mavenConfig := artifacts.MavenConfig{}
 		err = a.GetConfig(artifacts.MavenConfigType, &mavenConfig)
 		if err != nil {
@@ -189,6 +180,12 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			irPresent = false
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
+
+		classifier := ""
+		deploymentDir := ""
+		deploymentFileName := ""
+
+		// Processing Maven profiles
 		defaultProfiles := []string{}
 		if pom.Profiles != nil {
 			for _, profile := range *pom.Profiles {
@@ -210,43 +207,96 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		if len(selectedMavenProfiles) == 0 {
 			logrus.Debugf("No maven profiles selected")
 		}
-		classifier := ""
-		if pom.Build != nil && pom.Build.Plugins != nil {
-			// Iterate over existing plugins
-			for _, mavenPlugin := range *pom.Build.Plugins {
-				// Check if spring-boot-maven-plugin is present
-				if mavenPlugin.ArtifactID != "spring-boot-maven-plugin" || mavenPlugin.Executions == nil {
-					continue
+		builds := []maven.Build{}
+		if pom.Build != nil {
+			builds = append(builds, *pom.Build)
+		}
+		if pom.Profiles != nil {
+			for _, profile := range *pom.Profiles {
+				if common.IsStringPresent(selectedMavenProfiles, profile.ID) {
+					if profile.Build != nil {
+						builds = append(builds, *pom.Build)
+					}
 				}
-				isRepackageEnabled := false
-				for _, mavenPluginExecution := range *mavenPlugin.Executions {
-					if mavenPluginExecution.Goals == nil {
+			}
+		}
+		for _, build := range builds {
+			if build.Plugins != nil {
+				// Iterate over existing plugins
+				for _, mavenPlugin := range *build.Plugins {
+					// Check if spring-boot-maven-plugin is present
+					if mavenPlugin.ArtifactID != "spring-boot-maven-plugin" || mavenPlugin.Executions == nil {
 						continue
 					}
-					if common.IsStringPresent(*mavenPluginExecution.Goals, "repackage") {
-						isRepackageEnabled = true
+					isRepackageEnabled := false
+					for _, mavenPluginExecution := range *mavenPlugin.Executions {
+						if mavenPluginExecution.Goals == nil {
+							continue
+						}
+						if common.IsStringPresent(*mavenPluginExecution.Goals, "repackage") {
+							isRepackageEnabled = true
+						}
 					}
-				}
-				if !isRepackageEnabled {
-					continue
-				}
-				if mavenPlugin.Configuration.ConfigurationProfiles == nil || len(*mavenPlugin.Configuration.ConfigurationProfiles) == 0 {
-					classifier = mavenPlugin.Configuration.Classifier
-					break
-				}
-				for _, configProfile := range *mavenPlugin.Configuration.ConfigurationProfiles {
-					// we check if any of these profiles is contained in the list of profiles
-					// selected by the user
-					// if yes, we look for the classifier property of this plugin and
-					// assign it to the classifier variable
-					if common.IsStringPresent(selectedMavenProfiles, configProfile) {
+					if !isRepackageEnabled {
+						continue
+					}
+					if mavenPlugin.Configuration.ConfigurationProfiles == nil || len(*mavenPlugin.Configuration.ConfigurationProfiles) == 0 {
 						classifier = mavenPlugin.Configuration.Classifier
 						break
 					}
+					for _, configProfile := range *mavenPlugin.Configuration.ConfigurationProfiles {
+						// we check if any of these profiles is contained in the list of profiles
+						// selected by the user
+						// if yes, we look for the classifier property of this plugin and
+						// assign it to the classifier variable
+						if common.IsStringPresent(selectedMavenProfiles, configProfile) {
+							classifier = mavenPlugin.Configuration.Classifier
+							break
+						}
+					}
+					break
 				}
-				break
+				logrus.Debugf("classifier: %s", classifier)
 			}
-			logrus.Debugf("classifier: %s", classifier)
+			if javaVersion == "" && build.Plugins != nil {
+				for _, dep := range *build.Plugins {
+					if dep.ArtifactID == "maven-compiler-plugin" {
+						javaVersion = dep.Configuration.Target
+					}
+				}
+			}
+			if build.FinalName != "" {
+				deploymentFileName = build.FinalName
+			}
+			if build.Directory != "" {
+				deploymentDir = build.Directory
+			}
+		}
+		if javaVersion == "" {
+			javaVersion = t.MavenConfig.JavaVersion
+			if javaVersion == "" {
+				javaVersion = defaultJavaVersion
+			}
+		}
+		mavenVersion := "3.8.4"
+		if t.MavenConfig.MavenVersion != "" {
+			mavenVersion = t.MavenConfig.MavenVersion
+		}
+		if deploymentFileName == "" {
+			if pom.ArtifactID != "" {
+				deploymentFileName = pom.ArtifactID
+				if pom.Version != "" {
+					deploymentFileName += "-" + pom.Version
+				}
+				if classifier != "" {
+					deploymentFileName += "-" + classifier
+				}
+			} else {
+				deploymentFileName = a.Name
+			}
+		}
+		if deploymentDir == "" {
+			deploymentDir = "target"
 		}
 		// Springboot profiles handling
 		// We collect the springboot profiles from the current service
@@ -295,7 +345,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), javaVersion)
 		if err != nil {
 			logrus.Errorf("Unable to find mapping version for java version %s : %s", javaVersion, err)
-			javaPackage = "java-1.8.0-openjdk-devel"
+			javaPackage = defaultJavaPackage
 		}
 		license, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license"))
 		if err != nil {
@@ -320,13 +370,10 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			DestPath: buildDockerfile,
 			TemplateConfig: MavenBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
+				MavenVersion:    mavenVersion,
 				MavenProfiles:   selectedMavenProfiles,
 			},
 		})
-		deploymentFileName := pom.ArtifactID + "-" + pom.Version
-		if classifier != "" {
-			deploymentFileName = deploymentFileName + "-" + classifier
-		}
 		var newArtifact transformertypes.Artifact
 		switch artifacts.JavaPackaging(pom.Packaging) {
 		case artifacts.WarPackaging:
@@ -338,7 +385,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						DeploymentFile:                    deploymentFileName + ".war",
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, deploymentDir),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -352,7 +399,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						DeploymentFile:                    deploymentFileName + ".ear",
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, deploymentDir),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -376,7 +423,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						DeploymentFile:                    deploymentFileName + ".jar",
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, deploymentDir),
 						EnvVariables:                      envVariablesMap,
 						Port:                              port,
 					},

@@ -28,8 +28,14 @@ import (
 
 // EarAnalyser implements Transformer interface
 type EarAnalyser struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config    transformertypes.Transformer
+	Env       *environment.Environment
+	EarConfig EarYamlConfig
+}
+
+// EarYamlConfig stores the war related information
+type EarYamlConfig struct {
+	JavaVersion string `yaml:"defaultJavaVersion"`
 }
 
 // EarDockerfileTemplate stores parameters for the dockerfile template
@@ -63,6 +69,9 @@ func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 	if len(earFilePaths) == 0 {
 		return nil, nil
 	}
+	if t.EarConfig.JavaVersion == "" {
+		t.EarConfig.JavaVersion = defaultJavaVersion
+	}
 	for _, path := range earFilePaths {
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
@@ -72,6 +81,7 @@ func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.EarConfigType: artifacts.EarArtifactConfig{
 					DeploymentFile: filepath.Base(path),
+					JavaVersion:    t.EarConfig.JavaVersion,
 				},
 			},
 		}

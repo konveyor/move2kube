@@ -22,6 +22,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/types"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -29,7 +30,8 @@ import (
 )
 
 var (
-	libertyDefaultPort int32 = 9080
+	libertyDefaultPort  int32 = 9080
+	defaultLibertyImage       = "ibmcom/websphere-liberty:21.0.0.12-full-java11-openj9-ubi"
 )
 
 // Liberty implements Transformer interface
@@ -47,12 +49,30 @@ type LibertyYamlConfig struct {
 
 // LibertyDockerfileTemplate stores parameters for the dockerfile template
 type LibertyDockerfileTemplate struct {
+	LibertyBaseImage                  string
 	JavaPackageName                   string
+	JavaVersion                       string
 	DeploymentFile                    string
 	BuildContainerName                string
 	DeploymentFileDirInBuildContainer string
 	Port                              int32
 	EnvVariables                      map[string]string
+}
+
+const (
+	javalibertyimagemappingsFilePath = "mappings/javalibertyimagemappings.yaml"
+)
+
+// JavaLibertyImageMapping stores the java version to liberty image version mappings
+type JavaLibertyImageMapping struct {
+	types.TypeMeta   `yaml:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec             JavaLibertyImageMappingSpec `yaml:"spec,omitempty"`
+}
+
+// JavaLibertyImageMappingSpec stores the java to liberty image version spec
+type JavaLibertyImageMappingSpec struct {
+	Mapping map[string]string `yaml:"mapping"`
 }
 
 // Init Initializes the transformer
@@ -141,42 +161,47 @@ func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 			if err != nil {
 				logrus.Debugf("unable to load config for Transformer into %T : %s", libertyEarArtifactConfig, err)
 			}
+			libertyImage, err := t.getLibertyImageName(libertyEarArtifactConfig.JavaVersion)
+			if err != nil {
+				logrus.Errorf("Unable to find mapping liberty image version for java version %s : %s", libertyEarArtifactConfig.JavaVersion, err)
+				libertyImage = defaultLibertyImage
+			}
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), libertyEarArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping version for java version %s : %s", libertyEarArtifactConfig.JavaVersion, err)
-				javaPackage = "java-1.8.0-openjdk-devel"
+				javaPackage = defaultJavaPackage
 			}
+			dft.LibertyBaseImage = libertyImage
+			dft.JavaPackageName = javaPackage
+			dft.JavaVersion = libertyEarArtifactConfig.JavaVersion
+			dft.DeploymentFile = libertyEarArtifactConfig.DeploymentFile
+			dft.Port = libertyDefaultPort
+			dft.EnvVariables = libertyEarArtifactConfig.EnvVariables
 			if isBuildContainerPresent {
-				dft.JavaPackageName = javaPackage
-				dft.DeploymentFile = libertyEarArtifactConfig.DeploymentFile
 				dft.BuildContainerName = libertyEarArtifactConfig.BuildContainerName
 				dft.DeploymentFileDirInBuildContainer = libertyEarArtifactConfig.DeploymentFileDirInBuildContainer
-				dft.Port = libertyDefaultPort
-				dft.EnvVariables = libertyEarArtifactConfig.EnvVariables
-			} else {
-				dft.JavaPackageName = javaPackage
-				dft.DeploymentFile = libertyEarArtifactConfig.DeploymentFile
-				dft.Port = libertyDefaultPort
-				dft.EnvVariables = libertyEarArtifactConfig.EnvVariables
 			}
 		} else {
+			libertyImage, err := t.getLibertyImageName(libertyArtifactConfig.JavaVersion)
+			if err != nil {
+				logrus.Errorf("Unable to find mapping liberty image version for java version %s : %s", libertyArtifactConfig.JavaVersion, err)
+				libertyImage = defaultLibertyImage
+			}
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), libertyArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping version for java version %s : %s", libertyArtifactConfig.JavaVersion, err)
-				javaPackage = "java-1.8.0-openjdk-devel"
+				javaPackage = defaultJavaPackage
 			}
+			dft.JavaPackageName = javaPackage
+			dft.LibertyBaseImage = libertyImage
+			dft.JavaVersion = libertyArtifactConfig.JavaVersion
+			dft.Port = libertyDefaultPort
+			dft.EnvVariables = libertyArtifactConfig.EnvVariables
+			dft.DeploymentFile = libertyArtifactConfig.DeploymentFile
 			if isBuildContainerPresent {
-				dft.JavaPackageName = javaPackage
 				dft.DeploymentFile = libertyArtifactConfig.DeploymentFile
 				dft.BuildContainerName = libertyArtifactConfig.BuildContainerName
 				dft.DeploymentFileDirInBuildContainer = libertyArtifactConfig.DeploymentFileDirInBuildContainer
-				dft.Port = libertyDefaultPort
-				dft.EnvVariables = libertyArtifactConfig.EnvVariables
-			} else {
-				dft.JavaPackageName = javaPackage
-				dft.DeploymentFile = libertyArtifactConfig.DeploymentFile
-				dft.Port = libertyDefaultPort
-				dft.EnvVariables = libertyArtifactConfig.EnvVariables
 			}
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
@@ -218,4 +243,18 @@ func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 		createdArtifacts = append(createdArtifacts, p, dfs)
 	}
 	return pathMappings, createdArtifacts, nil
+}
+
+func (t *Liberty) getLibertyImageName(version string) (imageName string, err error) {
+	var javaLibertyImageMapping JavaLibertyImageMapping
+	if err := common.ReadMove2KubeYaml(filepath.Join(t.Env.GetEnvironmentContext(), javalibertyimagemappingsFilePath), &javaLibertyImageMapping); err != nil {
+		logrus.Debugf("Could not load liberty image mapping : %s", err)
+		return "", err
+	}
+	v, ok := javaLibertyImageMapping.Spec.Mapping[version]
+	if !ok {
+		logrus.Infof("Matching liberty image not found for java version : %s. Going with default.", version)
+		return defaultLibertyImage, nil
+	}
+	return v, nil
 }

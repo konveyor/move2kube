@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
@@ -34,8 +35,27 @@ import (
 )
 
 const (
-	gradleBuildFileName = "build.gradle"
-	archiveNameC        = "archiveName"
+	gradleBuildFileName    = "build.gradle"
+	gradleSettingsFileName = "settings.gradle"
+	archiveFileNameC       = "archiveFileName"
+	archiveBaseNameC       = "archiveBaseName"
+	archiveAppendixC       = "archiveAppendix"
+	archiveClassifierC     = "archiveClassifier"
+	archiveVersionC        = "archiveVersion"
+	archiveExtensionC      = "archiveExtension"
+	archiveNameC           = "archiveName"
+	archiveBaseNameOldC    = "baseName"
+	archiveAppendixOldC    = "appendix"
+	archiveClassifierOldC  = "classifier"
+	archiveVersionOldC     = "version"
+	archiveExtensionOldC   = "extension"
+	projectPrefixC         = "project."
+	destinationDirectoryC  = "destinationDirectory"
+	destinationDirOldC     = "destinationDir"
+	projectLibsDirNameC    = "libsDirName"
+	buildDirC              = "buildDir"
+	languageVersionC       = "languageVersion"
+	dirFnNameC             = "layout.buildDirectory.dir"
 )
 
 // GradleAnalyser implements Transformer interface
@@ -55,6 +75,8 @@ type GradleYamlConfig struct {
 // GradleBuildDockerfileTemplate defines the information for the build dockerfile template
 type GradleBuildDockerfileTemplate struct {
 	JavaPackageName string
+	GradleVersion   string
+	GradleWPresent  bool
 }
 
 // Init Initializes the transformer
@@ -99,14 +121,41 @@ func (t *GradleAnalyser) DirectoryDetect(dir string) (services map[string][]tran
 		},
 	}
 	gc := artifacts.GradleConfig{}
+	plugins := gradleBuild.GetPluginIDs()
 	gc.ArtifactType = artifacts.JarPackaging
-	if _, ok := gradleBuild.Metadata[string(artifacts.EarPackaging)]; ok {
+	if common.IsStringPresent(plugins, string(artifacts.EarPackaging)) {
 		gc.ArtifactType = artifacts.EarPackaging
-	} else if _, ok := gradleBuild.Metadata[string(artifacts.WarPackaging)]; ok {
+	} else if common.IsStringPresent(plugins, string(artifacts.WarPackaging)) {
 		gc.ArtifactType = artifacts.WarPackaging
 	}
-	ct.Configs[artifacts.GradleConfigType] = gc
+	gwfp, err := common.GetFilesInCurrentDirectory(dir, []string{"gradlew"}, nil)
+	if err != nil {
+		logrus.Errorf("Error while parsing directory %s for gradlew file : %s", dir, err)
+		return nil, err
+	}
+	if len(gwfp) > 0 {
+		gc.GradleWPresent = true
+	}
 	appName := ""
+	gradleSettingsFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{gradleSettingsFileName}, nil)
+	if err != nil {
+		logrus.Errorf("Error while parsing directory %s for Gradle settings file : %s", dir, err)
+		return nil, err
+	}
+	if len(gradleSettingsFilePaths) != 0 {
+		gradleSetting, err := gradle.ParseGardleBuildFile(gradleSettingsFilePaths[0])
+		if err != nil {
+			logrus.Errorf("Error while parsing gradle settings file : %s", err)
+		} else {
+			if gradleSetting.Metadata != nil && len(gradleSetting.Metadata["rootProject.name"]) > 0 && gradleSetting.Metadata["rootProject.name"][0] != "" {
+				gc.AppName = gradleSetting.Metadata["rootProject.name"][0]
+			} else {
+				gc.AppName = filepath.Base(dir)
+			}
+			appName = gc.AppName
+		}
+	}
+	ct.Configs[artifacts.GradleConfigType] = gc
 	for _, dependency := range gradleBuild.Dependencies {
 		if dependency.Group == springbootGroup {
 			sbc := artifacts.SpringBootConfig{}
@@ -134,8 +183,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 	for _, a := range newArtifacts {
 		javaVersion := ""
 		if len(a.Paths[artifacts.GradleBuildFilePathType]) == 0 {
-			err := fmt.Errorf("unable to find gradle build file for %s", a.Name)
-			logrus.Errorf("%s", err)
+			logrus.Errorf("unable to find gradle build file for %s", a.Name)
 			continue
 		}
 		gradleBuild, err := gradle.ParseGardleBuildFile(a.Paths[artifacts.GradleBuildFilePathType][0])
@@ -149,6 +197,28 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		if err != nil {
 			logrus.Debugf("Unable to load Gradle config object: %s", err)
 		}
+		if gb, ok := gradleBuild.Blocks["java"]; ok {
+			if gb, ok := gb.Blocks["toolchain"]; ok {
+				if len(gb.Metadata[languageVersionC]) > 0 {
+					gradleJavaVersion, err := strconv.Atoi(gradle.GetSingleArgumentFromFuntionCall(gb.Metadata[languageVersionC][0], "JavaLanguageVersion.of"))
+					if err != nil {
+						logrus.Errorf("Unable to get java version in gradle : %s", err)
+					} else {
+						if gradleJavaVersion < 10 {
+							javaVersion = "1." + fmt.Sprintf("%d", gradleJavaVersion)
+						} else {
+							javaVersion = fmt.Sprintf("%d", gradleJavaVersion)
+						}
+					}
+				}
+			}
+		}
+		if javaVersion == "" {
+			javaVersion = t.GradleConfig.JavaVersion
+			if javaVersion == "" {
+				javaVersion = defaultJavaVersion
+			}
+		}
 		ir := irtypes.IR{}
 		irPresent := true
 		err = a.GetConfig(irtypes.IRConfigType, &ir)
@@ -157,9 +227,88 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
 		archiveName := ""
+		buildPath := ""
+		destinationPath := ""
+		if len(gradleBuild.Metadata[projectPrefixC+buildDirC]) > 0 {
+			buildPath = gradleBuild.Metadata[projectPrefixC+buildDirC][0]
+		} else if len(gradleBuild.Metadata[buildDirC]) > 0 {
+			buildPath = gradleBuild.Metadata[buildDirC][0]
+		} else {
+			buildPath = "build"
+		}
 		if gb, ok := gradleBuild.Blocks[string(gradleConfig.ArtifactType)]; ok {
-			if len(gb.Metadata[archiveNameC]) > 0 {
+			if len(gb.Metadata[archiveFileNameC]) > 0 {
+				archiveName = gb.Metadata[archiveFileNameC][0]
+			} else if len(gb.Metadata[archiveNameC]) > 0 {
 				archiveName = gb.Metadata[archiveNameC][0]
+			}
+			if archiveName == "" {
+				if len(gb.Metadata[archiveBaseNameC]) > 0 {
+					archiveName = gb.Metadata[archiveBaseNameC][0]
+				} else if len(gb.Metadata[archiveBaseNameOldC]) > 0 {
+					archiveName = gb.Metadata[archiveBaseNameOldC][0]
+				} else {
+					archiveName = gradleConfig.AppName
+				}
+				if len(gb.Metadata[archiveAppendixC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveAppendixC][0]
+				} else if len(gb.Metadata[archiveAppendixOldC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveAppendixOldC][0]
+				} else if len(gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC]) > 0 {
+					archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC][0]
+				}
+				if len(gb.Metadata[archiveVersionC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveVersionC][0]
+				} else if len(gb.Metadata[archiveVersionOldC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveVersionOldC][0]
+				} else if len(gradleBuild.Metadata[projectPrefixC+archiveVersionOldC]) > 0 {
+					archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveVersionOldC][0]
+				}
+				if len(gb.Metadata[archiveClassifierC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveClassifierC][0]
+				} else if len(gb.Metadata[archiveClassifierOldC]) > 0 {
+					archiveName += "-" + gb.Metadata[archiveClassifierOldC][0]
+				} else if len(gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC]) > 0 {
+					archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC][0]
+				}
+				if len(gb.Metadata[archiveExtensionC]) > 0 {
+					archiveName += "." + gb.Metadata[archiveExtensionC][0]
+				} else if len(gb.Metadata[archiveExtensionOldC]) > 0 {
+					archiveName += "." + gb.Metadata[archiveExtensionOldC][0]
+				} else {
+					archiveName += "." + string(gradleConfig.ArtifactType)
+				}
+			}
+			if len(gb.Metadata[destinationDirectoryC]) > 0 {
+				destinationPath = gradle.GetSingleArgumentFromFuntionCall(gb.Metadata[destinationDirectoryC][0], dirFnNameC)
+			} else if len(gb.Metadata[destinationDirOldC]) > 0 {
+				destinationPath = gradle.GetSingleArgumentFromFuntionCall(gb.Metadata[destinationDirOldC][0], dirFnNameC)
+			} else if len(gradleBuild.Metadata[projectPrefixC+projectLibsDirNameC]) > 0 {
+				destinationPath = gradleBuild.Metadata[projectPrefixC+projectLibsDirNameC][0]
+			} else if len(gradleBuild.Metadata[projectLibsDirNameC]) > 0 {
+				destinationPath = gradleBuild.Metadata[projectLibsDirNameC][0]
+			}
+		}
+		if archiveName == "" {
+			archiveName = gradleConfig.AppName
+			if len(gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC]) > 0 {
+				archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC][0]
+			}
+			if len(gradleBuild.Metadata[projectPrefixC+archiveVersionOldC]) > 0 {
+				archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveVersionOldC][0]
+			}
+			if len(gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC]) > 0 {
+				archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC][0]
+			}
+			archiveName += "." + string(gradleConfig.ArtifactType)
+		}
+		if destinationPath == "" {
+			if len(gradleBuild.Metadata[projectPrefixC+projectLibsDirNameC]) > 0 {
+				destinationPath = gradleBuild.Metadata[projectPrefixC+projectLibsDirNameC][0]
+			} else if len(gradleBuild.Metadata[projectLibsDirNameC]) > 0 {
+				destinationPath = gradleBuild.Metadata[projectLibsDirNameC][0]
+			} else {
+				destinationPath = "libs"
 			}
 		}
 		// Springboot profiles handling
@@ -209,7 +358,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), javaVersion)
 		if err != nil {
 			logrus.Errorf("Unable to find mapping version for java version %s : %s", javaVersion, err)
-			javaPackage = "java-1.8.0-openjdk-devel"
+			javaPackage = defaultJavaPackage
 		}
 		license, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license"))
 		if err != nil {
@@ -227,6 +376,10 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		if err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}
+		gradleVersion := t.GradleConfig.GradleVersion
+		if gradleVersion == "" {
+			gradleVersion = "7.3"
+		}
 		buildDockerfile := filepath.Join(tempDir, "Dockerfile.build")
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.TemplatePathMappingType,
@@ -234,10 +387,12 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			DestPath: buildDockerfile,
 			TemplateConfig: GradleBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
+				GradleVersion:   gradleVersion,
+				GradleWPresent:  gradleConfig.GradleWPresent,
 			},
 		})
 		if archiveName == "" {
-			archiveName = sConfig.ServiceName + string(gradleConfig.ArtifactType)
+			archiveName = sConfig.ServiceName + "." + string(gradleConfig.ArtifactType)
 		}
 		var newArtifact transformertypes.Artifact
 		switch gradleConfig.ArtifactType {
@@ -250,7 +405,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, buildPath, destinationPath),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -264,7 +419,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, buildPath, destinationPath),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -288,7 +443,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, buildPath, destinationPath),
 						EnvVariables:                      envVariablesMap,
 						Port:                              common.DefaultServicePort,
 					},

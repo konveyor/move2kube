@@ -23,7 +23,9 @@ import (
 
 // GradleConfig stores gradle related configuration information
 type GradleConfig struct {
-	ArtifactType JavaPackaging `yaml:"artifactType" json:"artifactType"`
+	ArtifactType   JavaPackaging `yaml:"artifactType" json:"artifactType"`
+	AppName        string        `yaml:"appName" json:"appName"`
+	GradleWPresent bool          `yaml:"gradleWPresent" json:"gradleWPresent"`
 }
 
 const (
