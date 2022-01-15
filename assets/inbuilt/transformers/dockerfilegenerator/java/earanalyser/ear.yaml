@@ -15,3 +15,5 @@ spec:
   produces:
     Ear:
       disabled: false
+  config: 
+    defaultJavaVersion: "17"

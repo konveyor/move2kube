@@ -15,3 +15,5 @@ spec:
   produces:
     War:
       disabled: false
+  config: 
+    defaultJavaVersion: "17"
