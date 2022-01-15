@@ -28,8 +28,14 @@ import (
 
 // WarAnalyser implements Transformer interface
 type WarAnalyser struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config    transformertypes.Transformer
+	Env       *environment.Environment
+	WarConfig WarYamlConfig
+}
+
+// WarYamlConfig stores the war related information
+type WarYamlConfig struct {
+	JavaVersion string `yaml:"defaultJavaVersion"`
 }
 
 // WarDockerfileTemplate stores parameters for the dockerfile template
@@ -44,6 +50,12 @@ type WarDockerfileTemplate struct {
 func (t *WarAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
+	t.WarConfig = WarYamlConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.WarConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.WarConfig, err)
+		return err
+	}
 	return nil
 }
 
@@ -63,6 +75,9 @@ func (t *WarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 	if len(warFilePaths) == 0 {
 		return nil, nil
 	}
+	if t.WarConfig.JavaVersion == "" {
+		t.WarConfig.JavaVersion = defaultJavaVersion
+	}
 	for _, path := range warFilePaths {
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
@@ -72,6 +87,7 @@ func (t *WarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.WarConfigType: artifacts.WarArtifactConfig{
 					DeploymentFile: filepath.Base(path),
+					JavaVersion:    t.WarConfig.JavaVersion,
 				},
 			},
 		}

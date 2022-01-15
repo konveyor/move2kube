@@ -212,6 +212,12 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 				}
 			}
 		}
+		if javaVersion == "" {
+			javaVersion = t.GradleConfig.JavaVersion
+			if javaVersion == "" {
+				javaVersion = defaultJavaVersion
+			}
+		}
 		ir := irtypes.IR{}
 		irPresent := true
 		err = a.GetConfig(irtypes.IRConfigType, &ir)

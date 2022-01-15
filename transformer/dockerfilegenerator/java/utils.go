@@ -23,6 +23,7 @@ import (
 
 const (
 	defaultAppPathInContainer = "/app/"
+	defaultJavaVersion        = "17"
 	defaultJavaPackage        = "java-17-openjdk-devel"
 )
 
@@ -32,5 +33,10 @@ func getJavaPackage(mappingFile string, version string) (pkg string, err error) 
 		logrus.Debugf("Could not load mapping at %s", mappingFile)
 		return "", err
 	}
-	return javaPackageNamesMapping.Spec.PackageVersions[version], nil
+	if v, ok := javaPackageNamesMapping.Spec.PackageVersions[version]; !ok {
+		logrus.Infof("Matching java package not found for java version : %s. Going with default.", version)
+		return defaultJavaPackage, nil
+	} else {
+		return v, nil
+	}
 }

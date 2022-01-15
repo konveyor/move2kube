@@ -273,6 +273,9 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		}
 		if javaVersion == "" {
 			javaVersion = t.MavenConfig.JavaVersion
+			if javaVersion == "" {
+				javaVersion = defaultJavaVersion
+			}
 		}
 		if deploymentFileName == "" {
 			if pom.ArtifactID != "" {

@@ -30,7 +30,8 @@ import (
 )
 
 var (
-	libertyDefaultPort int32 = 9080
+	libertyDefaultPort  int32 = 9080
+	defaultLibertyImage       = "ibmcom/websphere-liberty:21.0.0.12-full-java11-openj9-ubi"
 )
 
 // Liberty implements Transformer interface
@@ -152,7 +153,6 @@ func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 		}
 		dft := LibertyDockerfileTemplate{}
 		libertyArtifactConfig := artifacts.WarArtifactConfig{}
-		defaultImage := "ibmcom/websphere-liberty:21.0.0.12-kernel-java11-openj9-ubi"
 		err = a.GetConfig(artifacts.WarConfigType, &libertyArtifactConfig)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", libertyArtifactConfig, err)
@@ -164,7 +164,7 @@ func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 			libertyImage, err := t.getLibertyImageName(libertyEarArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping liberty image version for java version %s : %s", libertyEarArtifactConfig.JavaVersion, err)
-				libertyImage = defaultImage
+				libertyImage = defaultLibertyImage
 			}
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), libertyEarArtifactConfig.JavaVersion)
 			if err != nil {
@@ -185,7 +185,7 @@ func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 			libertyImage, err := t.getLibertyImageName(libertyArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping liberty image version for java version %s : %s", libertyArtifactConfig.JavaVersion, err)
-				libertyImage = defaultImage
+				libertyImage = defaultLibertyImage
 			}
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), libertyArtifactConfig.JavaVersion)
 			if err != nil {
@@ -251,5 +251,10 @@ func (t *Liberty) getLibertyImageName(version string) (imageName string, err err
 		logrus.Debugf("Could not load liberty image mapping : %s", err)
 		return "", err
 	}
-	return javaLibertyImageMapping.Spec.Mapping[version], nil
+	if v, ok := javaLibertyImageMapping.Spec.Mapping[version]; !ok {
+		logrus.Infof("Matching liberty image not found for java version : %s. Going with default.", version)
+		return defaultLibertyImage, nil
+	} else {
+		return v, nil
+	}
 }
