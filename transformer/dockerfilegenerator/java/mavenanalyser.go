@@ -327,6 +327,9 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		if classifier != "" {
 			deploymentFileName = deploymentFileName + "-" + classifier
 		}
+		if pom.Build != nil && pom.Build.FinalName != "" {
+			deploymentFileName = pom.Build.FinalName
+		}
 		var newArtifact transformertypes.Artifact
 		switch artifacts.JavaPackaging(pom.Packaging) {
 		case artifacts.WarPackaging:
