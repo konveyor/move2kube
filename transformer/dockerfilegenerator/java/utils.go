@@ -33,10 +33,10 @@ func getJavaPackage(mappingFile string, version string) (pkg string, err error) 
 		logrus.Debugf("Could not load mapping at %s", mappingFile)
 		return "", err
 	}
-	if v, ok := javaPackageNamesMapping.Spec.PackageVersions[version]; !ok {
+	v, ok := javaPackageNamesMapping.Spec.PackageVersions[version]
+	if !ok {
 		logrus.Infof("Matching java package not found for java version : %s. Going with default.", version)
 		return defaultJavaPackage, nil
-	} else {
-		return v, nil
 	}
+	return v, nil
 }

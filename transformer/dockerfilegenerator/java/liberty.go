@@ -251,10 +251,10 @@ func (t *Liberty) getLibertyImageName(version string) (imageName string, err err
 		logrus.Debugf("Could not load liberty image mapping : %s", err)
 		return "", err
 	}
-	if v, ok := javaLibertyImageMapping.Spec.Mapping[version]; !ok {
+	v, ok := javaLibertyImageMapping.Spec.Mapping[version]
+	if !ok {
 		logrus.Infof("Matching liberty image not found for java version : %s. Going with default.", version)
 		return defaultLibertyImage, nil
-	} else {
-		return v, nil
 	}
+	return v, nil
 }
