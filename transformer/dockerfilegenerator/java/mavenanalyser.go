@@ -330,6 +330,13 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		if pom.Build != nil && pom.Build.FinalName != "" {
 			deploymentFileName = pom.Build.FinalName
 		}
+		if deploymentFileName == "" {
+			deploymentFileName = a.Name
+		}
+		deploymentDir := "target"
+		if pom.Build != nil && pom.Build.Directory != "" {
+			deploymentDir = pom.Build.Directory
+		}
 		var newArtifact transformertypes.Artifact
 		switch artifacts.JavaPackaging(pom.Packaging) {
 		case artifacts.WarPackaging:
@@ -341,7 +348,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						DeploymentFile:                    deploymentFileName + ".war",
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, deploymentDir),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -355,7 +362,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						DeploymentFile:                    deploymentFileName + ".ear",
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, deploymentDir),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -379,7 +386,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						DeploymentFile:                    deploymentFileName + ".jar",
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, "target"),
+						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, deploymentDir),
 						EnvVariables:                      envVariablesMap,
 						Port:                              port,
 					},
