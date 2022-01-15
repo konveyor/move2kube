@@ -351,7 +351,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), javaVersion)
 		if err != nil {
 			logrus.Errorf("Unable to find mapping version for java version %s : %s", javaVersion, err)
-			javaPackage = "java-17-openjdk-devel"
+			javaPackage = defaultJavaPackage
 		}
 		license, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license"))
 		if err != nil {

@@ -3,7 +3,7 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 {{- range $k, $v := .EnvVariables}}
 ENV {{$k}} {{$v}}
 {{- end}}
-RUN microdnf update && microdnf install -y {{ .JavaPackageName }} wget tar gzip shadow-utils && microdnf clean all
+RUN microdnf update && microdnf install -y {{ .JavaPackageName }} tar gzip shadow-utils && microdnf clean all
 # Set the WILDFLY_VERSION env variable
 ENV WILDFLY_VERSION 26.0.0.Final
 ENV WILDFLY_SHA1 836fdefc48b6008904b91b43e00bf6ee6d917486
@@ -16,7 +16,7 @@ RUN cd $HOME \
     && sha1sum wildfly-$WILDFLY_VERSION.tar.gz | grep $WILDFLY_SHA1 \
     && tar xf wildfly-$WILDFLY_VERSION.tar.gz \
     && mkdir -p $JBOSS_HOME \
-    && mv $HOME/wildfly-$WILDFLY_VERSION $JBOSS_HOME \
+    && mv $HOME/wildfly-$WILDFLY_VERSION/* $JBOSS_HOME \
     && rm wildfly-$WILDFLY_VERSION.tar.gz \
     && adduser -r jboss \
     && chown -R jboss:0 ${JBOSS_HOME} \

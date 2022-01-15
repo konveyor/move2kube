@@ -23,6 +23,7 @@ import (
 
 const (
 	defaultAppPathInContainer = "/app/"
+	defaultJavaPackage        = "java-17-openjdk-devel"
 )
 
 func getJavaPackage(mappingFile string, version string) (pkg string, err error) {

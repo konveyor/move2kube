@@ -144,39 +144,29 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenA
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jbossEarArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping version for java version %s : %s", jbossEarArtifactConfig.JavaVersion, err)
-				javaPackage = "java-17-openjdk-devel"
+				javaPackage = defaultJavaPackage
 			}
+			dft.JavaPackageName = javaPackage
+			dft.DeploymentFile = jbossEarArtifactConfig.DeploymentFile
+			dft.Port = jbossDefaultPort
+			dft.EnvVariables = jbossEarArtifactConfig.EnvVariables
 			if isBuildContainerPresent {
-				dft.JavaPackageName = javaPackage
-				dft.DeploymentFile = jbossEarArtifactConfig.DeploymentFile
 				dft.BuildContainerName = jbossEarArtifactConfig.BuildContainerName
 				dft.DeploymentFileDirInBuildContainer = jbossEarArtifactConfig.DeploymentFileDirInBuildContainer
-				dft.Port = jbossDefaultPort
-				dft.EnvVariables = jbossEarArtifactConfig.EnvVariables
-			} else {
-				dft.JavaPackageName = javaPackage
-				dft.DeploymentFile = jbossEarArtifactConfig.DeploymentFile
-				dft.Port = jbossDefaultPort
-				dft.EnvVariables = jbossEarArtifactConfig.EnvVariables
 			}
 		} else {
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jbossArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping version for java version %s : %s", jbossArtifactConfig.JavaVersion, err)
-				javaPackage = "java-17-openjdk-devel"
+				javaPackage = defaultJavaPackage
 			}
+			dft.JavaPackageName = javaPackage
+			dft.DeploymentFile = jbossArtifactConfig.DeploymentFile
+			dft.Port = jbossDefaultPort
+			dft.EnvVariables = jbossArtifactConfig.EnvVariables
 			if isBuildContainerPresent {
-				dft.JavaPackageName = javaPackage
-				dft.DeploymentFile = jbossArtifactConfig.DeploymentFile
 				dft.BuildContainerName = jbossArtifactConfig.BuildContainerName
 				dft.DeploymentFileDirInBuildContainer = jbossArtifactConfig.DeploymentFileDirInBuildContainer
-				dft.Port = jbossDefaultPort
-				dft.EnvVariables = jbossArtifactConfig.EnvVariables
-			} else {
-				dft.JavaPackageName = javaPackage
-				dft.DeploymentFile = jbossArtifactConfig.DeploymentFile
-				dft.Port = jbossDefaultPort
-				dft.EnvVariables = jbossArtifactConfig.EnvVariables
 			}
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{

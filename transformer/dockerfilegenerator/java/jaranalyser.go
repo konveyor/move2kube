@@ -162,7 +162,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jarArtifactConfig.JavaVersion)
 		if err != nil {
 			logrus.Errorf("Unable to find mapping version for java version %s : %s", jarArtifactConfig.JavaVersion, err)
-			javaPackage = "java-17-openjdk-devel"
+			javaPackage = defaultJavaPackage
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
