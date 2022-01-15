@@ -47,6 +47,7 @@ type TomcatYamlConfig struct {
 // TomcatDockerfileTemplate stores parameters for the dockerfile template
 type TomcatDockerfileTemplate struct {
 	JavaPackageName                   string
+	JavaVersion                       string
 	DeploymentFile                    string
 	BuildContainerName                string
 	DeploymentFileDirInBuildContainer string
@@ -154,6 +155,7 @@ func (t *Tomcat) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 				DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
 				TemplateConfig: TomcatDockerfileTemplate{
 					JavaPackageName:                   javaPackage,
+					JavaVersion:                       tomcatArtifactConfig.JavaVersion,
 					DeploymentFile:                    tomcatArtifactConfig.DeploymentFile,
 					BuildContainerName:                tomcatArtifactConfig.BuildContainerName,
 					DeploymentFileDirInBuildContainer: tomcatArtifactConfig.DeploymentFileDirInBuildContainer,
@@ -168,6 +170,7 @@ func (t *Tomcat) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 				DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
 				TemplateConfig: TomcatDockerfileTemplate{
 					JavaPackageName: javaPackage,
+					JavaVersion:     tomcatArtifactConfig.JavaVersion,
 					DeploymentFile:  tomcatArtifactConfig.DeploymentFile,
 					Port:            tomcatDefaultPort,
 					EnvVariables:    tomcatArtifactConfig.EnvVariables,
