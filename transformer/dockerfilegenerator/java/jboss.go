@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	jbossDefaultPort int32 = 9080
+	jbossDefaultPort int32 = 8080
 )
 
 // Jboss implements Transformer interface
