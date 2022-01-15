@@ -75,6 +75,7 @@ type GradleYamlConfig struct {
 // GradleBuildDockerfileTemplate defines the information for the build dockerfile template
 type GradleBuildDockerfileTemplate struct {
 	JavaPackageName string
+	GradleVersion   string
 	GradleWPresent  bool
 }
 
@@ -375,6 +376,10 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		if err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}
+		gradleVersion := t.GradleConfig.GradleVersion
+		if gradleVersion == "" {
+			gradleVersion = "7.3"
+		}
 		buildDockerfile := filepath.Join(tempDir, "Dockerfile.build")
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.TemplatePathMappingType,
@@ -382,6 +387,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			DestPath: buildDockerfile,
 			TemplateConfig: GradleBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
+				GradleVersion:   gradleVersion,
 				GradleWPresent:  gradleConfig.GradleWPresent,
 			},
 		})

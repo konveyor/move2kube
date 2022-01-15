@@ -23,5 +23,5 @@ spec:
     "../../common/Dockerfile.license" : templates/Dockerfile.license
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml
   config: 
-    defaultMavenVersion: "3.8.2"
+    defaultMavenVersion: "3.8.4"
     defaultJavaVersion: "17"

@@ -24,3 +24,4 @@ spec:
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml
   config: 
     defaultJavaVersion: "17"
+    defaultGradleVersion: "7.3"

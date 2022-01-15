@@ -50,6 +50,7 @@ type MavenYamlConfig struct {
 // MavenBuildDockerfileTemplate defines the information for the build dockerfile template
 type MavenBuildDockerfileTemplate struct {
 	JavaPackageName string
+	MavenVersion    string
 	MavenProfiles   []string
 }
 
@@ -277,6 +278,10 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 				javaVersion = defaultJavaVersion
 			}
 		}
+		mavenVersion := "3.8.4"
+		if t.MavenConfig.MavenVersion != "" {
+			mavenVersion = t.MavenConfig.MavenVersion
+		}
 		if deploymentFileName == "" {
 			if pom.ArtifactID != "" {
 				deploymentFileName = pom.ArtifactID
@@ -365,6 +370,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			DestPath: buildDockerfile,
 			TemplateConfig: MavenBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
+				MavenVersion:    mavenVersion,
 				MavenProfiles:   selectedMavenProfiles,
 			},
 		})

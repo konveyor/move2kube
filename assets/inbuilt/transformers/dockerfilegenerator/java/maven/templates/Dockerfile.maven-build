@@ -1,7 +1,11 @@
 
 FROM registry.access.redhat.com/ubi8/ubi:latest AS builder
 RUN yum install -y {{ .JavaPackageName }}
-RUN yum install -y maven
+RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
+  && curl -fsSL -o /tmp/apache-maven.tar.gz https://archive.apache.org/dist/maven/maven-3/{{ .MavenVersion }}/binaries/apache-maven-{{ .MavenVersion }}-bin.tar.gz \
+  && tar -xzf /tmp/apache-maven.tar.gz -C /usr/share/maven --strip-components=1 \
+  && rm -f /tmp/apache-maven.tar.gz \
+  && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
 COPY . /app
 WORKDIR /app
 {{if .MavenProfiles}}RUN mvn package -Dmaven.test.skip -P {{$first := true}}{{range $mp := .MavenProfiles}}{{if $first}}{{$first = false}}{{else}},{{end}}{{$mp}}{{end}}{{else}}RUN mvn package -Dmaven.test.skip{{end}}
