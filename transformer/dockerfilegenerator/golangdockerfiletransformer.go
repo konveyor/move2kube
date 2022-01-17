@@ -32,6 +32,7 @@ import (
 )
 
 const (
+	defaultGoVersion = "1.17"
 	// GolangModFilePathType points to the go.mod file path
 	GolangModFilePathType transformertypes.PathType = "GoModFilePath"
 )
@@ -40,7 +41,7 @@ const (
 type GolangDockerfileGenerator struct {
 	Config       transformertypes.Transformer
 	Env          *environment.Environment
-	GolangConfig GolangDockerfileYamlConfig
+	GolangConfig *GolangDockerfileYamlConfig
 }
 
 // GolangTemplateConfig implements Golang config interface
@@ -59,11 +60,14 @@ type GolangDockerfileYamlConfig struct {
 func (t *GolangDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
-	t.GolangConfig = GolangDockerfileYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.GolangConfig)
+	t.GolangConfig = &GolangDockerfileYamlConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.GolangConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.GolangConfig, err)
 		return err
+	}
+	if t.GolangConfig.DefaultGoVersion == "" {
+		t.GolangConfig.DefaultGoVersion = defaultGoVersion
 	}
 	return nil
 }

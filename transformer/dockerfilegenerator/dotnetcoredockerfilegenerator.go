@@ -36,6 +36,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	defaultDotNetCoreVersion = "5.0"
+)
+
 var (
 	portRegex       = regexp.MustCompile(`:(\d+)`)
 	dotnetcoreRegex = regexp.MustCompile(`net(?:(?:coreapp)|(?:standard))?(\d+\.\d+)`)
@@ -72,7 +76,7 @@ type DotNetCoreDockerfileYamlConfig struct {
 type DotNetCoreDockerfileGenerator struct {
 	Config           transformertypes.Transformer
 	Env              *environment.Environment
-	DotNetCoreConfig DotNetCoreDockerfileYamlConfig
+	DotNetCoreConfig *DotNetCoreDockerfileYamlConfig
 }
 
 // PublishProfile defines the publish profile
@@ -105,11 +109,14 @@ type LaunchProfile struct {
 func (t *DotNetCoreDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
-	t.DotNetCoreConfig = DotNetCoreDockerfileYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.DotNetCoreConfig)
+	t.DotNetCoreConfig = &DotNetCoreDockerfileYamlConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.DotNetCoreConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.DotNetCoreConfig, err)
 		return err
+	}
+	if t.DotNetCoreConfig.DefaultDotNetCoreVersion == "" {
+		t.DotNetCoreConfig.DefaultDotNetCoreVersion = defaultDotNetCoreVersion
 	}
 	return nil
 }

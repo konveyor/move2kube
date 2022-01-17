@@ -30,7 +30,7 @@ import (
 type EarAnalyser struct {
 	Config    transformertypes.Transformer
 	Env       *environment.Environment
-	EarConfig EarYamlConfig
+	EarConfig *EarYamlConfig
 }
 
 // EarYamlConfig stores the war related information
@@ -50,6 +50,15 @@ type EarDockerfileTemplate struct {
 func (t *EarAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
+	t.EarConfig = &EarYamlConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.EarConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.EarConfig, err)
+		return err
+	}
+	if t.EarConfig.JavaVersion == "" {
+		t.EarConfig.JavaVersion = defaultJavaVersion
+	}
 	return nil
 }
 
@@ -68,9 +77,6 @@ func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 	}
 	if len(earFilePaths) == 0 {
 		return nil, nil
-	}
-	if t.EarConfig.JavaVersion == "" {
-		t.EarConfig.JavaVersion = defaultJavaVersion
 	}
 	for _, path := range earFilePaths {
 		newArtifact := transformertypes.Artifact{

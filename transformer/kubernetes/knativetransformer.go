@@ -17,6 +17,7 @@
 package kubernetes
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -30,16 +31,35 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	defaultKnativeYamlsOutputPath = common.DeployDir + string(os.PathSeparator) + "knative"
+)
+
 // Knative implements Transformer interface
 type Knative struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config        transformertypes.Transformer
+	Env           *environment.Environment
+	KnativeConfig *KnativeYamlConfig
+}
+
+// KnativeYamlConfig stores the knative related information
+type KnativeYamlConfig struct {
+	OutputPath string `yaml:"outputPath"`
 }
 
 // Init Initializes the transformer
 func (t *Knative) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
+	t.KnativeConfig = &KnativeYamlConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, t.KnativeConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.KnativeConfig, err)
+		return err
+	}
+	if t.KnativeConfig.OutputPath == "" {
+		t.KnativeConfig.OutputPath = defaultKnativeYamlsOutputPath
+	}
 	return nil
 }
 
@@ -80,7 +100,7 @@ func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 		} else {
 			ir = preprocessedIR
 		}
-		deployKnativeDir := filepath.Join(common.DeployDir, "knative")
+		deployKnativeDir := t.KnativeConfig.OutputPath
 		tempDest := filepath.Join(t.Env.TempPath, deployKnativeDir)
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))

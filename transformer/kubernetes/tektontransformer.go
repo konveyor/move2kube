@@ -18,6 +18,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -43,7 +44,6 @@ const (
 	gitDomainPlaceholder                   = "<TODO: insert git repo domain>"
 	knownHostsPlaceholder                  = "<TODO: insert the known host keys for your git repo>"
 	gitPrivateKeyPlaceholder               = "<TODO: insert the private ssh key for your git repo>"
-	registryURLPlaceholder                 = "<TODO: insert the image registry URL>"
 	dockerConfigJSONPlaceholder            = "<TODO: insert your docker config json>"
 	baseGitSecretName                      = "git-repo"
 	baseWorkspaceName                      = "shared-data"
@@ -57,18 +57,34 @@ const (
 	baseGitEventIngressName                = "git-repo"
 	baseTektonTriggersAdminRoleName        = "tekton-triggers-admin"
 	baseTektonTriggersAdminRoleBindingName = "tekton-triggers-admin"
+	defaultTektonYamlsOutputPath           = common.DeployDir + string(os.PathSeparator) + common.CICDDir + string(os.PathSeparator) + "tekton"
 )
 
 // Tekton implements Transformer interface
 type Tekton struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config       transformertypes.Transformer
+	Env          *environment.Environment
+	TektonConfig *TektonYamlConfig
+}
+
+// TektonYamlConfig stores the Tekton related information
+type TektonYamlConfig struct {
+	OutputPath string `yaml:"outputPath"`
 }
 
 // Init Initializes the transformer
 func (t *Tekton) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
+	t.TektonConfig = &TektonYamlConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, t.TektonConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.TektonConfig, err)
+		return err
+	}
+	if t.TektonConfig.OutputPath == "" {
+		t.TektonConfig.OutputPath = defaultTektonYamlsOutputPath
+	}
 	return nil
 }
 
@@ -119,7 +135,7 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 			new(apiresource.TriggerTemplate),
 			new(apiresource.Pipeline),
 		}
-		deployCICDDir := filepath.Join(common.DeployDir, common.CICDDir, "tekton")
+		deployCICDDir := t.TektonConfig.OutputPath
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Debugf("Generating Tekton pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())

@@ -30,7 +30,7 @@ import (
 type WarAnalyser struct {
 	Config    transformertypes.Transformer
 	Env       *environment.Environment
-	WarConfig WarYamlConfig
+	WarConfig *WarYamlConfig
 }
 
 // WarYamlConfig stores the war related information
@@ -50,11 +50,14 @@ type WarDockerfileTemplate struct {
 func (t *WarAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
-	t.WarConfig = WarYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.WarConfig)
+	t.WarConfig = &WarYamlConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.WarConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.WarConfig, err)
 		return err
+	}
+	if t.WarConfig.JavaVersion == "" {
+		t.WarConfig.JavaVersion = defaultJavaVersion
 	}
 	return nil
 }
@@ -74,9 +77,6 @@ func (t *WarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 	}
 	if len(warFilePaths) == 0 {
 		return nil, nil
-	}
-	if t.WarConfig.JavaVersion == "" {
-		t.WarConfig.JavaVersion = defaultJavaVersion
 	}
 	for _, path := range warFilePaths {
 		newArtifact := transformertypes.Artifact{

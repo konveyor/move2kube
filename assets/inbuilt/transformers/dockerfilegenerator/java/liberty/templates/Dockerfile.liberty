@@ -1,7 +1,13 @@
 
-FROM {{ .LibertyBaseImage }}
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+WORKDIR /app
 {{- range $k, $v := .EnvVariables}}
 ENV {{$k}} {{$v}}
 {{- end}}
-COPY --chown=1001:0 {{ if .BuildContainerName }}--from=builder {{ .DeploymentFileDirInBuildContainer }}/{{end}}{{ .DeploymentFile }} /config/dropins/
+RUN microdnf update && microdnf install -y {{ .JavaPackageName }} wget unzip && microdnf clean all
+RUN wget https://public.dhe.ibm.com/ibmdl/export/pub/software/websphere/wasdev/downloads/wlp/21.0.0.12/wlp-jakartaee9-21.0.0.12.zip \
+    && unzip wlp-jakartaee9-21.0.0.12.zip \
+    && rm wlp-jakartaee9-21.0.0.12.zip
+COPY {{ if .BuildContainerName }}--from=builder {{ .DeploymentFileDirInBuildContainer }}/{{end}}{{ .DeploymentFile }} wlp/usr/servers/defaultServer/dropins/
 EXPOSE {{ .Port }}
+CMD ["wlp/bin/server", "run"]

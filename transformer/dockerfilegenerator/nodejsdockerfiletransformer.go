@@ -35,15 +35,15 @@ import (
 )
 
 const (
-	nodeVersion     = "12"
-	packageJSONFile = "package.json"
+	defaultNodeVersion = "12"
+	packageJSONFile    = "package.json"
 )
 
 // NodejsDockerfileGenerator implements the Transformer interface
 type NodejsDockerfileGenerator struct {
 	Config       transformertypes.Transformer
 	Env          *environment.Environment
-	NodejsConfig NodejsDockerfileYamlConfig
+	NodejsConfig *NodejsDockerfileYamlConfig
 }
 
 // NodejsTemplateConfig implements Nodejs config interface
@@ -80,11 +80,14 @@ type PackageJSON struct {
 func (t *NodejsDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
-	t.NodejsConfig = NodejsDockerfileYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.NodejsConfig)
+	t.NodejsConfig = &NodejsDockerfileYamlConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.NodejsConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.NodejsConfig, err)
 		return err
+	}
+	if t.NodejsConfig.DefaultNodejsVersion == "" {
+		t.NodejsConfig.DefaultNodejsVersion = defaultNodeVersion
 	}
 	return nil
 }
