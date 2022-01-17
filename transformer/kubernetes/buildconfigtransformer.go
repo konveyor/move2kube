@@ -55,7 +55,7 @@ type BuildConfig struct {
 	BuildConfigConfig *BuildConfigYamlConfig
 }
 
-//  BuildConfigYamlConfig stores the BuildConfig related information
+// BuildConfigYamlConfig stores the BuildConfig related information
 type BuildConfigYamlConfig struct {
 	OutputPath string `yaml:"outputPath"`
 }

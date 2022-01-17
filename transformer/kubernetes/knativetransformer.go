@@ -42,7 +42,7 @@ type Knative struct {
 	KnativeConfig *KnativeYamlConfig
 }
 
-//  KnativeYamlConfig stores the knative related information
+// KnativeYamlConfig stores the knative related information
 type KnativeYamlConfig struct {
 	OutputPath string `yaml:"outputPath"`
 }

@@ -67,7 +67,7 @@ type Tekton struct {
 	TektonConfig *TektonYamlConfig
 }
 
-//  TektonYamlConfig stores the Tekton related information
+// TektonYamlConfig stores the Tekton related information
 type TektonYamlConfig struct {
 	OutputPath string `yaml:"outputPath"`
 }

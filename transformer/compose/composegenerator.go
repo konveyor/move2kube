@@ -40,6 +40,7 @@ type ComposeGenerator struct {
 	ComposeGeneratorConfig *ComposeGeneratorYamlConfig
 }
 
+// ComposeGeneratorYamlConfig contains all the configuration from the transformer YAML
 type ComposeGeneratorYamlConfig struct {
 	OutputPath string `yaml:"outputPath"`
 }
