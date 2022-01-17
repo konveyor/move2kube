@@ -10,7 +10,7 @@ spec:
   class: "Liberty"
   directoryDetect:
     levels: 0
-  consumes: 
+  consumes:
     War:
       merge: false
     Ear:
@@ -21,7 +21,7 @@ spec:
     DockerfileForService:
       disabled: false
   externalFiles:
-    "../../common/Dockerfile.license" : templates/Dockerfile.license
-    "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml
-  config: 
+    "../../common/Dockerfile.license": templates/Dockerfile.license
+    "../mappings/javapackageversions.yaml": mappings/javapackageversions.yaml
+  config:
     defaultJavaVersion: "17"

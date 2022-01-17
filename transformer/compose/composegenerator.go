@@ -29,10 +29,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	defaultComposeOutputPath = common.DeployDir + string(os.PathSeparator) + "compose"
+)
+
 // ComposeGenerator implements Transformer interface
 type ComposeGenerator struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config                 transformertypes.Transformer
+	Env                    *environment.Environment
+	ComposeGeneratorConfig *ComposeGeneratorYamlConfig
+}
+
+type ComposeGeneratorYamlConfig struct {
+	OutputPath string `yaml:"outputPath"`
 }
 
 type composeObj struct {
@@ -45,9 +54,18 @@ type composeObj struct {
 }
 
 // Init Initializes the transformer
-func (t *ComposeGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *ComposeGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
+	t.ComposeGeneratorConfig = &ComposeGeneratorYamlConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, t.ComposeGeneratorConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.ComposeGeneratorConfig, err)
+		return err
+	}
+	if t.ComposeGeneratorConfig.OutputPath == "" {
+		t.ComposeGeneratorConfig.OutputPath = defaultComposeOutputPath
+	}
 	return nil
 }
 
@@ -112,7 +130,7 @@ func (t *ComposeGenerator) Transform(newArtifacts []transformertypes.Artifact, a
 			}
 		}
 		logrus.Debugf("Total transformed objects : %d", len(c.Services))
-		composePath := filepath.Join(common.DeployDir, "compose")
+		composePath := t.ComposeGeneratorConfig.OutputPath
 		absComposePath := filepath.Join(t.Env.TempPath, composePath)
 		if err := os.MkdirAll(absComposePath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Errorf("Unable to create output directory %s : %s", common.TempPath, err)

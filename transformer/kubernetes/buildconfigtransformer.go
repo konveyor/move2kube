@@ -20,6 +20,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -37,6 +38,7 @@ import (
 )
 
 const (
+	defaultBuildConfigYamlsOutputPath = common.DeployDir + string(os.PathSeparator) + common.CICDDir + string(os.PathSeparator) + "buildconfig"
 	// BuildConfigArtifacts stores the BuildConfig Artifact Name
 	BuildConfigArtifacts transformertypes.ArtifactType = "BuildConfigYamls"
 )
@@ -48,14 +50,29 @@ const (
 
 // BuildConfig implements Transformer interface
 type BuildConfig struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config            transformertypes.Transformer
+	Env               *environment.Environment
+	BuildConfigConfig *BuildConfigYamlConfig
+}
+
+//  BuildConfigYamlConfig stores the BuildConfig related information
+type BuildConfigYamlConfig struct {
+	OutputPath string `yaml:"outputPath"`
 }
 
 // Init initializes the transformer
 func (t *BuildConfig) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
+	t.BuildConfigConfig = &BuildConfigYamlConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, t.BuildConfigConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.BuildConfigConfig, err)
+		return err
+	}
+	if t.BuildConfigConfig.OutputPath == "" {
+		t.BuildConfigConfig.OutputPath = defaultBuildConfigYamlsOutputPath
+	}
 	return nil
 }
 
@@ -100,7 +117,7 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alread
 			return nil, nil, nil
 		}
 		apis := []apiresource.IAPIResource{new(apiresource.BuildConfig), new(apiresource.Storage)}
-		deployCICDDir := filepath.Join(common.DeployDir, common.CICDDir, "buildconfig")
+		deployCICDDir := t.BuildConfigConfig.OutputPath
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Infof("Generating Buildconfig pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())

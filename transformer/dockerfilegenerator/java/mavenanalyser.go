@@ -33,6 +33,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	defaultMavenVersion = "3.8.4"
+)
+
 // MavenAnalyser implements Transformer interface
 type MavenAnalyser struct {
 	Config      transformertypes.Transformer
@@ -59,10 +63,19 @@ func (t *MavenAnalyser) Init(tc transformertypes.Transformer, env *environment.E
 	t.Config = tc
 	t.Env = env
 	t.MavenConfig = &MavenYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.MavenConfig)
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.MavenConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.MavenConfig, err)
 		return err
+	}
+	if t.MavenConfig.MavenVersion == "" {
+		t.MavenConfig.MavenVersion = defaultMavenVersion
+	}
+	if t.MavenConfig.JavaVersion == "" {
+		t.MavenConfig.JavaVersion = defaultJavaVersion
+	}
+	if t.MavenConfig.AppPathInBuildContainer == "" {
+		t.MavenConfig.AppPathInBuildContainer = defaultAppPathInContainer
 	}
 	return nil
 }
@@ -278,10 +291,6 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 				javaVersion = defaultJavaVersion
 			}
 		}
-		mavenVersion := "3.8.4"
-		if t.MavenConfig.MavenVersion != "" {
-			mavenVersion = t.MavenConfig.MavenVersion
-		}
 		if deploymentFileName == "" {
 			if pom.ArtifactID != "" {
 				deploymentFileName = pom.ArtifactID
@@ -370,7 +379,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			DestPath: buildDockerfile,
 			TemplateConfig: MavenBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
-				MavenVersion:    mavenVersion,
+				MavenVersion:    t.MavenConfig.MavenVersion,
 				MavenProfiles:   selectedMavenProfiles,
 			},
 		})
@@ -385,7 +394,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						DeploymentFile:                    deploymentFileName + ".war",
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, deploymentDir),
+						DeploymentFileDirInBuildContainer: filepath.Join(t.MavenConfig.AppPathInBuildContainer, deploymentDir),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -399,7 +408,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						DeploymentFile:                    deploymentFileName + ".ear",
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, deploymentDir),
+						DeploymentFileDirInBuildContainer: filepath.Join(t.MavenConfig.AppPathInBuildContainer, deploymentDir),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -423,7 +432,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 						DeploymentFile:                    deploymentFileName + ".jar",
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, deploymentDir),
+						DeploymentFileDirInBuildContainer: filepath.Join(t.MavenConfig.AppPathInBuildContainer, deploymentDir),
 						EnvVariables:                      envVariablesMap,
 						Port:                              port,
 					},

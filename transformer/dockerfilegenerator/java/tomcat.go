@@ -60,10 +60,13 @@ func (t *Tomcat) Init(tc transformertypes.Transformer, env *environment.Environm
 	t.Config = tc
 	t.Env = env
 	t.TomcatConfig = &TomcatYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.TomcatConfig)
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.TomcatConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.TomcatConfig, err)
 		return err
+	}
+	if t.TomcatConfig.JavaVersion == "" {
+		t.TomcatConfig.JavaVersion = defaultJavaVersion
 	}
 	return nil
 }

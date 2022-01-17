@@ -28,8 +28,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	jbossDefaultPort int32 = 8080
+const (
+	defaultJbossPort int32 = 8080
 )
 
 // Jboss implements Transformer interface
@@ -42,7 +42,6 @@ type Jboss struct {
 // JbossYamlConfig stores jar related configuration information
 type JbossYamlConfig struct {
 	JavaVersion string `yaml:"defaultJavaVersion"`
-	DefaultPort int32  `yaml:"defaultPort"`
 }
 
 // JbossDockerfileTemplate stores parameters for the dockerfile template
@@ -60,10 +59,13 @@ func (t *Jboss) Init(tc transformertypes.Transformer, env *environment.Environme
 	t.Config = tc
 	t.Env = env
 	t.JbossConfig = &JbossYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.JbossConfig)
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.JbossConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.JbossConfig, err)
 		return err
+	}
+	if t.JbossConfig.JavaVersion == "" {
+		t.JbossConfig.JavaVersion = defaultJavaVersion
 	}
 	return nil
 }
@@ -135,6 +137,7 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenA
 		jbossArtifactConfig := artifacts.WarArtifactConfig{}
 		err = a.GetConfig(artifacts.WarConfigType, &jbossArtifactConfig)
 		if err != nil {
+			// EAR
 			logrus.Debugf("unable to load config for Transformer into %T : %s", jbossArtifactConfig, err)
 			jbossEarArtifactConfig := artifacts.EarArtifactConfig{}
 			err = a.GetConfig(artifacts.EarConfigType, &jbossEarArtifactConfig)
@@ -148,13 +151,14 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenA
 			}
 			dft.JavaPackageName = javaPackage
 			dft.DeploymentFile = jbossEarArtifactConfig.DeploymentFile
-			dft.Port = jbossDefaultPort
+			dft.Port = defaultJbossPort
 			dft.EnvVariables = jbossEarArtifactConfig.EnvVariables
 			if isBuildContainerPresent {
 				dft.BuildContainerName = jbossEarArtifactConfig.BuildContainerName
 				dft.DeploymentFileDirInBuildContainer = jbossEarArtifactConfig.DeploymentFileDirInBuildContainer
 			}
 		} else {
+			// WAR
 			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jbossArtifactConfig.JavaVersion)
 			if err != nil {
 				logrus.Errorf("Unable to find mapping version for java version %s : %s", jbossArtifactConfig.JavaVersion, err)
@@ -162,7 +166,7 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenA
 			}
 			dft.JavaPackageName = javaPackage
 			dft.DeploymentFile = jbossArtifactConfig.DeploymentFile
-			dft.Port = jbossDefaultPort
+			dft.Port = defaultJbossPort
 			dft.EnvVariables = jbossArtifactConfig.EnvVariables
 			if isBuildContainerPresent {
 				dft.BuildContainerName = jbossArtifactConfig.BuildContainerName
@@ -173,9 +177,6 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenA
 			Type:     transformertypes.SourcePathMappingType,
 			DestPath: common.DefaultSourceDir,
 		})
-		if t.JbossConfig.DefaultPort != 0 {
-			jbossDefaultPort = t.JbossConfig.DefaultPort
-		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
 			SrcPath:        dockerfileTemplate,

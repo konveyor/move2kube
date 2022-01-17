@@ -28,7 +28,7 @@ import (
 type ZuulAnalyser struct {
 	Config   transformertypes.Transformer
 	Env      *environment.Environment
-	Services map[string]string
+	services map[string]string
 }
 
 // ZuulSpec defines zuul specification
@@ -50,7 +50,7 @@ func (t *ZuulAnalyser) Init(tc transformertypes.Transformer, env *environment.En
 		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", env.GetEnvironmentSource(), err)
 		return err
 	}
-	t.Services = map[string]string{}
+	t.services = map[string]string{}
 	for _, path := range yamlpaths {
 		z := Zuul{}
 		if err := common.ReadYaml(path, &z); err != nil || z.ZuulSpec.RouteSpec == nil {
@@ -59,7 +59,7 @@ func (t *ZuulAnalyser) Init(tc transformertypes.Transformer, env *environment.En
 		for servicename, routepath := range z.ZuulSpec.RouteSpec {
 			// TODO: routepath (ant style) to regex
 			routepath = routepath[:len(routepath)-2]
-			t.Services[servicename] = routepath
+			t.services[servicename] = routepath
 		}
 	}
 	return nil
@@ -86,7 +86,7 @@ func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, alrea
 			continue
 		}
 		for sn, s := range ir.Services {
-			if r, ok := t.Services[sn]; ok {
+			if r, ok := t.services[sn]; ok {
 				if len(s.ServiceToPodPortForwardings) > 0 {
 					s.ServiceToPodPortForwardings[0].ServiceRelPath = r
 				}

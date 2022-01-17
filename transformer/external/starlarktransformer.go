@@ -61,7 +61,7 @@ const (
 // Starlark implements transformer interface and is used to write simple external transformers
 type Starlark struct {
 	Config      transformertypes.Transformer
-	StarConfig  StarYamlConfig
+	StarConfig  *StarYamlConfig
 	StarThread  *starlark.Thread
 	StarGlobals starlark.StringDict
 	Env         *environment.Environment
@@ -79,8 +79,8 @@ type StarYamlConfig struct {
 func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
-	t.StarConfig = StarYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.StarConfig)
+	t.StarConfig = &StarYamlConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.StarConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.StarConfig, err)
 		return err
@@ -119,7 +119,11 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Enviro
 	}
 	t.StarGlobals, err = starlark.ExecFile(t.StarThread, filepath.Join(t.Env.GetEnvironmentContext(), t.StarConfig.StarFile), nil, t.StarGlobals)
 	if err != nil {
-		logrus.Errorf("Unable to load starlark file %s : %s", filepath.Join(t.Env.GetEnvironmentContext(), t.StarConfig.StarFile), err)
+		if t.StarConfig.StarFile == "" {
+			logrus.Error("no starlark file specified")
+		} else {
+			logrus.Errorf("Unable to load starlark file %s : %s", filepath.Join(t.Env.GetEnvironmentContext(), t.StarConfig.StarFile), err)
+		}
 		return err
 	}
 	err = t.loadFunctions()

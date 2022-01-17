@@ -31,15 +31,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	defaultKVCOutputPath = "{{ $rel := Rel .YamlsPath }}source/{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-versionchanged/"
+)
+
 // KubernetesVersionChanger implements Transformer interface
 type KubernetesVersionChanger struct {
 	Config    transformertypes.Transformer
 	Env       *environment.Environment
-	KVCConfig KubernetesVersionChangerConfig
+	KVCConfig *KubernetesVersionChangerYamlConfig
 }
 
-// KubernetesVersionChangerConfig stores the config
-type KubernetesVersionChangerConfig struct {
+// KubernetesVersionChangerYamlConfig stores the config
+type KubernetesVersionChangerYamlConfig struct {
 	OutputPath string `yaml:"outputPath"`
 }
 
@@ -53,11 +57,14 @@ type OutputPathParams struct {
 func (t *KubernetesVersionChanger) Init(tc transformertypes.Transformer, e *environment.Environment) error {
 	t.Config = tc
 	t.Env = e
-	t.KVCConfig = KubernetesVersionChangerConfig{}
-	err := common.GetObjFromInterface(t.Config.Spec.Config, &t.KVCConfig)
+	t.KVCConfig = &KubernetesVersionChangerYamlConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, t.KVCConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.KVCConfig, err)
 		return err
+	}
+	if t.KVCConfig.OutputPath == "" {
+		t.KVCConfig.OutputPath = defaultKVCOutputPath
 	}
 	return nil
 }

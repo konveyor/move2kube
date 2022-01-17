@@ -84,10 +84,19 @@ func (t *GradleAnalyser) Init(tc transformertypes.Transformer, env *environment.
 	t.Config = tc
 	t.Env = env
 	t.GradleConfig = &GradleYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.GradleConfig)
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.GradleConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.GradleConfig, err)
 		return err
+	}
+	if t.GradleConfig.JavaVersion == "" {
+		t.GradleConfig.JavaVersion = defaultJavaVersion
+	}
+	if t.GradleConfig.GradleVersion == "" {
+		t.GradleConfig.GradleVersion = "7.3"
+	}
+	if t.GradleConfig.AppPathInBuildContainer == "" {
+		t.GradleConfig.AppPathInBuildContainer = defaultAppPathInContainer
 	}
 	return nil
 }
@@ -215,9 +224,6 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		}
 		if javaVersion == "" {
 			javaVersion = t.GradleConfig.JavaVersion
-			if javaVersion == "" {
-				javaVersion = defaultJavaVersion
-			}
 		}
 		ir := irtypes.IR{}
 		irPresent := true
@@ -377,9 +383,6 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}
 		gradleVersion := t.GradleConfig.GradleVersion
-		if gradleVersion == "" {
-			gradleVersion = "7.3"
-		}
 		buildDockerfile := filepath.Join(tempDir, "Dockerfile.build")
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.TemplatePathMappingType,
@@ -405,7 +408,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, buildPath, destinationPath),
+						DeploymentFileDirInBuildContainer: filepath.Join(t.GradleConfig.AppPathInBuildContainer, buildPath, destinationPath),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -419,7 +422,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, buildPath, destinationPath),
+						DeploymentFileDirInBuildContainer: filepath.Join(t.GradleConfig.AppPathInBuildContainer, buildPath, destinationPath),
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -443,7 +446,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 						DeploymentFile:                    archiveName,
 						JavaVersion:                       javaVersion,
 						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(defaultAppPathInContainer, buildPath, destinationPath),
+						DeploymentFileDirInBuildContainer: filepath.Join(t.GradleConfig.AppPathInBuildContainer, buildPath, destinationPath),
 						EnvVariables:                      envVariablesMap,
 						Port:                              common.DefaultServicePort,
 					},

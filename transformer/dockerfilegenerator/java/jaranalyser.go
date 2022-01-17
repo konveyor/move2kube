@@ -39,6 +39,7 @@ type JarAnalyser struct {
 // JarYamlConfig stores jar related configuration information
 type JarYamlConfig struct {
 	JavaVersion string `yaml:"defaultJavaVersion"`
+	DefaultPort int32  `yaml:"defaultPort"`
 }
 
 // JarDockerfileTemplate stores parameters for the dockerfile template
@@ -56,10 +57,16 @@ func (t *JarAnalyser) Init(tc transformertypes.Transformer, env *environment.Env
 	t.Config = tc
 	t.Env = env
 	t.JarConfig = &JarYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.JarConfig)
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.JarConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.JarConfig, err)
 		return err
+	}
+	if t.JarConfig.JavaVersion == "" {
+		t.JarConfig.JavaVersion = defaultJavaVersion
+	}
+	if t.JarConfig.DefaultPort == 0 {
+		t.JarConfig.DefaultPort = common.DefaultServicePort
 	}
 	return nil
 }
@@ -80,12 +87,9 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 	if len(jarFilePaths) == 0 {
 		return nil, nil
 	}
-	if t.JarConfig.JavaVersion == "" {
-		t.JarConfig.JavaVersion = defaultJavaVersion
-	}
 	for _, path := range jarFilePaths {
 		envVariablesMap := map[string]string{}
-		envVariablesMap["PORT"] = fmt.Sprintf("%d", common.DefaultServicePort)
+		envVariablesMap["PORT"] = fmt.Sprintf("%d", t.JarConfig.DefaultPort)
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.JarPathType:        {path},
@@ -95,7 +99,7 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 				artifacts.JarConfigType: artifacts.JarArtifactConfig{
 					DeploymentFile: filepath.Base(path),
 					EnvVariables:   envVariablesMap,
-					Port:           common.DefaultServicePort,
+					Port:           t.JarConfig.DefaultPort,
 					JavaVersion:    t.JarConfig.JavaVersion,
 				},
 			},

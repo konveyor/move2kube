@@ -37,8 +37,8 @@ import (
 // Executable implements transformer interface and is used to write simple external transformers
 type Executable struct {
 	Config     transformertypes.Transformer
-	ExecConfig ExecutableYamlConfig
 	Env        *environment.Environment
+	ExecConfig *ExecutableYamlConfig
 }
 
 // ExecutableYamlConfig is the format of executable yaml config
@@ -53,8 +53,8 @@ type ExecutableYamlConfig struct {
 // Init Initializes the transformer
 func (t *Executable) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
-	t.ExecConfig = ExecutableYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.ExecConfig)
+	t.ExecConfig = &ExecutableYamlConfig{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.ExecConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.ExecConfig, err)
 		return err

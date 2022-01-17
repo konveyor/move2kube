@@ -18,6 +18,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -32,18 +33,19 @@ import (
 )
 
 const (
-	outputPathTemplateName = "OutputPath"
+	outputPathTemplateName    = "OutputPath"
+	defaultK8sYamlsOutputPath = common.DeployDir + string(os.PathSeparator) + "yamls"
 )
 
 // Kubernetes implements Transformer interface
 type Kubernetes struct {
 	Config           transformertypes.Transformer
 	Env              *environment.Environment
-	KubernetesConfig *KubernetesGenYamlConfig
+	KubernetesConfig *KubernetesYamlConfig
 }
 
-// KubernetesGenYamlConfig stores the k8s related information
-type KubernetesGenYamlConfig struct {
+// KubernetesYamlConfig stores the k8s related information
+type KubernetesYamlConfig struct {
 	IngressName string `yaml:"ingressName"`
 	OutputPath  string `yaml:"outputPath"`
 }
@@ -58,11 +60,17 @@ type KubernetesPathTemplateConfig struct {
 func (t *Kubernetes) Init(tc transformertypes.Transformer, e *environment.Environment) error {
 	t.Config = tc
 	t.Env = e
-	t.KubernetesConfig = &KubernetesGenYamlConfig{}
-	err := common.GetObjFromInterface(t.Config.Spec.Config, &t.KubernetesConfig)
+	t.KubernetesConfig = &KubernetesYamlConfig{}
+	err := common.GetObjFromInterface(t.Config.Spec.Config, t.KubernetesConfig)
 	if err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.KubernetesConfig, err)
 		return err
+	}
+	if t.KubernetesConfig.IngressName == "" {
+		t.KubernetesConfig.IngressName = e.ProjectName
+	}
+	if t.KubernetesConfig.OutputPath == "" {
+		t.KubernetesConfig.OutputPath = defaultK8sYamlsOutputPath
 	}
 	return nil
 }
