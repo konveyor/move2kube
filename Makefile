@@ -82,7 +82,7 @@ build: get $(BINDIR)/$(BINNAME) ## Build go code
 	@printf "\033[32m-------------------------------------\n BUILD SUCCESS\n-------------------------------------\033[0m\n"
 
 $(BINDIR)/$(BINNAME): $(SRC) $(ASSETS)
-	go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) ./cmd
+	go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) .
 ifeq ($(HAS_UPX),true)
 	@echo 'upx detected. compressing binary...'
 	upx $(BINDIR)/$(BINNAME)
@@ -144,7 +144,7 @@ $(GOX):
 
 .PHONY: build-cross
 build-cross: $(GOX) clean
-	CGO_ENABLED=0 $(GOX) -parallel=3 -output="$(DISTDIR)/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd
+	CGO_ENABLED=0 $(GOX) -parallel=3 -output="$(DISTDIR)/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' .
 
 .PHONY: dist
 dist: clean build-cross ## Build distribution

@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package commands
+package cmd
 
 const (
 	// sourceFlag is the name of the flag that contains path to the source folder
