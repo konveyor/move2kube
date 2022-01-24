@@ -20,14 +20,14 @@ import (
 	"os"
 
 	"github.com/konveyor/move2kube/assets"
-	"github.com/konveyor/move2kube/cmd/commands"
+	"github.com/konveyor/move2kube/cmd"
 	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
 func main() {
-	rootCmd := commands.GetRootCmd()
+	rootCmd := cmd.GetRootCmd()
 	assetsFilePermissions := map[string]int{}
 	err := yaml.Unmarshal([]byte(assets.AssetFilePermissions), &assetsFilePermissions)
 	if err != nil {
