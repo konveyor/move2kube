@@ -6,7 +6,7 @@ ENV {{$k}} {{$v}}
 RUN microdnf update && microdnf install -y {{ .JavaPackageName }} wget tar gzip shadow-utils && microdnf clean all
 WORKDIR /usr/local
 ENV CATALINA_PID='/usr/local/tomcat10/temp/tomcat.pid' CATALINA_HOME='/usr/local/tomcat10' CATALINA_BASE='/usr/local/tomcat10'
-RUN wget https://downloads.apache.org/tomcat/tomcat-10/v10.0.14/bin/apache-tomcat-10.0.14.tar.gz && tar -zxf apache-tomcat-10.0.14.tar.gz && rm -f apache-tomcat-10.0.14.tar.gz && mv apache-tomcat-10.0.14 tomcat10 && rm -r "$CATALINA_BASE"/webapps/ROOT
+RUN wget https://archive.apache.org/dist/tomcat/tomcat-10/v10.0.14/bin/apache-tomcat-10.0.14.tar.gz && tar -zxf apache-tomcat-10.0.14.tar.gz && rm -f apache-tomcat-10.0.14.tar.gz && mv apache-tomcat-10.0.14 tomcat10 && rm -r "$CATALINA_BASE"/webapps/ROOT
 RUN adduser -r tomcat && chown -R tomcat:tomcat tomcat10
 COPY --chown=tomcat:tomcat {{ if .BuildContainerName }}--from=builder {{ .DeploymentFileDirInBuildContainer }}/{{end}}{{ .DeploymentFile }} "$CATALINA_BASE"/webapps-javaee/
 USER tomcat:tomcat
