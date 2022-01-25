@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 # Build Stage
-FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As builder
+FROM --platform=windows/amd64 mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As builder
 WORKDIR /app
 COPY . .
 RUN nuget restore
@@ -23,7 +23,7 @@ WORKDIR /app/{{ .AppName }}
 RUN msbuild /p:Configuration=Release
 
 # Run Stage
-FROM microsoft/aspnet:4.7.2 AS runtime
+FROM --platform=windows/amd64 microsoft/aspnet:4.7.2 AS runtime
 {{- range .Ports}}
 EXPOSE {{.}}
 {{- end}}

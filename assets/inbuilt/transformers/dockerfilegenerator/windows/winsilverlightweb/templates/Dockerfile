@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 # Build stage
-FROM hugodahl/silverlightbuild:sl5 As builder
+FROM --platform=windows/amd64 hugodahl/silverlightbuild:sl5 As builder
 WORKDIR /app
 COPY . .
 RUN msbuild {{ .AppName }}.sln
@@ -26,7 +26,7 @@ RUN cp -r {{ .AppName }}.Web/bin output/
 RUN cp -r {{ .AppName }}.Web/ClientBin output/
 
 # Run stage
-FROM mcr.microsoft.com/windows/servercore/iis
+FROM --platform=windows/amd64 mcr.microsoft.com/windows/servercore/iis
 RUN powershell -NoProfile -Command Remove-Item -Recurse C:\inetpub\wwwroot\*
 {{- range .Ports}}
 EXPOSE {{.}}

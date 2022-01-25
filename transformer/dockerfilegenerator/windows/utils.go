@@ -73,7 +73,7 @@ func parseSolutionFile(inputPath string) ([]string, error) {
 		if len(path) == 0 {
 			continue
 		}
-		serviceDirPaths = append(serviceDirPaths, path[0])
+		serviceDirPaths = append(serviceDirPaths, path[1])
 	}
 	separator := fmt.Sprintf("%c", os.PathSeparator)
 	for i, c := range serviceDirPaths {
