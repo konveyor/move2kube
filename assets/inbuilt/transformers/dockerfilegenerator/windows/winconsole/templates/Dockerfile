@@ -16,7 +16,7 @@
 FROM mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As builder
 WORKDIR /app
 COPY . .
-RUN msbuild /p:Configuration=Release
+RUN msbuild /p:Configuration=Release /p:OutputPath=/app/bin
 
 # Run Stage
 FROM mcr.microsoft.com/dotnet/framework/runtime:{{ .BaseImageVersion }}
@@ -24,5 +24,5 @@ FROM mcr.microsoft.com/dotnet/framework/runtime:{{ .BaseImageVersion }}
 EXPOSE {{ $port }}
 {{- end }}
 WORKDIR /app
-COPY --from=builder /app/bin/Release .
+COPY --from=builder /app/bin/ .
 CMD {{ .AppName }}.exe
