@@ -1,0 +1,22 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: KubernetesVersionChanger
+  labels:
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "KubernetesVersionChanger"
+  directoryDetect:
+    levels: -1
+  consumes:
+    # Also produced by detect
+    KubernetesOrgYamlsInSource:
+      merge: false
+  produces:
+    KubernetesYamlsInSource:
+      disabled: false
+  dependency:
+    matchLabels:
+      move2kube.konveyor.io/kubernetesclusterselector: "true"
+  config:
+    outputPath: "{{ $rel := Rel .YamlsPath }}source/{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-versionchanged/"

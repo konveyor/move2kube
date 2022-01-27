@@ -1,0 +1,27 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: Gradle
+  labels: 
+    move2kube.konveyor.io/task: containerization
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "GradleAnalyser"
+  directoryDetect:
+    levels: -1
+  consumes:
+    Service:
+      disabled: false
+  produces:
+    Jar:
+      disabled: false
+    War:
+      disabled: false
+    Ear:
+      disabled: false
+  externalFiles:
+    "../../common/Dockerfile.license" : templates/Dockerfile.license
+    "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml
+  config: 
+    defaultJavaVersion: "17"
+    defaultGradleVersion: "7.3"

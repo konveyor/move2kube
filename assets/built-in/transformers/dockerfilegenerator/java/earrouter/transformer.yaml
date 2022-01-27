@@ -1,0 +1,24 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: EarRouter
+  labels:
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "Router"
+  directoryDetect:
+    levels: 0
+  consumes: 
+    Ear:
+      merge: true
+      mode: "MandatoryPassThrough"
+  produces: 
+    Ear:
+      disabled: false
+  config:
+    transformerSelector: 
+      matchLabels: 
+        move2kube.konveyor.io/earprocessor: "true"
+    question: 
+      id: "move2kube.services.{{ .name }}.eartransformer"
+      description: "Select the transformer to use for service {{ .name }}"

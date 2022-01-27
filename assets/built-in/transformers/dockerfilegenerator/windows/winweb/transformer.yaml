@@ -1,0 +1,19 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: WinWebApp-Dockerfile
+  labels: 
+    move2kube.konveyor.io/task: containerization
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "WinWebAppDockerfileGenerator"
+  directoryDetect:
+    levels: -1
+  consumes:
+    Service: 
+      merge: false
+  produces:
+    Dockerfile:
+      disabled: false
+    DockerfileForService:
+      disabled: false

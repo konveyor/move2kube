@@ -1,0 +1,26 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: Jar
+  labels:
+    move2kube.konveyor.io/task: containerization
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "JarAnalyser"
+  directoryDetect:
+    levels: -1
+  consumes: 
+    Service: 
+      merge: false
+    Jar:
+      merge: false
+  produces:
+    Dockerfile:
+      disabled: false
+    DockerfileForService:
+      disabled: false
+  externalFiles:
+    "../../common/Dockerfile.license" : templates/Dockerfile.license
+    "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml
+  config: 
+    defaultJavaVersion: "17"

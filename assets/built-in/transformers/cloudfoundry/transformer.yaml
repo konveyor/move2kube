@@ -1,0 +1,18 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: CloudFoundry
+  labels:
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "CloudFoundry"
+  directoryDetect:
+    levels: 1
+  consumes:
+    Service:
+      disabled: false
+  produces:
+    IR:
+      disabled: false
+    Service:
+      disabled: false

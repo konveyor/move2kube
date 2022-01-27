@@ -1,0 +1,18 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: DockerfileImageBuildScript
+  labels:
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "DockerfileImageBuildScript"
+  directoryDetect:
+    levels: 0
+  consumes: 
+    Dockerfile:
+      merge: true
+  produces:
+    NewImages:
+      disabled: false
+    ContainerImageBuildScript:
+      disabled: false

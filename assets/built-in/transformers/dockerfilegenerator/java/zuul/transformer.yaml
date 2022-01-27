@@ -1,0 +1,17 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: ZuulAnalyser
+  labels: 
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "ZuulAnalyser"
+  directoryDetect:
+    levels: 0
+  consumes:
+    IR: 
+      merge: true
+      mode: "MandatoryPassThrough"
+  produces:
+    IR:
+      disabled: false

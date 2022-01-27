@@ -1,0 +1,17 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: ReadMeGenerator
+  labels:
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "ReadMeGenerator"
+  directoryDetect:
+    levels: 0
+  consumes: 
+    ContainerImagesPushScript:
+      merge: true
+    ContainerImagesBuildScript:
+      merge: true
+    KubernetesYamls:
+      merge: true

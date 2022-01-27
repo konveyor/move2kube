@@ -1,0 +1,23 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: ClusterSelector
+  labels:
+    move2kube.konveyor.io/built-in: true
+    move2kube.konveyor.io/kubernetesclusterselector: true
+spec:
+  class: "ClusterSelectorTransformer"
+  directoryDetect:
+    levels: 0
+  consumes:
+    IR:
+      merge: true
+      mode: OnDemandPassThrough
+    KubernetesOrgYamlsInSource:
+      merge: false
+      mode: OnDemandPassThrough
+  produces:
+    IR:
+      disabled: false
+    KubernetesOrgYamlsInSource:
+      disabled: false
