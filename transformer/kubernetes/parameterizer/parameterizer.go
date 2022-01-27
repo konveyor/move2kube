@@ -881,7 +881,7 @@ func parameterizeHelperOCTemplates(envs []string, k k8sschema.K8sResourceT, p Pa
 					subKeys[i] = matchedSubKey
 					continue
 				}
-				// match against the builtin parameters
+				// match against the built-in parameters
 				switch subKey {
 				case "kind":
 					subKeys[i] = kind

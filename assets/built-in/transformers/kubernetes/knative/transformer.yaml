@@ -1,0 +1,19 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: Knative
+  labels:
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "Knative"
+  directoryDetect:
+    levels: 0
+  consumes:
+    IR:
+      merge: true
+  produces:
+    KubernetesYamls:
+      disabled: false
+  dependency:
+    matchLabels:
+      move2kube.konveyor.io/kubernetesclusterselector: "true"

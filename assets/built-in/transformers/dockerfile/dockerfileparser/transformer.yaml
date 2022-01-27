@@ -1,0 +1,16 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: DockerfileParser
+  labels:
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "DockerfileParser"
+  directoryDetect:
+    levels: 0
+  consumes: 
+    DockerfileForService:
+      merge: false
+  produces:
+    IR:
+      disabled: false
