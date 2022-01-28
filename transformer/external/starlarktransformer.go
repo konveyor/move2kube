@@ -44,6 +44,7 @@ const (
 
 	sourceDirVarName         = "source_dir"
 	contextDirVarName        = "context_dir"
+	tempDirVarName           = "temp_dir"
 	templatesRelDirVarName   = "templates_reldir"
 	transformerConfigVarName = "config"
 	projectVarName           = "project"
@@ -110,6 +111,11 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Enviro
 	t.StarGlobals[sourceDirVarName], err = starutil.Marshal(env.GetEnvironmentSource())
 	if err != nil {
 		logrus.Errorf("Unable to load source : %s", err)
+		return err
+	}
+	t.StarGlobals[tempDirVarName], err = starutil.Marshal(env.TempPath)
+	if err != nil {
+		logrus.Errorf("Unable to load temp path : %s", err)
 		return err
 	}
 	t.StarGlobals[templatesRelDirVarName], err = starutil.Marshal(env.RelTemplatesDir)
