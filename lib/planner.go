@@ -50,9 +50,9 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	}
 	transformer.Init(common.AssetsPath, inputPath, lblSelector, outputPath, p.Name)
 	ts := transformer.GetInitializedTransformers()
-	for tn, t := range ts {
+	for _, t := range ts {
 		config, _ := t.GetConfig()
-		p.Spec.Transformers[tn] = config.Spec.FilePath
+		p.Spec.Transformers[config.Name] = config.Spec.FilePath
 	}
 	logrus.Infoln("Configuration loading done")
 

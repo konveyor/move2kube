@@ -34,16 +34,16 @@ func getContainerizationOptions(directory string) []string {
 		logrus.Errorf("Unable to parse requirement : %s", err)
 	}
 	filters = filters.Add(*req)
-	for tn, t := range GetInitializedTransformersF(filters) {
-		_, env := t.GetConfig()
+	for _, t := range GetInitializedTransformersF(filters) {
+		config, env := t.GetConfig()
 		env.Reset()
 		newoptions, err := t.DirectoryDetect(directory)
 		if err != nil {
-			logrus.Warnf("[%s] Failed during containerization option fetch : %s", tn, err)
+			logrus.Warnf("[%s] Failed during containerization option fetch : %s", config.Name, err)
 			continue
 		}
 		if len(newoptions) > 0 {
-			options = append(options, tn)
+			options = append(options, config.Name)
 		}
 	}
 	return options
@@ -51,7 +51,11 @@ func getContainerizationOptions(directory string) []string {
 
 // getContainerizationConfig returns possible containerization config for a directory while using a transformer
 func getContainerizationConfig(serviceName string, projectDirectory, buildArtifacts []string, transformerName string) transformertypes.Artifact {
-	t := GetInitializedTransformers()[transformerName]
+	t, err := GetTransformerByName(transformerName)
+	if err != nil {
+		logrus.Errorf("Unable to find the transformer %s", transformerName)
+		return transformertypes.Artifact{}
+	}
 	tc, env := t.GetConfig()
 	env.Reset()
 	newoptions, err := t.DirectoryDetect(projectDirectory[0])

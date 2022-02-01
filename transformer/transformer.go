@@ -17,9 +17,11 @@
 package transformer
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -46,7 +48,8 @@ import (
 var (
 	initialized      = false
 	transformerTypes = map[string]reflect.Type{}
-	transformers     = map[string]Transformer{}
+	transformers     = []Transformer{}
+	transformerMap   = map[string]Transformer{}
 )
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
@@ -151,6 +154,7 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 	for tn := range transformerConfigs {
 		tns = append(tns, tn)
 	}
+	sort.Strings(tns)
 	transformerNames := qaengine.FetchMultiSelectAnswer(common.ConfigTransformerTypesKey, "Select all transformer types that you are interested in:", []string{"Services that don't support any of the transformer types you are interested in will be ignored."}, tns, tns)
 	for _, tn := range transformerNames {
 		tc := transformerConfigs[tn]
@@ -186,7 +190,8 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 					logrus.Errorf("Unable to initialize transformer %s : %s", tc.Name, err)
 				}
 			} else {
-				transformers[tn] = t
+				transformers = append(transformers, t)
+				transformerMap[tn] = t
 			}
 		}
 	}
@@ -205,14 +210,22 @@ func Destroy() {
 }
 
 // GetInitializedTransformers returns the list of initialized transformers
-func GetInitializedTransformers() map[string]Transformer {
+func GetInitializedTransformers() []Transformer {
 	return transformers
 }
 
+// GetTransformerByName returns the transformer chosen by name
+func GetTransformerByName(name string) (t Transformer, err error) {
+	if t, ok := transformerMap[name]; ok {
+		return t, nil
+	}
+	return nil, fmt.Errorf("no transformer found")
+}
+
 // GetInitializedTransformersF returns the list of initialized transformers after filtering
-func GetInitializedTransformersF(filters labels.Selector) map[string]Transformer {
-	filteredTransformers := map[string]Transformer{}
-	for tn, t := range GetInitializedTransformers() {
+func GetInitializedTransformersF(filters labels.Selector) []Transformer {
+	filteredTransformers := []Transformer{}
+	for _, t := range GetInitializedTransformers() {
 		tc, _ := t.GetConfig()
 		if tc.ObjectMeta.Labels == nil {
 			tc.ObjectMeta.Labels = map[string]string{}
@@ -220,7 +233,7 @@ func GetInitializedTransformersF(filters labels.Selector) map[string]Transformer
 		if !filters.Matches(labels.Set(tc.ObjectMeta.Labels)) {
 			continue
 		}
-		filteredTransformers[tn] = t
+		filteredTransformers = append(filteredTransformers, t)
 	}
 	return filteredTransformers
 }
@@ -230,16 +243,16 @@ func GetServices(prjName string, dir string) (services map[string][]plantypes.Pl
 	services = map[string][]plantypes.PlanArtifact{}
 	logrus.Infoln("Planning Transformation - Base Directory")
 	logrus.Debugf("Transformers : %+v", transformers)
-	for tn, t := range transformers {
+	for _, t := range transformers {
 		config, env := t.GetConfig()
 		env.Reset()
 		if config.Spec.DirectoryDetect.Levels != 1 {
 			continue
 		}
-		logrus.Infof("[%s] Planning transformation", tn)
+		logrus.Infof("[%s] Planning transformation", config.Name)
 		nservices, err := t.DirectoryDetect(env.Encode(dir).(string))
 		if err != nil {
-			logrus.Errorf("[%s] Failed : %s", tn, err)
+			logrus.Errorf("[%s] Failed : %s", config.Name, err)
 		} else {
 			nservices := getPlanArtifactsFromArtifacts(*env.Decode(&nservices).(*map[string][]transformertypes.Artifact), config)
 			services = plantypes.MergeServices(services, nservices)
@@ -247,13 +260,13 @@ func GetServices(prjName string, dir string) (services map[string][]plantypes.Pl
 				logrus.Infof(getNamedAndUnNamedServicesLogMessage(nservices))
 			}
 			common.PlanProgressNumBaseDetectTransformers++
-			logrus.Infof("[%s] Done", tn)
+			logrus.Infof("[%s] Done", config.Name)
 		}
 	}
 	logrus.Infof("[Base Directory] %s", getNamedAndUnNamedServicesLogMessage(services))
 	logrus.Infoln("Transformation planning - Base Directory done")
 	logrus.Infoln("Planning Transformation - Directory Walk")
-	nservices, err := walkForServices(dir, transformers, services)
+	nservices, err := walkForServices(dir, services)
 	if err != nil {
 		logrus.Errorf("Transformation planning - Directory Walk failed : %s", err)
 	} else {
@@ -266,7 +279,7 @@ func GetServices(prjName string, dir string) (services map[string][]plantypes.Pl
 	return
 }
 
-func walkForServices(inputPath string, ts map[string]Transformer, bservices map[string][]plantypes.PlanArtifact) (services map[string][]plantypes.PlanArtifact, err error) {
+func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArtifact) (services map[string][]plantypes.PlanArtifact, err error) {
 	services = bservices
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
 	knownServiceDirPaths := []string{}
