@@ -82,8 +82,9 @@ func (t *Router) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 	}
 	transformers := GetInitializedTransformersF(filters)
 	transformerNames := []string{}
-	for tn := range transformers {
-		transformerNames = append(transformerNames, tn)
+	for _, tr := range transformers {
+		c, _ := tr.GetConfig()
+		transformerNames = append(transformerNames, c.Name)
 	}
 	if len(transformerNames) == 0 {
 		err := fmt.Errorf("no transformers to choose for router %s", t.Config.Name)

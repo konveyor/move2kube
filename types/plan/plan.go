@@ -46,6 +46,7 @@ type Spec struct {
 
 // PlanArtifact stores the artifact with the transformerName
 type PlanArtifact struct {
+	ServiceName               string `yaml:"-"`
 	TransformerName           string `yaml:"transformerName"`
 	transformertypes.Artifact `yaml:",inline"`
 }
