@@ -34,7 +34,6 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/networking"
@@ -203,11 +202,6 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			ir.Storages = append(ir.Storages, irtypes.Storage{Name: secretName,
 				StorageType: irtypes.SecretKind,
 				Content:     vcapEnvMap})
-			ports := cfinstanceapp.Application.Ports
-			if len(ports) == 0 {
-				ports = []int{int(common.DefaultServicePort)}
-				cfinstanceapp.Application.Ports = ports
-			}
 			for _, port := range cfinstanceapp.Application.Ports {
 				// Add the port to the k8s pod.
 				serviceContainer.Ports = append(serviceContainer.Ports, core.ContainerPort{ContainerPort: int32(port)})
@@ -216,8 +210,6 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 				servicePort := podPort
 				serviceConfig.AddPortForwarding(servicePort, podPort, "")
 			}
-			envvar := core.EnvVar{Name: "PORT", Value: cast.ToString(ports[0])}
-			serviceContainer.Env = append(serviceContainer.Env, envvar)
 			serviceConfig.Containers = []core.Container{serviceContainer}
 			ir.Services[sConfig.ServiceName] = serviceConfig
 		}
