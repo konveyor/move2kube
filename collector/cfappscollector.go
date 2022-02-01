@@ -49,8 +49,10 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		logrus.Errorf("Unable to connect to cf client : %s", err)
 		return err
 	}
-	cfInfo, _ := client.GetInfo()
-	logrus.Infof("COLLECT MD NAME: %s", cfInfo.Name)
+	cfInfo, err := client.GetInfo()
+	if err != nil {
+		logrus.Errorf("Unable to get info of cf instance : %s", err)
+	}
 	apps, err := client.ListApps()
 	if err != nil {
 		logrus.Errorf("Unable to get list of cf apps : %s", err)
