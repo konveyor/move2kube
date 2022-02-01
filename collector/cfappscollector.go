@@ -49,6 +49,8 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		logrus.Errorf("Unable to connect to cf client : %s", err)
 		return err
 	}
+	cfInfo, _ := client.GetInfo()
+	logrus.Infof("COLLECT MD NAME: %s", cfInfo.Name)
 	apps, err := client.ListApps()
 	if err != nil {
 		logrus.Errorf("Unable to get list of cf apps : %s", err)
@@ -59,6 +61,7 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		logrus.Errorf("Unable to create outputPath %s : %s", outputPath, err)
 	}
 	cfinstanceapps := collecttypes.NewCfApps()
+	cfinstanceapps.Name = common.NormalizeForMetadataName(cfInfo.Name)
 	for _, app := range apps {
 		cfapp := collecttypes.CfApp{
 			Application: app,
