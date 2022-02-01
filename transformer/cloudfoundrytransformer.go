@@ -236,6 +236,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 				containerizationArtifact.Configs[irtypes.IRConfigType] = ir
 				containerizationArtifact.Configs[artifacts.ServiceConfigType] = sConfig
 				artifactsCreated = append(artifactsCreated, containerizationArtifact)
+				continue
 			}
 		}
 		artifactsCreated = append(artifactsCreated, transformertypes.Artifact{
