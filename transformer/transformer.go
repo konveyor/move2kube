@@ -355,27 +355,22 @@ const (
 )
 
 // Transform transforms as per the plan
-func Transform(plan plantypes.Plan, outputPath string) (err error) {
+func Transform(planServices []plantypes.PlanArtifact, sourceDir, outputPath string) (err error) {
 	var allArtifacts []transformertypes.Artifact
 	newArtifactsToProcess := []transformertypes.Artifact{}
 	pathMappings := []transformertypes.PathMapping{}
 	iteration := 1
 	logrus.Infof("Iteration %d", iteration)
-	for sn, sas := range plan.Spec.Services {
-		if len(sas) == 0 {
-			logrus.Errorf("Ignoring service %s, since it has no artifacts", sn)
-			continue
-		}
-		a := sas[0]
+	for _, a := range planServices {
 		a.ProcessWith = *metav1.AddLabelToSelector(&a.ProcessWith, transformertypes.LabelName, string(a.TransformerName))
 		if a.Type == "" {
 			a.Type = artifacts.ServiceArtifactType
 		}
 		if a.Name == "" {
-			a.Name = sn
+			a.Name = a.ServiceName
 		}
 		serviceConfig := artifacts.ServiceConfig{
-			ServiceName: sn,
+			ServiceName: a.ServiceName,
 		}
 		if a.Configs == nil {
 			a.Configs = map[transformertypes.ConfigType]interface{}{}
@@ -392,7 +387,7 @@ func Transform(plan plantypes.Plan, outputPath string) (err error) {
 		if err = os.RemoveAll(outputPath); err != nil {
 			logrus.Errorf("Unable to delete %s : %s", outputPath, err)
 		}
-		err = processPathMappings(pathMappings, plan.Spec.SourceDir, outputPath)
+		err = processPathMappings(pathMappings, sourceDir, outputPath)
 		if err != nil {
 			logrus.Errorf("Unable to process path mappings")
 		}

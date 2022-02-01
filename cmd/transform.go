@@ -146,8 +146,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 	}
-	p = lib.CuratePlan(p, flags.outpath, flags.transformerSelector)
-	lib.Transform(ctx, p, flags.outpath)
+	lib.Transform(ctx, p, flags.outpath, flags.transformerSelector)
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
 }
 

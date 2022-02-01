@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/transformer"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
@@ -61,51 +60,5 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 		logrus.Errorf("Unable to create plan : %s", err)
 	}
 	logrus.Infof("No of services identified : %d", len(p.Spec.Services))
-	return p
-}
-
-// CuratePlan allows curation the plan with the qa engine
-func CuratePlan(p plantypes.Plan, outputPath, transformerSelector string) plantypes.Plan {
-	common.ProjectName = p.Name
-	logrus.Debugf("Temp Dir : %s", common.TempPath)
-
-	transformerSelectorObj, err := common.ConvertStringSelectorsToSelectors(transformerSelector)
-	if err != nil {
-		logrus.Errorf("Unable to parse the transformer selector string : %s", err)
-	}
-	selectorsInPlan, err := metav1.LabelSelectorAsSelector(&p.Spec.TransformerSelector)
-	if err != nil {
-		logrus.Errorf("Unable to convert label selector to selector : %s", err)
-	} else {
-		requirements, _ := selectorsInPlan.Requirements()
-		transformerSelectorObj = transformerSelectorObj.Add(requirements...)
-	}
-	transformer.InitTransformers(p.Spec.Transformers, transformerSelectorObj, p.Spec.SourceDir, outputPath, p.Name, true)
-	serviceNames := []string{}
-	for sn, st := range p.Spec.Services {
-		sArtifacts := []plantypes.PlanArtifact{}
-		for _, t := range st {
-			if _, err := transformer.GetTransformerByName(t.TransformerName); err == nil {
-				sArtifacts = append(sArtifacts, t)
-				break
-			}
-			logrus.Debugf("Ignoring transformer %+v for service %s due to deselected transformer", t, sn)
-		}
-		if len(sArtifacts) == 0 {
-			logrus.Warnf("No transformers selected for service %s. Ignoring.", sn)
-			delete(p.Spec.Services, sn)
-			continue
-		}
-		p.Spec.Services[sn] = sArtifacts
-		serviceNames = append(serviceNames, sn)
-	}
-	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
-	planServices := map[string][]plantypes.PlanArtifact{}
-	for _, s := range selectedServices {
-		planServices[s] = p.Spec.Services[s]
-	}
-	p.Spec.Services = planServices
-
-	logrus.Debugf("Plan : %+v", p)
 	return p
 }
