@@ -65,7 +65,7 @@ func (c *CfServicesCollector) Collect(inputPath string, outputPath string) error
 	cfservices := collecttypes.NewCfServices()
 	cfservices.Name = common.NormalizeForMetadataName(cfInfo.Name)
 	cfservices.Spec.CfServices = services
-	fileName := "cfservices" + cli.ClientID
+	fileName := "cfservices-" + cfservices.Name + "-" + cli.ClientID
 	if fileName != "" {
 		outputPath = filepath.Join(outputPath, common.NormalizeForFilename(fileName)+".yaml")
 		err = common.WriteYaml(outputPath, cfservices)
