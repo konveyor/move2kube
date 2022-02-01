@@ -49,6 +49,10 @@ func (c *CfServicesCollector) Collect(inputPath string, outputPath string) error
 		logrus.Errorf("Unable to connect to cf client : %s", err)
 		return err
 	}
+	cfInfo, err := client.GetInfo()
+	if err != nil {
+		logrus.Errorf("Unable to get info of cf instance : %s", err)
+	}
 	services, err := client.ListServices()
 	if err != nil {
 		logrus.Errorf("Unable to get list of cf apps : %s", err)
@@ -59,8 +63,9 @@ func (c *CfServicesCollector) Collect(inputPath string, outputPath string) error
 		logrus.Errorf("Unable to create outputPath %s : %s", outputPath, err)
 	}
 	cfservices := collecttypes.NewCfServices()
+	cfservices.Name = common.NormalizeForMetadataName(cfInfo.Name)
 	cfservices.Spec.CfServices = services
-	fileName := "cfservices" + cli.ClientID
+	fileName := "cfservices-" + cfservices.Name + "-" + cli.ClientID
 	if fileName != "" {
 		outputPath = filepath.Join(outputPath, common.NormalizeForFilename(fileName)+".yaml")
 		err = common.WriteYaml(outputPath, cfservices)

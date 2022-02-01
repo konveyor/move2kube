@@ -49,6 +49,10 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		logrus.Errorf("Unable to connect to cf client : %s", err)
 		return err
 	}
+	cfInfo, err := client.GetInfo()
+	if err != nil {
+		logrus.Errorf("Unable to get info of cf instance : %s", err)
+	}
 	apps, err := client.ListApps()
 	if err != nil {
 		logrus.Errorf("Unable to get list of cf apps : %s", err)
@@ -59,6 +63,7 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		logrus.Errorf("Unable to create outputPath %s : %s", outputPath, err)
 	}
 	cfinstanceapps := collecttypes.NewCfApps()
+	cfinstanceapps.Name = common.NormalizeForMetadataName(cfInfo.Name)
 	for _, app := range apps {
 		cfapp := collecttypes.CfApp{
 			Application: app,
@@ -72,7 +77,7 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		cfinstanceapps.Spec.CfApps = append(cfinstanceapps.Spec.CfApps, cfapp)
 	}
 	cfinstanceapps = collecttypes.FormatMapsWithInterface(cfinstanceapps)
-	fileName := "cfapps" + cli.ClientID
+	fileName := "cfapps-" + cfinstanceapps.Name + "-" + cli.ClientID
 	if fileName != "" {
 		outputPath = filepath.Join(outputPath, common.NormalizeForFilename(fileName)+".yaml")
 		err = common.WriteYaml(outputPath, cfinstanceapps)
