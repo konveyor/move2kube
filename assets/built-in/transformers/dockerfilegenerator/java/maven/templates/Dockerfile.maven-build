@@ -17,5 +17,3 @@ COPY .mvn .mvn{{- end }}
 RUN ./mvnw dependency:resolve
 COPY . .
 {{if .MavenProfiles}}RUN ./mvnw clean package -Dmaven.test.skip -P {{$first := true}}{{range $mp := .MavenProfiles}}{{if $first}}{{$first = false}}{{else}},{{end}}{{$mp}}{{end}}{{else}}RUN ./mvnw clean package -Dmaven.test.skip{{end}}
-
-
