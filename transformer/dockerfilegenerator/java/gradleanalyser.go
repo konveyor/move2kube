@@ -75,6 +75,7 @@ type GradleYamlConfig struct {
 // GradleBuildDockerfileTemplate defines the information for the build dockerfile template
 type GradleBuildDockerfileTemplate struct {
 	JavaPackageName string
+	EnvVariables    map[string]string
 	GradleVersion   string
 	GradleWPresent  bool
 }
@@ -390,6 +391,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			DestPath: buildDockerfile,
 			TemplateConfig: GradleBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
+				EnvVariables:    envVariablesMap,
 				GradleVersion:   gradleVersion,
 				GradleWPresent:  gradleConfig.GradleWPresent,
 			},
