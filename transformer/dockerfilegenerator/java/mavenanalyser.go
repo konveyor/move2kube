@@ -55,7 +55,9 @@ type MavenYamlConfig struct {
 type MavenBuildDockerfileTemplate struct {
 	JavaPackageName string
 	MavenVersion    string
+	EnvVariables    map[string]string
 	MavenProfiles   []string
+	MvnwPresent     bool
 }
 
 // Init Initializes the transformer
@@ -124,6 +126,14 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]trans
 	mc.ArtifactType = artifacts.JavaPackaging(pom.Packaging)
 	if len(profiles) != 0 {
 		mc.MavenProfiles = profiles
+	}
+	mvnfp, err := common.GetFilesInCurrentDirectory(dir, []string{"mvnw"}, nil)
+	if err != nil {
+		logrus.Errorf("Error while parsing directory %s for mvnw file : %s", dir, err)
+		return nil, err
+	}
+	if len(mvnfp) > 0 {
+		mc.MvnwPresent = true
 	}
 	if mc.ArtifactType == "" {
 		mc.ArtifactType = artifacts.JarPackaging
@@ -379,8 +389,10 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			DestPath: buildDockerfile,
 			TemplateConfig: MavenBuildDockerfileTemplate{
 				JavaPackageName: javaPackage,
+				EnvVariables:    envVariablesMap,
 				MavenVersion:    t.MavenConfig.MavenVersion,
 				MavenProfiles:   selectedMavenProfiles,
+				MvnwPresent:     mavenConfig.MvnwPresent,
 			},
 		})
 		var newArtifact transformertypes.Artifact
