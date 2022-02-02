@@ -51,7 +51,6 @@ func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, tran
 	serviceNames := []string{}
 	planServices := map[string]plantypes.PlanArtifact{}
 	for sn, st := range plan.Spec.Services {
-		sArtifacts := []plantypes.PlanArtifact{}
 		for _, t := range st {
 			if _, err := transformer.GetTransformerByName(t.TransformerName); err == nil {
 				serviceNames = append(serviceNames, sn)
@@ -61,7 +60,7 @@ func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, tran
 			}
 			logrus.Debugf("Ignoring transformer %+v for service %s due to deselected transformer", t, sn)
 		}
-		if len(sArtifacts) == 0 {
+		if _, ok := planServices[sn]; !ok {
 			logrus.Warnf("No transformers selected for service %s. Ignoring.", sn)
 		}
 	}
