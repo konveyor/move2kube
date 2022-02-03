@@ -116,6 +116,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		sourceDir := ""
 		if cmd.Flags().Changed(sourceFlag) {
 			sourceDir = flags.srcpath
+			logrus.Warnf("Using the detected plan with specified source. If you did not want to use the plan file at %s, delete it and rerun the command.", flags.planfile)
 		}
 		if p, err = plan.ReadPlan(flags.planfile, sourceDir); err != nil {
 			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.planfile, err)
@@ -130,6 +131,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if cmd.Flags().Changed(customizationsFlag) {
 			if flags.customizationsPath != "" {
 				p.Spec.CustomizationsDir = flags.customizationsPath
+				logrus.Warnf("Using the detected plan with specified customization. This might result in undesired results if the customization is different from what was given to plan. If you did not want to use the plan file at %s, delete it and rerun the command.", flags.planfile)
 			}
 		}
 
