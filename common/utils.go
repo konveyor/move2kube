@@ -587,8 +587,12 @@ func IsInt32Present(list []int32, value int32) bool {
 // GetStringFromTemplate returns string for a template
 func GetStringFromTemplate(tpl string, config interface{}) (string, error) {
 	var tplbuffer bytes.Buffer
-	var packageTemplate = template.Must(template.New("").Funcs(sprig.TxtFuncMap()).Parse(tpl))
-	err := packageTemplate.Execute(&tplbuffer, config)
+	packageTemplate, err := template.New("").Funcs(sprig.TxtFuncMap()).Parse(tpl)
+	if err != nil {
+		logrus.Errorf("Unable to parse template : %s", err)
+		return "", err
+	}
+	err = packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
 		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)
 		return "", err
