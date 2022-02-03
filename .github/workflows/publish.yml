@@ -28,13 +28,6 @@ jobs:
               repo: 'move2kube-website',
               workflow_id: 'releaseinfo.yml',
               ref: 'main',
-            });
-
-            // create a homebrew formula
-            await github.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: 'homebrew-move2kube',
-              workflow_id: 'publish.yml',
-              ref: 'main',
               inputs: {tag},
             });
+
