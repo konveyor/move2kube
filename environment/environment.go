@@ -371,7 +371,7 @@ func (e *Environment) ProcessPathMappings(pathMappings []transformertypes.PathMa
 				"TempRoot":     e.CreateTempRoot,
 				"FilePathBase": filepath.Base,
 			}
-			tpl, err := template.Must(template.New("pathTpl"), nil).Funcs(methodMap).Parse(pm.SrcPath)
+			tpl, err := template.New("pathTpl").Funcs(methodMap).Parse(pm.SrcPath)
 			if err != nil {
 				logrus.Errorf("Error while parsing path template : %s", err)
 				continue

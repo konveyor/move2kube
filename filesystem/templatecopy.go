@@ -148,13 +148,16 @@ func templateCopyDeletionCallBack(source, destination string, addOnConfigAsIface
 func writeTemplateToFile(tpl string, config interface{}, writepath string,
 	filemode os.FileMode, openingDelimiter string, closingDelimiter string) error {
 	var tplbuffer bytes.Buffer
-	var packageTemplate *template.Template
-	if openingDelimiter != "" && closingDelimiter != "" {
-		packageTemplate = template.Must(template.New("").Delims(openingDelimiter, closingDelimiter).Funcs(sprig.TxtFuncMap()).Parse(tpl))
-	} else {
-		packageTemplate = template.Must(template.New("").Funcs(sprig.TxtFuncMap()).Parse(tpl))
+	if openingDelimiter == "" || closingDelimiter == "" {
+		openingDelimiter = "{{"
+		closingDelimiter = "}}"
 	}
-	err := packageTemplate.Execute(&tplbuffer, config)
+	packageTemplate, err := template.New("").Delims(openingDelimiter, closingDelimiter).Funcs(sprig.TxtFuncMap()).Parse(tpl)
+	if err != nil {
+		logrus.Errorf("Unable to parse the template : %s", err)
+		return err
+	}
+	err = packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
 		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)
 		return err
