@@ -3,6 +3,7 @@ kind: Transformer
 metadata:
   name: DockerfileImageBuildScript
   labels:
+    move2kube.konveyor.io/task: containerizationscript
     move2kube.konveyor.io/built-in: true
 spec:
   class: "DockerfileImageBuildScript"
