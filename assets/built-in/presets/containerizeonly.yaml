@@ -1,0 +1,2 @@
+move2kube:
+  transformerselector: "move2kube.konveyor.io/task in (containerization,containerizationscript)"
