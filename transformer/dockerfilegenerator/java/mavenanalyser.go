@@ -238,7 +238,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			for _, profile := range *pom.Profiles {
 				if common.IsStringPresent(selectedMavenProfiles, profile.ID) {
 					if profile.Build != nil {
-						builds = append(builds, *pom.Build)
+						builds = append(builds, maven.Build{BuildBase: *profile.Build})
 					}
 				}
 			}
