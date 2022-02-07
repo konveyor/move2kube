@@ -19,6 +19,7 @@ package collector
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -63,7 +64,7 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		logrus.Errorf("Unable to create outputPath %s : %s", outputPath, err)
 	}
 	cfinstanceapps := collecttypes.NewCfApps()
-	cfinstanceapps.Name = common.NormalizeForMetadataName(cfInfo.Name)
+	cfinstanceapps.Name = common.NormalizeForMetadataName(strings.TrimSpace(cfInfo.Name))
 	for _, app := range apps {
 		cfapp := collecttypes.CfApp{
 			Application: app,
@@ -77,7 +78,7 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 		cfinstanceapps.Spec.CfApps = append(cfinstanceapps.Spec.CfApps, cfapp)
 	}
 	cfinstanceapps = collecttypes.FormatMapsWithInterface(cfinstanceapps)
-	fileName := "cfapps-" + cfinstanceapps.Name + cli.ClientID
+	fileName := "cfapps-" + cfinstanceapps.Name
 	if fileName != "" {
 		outputPath = filepath.Join(outputPath, common.NormalizeForFilename(fileName)+".yaml")
 		err = common.WriteYaml(outputPath, cfinstanceapps)

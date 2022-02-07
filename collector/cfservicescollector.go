@@ -19,6 +19,7 @@ package collector
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -63,9 +64,9 @@ func (c *CfServicesCollector) Collect(inputPath string, outputPath string) error
 		logrus.Errorf("Unable to create outputPath %s : %s", outputPath, err)
 	}
 	cfservices := collecttypes.NewCfServices()
-	cfservices.Name = common.NormalizeForMetadataName(cfInfo.Name)
+	cfservices.Name = common.NormalizeForMetadataName(strings.TrimSpace(cfInfo.Name))
 	cfservices.Spec.CfServices = services
-	fileName := "cfservices-" + cfservices.Name + cli.ClientID
+	fileName := "cfservices-" + cfservices.Name
 	if fileName != "" {
 		outputPath = filepath.Join(outputPath, common.NormalizeForFilename(fileName)+".yaml")
 		err = common.WriteYaml(outputPath, cfservices)
