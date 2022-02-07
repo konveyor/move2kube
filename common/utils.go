@@ -50,6 +50,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+func GetYamlsWithTypeMeta(inputPath string, kindFilter string) ([]string, error) {
+	var result []string
+	fileList, err := GetFilesByExt(inputPath, []string{".yaml", ".yml"})
+	if err != nil {
+		return nil, fmt.Errorf("Could not retrieve yaml files from path [%s]", inputPath)
+	}
+	for _, filePath := range fileList {
+		var preamble types.TypeMeta
+		if err := ReadYaml(filePath, &preamble); err == nil && preamble.Kind == kindFilter {
+			result = append(result, filePath)
+		}
+	}
+	return result, nil
+}
+
 //GetFilesByExt returns files by extension
 func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 	var files []string

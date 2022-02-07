@@ -35,7 +35,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -53,12 +52,12 @@ const (
 	// Function names
 	qaFnName = "query"
 	// fs package
-	fsexistsFnName                   = "exists"
-	fsreadFnName                     = "read"
-	fsreaddirFnName                  = "readdir"
-	fsfindkubernetesyamlbykindFnName = "findkubernetesyamlbykind"
-	fspathjoinFnName                 = "pathjoin"
-	fswriteFnName                    = "write"
+	fsexistsFnName               = "exists"
+	fsreadFnName                 = "read"
+	fsreaddirFnName              = "readdir"
+	fsgetyamlswithtypemetaFnName = "getyamlswithtypemeta"
+	fspathjoinFnName             = "pathjoin"
+	fswriteFnName                = "write"
 )
 
 // Starlark implements transformer interface and is used to write simple external transformers
@@ -76,12 +75,6 @@ type Starlark struct {
 // StarYamlConfig defines yaml config for Starlark transformers
 type StarYamlConfig struct {
 	StarFile string `yaml:"starFile"`
-}
-
-// KubernetesYamlPreamble defines preamble of k8s yaml
-type KubernetesYamlPreamble struct {
-	metav1.TypeMeta   `yaml:",inline" json:",inline"`
-	metav1.ObjectMeta `yaml:"metadata" json:"metadata"`
 }
 
 // Init Initializes the transformer
@@ -292,12 +285,12 @@ func (t *Starlark) addFSModules() {
 	t.StarGlobals["fs"] = &starlarkstruct.Module{
 		Name: "fs",
 		Members: starlark.StringDict{
-			fsexistsFnName:                   t.getStarlarkFSExists(),
-			fsreadFnName:                     t.getStarlarkFSRead(),
-			fsreaddirFnName:                  t.getStarlarkFSReadDir(),
-			fspathjoinFnName:                 t.getStarlarkFSPathJoin(),
-			fswriteFnName:                    t.getStarlarkFSWrite(),
-			fsfindkubernetesyamlbykindFnName: t.getStarlarkFSFindKubernetesYamlByKind(),
+			fsexistsFnName:               t.getStarlarkFSExists(),
+			fsreadFnName:                 t.getStarlarkFSRead(),
+			fsreaddirFnName:              t.getStarlarkFSReadDir(),
+			fspathjoinFnName:             t.getStarlarkFSPathJoin(),
+			fswriteFnName:                t.getStarlarkFSWrite(),
+			fsgetyamlswithtypemetaFnName: t.getStarlarkFSGetYamlsWithTypeMeta(),
 		},
 	}
 }
@@ -378,11 +371,11 @@ func (t *Starlark) loadTransformFn() (err error) {
 	return nil
 }
 
-func (t *Starlark) getStarlarkFSFindKubernetesYamlByKind() *starlark.Builtin {
-	return starlark.NewBuiltin(fsfindkubernetesyamlbykindFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (t *Starlark) getStarlarkFSGetYamlsWithTypeMeta() *starlark.Builtin {
+	return starlark.NewBuiltin(fsgetyamlswithtypemetaFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var inputPath string
 		var kindFilter string
-		if err := starlark.UnpackArgs(fsfindkubernetesyamlbykindFnName, args, kwargs, "inputpath", &inputPath, "kind", &kindFilter); err != nil {
+		if err := starlark.UnpackArgs(fsgetyamlswithtypemetaFnName, args, kwargs, "inputpath", &inputPath, "kind", &kindFilter); err != nil {
 			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fswriteFnName, err)
 		}
 		if kindFilter == "" {
@@ -391,16 +384,13 @@ func (t *Starlark) getStarlarkFSFindKubernetesYamlByKind() *starlark.Builtin {
 		if !t.Env.IsPathValid(inputPath) {
 			return starlark.None, fmt.Errorf("invalid path")
 		}
-		var result []interface{}
-		fileList, err := common.GetFilesByExt(inputPath, []string{".yaml", ".yml"})
+		fileList, err := common.GetYamlsWithTypeMeta(inputPath, kindFilter)
 		if err != nil {
-			return starlark.None, fmt.Errorf("Could not retrieve yaml files from path [%s]", inputPath)
+			return starlark.None, err
 		}
+		var result []interface{}
 		for _, filePath := range fileList {
-			var preamble KubernetesYamlPreamble
-			if err := common.ReadYaml(filePath, &preamble); err == nil && preamble.Kind == kindFilter {
-				result = append(result, filePath)
-			}
+			result = append(result, filePath)
 		}
 		return starutil.Marshal(result)
 	})
