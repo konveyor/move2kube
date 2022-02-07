@@ -35,6 +35,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -52,11 +53,12 @@ const (
 	// Function names
 	qaFnName = "query"
 	// fs package
-	fsexistsFnName   = "exists"
-	fsreadFnName     = "read"
-	fsreaddirFnName  = "readdir"
-	fspathjoinFnName = "pathjoin"
-	fswriteFnName    = "write"
+	fsexistsFnName                   = "exists"
+	fsreadFnName                     = "read"
+	fsreaddirFnName                  = "readdir"
+	fsfindkubernetesyamlbykindFnName = "findkubernetesyamlbykind"
+	fspathjoinFnName                 = "pathjoin"
+	fswriteFnName                    = "write"
 )
 
 // Starlark implements transformer interface and is used to write simple external transformers
@@ -74,6 +76,11 @@ type Starlark struct {
 // StarYamlConfig defines yaml config for Starlark transformers
 type StarYamlConfig struct {
 	StarFile string `yaml:"starFile"`
+}
+
+type KubernetesYamlPreamble struct {
+	metav1.TypeMeta   `yaml:",inline" json:",inline"`
+	metav1.ObjectMeta `yaml:"metadata" json:"metadata"`
 }
 
 // Init Initializes the transformer
@@ -284,11 +291,12 @@ func (t *Starlark) addFSModules() {
 	t.StarGlobals["fs"] = &starlarkstruct.Module{
 		Name: "fs",
 		Members: starlark.StringDict{
-			fsexistsFnName:   t.getStarlarkFSExists(),
-			fsreadFnName:     t.getStarlarkFSRead(),
-			fsreaddirFnName:  t.getStarlarkFSReadDir(),
-			fspathjoinFnName: t.getStarlarkFSPathJoin(),
-			fswriteFnName:    t.getStarlarkFSWrite(),
+			fsexistsFnName:                   t.getStarlarkFSExists(),
+			fsreadFnName:                     t.getStarlarkFSRead(),
+			fsreaddirFnName:                  t.getStarlarkFSReadDir(),
+			fspathjoinFnName:                 t.getStarlarkFSPathJoin(),
+			fswriteFnName:                    t.getStarlarkFSWrite(),
+			fsfindkubernetesyamlbykindFnName: t.getStarlarkFSFindKubernetesYamlByKind(),
 		},
 	}
 }
@@ -367,6 +375,34 @@ func (t *Starlark) loadTransformFn() (err error) {
 	}
 	t.transformFn = fn
 	return nil
+}
+
+func (t *Starlark) getStarlarkFSFindKubernetesYamlByKind() *starlark.Builtin {
+	return starlark.NewBuiltin(fsfindkubernetesyamlbykindFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var inputPath string
+		var kindFilter string
+		if err := starlark.UnpackArgs(fsfindkubernetesyamlbykindFnName, args, kwargs, "inputpath", &inputPath, "kind", &kindFilter); err != nil {
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fswriteFnName, err)
+		}
+		if kindFilter == "" {
+			return starlark.None, fmt.Errorf("Kind is missing in find parameters")
+		}
+		if !t.Env.IsPathValid(inputPath) {
+			return starlark.None, fmt.Errorf("invalid path")
+		}
+		var result []interface{}
+		fileList, err := common.GetFilesByExt(inputPath, []string{".yaml", ".yml"})
+		if err != nil {
+			return starlark.None, fmt.Errorf("Could not retrieve yaml files from path [%s]", inputPath)
+		}
+		for _, filePath := range fileList {
+			var preamble KubernetesYamlPreamble
+			if err := common.ReadYaml(filePath, &preamble); err == nil && preamble.Kind == kindFilter {
+				result = append(result, filePath)
+			}
+		}
+		return starutil.Marshal(result)
+	})
 }
 
 func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
