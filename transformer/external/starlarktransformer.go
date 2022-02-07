@@ -52,11 +52,12 @@ const (
 	// Function names
 	qaFnName = "query"
 	// fs package
-	fsexistsFnName   = "exists"
-	fsreadFnName     = "read"
-	fsreaddirFnName  = "readdir"
-	fspathjoinFnName = "pathjoin"
-	fswriteFnName    = "write"
+	fsexistsFnName               = "exists"
+	fsreadFnName                 = "read"
+	fsreaddirFnName              = "readdir"
+	fsgetyamlswithtypemetaFnName = "getyamlswithtypemeta"
+	fspathjoinFnName             = "pathjoin"
+	fswriteFnName                = "write"
 )
 
 // Starlark implements transformer interface and is used to write simple external transformers
@@ -284,11 +285,12 @@ func (t *Starlark) addFSModules() {
 	t.StarGlobals["fs"] = &starlarkstruct.Module{
 		Name: "fs",
 		Members: starlark.StringDict{
-			fsexistsFnName:   t.getStarlarkFSExists(),
-			fsreadFnName:     t.getStarlarkFSRead(),
-			fsreaddirFnName:  t.getStarlarkFSReadDir(),
-			fspathjoinFnName: t.getStarlarkFSPathJoin(),
-			fswriteFnName:    t.getStarlarkFSWrite(),
+			fsexistsFnName:               t.getStarlarkFSExists(),
+			fsreadFnName:                 t.getStarlarkFSRead(),
+			fsreaddirFnName:              t.getStarlarkFSReadDir(),
+			fspathjoinFnName:             t.getStarlarkFSPathJoin(),
+			fswriteFnName:                t.getStarlarkFSWrite(),
+			fsgetyamlswithtypemetaFnName: t.getStarlarkFSGetYamlsWithTypeMeta(),
 		},
 	}
 }
@@ -367,6 +369,31 @@ func (t *Starlark) loadTransformFn() (err error) {
 	}
 	t.transformFn = fn
 	return nil
+}
+
+func (t *Starlark) getStarlarkFSGetYamlsWithTypeMeta() *starlark.Builtin {
+	return starlark.NewBuiltin(fsgetyamlswithtypemetaFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var inputPath string
+		var kindFilter string
+		if err := starlark.UnpackArgs(fsgetyamlswithtypemetaFnName, args, kwargs, "inputpath", &inputPath, "kind", &kindFilter); err != nil {
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fswriteFnName, err)
+		}
+		if kindFilter == "" {
+			return starlark.None, fmt.Errorf("Kind is missing in find parameters")
+		}
+		if !t.Env.IsPathValid(inputPath) {
+			return starlark.None, fmt.Errorf("invalid path")
+		}
+		fileList, err := common.GetYamlsWithTypeMeta(inputPath, kindFilter)
+		if err != nil {
+			return starlark.None, err
+		}
+		var result []interface{}
+		for _, filePath := range fileList {
+			result = append(result, filePath)
+		}
+		return starutil.Marshal(result)
+	})
 }
 
 func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
