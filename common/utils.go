@@ -50,6 +50,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+//GetYamlsWithTypeMeta returns files by yaml kind
 func GetYamlsWithTypeMeta(inputPath string, kindFilter string) ([]string, error) {
 	var result []string
 	fileList, err := GetFilesByExt(inputPath, []string{".yaml", ".yml"})
