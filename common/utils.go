@@ -487,7 +487,7 @@ func ReadXML(file string, data interface{}) error {
 func NormalizeForFilename(name string) string {
 	processedString := MakeFileNameCompliant(name)
 	//TODO: Make it more robust by taking some characters from start and also from end
-	const maxPrefixLength = 15
+	const maxPrefixLength = 200
 	if len(processedString) > maxPrefixLength {
 		processedString = processedString[0:maxPrefixLength]
 	}
