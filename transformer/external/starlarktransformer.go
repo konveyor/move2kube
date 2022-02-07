@@ -78,6 +78,7 @@ type StarYamlConfig struct {
 	StarFile string `yaml:"starFile"`
 }
 
+// KubernetesYamlPreamble defines preamble of k8s yaml
 type KubernetesYamlPreamble struct {
 	metav1.TypeMeta   `yaml:",inline" json:",inline"`
 	metav1.ObjectMeta `yaml:"metadata" json:"metadata"`
