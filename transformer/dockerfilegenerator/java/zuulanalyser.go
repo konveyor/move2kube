@@ -93,7 +93,6 @@ func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, alrea
 				if s.Annotations == nil {
 					s.Annotations = map[string]string{}
 				}
-				s.Annotations[common.ExposeSelector] = common.AnnotationLabelValue
 			}
 			ir.Services[sn] = s
 		}
