@@ -37,8 +37,8 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 				continue
 			}
 			key := common.ConfigServicesKey + common.Delim + `"` + sn + `"` + common.Delim + `"` + fmt.Sprintf("%d", pf.ServicePort.Number) + `"` + common.Delim + "urlpath"
-			message := fmt.Sprintf("What URL/path should we expose the service %s's %d port on?", sn, pf.ServicePort.Number)
-			hints := []string{"Enter :- not expose the service", "Leave out leading / to use first part as subdomain", "Add :N as suffix for NodePort service type", "Add :L for Load Balancer service type", "Add :C for ClusterIP service type"}
+			message := fmt.Sprintf("What kind of service/ingress to create for %s's %d port?", sn, pf.ServicePort.Number)
+			hints := []string{"Enter :- to not create service for the port", "For Ingress path, leave out leading / to use first part as subdomain", "Add :N as suffix for NodePort service type", "Add :L for Load Balancer service type", "Add :C for ClusterIP service type"}
 			exposedServiceRelPath := ""
 			if pf.ServiceRelPath != "" {
 				exposedServiceRelPath = pf.ServiceRelPath
