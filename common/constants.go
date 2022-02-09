@@ -46,8 +46,6 @@ const (
 	ConfigFile = types.AppNameShort + "config.yaml"
 	// IgnoreFilename is the name of the file containing the ignore rules and exceptions
 	IgnoreFilename = "." + types.AppNameShort + "ignore"
-	// ExposeSelector tag is used to annotate services that are externally exposed
-	ExposeSelector = types.GroupName + "/service.expose"
 	// WindowsAnnotation tag is used tag a service to run on windows nodes
 	WindowsAnnotation = types.GroupName + "/containertype.windows"
 	// AnnotationLabelValue represents the value when an annotation is valid

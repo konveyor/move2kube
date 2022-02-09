@@ -22,11 +22,11 @@ import (
 	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
-//mergePreprocessor implements Optimizer interface
+// mergePreprocessor implements preprocess interface
 type mergePreprocessor struct {
 }
 
-//Optimize uses data from ir containers to fill ir.services
+// Preprocesses the port forwardings
 func (opt *mergePreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 	for serviceName, service := range ir.Services {
 		service.Containers = opt.mergeContainers(service.Containers)

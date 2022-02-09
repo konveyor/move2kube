@@ -54,7 +54,7 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 	ingressEnabled := false
 	for _, service := range ir.Services {
 		exposeobjectcreated := false
-		if service.HasValidAnnotation(common.ExposeSelector) || service.OnlyIngress {
+		if _, _, _, st := d.getExposeInfo(service); st != "" || service.OnlyIngress {
 			// Create services depending on whether the service needs to be externally exposed
 			if common.IsStringPresent(supportedKinds, routeKind) {
 				//Create Route
@@ -465,6 +465,10 @@ func (d *Service) getExposeInfo(service irtypes.Service) (servicePorts []core.Se
 			if serviceType != core.ServiceTypeLoadBalancer {
 				serviceType = st
 			}
+		case core.ServiceTypeClusterIP:
+			if serviceType != core.ServiceTypeLoadBalancer && serviceType != core.ServiceTypeNodePort {
+				serviceType = st
+			}
 		case "":
 			continue
 		}
@@ -481,16 +485,18 @@ func (d *Service) parseServiceRelPath(path string) (hostPrefix, relPath string, 
 	hostPrefix = ""
 	const nodeportSuffix = ":N"
 	const loadBalancerSuffix = ":L"
+	const clusterIPSuffix = ":C"
 	const noneSuffix = ":-"
 	if strings.HasSuffix(relPath, nodeportSuffix) {
 		serviceType = core.ServiceTypeNodePort
 		relPath = strings.TrimSuffix(relPath, nodeportSuffix)
-	}
-	if strings.HasSuffix(relPath, loadBalancerSuffix) {
+	} else if strings.HasSuffix(relPath, loadBalancerSuffix) {
 		serviceType = core.ServiceTypeLoadBalancer
 		relPath = strings.TrimSuffix(relPath, loadBalancerSuffix)
-	}
-	if strings.HasSuffix(relPath, noneSuffix) {
+	} else if strings.HasSuffix(relPath, clusterIPSuffix) {
+		serviceType = core.ServiceTypeClusterIP
+		relPath = strings.TrimSuffix(relPath, clusterIPSuffix)
+	} else if strings.HasSuffix(relPath, noneSuffix) {
 		serviceType = ""
 		relPath = strings.TrimSuffix(relPath, noneSuffix)
 	}
