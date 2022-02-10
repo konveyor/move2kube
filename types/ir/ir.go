@@ -80,7 +80,8 @@ type Service struct {
 type ServiceToPodPortForwarding struct {
 	ServicePort    networking.ServiceBackendPort
 	PodPort        networking.ServiceBackendPort
-	ServiceRelPath string //Ingress fan-out path - If empty the service is not exposed
+	ServiceRelPath string
+	ServiceType    core.ServiceType
 }
 
 // ContainerBuildTypeValue stores the container build type

@@ -457,61 +457,38 @@ func (d *Service) getExposeInfo(service irtypes.Service) (servicePorts []core.Se
 			Port:       forwarding.ServicePort.Number,
 			TargetPort: targetPort,
 		}
-		hostPrefix, relPath, st := d.parseServiceRelPath(forwarding.ServiceRelPath)
-		switch st {
+		switch forwarding.ServiceType {
 		case core.ServiceTypeLoadBalancer:
-			serviceType = st
+			serviceType = forwarding.ServiceType
 		case core.ServiceTypeNodePort:
 			if serviceType != core.ServiceTypeLoadBalancer {
-				serviceType = st
+				serviceType = forwarding.ServiceType
 			}
 		case core.ServiceTypeClusterIP:
 			if serviceType != core.ServiceTypeLoadBalancer && serviceType != core.ServiceTypeNodePort {
-				serviceType = st
+				serviceType = forwarding.ServiceType
 			}
 		case "":
 			continue
+		}
+		hostPrefix := ""
+		relPath := forwarding.ServiceRelPath
+		if relPath != "" && !strings.HasPrefix(relPath, `/`) {
+			parts := []string{relPath}
+			if strings.Contains(relPath, `/`) {
+				parts = strings.SplitN(relPath, `/`, 2)
+			}
+			relPath = `/`
+			if len(parts) > 1 {
+				relPath += parts[1]
+			}
+			hostPrefix = parts[0]
 		}
 		relPaths = append(relPaths, relPath)
 		hostPrefixes = append(hostPrefixes, hostPrefix)
 		servicePorts = append(servicePorts, servicePort)
 	}
 	return servicePorts, hostPrefixes, relPaths, serviceType
-}
-
-func (d *Service) parseServiceRelPath(path string) (hostPrefix, relPath string, serviceType core.ServiceType) {
-	serviceType = core.ServiceTypeClusterIP
-	relPath = path
-	hostPrefix = ""
-	const nodeportSuffix = ":N"
-	const loadBalancerSuffix = ":L"
-	const clusterIPSuffix = ":C"
-	const noneSuffix = ":-"
-	if strings.HasSuffix(relPath, nodeportSuffix) {
-		serviceType = core.ServiceTypeNodePort
-		relPath = strings.TrimSuffix(relPath, nodeportSuffix)
-	} else if strings.HasSuffix(relPath, loadBalancerSuffix) {
-		serviceType = core.ServiceTypeLoadBalancer
-		relPath = strings.TrimSuffix(relPath, loadBalancerSuffix)
-	} else if strings.HasSuffix(relPath, clusterIPSuffix) {
-		serviceType = core.ServiceTypeClusterIP
-		relPath = strings.TrimSuffix(relPath, clusterIPSuffix)
-	} else if strings.HasSuffix(relPath, noneSuffix) {
-		serviceType = ""
-		relPath = strings.TrimSuffix(relPath, noneSuffix)
-	}
-	if relPath != "" && !strings.HasPrefix(relPath, `/`) {
-		parts := []string{relPath}
-		if strings.Contains(relPath, `/`) {
-			parts = strings.SplitN(relPath, `/`, 2)
-		}
-		relPath = `/`
-		if len(parts) > 1 {
-			relPath += parts[1]
-		}
-		hostPrefix = parts[0]
-	}
-	return hostPrefix, relPath, serviceType
 }
 
 func (d *Service) getHostName(irName string) string {
