@@ -1,0 +1,23 @@
+name: Trigger end to end test
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  trigger-e2e-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
+          script: |
+            await github.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: 'move2kube-tests',
+              workflow_id: 'e2etest.yaml',
+              ref: 'main',
+              inputs: {tag: 'main'},
+            });
+
