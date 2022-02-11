@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -222,6 +223,16 @@ func (e *dockerEngine) CopyDirsIntoContainer(containerID string, paths map[strin
 		}
 	}
 	return nil
+}
+
+func (e *dockerEngine) Stat(containerID string, name string) (fs.FileInfo, error) {
+	stat, err := e.cli.ContainerStatPath(e.ctx, containerID, name)
+	if err != nil {
+		return nil, err
+	}
+	return &FileInfo{
+		stat: stat,
+	}, err
 }
 
 // CopyDirsFromContainer creates a container

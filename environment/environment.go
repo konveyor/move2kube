@@ -19,6 +19,7 @@ package environment
 import (
 	"bytes"
 	"fmt"
+	"io/fs"
 	"net"
 	"os"
 	"path/filepath"
@@ -75,6 +76,7 @@ type Environment struct {
 // EnvironmentInstance represents a actual instance of an environment which the Environment manages
 type EnvironmentInstance interface {
 	Reset() error
+	Stat(name string) (fs.FileInfo, error)
 	Download(envpath string) (outpath string, err error)
 	Upload(outpath string) (envpath string, err error)
 	Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error)
@@ -328,11 +330,11 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 			}
 			return relPath, nil
 		}
-		if _, err := os.Stat(path); err != nil {
+		if _, err := e.Env.Stat(path); err != nil {
 			logrus.Debugf("Path [%s] does not exist", path)
 			return path, nil
 		}
-		if !common.IsParent(filepath.Clean(path), common.TempPath) {
+		if !common.IsParent(path, e.GetEnvironmentContext()) && !common.IsParent(filepath.Clean(path), common.TempPath) {
 			err := fmt.Errorf("path %s points to a unknown path. Removing the path", path)
 			logrus.Error(err)
 			return "", err

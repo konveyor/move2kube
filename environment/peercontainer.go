@@ -18,6 +18,7 @@ package environment
 
 import (
 	"fmt"
+	"io/fs"
 	"net"
 	"os"
 	"path/filepath"
@@ -109,6 +110,12 @@ func (e *PeerContainer) Reset() error {
 	}
 	e.CID = cid
 	return nil
+}
+
+// Stat returns stat info of the file/dir in the env
+func (e *PeerContainer) Stat(name string) (fs.FileInfo, error) {
+	cengine := container.GetContainerEngine()
+	return cengine.Stat(e.CID, name)
 }
 
 // Exec executes a command in the container

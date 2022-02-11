@@ -18,6 +18,7 @@ package container
 
 import (
 	"fmt"
+	"io/fs"
 
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/konveyor/move2kube/common"
@@ -48,6 +49,7 @@ type ContainerEngine interface {
 	StopAndRemoveContainer(containerID string) (err error)
 	// RunContainer runs a container from an image
 	RunContainer(image string, cmd environmenttypes.Command, volsrc string, voldest string) (output string, containerStarted bool, err error)
+	Stat(containerID, name string) (fs.FileInfo, error)
 }
 
 func initContainerEngine() (err error) {
