@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"os"
 	"os/exec"
@@ -80,6 +81,11 @@ func (e *Local) Reset() error {
 		}
 	}
 	return nil
+}
+
+// Stat returns stat info of the file/dir in the env
+func (e *Local) Stat(name string) (fs.FileInfo, error) {
+	return os.Stat(name)
 }
 
 // Exec executes an executable within the environment
