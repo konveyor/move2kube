@@ -61,6 +61,12 @@ func (g *Gradle) Merge(newg Gradle) {
 	g.Repositories = append(g.Repositories, newg.Repositories...)
 	g.Dependencies = append(g.Dependencies, newg.Dependencies...)
 	g.Plugins = append(g.Plugins, newg.Plugins...)
+	if g.Metadata == nil {
+		g.Metadata = make(map[string][]string)
+	}
+	if g.Blocks == nil {
+		g.Blocks = make(map[string]Gradle)
+	}
 	for mi, m := range newg.Metadata {
 		g.Metadata[mi] = append(g.Metadata[mi], m...)
 	}
