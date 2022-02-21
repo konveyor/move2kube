@@ -55,7 +55,7 @@ func GetYamlsWithTypeMeta(inputPath string, kindFilter string) ([]string, error)
 	var result []string
 	fileList, err := GetFilesByExt(inputPath, []string{".yaml", ".yml"})
 	if err != nil {
-		return nil, fmt.Errorf("Could not retrieve yaml files from path [%s]", inputPath)
+		return nil, fmt.Errorf("could not retrieve yaml files from path [%s]", inputPath)
 	}
 	for _, filePath := range fileList {
 		var preamble types.TypeMeta
@@ -514,6 +514,10 @@ func NormalizeForFilename(name string) string {
 
 // NormalizeForMetadataName converts the string to be compatible for service name
 func NormalizeForMetadataName(metadataName string) string {
+	if metadataName == "" {
+		logrus.Errorf("failed to normalize for service/metadata name because it is an empty string")
+		return ""
+	}
 	newName := disallowedDNSCharactersRegex.ReplaceAllLiteralString(strings.ToLower(metadataName), "-")
 	maxLength := 63
 	if len(newName) > maxLength {
@@ -521,7 +525,7 @@ func NormalizeForMetadataName(metadataName string) string {
 	}
 	newName = ReplaceStartingTerminatingHyphens(newName, "a", "z")
 	if newName != metadataName {
-		logrus.Infof("Changing metadata name to %s from %s", metadataName, newName)
+		logrus.Infof("Changing metadata name from %s to %s", metadataName, newName)
 	}
 	return newName
 }
@@ -535,7 +539,7 @@ func NormalizeForEnvironmentVariableName(envName string) string {
 		newName = characterToMakeValid + newName
 	}
 	if newName != envName {
-		logrus.Infof("Changing environment name to %s from %s", envName, newName)
+		logrus.Infof("Changing environment name from %s to %s", envName, newName)
 	}
 	return newName
 }
@@ -1268,7 +1272,7 @@ func ConvertStringSelectorsToSelectors(transformerSelector string) (labels.Selec
 }
 
 // ReplaceStartingTerminatingHyphens replaces the first and last characters of a string if they are hyphens
-func ReplaceStartingTerminatingHyphens(str string, startReplaceStr, endReplaceStr string) string {
+func ReplaceStartingTerminatingHyphens(str, startReplaceStr, endReplaceStr string) string {
 	first := str[0]
 	last := str[len(str)-1]
 	if first == '-' {
