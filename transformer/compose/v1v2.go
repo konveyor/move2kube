@@ -174,12 +174,12 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 				},
 			}
 		}
+		if composeServiceConfig.ContainerName == "" {
+			composeServiceConfig.ContainerName = serviceConfig.Name
+		}
 		serviceContainer.Name = common.NormalizeForMetadataName(composeServiceConfig.ContainerName)
 		if serviceContainer.Name != composeServiceConfig.ContainerName {
 			logrus.Debugf("Container name in service %q has been changed from %q to %q", name, composeServiceConfig.ContainerName, serviceContainer.Name)
-		}
-		if serviceContainer.Name == "" {
-			serviceContainer.Name = serviceConfig.Name
 		}
 		serviceContainer.Command = composeServiceConfig.Entrypoint
 		serviceContainer.Args = composeServiceConfig.Command

@@ -174,10 +174,10 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		serviceContainer.Command = composeServiceConfig.Entrypoint
 		serviceContainer.Args = composeServiceConfig.Command
 		serviceContainer.Stdin = composeServiceConfig.StdinOpen
-		serviceContainer.Name = common.NormalizeForMetadataName(composeServiceConfig.ContainerName)
-		if serviceContainer.Name == "" {
-			serviceContainer.Name = strings.ToLower(serviceConfig.Name)
+		if composeServiceConfig.ContainerName == "" {
+			composeServiceConfig.ContainerName = strings.ToLower(serviceConfig.Name)
 		}
+		serviceContainer.Name = common.NormalizeForMetadataName(composeServiceConfig.ContainerName)
 		serviceContainer.TTY = composeServiceConfig.Tty
 		serviceContainer.Ports = c.getPorts(composeServiceConfig.Ports, composeServiceConfig.Expose)
 		c.addPorts(composeServiceConfig.Ports, composeServiceConfig.Expose, &serviceConfig)
