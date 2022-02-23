@@ -325,7 +325,6 @@ func (d *Service) createRoute(irName string, service irtypes.Service, port core.
 }
 
 // createIngress creates a single ingress for all services
-//TODO: Only supports fan-out. Virtual named hosting is not supported yet.
 func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) *networking.Ingress {
 	pathType := networking.PathTypePrefix
 
