@@ -232,12 +232,12 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		}
 		pythonTemplateConfig.Port = commonqa.GetPortForService(ports, a.Name)
 		if len(a.Paths[artifacts.ServiceDirPathType]) == 0 {
-			logrus.Errorf("The service directory path is missing for the artifact: %+v", a)
-			continue
-		}
-		if len(a.Paths[RequirementsTxtPathType]) != 0 {
-			if requirementsTxt, err := filepath.Rel(a.Paths[artifacts.ServiceDirPathType][0], a.Paths[RequirementsTxtPathType][0]); err == nil {
-				pythonTemplateConfig.RequirementsTxt = requirementsTxt
+			logrus.Debugf("The service directory path is missing for the artifact: %+v", a)
+		} else {
+			if len(a.Paths[RequirementsTxtPathType]) != 0 {
+				if requirementsTxt, err := filepath.Rel(a.Paths[artifacts.ServiceDirPathType][0], a.Paths[RequirementsTxtPathType][0]); err == nil {
+					pythonTemplateConfig.RequirementsTxt = requirementsTxt
+				}
 			}
 		}
 		if sImageName.ImageName == "" {
