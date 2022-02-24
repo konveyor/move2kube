@@ -49,6 +49,7 @@ HAS_MOVE2KUBE="$(command -v "$BINARY_NAME" >/dev/null && echo true || echo false
 
 if [ "$USE_SUDO" = "true" ] && [ "$HAS_SUDO" = 'false' ]; then
     echo 'executable "sudo" not found. Proceeding without sudo, some commands may fail to execute properly.'
+    echo 'If it fails, you can retry with a different installation directory: MOVE2KUBE_INSTALL_DIR=/my/new/install/dir'
     USE_SUDO='false'
 fi
 
