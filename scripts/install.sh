@@ -40,11 +40,17 @@ fi
 [[ $MOVE2KUBE_INSTALL_DIR ]] || MOVE2KUBE_INSTALL_DIR='/usr/local/bin'
 
 HAS_JQ="$(command -v jq >/dev/null && echo true || echo false)"
+HAS_SUDO="$(command -v sudo >/dev/null && echo true || echo false)"
 HAS_CURL="$(command -v curl >/dev/null && echo true || echo false)"
 HAS_WGET="$(command -v wget >/dev/null && echo true || echo false)"
 HAS_OPENSSL="$(command -v openssl >/dev/null && echo true || echo false)"
 HAS_SHA256SUM="$(command -v sha256sum >/dev/null && echo true || echo false)"
 HAS_MOVE2KUBE="$(command -v "$BINARY_NAME" >/dev/null && echo true || echo false)"
+
+if [ "$USE_SUDO" = "true" ] && [ "$HAS_SUDO" = 'false' ]; then
+    echo 'executable "sudo" not found. Proceeding without sudo, some commands may fail to execute properly.'
+    USE_SUDO='false'
+fi
 
 isURLExist() {
     if [ "$#" -ne 1 ]; then
