@@ -49,7 +49,6 @@ HAS_MOVE2KUBE="$(command -v "$BINARY_NAME" >/dev/null && echo true || echo false
 
 if [ "$USE_SUDO" = "true" ] && [ "$HAS_SUDO" = 'false' ]; then
     echo 'executable "sudo" not found. Proceeding without sudo, some commands may fail to execute properly.'
-    echo 'If it fails, you can retry with a different installation directory: MOVE2KUBE_INSTALL_DIR=/my/new/install/dir'
     USE_SUDO='false'
 fi
 
@@ -246,7 +245,8 @@ installMove2Kube() {
     mkdir -p "$MOVE2KUBE_TMP"
     tar -xf "$MOVE2KUBE_TMP_FILE" -C "$MOVE2KUBE_TMP"
     MOVE2KUBE_TMP_BIN="$MOVE2KUBE_TMP/$BINARY_NAME/$BINARY_NAME"
-    echo "Preparing to install $BINARY_NAME into ${MOVE2KUBE_INSTALL_DIR}"
+    echo "Preparing to install $BINARY_NAME into the directory: ${MOVE2KUBE_INSTALL_DIR}"
+    echo 'If it fails, you can retry with a different installation directory. Example: MOVE2KUBE_INSTALL_DIR=/my/new/install/dir'
     runAsRoot cp "$MOVE2KUBE_TMP_BIN" "$MOVE2KUBE_INSTALL_DIR/$BINARY_NAME"
     echo "Successfully installed $BINARY_NAME into $MOVE2KUBE_INSTALL_DIR/$BINARY_NAME"
 }
