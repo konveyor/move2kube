@@ -18,9 +18,13 @@ package transformer
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/types/info"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
 
 // ReadMeGenerator implements Transformer interface
@@ -49,9 +53,17 @@ func (t *ReadMeGenerator) DirectoryDetect(dir string) (services map[string][]tra
 // Transform transforms the artifacts
 func (t *ReadMeGenerator) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
+	data := struct{ Version string }{Version: ""}
+	verYAMl, err := yaml.Marshal(info.GetVersionInfo())
+	if err != nil {
+		logrus.Errorf("failed to marshal the version information to YAML. Error: %q", err)
+	} else {
+		data.Version = strings.TrimSpace(string(verYAMl))
+	}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
-		Type:    transformertypes.TemplatePathMappingType,
-		SrcPath: filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
+		Type:           transformertypes.TemplatePathMappingType,
+		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
+		TemplateConfig: data,
 	})
 	return pathMappings, nil, nil
 }
