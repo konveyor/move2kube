@@ -405,8 +405,8 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 	if pt == dependency && (depSel == nil || depSel.String() == "") {
 		return nil, nil, newArtifactsToProcess
 	}
-	for _, t := range transformers {
-		tconfig, env := t.GetConfig()
+	for _, transformer := range transformers {
+		tconfig, env := transformer.GetConfig()
 		if pt == dependency && !depSel.Matches(labels.Set(tconfig.Labels)) {
 			continue
 		}
@@ -423,7 +423,7 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 		if len(artifactsToNotConsume) != 0 {
 			logrus.Errorf("Artifacts to not consume : %d. This should have been 0.", len(artifactsToNotConsume))
 		}
-		producedNewPathMappings, producedNewArtifacts, err := runSingleTransform(artifactsToConsume, allArtifacts, t, tconfig, env)
+		producedNewPathMappings, producedNewArtifacts, err := runSingleTransform(artifactsToConsume, allArtifacts, transformer, tconfig, env)
 		if err != nil {
 			continue
 		}
