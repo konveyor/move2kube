@@ -142,7 +142,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 		}
 		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, pt, t.parameterizers)
 		if err != nil {
-			logrus.Errorf("Unable to parameterize : %s", err)
+			logrus.Errorf("Unable to parameterize: %s", err)
 			continue
 		}
 		logrus.Debugf("Number of files written by parameterizer: %d", len(filesWritten))
