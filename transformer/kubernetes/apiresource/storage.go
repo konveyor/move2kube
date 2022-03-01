@@ -186,7 +186,6 @@ func convertVolumeBySupportedKind(volume core.Volume, cluster collecttypes.Clust
 			vEmpty := convertPVCVolumeToEmptyVolume(volume)
 			logrus.Warnf("PVC not supported in target cluster. Defaulting volume [%s] to emptyDir", volume.Name)
 			return *vEmpty
-
 		}
 		return volume
 	}

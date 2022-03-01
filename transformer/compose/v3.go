@@ -408,20 +408,28 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 					},
 				})
 			} else {
+				// Generate a hash Id for the given source file path to be mounted.
+				hPath := vol.Source
+				if hPath == "" {
+					hPath = vol.Target
+				}
+				hashID := getHash([]byte(hPath))
+				volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
+
 				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
-					Name:      vol.Source,
+					Name:      volumeName,
 					MountPath: vol.Target,
 				})
 
 				serviceConfig.AddVolume(core.Volume{
-					Name: vol.Source,
+					Name: volumeName,
 					VolumeSource: core.VolumeSource{
 						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-							ClaimName: vol.Source,
+							ClaimName: volumeName,
 						},
 					},
 				})
-				storageObj := irtypes.Storage{StorageType: irtypes.PVCKind, Name: vol.Source, Content: nil}
+				storageObj := irtypes.Storage{StorageType: irtypes.PVCKind, Name: volumeName, Content: nil}
 				ir.AddStorage(storageObj)
 			}
 		}

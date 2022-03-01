@@ -52,7 +52,7 @@ func Intersection(objs1 []runtime.Object, objs2 []runtime.Object) []runtime.Obje
 }
 
 // GetInfoFromK8sResource returns some useful information given a k8s resource
-func GetInfoFromK8sResource(k8sResource K8sResourceT) (kind string, apiVersion string, name string, err error) {
+func GetInfoFromK8sResource(k8sResource K8sResourceT) (kind, apiVersion, name string, err error) {
 	logrus.Trace("start getInfoFromK8sResource")
 	defer logrus.Trace("end getInfoFromK8sResource")
 	kindI, ok := k8sResource["kind"]

@@ -127,10 +127,12 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 			logrus.Errorf("Unable to evaluate helm chart name : %s", err)
 			continue
 		}
-		pt := parameterizer.ParameterizerConfigT{Helm: "helm",
+		pt := parameterizer.ParameterizerConfigT{
+			Helm:        "helm",
 			Kustomize:   "kustomize",
 			OCTemplates: "octemplates",
-			ProjectName: projectName}
+			ProjectName: projectName,
+		}
 		if len(t.ParameterizerConfig.HelmPath) == 0 {
 			pt.Helm = ""
 		}
@@ -142,7 +144,7 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 		}
 		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, pt, t.parameterizers)
 		if err != nil {
-			logrus.Errorf("Unable to parameterize: %s", err)
+			logrus.Errorf("failed to parameterize the YAML files in the source directory %s and write to output directory %s . Error: %q", yamlsPath, destPath, err)
 			continue
 		}
 		logrus.Debugf("Number of files written by parameterizer: %d", len(filesWritten))
