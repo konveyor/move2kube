@@ -211,6 +211,9 @@ func getCsprojPathsFromSolutionFile(inputPath string) ([]string, error) {
 		serviceDirPath := match[1]
 		serviceDirPath = strings.TrimSpace(serviceDirPath)
 		serviceDirPath = common.GetUnixPath(serviceDirPath)
+		if filepath.Ext(serviceDirPath) != CSPROJ_FILE_EXT {
+			continue
+		}
 		serviceDirPaths = append(serviceDirPaths, serviceDirPath)
 	}
 	return serviceDirPaths, nil

@@ -30,7 +30,7 @@ var (
 	// WebSLLib is the key library used in web sliverlight applications
 	WebSLLib = regexp.MustCompile("Silverlight.js")
 	// ProjBlockRegex pattern
-	ProjBlockRegex = regexp.MustCompile(`(?m)^Project\([^,]+\s*,\s*\"([^,]+)\"`)
+	ProjBlockRegex = regexp.MustCompile(`(?m)^Project\([^)]+\)[^,]+\s*,\s*\"([^"]+)\"`)
 )
 
 const (
