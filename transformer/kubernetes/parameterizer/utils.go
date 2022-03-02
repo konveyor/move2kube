@@ -19,6 +19,7 @@ package parameterizer
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -299,6 +300,9 @@ func writeResourceAppendToFile(k8sResource k8sschema.K8sResourceT, outputPath st
 		logrus.Error("Error while Encoding object")
 		return err
 	}
+	if err := os.MkdirAll(filepath.Dir(outputPath), common.DefaultDirectoryPermission); err != nil {
+		logrus.Fatalf("Failed to create the output directory at path %s Error: %q", filepath.Dir(outputPath), err)
+	}
 	// If the file doesn't exist, create it, or append to the file
 	f, err := os.OpenFile(outputPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, common.DefaultFilePermission)
 	if err != nil {
@@ -321,6 +325,9 @@ func writeResourceStripQuotesAndAppendToFile(k8sResource k8sschema.K8sResourceT,
 		return err
 	}
 	strippedYamlBytes := stripHelmQuotesRegex.ReplaceAll(yamlBytes, []byte("$1"))
+	if err := os.MkdirAll(filepath.Dir(outputPath), common.DefaultDirectoryPermission); err != nil {
+		logrus.Fatalf("Failed to create the output directory at path %s Error: %q", filepath.Dir(outputPath), err)
+	}
 	// If the file doesn't exist, create it, or append to the file
 	f, err := os.OpenFile(outputPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, common.DefaultFilePermission)
 	if err != nil {
