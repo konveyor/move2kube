@@ -205,7 +205,7 @@ func getCsprojPathsFromSolutionFile(inputPath string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not open the solution file: %s", err)
 	}
-	serviceDirPaths := make([]string, 0)
+	serviceDirPaths := []string{}
 	matches := dotnet.ProjBlockRegex.FindAllStringSubmatch(string(solFileTxt), -1)
 	for _, match := range matches {
 		serviceDirPath := match[1]
@@ -227,7 +227,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 	appName := ""
 	dotNetCoreCsprojPaths := []string{}
 	for _, de := range dirEntries {
-		if filepath.Ext(de.Name()) != dotnet.CsSln {
+		if filepath.Ext(de.Name()) != dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT {
 			continue
 		}
 		csProjPaths, err := getCsprojPathsFromSolutionFile(filepath.Join(dir, de.Name()))

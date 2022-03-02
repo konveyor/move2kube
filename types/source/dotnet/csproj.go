@@ -34,8 +34,9 @@ var (
 )
 
 const (
-	// CsSln is the solution file extension
-	CsSln = ".sln"
+	// VISUAL_STUDIO_SOLUTION_FILE_EXT is the file extension for a file Visual Studio uses to store project metadata
+	// https://docs.microsoft.com/en-us/visualstudio/extensibility/internals/solution-dot-sln-file?view=vs-2022
+	VISUAL_STUDIO_SOLUTION_FILE_EXT = ".sln"
 
 	// DefaultBaseImageVersion is the default base image version tag
 	DefaultBaseImageVersion = "4.8"
