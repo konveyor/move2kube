@@ -123,7 +123,7 @@ func (c *v3Loader) ConvertToIR(composefilepath string, serviceName string) (irty
 	logrus.Debugf("About to load configuration from docker compose file at path %s", composefilepath)
 	config, err := parseV3(composefilepath)
 	if err != nil {
-		logrus.Warnf("Error while loading docker compose config : %s", err)
+		logrus.Debugf("Error while loading docker compose config : %s", err)
 		return irtypes.IR{}, err
 	}
 	logrus.Debugf("About to start loading docker compose to intermediate rep")
