@@ -46,7 +46,7 @@ var (
 )
 
 const (
-	csproj             = ".csproj"
+	CSPROJ_FILE_EXT    = ".csproj"
 	launchSettingsJSON = "launchSettings.json"
 	// DotNetCoreCsprojFilesPathType points to the csproj files path of dotnetcore projects
 	DotNetCoreCsprojFilesPathType transformertypes.PathType = "DotNetCoreCsprojPathType"
@@ -241,15 +241,14 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 		for _, csPath := range csProjPaths {
 			projPath := filepath.Join(dir, csPath)
 			csprojConfiguration := &dotnet.CSProj{}
-			err := common.ReadXML(projPath, csprojConfiguration)
-			if err != nil {
+			if err := common.ReadXML(projPath, csprojConfiguration); err != nil {
 				logrus.Debugf("Error while reading the csproj file (%s) : %s", projPath, err)
 				continue
 			}
 			if dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
 				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, projPath)
 			} else {
-				logrus.Warnf("Unable to find compatible ASP.NET Core target framework %s hence skipping.", csprojConfiguration.PropertyGroup.TargetFramework)
+				logrus.Warnf("unable to find compatible ASP.NET Core target framework for the csproj file at path %s hence skipping. Actual: %s", projPath, csprojConfiguration.PropertyGroup.TargetFramework)
 			}
 		}
 		if len(dotNetCoreCsprojPaths) == 0 {
@@ -272,25 +271,21 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 			if de.IsDir() {
 				continue
 			}
-			if filepath.Ext(de.Name()) != csproj {
+			if filepath.Ext(de.Name()) != CSPROJ_FILE_EXT {
 				continue
 			}
-			csprojFile := filepath.Join(dir, de.Name())
+			csprojFilePath := filepath.Join(dir, de.Name())
 			csprojConfiguration := &dotnet.CSProj{}
-			err := common.ReadXML(csprojFile, csprojConfiguration)
-			if err != nil {
-				logrus.Errorf("Unable to read the csproj file (%s) : %s", csprojFile, err)
+			if err := common.ReadXML(csprojFilePath, csprojConfiguration); err != nil {
+				logrus.Errorf("unable to read the csproj file at path %s . Error: %q", csprojFilePath, err)
 				continue
 			}
 			if dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
-				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, csprojFile)
-				appName = strings.TrimSuffix(filepath.Base(csprojFile), filepath.Ext(csprojFile))
-				break
-				// Exit soon of after the valid csproj file is found
-			} else {
-				logrus.Warnf("Unable to find compatible ASP.NET Core target framework %s hence skipping.", csprojConfiguration.PropertyGroup.TargetFramework)
-				continue
+				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, csprojFilePath)
+				appName = strings.TrimSuffix(filepath.Base(csprojFilePath), filepath.Ext(csprojFilePath))
+				break // Exit soon after the valid csproj file is found
 			}
+			logrus.Warnf("unable to find compatible ASP.NET Core target framework for the csproj file at path %s hence skipping. Actual: %s", csprojFilePath, csprojConfiguration.PropertyGroup.TargetFramework)
 		}
 	}
 
