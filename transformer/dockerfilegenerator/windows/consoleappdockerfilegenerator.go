@@ -160,7 +160,7 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (services
 	appName := ""
 	appConfigList := make([]string, 0)
 	for _, de := range dirEntries {
-		if filepath.Ext(de.Name()) != dotnet.CsSln {
+		if filepath.Ext(de.Name()) != dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT {
 			continue
 		}
 		csProjPaths, err := parseSolutionFile(filepath.Join(dir, de.Name()))
