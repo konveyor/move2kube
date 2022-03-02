@@ -17,7 +17,6 @@
 package dockerfilegenerator
 
 import (
-	"encoding/xml"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -64,7 +63,6 @@ type DotNetCoreTemplateConfig struct {
 	IsNodeJSProject        bool
 	DotNetVersion          string
 	PublishProfileFilePath string
-	PublishUrl             string
 }
 
 // DotNetCoreDockerfileYamlConfig represents the configuration of the DotNetCore dockerfile
@@ -77,19 +75,6 @@ type DotNetCoreDockerfileGenerator struct {
 	Config           transformertypes.Transformer
 	Env              *environment.Environment
 	DotNetCoreConfig *DotNetCoreDockerfileYamlConfig
-}
-
-// PublishProfile defines the publish profile
-type PublishProfile struct {
-	XMLName       xml.Name       `xml:"Project"`
-	PropertyGroup *PropertyGroup `xml:"PropertyGroup"`
-}
-
-// PropertyGroup has publish properties of the project
-type PropertyGroup struct {
-	XMLName     xml.Name `xml:"PropertyGroup"`
-	PublishUrl  string   `xml:"PublishUrl"`
-	PublishUrlS string   `xml:"publishUrl"`
 }
 
 //LaunchSettings defines launchSettings.json properties
@@ -126,11 +111,10 @@ func (t *DotNetCoreDockerfileGenerator) GetConfig() (transformertypes.Transforme
 	return t.Config, t.Env
 }
 
-// getPublishProfile returns the publish profile for the service
-func getPublishProfile(publishProfileFilesPath []string, serviceName, baseDir string) (string, string) {
-	var publishProfileFileRelPath, publishUrl string
+// getPublishProfilePath returns the publish profile file path for the service
+func getPublishProfilePath(publishProfileFilesPath []string, serviceName, baseDir string) string {
+	var publishProfileFileRelPath string
 	var publishProfileFilesRelPath []string
-	var err error
 	for _, publishProfileFilePath := range publishProfileFilesPath {
 		if publishProfileFileRelPath, err := filepath.Rel(baseDir, publishProfileFilePath); err == nil {
 			publishProfileFilesRelPath = append(publishProfileFilesRelPath, publishProfileFileRelPath)
@@ -141,14 +125,7 @@ func getPublishProfile(publishProfileFilesPath []string, serviceName, baseDir st
 	} else if len(publishProfileFilesRelPath) > 1 {
 		publishProfileFileRelPath = qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPublishProfileForServiceKeySegment, fmt.Sprintf("Select the publish profile to be used for the service %s :", serviceName), []string{fmt.Sprintf("Selected publish profile will be used for publishing the service %s", serviceName)}, publishProfileFilesRelPath[0], publishProfileFilesRelPath)
 	}
-	if publishProfileFileRelPath != "" {
-		publishUrl, err = parsePublishProfileFile(filepath.Join(baseDir, publishProfileFileRelPath))
-		if err != nil {
-			logrus.Errorf("Error while parsing the publish profile %s", err)
-			return publishProfileFileRelPath, ""
-		}
-	}
-	return common.GetUnixPath(publishProfileFileRelPath), publishUrl
+	return common.GetUnixPath(publishProfileFileRelPath)
 }
 
 // findPublishProfiles returns the publish profiles of the cs project
@@ -159,23 +136,6 @@ func findPublishProfiles(csprojFilePath string) []string {
 		return []string{}
 	}
 	return publishProfileFiles
-}
-
-// parsePublishProfileFile parses the publish profile to get the PublishUrl
-func parsePublishProfileFile(publishProfileFilePath string) (string, error) {
-	var publishUrl string
-	publishProfile := &PublishProfile{}
-	err := common.ReadXML(publishProfileFilePath, publishProfile)
-	if err != nil {
-		logrus.Errorf("Unable to read publish profile file (%s) : %s", publishProfileFilePath, err)
-		return "", err
-	}
-	if publishProfile.PropertyGroup.PublishUrl != "" {
-		publishUrl = common.GetUnixPath(publishProfile.PropertyGroup.PublishUrl)
-	} else if publishProfile.PropertyGroup.PublishUrlS != "" {
-		publishUrl = common.GetUnixPath(publishProfile.PropertyGroup.PublishUrlS)
-	}
-	return publishUrl, nil
 }
 
 // getCsprojFileForService returns the start-up csproj file used by a service
@@ -354,7 +314,7 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 			csprojRelFilePath = getCsprojFileForService(a.Paths[DotNetCoreCsprojFilesPathType], a.Paths[artifacts.ServiceDirPathType][0], a.Name)
 		}
 		publishProfileFilesPath := findPublishProfiles(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], csprojRelFilePath))
-		dotNetCoreTemplateConfig.PublishProfileFilePath, dotNetCoreTemplateConfig.PublishUrl = getPublishProfile(publishProfileFilesPath, a.Name, a.Paths[artifacts.ServiceDirPathType][0])
+		dotNetCoreTemplateConfig.PublishProfileFilePath = getPublishProfilePath(publishProfileFilesPath, a.Name, a.Paths[artifacts.ServiceDirPathType][0])
 		dotNetCoreTemplateConfig.CsprojFilePath = csprojRelFilePath
 		dotnetProjectName := strings.TrimSuffix(filepath.Base(dotNetCoreTemplateConfig.CsprojFilePath), filepath.Ext(dotNetCoreTemplateConfig.CsprojFilePath))
 		dotNetCoreTemplateConfig.CsprojFileName = dotnetProjectName

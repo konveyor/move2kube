@@ -24,8 +24,8 @@ RUN curl https://deb.nodesource.com/setup_10.x -o setup_10.x && \
     apt-get install -y build-essential nodejs
 {{- end }}
 
-{{- if and .PublishProfileFilePath .PublishUrl }}
-RUN dotnet publish {{ .CsprojFilePath }} /p:PublishProfile={{ .PublishProfileFilePath}} -o /{{ .PublishUrl }}
+{{- if .PublishProfileFilePath }}
+RUN dotnet publish {{ .CsprojFilePath }} /p:PublishProfile={{ .PublishProfileFilePath}} -o /src/app/publish
 {{- else }}
 RUN dotnet publish {{ .CsprojFilePath }} -c Release -o /src/app/publish
 {{- end }}
@@ -39,9 +39,5 @@ EXPOSE {{ $port }}
 {{- if .HTTPPort }}
 ENV ASPNETCORE_URLS=http://+:{{ .HTTPPort }}
 {{- end}}
-{{- if and .PublishProfileFilePath .PublishUrl }}
-COPY --from=builder /{{ .PublishUrl }} .
-{{- else }}
 COPY --from=builder /src/app/publish .
-{{- end }}
 CMD ["dotnet", "{{ .CsprojFileName }}.dll"]
