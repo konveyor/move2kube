@@ -46,6 +46,7 @@ var (
 )
 
 const (
+	// CSPROJ_FILE_EXT is the file extension for C# (C Sharp) projects.
 	CSPROJ_FILE_EXT    = ".csproj"
 	launchSettingsJSON = "launchSettings.json"
 	// DotNetCoreCsprojFilesPathType points to the csproj files path of dotnetcore projects
