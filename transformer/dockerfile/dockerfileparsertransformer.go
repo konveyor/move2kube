@@ -132,7 +132,7 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, contextPath, imag
 		irtypes.DockerfileContainerBuildArtifactTypeValue: {dockerfilepath},
 	}
 	if len(container.ExposedPorts) == 0 {
-		logrus.Warnf("Unable to find ports in Dockerfile : %s. Using default port", dockerfilepath)
+		logrus.Warnf("Unable to find ports in Dockerfile : %s. Using default port %d", dockerfilepath, common.DefaultServicePort)
 		container.AddExposedPort(common.DefaultServicePort)
 	}
 	ir.AddContainer(imageName, container)

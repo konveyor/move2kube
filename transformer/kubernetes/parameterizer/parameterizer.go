@@ -80,7 +80,7 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 					}
 					finalKPath := filepath.Join(helmTemplatesDir, kPath)
 					if err := writeResourceStripQuotesAndAppendToFile(k, finalKPath); err != nil {
-						logrus.Errorf("Unable to parameterized file to %s : %s", finalKPath, err)
+						logrus.Errorf("Unable to write parameterized file to %s : %s", finalKPath, err)
 						continue
 					}
 					filesWritten = append(filesWritten, finalKPath)
