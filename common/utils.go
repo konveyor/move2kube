@@ -147,8 +147,7 @@ func GetFilesByExtInCurrDir(inputPath string, exts []string) ([]string, error) {
 func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]string, error) {
 	var files []string
 	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
-		logrus.Warnf("Error in walking through files due to : %q", err)
-		return files, err
+		return files, fmt.Errorf("the input path %s does not exist. Error: %q", inputPath, err)
 	} else if !info.IsDir() {
 		logrus.Warnf("The path %q is not a directory.", inputPath)
 	}
