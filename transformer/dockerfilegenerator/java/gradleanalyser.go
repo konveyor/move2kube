@@ -191,7 +191,6 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		javaVersion := ""
 		if len(a.Paths[artifacts.GradleBuildFilePathType]) == 0 {
 			logrus.Errorf("unable to find gradle build file for %s", a.Name)
 			continue
@@ -201,7 +200,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			logrus.Errorf("Error while parsing gradle build file : %s", err)
 			continue
 		}
-		javaVersion = t.GradleConfig.JavaVersion
+		javaVersion := t.GradleConfig.JavaVersion
 		gradleConfig := artifacts.GradleConfig{}
 		err = a.GetConfig(artifacts.GradleConfigType, &gradleConfig)
 		if err != nil {
@@ -298,13 +297,19 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		}
 		if archiveName == "" {
 			archiveName = gradleConfig.AppName
-			if len(gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC]) > 0 {
+			if len(gradleBuild.Metadata[archiveAppendixOldC]) > 0 {
+				archiveName += "-" + gradleBuild.Metadata[archiveAppendixOldC][0]
+			} else if len(gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC]) > 0 {
 				archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveAppendixOldC][0]
 			}
-			if len(gradleBuild.Metadata[projectPrefixC+archiveVersionOldC]) > 0 {
+			if len(gradleBuild.Metadata[archiveVersionOldC]) > 0 {
+				archiveName += "-" + gradleBuild.Metadata[archiveVersionOldC][0]
+			} else if len(gradleBuild.Metadata[projectPrefixC+archiveVersionOldC]) > 0 {
 				archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveVersionOldC][0]
 			}
-			if len(gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC]) > 0 {
+			if len(gradleBuild.Metadata[archiveClassifierOldC]) > 0 {
+				archiveName += "-" + gradleBuild.Metadata[archiveClassifierOldC][0]
+			} else if len(gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC]) > 0 {
 				archiveName += "-" + gradleBuild.Metadata[projectPrefixC+archiveClassifierOldC][0]
 			}
 			archiveName += "." + string(gradleConfig.ArtifactType)
