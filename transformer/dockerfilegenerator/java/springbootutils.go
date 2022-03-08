@@ -205,12 +205,27 @@ func getSpringBootAppNameAndProfilesFromDir(dir string) (appName string, profile
 	return getSpringBootAppNameAndProfiles(getSpringBootMetadataFiles(dir))
 }
 
-func getSpringBootMetadataFiles(dir string) (springbootMetadataFiles SpringBootMetadataFiles) {
-	springbootMetadataFiles.bootstrapFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultSpringBootResourcesPath), []string{"bootstrap.properties"}, nil)
-	springbootMetadataFiles.bootstrapYamlFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultSpringBootResourcesPath), nil, []string{"bootstrap.ya?ml"})
-	springbootMetadataFiles.appPropFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultSpringBootResourcesPath), nil, []string{"application(-.+)?.properties"})
-	springbootMetadataFiles.appYamlFiles, _ = common.GetFilesByName(filepath.Join(dir, defaultSpringBootResourcesPath), nil, []string{"application(-.+)?.ya?ml"})
-	return
+func getSpringBootMetadataFiles(dir string) SpringBootMetadataFiles {
+	springbootMetadataFiles := SpringBootMetadataFiles{}
+	resourcesPath := filepath.Join(dir, defaultSpringBootResourcesPath)
+	var err error
+	springbootMetadataFiles.bootstrapFiles, err = common.GetFilesByName(resourcesPath, []string{"bootstrap.properties"}, nil)
+	if err != nil {
+		logrus.Debugf("failed to get files by name for path %s for bootstrap.properties. Error: %q", resourcesPath, err)
+	}
+	springbootMetadataFiles.bootstrapYamlFiles, err = common.GetFilesByName(resourcesPath, nil, []string{`bootstrap\.ya?ml`})
+	if err != nil {
+		logrus.Debugf("failed to get files by name for path %s bootstrap.yaml. Error: %q", resourcesPath, err)
+	}
+	springbootMetadataFiles.appPropFiles, err = common.GetFilesByName(resourcesPath, nil, []string{`application(-.+)?\.properties`})
+	if err != nil {
+		logrus.Debugf("failed to get files by name for path %s application.properties. Error: %q", resourcesPath, err)
+	}
+	springbootMetadataFiles.appYamlFiles, err = common.GetFilesByName(resourcesPath, nil, []string{`application(-.+)?\.ya?ml`})
+	if err != nil {
+		logrus.Debugf("failed to get files by name for path %s application.yaml. Error: %q", resourcesPath, err)
+	}
+	return springbootMetadataFiles
 }
 
 func getSpringBootAppNameAndProfiles(springbootMetadataFiles SpringBootMetadataFiles) (appName string, profiles []string) {
