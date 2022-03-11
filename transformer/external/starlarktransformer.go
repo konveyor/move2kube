@@ -250,9 +250,22 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 		if err != nil {
 			logrus.Fatalf("failed to ask the question. Error: %q", err)
 		}
-		answerValue, err := starutil.Marshal(resolved.Answer)
-		if err != nil {
-			return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", resolved.Answer, resolved.Answer, err)
+
+		var answerValue starlark.Value
+		if ansList, ok := resolved.Answer.([]string); ok {
+			var result []interface{}
+			for _, ans := range ansList {
+				result = append(result, ans)
+			}
+			answerValue, err = starutil.Marshal(result)
+			if err != nil {
+				return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", resolved.Answer, resolved.Answer, err)
+			}
+		} else {
+			answerValue, err = starutil.Marshal(resolved.Answer)
+			if err != nil {
+				return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", resolved.Answer, resolved.Answer, err)
+			}
 		}
 		return answerValue, err
 	})
