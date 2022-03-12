@@ -1,4 +1,4 @@
-name: Trigger end to end test
+name: Trigger end to end tests
 
 on:
   push:
@@ -13,11 +13,12 @@ jobs:
         with:
           github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           script: |
-            await github.actions.createWorkflowDispatch({
+            const e2e_tests = ['e2etest-1-language-platforms.yaml', 'e2etest-2-enterprise-app.yaml'];
+            const promises = e2e_tests.map(workflow_id => github.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: 'move2kube-tests',
-              workflow_id: 'e2etest.yaml',
+              workflow_id,
               ref: 'main',
               inputs: {tag: 'main'},
-            });
-
+            }));
+            await Promise.all(promises);
