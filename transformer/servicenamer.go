@@ -86,6 +86,7 @@ func nameServices(projName string, services map[string][]plantypes.PlanArtifact)
 			logrus.Debugf("No repo name found for repo at %s", repoURL)
 			continue
 		}
+		repoName = common.NormalizeForMetadataName(repoName)
 		if bps, ok := gitRepoNames[repoName]; ok {
 			gitRepoNames[repoName] = append(bps, sp)
 		} else {
