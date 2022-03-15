@@ -96,6 +96,7 @@ func nameServices(projName string, services map[string][]plantypes.PlanArtifact)
 	for repoName, basePaths := range gitRepoNames {
 		if len(basePaths) == 1 {
 			// Only one service in repo
+			repoName = common.NormalizeForMetadataName(repoName)
 			services[repoName] = servicePaths[basePaths[0]]
 			delete(servicePaths, basePaths[0])
 		}
@@ -103,6 +104,7 @@ func nameServices(projName string, services map[string][]plantypes.PlanArtifact)
 	// Only one set of unnamed services, use service name
 	if len(services) == 0 && len(servicePaths) == 1 {
 		for _, ts := range servicePaths {
+			projName = common.NormalizeForMetadataName(projName)
 			services[projName] = ts
 		}
 		return services
