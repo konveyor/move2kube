@@ -88,19 +88,18 @@ func (t *MavenAnalyser) GetConfig() (transformertypes.Transformer, *environment.
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	services = map[string][]transformertypes.Artifact{}
+func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
 	mavenFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{maven.PomXMLFileName}, nil)
 	if err != nil {
-		logrus.Errorf("Error while parsing directory %s for maven file : %s", dir, err)
+		logrus.Errorf("failed to look for maven pom.xml files in the directory %s . Error: %q", dir, err)
 		return nil, err
 	}
 	if len(mavenFilePaths) == 0 {
 		return nil, nil
 	}
+	logrus.Debugf("found %d pom.xml files in the directory %s . files: %+v", len(mavenFilePaths), dir, mavenFilePaths)
 	pom := &maven.Pom{}
-	err = pom.Load(mavenFilePaths[0])
-	if err != nil {
+	if err := pom.Load(mavenFilePaths[0]); err != nil {
 		logrus.Errorf("Unable to unmarshal pom file (%s): %s", mavenFilePaths[0], err)
 		return nil, err
 	}
@@ -109,77 +108,71 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (services map[string][]trans
 		return nil, nil
 	}
 	appName := pom.ArtifactID
-	profiles := []string{}
+	mavenProfiles := []string{}
 	if pom.Profiles != nil {
 		for _, profile := range *pom.Profiles {
-			profiles = append(profiles, profile.ID)
+			mavenProfiles = append(mavenProfiles, profile.ID)
 		}
 	}
-	ct := transformertypes.Artifact{
+	mavenArtifact := transformertypes.Artifact{
 		Configs: map[transformertypes.ConfigType]interface{}{},
 		Paths: map[transformertypes.PathType][]string{
 			artifacts.MavenPomPathType:   {filepath.Join(dir, maven.PomXMLFileName)},
 			artifacts.ServiceDirPathType: {dir},
 		},
 	}
-	mc := artifacts.MavenConfig{}
-	mc.ArtifactType = artifacts.JavaPackaging(pom.Packaging)
-	if len(profiles) != 0 {
-		mc.MavenProfiles = profiles
+	mavenConfig := artifacts.MavenConfig{}
+	mavenConfig.MavenAppName = pom.ArtifactID
+	mavenConfig.ArtifactType = artifacts.JavaPackaging(pom.Packaging)
+	if mavenConfig.ArtifactType == "" {
+		mavenConfig.ArtifactType = artifacts.JarPackaging
 	}
-	mvnfp, err := common.GetFilesInCurrentDirectory(dir, []string{"mvnw"}, nil)
-	if err != nil {
+	if len(mavenProfiles) != 0 {
+		mavenConfig.MavenProfiles = mavenProfiles
+	}
+	// look for maven wrapper
+	if mavenWrapperFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{"mvnw"}, nil); err != nil {
 		logrus.Errorf("Error while parsing directory %s for mvnw file : %s", dir, err)
 		return nil, err
+	} else if len(mavenWrapperFilePaths) > 0 {
+		mavenConfig.MvnwPresent = true
 	}
-	if len(mvnfp) > 0 {
-		mc.MvnwPresent = true
-	}
-	if mc.ArtifactType == "" {
-		mc.ArtifactType = artifacts.JarPackaging
-	}
-	if pom.ArtifactID != "" {
-		mc.MavenAppName = pom.ArtifactID
-	}
-	ct.Configs[artifacts.MavenConfigType] = mc
+	mavenArtifact.Configs[artifacts.MavenConfigType] = mavenConfig
+	// look for spring boot
 	if pom.Dependencies != nil {
 		for _, dependency := range *pom.Dependencies {
-			if dependency.GroupID == springbootGroup {
-				sbc := artifacts.SpringBootConfig{}
-				appName, sbps := getSpringBootAppNameAndProfilesFromDir(dir)
-				sbc.SpringBootAppName = appName
-				if len(sbps) != 0 {
-					sbc.SpringBootProfiles = &sbps
+			if dependency.GroupID == springBootGroup {
+				springConfig := artifacts.SpringBootConfig{}
+				springConfig.SpringBootVersion = dependency.Version
+				springAppName, springProfiles := getSpringBootAppNameAndProfilesFromDir(dir)
+				springConfig.SpringBootAppName = springAppName
+				if len(springProfiles) != 0 {
+					springConfig.SpringBootProfiles = &springProfiles
 				}
-				if dependency.Version != "" {
-					sbc.SpringBootVersion = dependency.Version
-				}
-				ct.Configs[artifacts.SpringBootConfigType] = sbc
+				mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
 				break
 			}
 		}
 	}
-	services[appName] = append(services[appName], ct)
-	return
+	services := map[string][]transformertypes.Artifact{appName: {mavenArtifact}}
+	return services, err
 }
 
 // Transform transforms the artifacts
 func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
+	for _, newArtifact := range newArtifacts {
 		javaVersion := ""
 		var pom maven.Pom
-		if len(a.Paths[artifacts.MavenPomPathType]) == 0 {
-			err := fmt.Errorf("unable to find pom for %s", a.Name)
-			logrus.Errorf("%s", err)
+		if len(newArtifact.Paths[artifacts.MavenPomPathType]) == 0 {
+			logrus.Errorf("the artifact doesn't contain a maven pom.xml path. Artifact: %+v", newArtifact)
 			continue
 		}
-		err := pom.Load(a.Paths[artifacts.MavenPomPathType][0])
-		if err != nil {
-			logrus.Errorf("Unable to load pom for %s : %s", a.Name, err)
+		if err := pom.Load(newArtifact.Paths[artifacts.MavenPomPathType][0]); err != nil {
+			logrus.Errorf("Unable to load pom for %s : %s", newArtifact.Name, err)
 		}
-		if _, ok := a.Configs[artifacts.SpringBootConfigType]; ok {
+		if _, ok := newArtifact.Configs[artifacts.SpringBootConfigType]; ok {
 			jv, err := pom.GetProperty("java.version")
 			if err == nil {
 				javaVersion = jv
@@ -192,14 +185,12 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			}
 		}
 		mavenConfig := artifacts.MavenConfig{}
-		err = a.GetConfig(artifacts.MavenConfigType, &mavenConfig)
-		if err != nil {
+		if err := newArtifact.GetConfig(artifacts.MavenConfigType, &mavenConfig); err != nil {
 			logrus.Debugf("Unable to load maven config object: %s", err)
 		}
 		ir := irtypes.IR{}
 		irPresent := true
-		err = a.GetConfig(irtypes.IRConfigType, &ir)
-		if err != nil {
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			irPresent = false
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
@@ -221,9 +212,9 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			defaultProfiles = mavenConfig.MavenProfiles
 		}
 		selectedMavenProfiles := qaengine.FetchMultiSelectAnswer(
-			common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ConfigActiveMavenProfilesForServiceKeySegment,
-			fmt.Sprintf("Choose the Maven profile to be used for the service %s", a.Name),
-			[]string{fmt.Sprintf("Selected Maven profiles will be used for setting configuration for the service %s", a.Name)},
+			common.ConfigServicesKey+common.Delim+newArtifact.Name+common.Delim+common.ConfigActiveMavenProfilesForServiceKeySegment,
+			fmt.Sprintf("Choose the Maven profile to be used for the service %s", newArtifact.Name),
+			[]string{fmt.Sprintf("Selected Maven profiles will be used for setting configuration for the service %s", newArtifact.Name)},
 			defaultProfiles,
 			mavenConfig.MavenProfiles,
 		)
@@ -311,31 +302,33 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 					deploymentFileName += "-" + classifier
 				}
 			} else {
-				deploymentFileName = a.Name
+				deploymentFileName = newArtifact.Name
 			}
 		}
 		if deploymentDir == "" {
 			deploymentDir = "target"
 		}
 		// Springboot profiles handling
-		// We collect the springboot profiles from the current service
-		springbootConfig := artifacts.SpringBootConfig{}
-		err = a.GetConfig(artifacts.SpringBootConfigType, &springbootConfig)
-		if err != nil {
+		// We collect the Spring Boot profiles from the current service
+		springBootConfig := artifacts.SpringBootConfig{}
+		isSpringBootApp := true
+		if err := newArtifact.GetConfig(artifacts.SpringBootConfigType, &springBootConfig); err != nil {
 			logrus.Debugf("Unable to load springboot config object: %s", err)
+			isSpringBootApp = false
 		}
 		// if there are profiles, we ask the user to select
 		springBootProfilesFlattened := ""
-		if springbootConfig.SpringBootProfiles != nil && len(*springbootConfig.SpringBootProfiles) > 0 {
-			selectedSpringBootProfiles := qaengine.FetchMultiSelectAnswer(
-				common.ConfigServicesKey+common.Delim+a.Name+common.Delim+common.ConfigActiveSpringBootProfilesForServiceKeySegment,
-				fmt.Sprintf("Choose Springboot profiles to be used for the service %s", a.Name),
-				[]string{fmt.Sprintf("Selected Springboot profiles will be used for setting configuration for the service %s", a.Name)},
-				*springbootConfig.SpringBootProfiles,
-				*springbootConfig.SpringBootProfiles,
+		var selectedSpringBootProfiles []string
+		if springBootConfig.SpringBootProfiles != nil && len(*springBootConfig.SpringBootProfiles) > 0 {
+			selectedSpringBootProfiles = qaengine.FetchMultiSelectAnswer(
+				common.ConfigServicesKey+common.Delim+newArtifact.Name+common.Delim+common.ConfigActiveSpringBootProfilesForServiceKeySegment,
+				fmt.Sprintf("Choose Springboot profiles to be used for the service %s", newArtifact.Name),
+				[]string{fmt.Sprintf("Selected Springboot profiles will be used for setting configuration for the service %s", newArtifact.Name)},
+				*springBootConfig.SpringBootProfiles,
+				*springBootConfig.SpringBootProfiles,
 			)
 			if len(selectedSpringBootProfiles) != 0 {
-				// we flatten the list of springboot profiles for passing it as env var
+				// we flatten the list of Spring Boot profiles for passing it as env var
 				springBootProfilesFlattened = strings.Join(selectedSpringBootProfiles, ",")
 			} else {
 				logrus.Debugf("No springboot profiles selected")
@@ -348,16 +341,14 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			envVariablesMap["SPRING_PROFILES_ACTIVE"] = springBootProfilesFlattened
 		}
 		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
-		if err != nil {
+		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &sImageName); err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
 		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(a.Name)
+			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(newArtifact.Name)
 		}
 		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &sConfig); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
@@ -374,7 +365,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		if err != nil {
 			logrus.Errorf("Unable to read Dockerfile license template : %s", err)
 		}
-		tempDir := filepath.Join(t.Env.TempPath, a.Name)
+		tempDir := filepath.Join(t.Env.TempPath, newArtifact.Name)
 		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
 		dockerfileTemplate := filepath.Join(tempDir, "Dockerfile.template")
 		template := string(license) + "\n" + string(mavenBuild)
@@ -395,11 +386,11 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 				MvnwPresent:     mavenConfig.MvnwPresent,
 			},
 		})
-		var newArtifact transformertypes.Artifact
+		var mavenArtifact transformertypes.Artifact
 		switch artifacts.JavaPackaging(pom.Packaging) {
 		case artifacts.WarPackaging:
-			newArtifact = transformertypes.Artifact{
-				Name: a.Name,
+			mavenArtifact = transformertypes.Artifact{
+				Name: newArtifact.Name,
 				Type: artifacts.WarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.WarConfigType: artifacts.WarArtifactConfig{
@@ -412,8 +403,8 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 				},
 			}
 		case artifacts.EarPackaging:
-			newArtifact = transformertypes.Artifact{
-				Name: a.Name,
+			mavenArtifact = transformertypes.Artifact{
+				Name: newArtifact.Name,
 				Type: artifacts.EarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.EarConfigType: artifacts.EarArtifactConfig{
@@ -427,17 +418,30 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			}
 		default:
 			ports := ir.GetAllServicePorts()
+			if isSpringBootApp && len(newArtifact.Paths[artifacts.ServiceDirPathType]) != 0 {
+				dir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
+				_, _, profilePorts := getSpringBootAppNameProfilesAndPorts(getSpringBootMetadataFiles(dir))
+				if len(selectedSpringBootProfiles) > 0 {
+					for _, selectedSpringBootProfile := range selectedSpringBootProfiles {
+						ports = append(ports, profilePorts[selectedSpringBootProfile]...)
+					}
+				} else if _, ok := profilePorts[defaultSpringProfile]; ok {
+					ports = append(ports, profilePorts[defaultSpringProfile]...)
+				}
+			} else {
+				logrus.Warnf("there are no service directory paths for the artifact: %+v", newArtifact)
+			}
 			if len(ports) == 0 {
 				ports = append(ports, common.DefaultServicePort)
 			}
-			port := commonqa.GetPortForService(ports, a.Name)
-			if springBootProfilesFlattened != "" {
+			port := commonqa.GetPortForService(ports, newArtifact.Name)
+			if isSpringBootApp {
 				envVariablesMap["SERVER_PORT"] = fmt.Sprintf("%d", port)
 			} else {
 				envVariablesMap["PORT"] = fmt.Sprintf("%d", port)
 			}
-			newArtifact = transformertypes.Artifact{
-				Name: a.Name,
+			mavenArtifact = transformertypes.Artifact{
+				Name: newArtifact.Name,
 				Type: artifacts.JarArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.JarConfigType: artifacts.JarArtifactConfig{
@@ -452,19 +456,19 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			}
 		}
 		if irPresent {
-			newArtifact.Configs[irtypes.IRConfigType] = injectProperties(ir, a.Name)
+			mavenArtifact.Configs[irtypes.IRConfigType] = injectProperties(ir, newArtifact.Name)
 		}
-		if newArtifact.Configs == nil {
-			newArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
+		if mavenArtifact.Configs == nil {
+			mavenArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
 		}
-		newArtifact.Configs[artifacts.ImageNameConfigType] = sImageName
-		newArtifact.Configs[artifacts.ServiceConfigType] = sConfig
-		if newArtifact.Paths == nil {
-			newArtifact.Paths = map[transformertypes.PathType][]string{}
+		mavenArtifact.Configs[artifacts.ImageNameConfigType] = sImageName
+		mavenArtifact.Configs[artifacts.ServiceConfigType] = sConfig
+		if mavenArtifact.Paths == nil {
+			mavenArtifact.Paths = map[transformertypes.PathType][]string{}
 		}
-		newArtifact.Paths[artifacts.BuildContainerFileType] = []string{buildDockerfile}
-		newArtifact.Paths[artifacts.ServiceDirPathType] = a.Paths[artifacts.ServiceDirPathType]
-		createdArtifacts = append(createdArtifacts, newArtifact)
+		mavenArtifact.Paths[artifacts.BuildContainerFileType] = []string{buildDockerfile}
+		mavenArtifact.Paths[artifacts.ServiceDirPathType] = newArtifact.Paths[artifacts.ServiceDirPathType]
+		createdArtifacts = append(createdArtifacts, mavenArtifact)
 	}
 	return pathMappings, createdArtifacts, nil
 }
