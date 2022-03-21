@@ -22,6 +22,7 @@ import (
 	"embed"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"hash/crc64"
 	"io"
@@ -980,24 +981,22 @@ func UniqueStrings(xs []string) []string {
 
 // SplitYAML splits a file into multiple YAML documents.
 func SplitYAML(rawYAML []byte) ([][]byte, error) {
-	dec := yaml.NewDecoder(bytes.NewReader(rawYAML))
-	var res [][]byte
+	decoder := yaml.NewDecoder(bytes.NewReader(rawYAML))
+	var docs [][]byte
 	for {
 		var value interface{}
-		err := dec.Decode(&value)
-		if err == io.EOF {
-			break
+		if err := decoder.Decode(&value); err != nil {
+			if errors.Is(err, io.EOF) {
+				return docs, nil
+			}
+			return docs, err
 		}
+		doc, err := yaml.Marshal(value)
 		if err != nil {
-			return nil, err
+			return docs, fmt.Errorf("failed to marshal the YAML document of type %T and value %+v back to bytes. Error: %q", value, value, err)
 		}
-		valueBytes, err := yaml.Marshal(value)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, valueBytes)
+		docs = append(docs, doc)
 	}
-	return res, nil
 }
 
 // ReverseInPlace reverses a slice of strings in place.

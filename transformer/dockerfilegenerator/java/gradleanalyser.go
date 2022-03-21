@@ -167,7 +167,7 @@ func (t *GradleAnalyser) DirectoryDetect(dir string) (services map[string][]tran
 	}
 	ct.Configs[artifacts.GradleConfigType] = gc
 	for _, dependency := range gradleBuild.Dependencies {
-		if dependency.Group == springbootGroup {
+		if dependency.Group == springBootGroup {
 			sbc := artifacts.SpringBootConfig{}
 			sbps := []string{}
 			appName, sbps = getSpringBootAppNameAndProfilesFromDir(dir)

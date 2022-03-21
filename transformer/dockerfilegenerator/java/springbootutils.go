@@ -35,18 +35,20 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core"
 )
 
+const (
+	springBootAppNameKey    = "spring.application.name"
+	springBootServerPortKey = "server.port"
+	springBootGroup         = "org.springframework.boot"
+	// If no profile is active, a default profile is enabled.
+	// The name of the default profile is default and it can be tuned using the spring.profiles.default Environment property,
+	// as shown in the following example: spring.profiles.default=none
+	defaultSpringProfile              = "default"                // https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.profiles
+	springBootSpringProfilesActiveKey = "spring.profiles.active" // https://docs.spring.io/spring-boot/docs/current/reference/html/application-properties.html#application-properties.core.spring.profiles.active
+	springBootSpringProfilesKey       = "spring.profiles"        // Probably an alias for "spring.profiles.active"? Can't find it in the documentation
+)
+
 var (
 	defaultSpringBootResourcesPath = filepath.Join("src", "main", "resources")
-)
-
-const (
-	springbootAppNameConfig  = "spring.application.name"
-	springbootProfilesConfig = "spring.profiles"
-	springbootGroup          = "org.springframework.boot"
-)
-
-const (
-	seperator = `---`
 )
 
 // SpringBootMetadataFiles defines the lists of configuration files from spring boot applications
@@ -201,8 +203,9 @@ func flattenToVcapApplicationProperties(env core.EnvVar) []FlattenedProperty {
 	return flattenPropertyKey("vcap.application", serviceInstanceMap)
 }
 
-func getSpringBootAppNameAndProfilesFromDir(dir string) (appName string, profiles []string) {
-	return getSpringBootAppNameAndProfiles(getSpringBootMetadataFiles(dir))
+func getSpringBootAppNameAndProfilesFromDir(dir string) (string, []string) {
+	appName, profiles, _ := getSpringBootAppNameProfilesAndPorts(getSpringBootMetadataFiles(dir))
+	return appName, profiles
 }
 
 func getSpringBootMetadataFiles(dir string) SpringBootMetadataFiles {
@@ -228,82 +231,174 @@ func getSpringBootMetadataFiles(dir string) SpringBootMetadataFiles {
 	return springbootMetadataFiles
 }
 
-func getSpringBootAppNameAndProfiles(springbootMetadataFiles SpringBootMetadataFiles) (appName string, profiles []string) {
+func getSpringBootAppNameProfilesAndPorts(springbootMetadataFiles SpringBootMetadataFiles) (appName string, profiles []string, profilePorts map[string][]int32) {
 	appName = ""
 	profiles = []string{}
+	profilePorts = map[string][]int32{}
+	// find sping boot app name from bootstrap.properties or bootstrap.yaml
 	if len(springbootMetadataFiles.bootstrapFiles) != 0 {
 		props, err := properties.LoadFiles(springbootMetadataFiles.bootstrapFiles, properties.UTF8, false)
 		if err != nil {
-			logrus.Errorf("Unable to read bootstrap properties : %s", err)
+			logrus.Errorf("failed to load the bootstrap properties files from paths %+v . Error: %q", springbootMetadataFiles.bootstrapFiles, err)
 		} else {
-			appName = props.GetString(springbootAppNameConfig, "")
+			appName = props.GetString(springBootAppNameKey, "")
 		}
-	}
-	if len(springbootMetadataFiles.bootstrapYamlFiles) != 0 && appName != "" {
-		propss := getYamlSegmentsAsProperties(getSegmentsFromFiles(springbootMetadataFiles.bootstrapYamlFiles))
+	} else if len(springbootMetadataFiles.bootstrapYamlFiles) != 0 {
+		propss := convertYamlDocumentsToProperties(getYamlDocumentsFromFiles(springbootMetadataFiles.bootstrapYamlFiles))
 		for _, props := range propss {
-			if appName = props.GetString(springbootAppNameConfig, ""); appName != "" {
+			if appName = props.GetString(springBootAppNameKey, ""); appName != "" {
 				break
 			}
 		}
 	}
-	if len(springbootMetadataFiles.appPropFiles) != 0 {
-		for _, appPropFile := range springbootMetadataFiles.appPropFiles {
-			if filepath.Base(appPropFile) == "application.properties" {
-				propss := getPropertiesFileSegmentsAsProperties(getSegmentsFromFiles([]string{appPropFile}))
-				for _, props := range propss {
-					if appName != "" {
-						appName = props.GetString(springbootAppNameConfig, "")
-					}
-					if currProfilesStr := strings.TrimSpace(props.GetString(springbootProfilesConfig, "")); currProfilesStr != "" {
-						currProfiles := strings.Split(currProfilesStr, ",")
-						for _, currProfile := range currProfiles {
-							currProfile = strings.TrimPrefix(strings.TrimSpace(currProfile), `!`)
-							if currProfile != "" && !common.IsStringPresent(profiles, currProfile) {
-								profiles = append(profiles, currProfile)
-							}
-						}
-					}
-				}
-			} else {
-				currProfile := strings.TrimSuffix(strings.TrimPrefix(filepath.Base(appPropFile), "application-"), ".properties")
-				if currProfile != "" && !common.IsStringPresent(profiles, currProfile) {
-					profiles = append(profiles, currProfile)
+	// find spring boot app name from application.properties
+	for _, appPropFilePath := range springbootMetadataFiles.appPropFiles {
+		// TODO: handle multi-document properties files https://spring.io/blog/2020/08/14/config-file-processing-in-spring-boot-2-4#multi-document-properties-files
+		props, err := properties.LoadFile(appPropFilePath, properties.UTF8)
+		if err != nil {
+			logrus.Errorf("failed to load the file at path %s as a properties file. Error: %q", appPropFilePath, err)
+			continue
+		}
+		appPropFilename := filepath.Base(appPropFilePath)
+		if appPropFilename == "application.properties" {
+			// get app name
+			appName = props.GetString(springBootAppNameKey, appName)
+			// get active profiles
+			// https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.profiles
+			activeProfilesStr := props.GetString(springBootSpringProfilesActiveKey, "")
+			if activeProfilesStr == "" {
+				activeProfilesStr = props.GetString(springBootSpringProfilesKey, "")
+			}
+			activeProfiles := getSpringProfiles(activeProfilesStr)
+			// add to list of known spring profiles
+			for _, activeProfile := range activeProfiles {
+				if !common.IsStringPresent(profiles, activeProfile) {
+					profiles = append(profiles, activeProfile)
 				}
 			}
-		}
-	}
-	if len(springbootMetadataFiles.appYamlFiles) != 0 {
-		for _, appYamlFile := range springbootMetadataFiles.appYamlFiles {
-			if strings.HasPrefix(appYamlFile, "application.") {
-				propss := getYamlSegmentsAsProperties(getSegmentsFromFiles([]string{appYamlFile}))
-				for _, props := range propss {
-					if appName != "" {
-						appName = props.GetString(springbootAppNameConfig, "")
+			// get ports
+			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
+				if len(activeProfiles) > 0 {
+					for _, activeProfile := range activeProfiles {
+						profilePorts[activeProfile] = append(profilePorts[activeProfile], int32(appPort))
 					}
-					if currProfilesStr := strings.TrimSpace(props.GetString(springbootProfilesConfig, "")); currProfilesStr != "" {
-						currProfiles := strings.Split(currProfilesStr, ",")
-						for _, currProfile := range currProfiles {
-							currProfile = strings.TrimPrefix(strings.TrimSpace(currProfile), `!`)
-							if currProfile != "" && !common.IsStringPresent(profiles, currProfile) {
-								profiles = append(profiles, currProfile)
-							}
-						}
-					}
-				}
-			} else {
-				currProfile := strings.TrimSuffix(strings.TrimSuffix(strings.TrimPrefix(filepath.Base(appYamlFile), "application-"), ".yaml"), ".yml")
-				if currProfile != "" && !common.IsStringPresent(profiles, currProfile) {
-					profiles = append(profiles, currProfile)
+				} else {
+					profilePorts[defaultSpringProfile] = append(profilePorts[defaultSpringProfile], int32(appPort))
 				}
 			}
+		} else {
+			activeProfile := strings.TrimSuffix(strings.TrimPrefix(appPropFilename, "application-"), ".properties")
+			if activeProfile == "" {
+				logrus.Warnf("invalid/empty spring profile name for the properties file at path %s", appPropFilePath)
+				continue
+			}
+			// add to list of known spring profiles
+			if !common.IsStringPresent(profiles, activeProfile) {
+				profiles = append(profiles, activeProfile)
+			}
+			// get ports
+			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
+				profilePorts[activeProfile] = append(profilePorts[activeProfile], int32(appPort))
+			}
+			// TODO: should we try to get app name for each profile as well?
 		}
 	}
-	return appName, profiles
+	// find spring boot app name from application.yaml
+	for _, appYamlFilePath := range springbootMetadataFiles.appYamlFiles {
+		// TODO: handle multi document yamls
+		propss := convertYamlDocumentsToProperties(getYamlDocumentsFromFiles([]string{appYamlFilePath}))
+		if len(propss) == 0 {
+			logrus.Warnf("parsed out an empty properties struct from the file at path %s", appYamlFilePath)
+			continue
+		}
+		props := propss[0]
+		for _, p := range propss[1:] {
+			props.Merge(p)
+		}
+		// get app name
+		appName = props.GetString(springBootAppNameKey, appName)
+		// get ports and profiles
+		appYamlFilename := filepath.Base(appYamlFilePath)
+		if appYamlFilename == "application.yml" || appYamlFilename == "application.yaml" {
+			activeProfilesStr := props.GetString(springBootSpringProfilesActiveKey, "")
+			if activeProfilesStr == "" {
+				activeProfilesStr = props.GetString(springBootSpringProfilesKey, "")
+			}
+			activeProfiles := getSpringProfiles(activeProfilesStr)
+			// add to list of known spring profiles
+			for _, activeProfile := range activeProfiles {
+				if !common.IsStringPresent(profiles, activeProfile) {
+					profiles = append(profiles, activeProfile)
+				}
+			}
+			// get ports
+			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
+				if len(activeProfiles) > 0 {
+					for _, activeProfile := range activeProfiles {
+						profilePorts[activeProfile] = append(profilePorts[activeProfile], int32(appPort))
+					}
+				} else {
+					profilePorts[defaultSpringProfile] = append(profilePorts[defaultSpringProfile], int32(appPort))
+				}
+			}
+		} else {
+			activeProfile := strings.TrimSuffix(strings.TrimPrefix(appYamlFilename, "application-"), filepath.Ext(appYamlFilename))
+			if activeProfile == "" {
+				logrus.Warnf("invalid/empty spring profile name for the properties file at path %s", appYamlFilePath)
+				continue
+			}
+			// add to list of known spring profiles
+			if !common.IsStringPresent(profiles, activeProfile) {
+				profiles = append(profiles, activeProfile)
+			}
+			// get ports
+			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
+				profilePorts[activeProfile] = append(profilePorts[activeProfile], int32(appPort))
+			}
+			// TODO: should we try to get app name for each profile as well?
+		}
+	}
+	return appName, profiles, profilePorts
 }
 
-func getYamlAsProperties(yamlStr string) (props *properties.Properties, err error) {
-	decoder := yaml.NewDecoder(strings.NewReader(yamlStr))
+func getYamlDocumentsFromFile(filePath string) ([][]byte, error) {
+	fileBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		logrus.Errorf("failed to read file at path %s . Error: %q", filePath, err)
+		return nil, nil
+	}
+	return common.SplitYAML(fileBytes)
+}
+
+func getYamlDocumentsFromFiles(filePaths []string) []string {
+	segments := []string{}
+	for _, filePath := range filePaths {
+		docs, err := getYamlDocumentsFromFile(filePath)
+		if err != nil {
+			logrus.Errorf("failed to get YAML documents for the file at path %s , skipping. Error: %q", filePath, err)
+			continue
+		}
+		for _, doc := range docs {
+			segments = append(segments, string(doc))
+		}
+	}
+	return segments
+}
+
+func getSpringProfiles(springProfilesStr string) []string {
+	rawSpringProfiles := strings.Split(springProfilesStr, ",")
+	springProfiles := []string{}
+	for _, rawSpringProfile := range rawSpringProfiles {
+		springProfile := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(rawSpringProfile), "!"))
+		if springProfile != "" {
+			springProfiles = append(springProfiles, rawSpringProfile)
+		}
+	}
+	return springProfiles
+}
+
+func convertYamlDocumentToProperties(doc string) (props *properties.Properties, err error) {
+	decoder := yaml.NewDecoder(strings.NewReader(doc))
 	var dataBucket yaml.Node
 	errorReading := decoder.Decode(&dataBucket)
 	if errorReading != io.EOF && errorReading != nil {
@@ -321,44 +416,14 @@ func getYamlAsProperties(yamlStr string) (props *properties.Properties, err erro
 	return properties.LoadString(output.String())
 }
 
-func getSegmentsFromFile(fileName string) (segments []string) {
-	filebytes, err := os.ReadFile(fileName)
-	if err != nil {
-		logrus.Errorf("Unable to read file : %s", err)
-		return nil
-	}
-	return strings.Split(string(filebytes), seperator)
-}
-
-func getSegmentsFromFiles(filenames []string) (segments []string) {
-	segments = []string{}
-	for _, filename := range filenames {
-		segments = append(segments, getSegmentsFromFile(filename)...)
-	}
-	return
-}
-
-func getYamlSegmentsAsProperties(yamlSegments []string) (props []*properties.Properties) {
-	props = []*properties.Properties{}
-	for _, yamlSegment := range yamlSegments {
-		propsForSegment, err := getYamlAsProperties(yamlSegment)
+func convertYamlDocumentsToProperties(docs []string) []*properties.Properties {
+	props := []*properties.Properties{}
+	for _, doc := range docs {
+		prop, err := convertYamlDocumentToProperties(doc)
 		if err != nil {
-			logrus.Errorf("Unable to decode yaml file as properties : %s", err)
+			logrus.Errorf("failed to decode the YAML document as properties. Document: %s . Error: %q", doc, err)
 		}
-		props = append(props, propsForSegment)
+		props = append(props, prop)
 	}
-	return
-}
-
-func getPropertiesFileSegmentsAsProperties(segments []string) (props []*properties.Properties) {
-	props = []*properties.Properties{}
-	for _, segment := range segments {
-		propsForSegment, err := properties.LoadString(segment)
-		if err != nil {
-			logrus.Errorf("Unable to parse properties segment : %s", err)
-			continue
-		}
-		props = append(props, propsForSegment)
-	}
-	return
+	return props
 }
