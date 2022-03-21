@@ -418,18 +418,20 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			}
 		default:
 			ports := ir.GetAllServicePorts()
-			if isSpringBootApp && len(newArtifact.Paths[artifacts.ServiceDirPathType]) != 0 {
-				dir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
-				_, _, profilePorts := getSpringBootAppNameProfilesAndPorts(getSpringBootMetadataFiles(dir))
-				if len(selectedSpringBootProfiles) > 0 {
-					for _, selectedSpringBootProfile := range selectedSpringBootProfiles {
-						ports = append(ports, profilePorts[selectedSpringBootProfile]...)
+			if isSpringBootApp {
+				if len(newArtifact.Paths[artifacts.ServiceDirPathType]) != 0 {
+					dir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
+					_, _, profilePorts := getSpringBootAppNameProfilesAndPorts(getSpringBootMetadataFiles(dir))
+					if len(selectedSpringBootProfiles) > 0 {
+						for _, selectedSpringBootProfile := range selectedSpringBootProfiles {
+							ports = append(ports, profilePorts[selectedSpringBootProfile]...)
+						}
+					} else if _, ok := profilePorts[defaultSpringProfile]; ok {
+						ports = append(ports, profilePorts[defaultSpringProfile]...)
 					}
-				} else if _, ok := profilePorts[defaultSpringProfile]; ok {
-					ports = append(ports, profilePorts[defaultSpringProfile]...)
+				} else {
+					logrus.Warnf("there are no service directory paths for the artifact: %+v", newArtifact)
 				}
-			} else {
-				logrus.Warnf("there are no service directory paths for the artifact: %+v", newArtifact)
 			}
 			if len(ports) == 0 {
 				ports = append(ports, common.DefaultServicePort)
