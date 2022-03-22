@@ -99,11 +99,12 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertyp
 	}
 	logrus.Debugf("found %d pom.xml files in the directory %s . files: %+v", len(mavenFilePaths), dir, mavenFilePaths)
 	pom := &maven.Pom{}
+	// TODO: what about the other mavenFilePaths?
 	if err := pom.Load(mavenFilePaths[0]); err != nil {
 		logrus.Errorf("Unable to unmarshal pom file (%s): %s", mavenFilePaths[0], err)
 		return nil, err
 	}
-	if pom.Modules != nil && len(*(pom.Modules)) != 0 {
+	if pom.Packaging == string(artifacts.PomPackaging) {
 		logrus.Debugf("Parent pom detected (%s). Ignoring.", mavenFilePaths[0])
 		return nil, nil
 	}
@@ -138,19 +139,80 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertyp
 		mavenConfig.MvnwPresent = true
 	}
 	mavenArtifact.Configs[artifacts.MavenConfigType] = mavenConfig
+	getSpringBootConfig := func(dependency maven.Dependency, pomDir string) *artifacts.SpringBootConfig {
+		if dependency.GroupID != springBootGroup {
+			return nil
+		}
+		springConfig := &artifacts.SpringBootConfig{}
+		springConfig.SpringBootVersion = dependency.Version
+		springAppName, springProfiles := getSpringBootAppNameAndProfilesFromDir(pomDir)
+		springConfig.SpringBootAppName = springAppName
+		if len(springProfiles) != 0 {
+			springConfig.SpringBootProfiles = &springProfiles
+		}
+		return springConfig
+	}
 	// look for spring boot
+	isSpringBoot := false
 	if pom.Dependencies != nil {
 		for _, dependency := range *pom.Dependencies {
-			if dependency.GroupID == springBootGroup {
-				springConfig := artifacts.SpringBootConfig{}
-				springConfig.SpringBootVersion = dependency.Version
-				springAppName, springProfiles := getSpringBootAppNameAndProfilesFromDir(dir)
-				springConfig.SpringBootAppName = springAppName
-				if len(springProfiles) != 0 {
-					springConfig.SpringBootProfiles = &springProfiles
-				}
+			if springConfig := getSpringBootConfig(dependency, dir); springConfig != nil {
+				isSpringBoot = true
 				mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
 				break
+			}
+		}
+	}
+	if !isSpringBoot {
+		if pom.DependencyManagement != nil && pom.DependencyManagement.Dependencies != nil {
+			for _, dependency := range *pom.DependencyManagement.Dependencies {
+				if springConfig := getSpringBootConfig(dependency, dir); springConfig != nil {
+					isSpringBoot = true
+					mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
+					break
+				}
+			}
+		}
+	}
+	if !isSpringBoot {
+		if pom.Parent != nil {
+			// parse parent pom and look for spring boot
+			childPomDir := dir
+			parentPomDir := filepath.Join(childPomDir, "..")
+			parentPomPath := filepath.Join(parentPomDir, "pom.xml")
+			if pom.Parent.RelativePath != "" {
+				parentPomDir = filepath.Join(childPomDir, pom.Parent.RelativePath)
+				parentPomPath = filepath.Join(parentPomDir, "pom.xml")
+				if filepath.Ext(parentPomDir) == ".xml" {
+					parentPomPath = parentPomDir
+					parentPomDir = filepath.Dir(parentPomDir)
+				}
+			}
+			parentPom := &maven.Pom{}
+			// TODO: handle more than one level of parent poms. Recurse up?
+			if err := parentPom.Load(parentPomPath); err != nil {
+				logrus.Errorf("Unable to unmarshal pom file (%s): %s", mavenFilePaths[0], err)
+				return nil, err
+			}
+			if parentPom.Dependencies != nil {
+				for _, dependency := range *parentPom.Dependencies {
+					if springConfig := getSpringBootConfig(dependency, parentPomDir); springConfig != nil {
+						isSpringBoot = true
+						mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
+						break
+					}
+				}
+			}
+			if !isSpringBoot {
+				if parentPom.DependencyManagement != nil && parentPom.DependencyManagement.Dependencies != nil {
+					for _, dependency := range *parentPom.DependencyManagement.Dependencies {
+						if springConfig := getSpringBootConfig(dependency, parentPomDir); springConfig != nil {
+							isSpringBoot = true
+							mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
+							break
+						}
+					}
+				}
 			}
 		}
 	}
