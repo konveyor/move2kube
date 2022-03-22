@@ -45,6 +45,10 @@ const (
 	// BuildContainerFileType defines the build container file type
 	BuildContainerFileType transformertypes.PathType = "BuildContainerFile"
 
+	// PomPackaging is used by parent pom.xml files in multi-module maven projects.
+	// https://maven.apache.org/pom.html#Aggregation
+	// https://www.baeldung.com/maven-multi-module
+	PomPackaging JavaPackaging = "pom"
 	// JarPackaging defines jar packaging
 	JarPackaging JavaPackaging = "jar"
 	// WarPackaging defines war packaging

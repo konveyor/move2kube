@@ -17,6 +17,7 @@
 package java
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -87,6 +88,10 @@ func (t *MavenAnalyser) GetConfig() (transformertypes.Transformer, *environment.
 	return t.Config, t.Env
 }
 
+func isParentPom(pom *maven.Pom) bool {
+	return pom.Packaging == string(artifacts.PomPackaging) || (pom.Modules != nil && len(*pom.Modules) > 0)
+}
+
 // DirectoryDetect runs detect in each sub directory
 func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
 	mavenFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{maven.PomXMLFileName}, nil)
@@ -99,11 +104,12 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertyp
 	}
 	logrus.Debugf("found %d pom.xml files in the directory %s . files: %+v", len(mavenFilePaths), dir, mavenFilePaths)
 	pom := &maven.Pom{}
+	// TODO: what about the other mavenFilePaths?
 	if err := pom.Load(mavenFilePaths[0]); err != nil {
 		logrus.Errorf("Unable to unmarshal pom file (%s): %s", mavenFilePaths[0], err)
 		return nil, err
 	}
-	if pom.Modules != nil && len(*(pom.Modules)) != 0 {
+	if isParentPom(pom) {
 		logrus.Debugf("Parent pom detected (%s). Ignoring.", mavenFilePaths[0])
 		return nil, nil
 	}
@@ -138,19 +144,88 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertyp
 		mavenConfig.MvnwPresent = true
 	}
 	mavenArtifact.Configs[artifacts.MavenConfigType] = mavenConfig
+	getSpringBootConfig := func(dependency maven.Dependency, pomDir string) *artifacts.SpringBootConfig {
+		if dependency.GroupID != springBootGroup {
+			return nil
+		}
+		springConfig := &artifacts.SpringBootConfig{}
+		springConfig.SpringBootVersion = dependency.Version
+		springAppName, springProfiles := getSpringBootAppNameAndProfilesFromDir(pomDir)
+		springConfig.SpringBootAppName = springAppName
+		if len(springProfiles) != 0 {
+			springConfig.SpringBootProfiles = &springProfiles
+		}
+		return springConfig
+	}
 	// look for spring boot
+	isSpringBoot := false
 	if pom.Dependencies != nil {
 		for _, dependency := range *pom.Dependencies {
-			if dependency.GroupID == springBootGroup {
-				springConfig := artifacts.SpringBootConfig{}
-				springConfig.SpringBootVersion = dependency.Version
-				springAppName, springProfiles := getSpringBootAppNameAndProfilesFromDir(dir)
-				springConfig.SpringBootAppName = springAppName
-				if len(springProfiles) != 0 {
-					springConfig.SpringBootProfiles = &springProfiles
-				}
+			if springConfig := getSpringBootConfig(dependency, dir); springConfig != nil {
+				isSpringBoot = true
 				mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
 				break
+			}
+		}
+	}
+	if !isSpringBoot {
+		if pom.DependencyManagement != nil && pom.DependencyManagement.Dependencies != nil {
+			for _, dependency := range *pom.DependencyManagement.Dependencies {
+				if springConfig := getSpringBootConfig(dependency, dir); springConfig != nil {
+					isSpringBoot = true
+					mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
+					break
+				}
+			}
+		}
+	}
+	if !isSpringBoot && pom.Parent != nil {
+		// parse parent pom and look for spring boot
+		childPomDir := dir
+		parentPomPath := filepath.Join(childPomDir, "..", "pom.xml")
+		if pom.Parent.RelativePath != "" {
+			if filepath.Ext(pom.Parent.RelativePath) == ".xml" {
+				parentPomPath = filepath.Join(childPomDir, pom.Parent.RelativePath)
+			} else {
+				parentPomPath = filepath.Join(childPomDir, pom.Parent.RelativePath, "pom.xml")
+			}
+		}
+		if _, err := os.Stat(parentPomPath); err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				logrus.Debugf("there is no parent pom at the path %s", parentPomPath)
+				if pom.Parent.GroupID == springBootGroup {
+					logrus.Debugf("parent pom uses the spring boot group id. %+v", pom.Parent)
+					mavenArtifact.Configs[artifacts.SpringBootConfigType] = getSpringBootConfig(maven.Dependency{Version: pom.Parent.Version}, childPomDir)
+				}
+			} else {
+				logrus.Errorf("failed to stat the parent pom at path %s . Error: %q", parentPomPath, err)
+			}
+		} else {
+			parentPom := &maven.Pom{}
+			// TODO: handle more than one level of parent poms. Recurse up?
+			if err := parentPom.Load(parentPomPath); err != nil {
+				logrus.Errorf("failed to load the parent pom at path %s . Error: %q", parentPomPath, err)
+			} else {
+				if parentPom.Dependencies != nil {
+					for _, dependency := range *parentPom.Dependencies {
+						if springConfig := getSpringBootConfig(dependency, childPomDir); springConfig != nil {
+							isSpringBoot = true
+							mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
+							break
+						}
+					}
+				}
+				if !isSpringBoot {
+					if parentPom.DependencyManagement != nil && parentPom.DependencyManagement.Dependencies != nil {
+						for _, dependency := range *parentPom.DependencyManagement.Dependencies {
+							if springConfig := getSpringBootConfig(dependency, childPomDir); springConfig != nil {
+								isSpringBoot = true
+								mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
+								break
+							}
+						}
+					}
+				}
 			}
 		}
 	}
