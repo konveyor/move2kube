@@ -184,7 +184,11 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertyp
 		childPomDir := dir
 		parentPomPath := filepath.Join(childPomDir, "..", "pom.xml")
 		if pom.Parent.RelativePath != "" {
-			parentPomPath = filepath.Join(childPomDir, pom.Parent.RelativePath, "pom.xml")
+			if filepath.Ext(pom.Parent.RelativePath) == ".xml" {
+				parentPomPath = filepath.Join(childPomDir, pom.Parent.RelativePath)
+			} else {
+				parentPomPath = filepath.Join(childPomDir, pom.Parent.RelativePath, "pom.xml")
+			}
 		}
 		if _, err := os.Stat(parentPomPath); err != nil {
 			if errors.Is(err, os.ErrNotExist) {
