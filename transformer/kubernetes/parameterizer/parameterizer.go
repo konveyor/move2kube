@@ -385,14 +385,18 @@ func fillCustomTemplate(templ, kind, apiVersion, metadataName string, matches ma
 			return sV
 		}
 		switch s {
-		case "$(kind)":
-			return "Deployment"
-		case "$(apiVersion)":
-			return types.GroupName + "/" + types.SchemeGroupVersion.String()
-		case "$(metadataName)":
-			return ""
+		case "metadataName":
+			return metadataName
+		case "kind":
+			return kind
+		case "apiGroup":
+			return types.SchemeGroupVersion.Group
+		case "apiVersion":
+			return types.SchemeGroupVersion.Version
+		case "apiGroupVersion":
+			return types.SchemeGroupVersion.String()
 		default:
-			errs = append(errs, fmt.Sprintf("failed to find the key %s in the matches %+v", s, matches))
+			errs = append(errs, fmt.Sprintf("failed to find the key $(%s) in the matches %+v", s, matches))
 			return ""
 		}
 	})
