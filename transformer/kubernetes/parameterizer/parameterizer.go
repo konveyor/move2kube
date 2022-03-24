@@ -34,6 +34,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// parameterizerDefaultEnvironment will be used during parameterization when there are no environments specified.
+	parameterizerDefaultEnvironment = "default"
+)
+
 var (
 	stringInterpRegex            = regexp.MustCompile(`\${([^}]+)}`)
 	invalidOCTemplateChars       = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
@@ -53,10 +58,22 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 	if err != nil {
 		return nil, err
 	}
-
-	if len(packSpecConfig.Envs) == 0 {
-		packSpecConfig.Envs = []string{"dev", "staging", "prod"}
+	shouldGenerateDefaultEnv := false
+	normEnvs := []string{}
+	for _, env := range packSpecConfig.Envs {
+		normEnv := common.NormalizeForMetadataName(env)
+		if normEnv == "" {
+			logrus.Debugf("got an invalid environment name in the parameterizer. Will generate a default environment instead. Env name: %s . ParameterizerConfig: %+v", env, packSpecConfig)
+			shouldGenerateDefaultEnv = true
+			continue
+		}
+		normEnvs = append(normEnvs, normEnv)
 	}
+	if len(normEnvs) == 0 || (shouldGenerateDefaultEnv && !common.IsStringPresent(normEnvs, parameterizerDefaultEnvironment)) {
+		shouldGenerateDefaultEnv = true
+		normEnvs = append(normEnvs, parameterizerDefaultEnvironment)
+	}
+	packSpecConfig.Envs = normEnvs
 	pathedKs, err := k8sschema.GetK8sResourcesWithPaths(cleanSrcDir)
 	if err != nil {
 		return filesWritten, err
@@ -88,6 +105,9 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 			}
 			for env, values := range namedValues {
 				finalKPath := filepath.Join(helmChartDir, "values-"+env+".yaml")
+				if shouldGenerateDefaultEnv && env == parameterizerDefaultEnvironment {
+					finalKPath = filepath.Join(helmChartDir, "values.yaml")
+				}
 				if err := common.WriteYaml(finalKPath, values); err != nil {
 					logrus.Errorf("Unable to write env %s : %s", env, err)
 					continue
@@ -235,6 +255,9 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 			}
 			for env, params := range ocParams {
 				finalKPath := filepath.Join(ocDir, "parameters-"+env+".yaml")
+				if shouldGenerateDefaultEnv && env == parameterizerDefaultEnvironment {
+					finalKPath = filepath.Join(ocDir, "parameters.yaml")
+				}
 				finalParams := []string{}
 				for k, v := range params {
 					finalParams = append(finalParams, fmt.Sprintf("%s=%s", k, v))

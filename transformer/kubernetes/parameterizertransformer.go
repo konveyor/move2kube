@@ -46,10 +46,11 @@ type Parameterizer struct {
 
 // ParameterizerYamlConfig implements Parameterizer path config interface
 type ParameterizerYamlConfig struct {
-	HelmPath       string `yaml:"helmPath"`
-	OCTemplatePath string `yaml:"ocTemplatePath"`
-	KustomizePath  string `yaml:"kustomizePath"`
-	ProjectName    string `yaml:"projectName"`
+	HelmPath       string   `yaml:"helmPath" json:"helmPath"`
+	OCTemplatePath string   `yaml:"ocTemplatePath" json:"ocTemplatePath"`
+	KustomizePath  string   `yaml:"kustomizePath" json:"kustomizePath"`
+	ProjectName    string   `yaml:"projectName" json:"projectName"`
+	Envs           []string `yaml:"envs,omitempty" json:"envs,omitempty"`
 }
 
 // ParameterizerPathTemplateConfig stores the template config
@@ -132,6 +133,10 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 			Kustomize:   "kustomize",
 			OCTemplates: "octemplates",
 			ProjectName: projectName,
+			Envs:        []string{},
+		}
+		if len(t.ParameterizerConfig.Envs) > 0 {
+			pt.Envs = t.ParameterizerConfig.Envs
 		}
 		if len(t.ParameterizerConfig.HelmPath) == 0 {
 			pt.Helm = ""

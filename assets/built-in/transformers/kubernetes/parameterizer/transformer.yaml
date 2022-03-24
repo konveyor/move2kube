@@ -20,3 +20,4 @@ spec:
     ocTemplatePath: "{{ $pathType := EnvPathType .YamlsPath}}{{ $rel := Rel .YamlsPath }}{{ if eq $pathType \"Source\" }}source/{{end}}{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-parameterized/openshift-template"
     kustomizePath: "{{ $pathType := EnvPathType .YamlsPath}}{{ $rel := Rel .YamlsPath }}{{ if eq $pathType \"Source\" }}source/{{end}}{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-parameterized/kustomize"
     projectName: "{{ if eq .ArtifactType \"KubernetesYamls\" }}{{ .ProjectName }}{{ else }}{{ if eq .ArtifactType \"KubernetesYamlsInSource\" }}{{ .ArtifactName }}{{ else }}{{ .ServiceName }}{{end}}{{end}}"
+    envs: ["dev", "staging", "prod"]
