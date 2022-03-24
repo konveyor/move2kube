@@ -21,6 +21,7 @@ fi
 cd .. # go to the parent directory so that all the relative paths will be correct
 
 {{range $dockerfile := . }}
+echo 'building image {{ $dockerfile.ImageName }}'
 cd {{ $dockerfile.ContextUnix }}
 {{ .ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 cd -

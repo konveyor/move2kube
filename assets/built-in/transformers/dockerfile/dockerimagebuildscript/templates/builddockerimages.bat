@@ -19,7 +19,8 @@ if not %basename% == "scripts" (
     exit 1
 )
 
-cd .. # go to the parent directory so that all the relative paths will be correct
+REM go to the parent directory so that all the relative paths will be correct
+cd ..
 
 {{range $dockerfile := . }}
 pushd {{ $dockerfile.ContextWindows }}
