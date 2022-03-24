@@ -42,6 +42,8 @@ func TestGettingAndParameterizingResources(t *testing.T) {
 		Helm:        "helm-chart",
 		Kustomize:   "kustomize",
 		OCTemplates: "openshift-templates",
+		ProjectName: "myproject",
+		Envs:        []string{"dev", "staging", "prod"},
 	}
 	ps, err := parameterizer.CollectParamsFromPath(parameterizersPath)
 	if err != nil {
@@ -56,7 +58,7 @@ func TestGettingAndParameterizingResources(t *testing.T) {
 		t.Fatalf("Failed to apply all the parameterizations. Error: %q", err)
 	}
 	if len(filesWritten) != 26 {
-		t.Fatalf("Expected %d files to be written. Actual: %d", 26, len(filesWritten))
+		t.Fatalf("Expected %d files to be written. Actual: %d filesWritten: %+v", 26, len(filesWritten), filesWritten)
 	}
 	wantDataDir := filepath.Join(baseDir, "want")
 	for _, fileWritten := range filesWritten {
