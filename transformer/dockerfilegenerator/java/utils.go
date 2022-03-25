@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	defaultAppPathInContainer = "/app/"
+	defaultAppPathInContainer = "/app"
 	defaultJavaVersion        = "17"
 	defaultJavaPackage        = "java-17-openjdk-devel"
 )

@@ -50,6 +50,7 @@ type JarDockerfileTemplate struct {
 	DeploymentFileDirInBuildContainer string
 	Port                              int32
 	EnvVariables                      map[string]string
+	ServiceName                       string
 }
 
 // Init Initializes the transformer
@@ -188,6 +189,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 					DeploymentFileDirInBuildContainer: jarArtifactConfig.DeploymentFileDirInBuildContainer,
 					Port:                              jarArtifactConfig.Port,
 					EnvVariables:                      jarArtifactConfig.EnvVariables,
+					ServiceName:                       sConfig.ServiceName,
 				},
 			})
 		} else {
@@ -200,6 +202,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 					DeploymentFile:  jarArtifactConfig.DeploymentFile,
 					Port:            jarArtifactConfig.Port,
 					EnvVariables:    jarArtifactConfig.EnvVariables,
+					ServiceName:     sConfig.ServiceName,
 				},
 			})
 		}
