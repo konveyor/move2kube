@@ -24,7 +24,7 @@ cd ..
 
 {{range $dockerfile := . }}
 pushd {{ $dockerfile.ContextWindows }}
-{{ .ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
+{{ $dockerfile.ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 popd
 {{end}}
 

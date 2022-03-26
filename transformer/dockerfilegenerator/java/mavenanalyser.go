@@ -17,7 +17,6 @@
 package java
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -36,6 +35,10 @@ import (
 
 const (
 	defaultMavenVersion = "3.8.4"
+	// MAVEN_COMPILER_PLUGIN is the name of the maven plugin that compiles the java code.
+	MAVEN_COMPILER_PLUGIN = "maven-compiler-plugin"
+	// parentPomDirPathType is used to store the path to the directory where the parent pom.xml lives.
+	parentPomDirPathType = "ParentPomDir"
 )
 
 // MavenAnalyser implements Transformer interface
@@ -92,39 +95,18 @@ func isParentPom(pom *maven.Pom) bool {
 	return pom.Packaging == string(artifacts.PomPackaging) || (pom.Modules != nil && len(*pom.Modules) > 0)
 }
 
-// DirectoryDetect runs detect in each sub directory
-func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
-	mavenFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{maven.PomXMLFileName}, nil)
-	if err != nil {
-		logrus.Errorf("failed to look for maven pom.xml files in the directory %s . Error: %q", dir, err)
-		return nil, err
+func getInfoFromPom(pom *maven.Pom, pomFilePath string, parentPom *maven.Pom) (transformertypes.Artifact, error) {
+	t1 := artifacts.MavenPomPathType
+	if parentPom != nil {
+		t1 = artifacts.MavenSubModulePomPathType
 	}
-	if len(mavenFilePaths) == 0 {
-		return nil, nil
-	}
-	logrus.Debugf("found %d pom.xml files in the directory %s . files: %+v", len(mavenFilePaths), dir, mavenFilePaths)
-	pom := &maven.Pom{}
-	// TODO: what about the other mavenFilePaths?
-	if err := pom.Load(mavenFilePaths[0]); err != nil {
-		logrus.Errorf("Unable to unmarshal pom file (%s): %s", mavenFilePaths[0], err)
-		return nil, err
-	}
-	if isParentPom(pom) {
-		logrus.Debugf("Parent pom detected (%s). Ignoring.", mavenFilePaths[0])
-		return nil, nil
-	}
-	appName := pom.ArtifactID
-	mavenProfiles := []string{}
-	if pom.Profiles != nil {
-		for _, profile := range *pom.Profiles {
-			mavenProfiles = append(mavenProfiles, profile.ID)
-		}
-	}
+	pomFileDir := filepath.Dir(pomFilePath)
 	mavenArtifact := transformertypes.Artifact{
+		Name:    pom.ArtifactID,
 		Configs: map[transformertypes.ConfigType]interface{}{},
 		Paths: map[transformertypes.PathType][]string{
-			artifacts.MavenPomPathType:   {filepath.Join(dir, maven.PomXMLFileName)},
-			artifacts.ServiceDirPathType: {dir},
+			t1:                           {pomFilePath},
+			artifacts.ServiceDirPathType: {pomFileDir},
 		},
 	}
 	mavenConfig := artifacts.MavenConfig{}
@@ -133,13 +115,16 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertyp
 	if mavenConfig.ArtifactType == "" {
 		mavenConfig.ArtifactType = artifacts.JarPackaging
 	}
-	if len(mavenProfiles) != 0 {
+	if pom.Profiles != nil && len(*pom.Profiles) != 0 {
+		mavenProfiles := []string{}
+		for _, profile := range *pom.Profiles {
+			mavenProfiles = append(mavenProfiles, profile.ID)
+		}
 		mavenConfig.MavenProfiles = mavenProfiles
 	}
 	// look for maven wrapper
-	if mavenWrapperFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{"mvnw"}, nil); err != nil {
-		logrus.Errorf("Error while parsing directory %s for mvnw file : %s", dir, err)
-		return nil, err
+	if mavenWrapperFilePaths, err := common.GetFilesInCurrentDirectory(pomFileDir, []string{"mvnw"}, nil); err != nil {
+		return mavenArtifact, fmt.Errorf("failed to find maven wrapper files in the directory %s . Error: %q", pomFileDir, err)
 	} else if len(mavenWrapperFilePaths) > 0 {
 		mavenConfig.MvnwPresent = true
 	}
@@ -161,7 +146,7 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertyp
 	isSpringBoot := false
 	if pom.Dependencies != nil {
 		for _, dependency := range *pom.Dependencies {
-			if springConfig := getSpringBootConfig(dependency, dir); springConfig != nil {
+			if springConfig := getSpringBootConfig(dependency, pomFileDir); springConfig != nil {
 				isSpringBoot = true
 				mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
 				break
@@ -171,7 +156,7 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertyp
 	if !isSpringBoot {
 		if pom.DependencyManagement != nil && pom.DependencyManagement.Dependencies != nil {
 			for _, dependency := range *pom.DependencyManagement.Dependencies {
-				if springConfig := getSpringBootConfig(dependency, dir); springConfig != nil {
+				if springConfig := getSpringBootConfig(dependency, pomFileDir); springConfig != nil {
 					isSpringBoot = true
 					mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
 					break
@@ -179,73 +164,185 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertyp
 			}
 		}
 	}
-	if !isSpringBoot && pom.Parent != nil {
-		// parse parent pom and look for spring boot
-		childPomDir := dir
-		parentPomPath := filepath.Join(childPomDir, "..", "pom.xml")
-		if pom.Parent.RelativePath != "" {
-			if filepath.Ext(pom.Parent.RelativePath) == ".xml" {
-				parentPomPath = filepath.Join(childPomDir, pom.Parent.RelativePath)
-			} else {
-				parentPomPath = filepath.Join(childPomDir, pom.Parent.RelativePath, "pom.xml")
-			}
-		}
-		if _, err := os.Stat(parentPomPath); err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				logrus.Debugf("there is no parent pom at the path %s", parentPomPath)
-				if pom.Parent.GroupID == springBootGroup {
-					logrus.Debugf("parent pom uses the spring boot group id. %+v", pom.Parent)
-					mavenArtifact.Configs[artifacts.SpringBootConfigType] = getSpringBootConfig(maven.Dependency{Version: pom.Parent.Version}, childPomDir)
+	// look for spring boot in parent pom.xml
+	if !isSpringBoot {
+		if parentPom != nil {
+			if parentPom.Dependencies != nil {
+				for _, dependency := range *parentPom.Dependencies {
+					if springConfig := getSpringBootConfig(dependency, pomFileDir); springConfig != nil {
+						isSpringBoot = true
+						mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
+						break
+					}
 				}
-			} else {
-				logrus.Errorf("failed to stat the parent pom at path %s . Error: %q", parentPomPath, err)
 			}
-		} else {
-			parentPom := &maven.Pom{}
-			// TODO: handle more than one level of parent poms. Recurse up?
-			if err := parentPom.Load(parentPomPath); err != nil {
-				logrus.Errorf("failed to load the parent pom at path %s . Error: %q", parentPomPath, err)
-			} else {
-				if parentPom.Dependencies != nil {
-					for _, dependency := range *parentPom.Dependencies {
-						if springConfig := getSpringBootConfig(dependency, childPomDir); springConfig != nil {
+			if !isSpringBoot {
+				if parentPom.DependencyManagement != nil && parentPom.DependencyManagement.Dependencies != nil {
+					for _, dependency := range *parentPom.DependencyManagement.Dependencies {
+						if springConfig := getSpringBootConfig(dependency, pomFileDir); springConfig != nil {
 							isSpringBoot = true
 							mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
 							break
 						}
 					}
 				}
-				if !isSpringBoot {
-					if parentPom.DependencyManagement != nil && parentPom.DependencyManagement.Dependencies != nil {
-						for _, dependency := range *parentPom.DependencyManagement.Dependencies {
-							if springConfig := getSpringBootConfig(dependency, childPomDir); springConfig != nil {
-								isSpringBoot = true
-								mavenArtifact.Configs[artifacts.SpringBootConfigType] = springConfig
-								break
-							}
-						}
-					}
+			}
+		}
+	}
+	return mavenArtifact, nil
+}
+
+func getSubServiceFromSubModule(subModulePomDir string, parentPom *maven.Pom) (transformertypes.Artifact, error) {
+	artifact := transformertypes.Artifact{}
+	subModulePomPath := filepath.Join(subModulePomDir, maven.PomXMLFileName)
+	if filepath.Ext(subModulePomDir) == ".xml" {
+		subModulePomPath = subModulePomDir
+	}
+	subModulePom := &maven.Pom{}
+	if err := subModulePom.Load(subModulePomPath); err != nil {
+		return artifact, fmt.Errorf("failed to load the sub module pom file at path %s Error: %q", subModulePomPath, err)
+	}
+	return getInfoFromPom(subModulePom, subModulePomPath, parentPom)
+}
+
+// DirectoryDetect runs detect in each sub directory
+func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
+	mavenFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{maven.PomXMLFileName}, nil)
+	if err != nil {
+		logrus.Errorf("failed to look for maven pom.xml files in the directory %s . Error: %q", dir, err)
+		return nil, err
+	}
+	if len(mavenFilePaths) == 0 {
+		return nil, nil
+	}
+	logrus.Debugf("found %d pom.xml files in the directory %s . files: %+v", len(mavenFilePaths), dir, mavenFilePaths)
+	pom := &maven.Pom{}
+	// TODO: what about the other mavenFilePaths?
+	pomFilePath := mavenFilePaths[0]
+	if err := pom.Load(pomFilePath); err != nil {
+		return nil, fmt.Errorf("failed to load the pom file at path %s . Error: %q", pomFilePath, err)
+	}
+	if isParentPom(pom) {
+		logrus.Infof("parent pom detected at the path %s", pomFilePath)
+		// get the child/sub modules of the parent pom
+		if pom.Modules == nil {
+			return nil, fmt.Errorf("the list of child modules is empty for the parent pom at path %s", pomFilePath)
+		}
+		appName := pom.ArtifactID
+		mavenArtifact := transformertypes.Artifact{
+			Configs: map[transformertypes.ConfigType]interface{}{},
+			Paths: map[transformertypes.PathType][]string{
+				artifacts.MavenParentModulePomPathType: {filepath.Join(dir, maven.PomXMLFileName)},
+				parentPomDirPathType:                   {dir},
+			},
+		}
+		services := map[string][]transformertypes.Artifact{appName: {mavenArtifact}}
+		for _, subModule := range *pom.Modules {
+			pomFileDir := filepath.Dir(pomFilePath)
+			subModulePath := filepath.Join(pomFileDir, subModule)
+			subService, err := getSubServiceFromSubModule(subModulePath, pom)
+			if err != nil {
+				logrus.Errorf("failed to get information for the sub module at the path %s . Error: %q", subModulePath, err)
+				continue
+			}
+			services[subService.Name] = append(services[subService.Name], subService)
+		}
+		return services, nil
+	}
+	mavenArtifact, err := getInfoFromPom(pom, pomFilePath, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get info from the pom file at the path %s . Error: %q", pomFilePath, err)
+	}
+	services := map[string][]transformertypes.Artifact{mavenArtifact.Name: {mavenArtifact}}
+	return services, nil
+}
+
+func getJavaVersionFromPom(pom maven.Pom) string {
+	if pom.Properties != nil {
+		jv, ok := pom.Properties.Entries["java.version"]
+		if ok && jv != "" {
+			return jv
+		}
+		jv, ok = pom.Properties.Entries["maven.compiler.target"]
+		if ok && jv != "" {
+			return jv
+		}
+		jv, ok = pom.Properties.Entries["maven.compiler.source"]
+		if ok && jv != "" {
+			return jv
+		}
+	}
+	if pom.Build.Plugins != nil {
+		for _, plugin := range *pom.Build.Plugins {
+			if plugin.ArtifactID == MAVEN_COMPILER_PLUGIN {
+				if plugin.Configuration.Target != "" {
+					return plugin.Configuration.Target
+				}
+				if plugin.Configuration.Source != "" {
+					return plugin.Configuration.Source
 				}
 			}
 		}
 	}
-	services := map[string][]transformertypes.Artifact{appName: {mavenArtifact}}
-	return services, err
+	return ""
 }
 
 // Transform transforms the artifacts
 func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
+	buildContainerName := ""
+	subModuleJavaVersion := ""
+	for _, newArtifact := range newArtifacts {
+		if buildContainerName == "" {
+			mavenPomPaths := newArtifact.Paths[artifacts.MavenParentModulePomPathType]
+			if len(mavenPomPaths) != 0 {
+				buildContainerName = newArtifact.Name
+				continue
+			}
+		}
+		if subModuleJavaVersion == "" {
+			mavenPomPaths := newArtifact.Paths[artifacts.MavenSubModulePomPathType]
+			if len(mavenPomPaths) != 0 {
+				var pom maven.Pom
+				if err := pom.Load(mavenPomPaths[0]); err != nil {
+					logrus.Errorf("failed to load the pom.xml from the path %s . Error: %q", mavenPomPaths[0], err)
+					continue
+				}
+				subModuleJavaVersion = getJavaVersionFromPom(pom)
+			}
+		}
+	}
+	if buildContainerName == "" {
+		buildContainerName = common.DefaultBuildContainerName
+	}
+	if subModuleJavaVersion == "" {
+		subModuleJavaVersion = defaultJavaVersion
+	}
 	for _, newArtifact := range newArtifacts {
 		javaVersion := ""
-		var pom maven.Pom
-		if len(newArtifact.Paths[artifacts.MavenPomPathType]) == 0 {
-			logrus.Errorf("the artifact doesn't contain a maven pom.xml path. Artifact: %+v", newArtifact)
-			continue
+		mavenPomPaths := newArtifact.Paths[artifacts.MavenPomPathType]
+		isParentPomFlag := false
+		isSubModulePomFlag := false
+		if len(mavenPomPaths) == 0 {
+			logrus.Debugf("the artifact doesn't contain a standalone maven pom.xml path. Artifact: %+v", newArtifact)
+			mavenPomPaths = newArtifact.Paths[artifacts.MavenParentModulePomPathType]
+			if len(mavenPomPaths) == 0 {
+				logrus.Debugf("the artifact doesn't contain a parent maven pom.xml path. Artifact: %+v", newArtifact)
+				mavenPomPaths = newArtifact.Paths[artifacts.MavenSubModulePomPathType]
+				if len(mavenPomPaths) == 0 {
+					logrus.Errorf("the artifact doesn't contain any maven pom.xml paths. Artifact: %+v", newArtifact)
+					continue
+				} else {
+					isSubModulePomFlag = true
+				}
+			} else {
+				isParentPomFlag = true
+			}
 		}
-		if err := pom.Load(newArtifact.Paths[artifacts.MavenPomPathType][0]); err != nil {
-			logrus.Errorf("Unable to load pom for %s : %s", newArtifact.Name, err)
+		var pom maven.Pom
+		if err := pom.Load(mavenPomPaths[0]); err != nil {
+			logrus.Errorf("failed to load the pom.xml file at path %s . Error: %q", mavenPomPaths[0], err)
 		}
 		if _, ok := newArtifact.Configs[artifacts.SpringBootConfigType]; ok {
 			jv, err := pom.GetProperty("java.version")
@@ -349,8 +446,9 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			}
 			if javaVersion == "" && build.Plugins != nil {
 				for _, dep := range *build.Plugins {
-					if dep.ArtifactID == "maven-compiler-plugin" {
+					if dep.ArtifactID == MAVEN_COMPILER_PLUGIN {
 						javaVersion = dep.Configuration.Target
+						break
 					}
 				}
 			}
@@ -360,6 +458,9 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			if build.Directory != "" {
 				deploymentDir = build.Directory
 			}
+		}
+		if isParentPomFlag {
+			javaVersion = subModuleJavaVersion
 		}
 		if javaVersion == "" {
 			javaVersion = t.MavenConfig.JavaVersion
@@ -440,15 +541,30 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 		if err != nil {
 			logrus.Errorf("Unable to read Dockerfile license template : %s", err)
 		}
+		mavenParerntPomBuild, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.maven-parent-pom-build"))
+		if err != nil {
+			logrus.Errorf("Unable to read Dockerfile license template : %s", err)
+		}
 		tempDir := filepath.Join(t.Env.TempPath, newArtifact.Name)
 		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
 		dockerfileTemplate := filepath.Join(tempDir, "Dockerfile.template")
 		template := string(license) + "\n" + string(mavenBuild)
-		err = os.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
-		if err != nil {
+		if isParentPomFlag {
+			template = string(license) + "\n" + string(mavenParerntPomBuild)
+		} else if isSubModulePomFlag {
+			template = string(license) + "\n"
+		}
+		if err := os.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission); err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}
 		buildDockerfile := filepath.Join(tempDir, "Dockerfile.build")
+		if isParentPomFlag {
+			if len(newArtifact.Paths[parentPomDirPathType]) == 0 {
+				logrus.Warnf("the path to the directory where the parent pom.xml lives is missing")
+			} else {
+				buildDockerfile = filepath.Join(common.DefaultSourceDir, newArtifact.Paths[parentPomDirPathType][0], "Dockerfile")
+			}
+		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.TemplatePathMappingType,
 			SrcPath:  dockerfileTemplate,
@@ -461,6 +577,24 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 				MvnwPresent:     mavenConfig.MvnwPresent,
 			},
 		})
+		if isParentPomFlag {
+			mavenPomDir := filepath.Dir(mavenPomPaths[0])
+			paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {filepath.Join(mavenPomDir, common.DefaultDockerfileName)}}
+			baseImageDockerfileArtifact := transformertypes.Artifact{
+				Name:  sImageName.ImageName,
+				Type:  artifacts.DockerfileArtifactType,
+				Paths: paths,
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.ImageNameConfigType: sImageName,
+				},
+			}
+			createdArtifacts = append([]transformertypes.Artifact{baseImageDockerfileArtifact}, createdArtifacts...)
+			continue
+		}
+		deploymentFileDirInBuildContainer := filepath.Join(t.MavenConfig.AppPathInBuildContainer, deploymentDir)
+		if isSubModulePomFlag {
+			deploymentFileDirInBuildContainer = filepath.Join(t.MavenConfig.AppPathInBuildContainer, newArtifact.Name, deploymentDir)
+		}
 		var mavenArtifact transformertypes.Artifact
 		switch artifacts.JavaPackaging(pom.Packaging) {
 		case artifacts.WarPackaging:
@@ -471,8 +605,8 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 					artifacts.WarConfigType: artifacts.WarArtifactConfig{
 						DeploymentFile:                    deploymentFileName + ".war",
 						JavaVersion:                       javaVersion,
-						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(t.MavenConfig.AppPathInBuildContainer, deploymentDir),
+						BuildContainerName:                buildContainerName,
+						DeploymentFileDirInBuildContainer: deploymentFileDirInBuildContainer,
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -485,8 +619,8 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 					artifacts.EarConfigType: artifacts.EarArtifactConfig{
 						DeploymentFile:                    deploymentFileName + ".ear",
 						JavaVersion:                       javaVersion,
-						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(t.MavenConfig.AppPathInBuildContainer, deploymentDir),
+						BuildContainerName:                buildContainerName,
+						DeploymentFileDirInBuildContainer: deploymentFileDirInBuildContainer,
 						EnvVariables:                      envVariablesMap,
 					},
 				},
@@ -524,8 +658,8 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 					artifacts.JarConfigType: artifacts.JarArtifactConfig{
 						DeploymentFile:                    deploymentFileName + ".jar",
 						JavaVersion:                       javaVersion,
-						BuildContainerName:                common.DefaultBuildContainerName,
-						DeploymentFileDirInBuildContainer: filepath.Join(t.MavenConfig.AppPathInBuildContainer, deploymentDir),
+						BuildContainerName:                buildContainerName,
+						DeploymentFileDirInBuildContainer: deploymentFileDirInBuildContainer,
 						EnvVariables:                      envVariablesMap,
 						Port:                              port,
 					},

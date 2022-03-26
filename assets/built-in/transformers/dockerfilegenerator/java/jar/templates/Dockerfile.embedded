@@ -7,6 +7,6 @@ RUN microdnf update \
    && microdnf install --nodocs \
       {{ .JavaPackageName }} \
    && microdnf clean all
-COPY {{ if .BuildContainerName }}--from=builder {{ .DeploymentFileDirInBuildContainer }}/{{end}}{{ .DeploymentFile }} .
+COPY {{ if .BuildContainerName }}--from={{ .BuildContainerName }} {{ .DeploymentFileDirInBuildContainer }}/{{end}}{{ .DeploymentFile }} .
 EXPOSE {{ .Port }}
 CMD ["java", "-jar", "{{ .DeploymentFile }}"]

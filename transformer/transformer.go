@@ -245,7 +245,10 @@ func GetServices(prjName string, dir string) (services map[string][]plantypes.Pl
 	logrus.Debugf("Transformers : %+v", transformers)
 	for _, t := range transformers {
 		config, env := t.GetConfig()
-		env.Reset()
+		if err := env.Reset(); err != nil {
+			logrus.Errorf("failed to reset the environment for the transformer %s . Error: %q", config.Name, err)
+			continue
+		}
 		if config.Spec.DirectoryDetect.Levels != 1 {
 			continue
 		}
@@ -307,43 +310,54 @@ func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArti
 			return nil
 		}
 		common.PlanProgressNumDirectories++
-		logrus.Debugf("Planning dir transformation - %s", path)
-		found := false
-		for _, t := range transformers {
-			config, env := t.GetConfig()
-			logrus.Debugf("[%s] Planning transformation in %s", config.Name, path)
-			env.Reset()
+		logrus.Debugf("Planning in directory %s", path)
+		numfound := 0
+		skipThisDir := false
+		for _, transformer := range transformers {
+			config, env := transformer.GetConfig()
+			logrus.Debugf("[%s] Planning in directory %s", config.Name, path)
+			if err := env.Reset(); err != nil {
+				logrus.Errorf("failed to reset the environment for the transformer %s . Error: %q", config.Name, err)
+				continue
+			}
 			if config.Spec.DirectoryDetect.Levels == 1 || config.Spec.DirectoryDetect.Levels == 0 {
 				continue
 			}
-			nservices, err := t.DirectoryDetect(env.Encode(path).(string))
+			newServicesToArtifacts, err := transformer.DirectoryDetect(env.Encode(path).(string))
 			if err != nil {
-				logrus.Warnf("[%s] Failed : %s", config.Name, err)
-			} else {
-				nservices := getPlanArtifactsFromArtifacts(*env.Decode(&nservices).(*map[string][]transformertypes.Artifact), config)
-				services = plantypes.MergeServices(services, nservices)
-				logrus.Debugf("[%s] Done", config.Name)
-				if len(nservices) > 0 {
-					found = true
-					relpath, _ := filepath.Rel(inputPath, path)
-					logrus.Infof("%s in %s", getNamedAndUnNamedServicesLogMessage(nservices), relpath)
+				logrus.Warnf("[%s] directory detect failed. Error: %q", config.Name, err)
+				continue
+			}
+			for _, newServiceArtifacts := range newServicesToArtifacts {
+				for _, newServiceArtifact := range newServiceArtifacts {
+					knownServiceDirPaths = append(knownServiceDirPaths, newServiceArtifact.Paths[artifacts.ServiceDirPathType]...)
+					for _, serviceDirPath := range newServiceArtifact.Paths[artifacts.ServiceDirPathType] {
+						if serviceDirPath == path {
+							skipThisDir = true
+							break
+						}
+					}
 				}
 			}
-		}
-		logrus.Debugf("Dir transformation done - %s", path)
-		if !found {
-			logrus.Debugf("No service found in directory %q", path)
-			if common.IsStringPresent(ignoreContents, path) {
-				return filepath.SkipDir
+			newPlanServices := getPlanArtifactsFromArtifacts(*env.Decode(&newServicesToArtifacts).(*map[string][]transformertypes.Artifact), config)
+			services = plantypes.MergeServices(services, newPlanServices)
+			logrus.Debugf("[%s] Done", config.Name)
+			numfound += len(newServicesToArtifacts)
+			if len(newServicesToArtifacts) > 0 {
+				relpath, _ := filepath.Rel(inputPath, path)
+				logrus.Infof("%s in %s", getNamedAndUnNamedServicesLogMessage(newPlanServices), relpath)
 			}
-			return nil
 		}
-		return filepath.SkipDir // Skip all subdirectories when base directory is a valid package
+		logrus.Debugf("planning finished for the directory %s and %d services were detected", path, numfound)
+		if skipThisDir || common.IsStringPresent(ignoreContents, path) {
+			return filepath.SkipDir
+		}
+		return nil
 	})
 	if err != nil {
-		logrus.Errorf("Error occurred while walking through the directory at path %q Error: %q", inputPath, err)
+		logrus.Errorf("failed to walk through the directory at path %s . Error: %q", inputPath, err)
 	}
-	return
+	return services, err
 }
 
 type processType int

@@ -237,11 +237,13 @@ func GetFilesInCurrentDirectory(path string, fileNames, fileNameRegexes []string
 		for _, name := range fileNames {
 			if name == fName {
 				files = append(files, filepath.Join(path, fName))
+				break
 			}
 		}
 		for _, compiledNameRegex := range compiledNameRegexes {
 			if compiledNameRegex.MatchString(fName) {
 				files = append(files, filepath.Join(path, fName))
+				break
 			}
 		}
 	}

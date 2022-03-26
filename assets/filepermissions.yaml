@@ -44,6 +44,7 @@
 "built-in/transformers/dockerfilegenerator/java/liberty/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/java/mappings/javapackageversions.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/java/maven/templates/Dockerfile.maven-build" : 0644
+"built-in/transformers/dockerfilegenerator/java/maven/templates/Dockerfile.maven-parent-pom-build" : 0644
 "built-in/transformers/dockerfilegenerator/java/maven/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/java/tomcat/templates/Dockerfile.tomcat" : 0644
 "built-in/transformers/dockerfilegenerator/java/tomcat/transformer.yaml" : 0644

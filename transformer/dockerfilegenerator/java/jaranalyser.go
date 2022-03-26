@@ -114,21 +114,21 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
+	for _, newArtifact := range newArtifacts {
 		var sConfig artifacts.ServiceConfig
-		err := a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		err := newArtifact.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
 		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		err = newArtifact.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), newArtifact.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", newArtifact.Paths[artifacts.ServiceDirPathType][0], err)
 		}
 		jarRunDockerfile, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.embedded"))
 		if err != nil {
@@ -136,7 +136,7 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 		}
 		dockerFileHead := ""
 		isBuildContainerPresent := false
-		if buildContainerPaths, ok := a.Paths[artifacts.BuildContainerFileType]; ok && len(buildContainerPaths) > 0 {
+		if buildContainerPaths, ok := newArtifact.Paths[artifacts.BuildContainerFileType]; ok && len(buildContainerPaths) > 0 {
 			isBuildContainerPresent = true
 			dockerfileBuildDockerfile := buildContainerPaths[0]
 			dockerFileHeadBytes, err := os.ReadFile(dockerfileBuildDockerfile)
@@ -152,63 +152,51 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 			}
 			dockerFileHead = string(dockerFileHeadBytes)
 		}
-		tempDir := filepath.Join(t.Env.TempPath, a.Name)
-		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
+		tempDir := filepath.Join(t.Env.TempPath, newArtifact.Name)
+		if err := os.MkdirAll(tempDir, common.DefaultDirectoryPermission); err != nil {
+			logrus.Errorf("failed to create the directory %s . Error: %q", tempDir, err)
+		}
 		dockerfileTemplate := filepath.Join(tempDir, common.DefaultDockerfileName)
 		template := string(dockerFileHead) + "\n" + string(jarRunDockerfile)
-		err = os.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
-		if err != nil {
-			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
+		if err := os.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission); err != nil {
+			logrus.Errorf("could not write the generated Build Dockerfile template: %s", err)
 		}
 		jarArtifactConfig := artifacts.JarArtifactConfig{}
-		err = a.GetConfig(artifacts.JarConfigType, &jarArtifactConfig)
-		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", jarArtifactConfig, err)
+		if err := newArtifact.GetConfig(artifacts.JarConfigType, &jarArtifactConfig); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T . Error: %q", jarArtifactConfig, err)
 		}
 		if jarArtifactConfig.JavaVersion == "" {
 			jarArtifactConfig.JavaVersion = t.JarConfig.JavaVersion
 		}
 		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jarArtifactConfig.JavaVersion)
 		if err != nil {
-			logrus.Errorf("Unable to find mapping version for java version %s : %s", jarArtifactConfig.JavaVersion, err)
+			logrus.Errorf("unable to find mapping version for java version %s . Error: %q", jarArtifactConfig.JavaVersion, err)
 			javaPackage = defaultJavaPackage
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
 			DestPath: common.DefaultSourceDir,
 		})
-		if isBuildContainerPresent {
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:     transformertypes.TemplatePathMappingType,
-				SrcPath:  dockerfileTemplate,
-				DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
-				TemplateConfig: JarDockerfileTemplate{
-					JavaPackageName:                   javaPackage,
-					DeploymentFile:                    jarArtifactConfig.DeploymentFile,
-					BuildContainerName:                jarArtifactConfig.BuildContainerName,
-					DeploymentFileDirInBuildContainer: jarArtifactConfig.DeploymentFileDirInBuildContainer,
-					Port:                              jarArtifactConfig.Port,
-					EnvVariables:                      jarArtifactConfig.EnvVariables,
-					ServiceName:                       sConfig.ServiceName,
-				},
-			})
-		} else {
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:     transformertypes.TemplatePathMappingType,
-				SrcPath:  dockerfileTemplate,
-				DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
-				TemplateConfig: JarDockerfileTemplate{
-					JavaPackageName: javaPackage,
-					DeploymentFile:  jarArtifactConfig.DeploymentFile,
-					Port:            jarArtifactConfig.Port,
-					EnvVariables:    jarArtifactConfig.EnvVariables,
-					ServiceName:     sConfig.ServiceName,
-				},
-			})
+		pathMappingTemplateConfig := JarDockerfileTemplate{
+			JavaPackageName: javaPackage,
+			DeploymentFile:  jarArtifactConfig.DeploymentFile,
+			Port:            jarArtifactConfig.Port,
+			EnvVariables:    jarArtifactConfig.EnvVariables,
+			ServiceName:     sConfig.ServiceName,
 		}
-		paths := a.Paths
+		if isBuildContainerPresent {
+			pathMappingTemplateConfig.BuildContainerName = jarArtifactConfig.BuildContainerName
+			pathMappingTemplateConfig.DeploymentFileDirInBuildContainer = jarArtifactConfig.DeploymentFileDirInBuildContainer
+		}
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:           transformertypes.TemplatePathMappingType,
+			SrcPath:        dockerfileTemplate,
+			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
+			TemplateConfig: pathMappingTemplateConfig,
+		})
+		paths := newArtifact.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
-		p := transformertypes.Artifact{
+		dockerfile1 := transformertypes.Artifact{
 			Name:  sImageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
 			Paths: paths,
@@ -216,20 +204,20 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 				artifacts.ImageNameConfigType: sImageName,
 			},
 		}
-		dfs := transformertypes.Artifact{
+		dockerfile2 := transformertypes.Artifact{
 			Name:  sConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
-			Paths: a.Paths,
+			Paths: paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 				artifacts.ServiceConfigType:   sConfig,
 			},
 		}
 		ir := irtypes.IR{}
-		if err = a.GetConfig(irtypes.IRConfigType, &ir); err == nil {
-			dfs.Configs[irtypes.IRConfigType] = ir
+		if err = newArtifact.GetConfig(irtypes.IRConfigType, &ir); err == nil {
+			dockerfile2.Configs[irtypes.IRConfigType] = ir
 		}
-		createdArtifacts = append(createdArtifacts, p, dfs)
+		createdArtifacts = append(createdArtifacts, dockerfile1, dockerfile2)
 	}
 	return pathMappings, createdArtifacts, nil
 }

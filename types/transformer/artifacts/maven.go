@@ -35,6 +35,10 @@ const (
 	MavenConfigType transformertypes.ConfigType = "Maven"
 	// MavenPomPathType stores the Maven POM file Path
 	MavenPomPathType transformertypes.PathType = "MavenPom"
+	// MavenParentModulePomPathType stores the Maven's parent POM file Path
+	MavenParentModulePomPathType transformertypes.PathType = "MavenParentModulePom"
+	// MavenSubModulePomPathType stores the Maven's submodule POM file Path
+	MavenSubModulePomPathType transformertypes.PathType = "MavenSubModulePom"
 )
 
 // Merge implements the Config interface allowing artifacts to be merged

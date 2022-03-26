@@ -19,9 +19,12 @@ spec:
       disabled: false
     Ear:
       disabled: false
+    Dockerfile:
+      disabled: false
   externalFiles:
     "../../common/Dockerfile.license" : templates/Dockerfile.license
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml
   config: 
     defaultMavenVersion: "3.8.4"
     defaultJavaVersion: "17"
+    appPathInBuildContainer: "/app"
