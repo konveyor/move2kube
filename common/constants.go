@@ -155,7 +155,7 @@ const (
 	ConfigStoragesPVCForHostPathKey = ConfigStoragesKey + d + "pvcforhostpath"
 	//ConfigStoragesPerClaimStorageClassKey represents key for having different storage class for claim
 	ConfigStoragesPerClaimStorageClassKey = ConfigStoragesKey + d + "perclaimstorageclass"
-	//ConfigServicesNamesKey represents Storages Key
+	//ConfigServicesNamesKey is true if a detected service is enabled for transformation
 	ConfigServicesNamesKey = ConfigServicesKey + d + Special + d + "enable"
 	//ConfigContainerizationTypesKey represents source type Key
 	ConfigContainerizationTypesKey = ConfigContainerizationKeySegment + d + "types"
@@ -165,6 +165,8 @@ const (
 	ConfigActiveMavenProfilesForServiceKeySegment = "activemavenprofiles"
 	// ConfigActiveSpringBootProfilesForServiceKeySegment represent the springboot profiles used for service
 	ConfigActiveSpringBootProfilesForServiceKeySegment = "activespringbootprofiles"
+	// ConfigServicesChildModulesNamesKey is true if a detected child module/sub-project of a service is enabled for transformation
+	ConfigServicesChildModulesNamesKey = ConfigServicesKey + d + "%s" + d + "childModules" + d + Special + d + "enable"
 )
 
 const (

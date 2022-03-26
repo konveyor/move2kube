@@ -22,10 +22,11 @@ if not %basename% == "scripts" (
 REM go to the parent directory so that all the relative paths will be correct
 cd ..
 
-{{range $dockerfile := . }}
+{{- range $dockerfile := . }}
+
 pushd {{ $dockerfile.ContextWindows }}
-{{ .ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
+{{ $dockerfile.ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 popd
-{{end}}
+{{- end }}
 
 echo "done"

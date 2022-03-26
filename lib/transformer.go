@@ -31,7 +31,7 @@ import (
 // Transform transforms the artifacts and writes output
 func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, transformerSelector string) {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
-	logrus.Infof("Starting Plan Transformation")
+	logrus.Infof("Starting transformation")
 
 	common.ProjectName = plan.Name
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
@@ -67,14 +67,13 @@ func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, tran
 	sort.Strings(serviceNames)
 	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
 	selectedPlanServices := []plantypes.PlanArtifact{}
-	for _, s := range selectedServices {
-		selectedPlanServices = append(selectedPlanServices, planServices[s])
+	for _, selectedService := range selectedServices {
+		selectedPlanServices = append(selectedPlanServices, planServices[selectedService])
 	}
-	err = transformer.Transform(selectedPlanServices, plan.Spec.SourceDir, outputPath)
-	if err != nil {
+	if err := transformer.Transform(selectedPlanServices, plan.Spec.SourceDir, outputPath); err != nil {
 		logrus.Fatalf("Failed to transform the plan. Error: %q", err)
 	}
-	logrus.Infof("Plan Transformation done")
+	logrus.Infof("Transformation done")
 }
 
 // Destroy destroys the tranformers

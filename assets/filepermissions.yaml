@@ -36,7 +36,7 @@
 "built-in/transformers/dockerfilegenerator/java/earrouter/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/java/gradle/templates/Dockerfile.gradle-build" : 0644
 "built-in/transformers/dockerfilegenerator/java/gradle/transformer.yaml" : 0644
-"built-in/transformers/dockerfilegenerator/java/jar/templates/Dockerfile.embedded" : 0644
+"built-in/transformers/dockerfilegenerator/java/jar/templates/Dockerfile.jar-run" : 0644
 "built-in/transformers/dockerfilegenerator/java/jar/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/java/jboss/templates/Dockerfile.jboss" : 0644
 "built-in/transformers/dockerfilegenerator/java/jboss/transformer.yaml" : 0644

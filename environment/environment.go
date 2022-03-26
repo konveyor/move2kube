@@ -185,7 +185,7 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 		logrus.Debug("environment not active. Process is terminating")
 		return dupobj
 	}
-	function := func(path string) (string, error) {
+	processPath := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
 		}
@@ -220,14 +220,13 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 		return e.Env.Upload(path)
 	}
 	if reflect.ValueOf(obj).Kind() == reflect.String {
-		val, err := function(obj.(string))
+		val, err := processPath(obj.(string))
 		if err != nil {
 			logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
 		}
 		return val
 	}
-	err := pathconverters.ProcessPaths(dupobj, function)
-	if err != nil {
+	if err := pathconverters.ProcessPaths(dupobj, processPath); err != nil {
 		logrus.Errorf("Unable to process paths for obj %+v : %s", dupobj, err)
 	}
 	return dupobj
@@ -240,7 +239,7 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 		logrus.Debug("environment not active. Process is terminating")
 		return dupobj
 	}
-	function := func(path string) (string, error) {
+	processPath := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
 		}
@@ -281,14 +280,13 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 		return path, nil
 	}
 	if reflect.ValueOf(dupobj).Kind() == reflect.String {
-		val, err := function(dupobj.(string))
+		val, err := processPath(dupobj.(string))
 		if err != nil {
 			logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
 		}
 		return val
 	}
-	err := pathconverters.ProcessPaths(dupobj, function)
-	if err != nil {
+	if err := pathconverters.ProcessPaths(dupobj, processPath); err != nil {
 		logrus.Errorf("Unable to process paths for obj %+v : %s", dupobj, err)
 	}
 	return dupobj
@@ -296,12 +294,12 @@ func (e *Environment) Decode(obj interface{}) interface{} {
 
 // DownloadAndDecode downloads and decodes the data from the paths in the object
 func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) interface{} {
-	dupobj := deepcopy.DeepCopy(obj)
+	objCopy := deepcopy.DeepCopy(obj)
 	if !e.active {
 		logrus.Debug("environment not active. Process is terminating")
-		return dupobj
+		return objCopy
 	}
-	function := func(path string) (string, error) {
+	processPath := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
 		}
@@ -325,8 +323,7 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 		if common.IsParent(path, e.GetEnvironmentOutput()) {
 			relPath, err := filepath.Rel(e.GetEnvironmentOutput(), path)
 			if err != nil {
-				logrus.Errorf("Unable to convert output to rel path : %s", err)
-				return path, err
+				return path, fmt.Errorf("failed to make the path %s relative to the output directory %s . Error: %q", path, e.GetEnvironmentOutput(), err)
 			}
 			return relPath, nil
 		}
@@ -346,11 +343,10 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 		}
 		return outpath, nil
 	}
-	err := pathconverters.ProcessPaths(dupobj, function)
-	if err != nil {
-		logrus.Errorf("Unable to process paths for obj %+v : %s", dupobj, err)
+	if err := pathconverters.ProcessPaths(objCopy, processPath); err != nil {
+		logrus.Errorf("failed to process all the paths for the object of type %T and value %+v . Error: %q", objCopy, objCopy, err)
 	}
-	return dupobj
+	return objCopy
 }
 
 // ProcessPathMappings post processes the paths in the path mappings

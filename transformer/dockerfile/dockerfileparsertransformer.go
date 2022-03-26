@@ -58,48 +58,46 @@ func (t *DockerfileParser) DirectoryDetect(dir string) (services map[string][]tr
 
 // Transform transforms the artifacts
 func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
-	nartifacts := []transformertypes.Artifact{}
+	createdArtifacts := []transformertypes.Artifact{}
 	processedImages := map[string]bool{}
-	for _, a := range newArtifacts {
-		sConfig := artifacts.ServiceConfig{}
-		err := a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sConfig, err)
+	for _, newArtifact := range newArtifacts {
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Errorf("unable to load the service config from the artifact %+v . Error: %q", newArtifact, err)
 		}
-		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
-		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+		imageName := artifacts.ImageName{}
+		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
+			logrus.Errorf("unable to load the imagename config from the artifact %+v . Error: %q", newArtifact, err)
 		}
-		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(a.Name)
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(newArtifact.Name)
 		}
 		ir := irtypes.NewIR()
-		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			ir = irtypes.NewIR()
 		}
-		if processedImages[sImageName.ImageName] {
+		if processedImages[imageName.ImageName] {
 			continue
 		}
-		processedImages[sImageName.ImageName] = true
-		if paths, ok := a.Paths[artifacts.DockerfilePathType]; ok && len(paths) > 0 {
+		processedImages[imageName.ImageName] = true
+		if paths, ok := newArtifact.Paths[artifacts.DockerfilePathType]; ok && len(paths) > 0 {
 			serviceFsPath := filepath.Dir(paths[0])
-			if serviceFsPaths, ok := a.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
+			if serviceFsPaths, ok := newArtifact.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
 				serviceFsPath = serviceFsPaths[0]
 			}
 			contextPath := filepath.Dir(paths[0])
-			if contextPaths, ok := a.Paths[artifacts.DockerfileContextPathType]; ok && len(contextPaths) > 0 {
+			if contextPaths, ok := newArtifact.Paths[artifacts.DockerfileContextPathType]; ok && len(contextPaths) > 0 {
 				contextPath = contextPaths[0]
 			}
-			na, err := t.getIRFromDockerfile(paths[0], contextPath, sImageName.ImageName, sConfig.ServiceName, serviceFsPath, ir)
+			createdArtifact, err := t.getIRFromDockerfile(paths[0], contextPath, imageName.ImageName, serviceConfig.ServiceName, serviceFsPath, ir)
 			if err != nil {
-				logrus.Errorf("Unable to convert dockerfile to IR : %s", err)
-			} else {
-				nartifacts = append(nartifacts, na)
+				logrus.Errorf("failed to convert the Dockerfile to IR. Error: %q", err)
+				continue
 			}
+			createdArtifacts = append(createdArtifacts, createdArtifact)
 		}
 	}
-	return nil, nartifacts, nil
+	return nil, createdArtifacts, nil
 }
 
 func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, contextPath, imageName, serviceName, serviceFsPath string, ir irtypes.IR) (transformertypes.Artifact, error) {

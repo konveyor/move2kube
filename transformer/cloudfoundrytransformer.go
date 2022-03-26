@@ -40,7 +40,7 @@ import (
 )
 
 // variableLiteralPattern to identify variable literals in environment names
-var variableLiteralPattern = regexp.MustCompile("[-.+~`!@#$%^&*(){}\\[\\]:;\"',?<>/]")
+var variableLiteralPattern = regexp.MustCompile(`[-.+~\x60!@#$%^&*(){}\[\]:;"',?<>/]`)
 
 // CloudFoundry implements Transformer interface
 type CloudFoundry struct {

@@ -62,95 +62,96 @@ func (t *DockerfileImageBuildScript) DirectoryDetect(dir string) (namedServices 
 // Transform transforms the artifacts
 func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
-	dfs := []DockerfileImageBuildScriptTemplateConfig{}
-	nartifacts := []transformertypes.Artifact{}
+	dockerfiles := []DockerfileImageBuildScriptTemplateConfig{}
+	createdArtifacts := []transformertypes.Artifact{}
 	processedImages := map[string]bool{}
-	for _, a := range append(newArtifacts, alreadySeenArtifacts...) {
-		if a.Type != artifacts.DockerfileArtifactType {
+	for _, artifact := range append(alreadySeenArtifacts, newArtifacts...) {
+		if artifact.Type != artifacts.DockerfileArtifactType {
 			continue
 		}
-		sImageName := artifacts.ImageName{}
-		err := a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
-		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
-		}
-		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(a.Name)
-		}
-		if processedImages[sImageName.ImageName] {
+		imageName := artifacts.ImageName{}
+		if err := artifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T . Error: %q", imageName, err)
 			continue
 		}
-		processedImages[sImageName.ImageName] = true
-		for _, path := range a.Paths[artifacts.DockerfilePathType] {
-			relPath := ""
-			dockerfileName := filepath.Base(path)
-			if len(a.Paths[artifacts.DockerfileContextPathType]) > 0 {
-				relPath = a.Paths[artifacts.DockerfileContextPathType][0]
-				dfrelPath, err := filepath.Rel(relPath, path)
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(artifact.Name)
+		}
+		if processedImages[imageName.ImageName] {
+			continue
+		}
+		processedImages[imageName.ImageName] = true
+		for _, dockerfilePath := range artifact.Paths[artifacts.DockerfilePathType] {
+			dockerContextPath := filepath.Dir(dockerfilePath)
+			relDockerfilePath := filepath.Base(dockerfilePath)
+			if len(artifact.Paths[artifacts.DockerfileContextPathType]) > 0 {
+				dockerContextPath = artifact.Paths[artifacts.DockerfileContextPathType][0]
+				var err error
+				relDockerfilePath, err = filepath.Rel(dockerContextPath, dockerfilePath)
 				if err != nil {
-					logrus.Errorf("Unable to convert dockerfile path as a relative path : %s", err)
-				} else {
-					dockerfileName = dfrelPath
-				}
-			} else {
-				relPath = filepath.Dir(path)
-			}
-			if common.IsParent(path, t.Env.GetEnvironmentSource()) {
-				relPath, err = filepath.Rel(t.Env.GetEnvironmentSource(), filepath.Dir(path))
-				if err != nil {
-					logrus.Errorf("Unable to make path relative : %s", err)
+					logrus.Errorf("failed to make the path %s relative to the base path %s . Error: %q", dockerfilePath, dockerContextPath, err)
 					continue
 				}
-				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:        sImageName.ImageName,
-					ContextUnix:      common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relPath)),
-					ContextWindows:   common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relPath)),
-					DockerfileName:   dockerfileName,
-					ContainerRuntime: commonqa.GetContainerRuntime(),
-				})
-			} else if common.IsParent(path, t.Env.GetEnvironmentOutput()) {
-				relPath, err = filepath.Rel(t.Env.GetEnvironmentOutput(), filepath.Dir(path))
+			}
+			if common.IsParent(dockerfilePath, t.Env.GetEnvironmentSource()) {
+				relDockerContextPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), filepath.Dir(dockerfilePath))
 				if err != nil {
-					logrus.Errorf("Unable to make path relative : %s", err)
+					logrus.Errorf("failed to make the path %s relative to the base path %s . Error: %q", filepath.Dir(dockerfilePath), t.Env.GetEnvironmentSource(), err)
 					continue
 				}
-				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:        sImageName.ImageName,
-					ContextUnix:      common.GetUnixPath(relPath),
-					ContextWindows:   common.GetWindowsPath(relPath),
-					DockerfileName:   dockerfileName,
+				t1 := DockerfileImageBuildScriptTemplateConfig{
+					ImageName:        imageName.ImageName,
+					ContextUnix:      common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relDockerContextPath)),
+					ContextWindows:   common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relDockerContextPath)),
+					DockerfileName:   relDockerfilePath,
 					ContainerRuntime: commonqa.GetContainerRuntime(),
-				})
+				}
+				dockerfiles = append(dockerfiles, t1)
+			} else if common.IsParent(dockerfilePath, t.Env.GetEnvironmentOutput()) {
+				relDockerContextPath, err := filepath.Rel(t.Env.GetEnvironmentOutput(), filepath.Dir(dockerfilePath))
+				if err != nil {
+					logrus.Errorf("failed to make the path %s relative to the base path %s . Error: %q", filepath.Dir(dockerfilePath), t.Env.GetEnvironmentOutput(), err)
+					continue
+				}
+				t2 := DockerfileImageBuildScriptTemplateConfig{
+					ImageName:        imageName.ImageName,
+					ContextUnix:      common.GetUnixPath(relDockerContextPath),
+					ContextWindows:   common.GetWindowsPath(relDockerContextPath),
+					DockerfileName:   relDockerfilePath,
+					ContainerRuntime: commonqa.GetContainerRuntime(),
+				}
+				dockerfiles = append(dockerfiles, t2)
 			} else {
-				dfs = append(dfs, DockerfileImageBuildScriptTemplateConfig{
-					ImageName:        sImageName.ImageName,
-					ContextUnix:      common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relPath)),
-					ContextWindows:   common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relPath)),
-					DockerfileName:   dockerfileName,
+				t3 := DockerfileImageBuildScriptTemplateConfig{
+					ImageName:        imageName.ImageName,
+					ContextUnix:      common.GetUnixPath(filepath.Join(common.DefaultSourceDir, dockerContextPath)),
+					ContextWindows:   common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, dockerContextPath)),
+					DockerfileName:   relDockerfilePath,
 					ContainerRuntime: commonqa.GetContainerRuntime(),
-				})
+				}
+				dockerfiles = append(dockerfiles, t3)
 			}
-			nartifacts = append(nartifacts, transformertypes.Artifact{
+			createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
 				Name: t.Env.ProjectName,
 				Type: artifacts.NewImagesArtifactType,
 				Configs: map[transformertypes.ConfigType]interface{}{
 					artifacts.NewImagesConfigType: artifacts.NewImages{
-						ImageNames: []string{sImageName.ImageName},
+						ImageNames: []string{imageName.ImageName},
 					},
 				},
 			})
 		}
 	}
-	if len(dfs) == 0 {
+	if len(dockerfiles) == 0 {
 		return nil, nil, nil
 	}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
 		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 		DestPath:       common.ScriptsDir,
-		TemplateConfig: dfs,
+		TemplateConfig: dockerfiles,
 	})
-	nartifacts = append(nartifacts, transformertypes.Artifact{
+	createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
 		Name: string(artifacts.ContainerImageBuildScriptArtifactType),
 		Type: artifacts.ContainerImageBuildScriptArtifactType,
 		Paths: map[transformertypes.PathType][]string{artifacts.ContainerImageBuildShScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.sh")},
@@ -159,5 +160,5 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 			artifacts.ContainerImageBuildBatScriptContextPathType: {"."},
 		},
 	})
-	return pathMappings, nartifacts, nil
+	return pathMappings, createdArtifacts, nil
 }

@@ -17,6 +17,7 @@
 package java
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -68,32 +69,32 @@ func (t *WarAnalyser) GetConfig() (transformertypes.Transformer, *environment.En
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *WarAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	services = map[string][]transformertypes.Artifact{}
-	warFilePaths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{".*[.]war"})
+func (t *WarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
+	services := map[string][]transformertypes.Artifact{}
+	paths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{`\.war$`})
 	if err != nil {
-		logrus.Errorf("Error while parsing directory %s for jar file : %s", dir, err)
-		return nil, err
+		return services, fmt.Errorf("failed to look for .war archives in the directory %s . Error: %q", dir, err)
 	}
-	if len(warFilePaths) == 0 {
+	if len(paths) == 0 {
 		return nil, nil
 	}
-	for _, path := range warFilePaths {
+	for _, path := range paths {
 		newArtifact := transformertypes.Artifact{
+			Type: artifacts.ServiceArtifactType,
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.WarPathType:        {path},
-				artifacts.ServiceDirPathType: {filepath.Dir(path)},
+				artifacts.ServiceDirPathType: {dir},
 			},
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.WarConfigType: artifacts.WarArtifactConfig{
-					DeploymentFile: filepath.Base(path),
-					JavaVersion:    t.WarConfig.JavaVersion,
+					DeploymentFilePath: filepath.Base(path),
+					JavaVersion:        t.WarConfig.JavaVersion,
 				},
 			},
 		}
 		services[""] = append(services[""], newArtifact)
 	}
-	return
+	return services, nil
 }
 
 // Transform transforms the artifacts

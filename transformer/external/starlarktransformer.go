@@ -58,6 +58,8 @@ const (
 	fsgetyamlswithtypemetaFnName = "getyamlswithtypemeta"
 	fspathjoinFnName             = "pathjoin"
 	fswriteFnName                = "write"
+	fspathBaseFnName             = "pathbase"
+	fspathRelFnName              = "pathrel"
 )
 
 // Starlark implements transformer interface and is used to write simple external transformers
@@ -174,7 +176,7 @@ func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, alreadySe
 	}
 	val, err := starlark.Call(t.StarThread, t.transformFn, starlark.Tuple{starNewArtifacts, starOldArtifacts}, nil)
 	if err != nil {
-		logrus.Errorf("Unable to execute starlark function : %s", err)
+		logrus.Errorf("failed to call the starlark function: %s Error: %q", t.transformFn.String(), err)
 		return nil, nil, err
 	}
 	valI, err := starutil.Unmarshal(val)
@@ -304,6 +306,8 @@ func (t *Starlark) addFSModules() {
 			fspathjoinFnName:             t.getStarlarkFSPathJoin(),
 			fswriteFnName:                t.getStarlarkFSWrite(),
 			fsgetyamlswithtypemetaFnName: t.getStarlarkFSGetYamlsWithTypeMeta(),
+			fspathBaseFnName:             t.getStarlarkFSPathBase(),
+			fspathRelFnName:              t.getStarlarkFSPathRel(),
 		},
 	}
 }
@@ -392,7 +396,7 @@ func (t *Starlark) getStarlarkFSGetYamlsWithTypeMeta() *starlark.Builtin {
 			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fswriteFnName, err)
 		}
 		if kindFilter == "" {
-			return starlark.None, fmt.Errorf("Kind is missing in find parameters")
+			return starlark.None, fmt.Errorf("kind is missing in find parameters")
 		}
 		if !t.Env.IsPathValid(inputPath) {
 			return starlark.None, fmt.Errorf("invalid path")
@@ -512,5 +516,40 @@ func (t *Starlark) getStarlarkFSPathJoin() *starlark.Builtin {
 			return starlark.None, fmt.Errorf("invalid path")
 		}
 		return starutil.Marshal(path)
+	})
+}
+
+func (t *Starlark) getStarlarkFSPathBase() *starlark.Builtin {
+	return starlark.NewBuiltin(fspathBaseFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var path string
+		if err := starlark.UnpackPositionalArgs(fspathBaseFnName, args, kwargs, 1, &path); err != nil {
+			return nil, err
+		}
+		if !t.Env.IsPathValid(path) {
+			return starlark.None, fmt.Errorf("invalid path")
+		}
+		return starlark.String(filepath.Base(filepath.Clean(path))), nil
+	})
+}
+
+func (t *Starlark) getStarlarkFSPathRel() *starlark.Builtin {
+	return starlark.NewBuiltin(fspathRelFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var basePath, targetPath string
+		if err := starlark.UnpackPositionalArgs(fspathRelFnName, args, kwargs, 2, &basePath, &targetPath); err != nil {
+			return nil, err
+		}
+		basePath = filepath.Clean(basePath)
+		targetPath = filepath.Clean(targetPath)
+		if !t.Env.IsPathValid(basePath) {
+			return starlark.None, fmt.Errorf("the base path '%s' is invalid", basePath)
+		}
+		if !t.Env.IsPathValid(targetPath) {
+			return starlark.None, fmt.Errorf("the target path '%s' is invalid", targetPath)
+		}
+		path3, err := filepath.Rel(basePath, targetPath)
+		if err != nil {
+			return starlark.None, fmt.Errorf("failed to make the path '%s' to the base directory '%s' . Error: %q", targetPath, basePath, err)
+		}
+		return starlark.String(path3), nil
 	})
 }

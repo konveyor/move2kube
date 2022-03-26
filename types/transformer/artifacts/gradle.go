@@ -23,14 +23,25 @@ import (
 
 // GradleConfig stores gradle related configuration information
 type GradleConfig struct {
-	ArtifactType   JavaPackaging `yaml:"artifactType" json:"artifactType"`
-	AppName        string        `yaml:"appName" json:"appName"`
-	GradleWPresent bool          `yaml:"gradleWPresent" json:"gradleWPresent"`
+	RootProjectName  string              `yaml:"rootProjectName,omitempty" json:"rootProjectName,omitempty"`
+	PackagingType    JavaPackaging       `yaml:"packagingType" json:"packagingType"`
+	IsGradlewPresent bool                `yaml:"isGradlewPresent" json:"isGradlewPresent"`
+	ChildModules     []GradleChildModule `yaml:"childModules,omitempty" json:"childModules,omitempty"`
+}
+
+// GradleChildModule represents the data for a Gradle child project in a multi-module project
+type GradleChildModule struct {
+	// Name is the name/artifact id of the child module
+	Name string `yaml:"name" json:"name"`
+	// RelBuildScriptPath is the path to the child build.gradle (relative to the root settings.gradle)
+	RelBuildScriptPath string `yaml:"buildScriptPath" json:"buildScriptPath"`
 }
 
 const (
 	// GradleConfigType stores the gradle config
 	GradleConfigType transformertypes.ConfigType = "Gradle"
+	// GradleSettingsFilePathType is the type for paths to settings.gradle files
+	GradleSettingsFilePathType transformertypes.PathType = "GradleSettingsFile"
 	// GradleBuildFilePathType stores the Gradle Build File file Path
 	GradleBuildFilePathType transformertypes.PathType = "GradleBuildFile"
 )
@@ -46,7 +57,7 @@ func (gc *GradleConfig) Merge(newgcobj interface{}) bool {
 		}
 		newgcptr = &newgc
 	}
-	if gc.ArtifactType != newgcptr.ArtifactType {
+	if gc.PackagingType != newgcptr.PackagingType {
 		return false
 	}
 	return true

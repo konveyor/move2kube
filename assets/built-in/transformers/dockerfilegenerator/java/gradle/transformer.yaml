@@ -19,9 +19,12 @@ spec:
       disabled: false
     Ear:
       disabled: false
+    Dockerfile:
+      disabled: false
   externalFiles:
     "../../common/Dockerfile.license" : templates/Dockerfile.license
     "../mappings/javapackageversions.yaml" : mappings/javapackageversions.yaml
   config: 
     defaultJavaVersion: "17"
     defaultGradleVersion: "7.3"
+    appPathInBuildContainer: "/app"

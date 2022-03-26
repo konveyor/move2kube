@@ -1,8 +1,14 @@
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+
+{{- if .EnvVariables }}
+
+# environment variables
 {{- range $k, $v := .EnvVariables}}
 ENV {{$k}} {{$v}}
 {{- end}}
+{{- end}}
+
 RUN microdnf update && microdnf install -y {{ .JavaPackageName }} tar gzip shadow-utils && microdnf clean all
 # Set the WILDFLY_VERSION env variable
 ENV WILDFLY_BASE_VERSION 26.0.0.Final
@@ -25,7 +31,7 @@ RUN cd $HOME \
 # Ensure signals are forwarded to the JVM process correctly for graceful shutdown
 ENV LAUNCH_JBOSS_IN_BACKGROUND true
 USER jboss
-COPY {{ if .BuildContainerName }}--from=builder {{ .DeploymentFileDirInBuildContainer }}/{{end}}{{ .DeploymentFile }} ${JBOSS_HOME}/standalone/deployments/
+COPY {{ if .BuildContainerName }}--from={{ .BuildContainerName }} {{ end }}{{ .DeploymentFilePath }} ${JBOSS_HOME}/standalone/deployments/
 EXPOSE {{ .Port }}
 # Set the default command to run on boot
 # This will boot WildFly in standalone mode and bind to all interfaces

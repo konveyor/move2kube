@@ -17,6 +17,7 @@
 package java
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -46,12 +47,11 @@ type JbossYamlConfig struct {
 
 // JbossDockerfileTemplate stores parameters for the dockerfile template
 type JbossDockerfileTemplate struct {
-	JavaPackageName                   string
-	DeploymentFile                    string
-	BuildContainerName                string
-	DeploymentFileDirInBuildContainer string
-	Port                              int32
-	EnvVariables                      map[string]string
+	JavaPackageName    string
+	DeploymentFilePath string
+	BuildContainerName string
+	Port               int32
+	EnvVariables       map[string]string
 }
 
 // Init Initializes the transformer
@@ -84,94 +84,74 @@ func (t *Jboss) DirectoryDetect(dir string) (services map[string][]transformerty
 func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		var sConfig artifacts.ServiceConfig
-		err := a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+	for _, newArtifact := range newArtifacts {
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", serviceConfig, err)
 			continue
 		}
-		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		imageName := artifacts.ImageName{}
+		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", imageName, err)
+		}
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
+		}
+		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 {
+			logrus.Errorf("service directory missing from artifact: %+v", newArtifact)
+			continue
+		}
+		serviceDir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
+		relServiceDir, err := filepath.Rel(t.Env.GetEnvironmentSource(), serviceDir)
 		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+			logrus.Errorf("failed to make the service directory %s relative to the source code directory %s . Error: %q", serviceDir, t.Env.GetEnvironmentSource(), err)
+			continue
 		}
-		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
-		}
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
+		template, err := t.getDockerfileTemplate(newArtifact)
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
+			logrus.Errorf("failed to get the jboss run stage Dockerfile template. Error: %q", err)
+			continue
 		}
-		jbossRunDockerfile, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.jboss"))
-		if err != nil {
-			logrus.Errorf("Unable to read Dockerfile jboss template : %s", err)
+		tempDir := filepath.Join(t.Env.TempPath, newArtifact.Name)
+		if err := os.MkdirAll(tempDir, common.DefaultDirectoryPermission); err != nil {
+			logrus.Errorf("failed to create the temporary directory %s . Error: %q", tempDir, err)
+			continue
 		}
-		dockerFileHead := ""
-		isBuildContainerPresent := false
-		if buildContainerPaths, ok := a.Paths[artifacts.BuildContainerFileType]; ok && len(buildContainerPaths) > 0 {
-			isBuildContainerPresent = true
-			dockerfileBuildDockerfile := buildContainerPaths[0]
-			dockerFileHeadBytes, err := os.ReadFile(dockerfileBuildDockerfile)
-			if err != nil {
-				logrus.Errorf("Unable to read build Dockerfile template : %s", err)
-				continue
-			}
-			dockerFileHead = string(dockerFileHeadBytes)
-		} else {
-			dockerFileHeadBytes, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license"))
-			if err != nil {
-				logrus.Errorf("Unable to read Dockerfile license template : %s", err)
-			}
-			dockerFileHead = string(dockerFileHeadBytes)
-		}
-		tempDir := filepath.Join(t.Env.TempPath, a.Name)
-		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
-		dockerfileTemplate := filepath.Join(tempDir, common.DefaultDockerfileName)
-		template := string(dockerFileHead) + "\n" + string(jbossRunDockerfile)
-		err = os.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
-		if err != nil {
+		dockerfileTemplatePath := filepath.Join(tempDir, common.DefaultDockerfileName)
+		if err := os.WriteFile(dockerfileTemplatePath, []byte(template), common.DefaultFilePermission); err != nil {
 			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
 		}
-		dft := JbossDockerfileTemplate{}
-		jbossArtifactConfig := artifacts.WarArtifactConfig{}
-		err = a.GetConfig(artifacts.WarConfigType, &jbossArtifactConfig)
-		if err != nil {
-			// EAR
-			logrus.Debugf("unable to load config for Transformer into %T : %s", jbossArtifactConfig, err)
-			jbossEarArtifactConfig := artifacts.EarArtifactConfig{}
-			err = a.GetConfig(artifacts.EarConfigType, &jbossEarArtifactConfig)
-			if err != nil {
-				logrus.Debugf("unable to load config for Transformer into %T : %s", jbossEarArtifactConfig, err)
-			}
-			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jbossEarArtifactConfig.JavaVersion)
-			if err != nil {
-				logrus.Errorf("Unable to find mapping version for java version %s : %s", jbossEarArtifactConfig.JavaVersion, err)
-				javaPackage = defaultJavaPackage
-			}
-			dft.JavaPackageName = javaPackage
-			dft.DeploymentFile = jbossEarArtifactConfig.DeploymentFile
-			dft.Port = defaultJbossPort
-			dft.EnvVariables = jbossEarArtifactConfig.EnvVariables
-			if isBuildContainerPresent {
-				dft.BuildContainerName = jbossEarArtifactConfig.BuildContainerName
-				dft.DeploymentFileDirInBuildContainer = jbossEarArtifactConfig.DeploymentFileDirInBuildContainer
-			}
-		} else {
+		templateData := JbossDockerfileTemplate{}
+		warConfig := artifacts.WarArtifactConfig{}
+		if err := newArtifact.GetConfig(artifacts.WarConfigType, &warConfig); err == nil {
 			// WAR
-			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), jbossArtifactConfig.JavaVersion)
+			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), warConfig.JavaVersion)
 			if err != nil {
-				logrus.Errorf("Unable to find mapping version for java version %s : %s", jbossArtifactConfig.JavaVersion, err)
+				logrus.Errorf("Unable to find mapping version for java version %s : %s", warConfig.JavaVersion, err)
 				javaPackage = defaultJavaPackage
 			}
-			dft.JavaPackageName = javaPackage
-			dft.DeploymentFile = jbossArtifactConfig.DeploymentFile
-			dft.Port = defaultJbossPort
-			dft.EnvVariables = jbossArtifactConfig.EnvVariables
-			if isBuildContainerPresent {
-				dft.BuildContainerName = jbossArtifactConfig.BuildContainerName
-				dft.DeploymentFileDirInBuildContainer = jbossArtifactConfig.DeploymentFileDirInBuildContainer
+			templateData.JavaPackageName = javaPackage
+			templateData.DeploymentFilePath = warConfig.DeploymentFilePath
+			templateData.Port = defaultJbossPort
+			templateData.EnvVariables = warConfig.EnvVariables
+			templateData.BuildContainerName = warConfig.BuildContainerName
+		} else {
+			// EAR
+			logrus.Debugf("unable to load config for Transformer into %T : %s", warConfig, err)
+			earConfig := artifacts.EarArtifactConfig{}
+			if err := newArtifact.GetConfig(artifacts.EarConfigType, &earConfig); err != nil {
+				logrus.Debugf("unable to load config for Transformer into %T : %s", earConfig, err)
 			}
+			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), earConfig.JavaVersion)
+			if err != nil {
+				logrus.Errorf("Unable to find mapping version for java version %s : %s", earConfig.JavaVersion, err)
+				javaPackage = defaultJavaPackage
+			}
+			templateData.JavaPackageName = javaPackage
+			templateData.DeploymentFilePath = earConfig.DeploymentFilePath
+			templateData.Port = defaultJbossPort
+			templateData.EnvVariables = earConfig.EnvVariables
+			templateData.BuildContainerName = earConfig.BuildContainerName
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
@@ -179,34 +159,59 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenA
 		})
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        dockerfileTemplate,
-			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
-			TemplateConfig: dft,
+			SrcPath:        dockerfileTemplatePath,
+			DestPath:       filepath.Join(common.DefaultSourceDir, relServiceDir),
+			TemplateConfig: templateData,
 		})
-		paths := a.Paths
-		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
-		p := transformertypes.Artifact{
-			Name:  sImageName.ImageName,
+		paths := newArtifact.Paths
+		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relServiceDir, common.DefaultDockerfileName)}
+		dockerfileArtifact := transformertypes.Artifact{
+			Name:  imageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
 			Paths: paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ImageNameConfigType: imageName,
 			},
 		}
-		dfs := transformertypes.Artifact{
-			Name:  sConfig.ServiceName,
+		dockerfileServiceArtifact := transformertypes.Artifact{
+			Name:  serviceConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
-			Paths: a.Paths,
+			Paths: newArtifact.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
-				artifacts.ServiceConfigType:   sConfig,
+				artifacts.ImageNameConfigType: imageName,
+				artifacts.ServiceConfigType:   serviceConfig,
 			},
 		}
 		ir := irtypes.IR{}
-		if err = a.GetConfig(irtypes.IRConfigType, &ir); err == nil {
-			dfs.Configs[irtypes.IRConfigType] = ir
+		if err = newArtifact.GetConfig(irtypes.IRConfigType, &ir); err == nil {
+			dockerfileServiceArtifact.Configs[irtypes.IRConfigType] = ir
 		}
-		createdArtifacts = append(createdArtifacts, p, dfs)
+		createdArtifacts = append(createdArtifacts, dockerfileArtifact, dockerfileServiceArtifact)
 	}
 	return pathMappings, createdArtifacts, nil
+}
+
+func (t *Jboss) getDockerfileTemplate(newArtifact transformertypes.Artifact) (string, error) {
+	jbossRunTemplatePath := filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.jboss")
+	jbossRunTemplate, err := os.ReadFile(jbossRunTemplatePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read the jboss run stage Dockerfile template at path %s . Error: %q", jbossRunTemplatePath, err)
+	}
+	dockerFileHead := ""
+	if buildContainerPaths := newArtifact.Paths[artifacts.BuildContainerFileType]; len(buildContainerPaths) > 0 {
+		dockerfileBuildPath := buildContainerPaths[0]
+		dockerFileHeadBytes, err := os.ReadFile(dockerfileBuildPath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read the build stage Dockerfile template at path %s . Error: %q", dockerfileBuildPath, err)
+		}
+		dockerFileHead = string(dockerFileHeadBytes)
+	} else {
+		licenseFilePath := filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license")
+		dockerFileHeadBytes, err := os.ReadFile(licenseFilePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read the Dockerfile license at path %s . Error: %q", licenseFilePath, err)
+		}
+		dockerFileHead = string(dockerFileHeadBytes)
+	}
+	return dockerFileHead + "\n" + string(jbossRunTemplate), nil
 }

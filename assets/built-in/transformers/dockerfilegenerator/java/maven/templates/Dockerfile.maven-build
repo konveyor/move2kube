@@ -1,19 +1,44 @@
 
-FROM registry.access.redhat.com/ubi8/ubi:latest AS builder
-RUN yum install -y {{ .JavaPackageName }}{{ if not .MvnwPresent }}
+FROM registry.access.redhat.com/ubi8/ubi:latest AS {{ .BuildContainerName }}
+RUN yum install -y {{ .JavaPackageName }}
+
+{{- if not .MvnwPresent }}
+# install maven
 RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
   && curl -fsSL -o /tmp/apache-maven.tar.gz https://archive.apache.org/dist/maven/maven-3/{{ .MavenVersion }}/binaries/apache-maven-{{ .MavenVersion }}-bin.tar.gz \
   && tar -xzf /tmp/apache-maven.tar.gz -C /usr/share/maven --strip-components=1 \
   && rm -f /tmp/apache-maven.tar.gz \
-  && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn{{- end }}
-{{- range $k, $v := .EnvVariables}}
+  && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
+{{- end }}
+
+# environment variables
+{{- range $k, $v := .EnvVariables }}
 ENV {{$k}} {{$v}}
 {{- end}}
+
 WORKDIR /app
-COPY pom.xml .{{ if not .MvnwPresent }}
-RUN mvn wrapper:wrapper{{- else }}
-COPY mvnw .
-COPY .mvn .mvn{{- end }}
-RUN ./mvnw dependency:resolve
+
+{{- if .IsParentPom }}
+# copy everything, including child modules to do a build using the parent pom.xml
 COPY . .
-{{if .MavenProfiles}}RUN ./mvnw clean package -Dmaven.test.skip -Dcheckstyle.skip -P {{$first := true}}{{range $mp := .MavenProfiles}}{{if $first}}{{$first = false}}{{else}},{{end}}{{$mp}}{{end}}{{else}}RUN ./mvnw clean package -Dmaven.test.skip -Dcheckstyle.skip{{end}}
+{{- else }}
+# copy only the pom and download the dependencies for caching purposes
+COPY pom.xml .
+{{- end }}
+
+{{- if .MvnwPresent }}
+COPY mvnw .
+COPY .mvn .mvn
+{{- else }}
+# generate the maven wrapper script
+RUN mvn wrapper:wrapper
+{{- end }}
+
+{{- if not .IsParentPom }}
+RUN ./mvnw dependency:go-offline
+# copy the source files to do a build
+COPY . .
+{{- end }}
+
+RUN ./mvnw clean package -Dmaven.test.skip -Dcheckstyle.skip
+{{- if .MavenProfiles }} -P {{$first := true}}{{ range $mp := .MavenProfiles }}{{if $first}}{{$first = false}}{{else}},{{end}}{{$mp}}{{end}} {{- end }}

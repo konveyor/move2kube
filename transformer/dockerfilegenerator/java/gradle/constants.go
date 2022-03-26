@@ -67,7 +67,7 @@ var (
 
 	depsEasyGavStringPattern = `("?)([\w.-]+):([\w.-]+):([\w\[\]\(\),+.-]+)("?)`
 	depsItemBlockPattern     = depsKeywordString + `\((("?)(.*)("?))\)[ \t]*\{`
-	pluginsLinePattern       = `(id|version)(?:[ \t])("?)([A-Za-z0-9.]+)("?)`
+	pluginsLinePattern       = `(id|version)(?:[ \t]*)("?)([A-Za-z0-9-.]+)("?)`
 
 	depsEasyGavStringRegex, depsItemBlockRegex, pluginsLineRegex quotedRegex
 )

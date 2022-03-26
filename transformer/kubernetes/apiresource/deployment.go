@@ -165,7 +165,6 @@ func (d *Deployment) convertToClusterSupportedKinds(obj runtime.Object, supporte
 // Create section
 
 func (d *Deployment) createDeployment(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *apps.Deployment {
-
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
 		Labels:      getPodLabels(service.Name, service.Networks),

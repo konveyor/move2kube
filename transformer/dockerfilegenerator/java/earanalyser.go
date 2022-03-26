@@ -70,15 +70,20 @@ func (t *EarAnalyser) GetConfig() (transformertypes.Transformer, *environment.En
 // DirectoryDetect runs detect in each sub directory
 func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	services = map[string][]transformertypes.Artifact{}
-	earFilePaths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{".*[.]ear"})
+	paths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{".*[.]ear"})
 	if err != nil {
 		logrus.Errorf("Error while parsing directory %s for jar file : %s", dir, err)
 		return nil, err
 	}
-	if len(earFilePaths) == 0 {
+	if len(paths) == 0 {
 		return nil, nil
 	}
-	for _, path := range earFilePaths {
+	for _, path := range paths {
+		relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), path)
+		if err != nil {
+			logrus.Errorf("failed to make the path %s relative to the sourc code directory %s . Error: %q", path, t.Env.GetEnvironmentSource(), err)
+			continue
+		}
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.EarPathType:        {path},
@@ -86,8 +91,8 @@ func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 			},
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.EarConfigType: artifacts.EarArtifactConfig{
-					DeploymentFile: filepath.Base(path),
-					JavaVersion:    t.EarConfig.JavaVersion,
+					DeploymentFilePath: relPath,
+					JavaVersion:        t.EarConfig.JavaVersion,
 				},
 			},
 		}

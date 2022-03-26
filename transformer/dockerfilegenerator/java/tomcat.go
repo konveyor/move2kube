@@ -17,6 +17,7 @@
 package java
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -46,13 +47,12 @@ type TomcatYamlConfig struct {
 
 // TomcatDockerfileTemplate stores parameters for the dockerfile template
 type TomcatDockerfileTemplate struct {
-	JavaPackageName                   string
-	JavaVersion                       string
-	DeploymentFile                    string
-	BuildContainerName                string
-	DeploymentFileDirInBuildContainer string
-	Port                              int32
-	EnvVariables                      map[string]string
+	JavaPackageName    string
+	JavaVersion        string
+	DeploymentFilePath string
+	BuildContainerName string
+	Port               int32
+	EnvVariables       map[string]string
 }
 
 // Init Initializes the transformer
@@ -85,125 +85,127 @@ func (t *Tomcat) DirectoryDetect(dir string) (services map[string][]transformert
 func (t *Tomcat) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		var sConfig artifacts.ServiceConfig
-		err := a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+	for _, newArtifact := range newArtifacts {
+		if newArtifact.Type != artifacts.WarArtifactType {
 			continue
 		}
-		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Debugf("failed to load service config from the artifact: %+v . Error: %q", newArtifact, err)
+			continue
+		}
+		imageName := artifacts.ImageName{}
+		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
+			logrus.Debugf("failed to load image name config from the artifact: %+v . Error: %q", imageName, err)
+		}
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
+		}
+		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 {
+			logrus.Errorf("service directory missing from artifact: %+v", newArtifact)
+			continue
+		}
+		serviceDir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
+		relServiceDir, err := filepath.Rel(t.Env.GetEnvironmentSource(), serviceDir)
 		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+			logrus.Errorf("failed to make the source path %s relative to the source code directory %s . Error: %q", serviceDir, t.Env.GetEnvironmentSource(), err)
+			continue
 		}
-		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
-		}
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
+		dockerfileTemplate, err := t.getDockerfileTemplate(newArtifact)
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
+			logrus.Errorf("failed to get the tomcat Dockerfile template. Error: %q", err)
+			continue
 		}
-		tomcatRunDockerfile, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.tomcat"))
+		tempDir := filepath.Join(t.Env.TempPath, newArtifact.Name)
+		if err := os.MkdirAll(tempDir, common.DefaultDirectoryPermission); err != nil {
+			logrus.Errorf("failed to create the temporary directory %s . Error: %q", tempDir, err)
+			continue
+		}
+		dockerfileTemplatePath := filepath.Join(tempDir, common.DefaultDockerfileName)
+		if err := os.WriteFile(dockerfileTemplatePath, []byte(dockerfileTemplate), common.DefaultFilePermission); err != nil {
+			logrus.Errorf("failed to write the tomcat Dockerfile template to a temporary file at path %s . Error: %q", dockerfileTemplatePath, err)
+			continue
+		}
+		warConfig := artifacts.WarArtifactConfig{}
+		if err := newArtifact.GetConfig(artifacts.WarConfigType, &warConfig); err != nil {
+			logrus.Errorf("failed to load the war config from the artifact %+v . Error: %q", newArtifact, err)
+			continue
+		}
+		if warConfig.JavaVersion == "" {
+			warConfig.JavaVersion = t.TomcatConfig.JavaVersion
+		}
+		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), warConfig.JavaVersion)
 		if err != nil {
-			logrus.Errorf("Unable to read Dockerfile tomcat template : %s", err)
-		}
-		dockerFileHead := ""
-		isBuildContainerPresent := false
-		if buildContainerPaths, ok := a.Paths[artifacts.BuildContainerFileType]; ok && len(buildContainerPaths) > 0 {
-			isBuildContainerPresent = true
-			dockerfileBuildDockerfile := buildContainerPaths[0]
-			dockerFileHeadBytes, err := os.ReadFile(dockerfileBuildDockerfile)
-			if err != nil {
-				logrus.Errorf("Unable to read build Dockerfile template : %s", err)
-				continue
-			}
-			dockerFileHead = string(dockerFileHeadBytes)
-		} else {
-			dockerFileHeadBytes, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license"))
-			if err != nil {
-				logrus.Errorf("Unable to read Dockerfile license template : %s", err)
-			}
-			dockerFileHead = string(dockerFileHeadBytes)
-		}
-		tempDir := filepath.Join(t.Env.TempPath, a.Name)
-		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
-		dockerfileTemplate := filepath.Join(tempDir, common.DefaultDockerfileName)
-		template := string(dockerFileHead) + "\n" + string(tomcatRunDockerfile)
-		err = os.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
-		if err != nil {
-			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
-		}
-		tomcatArtifactConfig := artifacts.WarArtifactConfig{}
-		err = a.GetConfig(artifacts.WarConfigType, &tomcatArtifactConfig)
-		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", tomcatArtifactConfig, err)
-		}
-		if tomcatArtifactConfig.JavaVersion == "" {
-			tomcatArtifactConfig.JavaVersion = t.TomcatConfig.JavaVersion
-		}
-		javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), tomcatArtifactConfig.JavaVersion)
-		if err != nil {
-			logrus.Errorf("Unable to find mapping version for java version %s : %s", tomcatArtifactConfig.JavaVersion, err)
+			logrus.Errorf("failed to find mapping version for java version %s . Error: %q", warConfig.JavaVersion, err)
 			javaPackage = defaultJavaPackage
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
 			DestPath: common.DefaultSourceDir,
 		})
-		if isBuildContainerPresent {
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:     transformertypes.TemplatePathMappingType,
-				SrcPath:  dockerfileTemplate,
-				DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
-				TemplateConfig: TomcatDockerfileTemplate{
-					JavaPackageName:                   javaPackage,
-					JavaVersion:                       tomcatArtifactConfig.JavaVersion,
-					DeploymentFile:                    tomcatArtifactConfig.DeploymentFile,
-					BuildContainerName:                tomcatArtifactConfig.BuildContainerName,
-					DeploymentFileDirInBuildContainer: tomcatArtifactConfig.DeploymentFileDirInBuildContainer,
-					Port:                              tomcatDefaultPort,
-					EnvVariables:                      tomcatArtifactConfig.EnvVariables,
-				},
-			})
-		} else {
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:     transformertypes.TemplatePathMappingType,
-				SrcPath:  dockerfileTemplate,
-				DestPath: filepath.Join(common.DefaultSourceDir, relSrcPath),
-				TemplateConfig: TomcatDockerfileTemplate{
-					JavaPackageName: javaPackage,
-					JavaVersion:     tomcatArtifactConfig.JavaVersion,
-					DeploymentFile:  tomcatArtifactConfig.DeploymentFile,
-					Port:            tomcatDefaultPort,
-					EnvVariables:    tomcatArtifactConfig.EnvVariables,
-				},
-			})
+		templateData := TomcatDockerfileTemplate{
+			JavaPackageName:    javaPackage,
+			JavaVersion:        warConfig.JavaVersion,
+			DeploymentFilePath: warConfig.DeploymentFilePath,
+			Port:               tomcatDefaultPort,
+			EnvVariables:       warConfig.EnvVariables,
+			BuildContainerName: warConfig.BuildContainerName,
 		}
-		paths := a.Paths
-		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
-		p := transformertypes.Artifact{
-			Name:  sImageName.ImageName,
+		pathMappings = append(pathMappings, transformertypes.PathMapping{
+			Type:           transformertypes.TemplatePathMappingType,
+			SrcPath:        dockerfileTemplatePath,
+			DestPath:       filepath.Join(common.DefaultSourceDir, relServiceDir),
+			TemplateConfig: templateData,
+		})
+		paths := newArtifact.Paths
+		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relServiceDir, common.DefaultDockerfileName)}
+		dockerfileArtifact := transformertypes.Artifact{
+			Name:  imageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
 			Paths: paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ImageNameConfigType: imageName,
 			},
 		}
-		dfs := transformertypes.Artifact{
-			Name:  sConfig.ServiceName,
+		dockerfileServiceArtifact := transformertypes.Artifact{
+			Name:  serviceConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
-			Paths: a.Paths,
+			Paths: newArtifact.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
-				artifacts.ServiceConfigType:   sConfig,
+				artifacts.ImageNameConfigType: imageName,
+				artifacts.ServiceConfigType:   serviceConfig,
 			},
 		}
 		ir := irtypes.IR{}
-		if err = a.GetConfig(irtypes.IRConfigType, &ir); err == nil {
-			dfs.Configs[irtypes.IRConfigType] = ir
+		if err = newArtifact.GetConfig(irtypes.IRConfigType, &ir); err == nil {
+			dockerfileServiceArtifact.Configs[irtypes.IRConfigType] = ir
 		}
-		createdArtifacts = append(createdArtifacts, p, dfs)
+		createdArtifacts = append(createdArtifacts, dockerfileArtifact, dockerfileServiceArtifact)
 	}
 	return pathMappings, createdArtifacts, nil
+}
+
+func (t *Tomcat) getDockerfileTemplate(newArtifact transformertypes.Artifact) (string, error) {
+	tomcatRunTemplatePath := filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.tomcat")
+	tomcatRunTemplate, err := os.ReadFile(tomcatRunTemplatePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read the tomcat run stage Dockerfile template at path %s . Error: %q", tomcatRunTemplatePath, err)
+	}
+	dockerFileHead := ""
+	if buildContainerPaths := newArtifact.Paths[artifacts.BuildContainerFileType]; len(buildContainerPaths) > 0 {
+		dockerfileBuildPath := buildContainerPaths[0]
+		dockerFileHeadBytes, err := os.ReadFile(dockerfileBuildPath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read the build stage Dockerfile template at path %s . Error: %q", dockerfileBuildPath, err)
+		}
+		dockerFileHead = string(dockerFileHeadBytes)
+	} else {
+		licenseFilePath := filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license")
+		dockerFileHeadBytes, err := os.ReadFile(licenseFilePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read the Dockerfile license at path %s . Error: %q", licenseFilePath, err)
+		}
+		dockerFileHead = string(dockerFileHeadBytes)
+	}
+	return dockerFileHead + "\n" + string(tomcatRunTemplate), nil
 }

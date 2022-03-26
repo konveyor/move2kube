@@ -97,6 +97,9 @@ func getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContent
 
 		for scanner.Scan() {
 			line := strings.TrimSpace(scanner.Text())
+			if len(line) == 0 {
+				continue
+			}
 			if strings.HasSuffix(line, "*") {
 				line = strings.TrimSuffix(line, "*")
 				path := filepath.Join(filepath.Dir(filePath), line)
