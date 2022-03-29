@@ -562,7 +562,9 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			if len(newArtifact.Paths[parentPomDirPathType]) == 0 {
 				logrus.Warnf("the path to the directory where the parent pom.xml lives is missing")
 			} else {
-				buildDockerfile = filepath.Join(common.DefaultSourceDir, newArtifact.Paths[parentPomDirPathType][0], "Dockerfile")
+				parentPomDir := newArtifact.Paths[parentPomDirPathType][0]
+				relParentPomDir, _ := filepath.Rel(t.Env.GetEnvironmentSource(), parentPomDir)
+				buildDockerfile = filepath.Join(common.DefaultSourceDir, relParentPomDir, common.DefaultDockerfileName)
 			}
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
