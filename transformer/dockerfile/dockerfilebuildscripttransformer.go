@@ -65,7 +65,7 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 	dockerfiles := []DockerfileImageBuildScriptTemplateConfig{}
 	nartifacts := []transformertypes.Artifact{}
 	processedImages := map[string]bool{}
-	for _, artifact := range append(newArtifacts, alreadySeenArtifacts...) {
+	for _, artifact := range append(alreadySeenArtifacts, newArtifacts...) {
 		if artifact.Type != artifacts.DockerfileArtifactType {
 			continue
 		}
