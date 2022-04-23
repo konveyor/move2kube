@@ -23,7 +23,7 @@ RUN mkdir -p $GOPATH/src $GOPATH/bin && chmod -R 777 $GOPATH
 ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 
 # Download Go.
-ARG GO_VERSION=1.17
+ARG GO_VERSION=1.18
 RUN curl -o go.tgz "https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz" \
     && tar -xzf go.tgz \
     && mv go /usr/local/ \

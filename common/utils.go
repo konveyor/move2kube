@@ -554,8 +554,8 @@ func IsStringPresent(list []string, value string) bool {
 	return false
 }
 
-// IsIntPresent checks if a value is present in a slice
-func IsIntPresent(list []int, value int) bool {
+// IsPresent checks if a value is present in a slice
+func IsPresent[C comparable](list []C, value C) bool {
 	for _, val := range list {
 		if val == value {
 			return true
@@ -574,34 +574,14 @@ func MergeStringSlices(slice1 []string, slice2 ...string) []string {
 	return slice1
 }
 
-// MergeIntSlices merges two int slices
-func MergeIntSlices(slice1 []int, slice2 []int) []int {
+// MergeSlices merges two slices
+func MergeSlices[C comparable](slice1 []C, slice2 []C) []C {
 	for _, item := range slice2 {
-		if !IsIntPresent(slice1, item) {
+		if !IsPresent(slice1, item) {
 			slice1 = append(slice1, item)
 		}
 	}
 	return slice1
-}
-
-// MergeInt32Slices merges two int slices
-func MergeInt32Slices(slice1 []int32, slice2 []int32) []int32 {
-	for _, item := range slice2 {
-		if !IsInt32Present(slice1, item) {
-			slice1 = append(slice1, item)
-		}
-	}
-	return slice1
-}
-
-// IsInt32Present checks if a value is present in a slice
-func IsInt32Present(list []int32, value int32) bool {
-	for _, val := range list {
-		if val == value {
-			return true
-		}
-	}
-	return false
 }
 
 // GetStringFromTemplate returns string for a template

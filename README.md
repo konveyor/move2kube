@@ -69,7 +69,7 @@ Checkout the [Tutorials](https://move2kube.konveyor.io/tutorials) and [Documenta
 
 To browse code [![Open in VSCode](https://open.vscode.dev/badges/open-in-vscode.svg)](https://open.vscode.dev/konveyor/move2kube)
 
-1. Obtain a recent version of `golang`. Known to work with `1.17`.
+1. Obtain a recent version of `golang`. Known to work with `1.18`.
 1. Ensure `$GOPATH` is set. If it's not set:
    1. `mkdir ~/go`
    1. `export GOPATH=~/go`

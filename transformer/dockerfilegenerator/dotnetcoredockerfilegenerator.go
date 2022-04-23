@@ -382,7 +382,7 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 								dotNetCoreTemplateConfig.HTTPPort = int32(port)
 							}
 						}
-						if !common.IsInt32Present(ports, dotNetCoreTemplateConfig.HTTPPort) {
+						if !common.IsPresent(ports, dotNetCoreTemplateConfig.HTTPPort) {
 							ports = append(ports, dotNetCoreTemplateConfig.HTTPPort)
 						}
 					}
