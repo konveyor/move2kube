@@ -35,6 +35,7 @@ import (
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/api/resource"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/networking"
 )
@@ -172,12 +173,6 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			cfinstanceapp, err = getCfAppInstance(runninginstancefile[0], config.ServiceName)
 			if err != nil {
 				logrus.Debugf("The file at path %s is not a valid cf apps file. Error: %q", runninginstancefile[0], err)
-			} else {
-				logrus.Infof("[service: %s] Running with resources: [inst: %d, mem: %d, disk: %d]",
-					config.ServiceName,
-					cfinstanceapp.Application.Instances,
-					cfinstanceapp.Application.Memory,
-					cfinstanceapp.Application.DiskQuota)
 			}
 		}
 		if paths, ok := a.Paths[artifacts.CfManifestPathType]; ok {
@@ -190,7 +185,11 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			logrus.Debugf("Using cf manifest file at path %s to transform service %s", path, config.ServiceName)
 			application := applications[0]
 			serviceConfig := irtypes.Service{Name: sConfig.ServiceName}
-			serviceContainer := core.Container{Name: sConfig.ServiceName}
+			rList := core.ResourceList{"memory": resource.MustParse(fmt.Sprintf("%dM", cfinstanceapp.Application.Memory)),
+				"ephemeral-storage": resource.MustParse(fmt.Sprintf("%dM", cfinstanceapp.Application.DiskQuota))}
+			serviceContainer := core.Container{Name: sConfig.ServiceName,
+				Resources: core.ResourceRequirements{Requests: rList}}
+			logrus.Infof("Resource: %v", serviceContainer.Resources)
 			serviceContainer.Image = config.ImageName
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
@@ -239,7 +238,6 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 					if containerizationArtifact.Configs == nil {
 						containerizationArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
 					}
-					logrus.Infof("CF: %v", ir.Services[sConfig.ServiceName].Containers[0].Env)
 					containerizationArtifact.Configs[irtypes.IRConfigType] = ir
 					containerizationArtifact.Configs[artifacts.ServiceConfigType] = sConfig
 					artifactsCreated = append(artifactsCreated, containerizationArtifact)

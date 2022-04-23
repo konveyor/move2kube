@@ -171,7 +171,6 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			ir.Services[sConfig.ServiceName] = irService
 		}
 		a.Configs[irtypes.IRConfigType] = ir
-		logrus.Infof("CNB: %v", ir.Services[sConfig.ServiceName].Containers[0].Env)
 		tArtifacts = append(tArtifacts, transformertypes.Artifact{
 			Name:    a.Name,
 			Type:    artifacts.CNBMetadataArtifactType,
