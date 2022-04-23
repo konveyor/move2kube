@@ -172,6 +172,12 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			cfinstanceapp, err = getCfAppInstance(runninginstancefile[0], config.ServiceName)
 			if err != nil {
 				logrus.Debugf("The file at path %s is not a valid cf apps file. Error: %q", runninginstancefile[0], err)
+			} else {
+				logrus.Infof("[service: %s] Running with resources: [inst: %d, mem: %d, disk: %d]",
+					config.ServiceName,
+					cfinstanceapp.Application.Instances,
+					cfinstanceapp.Application.Memory,
+					cfinstanceapp.Application.DiskQuota)
 			}
 		}
 		if paths, ok := a.Paths[artifacts.CfManifestPathType]; ok {
@@ -214,20 +220,33 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			ir.Services[sConfig.ServiceName] = serviceConfig
 		}
 		if len(cConfig) != 0 {
-			containerizationOption := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment, fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName), []string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)}, cConfig[0], cConfig)
-			containerizationArtifact := getContainerizationConfig(sConfig.ServiceName, a.Paths[artifacts.ServiceDirPathType], a.Paths[artifacts.BuildArtifactPathType], containerizationOption)
-			if containerizationArtifact.Type == "" {
-				if config.ImageName == "" {
-					logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)
+			containerizationOptions := qaengine.FetchMultiSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment,
+				fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName),
+				[]string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)},
+				[]string{cConfig[0]}, cConfig)
+			secondaryArtifactsGenerated := true
+			for _, containerizationOption := range containerizationOptions {
+				containerizationArtifact := getContainerizationConfig(sConfig.ServiceName,
+					a.Paths[artifacts.ServiceDirPathType],
+					a.Paths[artifacts.BuildArtifactPathType],
+					containerizationOption)
+				if containerizationArtifact.Type == "" {
+					if config.ImageName == "" {
+						logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)
+					}
+				} else {
+					containerizationArtifact.Name = sConfig.ServiceName
+					if containerizationArtifact.Configs == nil {
+						containerizationArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
+					}
+					logrus.Infof("CF: %v", ir.Services[sConfig.ServiceName].Containers[0].Env)
+					containerizationArtifact.Configs[irtypes.IRConfigType] = ir
+					containerizationArtifact.Configs[artifacts.ServiceConfigType] = sConfig
+					artifactsCreated = append(artifactsCreated, containerizationArtifact)
+					secondaryArtifactsGenerated = true
 				}
-			} else {
-				containerizationArtifact.Name = sConfig.ServiceName
-				if containerizationArtifact.Configs == nil {
-					containerizationArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
-				}
-				containerizationArtifact.Configs[irtypes.IRConfigType] = ir
-				containerizationArtifact.Configs[artifacts.ServiceConfigType] = sConfig
-				artifactsCreated = append(artifactsCreated, containerizationArtifact)
+			}
+			if secondaryArtifactsGenerated {
 				continue
 			}
 		}

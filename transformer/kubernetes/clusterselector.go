@@ -84,7 +84,6 @@ func (t *ClusterSelectorTransformer) Init(tc transformertypes.Transformer, e *en
 	if t.CSConfig.QaSuffix == "" {
 		t.CSConfig.QaSuffix = defaultClusterSelectorSuffix
 	}
-	logrus.Errorf("CLUSTER-SELECTOR --> QA SUFFIX = %s", t.CSConfig.QaSuffix)
 	return nil
 }
 

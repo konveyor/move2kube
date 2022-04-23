@@ -85,7 +85,6 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (services map[string][]tr
 	path := dir
 	cmd := environmenttypes.Command{
 		"/cnb/lifecycle/detector", "-app", t.CNBEnv.Encode(path).(string)}
-	logrus.Infof("CNB Command: %v", cmd)
 	stdout, stderr, exitcode, err := t.CNBEnv.Exec(cmd)
 	if err != nil {
 		if errors.Is(err, &environment.EnvironmentNotActiveError{}) {
@@ -100,7 +99,6 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (services map[string][]tr
 	}
 	detectedServices := []transformertypes.Artifact{}
 	detectedServices = append(detectedServices, transformertypes.Artifact{
-		Type: artifacts.CNBMetadataArtifactType,
 		Paths: map[transformertypes.PathType][]string{
 			artifacts.ServiceDirPathType: {dir},
 		},
@@ -133,26 +131,47 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 		a.Configs[artifacts.CNBMetadataConfigType] = cConfig
 		ir := irtypes.NewIR()
 		ir.Name = t.Env.GetProjectName()
-		container := irtypes.NewContainer()
-		container.AddExposedPort(common.DefaultServicePort)
-		ir.AddContainer(cConfig.ImageName, container)
-		serviceContainer := core.Container{Name: sConfig.ServiceName}
-		serviceContainer.Image = cConfig.ImageName
-		irService := irtypes.NewServiceWithName(sConfig.ServiceName)
-		serviceContainerPorts := []core.ContainerPort{}
-		for _, port := range container.ExposedPorts {
-			// Add the port to the k8s pod.
-			serviceContainerPort := core.ContainerPort{ContainerPort: port}
-			serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
-			// Forward the port on the k8s service to the k8s pod.
-			podPort := networking.ServiceBackendPort{Number: port}
-			servicePort := podPort
-			irService.AddPortForwarding(servicePort, podPort, "")
+		if _, ok := a.Configs[irtypes.IRConfigType].(irtypes.IR); ok {
+			ir = a.Configs[irtypes.IRConfigType].(irtypes.IR)
 		}
-		serviceContainer.Ports = serviceContainerPorts
-		irService.Containers = []core.Container{serviceContainer}
-		ir.Services[sConfig.ServiceName] = irService
+		// Update an existing service with default port
+		if _, ok := ir.Services[sConfig.ServiceName]; ok {
+			if len(ir.Services[sConfig.ServiceName].Containers) > 0 {
+				s := ir.Services[sConfig.ServiceName]
+				serviceContainerPorts := []core.ContainerPort{}
+				// Add the port to the k8s pod.
+				serviceContainerPort := core.ContainerPort{ContainerPort: common.DefaultServicePort}
+				serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
+				// Forward the port on the k8s service to the k8s pod.
+				podPort := networking.ServiceBackendPort{Number: common.DefaultServicePort}
+				servicePort := podPort
+				s.AddPortForwarding(servicePort, podPort, "")
+				ir.Services[sConfig.ServiceName] = s
+			}
+		} else {
+			// Create a new container in a new service in the IR (new or existing)
+			container := irtypes.NewContainer()
+			container.AddExposedPort(common.DefaultServicePort)
+			ir.AddContainer(cConfig.ImageName, container)
+			serviceContainer := core.Container{Name: sConfig.ServiceName}
+			serviceContainer.Image = cConfig.ImageName
+			irService := irtypes.NewServiceWithName(sConfig.ServiceName)
+			serviceContainerPorts := []core.ContainerPort{}
+			for _, port := range container.ExposedPorts {
+				// Add the port to the k8s pod.
+				serviceContainerPort := core.ContainerPort{ContainerPort: port}
+				serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
+				// Forward the port on the k8s service to the k8s pod.
+				podPort := networking.ServiceBackendPort{Number: port}
+				servicePort := podPort
+				irService.AddPortForwarding(servicePort, podPort, "")
+			}
+			serviceContainer.Ports = serviceContainerPorts
+			irService.Containers = []core.Container{serviceContainer}
+			ir.Services[sConfig.ServiceName] = irService
+		}
 		a.Configs[irtypes.IRConfigType] = ir
+		logrus.Infof("CNB: %v", ir.Services[sConfig.ServiceName].Containers[0].Env)
 		tArtifacts = append(tArtifacts, transformertypes.Artifact{
 			Name:    a.Name,
 			Type:    artifacts.CNBMetadataArtifactType,

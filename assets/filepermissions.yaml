@@ -15,6 +15,7 @@
 #  limitations under the License.
 
 "built-in/presets/containerizeonly.yaml" : 0644
+"built-in/presets/enablecontainerizedtransformers.yaml" : 0644
 "built-in/presets/usepodmaninscripts.yaml" : 0644
 "built-in/transformers/cloudfoundry/transformer.yaml" : 0644
 "built-in/transformers/cnb/transformer.yaml" : 0644

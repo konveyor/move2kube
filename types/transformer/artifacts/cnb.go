@@ -20,6 +20,9 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
+// CNBDetectedServiceArtifactType is the name of the CNB detected service artifact
+const CNBDetectedServiceArtifactType transformertypes.ArtifactType = "CNBDetectedService"
+
 // CNBMetadataArtifactType is the name of the CNB artifact type
 const CNBMetadataArtifactType transformertypes.ArtifactType = "CNBMetadata"
 
