@@ -124,7 +124,7 @@ test-coverage: ${GOLANGCOVER} ## Run tests with coverage
 	go test -run . $(PKG) -coverprofile=coverage.txt -covermode=atomic
 
 ${GOLANGCILINT}:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.31.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.45.2
 
 .PHONY: test-style
 test-style: ${GOLANGCILINT} 
