@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-GO_VERSION  ?= $(shell go run ./scripts/detectgoversion/detect.go 2>/dev/null || printf '1.17')
+GO_VERSION  ?= $(shell go run ./scripts/detectgoversion/detect.go 2>/dev/null || printf '1.18')
 BINNAME     ?= move2kube
 BINDIR      := $(CURDIR)/bin
 DISTDIR		:= $(CURDIR)/_dist

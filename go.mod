@@ -1,6 +1,6 @@
 module github.com/konveyor/move2kube
 
-go 1.17
+go 1.18
 
 require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible

@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	defaultGoVersion = "1.17"
+	defaultGoVersion = "1.18"
 	// GolangModFilePathType points to the go.mod file path
 	GolangModFilePathType transformertypes.PathType = "GoModFilePath"
 )

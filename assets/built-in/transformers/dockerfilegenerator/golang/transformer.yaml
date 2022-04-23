@@ -18,4 +18,4 @@ spec:
     DockerfileForService:
       disabled: false
   config:
-    defaultGoVersion: "1.17"
+    defaultGoVersion: "1.18"

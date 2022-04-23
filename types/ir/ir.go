@@ -263,7 +263,7 @@ func (c *ContainerImage) Merge(newc ContainerImage) bool {
 	if c.UserID != newc.UserID {
 		logrus.Errorf("Two different users found for image : %d in %d. Ignoring new users.", c.UserID, newc.UserID)
 	}
-	c.ExposedPorts = common.MergeInt32Slices(c.ExposedPorts, newc.ExposedPorts)
+	c.ExposedPorts = common.MergeSlices(c.ExposedPorts, newc.ExposedPorts)
 	c.AccessedDirs = common.MergeStringSlices(c.AccessedDirs, newc.AccessedDirs...)
 	c.Build.Merge(newc.Build)
 	return true
@@ -290,7 +290,7 @@ func (c *ContainerBuild) Merge(newc ContainerBuild) bool {
 
 // AddExposedPort adds an exposed port to a container
 func (c *ContainerImage) AddExposedPort(port int32) {
-	if !common.IsInt32Present(c.ExposedPorts, port) {
+	if !common.IsPresent(c.ExposedPorts, port) {
 		c.ExposedPorts = append(c.ExposedPorts, port)
 	}
 }
