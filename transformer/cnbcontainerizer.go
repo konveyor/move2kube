@@ -97,15 +97,13 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (services map[string][]tr
 		logrus.Debugf("Detect did not succeed %s : %s : %d", stdout, stderr, exitcode)
 		return nil, nil
 	}
-	detectedServices := []transformertypes.Artifact{}
-	detectedServices = append(detectedServices, transformertypes.Artifact{
+	detectedServices := []transformertypes.Artifact{{
 		Paths: map[transformertypes.PathType][]string{
 			artifacts.ServiceDirPathType: {dir},
 		},
 		Configs: map[string]interface{}{artifacts.CNBMetadataConfigType: artifacts.CNBMetadataConfig{
 			CNBBuilder: t.CNBConfig.BuilderImageName,
-		}},
-	})
+		}}}}
 	return map[string][]transformertypes.Artifact{"": detectedServices}, nil
 }
 
@@ -131,21 +129,17 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 		a.Configs[artifacts.CNBMetadataConfigType] = cConfig
 		ir := irtypes.NewIR()
 		ir.Name = t.Env.GetProjectName()
-		if _, ok := a.Configs[irtypes.IRConfigType].(irtypes.IR); ok {
-			ir = a.Configs[irtypes.IRConfigType].(irtypes.IR)
+		if prevIR, ok := a.Configs[irtypes.IRConfigType].(irtypes.IR); ok {
+			ir = prevIR
 		}
 		// Update an existing service with default port
-		if _, ok := ir.Services[sConfig.ServiceName]; ok {
-			if len(ir.Services[sConfig.ServiceName].Containers) > 0 {
-				s := ir.Services[sConfig.ServiceName]
-				serviceContainerPorts := []core.ContainerPort{}
+		if s, ok := ir.Services[sConfig.ServiceName]; ok {
+			if len(s.Containers) > 0 && len(s.Containers[0].Ports) == 0 {
 				// Add the port to the k8s pod.
-				serviceContainerPort := core.ContainerPort{ContainerPort: common.DefaultServicePort}
-				serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
+				s.Containers[0].Ports = []core.ContainerPort{{ContainerPort: common.DefaultServicePort}}
 				// Forward the port on the k8s service to the k8s pod.
-				podPort := networking.ServiceBackendPort{Number: common.DefaultServicePort}
-				servicePort := podPort
-				s.AddPortForwarding(servicePort, podPort, "")
+				port := networking.ServiceBackendPort{Number: common.DefaultServicePort}
+				s.AddPortForwarding(port, port, "")
 				ir.Services[sConfig.ServiceName] = s
 			}
 		} else {
@@ -153,20 +147,18 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			container := irtypes.NewContainer()
 			container.AddExposedPort(common.DefaultServicePort)
 			ir.AddContainer(cConfig.ImageName, container)
-			serviceContainer := core.Container{Name: sConfig.ServiceName}
-			serviceContainer.Image = cConfig.ImageName
 			irService := irtypes.NewServiceWithName(sConfig.ServiceName)
 			serviceContainerPorts := []core.ContainerPort{}
-			for _, port := range container.ExposedPorts {
+			for _, eport := range container.ExposedPorts {
 				// Add the port to the k8s pod.
-				serviceContainerPort := core.ContainerPort{ContainerPort: port}
-				serviceContainerPorts = append(serviceContainerPorts, serviceContainerPort)
+				serviceContainerPorts = append(serviceContainerPorts, core.ContainerPort{ContainerPort: eport})
 				// Forward the port on the k8s service to the k8s pod.
-				podPort := networking.ServiceBackendPort{Number: port}
-				servicePort := podPort
-				irService.AddPortForwarding(servicePort, podPort, "")
+				port := networking.ServiceBackendPort{Number: eport}
+				irService.AddPortForwarding(port, port, "")
 			}
-			serviceContainer.Ports = serviceContainerPorts
+			serviceContainer := core.Container{Name: sConfig.ServiceName,
+				Image: cConfig.ImageName,
+				Ports: serviceContainerPorts}
 			irService.Containers = []core.Container{serviceContainer}
 			ir.Services[sConfig.ServiceName] = irService
 		}

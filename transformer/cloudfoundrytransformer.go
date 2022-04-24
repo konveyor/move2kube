@@ -189,7 +189,6 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 				"ephemeral-storage": resource.MustParse(fmt.Sprintf("%dM", cfinstanceapp.Application.DiskQuota))}
 			serviceContainer := core.Container{Name: sConfig.ServiceName,
 				Resources: core.ResourceRequirements{Requests: rList}}
-			logrus.Infof("Resource: %v", serviceContainer.Resources)
 			serviceContainer.Image = config.ImageName
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
@@ -223,7 +222,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 				fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName),
 				[]string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)},
 				[]string{cConfig[0]}, cConfig)
-			secondaryArtifactsGenerated := true
+			secondaryArtifactsGenerated := false
 			for _, containerizationOption := range containerizationOptions {
 				containerizationArtifact := getContainerizationConfig(sConfig.ServiceName,
 					a.Paths[artifacts.ServiceDirPathType],

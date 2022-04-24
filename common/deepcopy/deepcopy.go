@@ -90,11 +90,17 @@ func copyRecursively(xV reflect.Value) reflect.Value {
 		return yV
 	case reflect.Struct:
 		yV := reflect.New(xT).Elem()
+		hasUnsettableFields := false
 		for i := 0; i < xV.NumField(); i++ {
 			if !yV.Field(i).CanSet() {
-				continue
+				hasUnsettableFields = true
+				logrus.Debugf("%+v type has unsettable fields, so referencing instead of copying", xT)
+				break
 			}
 			yV.Field(i).Set(copyRecursively(xV.Field(i)))
+		}
+		if hasUnsettableFields {
+			yV.Set(xV)
 		}
 		return yV
 	default:
