@@ -62,7 +62,7 @@ func (sb *SpringBootConfig) Merge(newsbobj interface{}) bool {
 	}
 	for profile, ports := range newsbptr.SpringBootProfilePorts {
 		if origPorts, ok := sb.SpringBootProfilePorts[profile]; ok {
-			sb.SpringBootProfilePorts[profile] = common.MergeInt32Slices(origPorts, ports)
+			sb.SpringBootProfilePorts[profile] = common.MergeSlices(origPorts, ports)
 			continue
 		}
 		sb.SpringBootProfilePorts[profile] = ports
