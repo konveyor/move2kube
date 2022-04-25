@@ -28,7 +28,6 @@ import (
 	libcomposeyaml "github.com/docker/libcompose/yaml"
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/pkg/errors"
@@ -181,14 +180,8 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		serviceContainer.TTY = composeServiceConfig.Tty
 
 		if len(composeServiceConfig.Ports) == 0 {
-			quesKey := common.ConfigServicesKey + common.Delim + serviceConfig.Name + common.Delim + "hasPort"
-			desc := fmt.Sprintf("the service %s doesn't have any ports. Do you want to specify a port?", serviceConfig.Name)
-			hints := []string{}
-			specifyAPort := qaengine.FetchBoolAnswer(quesKey, desc, hints, true)
-			if specifyAPort {
-				selectedPort := commonqa.GetPortForService([]int32{common.DefaultServicePort}, serviceConfig.Name)
-				composeServiceConfig.Ports = []types.ServicePortConfig{{Protocol: "tcp", Target: uint32(selectedPort), Published: uint32(selectedPort)}}
-			}
+			selectedPort := commonqa.GetPortForService(nil, serviceConfig.Name)
+			composeServiceConfig.Ports = []types.ServicePortConfig{{Protocol: "tcp", Target: uint32(selectedPort), Published: uint32(selectedPort)}}
 		}
 
 		serviceContainer.Ports = c.getPorts(composeServiceConfig.Ports, composeServiceConfig.Expose)
