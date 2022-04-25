@@ -19,6 +19,7 @@ package java
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -79,6 +80,7 @@ func (t *WarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 		return nil, nil
 	}
 	for _, path := range paths {
+		serviceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 		newArtifact := transformertypes.Artifact{
 			Type: artifacts.ServiceArtifactType,
 			Paths: map[transformertypes.PathType][]string{
@@ -90,9 +92,11 @@ func (t *WarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 					DeploymentFilePath: filepath.Base(path),
 					JavaVersion:        t.WarConfig.JavaVersion,
 				},
+				artifacts.ServiceConfigType:   artifacts.ServiceConfig{ServiceName: serviceName},
+				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: serviceName},
 			},
 		}
-		services[""] = append(services[""], newArtifact)
+		services[serviceName] = append(services[serviceName], newArtifact)
 	}
 	return services, nil
 }

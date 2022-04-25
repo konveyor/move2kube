@@ -35,6 +35,42 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// GradleAnalyser implements Transformer interface
+type GradleAnalyser struct {
+	Config       transformertypes.Transformer
+	Env          *environment.Environment
+	GradleConfig *GradleYamlConfig
+}
+
+// GradleYamlConfig stores the Gradle related information
+type GradleYamlConfig struct {
+	GradleVersion           string `yaml:"defaultGradleVersion"`
+	JavaVersion             string `yaml:"defaultJavaVersion"`
+	AppPathInBuildContainer string `yaml:"appPathInBuildContainer"`
+}
+
+// GradleBuildDockerfileTemplate defines the information for the build dockerfile template
+type GradleBuildDockerfileTemplate struct {
+	GradlewPresent     bool
+	JavaPackageName    string
+	GradleVersion      string
+	BuildContainerName string
+	GradleProperties   map[string]string
+	EnvVariables       map[string]string
+}
+
+type gradleInfoT struct {
+	Name               string
+	Type               transformertypes.ArtifactType
+	IsParentBuild      bool
+	IsGradlewPresent   bool
+	JavaVersion        string
+	DeploymentFilePath string
+	GradleProperties   map[string]string
+	ChildModules       []artifacts.GradleChildModule
+	SpringBoot         *artifacts.SpringBootConfig
+}
+
 const (
 	gradleBuildFileName                     = "build.gradle"
 	gradleSettingsFileName                  = "settings.gradle"
@@ -70,35 +106,11 @@ const (
 )
 
 var (
+	// gradleSettingsIncludeRegex is used to match lines containing child module/project paths in settings.gradle. Example: include('web', 'api')
 	gradleSettingsIncludeRegex = regexp.MustCompile(`^\s*include\(?\s*(?:"[^"]+"|'[^']+')(?:\s*,\s*(?:"[^"]+"|'[^']+'))*\)?$`)
-	// gradleIndividualProjectRegex is used to extract individual projects from a line in settings.gradle. Example: include 'web', 'api'
+	// gradleIndividualProjectRegex is used to extract individual child module/project paths. Example: get 'web' and 'api' from include('web', 'api')
 	gradleIndividualProjectRegex = regexp.MustCompile(`("[^"]+"|'[^']+')`)
 )
-
-// GradleAnalyser implements Transformer interface
-type GradleAnalyser struct {
-	Config       transformertypes.Transformer
-	Env          *environment.Environment
-	GradleConfig *GradleYamlConfig
-}
-
-// GradleYamlConfig stores the Gradle related information
-type GradleYamlConfig struct {
-	GradleVersion           string `yaml:"defaultGradleVersion"`
-	JavaVersion             string `yaml:"defaultJavaVersion"`
-	AppPathInBuildContainer string `yaml:"appPathInBuildContainer"`
-}
-
-// GradleBuildDockerfileTemplate defines the information for the build dockerfile template
-type GradleBuildDockerfileTemplate struct {
-	GradlewPresent     bool
-	IsParentBuild      bool
-	JavaPackageName    string
-	GradleVersion      string
-	BuildContainerName string
-	GradleProperties   map[string]string
-	EnvVariables       map[string]string
-}
 
 // Init Initializes the transformer
 func (t *GradleAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
@@ -167,65 +179,34 @@ func (t *GradleAnalyser) DirectoryDetect(dir string) (map[string][]transformerty
 
 	// check if gradle wrapper script is present
 
-	if gradleWrapperFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{"gradlew"}, nil); err != nil {
-		return nil, fmt.Errorf("failed to look for a gradle wrapper script in the directory %s . Error: %q", dir, err)
-	} else if len(gradleWrapperFilePaths) != 0 {
+	if gradleWrapperFilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{"gradlew"}, nil); err == nil && len(gradleWrapperFilePaths) != 0 {
 		gradleConfig.IsGradlewPresent = true
 	}
 
-	// handle the case where the root project does not use settings.gradle
+	if len(gradleSettingsFilePaths) != 0 {
+		// found a settings.gradle
 
-	if len(gradleSettingsFilePaths) == 0 {
+		gradleSettingsFilePath := gradleSettingsFilePaths[0]
 
-		// if the root project name is not set in settings.gradle then by default the directory name is used
+		// parse the settings.gradle to get the name and child modules of the root project
 
-		gradleConfig.RootProjectName = filepath.Base(dir)
-
-		// there are no child modules
-
-		gradleConfig.ChildModules = nil // TODO: does it simplify the code if we assume a single child module at the top level?
-		paths[artifacts.ServiceDirPathType] = []string{dir}
-
-		// We can get the packaging type (jar/war/ear) by parsing the build.gradle file.
-
-		gradleBuildFilePath := gradleBuildFilePaths[0]
-		gradleBuild, err := gradle.ParseGardleBuildFile(gradleBuildFilePath)
+		gradleSettings, err := gradle.ParseGardleBuildFile(gradleSettingsFilePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse the gradle build script at path %s . Error: %q", gradleBuildFilePath, err)
-		}
-		gradleConfig.PackagingType = getPackagingFromGradle(&gradleBuild)
-
-		// if nothing was found in the build.gradle file then assume jar packaging
-
-		if gradleConfig.PackagingType == "" {
-			gradleConfig.PackagingType = artifacts.JarPackaging
+			return nil, fmt.Errorf("failed to parse the gradle settings script at path %s . Error: %q", gradleSettingsFilePath, err)
 		}
 
-		serviceArtifact := transformertypes.Artifact{
-			Name:    gradleConfig.RootProjectName,
-			Type:    artifacts.ServiceArtifactType,
-			Paths:   paths,
-			Configs: map[transformertypes.ConfigType]interface{}{artifacts.GradleConfigType: gradleConfig},
+		// get the name of the root project
+
+		if gradleSettings.Metadata != nil && len(gradleSettings.Metadata[rootProjectNameC]) != 0 {
+			gradleConfig.RootProjectName = gradleSettings.Metadata[rootProjectNameC][0]
 		}
-		services := map[string][]transformertypes.Artifact{gradleConfig.RootProjectName: {serviceArtifact}}
-		return services, nil
-	}
 
-	// found a settings.gradle
+		// get the child modules of the root project
 
-	gradleSettingsFilePath := gradleSettingsFilePaths[0]
-
-	// parse the settings.gradle to get the name and child modules of the root project
-
-	gradleSettings, err := gradle.ParseGardleBuildFile(gradleSettingsFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse the gradle settings script at path %s . Error: %q", gradleSettingsFilePath, err)
-	}
-
-	// get the name of the root project
-
-	if gradleSettings.Metadata != nil && len(gradleSettings.Metadata[rootProjectNameC]) != 0 {
-		gradleConfig.RootProjectName = gradleSettings.Metadata[rootProjectNameC][0]
+		gradleConfig.ChildModules, err = getChildModules(gradleSettingsFilePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get the child modules from the %s file at path %s . Error: %q", gradleSettingsFileName, gradleSettingsFilePath, err)
+		}
 	}
 
 	// if the root project name is not set in settings.gradle then by default the directory name is used
@@ -234,36 +215,27 @@ func (t *GradleAnalyser) DirectoryDetect(dir string) (map[string][]transformerty
 		gradleConfig.RootProjectName = filepath.Base(dir)
 	}
 
-	// get the child modules of the root project
-
-	childModules, err := getChildModules(gradleSettingsFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get the child modules from the %s file at path %s . Error: %q", gradleSettingsFileName, gradleSettingsFilePath, err)
-	}
-	gradleConfig.ChildModules = childModules
-
 	// Get the paths to each of the child module directories (relative to the root project directory).
 	// These directories will be ignored during the rest of the planning (directory detect) phase.
 
-	childModuleDirs := []string{dir}
-	if len(childModules) != 0 {
+	if len(gradleConfig.ChildModules) != 0 {
 		gradleConfig.PackagingType = artifacts.PomPackaging // same packaging as maven multi-module project
-		childModuleDirs = []string{}
-		for _, childModule := range childModules {
+		for _, childModule := range gradleConfig.ChildModules {
 			childBuildScriptPath := filepath.Join(dir, childModule.RelBuildScriptPath)
-			childModuleDirs = append(childModuleDirs, filepath.Dir(childBuildScriptPath))
+			paths[artifacts.ServiceDirPathType] = append(paths[artifacts.ServiceDirPathType], filepath.Dir(childBuildScriptPath))
 		}
-	}
-	paths[artifacts.ServiceDirPathType] = childModuleDirs
+	} else {
 
-	// If there are no child modules then there must be a build.gradle right next to the settings.gradle.
-	// We can get the packaging type (jar/war/ear) by parsing this build.gradle file.
+		// if there are no child modules then there must be a build.gradle right next to the settings.gradle
 
-	if len(childModules) == 0 {
 		if len(gradleBuildFilePaths) == 0 {
-			return nil, fmt.Errorf("expected to find a %s file next to the %s file in the directory %s", gradleBuildFileName, gradleSettingsFileName, dir)
+			return nil, fmt.Errorf("expected to find a %s file in the directory %s", gradleBuildFileName, dir)
 		}
+		paths[artifacts.ServiceDirPathType] = []string{dir}
 		gradleConfig.ChildModules = []artifacts.GradleChildModule{{Name: gradleConfig.RootProjectName, RelBuildScriptPath: gradleBuildFileName}}
+
+		// we can get the packaging type (jar/war/ear) by parsing this build.gradle file
+
 		gradleBuildFilePath := gradleBuildFilePaths[0]
 		gradleBuild, err := gradle.ParseGardleBuildFile(gradleBuildFilePath)
 		if err != nil {
@@ -323,24 +295,9 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 			continue
 		}
 
-		// TODO: handle the case where the root project does not use settings.gradle
-
-		if len(newArtifact.Paths[artifacts.GradleSettingsFilePathType]) == 0 {
-			continue
-		}
-
-		// TODO: is parsing the settings.gradle at this stage actually simplifying the code?
-
-		gradleSettingsFilePath := newArtifact.Paths[artifacts.GradleSettingsFilePathType][0]
-		gradleSettings, err := gradle.ParseGardleBuildFile(gradleSettingsFilePath)
-		if err != nil {
-			logrus.Errorf("failed to parse the gradle settings script at path %s . Error: %q", gradleSettingsFilePath, err)
-			continue
-		}
-
 		// transform a single service artifact (probably created during the plan phase by GradleAnalyser.DirectoryDetect)
 
-		currPathMappings, currCreatedArtifacts, err := t.TransformArtifact(newArtifact, alreadySeenArtifacts, &gradleSettings, gradleSettingsFilePath, gradleConfig)
+		currPathMappings, currCreatedArtifacts, err := t.TransformArtifact(newArtifact, alreadySeenArtifacts, gradleConfig)
 		if err != nil {
 			logrus.Errorf("failed to transform the artifact: %+v . Error: %q", newArtifact, err)
 			continue
@@ -352,24 +309,16 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 	return pathMappings, createdArtifacts, nil
 }
 
-type gradleInfoT struct {
-	Name               string
-	Type               transformertypes.ArtifactType
-	IsParentBuild      bool
-	IsGradlewPresent   bool
-	JavaVersion        string
-	DeploymentFilePath string
-	GradleProperties   map[string]string
-	ChildModules       []artifacts.GradleChildModule
-	SpringBoot         *artifacts.SpringBootConfig
-}
-
-// TransformArtifact transforms a single artifact. Must be called with a non-nil gradleSettings.
-func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact, gradleSettings *gradle.Gradle, gradleSettingsFilePath string, gradleConfig artifacts.GradleConfig) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+// TransformArtifact transforms a single artifact.
+func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact, gradleConfig artifacts.GradleConfig) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 
-	serviceRootDir := newArtifact.Paths[artifacts.ServiceRootDirPathType][0]
+	selectedBuildOption, err := askUserForDockerfileType(gradleConfig.RootProjectName)
+	if err != nil {
+		return pathMappings, createdArtifacts, err
+	}
+	logrus.Debugf("user chose to generate Dockefiles that have '%s'", selectedBuildOption)
 
 	// ask the user which child modules should be run in the K8s cluster
 
@@ -377,18 +326,21 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 	for _, childModule := range gradleConfig.ChildModules {
 		selectedChildModuleNames = append(selectedChildModuleNames, childModule.Name)
 	}
-	quesKey := fmt.Sprintf(common.ConfigServicesChildModulesNamesKey, gradleConfig.RootProjectName)
-	desc := fmt.Sprintf("For the multi-module Gradle project '%s', please select all the child modules that should be run as services in the cluster:", gradleConfig.RootProjectName)
-	hints := []string{"deselect child modules that should not be run (like libraries)"}
-	selectedChildModuleNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildModuleNames, selectedChildModuleNames)
-	if len(selectedChildModuleNames) == 0 {
-		return pathMappings, createdArtifacts, fmt.Errorf("user deselected all the child modules of the gradle multi-module project '%s'", gradleConfig.RootProjectName)
+	if len(selectedChildModuleNames) > 1 {
+		quesKey := fmt.Sprintf(common.ConfigServicesChildModulesNamesKey, gradleConfig.RootProjectName)
+		desc := fmt.Sprintf("For the multi-module Gradle project '%s', please select all the child modules that should be run as services in the cluster:", gradleConfig.RootProjectName)
+		hints := []string{"deselect child modules that should not be run (like libraries)"}
+		selectedChildModuleNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildModuleNames, selectedChildModuleNames)
+		if len(selectedChildModuleNames) == 0 {
+			return pathMappings, createdArtifacts, fmt.Errorf("user deselected all the child modules of the gradle multi-module project '%s'", gradleConfig.RootProjectName)
+		}
 	}
 
 	// have jar/war/ear analyzer transformers generate a Dockerfile with only the run stage for each of the child modules
 
 	lowestJavaVersion := ""
 	imageToCopyFrom := gradleConfig.RootProjectName + "-" + buildStageC
+	serviceRootDir := newArtifact.Paths[artifacts.ServiceRootDirPathType][0]
 
 	for _, childModule := range gradleConfig.ChildModules {
 
@@ -430,7 +382,7 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 		envVarsMap := map[string]string{}
 		if childModuleInfo.SpringBoot != nil {
 			if childModuleInfo.SpringBoot.SpringBootProfiles != nil && len(*childModuleInfo.SpringBoot.SpringBootProfiles) != 0 {
-				quesKey := common.ConfigServicesKey + common.Delim + gradleConfig.RootProjectName + common.Delim + "childModules" + common.Delim + childModule.Name + common.Delim + "springBootProfiles"
+				quesKey := fmt.Sprintf(common.ConfigServicesChildModulesSpringProfilesKey, gradleConfig.RootProjectName, childModule.Name)
 				selectedSpringProfiles := qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, *childModuleInfo.SpringBoot.SpringBootProfiles, *childModuleInfo.SpringBoot.SpringBootProfiles)
 				for _, selectedSpringProfile := range selectedSpringProfiles {
 					detectedPorts = append(detectedPorts, childModuleInfo.SpringBoot.SpringBootProfilePorts[selectedSpringProfile]...)
@@ -454,17 +406,27 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 
 		relDeploymentFilePath, err := filepath.Rel(serviceRootDir, childModuleInfo.DeploymentFilePath)
 		if err != nil {
-			logrus.Errorf("failed to make the path %s relative to the base directory %s . Error: %q", childModuleInfo.DeploymentFilePath, t.Env.GetEnvironmentSource(), err)
+			logrus.Errorf("failed to make the path %s relative to the base directory %s . Error: %q", childModuleInfo.DeploymentFilePath, serviceRootDir, err)
 			continue
 		}
 		insideContainerDepFilePath := filepath.Join(t.GradleConfig.AppPathInBuildContainer, relDeploymentFilePath)
+		childModuleDir := filepath.Dir(childGradleBuildFilePath)
+		if selectedBuildOption == NO_BUILD_STAGE {
+			imageToCopyFrom = ""
+			relDeploymentFilePath, err = filepath.Rel(childModuleDir, childModuleInfo.DeploymentFilePath)
+			if err != nil {
+				logrus.Errorf("failed to make the jar/war/ear archive path %s relative to the child module service directory %s . Error: %q", childModuleInfo.DeploymentFilePath, childModuleDir, err)
+				continue
+			}
+			insideContainerDepFilePath = relDeploymentFilePath
+		}
 
 		// create an artifact that will get picked up by the jar/war/ear analyzer transformers
 
 		runStageArtifact := transformertypes.Artifact{
 			Name:  childModule.Name,
 			Type:  childModuleInfo.Type,
-			Paths: map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {filepath.Dir(childGradleBuildFilePath)}},
+			Paths: map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {childModuleDir}},
 			Configs: map[transformertypes.ConfigType]interface{}{
 				transformertypes.ConfigType(childModuleInfo.Type): artifacts.JarArtifactConfig{
 					Port:               selectedPort,
@@ -478,6 +440,10 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 			},
 		}
 		createdArtifacts = append(createdArtifacts, runStageArtifact)
+	}
+
+	if selectedBuildOption == NO_BUILD_STAGE {
+		return pathMappings, createdArtifacts, nil
 	}
 
 	// Find the java package corresponding to the java version.
@@ -497,13 +463,13 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 	if err != nil {
 		return pathMappings, createdArtifacts, fmt.Errorf("failed to get the Dockerfile template. Error: %q", err)
 	}
-	tempDir, err := os.MkdirTemp(t.Env.TempPath, "gradle-transformer-dockerfiles-*")
+	tempDir, err := os.MkdirTemp(t.Env.TempPath, "gradle-transformer-build-*")
 	if err != nil {
 		return pathMappings, createdArtifacts, fmt.Errorf("failed to create a temporary directory inside the directory %s . Error: %q", t.Env.TempPath, err)
 	}
-	dockerfileTemplatePath := filepath.Join(tempDir, "Dockerfile.build.template")
+	dockerfileTemplatePath := filepath.Join(tempDir, common.DefaultDockerfileName+".build.template")
 	if err := os.WriteFile(dockerfileTemplatePath, []byte(dockerfileTemplate), common.DefaultFilePermission); err != nil {
-		return pathMappings, createdArtifacts, fmt.Errorf("failed to write the Dockerfile template to a temporary file at path %s .  Error: %q", dockerfileTemplatePath, err)
+		return pathMappings, createdArtifacts, fmt.Errorf("failed to write the Dockerfile template to a temporary file at path %s . Error: %q", dockerfileTemplatePath, err)
 	}
 
 	// the build stage Dockefile should be placed in the root project directory
@@ -514,61 +480,63 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 	}
 	dockerfilePath := filepath.Join(common.DefaultSourceDir, relServiceRootDir, common.DefaultDockerfileName+"."+buildStageC)
 
-	// collect data to fill the Dockerfile template
+	// fill in the Dockerfile template for the build stage and write it out using a pathmapping
 
-	settingsInfo, err := getInfoFromSettingsGradle(gradleSettings, gradleSettingsFilePath, gradleConfig)
-	if err != nil {
-		return pathMappings, createdArtifacts, fmt.Errorf("failed to get the info from the settings.gradle at path %s . Error: %q", gradleSettingsFilePath, err)
-	}
-
-	// Fill in the Dockerfile template for the build stage and write it out using a pathmapping.
-	// Make sure the source code directory has been copied over first.
-
-	copySourceDirPathMapping := transformertypes.PathMapping{
-		Type:     transformertypes.SourcePathMappingType,
-		DestPath: common.DefaultSourceDir,
-	}
 	buildStageDockerfilePathMapping := transformertypes.PathMapping{
 		Type:     transformertypes.TemplatePathMappingType,
 		SrcPath:  dockerfileTemplatePath,
 		DestPath: dockerfilePath,
 		TemplateConfig: GradleBuildDockerfileTemplate{
-			GradlewPresent:     settingsInfo.IsGradlewPresent,
-			IsParentBuild:      settingsInfo.IsParentBuild,
+			GradlewPresent:     gradleConfig.IsGradlewPresent,
 			JavaPackageName:    javaPackageName,
 			GradleVersion:      t.GradleConfig.GradleVersion,
 			BuildContainerName: imageToCopyFrom,
-			GradleProperties:   nil,                 // TODO: gather gradle properties maybe? analog for maven is info.MavenProfiles. https://www.credera.com/insights/gradle-profiles-for-multi-project-spring-boot-applications
+			GradleProperties:   map[string]string{}, // TODO: gather gradle properties maybe? analog for maven is info.MavenProfiles. https://www.credera.com/insights/gradle-profiles-for-multi-project-spring-boot-applications
 			EnvVariables:       map[string]string{}, // TODO: Something about getting env vars from the IR config inside the artifact coming from the cloud foundry transformer?
 		},
 	}
-	pathMappings = append(pathMappings, copySourceDirPathMapping, buildStageDockerfilePathMapping)
 
-	// Tell the other transformers about the build stage Dockerfile we created.
-	// That way, the image will get built by the builddockerimages.sh script.
+	if selectedBuildOption == BUILD_IN_EVERY_IMAGE {
+		dockerfilePath = filepath.Join(tempDir, common.DefaultDockerfileName+"."+buildStageC)
+		buildStageDockerfilePathMapping.DestPath = dockerfilePath
+		for _, createdArtifact := range createdArtifacts {
+			createdArtifact.Paths[artifacts.BuildContainerFileType] = []string{dockerfilePath}
+		}
+	} else {
 
-	baseImageDockerfileArtifact := transformertypes.Artifact{
-		Name:  imageToCopyFrom,
-		Type:  artifacts.DockerfileArtifactType,
-		Paths: map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}, // TODO: should we add the context path as well?
-		Configs: map[transformertypes.ConfigType]interface{}{
-			artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: imageToCopyFrom},
-		},
+		// make sure the source code directory has been copied over first
+
+		copySourceDirPathMapping := transformertypes.PathMapping{
+			Type:     transformertypes.SourcePathMappingType,
+			DestPath: common.DefaultSourceDir,
+		}
+		pathMappings = append(pathMappings, copySourceDirPathMapping)
+
+		// Tell the other transformers about the build stage Dockerfile we created.
+		// That way, the image will get built by the builddockerimages.sh script.
+
+		baseImageDockerfileArtifact := transformertypes.Artifact{
+			Name:    imageToCopyFrom,
+			Type:    artifacts.DockerfileArtifactType,
+			Paths:   map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}, // TODO: should we add the context path as well?
+			Configs: map[transformertypes.ConfigType]interface{}{artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: imageToCopyFrom}},
+		}
+		createdArtifacts = append(createdArtifacts, baseImageDockerfileArtifact)
 	}
-	createdArtifacts = append(createdArtifacts, baseImageDockerfileArtifact)
+	pathMappings = append(pathMappings, buildStageDockerfilePathMapping)
 
 	return pathMappings, createdArtifacts, nil
 }
 
-func getInfoFromSettingsGradle(gradleSettingsPtr *gradle.Gradle, gradleSettingsFilePath string, gradleConfig artifacts.GradleConfig) (gradleInfoT, error) {
-	info := gradleInfoT{
-		Name:             gradleConfig.RootProjectName,
-		IsParentBuild:    len(gradleConfig.ChildModules) > 0,
-		IsGradlewPresent: gradleConfig.IsGradlewPresent,
-		ChildModules:     gradleConfig.ChildModules,
-	}
-	return info, nil
-}
+// func getInfoFromSettingsGradle(gradleSettingsPtr *gradle.Gradle, gradleSettingsFilePath string, gradleConfig artifacts.GradleConfig) (gradleInfoT, error) {
+// 	info := gradleInfoT{
+// 		Name:             gradleConfig.RootProjectName,
+// 		IsParentBuild:    len(gradleConfig.ChildModules) > 0,
+// 		IsGradlewPresent: gradleConfig.IsGradlewPresent,
+// 		ChildModules:     gradleConfig.ChildModules,
+// 	}
+// 	return info, nil
+// }
 
 func getInfoFromBuildGradle(gradleBuildPtr *gradle.Gradle, gradleBuildFilePath string, gradleConfig artifacts.GradleConfig, childModule artifacts.GradleChildModule) (gradleInfoT, error) {
 	info := gradleInfoT{
@@ -648,7 +616,7 @@ func getSpringBootConfigFromGradle(buildFilePath string, gradleBuild, parentGrad
 }
 
 func (t *GradleAnalyser) getDockerfileTemplate() (string, error) {
-	// TODO: see if we can do cache gradle dependencies similar to https://stackoverflow.com/a/37442191
+	// TODO: see if we can cache gradle dependencies similar to https://stackoverflow.com/a/37442191
 	licenseFilePath := filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license")
 	license, err := os.ReadFile(licenseFilePath)
 	if err != nil {

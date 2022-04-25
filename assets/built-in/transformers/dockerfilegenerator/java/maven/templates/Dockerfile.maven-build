@@ -11,10 +11,13 @@ RUN mkdir -p /usr/share/maven /usr/share/maven/ref \
   && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
 {{- end }}
 
+{{- if .EnvVariables }}
+
 # environment variables
 {{- range $k, $v := .EnvVariables }}
-ENV {{$k}} {{$v}}
-{{- end}}
+ENV {{ $k }} {{ $v }}
+{{- end }}
+{{- end }}
 
 WORKDIR /app
 

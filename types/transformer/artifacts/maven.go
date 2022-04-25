@@ -24,11 +24,11 @@ import (
 
 // MavenConfig stores maven related configuration information
 type MavenConfig struct {
-	MavenAppName  string                        `yaml:"mavenAppName,omitempty" json:"mavenAppName,omitempty"`
-	ArtifactType  transformertypes.ArtifactType `yaml:"artifactType" json:"artifactType"`
-	MavenProfiles []string                      `yaml:"mavenProfiles,omitempty" json:"mavenProfiles,omitempty"`
-	IsMvnwPresent bool                          `yaml:"isMvnwPresent" json:"isMvnwPresent"`
-	ChildModules  []ChildModule                 `yaml:"childModules,omitempty" json:"childModules,omitempty"`
+	MavenAppName  string        `yaml:"mavenAppName,omitempty" json:"mavenAppName,omitempty"`
+	PackagingType JavaPackaging `yaml:"packagingType" json:"packagingType"`
+	MavenProfiles []string      `yaml:"mavenProfiles,omitempty" json:"mavenProfiles,omitempty"`
+	IsMvnwPresent bool          `yaml:"isMvnwPresent" json:"isMvnwPresent"`
+	ChildModules  []ChildModule `yaml:"childModules,omitempty" json:"childModules,omitempty"`
 }
 
 // ChildModule represents the data for a Maven child pom.xml in a multi-module project
@@ -61,7 +61,7 @@ func (mc *MavenConfig) Merge(newmcobj interface{}) bool {
 		}
 		newmcptr = &newmc
 	}
-	if mc.ArtifactType != newmcptr.ArtifactType || mc.MavenAppName != newmcptr.MavenAppName {
+	if mc.PackagingType != newmcptr.PackagingType || mc.MavenAppName != newmcptr.MavenAppName {
 		return false
 	}
 	mc.MavenProfiles = common.MergeStringSlices(mc.MavenProfiles, newmcptr.MavenProfiles...)
