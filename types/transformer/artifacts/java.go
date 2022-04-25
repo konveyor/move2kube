@@ -24,23 +24,23 @@ const (
 	// JarArtifactType defines the jar artifact type
 	JarArtifactType transformertypes.ArtifactType = "Jar"
 	// JarConfigType defines the jar config type
-	JarConfigType transformertypes.ConfigType = "Jar"
+	JarConfigType transformertypes.ConfigType = transformertypes.ConfigType(JarArtifactType)
 	// JarPathType defines jar path type
-	JarPathType transformertypes.PathType = "Jar"
+	JarPathType transformertypes.PathType = transformertypes.PathType(JarArtifactType)
 
 	// WarArtifactType defines war artifact type
 	WarArtifactType transformertypes.ArtifactType = "War"
 	// WarConfigType defines the war config type
-	WarConfigType transformertypes.ConfigType = "War"
+	WarConfigType transformertypes.ConfigType = transformertypes.ConfigType(WarArtifactType)
 	// WarPathType defines the war path type
-	WarPathType transformertypes.PathType = "War"
+	WarPathType transformertypes.PathType = transformertypes.PathType(WarArtifactType)
 
 	// EarArtifactType defines the ear artifact type
 	EarArtifactType transformertypes.ArtifactType = "Ear"
 	// EarConfigType defines the ear config type
-	EarConfigType transformertypes.ConfigType = "Ear"
+	EarConfigType transformertypes.ConfigType = transformertypes.ConfigType(EarArtifactType)
 	// EarPathType defines the ear path type
-	EarPathType transformertypes.PathType = "Ear"
+	EarPathType transformertypes.PathType = transformertypes.PathType(EarArtifactType)
 
 	// BuildContainerFileType defines the build container file type
 	BuildContainerFileType transformertypes.PathType = "BuildContainerFile"
@@ -62,28 +62,15 @@ type JavaPackaging string
 
 // JarArtifactConfig defines a JarArtifactConfig struct
 type JarArtifactConfig struct {
-	DeploymentFile                    string            `yaml:"deploymentFile"`
-	JavaVersion                       string            `yaml:"javaVersion"`
-	BuildContainerName                string            `yaml:"buildContainerName"`
-	DeploymentFileDirInBuildContainer string            `yaml:"deploymentFileDirInBuildContainer"`
-	EnvVariables                      map[string]string `yaml:"envVariables"`
-	Port                              int32             `yaml:"port"`
+	Port               int32             `yaml:"port"`
+	JavaVersion        string            `yaml:"javaVersion"`
+	BuildContainerName string            `yaml:"buildContainerName"`
+	DeploymentFilePath string            `yaml:"deploymentFilePath"`
+	EnvVariables       map[string]string `yaml:"envVariables"`
 }
 
 // WarArtifactConfig defines a WarArtifactConfig struct
-type WarArtifactConfig struct {
-	DeploymentFile                    string            `yaml:"deploymentFile"`
-	JavaVersion                       string            `yaml:"javaVersion"`
-	BuildContainerName                string            `yaml:"buildContainerName"`
-	DeploymentFileDirInBuildContainer string            `yaml:"deploymentFileDirInBuildContainer"`
-	EnvVariables                      map[string]string `yaml:"envVariables"`
-}
+type WarArtifactConfig JarArtifactConfig
 
 // EarArtifactConfig defines a EarArtifactConfig struct
-type EarArtifactConfig struct {
-	DeploymentFile                    string            `yaml:"deploymentFile"`
-	JavaVersion                       string            `yaml:"javaVersion"`
-	BuildContainerName                string            `yaml:"buildContainerName"`
-	DeploymentFileDirInBuildContainer string            `yaml:"deploymentFileDirInBuildContainer"`
-	EnvVariables                      map[string]string `yaml:"envVariables"`
-}
+type EarArtifactConfig JarArtifactConfig

@@ -168,7 +168,7 @@ func MakePlanPathsAbsolute(obj interface{}, sourcePath, assetsPath string) (err 
 }
 
 // ChangePaths changes paths which are based out of one root to another root
-func ChangePaths(obj interface{}, mapping map[string]string) (err error) {
+func ChangePaths(obj interface{}, mapping map[string]string) error {
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
@@ -190,19 +190,15 @@ func ChangePaths(obj interface{}, mapping map[string]string) (err error) {
 		}
 		return path, fmt.Errorf("unable to find proper root for %s", path)
 	}
-	err = ProcessPaths(obj, function)
-	return err
+	return ProcessPaths(obj, function)
 }
 
 // ProcessPaths calls the process function for each path in an object
 func ProcessPaths(obj interface{}, processfunc func(string) (string, error)) (err error) {
-	ctx := context{
-		Convert: processfunc,
-	}
+	ctx := context{Convert: processfunc}
 	objV := reflect.ValueOf(obj).Elem()
 	if err := process(objV, ctx); err != nil {
-		logrus.Errorf("Error while converting absolute paths to relative. Error: %q", err)
-		return err
+		return fmt.Errorf("failed to process the paths for the object of type %T and value %+v . Error: %q", obj, obj, err)
 	}
-	return err
+	return nil
 }

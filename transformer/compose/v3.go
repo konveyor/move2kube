@@ -29,6 +29,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/common"
 	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -131,9 +132,7 @@ func (c *v3Loader) ConvertToIR(composefilepath string, serviceName string) (irty
 }
 
 func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, serviceName string) (irtypes.IR, error) {
-	ir := irtypes.IR{
-		Services: map[string]irtypes.Service{},
-	}
+	ir := irtypes.IR{Services: map[string]irtypes.Service{}}
 
 	//Secret volumes transformed to IR
 	ir.Storages = c.getSecretStorages(composeObject.Secrets)
@@ -179,6 +178,12 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		}
 		serviceContainer.Name = common.NormalizeForMetadataName(composeServiceConfig.ContainerName)
 		serviceContainer.TTY = composeServiceConfig.Tty
+
+		if len(composeServiceConfig.Ports) == 0 {
+			selectedPort := commonqa.GetPortForService(nil, serviceConfig.Name)
+			composeServiceConfig.Ports = []types.ServicePortConfig{{Protocol: "tcp", Target: uint32(selectedPort), Published: uint32(selectedPort)}}
+		}
+
 		serviceContainer.Ports = c.getPorts(composeServiceConfig.Ports, composeServiceConfig.Expose)
 		c.addPorts(composeServiceConfig.Ports, composeServiceConfig.Expose, &serviceConfig)
 

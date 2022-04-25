@@ -94,27 +94,24 @@ func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]tra
 // Transform transforms the artifacts
 func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
-	artifactsCreated := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
+	createdArtifacts := []transformertypes.Artifact{}
+	for _, newArtifact := range newArtifacts {
 		var config ComposeConfig
-		err := a.GetConfig(ComposeServiceConfigType, &config)
-		if err != nil {
+		if err := newArtifact.GetConfig(ComposeServiceConfigType, &config); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", config, err)
 			continue
 		}
-		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+		var serviceConfig artifacts.ServiceConfig
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", serviceConfig, err)
 			continue
 		}
-		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
-		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+		imageName := artifacts.ImageName{}
+		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", imageName, err)
 		}
 		ir := irtypes.NewIR()
-		for _, path := range a.Paths[composeFilePathType] {
+		for _, path := range newArtifact.Paths[composeFilePathType] {
 			logrus.Debugf("File %s being loaded from compose service : %s", path, config.ServiceName)
 			// Try v3 first and if it fails try v1v2
 			if cir, errV3 := new(v3Loader).ConvertToIR(path, config.ServiceName); errV3 == nil {
@@ -127,28 +124,28 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 				logrus.Errorf("Unable to parse the docker compose file at path %s Error V3: %q Error V1V2: %q", path, errV3, errV1V2)
 			}
 		}
-		for _, path := range a.Paths[imageInfoPathType] {
+		for _, path := range newArtifact.Paths[imageInfoPathType] {
 			imgMD := collecttypes.ImageInfo{}
 			if err := common.ReadMove2KubeYaml(path, &imgMD); err != nil {
 				logrus.Errorf("Failed to read image info yaml at path %s Error: %q", path, err)
 				continue
 			}
-			ir.AddContainer(sImageName.ImageName, newContainerFromImageInfo(imgMD))
+			ir.AddContainer(imageName.ImageName, newContainerFromImageInfo(imgMD))
 		}
-		if sImageName.ImageName == "" {
+		if imageName.ImageName == "" {
 			if len(ir.ContainerImages) != 0 {
 				for name := range ir.ContainerImages {
-					sImageName.ImageName = name
+					imageName.ImageName = name
 					break
 				}
 			}
 		} else {
 			if len(ir.ContainerImages) > 1 {
-				logrus.Errorf("Expected only one image in %s. Resetting only the first image name.", sConfig.ServiceName)
+				logrus.Errorf("Expected only one image in %s. Resetting only the first image name.", serviceConfig.ServiceName)
 			}
 			for name, ci := range ir.ContainerImages {
 				delete(ir.ContainerImages, name)
-				ir.ContainerImages[sImageName.ImageName] = ci
+				ir.ContainerImages[imageName.ImageName] = ci
 				break
 			}
 			for sn, s := range ir.Services {
@@ -156,14 +153,14 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 					logrus.Errorf("Expected only one container. Finding more than one contaienr for service %s.", sn)
 				}
 				if len(s.Containers) != 0 {
-					s.Containers[0].Image = sImageName.ImageName
+					s.Containers[0].Image = imageName.ImageName
 					break
 				}
 			}
 		}
-		for name, s := range ir.Services {
+		for name, service := range ir.Services {
 			delete(ir.Services, name)
-			ir.Services[sConfig.ServiceName] = s
+			ir.Services[serviceConfig.ServiceName] = service
 			break
 		}
 		if len(ir.ContainerImages) > 0 {
@@ -172,16 +169,16 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 				DestPath: common.DefaultSourceDir,
 			})
 		}
-		for name, ci := range ir.ContainerImages {
-			contextPath := ci.Build.ContextPath
-			dockerfilePath := filepath.Join(ci.Build.ContextPath, common.DefaultDockerfileName)
-			if len(ci.Build.Artifacts) != 0 && len(ci.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue]) != 0 {
-				dockerfilePath = ci.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue][0]
+		for name, containerImage := range ir.ContainerImages {
+			contextPath := containerImage.Build.ContextPath
+			dockerfilePath := filepath.Join(containerImage.Build.ContextPath, common.DefaultDockerfileName)
+			if len(containerImage.Build.Artifacts) != 0 && len(containerImage.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue]) != 0 {
+				dockerfilePath = containerImage.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue][0]
 			}
 			if contextPath == "" && dockerfilePath != common.DefaultDockerfileName {
 				contextPath = filepath.Dir(dockerfilePath)
 			}
-			artifactsCreated = append(artifactsCreated, transformertypes.Artifact{
+			createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
 				Name: name,
 				Type: artifacts.DockerfileArtifactType,
 				Paths: map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath},
@@ -194,29 +191,20 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 				},
 			})
 		}
-		ac := transformertypes.Artifact{
-			Name: t.Env.GetProjectName(),
-			Type: irtypes.IRArtifactType,
-			Configs: map[transformertypes.ConfigType]interface{}{
-				irtypes.IRConfigType: ir,
-			},
+		createdArtifact := transformertypes.Artifact{
+			Name:    t.Env.GetProjectName(),
+			Type:    irtypes.IRArtifactType,
+			Configs: map[transformertypes.ConfigType]interface{}{irtypes.IRConfigType: ir},
 		}
-		artifactsCreated = append(artifactsCreated, ac)
+		createdArtifacts = append(createdArtifacts, createdArtifact)
 	}
-	return pathMappings, artifactsCreated, nil
+	return pathMappings, createdArtifacts, nil
 }
 
 func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) transformertypes.Artifact {
 	ct := transformertypes.Artifact{
-		Configs: map[transformertypes.ConfigType]interface{}{
-			ComposeServiceConfigType: ComposeConfig{
-				ServiceName: serviceName,
-			}},
-		Paths: map[transformertypes.PathType][]string{
-			composeFilePathType: {
-				composeFilePath,
-			},
-		},
+		Configs: map[transformertypes.ConfigType]interface{}{ComposeServiceConfigType: ComposeConfig{ServiceName: serviceName}},
+		Paths:   map[transformertypes.PathType][]string{composeFilePathType: {composeFilePath}},
 	}
 	if imagepath, ok := imageMetadataPaths[serviceImage]; ok {
 		ct.Paths[imageInfoPathType] = common.MergeStringSlices(ct.Paths[imageInfoPathType], imagepath)
@@ -244,27 +232,28 @@ func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string,
 
 func (t *ComposeAnalyser) getServicesFromComposeFile(composeFilePath string, imageMetadataPaths map[string]string) map[string][]transformertypes.Artifact {
 	services := map[string][]transformertypes.Artifact{}
-	interpolate := true
 	// Try v3 first and if it fails try v1v2
-	if dc, errV3 := parseV3(composeFilePath); errV3 == nil {
+	dcV3, errV3 := parseV3(composeFilePath)
+	if errV3 == nil {
 		logrus.Debugf("Found a docker compose file at path %s", composeFilePath)
-		for _, service := range dc.Services {
+		for _, service := range dcV3.Services {
 			services[service.Name] = []transformertypes.Artifact{t.getService(composeFilePath, service.Name, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)}
 		}
-	} else {
-		if strings.HasPrefix(errV3.Error(), "invalid interpolation format") {
-			// With interpolation error v2 parser panics. This prevents the panic
-			interpolate = false
-		}
-		if dc, errV1V2 := parseV2(composeFilePath, interpolate); errV1V2 == nil {
-			logrus.Debugf("Found a docker compose file at path %s", composeFilePath)
-			servicesMap := dc.ServiceConfigs.All()
-			for serviceName, service := range servicesMap {
-				services[serviceName] = []transformertypes.Artifact{t.getService(composeFilePath, serviceName, service.Image, service.Build.Context, service.Build.Dockerfile, imageMetadataPaths)}
-			}
-		} else {
-			logrus.Debugf("Failed to parse file at path %s as a docker compose file. Error V3: %q Error V1V2: %q", composeFilePath, errV3, errV1V2)
-		}
+		return services
+	}
+	interpolate := true
+	if strings.HasPrefix(errV3.Error(), "invalid interpolation format") {
+		// With interpolation error v2 parser panics. This prevents the panic. TODO: Is this still relevant? https://github.com/compose-spec/compose-go
+		interpolate = false
+	}
+	dcV1V2, errV1V2 := parseV2(composeFilePath, interpolate)
+	if errV1V2 != nil {
+		logrus.Debugf("Failed to parse file at path %s as a docker compose file. Error V3: %q Error V1V2: %q", composeFilePath, errV3, errV1V2)
+		return services
+	}
+	logrus.Debugf("Found a docker compose file at path %s", composeFilePath)
+	for serviceName, serviceConfig := range dcV1V2.ServiceConfigs.All() {
+		services[serviceName] = []transformertypes.Artifact{t.getService(composeFilePath, serviceName, serviceConfig.Image, serviceConfig.Build.Context, serviceConfig.Build.Dockerfile, imageMetadataPaths)}
 	}
 	return services
 }

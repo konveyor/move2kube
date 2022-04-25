@@ -93,15 +93,15 @@ func (t *DockerfileDetector) DirectoryDetect(dir string) (services map[string][]
 func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	pathMappings := []transformertypes.PathMapping{}
-	for _, a := range newArtifacts {
+	for _, newArtifact := range newArtifacts {
 		var sConfig artifacts.ServiceConfig
-		err := a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		err := newArtifact.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
 		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		err = newArtifact.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
@@ -115,7 +115,7 @@ func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact,
 		p := transformertypes.Artifact{
 			Name:  sImageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
-			Paths: a.Paths,
+			Paths: newArtifact.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 			},
@@ -123,7 +123,7 @@ func (t *DockerfileDetector) Transform(newArtifacts []transformertypes.Artifact,
 		dfs := transformertypes.Artifact{
 			Name:  sConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
-			Paths: a.Paths,
+			Paths: newArtifact.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 				artifacts.ServiceConfigType:   sConfig,

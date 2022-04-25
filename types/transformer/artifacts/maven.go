@@ -24,17 +24,30 @@ import (
 
 // MavenConfig stores maven related configuration information
 type MavenConfig struct {
-	MavenAppName  string        `yaml:"mavenAppName,omitempty" json:"mavenAppName,omitempty"`
-	ArtifactType  JavaPackaging `yaml:"artifactType"`
-	MavenProfiles []string      `yaml:"mavenProfiles,omitempty" json:"mavenProfiles,omitempty"`
-	MvnwPresent   bool          `yaml:"mvnwPresent" json:"mvnwPresent"`
+	MavenAppName  string                        `yaml:"mavenAppName,omitempty" json:"mavenAppName,omitempty"`
+	ArtifactType  transformertypes.ArtifactType `yaml:"artifactType" json:"artifactType"`
+	MavenProfiles []string                      `yaml:"mavenProfiles,omitempty" json:"mavenProfiles,omitempty"`
+	IsMvnwPresent bool                          `yaml:"isMvnwPresent" json:"isMvnwPresent"`
+	ChildModules  []ChildModule                 `yaml:"childModules,omitempty" json:"childModules,omitempty"`
+}
+
+// ChildModule represents the data for a Maven child pom.xml in a multi-module project
+type ChildModule struct {
+	// Name is the name/artifact id of the child module (given in the child pom.xml)
+	Name string `yaml:"name" json:"name"`
+	// RelPomPath is the path to the child pom.xml (relative to the parent pom.xml)
+	RelPomPath string `yaml:"pomPath" json:"pomPath"`
 }
 
 const (
 	// MavenConfigType stores the maven config
 	MavenConfigType transformertypes.ConfigType = "Maven"
 	// MavenPomPathType stores the Maven POM file Path
-	MavenPomPathType transformertypes.PathType = "MavenPom"
+	MavenPomPathType transformertypes.PathType = "pomFiles"
+	// MavenParentModulePomPathType stores the Maven's parent POM file Path
+	MavenParentModulePomPathType transformertypes.PathType = "MavenParentModulePom"
+	// MavenSubModulePomPathType stores the Maven's submodule POM file Path
+	MavenSubModulePomPathType transformertypes.PathType = "MavenSubModulePom"
 )
 
 // Merge implements the Config interface allowing artifacts to be merged

@@ -24,9 +24,10 @@ import (
 
 // SpringBootConfig stores spring boot related configuration information
 type SpringBootConfig struct {
-	SpringBootVersion  string    `yaml:"springBootVersion,omitempty" json:"springBootVersion,omitempty"`
-	SpringBootAppName  string    `yaml:"springBootAppName,omitempty" json:"springBootAppName,omitempty"`
-	SpringBootProfiles *[]string `yaml:"springBootProfiles,omitempty" json:"springBootProfiles,omitempty"`
+	SpringBootVersion      string             `yaml:"springBootVersion,omitempty" json:"springBootVersion,omitempty"`
+	SpringBootAppName      string             `yaml:"springBootAppName,omitempty" json:"springBootAppName,omitempty"`
+	SpringBootProfiles     *[]string          `yaml:"springBootProfiles,omitempty" json:"springBootProfiles,omitempty"`
+	SpringBootProfilePorts map[string][]int32 `yaml:"springBootProfilePorts,omitempty" json:"springBootProfilePorts,omitempty"`
 }
 
 const (
@@ -55,5 +56,16 @@ func (sb *SpringBootConfig) Merge(newsbobj interface{}) bool {
 		logrus.Errorf("Incompatible springboot version found during merge for app %s", sb.SpringBootAppName)
 	}
 	*sb.SpringBootProfiles = common.MergeStringSlices(*sb.SpringBootProfiles, *newsbptr.SpringBootProfiles...)
+	// merge profile ports
+	if sb.SpringBootProfilePorts == nil {
+		sb.SpringBootProfilePorts = map[string][]int32{}
+	}
+	for profile, ports := range newsbptr.SpringBootProfilePorts {
+		if origPorts, ok := sb.SpringBootProfilePorts[profile]; ok {
+			sb.SpringBootProfilePorts[profile] = common.MergeSlices(origPorts, ports)
+			continue
+		}
+		sb.SpringBootProfilePorts[profile] = ports
+	}
 	return true
 }

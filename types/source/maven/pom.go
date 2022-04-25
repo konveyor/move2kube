@@ -82,29 +82,30 @@ func (pom *Pom) GetProperty(key string) (val string, err error) {
 	if pom.Properties == nil {
 		return "", fmt.Errorf("property not found in pom")
 	}
-	if val, ok := pom.Properties.Entries[key]; ok {
-		if fullMatches := propVar.FindAllSubmatchIndex([]byte(val), -1); len(fullMatches) > 0 {
-			newVal := ""
-			prevMatch := 0
-			for _, fullMatch := range fullMatches {
-				newVal += val[prevMatch:fullMatch[0]]
-				if len(fullMatch) <= 1 {
-					logrus.Errorf("Unable to find variable name in pom property : %s", val)
-					continue
-				}
-				propVal, err := pom.GetProperty(val[fullMatch[2]:fullMatch[3]])
-				if err != nil {
-					logrus.Errorf("Unable to read property in pom : %s", err)
-					return "", err
-				}
-				newVal += propVal
-				prevMatch = fullMatch[2]
-			}
-			val = newVal
-		}
-		return val, nil
+	val, ok := pom.Properties.Entries[key]
+	if !ok {
+		return "", fmt.Errorf("property not found in pom")
 	}
-	return "", fmt.Errorf("property not found in pom")
+	if fullMatches := propVar.FindAllSubmatchIndex([]byte(val), -1); len(fullMatches) > 0 {
+		newVal := ""
+		prevMatch := 0
+		for _, fullMatch := range fullMatches {
+			newVal += val[prevMatch:fullMatch[0]]
+			if len(fullMatch) <= 1 {
+				logrus.Errorf("Unable to find variable name in pom property : %s", val)
+				continue
+			}
+			propVal, err := pom.GetProperty(val[fullMatch[2]:fullMatch[3]])
+			if err != nil {
+				logrus.Errorf("Unable to read property in pom : %s", err)
+				return "", err
+			}
+			newVal += propVal
+			prevMatch = fullMatch[2]
+		}
+		val = newVal
+	}
+	return val, nil
 }
 
 // Entries defines a pom.xml entry
@@ -381,11 +382,14 @@ type Plugin struct {
 }
 
 // Configuration defines a pom.xml Configuration
+// TODO: change this to map[string]interface{} because different plugins have different configuration
+// https://maven.apache.org/guides/mini/guide-configuring-plugins.html
 type Configuration struct {
 	Classifier            string    `xml:"classifier,omitempty"`
 	Source                string    `xml:"source,omitempty"`
 	Target                string    `xml:"target,omitempty"`
 	ConfigurationProfiles *[]string `xml:"profiles>profile,omitempty"`
+	FinalName             string    `xml:"finalName,omitempty"`
 }
 
 // PluginExecution defines a pom.xml PluginExecution

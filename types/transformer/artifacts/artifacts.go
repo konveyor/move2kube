@@ -21,6 +21,8 @@ import (
 )
 
 const (
-	// ServiceDirPathType points to the service context directory
-	ServiceDirPathType transformertypes.PathType = "ServiceDirPath"
+	// ServiceDirPathType points to the service context directory.
+	ServiceDirPathType transformertypes.PathType = "ServiceDirectories"
+	// ServiceRootDirPathType points to the directory of the root project for a service.
+	ServiceRootDirPathType transformertypes.PathType = "ServiceRootDirectory"
 )

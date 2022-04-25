@@ -90,22 +90,22 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 	logrus.Debugf("Translating IR using Kubernetes transformer")
 	pathMappings = []transformertypes.PathMapping{}
 	createdArtifacts = []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		if a.Type != irtypes.IRArtifactType {
+	for _, newArtifact := range newArtifacts {
+		if newArtifact.Type != irtypes.IRArtifactType {
 			continue
 		}
 		var ir irtypes.IR
-		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
 		var clusterConfig collecttypes.ClusterMetadata
-		if err := a.GetConfig(ClusterMetadata, &clusterConfig); err != nil {
+		if err := newArtifact.GetConfig(ClusterMetadata, &clusterConfig); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", clusterConfig, err)
 			continue
 		}
 		templatizedKeyMap := map[string]string{common.ProjectNameTemplatizedStringKey: t.Env.ProjectName,
-			common.ArtifactNameTemplatizedStringKey: a.Name,
+			common.ArtifactNameTemplatizedStringKey: newArtifact.Name,
 		}
 		if len(ir.Services) == 1 {
 			for sn := range ir.Services {
@@ -115,11 +115,11 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 		ir.Name, err = common.GetStringFromTemplate(t.KubernetesConfig.IngressName, templatizedKeyMap)
 		if err != nil {
 			logrus.Errorf("Error while computing Ingress Name : %s", err)
-			ir.Name = a.Name
+			ir.Name = newArtifact.Name
 		}
 		if ir.Name == "" {
 			logrus.Errorf("Evaluating IngressName in Kubernetes transformer resulting in empty string. Defaulting to Artifact Name.")
-			ir.Name = a.Name
+			ir.Name = newArtifact.Name
 		}
 		preprocessedIR, err := irpreprocessor.Preprocess(ir)
 		if err != nil {
@@ -137,7 +137,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 			return nil, nil, err
 		}
 		serviceFsPath := ""
-		if serviceFsPaths, ok := a.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
+		if serviceFsPaths, ok := newArtifact.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
 			serviceFsPath = serviceFsPaths[0]
 		}
 		outputPathKey := outputPathTemplateName + common.GetRandomString()
@@ -152,7 +152,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 			SrcPath:  tempDest,
 			DestPath: outputPath,
 		})
-		na := transformertypes.Artifact{
+		createdArtifact := transformertypes.Artifact{
 			Name: t.Config.Name,
 			Type: artifacts.KubernetesYamlsArtifactType,
 			Paths: map[transformertypes.PathType][]string{
@@ -161,15 +161,15 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 		}
 		// Append the project path only if there is one-one mapping between services and artifacts
 		if len(ir.Services) == 1 {
-			if serviceFsPaths, ok := a.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
-				na.Paths[artifacts.ServiceDirPathType] = append(na.Paths[artifacts.ServiceDirPathType], serviceFsPaths[0])
+			if serviceFsPaths, ok := newArtifact.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
+				createdArtifact.Paths[artifacts.ServiceDirPathType] = append(createdArtifact.Paths[artifacts.ServiceDirPathType], serviceFsPaths[0])
 				// Loop to get the single service name
 				for k := range ir.Services {
-					na.Name = k
+					createdArtifact.Name = k
 				}
 			}
 		}
-		createdArtifacts = append(createdArtifacts, na)
+		createdArtifacts = append(createdArtifacts, createdArtifact)
 		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
 	return pathMappings, createdArtifacts, nil

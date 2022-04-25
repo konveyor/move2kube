@@ -203,49 +203,51 @@ func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]s
 }
 
 // GetFilesInCurrentDirectory returns the name of the file present in the current directory which matches the pattern
-func GetFilesInCurrentDirectory(path string, fileNames, fileNameRegexes []string) (files []string, err error) {
-	files = []string{}
+func GetFilesInCurrentDirectory(path string, fileNames, fileNameRegexes []string) (matchedFilePaths []string, err error) {
+	matchedFilePaths = []string{}
 	currFileNames := []string{}
-	if info, err := os.Stat(path); os.IsNotExist(err) {
-		logrus.Warnf("Error in walking through files due to : %q", err)
-		return nil, err
-	} else if !info.IsDir() {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat the directory at path %s . Error: %q", path, err)
+	}
+	if !info.IsDir() {
+		logrus.Warnf("the provided path %s is not a directory. info: %+v", path, info)
 		currFileNames = append(currFileNames, path)
 	} else {
-		dirhandle, err := os.Open(path)
+		dirHandle, err := os.Open(path)
 		if err != nil {
-			logrus.Errorf("Unable to open directory: %s", err)
-			return nil, err
+			return nil, fmt.Errorf("failed to open the directory %s . Error: %q", path, err)
 		}
-		defer dirhandle.Close()
-		currFileNames, err = dirhandle.Readdirnames(0) // 0 to read all files and folders
+		defer dirHandle.Close()
+		currFileNames, err = dirHandle.Readdirnames(0) // 0 to read all files and folders
 		if err != nil {
-			logrus.Errorf("Unable to read dir names in %s : %s", path, err)
-			return nil, err
+			return nil, fmt.Errorf("failed to get the list of files in the directory %s . Error: %q", path, err)
 		}
 	}
 	compiledNameRegexes := []*regexp.Regexp{}
 	for _, nameRegex := range fileNameRegexes {
 		compiledNameRegex, err := regexp.Compile(nameRegex)
 		if err != nil {
-			logrus.Errorf("Could not compile regular expression (%s): %s. Ignoring regex during search", err, nameRegex)
+			logrus.Errorf("skipping because the regular expression `%s` failed to compile. Error: %q", nameRegex, err)
 			continue
 		}
 		compiledNameRegexes = append(compiledNameRegexes, compiledNameRegex)
 	}
-	for _, fName := range currFileNames {
-		for _, name := range fileNames {
-			if name == fName {
-				files = append(files, filepath.Join(path, fName))
+	for _, currFileName := range currFileNames {
+		for _, fileName := range fileNames {
+			if fileName == currFileName {
+				matchedFilePaths = append(matchedFilePaths, filepath.Join(path, currFileName))
+				break
 			}
 		}
 		for _, compiledNameRegex := range compiledNameRegexes {
-			if compiledNameRegex.MatchString(fName) {
-				files = append(files, filepath.Join(path, fName))
+			if compiledNameRegex.MatchString(currFileName) {
+				matchedFilePaths = append(matchedFilePaths, filepath.Join(path, currFileName))
+				break
 			}
 		}
 	}
-	return files, nil
+	return matchedFilePaths, nil
 }
 
 //YamlAttrPresent returns YAML attributes

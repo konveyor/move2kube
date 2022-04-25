@@ -38,8 +38,7 @@ func getpair(a, b string) pair {
 func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputPath string) error {
 	copiedSourceDests := map[pair]bool{}
 	for _, pm := range pms {
-		if !strings.EqualFold(string(pm.Type), string(transformertypes.SourcePathMappingType)) ||
-			copiedSourceDests[getpair(pm.SrcPath, pm.DestPath)] {
+		if !strings.EqualFold(string(pm.Type), string(transformertypes.SourcePathMappingType)) || copiedSourceDests[getpair(pm.SrcPath, pm.DestPath)] {
 			continue
 		}
 		srcPath := pm.SrcPath
@@ -48,7 +47,8 @@ func processPathMappings(pms []transformertypes.PathMapping, sourcePath, outputP
 		}
 		destPath := filepath.Join(outputPath, pm.DestPath)
 		if err := filesystem.Merge(srcPath, destPath, true); err != nil {
-			logrus.Errorf("Error while copying sourcepath for %+v . Error: %q", pm, err)
+			logrus.Errorf("failed to copy the source path %s the the destination path %s for the path mapping %+v . Error: %q", srcPath, destPath, pm, err)
+			continue
 		}
 		copiedSourceDests[getpair(pm.SrcPath, pm.DestPath)] = true
 	}

@@ -1,0 +1,9 @@
+
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+{{- range $k, $v := .EnvVariables }}
+ENV {{$k}} {{$v}}
+{{- end }}
+RUN microdnf update && microdnf install --nodocs {{ .JavaPackageName }} && microdnf clean all
+COPY --from={{ .BuildContainerName }} {{ .DeploymentFilePath }} .
+EXPOSE {{ .Port }}
+CMD ["java", "-jar", "{{ .DeploymentFilename }}"]

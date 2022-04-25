@@ -17,6 +17,7 @@
 package java
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -47,13 +48,12 @@ type LibertyYamlConfig struct {
 
 // LibertyDockerfileTemplate stores parameters for the dockerfile template
 type LibertyDockerfileTemplate struct {
-	JavaPackageName                   string
-	JavaVersion                       string
-	DeploymentFile                    string
-	BuildContainerName                string
-	DeploymentFileDirInBuildContainer string
-	Port                              int32
-	EnvVariables                      map[string]string
+	JavaPackageName    string
+	JavaVersion        string
+	DeploymentFilePath string
+	BuildContainerName string
+	Port               int32
+	EnvVariables       map[string]string
 }
 
 // JavaLibertyImageMapping stores the java version to liberty image version mappings
@@ -99,103 +99,86 @@ func (t *Liberty) DirectoryDetect(dir string) (services map[string][]transformer
 func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		var sConfig artifacts.ServiceConfig
-		err := a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+	for _, newArtifact := range newArtifacts {
+		if newArtifact.Type != artifacts.WarArtifactType {
 			continue
 		}
-		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Errorf("failed to load service config from the artifact: %+v . Error: %q", serviceConfig, err)
+			continue
+		}
+		imageName := artifacts.ImageName{}
+		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", imageName, err)
+		}
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
+		}
+		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 {
+			logrus.Errorf("service directory missing from artifact: %+v", newArtifact)
+			continue
+		}
+		serviceDir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
+		relServiceDir, err := filepath.Rel(t.Env.GetEnvironmentSource(), serviceDir)
 		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+			logrus.Errorf("failed to make the source path %s relative to the source code directory %s . Error: %q", serviceDir, t.Env.GetEnvironmentSource(), err)
+			continue
 		}
-		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
-		}
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
+		template, err := t.getDockerfileTemplate(newArtifact)
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
+			logrus.Errorf("failed to get the liberty run stage Dockerfile template. Error: %q", err)
+			continue
 		}
-		libertyRunDockerfile, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.liberty"))
-		if err != nil {
-			logrus.Errorf("Unable to read Dockerfile liberty template : %s", err)
+		tempDir := filepath.Join(t.Env.TempPath, newArtifact.Name)
+		if err := os.MkdirAll(tempDir, common.DefaultDirectoryPermission); err != nil {
+			logrus.Errorf("failed to make the temporary directory %s . Error: %q", tempDir, err)
+			continue
 		}
-		dockerFileHead := ""
-		isBuildContainerPresent := false
-		if buildContainerPaths, ok := a.Paths[artifacts.BuildContainerFileType]; ok && len(buildContainerPaths) > 0 {
-			isBuildContainerPresent = true
-			dockerfileBuildDockerfile := buildContainerPaths[0]
-			dockerFileHeadBytes, err := os.ReadFile(dockerfileBuildDockerfile)
-			if err != nil {
-				logrus.Errorf("Unable to read build Dockerfile template : %s", err)
-				continue
-			}
-			dockerFileHead = string(dockerFileHeadBytes)
-		} else {
-			dockerFileHeadBytes, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license"))
-			if err != nil {
-				logrus.Errorf("Unable to read Dockerfile license template : %s", err)
-			}
-			dockerFileHead = string(dockerFileHeadBytes)
+		dockerfileTemplatePath := filepath.Join(tempDir, common.DefaultDockerfileName)
+		if err := os.WriteFile(dockerfileTemplatePath, []byte(template), common.DefaultFilePermission); err != nil {
+			logrus.Errorf("failed to write the liberty Dockerfile template to the temporary file at path %s . Error: %q", dockerfileTemplatePath, err)
+			continue
 		}
-		tempDir := filepath.Join(t.Env.TempPath, a.Name)
-		os.MkdirAll(tempDir, common.DefaultDirectoryPermission)
-		dockerfileTemplate := filepath.Join(tempDir, common.DefaultDockerfileName)
-		template := string(dockerFileHead) + "\n" + string(libertyRunDockerfile)
-		err = os.WriteFile(dockerfileTemplate, []byte(template), common.DefaultFilePermission)
-		if err != nil {
-			logrus.Errorf("Could not write the generated Build Dockerfile template: %s", err)
-		}
-		dft := LibertyDockerfileTemplate{}
-		libertyArtifactConfig := artifacts.WarArtifactConfig{}
-		err = a.GetConfig(artifacts.WarConfigType, &libertyArtifactConfig)
-		if err != nil {
-			// EAR
-			logrus.Debugf("unable to load config for Transformer into %T : %s", libertyArtifactConfig, err)
-			libertyEarArtifactConfig := artifacts.EarArtifactConfig{}
-			err = a.GetConfig(artifacts.EarConfigType, &libertyEarArtifactConfig)
-			if err != nil {
-				logrus.Debugf("unable to load config for Transformer into %T : %s", libertyEarArtifactConfig, err)
-			}
-			if libertyEarArtifactConfig.JavaVersion == "" {
-				libertyEarArtifactConfig.JavaVersion = t.LibertyConfig.JavaVersion
-			}
-			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), libertyEarArtifactConfig.JavaVersion)
-			if err != nil {
-				logrus.Errorf("Unable to find mapping version for java version %s : %s", libertyEarArtifactConfig.JavaVersion, err)
-				javaPackage = defaultJavaPackage
-			}
-			dft.JavaPackageName = javaPackage
-			dft.JavaVersion = libertyEarArtifactConfig.JavaVersion
-			dft.DeploymentFile = libertyEarArtifactConfig.DeploymentFile
-			dft.Port = defaultLibertyPort
-			dft.EnvVariables = libertyEarArtifactConfig.EnvVariables
-			if isBuildContainerPresent {
-				dft.BuildContainerName = libertyEarArtifactConfig.BuildContainerName
-				dft.DeploymentFileDirInBuildContainer = libertyEarArtifactConfig.DeploymentFileDirInBuildContainer
-			}
-		} else {
+		templateData := LibertyDockerfileTemplate{}
+		warConfig := artifacts.WarArtifactConfig{}
+		if err := newArtifact.GetConfig(artifacts.WarConfigType, &warConfig); err == nil {
 			// WAR
-			if libertyArtifactConfig.JavaVersion == "" {
-				libertyArtifactConfig.JavaVersion = t.LibertyConfig.JavaVersion
+			if warConfig.JavaVersion == "" {
+				warConfig.JavaVersion = t.LibertyConfig.JavaVersion
 			}
-			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), libertyArtifactConfig.JavaVersion)
+			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), warConfig.JavaVersion)
 			if err != nil {
-				logrus.Errorf("Unable to find mapping version for java version %s : %s", libertyArtifactConfig.JavaVersion, err)
+				logrus.Errorf("Unable to find mapping version for java version %s . Error: %q", warConfig.JavaVersion, err)
 				javaPackage = defaultJavaPackage
 			}
-			dft.JavaPackageName = javaPackage
-			dft.JavaVersion = libertyArtifactConfig.JavaVersion
-			dft.Port = defaultLibertyPort
-			dft.EnvVariables = libertyArtifactConfig.EnvVariables
-			dft.DeploymentFile = libertyArtifactConfig.DeploymentFile
-			if isBuildContainerPresent {
-				dft.DeploymentFile = libertyArtifactConfig.DeploymentFile
-				dft.BuildContainerName = libertyArtifactConfig.BuildContainerName
-				dft.DeploymentFileDirInBuildContainer = libertyArtifactConfig.DeploymentFileDirInBuildContainer
+			templateData.JavaPackageName = javaPackage
+			templateData.JavaVersion = warConfig.JavaVersion
+			templateData.Port = defaultLibertyPort
+			templateData.EnvVariables = warConfig.EnvVariables
+			templateData.DeploymentFilePath = warConfig.DeploymentFilePath
+			templateData.BuildContainerName = warConfig.BuildContainerName
+		} else {
+			// EAR
+			logrus.Debugf("failed to load war config from the artifact: %+v . Error: %q", newArtifact, err)
+			earConfig := artifacts.EarArtifactConfig{}
+			if err := newArtifact.GetConfig(artifacts.EarConfigType, &earConfig); err != nil {
+				logrus.Debugf("failed to load ear config from the artifact: %+v . Error: %q", newArtifact, err)
 			}
+			if earConfig.JavaVersion == "" {
+				earConfig.JavaVersion = t.LibertyConfig.JavaVersion
+			}
+			javaPackage, err := getJavaPackage(filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath), earConfig.JavaVersion)
+			if err != nil {
+				logrus.Errorf("Unable to find mapping version for java version %s : %s", earConfig.JavaVersion, err)
+				javaPackage = defaultJavaPackage
+			}
+			templateData.JavaPackageName = javaPackage
+			templateData.JavaVersion = earConfig.JavaVersion
+			templateData.Port = defaultLibertyPort
+			templateData.EnvVariables = earConfig.EnvVariables
+			templateData.DeploymentFilePath = earConfig.DeploymentFilePath
+			templateData.BuildContainerName = earConfig.BuildContainerName
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
@@ -203,34 +186,59 @@ func (t *Liberty) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 		})
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        dockerfileTemplate,
-			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
-			TemplateConfig: dft,
+			SrcPath:        dockerfileTemplatePath,
+			DestPath:       filepath.Join(common.DefaultSourceDir, relServiceDir),
+			TemplateConfig: templateData,
 		})
-		paths := a.Paths
-		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
-		p := transformertypes.Artifact{
-			Name:  sImageName.ImageName,
+		paths := newArtifact.Paths
+		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relServiceDir, common.DefaultDockerfileName)}
+		dockerfileArtifact := transformertypes.Artifact{
+			Name:  imageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
 			Paths: paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ImageNameConfigType: imageName,
 			},
 		}
-		dfs := transformertypes.Artifact{
-			Name:  sConfig.ServiceName,
+		dockerfileServiceAritfact := transformertypes.Artifact{
+			Name:  serviceConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
-			Paths: a.Paths,
+			Paths: newArtifact.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
-				artifacts.ServiceConfigType:   sConfig,
+				artifacts.ImageNameConfigType: imageName,
+				artifacts.ServiceConfigType:   serviceConfig,
 			},
 		}
 		ir := irtypes.IR{}
-		if err = a.GetConfig(irtypes.IRConfigType, &ir); err == nil {
-			dfs.Configs[irtypes.IRConfigType] = ir
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err == nil {
+			dockerfileServiceAritfact.Configs[irtypes.IRConfigType] = ir
 		}
-		createdArtifacts = append(createdArtifacts, p, dfs)
+		createdArtifacts = append(createdArtifacts, dockerfileArtifact, dockerfileServiceAritfact)
 	}
 	return pathMappings, createdArtifacts, nil
+}
+
+func (t *Liberty) getDockerfileTemplate(newArtifact transformertypes.Artifact) (string, error) {
+	libertyRunTemplatePath := filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.liberty")
+	libertyRunTemplate, err := os.ReadFile(libertyRunTemplatePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read the liberty run stage Dockerfile template at path %s . Error: %q", libertyRunTemplatePath, err)
+	}
+	dockerFileHead := ""
+	if buildContainerPaths := newArtifact.Paths[artifacts.BuildContainerFileType]; len(buildContainerPaths) > 0 {
+		dockerfileBuildPath := buildContainerPaths[0]
+		dockerFileHeadBytes, err := os.ReadFile(dockerfileBuildPath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read the build stage Dockerfile template at path %s . Error: %q", dockerfileBuildPath, err)
+		}
+		dockerFileHead = string(dockerFileHeadBytes)
+	} else {
+		licenseFilePath := filepath.Join(t.Env.GetEnvironmentContext(), t.Env.RelTemplatesDir, "Dockerfile.license")
+		dockerFileHeadBytes, err := os.ReadFile(licenseFilePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read the Dockerfile license at path %s . Error: %q", licenseFilePath, err)
+		}
+		dockerFileHead = string(dockerFileHeadBytes)
+	}
+	return dockerFileHead + "\n" + string(libertyRunTemplate), nil
 }

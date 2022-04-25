@@ -108,29 +108,31 @@ func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
 	return exposePorts
 }
 
-// GetPortForService returns port used by a service
+// GetPortForService returns the port to expose the service on.
 func GetPortForService(detectedPorts []int32, serviceName string) int32 {
-	var detectedPortsStr []string
-	var exposePortStr string
-	var exposePort int32
-	if len(detectedPorts) != 0 {
-		for _, detectedPort := range detectedPorts {
-			detectedPortsStr = append(detectedPortsStr, strconv.Itoa(int(detectedPort)))
-		}
-		allDetectedPortsStr := append(detectedPortsStr, qatypes.OtherAnswer)
-		exposePortStr = qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortForServiceKeySegment, fmt.Sprintf("Select port to be exposed for the service %s :", serviceName), []string{fmt.Sprintf("Select Other if you want to expose the service %s to some other port", serviceName)}, allDetectedPortsStr[0], allDetectedPortsStr)
-	} else {
-		exposePortStr = qaengine.FetchStringAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPortForServiceKeySegment, fmt.Sprintf("Enter the port to be exposed for the service %s: ", serviceName), []string{fmt.Sprintf("The service %s will be exposed to the specified port", serviceName)}, fmt.Sprintf("%d", common.DefaultServicePort))
+	quesKey := common.ConfigServicesKey + common.Delim + serviceName + common.Delim + common.ConfigPortForServiceKeySegment
+	desc := fmt.Sprintf("Select the port to be exposed for the service %s :", serviceName)
+	hints := []string{"Select 'Other' if you want to expose the service using a different port."}
+	detectedPortStrs := []string{}
+	for _, detectedPort := range detectedPorts {
+		detectedPortStrs = append(detectedPortStrs, fmt.Sprintf("%d", detectedPort))
 	}
-	exposePortStr = strings.TrimSpace(exposePortStr)
-	if exposePortStr != "" {
-		port, err := strconv.ParseInt(exposePortStr, 10, 32)
-		if err != nil {
-			logrus.Errorf("Error while converting the selected port from string to int : %s", err)
-		}
-		return int32(port)
+	if len(detectedPortStrs) == 0 {
+		detectedPortStrs = append(detectedPortStrs, fmt.Sprintf("%d", common.DefaultServicePort))
 	}
-	return exposePort
+	detectedPortStrs = append(detectedPortStrs, qatypes.OtherAnswer)
+	selectedPortStr := qaengine.FetchSelectAnswer(quesKey, desc, hints, detectedPortStrs[0], detectedPortStrs)
+	selectedPortStr = strings.TrimSpace(selectedPortStr)
+	selectedPort, err := strconv.ParseInt(selectedPortStr, 10, 32)
+	if err != nil {
+		logrus.Errorf("got the string '%s' which is not a valid integer/port. Error: %q", selectedPortStr, err)
+		return common.DefaultServicePort
+	}
+	if selectedPort < 0 || selectedPort > 65535 {
+		logrus.Errorf("got the integer '%d' which is outside the range for a valid port (0 to 65535).", selectedPort)
+		return common.DefaultServicePort
+	}
+	return int32(selectedPort)
 }
 
 // GetContainerRuntime returns the container runtime
