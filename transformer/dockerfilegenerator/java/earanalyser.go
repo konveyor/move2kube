@@ -18,6 +18,7 @@ package java
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -79,6 +80,7 @@ func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 		return nil, nil
 	}
 	for _, path := range paths {
+		serviceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 		relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), path)
 		if err != nil {
 			logrus.Errorf("failed to make the path %s relative to the sourc code directory %s . Error: %q", path, t.Env.GetEnvironmentSource(), err)
@@ -94,9 +96,11 @@ func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 					DeploymentFilePath: relPath,
 					JavaVersion:        t.EarConfig.JavaVersion,
 				},
+				artifacts.ServiceConfigType:   artifacts.ServiceConfig{ServiceName: serviceName},
+				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: serviceName},
 			},
 		}
-		services[""] = append(services[""], newArtifact)
+		services[serviceName] = append(services[serviceName], newArtifact)
 	}
 	return
 }

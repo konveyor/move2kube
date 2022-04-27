@@ -197,5 +197,5 @@ func getQAMessage(prob qatypes.Problem) string {
 	if len(prob.Hints) == 0 {
 		return fmt.Sprintf("%s\nID: %s\n", prob.Desc, prob.ID)
 	}
-	return fmt.Sprintf("%s\nID: %s\nHints:\n[%s]\n", prob.Desc, prob.ID, strings.Join(prob.Hints, ", "))
+	return fmt.Sprintf("%s\nID: %s\nHints:\n- %s\n\n", prob.Desc, prob.ID, strings.Join(prob.Hints, "\n- "))
 }

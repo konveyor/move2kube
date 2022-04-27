@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -78,7 +79,7 @@ func (t *JarAnalyser) GetConfig() (transformertypes.Transformer, *environment.En
 // DirectoryDetect runs detect in each sub directory
 func (t *JarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
 	services := map[string][]transformertypes.Artifact{}
-	paths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{`.*\.jar$`})
+	paths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{`\.jar$`})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get the jar files in the directory %s . Error: %q", dir, err)
 	}
@@ -86,12 +87,12 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 		return nil, nil
 	}
 	for _, path := range paths {
+		serviceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 		relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), path)
 		if err != nil {
 			logrus.Errorf("failed to make the path %s relative to the sourc code directory %s . Error: %q", path, t.Env.GetEnvironmentSource(), err)
 			continue
 		}
-		serviceName := filepath.Base(filepath.Dir(path))
 		newArtifact := transformertypes.Artifact{
 			Name: serviceName,
 			Paths: map[transformertypes.PathType][]string{
@@ -109,7 +110,7 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: serviceName},
 			},
 		}
-		services[""] = append(services[""], newArtifact)
+		services[serviceName] = append(services[serviceName], newArtifact)
 	}
 	return services, nil
 }
