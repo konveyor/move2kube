@@ -203,23 +203,11 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 				"ephemeral-storage": resource.MustParse(fmt.Sprintf("%dM", cfinstanceapp.Application.DiskQuota))}
 			serviceContainer := core.Container{Name: sConfig.ServiceName,
 				Resources: core.ResourceRequirements{Requests: rList}}
-<<<<<<< HEAD
 			serviceConfig.ResourceRequest = t.resourceListToStringMap(rList)
-=======
-			logrus.Infof("Resource: %v", serviceContainer.Resources)
->>>>>>> feat: generic cnb containerizer
 			serviceContainer.Image = config.ImageName
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
 			}
-			//TODO: Add support for services, health check, memory
-			// if application.Instances.IsSet {
-			// 	serviceConfig.Replicas = application.Instances.Value
-			// 	logrus.Infof("NUMBER OF INSTANCES (MAN): %d", serviceConfig.Replicas)
-			// } else if cfinstanceapp.Application.Instances != 0 {
-			// 	serviceConfig.Replicas = cfinstanceapp.Application.Instances
-			// 	logrus.Infof("NUMBER OF INSTANCES (RT): %d", serviceConfig.Replicas)
-			// }
 			if cfinstanceapp.Application.Instances != 0 {
 				serviceConfig.Replicas = cfinstanceapp.Application.Instances
 			} else if application.Instances.IsSet {
