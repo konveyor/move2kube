@@ -73,7 +73,8 @@ type Service struct {
 	Replicas                    int
 	Networks                    []string
 	OnlyIngress                 bool
-	Daemon                      bool //Gets converted to DaemonSet
+	Daemon                      bool              //Gets converted to DaemonSet
+	ResourceRequest             map[string]string //Temp field which we will get rid off later.
 }
 
 // ServiceToPodPortForwarding forwards a k8s service port to a k8s pod port

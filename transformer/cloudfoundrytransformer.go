@@ -40,6 +40,11 @@ import (
 	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
+const (
+	// ResourceRequestKey is the config key for resource requests
+	ResourceRequestKey = "ResourceRequest"
+)
+
 // variableLiteralPattern to identify variable literals in environment names
 var variableLiteralPattern = regexp.MustCompile(`[-.+~\x60!@#$%^&*(){}\[\]:;"',?<>/]`)
 
@@ -144,6 +149,15 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 	return services, nil
 }
 
+// resourceListToStringMap stringifies resource request
+func (t *CloudFoundry) resourceListToStringMap(rList core.ResourceList) map[string]string {
+	dReq := map[string]string{}
+	for k, v := range rList {
+		dReq[k.String()] = v.String()
+	}
+	return dReq
+}
+
 // Transform transforms the artifacts
 func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
@@ -189,15 +203,23 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 				"ephemeral-storage": resource.MustParse(fmt.Sprintf("%dM", cfinstanceapp.Application.DiskQuota))}
 			serviceContainer := core.Container{Name: sConfig.ServiceName,
 				Resources: core.ResourceRequirements{Requests: rList}}
+			serviceConfig.ResourceRequest = t.resourceListToStringMap(rList)
 			serviceContainer.Image = config.ImageName
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
 			}
 			//TODO: Add support for services, health check, memory
-			if application.Instances.IsSet {
-				serviceConfig.Replicas = application.Instances.Value
-			} else if cfinstanceapp.Application.Instances != 0 {
+			// if application.Instances.IsSet {
+			// 	serviceConfig.Replicas = application.Instances.Value
+			// 	logrus.Infof("NUMBER OF INSTANCES (MAN): %d", serviceConfig.Replicas)
+			// } else if cfinstanceapp.Application.Instances != 0 {
+			// 	serviceConfig.Replicas = cfinstanceapp.Application.Instances
+			// 	logrus.Infof("NUMBER OF INSTANCES (RT): %d", serviceConfig.Replicas)
+			// }
+			if cfinstanceapp.Application.Instances != 0 {
 				serviceConfig.Replicas = cfinstanceapp.Application.Instances
+			} else if application.Instances.IsSet {
+				serviceConfig.Replicas = application.Instances.Value
 			}
 			secretName := config.ServiceName + common.VcapCfSecretSuffix
 			envList, vcapEnvMap := t.prioritizeAndAddEnvironmentVariables(cfinstanceapp, application.EnvironmentVariables,
