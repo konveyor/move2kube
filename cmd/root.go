@@ -66,5 +66,6 @@ func GetRootCmd() *cobra.Command {
 	rootCmd.AddCommand(GetPlanCommand())
 	rootCmd.AddCommand(GetTransformCommand())
 	rootCmd.AddCommand(GetGenerateDocsCommand())
+	rootCmd.AddCommand(GetGraphCommand())
 	return rootCmd
 }

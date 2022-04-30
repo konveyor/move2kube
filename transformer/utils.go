@@ -114,32 +114,33 @@ func getIgnorePaths(inputPath string) (ignoreDirectories []string, ignoreContent
 }
 
 func updatedArtifacts(alreadySeenArtifacts []transformertypes.Artifact, newArtifacts ...transformertypes.Artifact) (updatedArtifacts []transformertypes.Artifact) {
-	for ai, a := range newArtifacts {
-		for _, oa := range alreadySeenArtifacts {
-			if mergeda, merged := mergeArtifact(a, oa); merged {
-				newArtifacts[ai] = mergeda
+	for i, newArtifact := range newArtifacts {
+		for _, alreadySeenArtifact := range alreadySeenArtifacts {
+			if mergedArtifact, merged := mergeArtifact(newArtifact, alreadySeenArtifact); merged {
+				newArtifacts[i] = mergedArtifact
+				break
 			}
 		}
 	}
 	return mergeArtifacts(newArtifacts)
 }
 
-func mergeArtifacts(artifacts []transformertypes.Artifact) (newArtifacts []transformertypes.Artifact) {
-	newArtifacts = []transformertypes.Artifact{}
-	for _, a := range artifacts {
+func mergeArtifacts(oldArtifacts []transformertypes.Artifact) []transformertypes.Artifact {
+	newArtifacts := []transformertypes.Artifact{}
+	for _, oldArtifact := range oldArtifacts {
 		added := false
-		for nai, na := range newArtifacts {
-			if mergeda, merged := mergeArtifact(a, na); merged {
-				newArtifacts[nai] = mergeda
+		for i, newArtifact := range newArtifacts {
+			if mergedArtifact, merged := mergeArtifact(oldArtifact, newArtifact); merged {
+				newArtifacts[i] = mergedArtifact
 				added = true
 				break
 			}
 		}
 		if !added {
-			newArtifacts = append(newArtifacts, a)
+			newArtifacts = append(newArtifacts, oldArtifact)
 		}
 	}
-	return
+	return newArtifacts
 }
 
 func mergeArtifact(a transformertypes.Artifact, b transformertypes.Artifact) (c transformertypes.Artifact, merged bool) {
@@ -173,14 +174,12 @@ func mergeConfigs(configs1 map[transformertypes.ConfigType]interface{}, configs2
 		}
 		if ct, ok := artifacts.ConfigTypes[string(cn2)]; ok {
 			c1 := reflect.New(ct).Interface().(transformertypes.Config)
-			err := common.GetObjFromInterface(configs1[cn2], c1)
-			if err != nil {
+			if err := common.GetObjFromInterface(configs1[cn2], c1); err != nil {
 				logrus.Errorf("Unable to load config : %s", err)
 				break
 			}
 			c2 := reflect.New(ct).Interface().(transformertypes.Config)
-			err = common.GetObjFromInterface(configs2[cn2], c2)
-			if err != nil {
+			if err := common.GetObjFromInterface(configs2[cn2], c2); err != nil {
 				logrus.Errorf("Unable to load config : %s", err)
 				break
 			}
