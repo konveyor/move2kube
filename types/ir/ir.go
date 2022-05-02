@@ -61,8 +61,10 @@ type IR struct {
 	Storages        []Storage
 }
 
+// PodSpec is type alias for core.PodSpec
 type PodSpec core.PodSpec
 
+// MarshalYAML for the PodSpec type
 func (i PodSpec) MarshalYAML() (interface{}, error) {
 	objbytes, err := json.Marshal(i)
 	if err != nil {
@@ -76,8 +78,9 @@ func (i PodSpec) MarshalYAML() (interface{}, error) {
 	return mapobj, nil
 }
 
-func (s Service) MarshalYAML() (interface{}, error) {
-	objbytes, err := json.Marshal(s)
+// MarshalYAML for the Service type
+func (service *Service) MarshalYAML() (interface{}, error) {
+	objbytes, err := json.Marshal(*service)
 	if err != nil {
 		return nil, err
 	}
