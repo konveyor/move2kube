@@ -79,8 +79,8 @@ func (i PodSpec) MarshalYAML() (interface{}, error) {
 }
 
 // MarshalYAML for the Service type
-func (service *Service) MarshalYAML() (interface{}, error) {
-	objbytes, err := json.Marshal(*service)
+func (service Service) MarshalYAML() (interface{}, error) {
+	objbytes, err := json.Marshal(service)
 	if err != nil {
 		return nil, err
 	}
