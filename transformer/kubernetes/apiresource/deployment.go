@@ -171,10 +171,10 @@ func (d *Deployment) createDeployment(service irtypes.Service, cluster collectty
 		Annotations: getAnnotations(service),
 	}
 	podSpec := service.PodSpec
-	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
+	podSpec = irtypes.PodSpec(d.convertVolumesKindsByPolicy(core.PodSpec(podSpec), cluster))
 	podSpec.RestartPolicy = core.RestartPolicyAlways
 	logrus.Debugf("Created deployment for %s", service.Name)
-	return d.toDeployment(meta, podSpec, int32(service.Replicas), cluster)
+	return d.toDeployment(meta, core.PodSpec(podSpec), int32(service.Replicas), cluster)
 }
 
 func (d *Deployment) createDeploymentConfig(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *okdappsv1.DeploymentConfig {
@@ -184,10 +184,10 @@ func (d *Deployment) createDeploymentConfig(service irtypes.Service, cluster col
 		Annotations: getAnnotations(service),
 	}
 	podSpec := service.PodSpec
-	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
+	podSpec = irtypes.PodSpec(d.convertVolumesKindsByPolicy(core.PodSpec(podSpec), cluster))
 	podSpec.RestartPolicy = core.RestartPolicyAlways
 	logrus.Debugf("Created DeploymentConfig for %s", service.Name)
-	return d.toDeploymentConfig(meta, podSpec, int32(service.Replicas), cluster)
+	return d.toDeploymentConfig(meta, core.PodSpec(podSpec), int32(service.Replicas), cluster)
 }
 
 // createReplicationController initializes Kubernetes ReplicationController object
@@ -198,27 +198,27 @@ func (d *Deployment) createReplicationController(service irtypes.Service, cluste
 		Annotations: getAnnotations(service),
 	}
 	podSpec := service.PodSpec
-	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
+	podSpec = irtypes.PodSpec(d.convertVolumesKindsByPolicy(core.PodSpec(podSpec), cluster))
 	podSpec.RestartPolicy = core.RestartPolicyAlways
 	logrus.Debugf("Created DeploymentConfig for %s", service.Name)
-	return d.toReplicationController(meta, podSpec, int32(service.Replicas), cluster)
+	return d.toReplicationController(meta, core.PodSpec(podSpec), int32(service.Replicas), cluster)
 }
 
 func (d *Deployment) createPod(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *core.Pod {
 	podSpec := service.PodSpec
-	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
+	podSpec = irtypes.PodSpec(d.convertVolumesKindsByPolicy(core.PodSpec(podSpec), cluster))
 	podSpec.RestartPolicy = core.RestartPolicyAlways
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
 		Labels:      getPodLabels(service.Name, service.Networks),
 		Annotations: getAnnotations(service),
 	}
-	return d.toPod(meta, podSpec, podSpec.RestartPolicy, cluster)
+	return d.toPod(meta, core.PodSpec(podSpec), podSpec.RestartPolicy, cluster)
 }
 
 func (d *Deployment) createDaemonSet(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *apps.DaemonSet {
 	podSpec := service.PodSpec
-	podSpec = d.convertVolumesKindsByPolicy(podSpec, cluster)
+	podSpec = irtypes.PodSpec(d.convertVolumesKindsByPolicy(core.PodSpec(podSpec), cluster))
 	podSpec.RestartPolicy = core.RestartPolicyAlways
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
@@ -234,7 +234,7 @@ func (d *Deployment) createDaemonSet(service irtypes.Service, cluster collecttyp
 		Spec: apps.DaemonSetSpec{
 			Template: core.PodTemplateSpec{
 				ObjectMeta: meta,
-				Spec:       podSpec,
+				Spec:       core.PodSpec(podSpec),
 			},
 		},
 	}
@@ -243,7 +243,7 @@ func (d *Deployment) createDaemonSet(service irtypes.Service, cluster collecttyp
 
 func (d *Deployment) createJob(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *batch.Job {
 	podspec := service.PodSpec
-	podspec = d.convertVolumesKindsByPolicy(podspec, cluster)
+	podspec = irtypes.PodSpec(d.convertVolumesKindsByPolicy(core.PodSpec(podspec), cluster))
 	podspec.RestartPolicy = core.RestartPolicyOnFailure
 	meta := metav1.ObjectMeta{
 		Name:        service.Name,
@@ -259,7 +259,7 @@ func (d *Deployment) createJob(service irtypes.Service, cluster collecttypes.Clu
 		Spec: batch.JobSpec{
 			Template: core.PodTemplateSpec{
 				ObjectMeta: meta,
-				Spec:       podspec,
+				Spec:       core.PodSpec(podspec),
 			},
 		},
 	}

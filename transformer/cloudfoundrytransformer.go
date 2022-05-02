@@ -203,7 +203,6 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 				"ephemeral-storage": resource.MustParse(fmt.Sprintf("%dM", cfinstanceapp.Application.DiskQuota))}
 			serviceContainer := core.Container{Name: sConfig.ServiceName,
 				Resources: core.ResourceRequirements{Requests: rList}}
-			serviceConfig.ResourceRequest = t.resourceListToStringMap(rList)
 			serviceContainer.Image = config.ImageName
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
