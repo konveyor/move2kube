@@ -8,12 +8,12 @@ html, body, #root {
   font-family: sans-serif;
 }
 
-.on-hover-child {
-  display: none;
+.on-hover {
+  overflow-wrap: break-word;
 }
 
-.on-hover-child div{
-  overflow-wrap: break-word;
+.on-hover-child {
+  display: none;
 }
 
 .on-hover:hover .on-hover-child {
