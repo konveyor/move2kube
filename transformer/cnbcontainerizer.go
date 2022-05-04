@@ -121,10 +121,6 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			logrus.Errorf("unable to load config for Transformer into %T : %s", iConfig, err)
 			continue
 		}
-		if iConfig.ImageName == "" {
-			iConfig.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
-		}
-		a.Configs[artifacts.ImageNameConfigType] = iConfig
 		ir := irtypes.NewIR()
 		ir.Name = t.Env.GetProjectName()
 		if prevIR, ok := a.Configs[irtypes.IRConfigType].(irtypes.IR); ok {
