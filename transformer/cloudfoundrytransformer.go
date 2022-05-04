@@ -149,15 +149,6 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 	return services, nil
 }
 
-// resourceListToStringMap stringifies resource request
-func (t *CloudFoundry) resourceListToStringMap(rList core.ResourceList) map[string]string {
-	dReq := map[string]string{}
-	for k, v := range rList {
-		dReq[k.String()] = v.String()
-	}
-	return dReq
-}
-
 // Transform transforms the artifacts
 func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
