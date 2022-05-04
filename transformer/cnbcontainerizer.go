@@ -159,7 +159,7 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 		a.Configs[irtypes.IRConfigType] = ir
 		tArtifacts = append(tArtifacts, transformertypes.Artifact{
 			Name:    a.Name,
-			Type:    artifacts.CNBMetadataArtifactType,
+			Type:    artifacts.CNBDetectedServiceArtifactType,
 			Paths:   a.Paths,
 			Configs: a.Configs,
 		})
