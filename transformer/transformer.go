@@ -17,11 +17,13 @@
 package transformer
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -36,19 +38,13 @@ import (
 	"github.com/konveyor/move2kube/transformer/external"
 	"github.com/konveyor/move2kube/transformer/kubernetes"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
+	graphtypes "github.com/konveyor/move2kube/types/graph"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-)
-
-var (
-	initialized      = false
-	transformerTypes = map[string]reflect.Type{}
-	transformers     = []Transformer{}
-	transformerMap   = map[string]Transformer{}
 )
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
@@ -59,6 +55,21 @@ type Transformer interface {
 	DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error)
 	Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error)
 }
+
+type processType int
+
+const (
+	consume processType = iota
+	passthrough
+	dependency
+)
+
+var (
+	initialized      = false
+	transformerTypes = map[string]reflect.Type{}
+	transformers     = []Transformer{}
+	transformerMap   = map[string]Transformer{}
+)
 
 func init() {
 	transformerObjs := []Transformer{
@@ -114,14 +125,13 @@ func init() {
 func Init(assetsPath, sourcePath string, selector labels.Selector, outputPath, projName string) (err error) {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
-		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", assetsPath, err)
-		return err
+		return fmt.Errorf("failed to look for yaml files in the directory %s . Error: %q", assetsPath, err)
 	}
 	transformerFiles := map[string]string{}
 	for _, filePath := range filePaths {
 		tc, err := getTransformerConfig(filePath)
 		if err != nil {
-			logrus.Debugf("Unable to load %s as Transformer config : %s", filePath, err)
+			logrus.Debugf("failed to load the transformer config file at path %s . Error: %q", filePath, err)
 			continue
 		}
 		if otc, ok := transformerFiles[tc.Name]; ok {
@@ -129,7 +139,9 @@ func Init(assetsPath, sourcePath string, selector labels.Selector, outputPath, p
 		}
 		transformerFiles[tc.Name] = filePath
 	}
-	InitTransformers(transformerFiles, selector, sourcePath, outputPath, projName, false)
+	if err := InitTransformers(transformerFiles, selector, sourcePath, outputPath, projName, false); err != nil {
+		return fmt.Errorf("failed to initialize the transformers. Error: %q", err)
+	}
 	return nil
 }
 
@@ -140,58 +152,57 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 	}
 	transformerFilterString := qaengine.FetchStringAnswer(common.TransformerSelectorKey, "", []string{"Set the transformer selector config."}, "")
 	if transformerFilterString != "" {
-		transformerFilter, err := common.ConvertStringSelectorsToSelectors(transformerFilterString)
-		if err != nil {
-			logrus.Errorf("Unable to parse transformer filter string : %s", err)
+		if transformerFilter, err := common.ConvertStringSelectorsToSelectors(transformerFilterString); err != nil {
+			logrus.Errorf("failed to parse the transformer filter string: %s . Error: %q", transformerFilterString, err)
 		} else {
 			reqs, _ := transformerFilter.Requirements()
 			selector = selector.Add(reqs...)
 		}
 	}
 	transformerConfigs := getFilteredTransformers(transformerToInit, selector, logError)
-	tns := []string{}
-	for tn := range transformerConfigs {
-		tns = append(tns, tn)
+	transformerNames := []string{}
+	for transformerName := range transformerConfigs {
+		transformerNames = append(transformerNames, transformerName)
 	}
-	sort.Strings(tns)
-	transformerNames := qaengine.FetchMultiSelectAnswer(common.ConfigTransformerTypesKey, "Select all transformer types that you are interested in:", []string{"Services that don't support any of the transformer types you are interested in will be ignored."}, tns, tns)
-	for _, tn := range transformerNames {
-		tc := transformerConfigs[tn]
-		if c, ok := transformerTypes[tc.Spec.Class]; !ok {
-			logrus.Errorf("Unable to find Transformer class %s in %+v", tc.Spec.Class, transformerTypes)
-		} else {
-			t := reflect.New(c).Interface().(Transformer)
-			transformerContextPath := filepath.Dir(tc.Spec.FilePath)
-			envInfo := environment.EnvInfo{
-				Name:            tc.Name,
-				ProjectName:     projName,
-				Isolated:        tc.Spec.Isolated,
-				Source:          sourcePath,
-				Output:          outputPath,
-				Context:         transformerContextPath,
-				RelTemplatesDir: tc.Spec.TemplatesDir,
+	sort.Strings(transformerNames)
+	selectedTransformerNames := qaengine.FetchMultiSelectAnswer(common.ConfigTransformerTypesKey, "Select all transformer types that you are interested in:", []string{"Services that don't support any of the transformer types you are interested in will be ignored."}, transformerNames, transformerNames)
+	for _, selectedTransformerName := range selectedTransformerNames {
+		transformerConfig := transformerConfigs[selectedTransformerName]
+		transformerClass, ok := transformerTypes[transformerConfig.Spec.Class]
+		if !ok {
+			logrus.Errorf("failed to find the transformer class %s . Valid tranformer classes are: %+v", transformerConfig.Spec.Class, transformerTypes)
+			continue
+		}
+		transformer := reflect.New(transformerClass).Interface().(Transformer)
+		transformerContextPath := filepath.Dir(transformerConfig.Spec.FilePath)
+		envInfo := environment.EnvInfo{
+			Name:            transformerConfig.Name,
+			ProjectName:     projName,
+			Isolated:        transformerConfig.Spec.Isolated,
+			Source:          sourcePath,
+			Output:          outputPath,
+			Context:         transformerContextPath,
+			RelTemplatesDir: transformerConfig.Spec.TemplatesDir,
+		}
+		for src, dest := range transformerConfig.Spec.ExternalFiles {
+			if err := filesystem.Replicate(filepath.Join(transformerContextPath, src), filepath.Join(transformerContextPath, dest)); err != nil {
+				logrus.Errorf("Error while copying external files in transformer %s (%s:%s) : %s", transformerConfig.Name, src, dest, err)
 			}
-			for src, dest := range tc.Spec.ExternalFiles {
-				err := filesystem.Replicate(filepath.Join(transformerContextPath, src), filepath.Join(transformerContextPath, dest))
-				if err != nil {
-					logrus.Errorf("Error while copying external files in transformer %s (%s:%s) : %s", tc.Name, src, dest, err)
-				}
-			}
-			env, err := environment.NewEnvironment(envInfo, nil, environmenttypes.Container{})
-			if err != nil {
-				logrus.Errorf("Unable to create environment : %s", err)
-				return err
-			}
-			if err := t.Init(tc, env); err != nil {
-				if _, ok := err.(*transformertypes.TransformerDisabledError); ok {
-					logrus.Debugf("Unable to initialize transformer %s : %s", tc.Name, err)
-				} else {
-					logrus.Errorf("Unable to initialize transformer %s : %s", tc.Name, err)
-				}
+		}
+		env, err := environment.NewEnvironment(envInfo, nil, environmenttypes.Container{})
+		if err != nil {
+			logrus.Errorf("failed to create the environment %+v . Error: %q", envInfo, err)
+			return err
+		}
+		if err := transformer.Init(transformerConfig, env); err != nil {
+			if _, ok := err.(*transformertypes.TransformerDisabledError); ok {
+				logrus.Debugf("Unable to initialize transformer %s . Error: %q", transformerConfig.Name, err)
 			} else {
-				transformers = append(transformers, t)
-				transformerMap[tn] = t
+				logrus.Errorf("Unable to initialize transformer %s . Error: %q", transformerConfig.Name, err)
 			}
+		} else {
+			transformers = append(transformers, transformer)
+			transformerMap[selectedTransformerName] = transformer
 		}
 	}
 	initialized = true
@@ -241,7 +252,7 @@ func GetInitializedTransformersF(filters labels.Selector) []Transformer {
 func GetServices(prjName string, dir string) (map[string][]plantypes.PlanArtifact, error) {
 	services := map[string][]plantypes.PlanArtifact{}
 	logrus.Infoln("Planning started on the base directory")
-	logrus.Debugf("Transformers : %+v", transformers)
+	logrus.Debugf("Transformers: %+v", transformers)
 	for _, transformer := range transformers {
 		config, env := transformer.GetConfig()
 		if err := env.Reset(); err != nil {
@@ -281,12 +292,12 @@ func GetServices(prjName string, dir string) (map[string][]plantypes.PlanArtifac
 	return services, nil
 }
 
-func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArtifact) (services map[string][]plantypes.PlanArtifact, err error) {
-	services = bservices
+func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArtifact) (map[string][]plantypes.PlanArtifact, error) {
+	services := bservices
 	ignoreDirectories, ignoreContents := getIgnorePaths(inputPath)
 	knownServiceDirPaths := []string{}
 
-	err = filepath.WalkDir(inputPath, func(path string, info os.DirEntry, err error) error {
+	err := filepath.WalkDir(inputPath, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			logrus.Warnf("Skipping path %q due to error. Error: %q", path, err)
 			return nil
@@ -300,7 +311,7 @@ func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArti
 			}
 		}
 		if common.IsStringPresent(knownServiceDirPaths, path) {
-			return filepath.SkipDir //TODO: Should we go inside the directory in this case?
+			return filepath.SkipDir // TODO: Should we go inside the directory in this case?
 		}
 		if common.IsStringPresent(ignoreDirectories, path) {
 			if common.IsStringPresent(ignoreContents, path) {
@@ -354,48 +365,65 @@ func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArti
 		return nil
 	})
 	if err != nil {
-		logrus.Errorf("failed to walk through the directory at path %s . Error: %q", inputPath, err)
+		return services, fmt.Errorf("failed to walk through the directory at path %s . Error: %q", inputPath, err)
 	}
-	return services, err
+	return services, nil
 }
 
-type processType int
+func summarizeArtifacts(artifacts []transformertypes.Artifact) []string {
+	arts := []string{}
+	for _, a := range artifacts {
+		arts = append(arts, fmt.Sprintf("%s - %s", a.Name, a.Type))
+	}
+	return arts
+}
 
-const (
-	consume processType = iota
-	passthrough
-	dependency
-)
+func summarizePathMappings(pathMappings []transformertypes.PathMapping) string {
+	paths := []string{}
+	for _, pathMapping := range pathMappings {
+		paths = append(paths, fmt.Sprintf("(%s, %s, %s)", pathMapping.Type, pathMapping.SrcPath, pathMapping.DestPath))
+	}
+	return strings.Join(paths, "\n")
+}
 
 // Transform transforms as per the plan
-func Transform(planServices []plantypes.PlanArtifact, sourceDir, outputPath string) error {
+func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath string) error {
 	var allArtifacts []transformertypes.Artifact
 	newArtifactsToProcess := []transformertypes.Artifact{}
 	pathMappings := []transformertypes.PathMapping{}
 	iteration := 1
 	logrus.Infof("Iteration %d", iteration)
-	for _, a := range planServices {
-		a.ProcessWith = *metav1.AddLabelToSelector(&a.ProcessWith, transformertypes.LabelName, string(a.TransformerName))
-		if a.Type == "" {
-			a.Type = artifacts.ServiceArtifactType
+	for _, planArtifact := range planArtifacts {
+		planArtifact.ProcessWith = *metav1.AddLabelToSelector(&planArtifact.ProcessWith, transformertypes.LabelName, string(planArtifact.TransformerName))
+		if planArtifact.Type == "" {
+			planArtifact.Type = artifacts.ServiceArtifactType
 		}
-		if a.Name == "" {
-			a.Name = a.ServiceName
+		if planArtifact.Name == "" {
+			planArtifact.Name = planArtifact.ServiceName
 		}
 		serviceConfig := artifacts.ServiceConfig{
-			ServiceName: a.ServiceName,
+			ServiceName: planArtifact.ServiceName,
 		}
-		if a.Configs == nil {
-			a.Configs = map[transformertypes.ConfigType]interface{}{}
+		if planArtifact.Configs == nil {
+			planArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
 		}
-		a.Configs[artifacts.ServiceConfigType] = serviceConfig
-		newArtifactsToProcess = append(newArtifactsToProcess, a.Artifact)
+		planArtifact.Configs[artifacts.ServiceConfigType] = serviceConfig
+		newArtifactsToProcess = append(newArtifactsToProcess, planArtifact.Artifact)
 	}
 	allArtifacts = newArtifactsToProcess
+
+	// logging
+	graph := graphtypes.NewGraph()
+	startVertexId := graph.AddVertex("start", iteration, nil)
+	for _, artifact := range newArtifactsToProcess {
+		artifact.Configs[graphtypes.GraphSourceVertexKey] = startVertexId
+	}
+	// logging
+
 	for {
 		iteration++
 		logrus.Infof("Iteration %d - %d artifacts to process", iteration, len(newArtifactsToProcess))
-		newPathMappings, newArtifacts, _ := transform(newArtifactsToProcess, allArtifacts, consume, nil)
+		newPathMappings, newArtifacts, _ := transform(newArtifactsToProcess, allArtifacts, consume, nil, graph, iteration)
 		pathMappings = append(pathMappings, newPathMappings...)
 		if err := os.RemoveAll(outputPath); err != nil {
 			return fmt.Errorf("failed to remove the output directory %s . Error: %q", outputPath, err)
@@ -410,35 +438,60 @@ func Transform(planServices []plantypes.PlanArtifact, sourceDir, outputPath stri
 		allArtifacts = append(allArtifacts, newArtifacts...)
 		newArtifactsToProcess = newArtifacts
 	}
+
+	// logging
+	{
+		graphFilePath := graphtypes.GraphFileName
+		graphFile, err := os.Create(graphFilePath)
+		if err != nil {
+			logrus.Errorf("failed to create a %s file to write to the graph. Error: %q", graphFilePath, err)
+		} else {
+			enc := json.NewEncoder(graphFile)
+			enc.SetIndent("", "    ")
+			if err := enc.Encode(graph); err != nil {
+				logrus.Errorf("failed to encode the graph as json. Error: %q", err)
+			}
+		}
+	}
+	// logging
+
 	return nil
 }
 
-func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, pt processType, depSel labels.Selector) (pathMappings []transformertypes.PathMapping, newArtifactsCreated, updatedArtifacts []transformertypes.Artifact) {
+func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, pt processType, depSel labels.Selector, graph *graphtypes.Graph, iteration int) (pathMappings []transformertypes.PathMapping, newArtifactsCreated, updatedArtifacts []transformertypes.Artifact) {
 	if pt == dependency && (depSel == nil || depSel.String() == "") {
 		return nil, nil, newArtifactsToProcess
 	}
 	for _, transformer := range transformers {
-		tconfig, env := transformer.GetConfig()
-		if pt == dependency && !depSel.Matches(labels.Set(tconfig.Labels)) {
+		tConfig, env := transformer.GetConfig()
+		if pt == dependency && !depSel.Matches(labels.Set(tConfig.Labels)) {
 			continue
 		}
-		artifactsToProcess, artifactsToNotProcess := getArtifactsToProcess(newArtifactsToProcess, allArtifacts, tconfig, pt)
+		artifactsToProcess, artifactsToNotProcess := getArtifactsToProcess(newArtifactsToProcess, allArtifacts, tConfig, pt)
 		if len(artifactsToProcess) == 0 {
 			continue
 		}
-		logrus.Debugf("Transformer %s will be processing %d artifacts in %d mode", tconfig.Name, len(artifactsToProcess), pt)
+
+		logrus.Debugf("Transformer %s will be processing %d artifacts in %d mode", tConfig.Name, len(artifactsToProcess), pt)
+
 		// Dependency processing
-		dependencyCreatedNewPathMappings, dependencyCreatedNewArtifacts, dependencyUpdatedArtifacts := transform(artifactsToProcess, allArtifacts, dependency, tconfig.Spec.DependencySelector)
-		// logrus.Debugf("Dependency processing resulted in %d pathmappings, %d new artifacts and %d updated artifacts", len(dependencyCreatedNewPathMappings), len(dependencyCreatedNewArtifacts), len(dependencyUpdatedArtifacts))
+		dependencyCreatedNewPathMappings, dependencyCreatedNewArtifacts, dependencyUpdatedArtifacts := transform(artifactsToProcess, allArtifacts, dependency, tConfig.Spec.DependencySelector, graph, iteration)
 		pathMappings = append(pathMappings, dependencyCreatedNewPathMappings...)
-		artifactsToConsume, artifactsToNotConsume := getArtifactsToProcess(dependencyUpdatedArtifacts, allArtifacts, tconfig, pt)
+		// Dependency processing
+
+		artifactsToConsume, artifactsToNotConsume := getArtifactsToProcess(dependencyUpdatedArtifacts, allArtifacts, tConfig, pt)
 		if len(artifactsToNotConsume) != 0 {
-			logrus.Errorf("Artifacts to not consume : %d. This should have been 0.", len(artifactsToNotConsume))
+			logrus.Errorf("Artifacts to not consume: %d. This should have been 0.", len(artifactsToNotConsume))
 		}
-		producedNewPathMappings, producedNewArtifacts, err := runSingleTransform(artifactsToConsume, allArtifacts, transformer, tconfig, env)
+
+		logrus.Infof("Transformer %s processing %d artifacts", tConfig.Name, len(artifactsToConsume))
+
+		producedNewPathMappings, producedNewArtifacts, err := runSingleTransform(artifactsToConsume, allArtifacts, transformer, tConfig, env, graph, iteration)
 		if err != nil {
+			logrus.Errorf("failed to run a single transformation using the transformer %+v on the artifacts %+v . Error: %q", tConfig, artifactsToConsume, err)
 			continue
 		}
+
 		pathMappings = append(pathMappings, producedNewPathMappings...)
 		artifactsToPassThrough := []transformertypes.Artifact{}
 		artifactsAlreadyPassedThrough := []transformertypes.Artifact{}
@@ -446,14 +499,16 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 			artifactsToPassThrough = append(dependencyCreatedNewArtifacts, producedNewArtifacts...)
 		} else if pt == passthrough || pt == dependency {
 			for _, a := range producedNewArtifacts {
-				if c, ok := tconfig.Spec.ConsumedArtifacts[a.Type]; ok && (c.Mode != transformertypes.MandatoryPassThrough && c.Mode != transformertypes.OnDemandPassThrough) {
+				if c, ok := tConfig.Spec.ConsumedArtifacts[a.Type]; ok && (c.Mode != transformertypes.MandatoryPassThrough && c.Mode != transformertypes.OnDemandPassThrough) {
 					artifactsToPassThrough = append(artifactsToPassThrough, a)
 				} else {
 					artifactsAlreadyPassedThrough = append(artifactsAlreadyPassedThrough, a)
 				}
 			}
 		}
-		passedThroughPathMappings, passedThroughNewArtifactsCreated, passedThroughUpdatedArtifacts := transform(artifactsToPassThrough, allArtifacts, passthrough, nil)
+
+		passedThroughPathMappings, passedThroughNewArtifactsCreated, passedThroughUpdatedArtifacts := transform(artifactsToPassThrough, allArtifacts, passthrough, nil, graph, iteration)
+
 		pathMappings = append(pathMappings, passedThroughPathMappings...)
 		newArtifactsCreated = append(newArtifactsCreated, passedThroughNewArtifactsCreated...)
 		if pt == consume {
@@ -465,7 +520,7 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 			newArtifactsToProcess = append(newArtifactsToProcess, passedThroughUpdatedArtifacts...)
 			newArtifactsToProcess = append(newArtifactsToProcess, artifactsAlreadyPassedThrough...)
 		}
-		logrus.Infof("Transformer %s Done", tconfig.Name)
+		logrus.Infof("Transformer %s Done", tConfig.Name)
 	}
 	if pt == passthrough || pt == dependency {
 		logrus.Debugf("Created %d pathMappings, %d artifacts, %d updated artifacts from transform while passing through/dependency.", len(pathMappings), len(newArtifactsCreated), len(newArtifactsToProcess))
@@ -475,14 +530,59 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 	return pathMappings, newArtifactsCreated, nil
 }
 
-func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Artifact, t Transformer, tconfig transformertypes.Transformer, env *environment.Environment) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
-	logrus.Infof("Transformer %s processing %d artifacts", tconfig.Name, len(artifactsToProcess))
-	env.Reset()
-	newPathMappings, newArtifacts, err := t.Transform(*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact), *env.Encode(&allArtifacts).(*[]transformertypes.Artifact))
-	if err != nil {
-		logrus.Errorf("Unable to transform artifacts using %s : %s", tconfig.Name, err)
-		return newPathMappings, newArtifacts, err
+func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Artifact, transformer Transformer, tconfig transformertypes.Transformer, env *environment.Environment, graph *graphtypes.Graph, iteration int) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+	if err := env.Reset(); err != nil {
+		return nil, nil, fmt.Errorf("failed to reset the environment: %+v Error: %q", env, err)
 	}
+
+	newPathMappings, newArtifacts, err := transformer.Transform(
+		*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact),
+		*env.Encode(&allArtifacts).(*[]transformertypes.Artifact),
+	)
+
+	// logging
+	{
+		vertexName := fmt.Sprintf("iteration: %d\nclass: %s\nname: %s", iteration, tconfig.Spec.Class, tconfig.Name)
+		targetVertexId := graph.AddVertex(
+			vertexName,
+			iteration,
+			map[string]interface{}{
+				"consumedArtifacts": summarizeArtifacts(artifactsToProcess),
+				"producedArtifacts": summarizeArtifacts(newArtifacts),
+				"pathMappings":      summarizePathMappings(newPathMappings),
+			},
+		)
+		for _, artifact := range artifactsToProcess {
+			sourceVertexId, ok := artifact.Configs[graphtypes.GraphSourceVertexKey].(int)
+			if !ok {
+				logrus.Errorf("the artifact is missing a source vertex id. Actual %+v", artifact)
+				continue
+			}
+			edgeName := fmt.Sprintf("%d -> %d", sourceVertexId, targetVertexId)
+			if processVertexId, ok := artifact.Configs[graphtypes.GraphProcessVertexKey].(int); ok {
+				sourceVertexId = processVertexId
+				edgeName = fmt.Sprintf("%d -> %d", processVertexId, targetVertexId)
+			}
+			graph.AddEdge(sourceVertexId, targetVertexId, edgeName, map[string]interface{}{"newArtifact": summarizeArtifacts([]transformertypes.Artifact{artifact})})
+		}
+		for i, newArtifact := range newArtifacts {
+			if newArtifact.Configs == nil {
+				newArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
+			}
+			if _, ok := newArtifact.Configs[graphtypes.GraphSourceVertexKey]; ok {
+				newArtifact.Configs[graphtypes.GraphProcessVertexKey] = targetVertexId
+				continue
+			}
+			newArtifact.Configs[graphtypes.GraphSourceVertexKey] = targetVertexId
+			newArtifacts[i] = newArtifact
+		}
+	}
+	// logging
+
+	if err != nil {
+		return newPathMappings, newArtifacts, fmt.Errorf("failed to transform artifacts using the transformer %s . Error: %q", tconfig.Name, err)
+	}
+
 	filteredArtifacts := []transformertypes.Artifact{}
 	for _, newArtifact := range newArtifacts {
 		if ps, ok := tconfig.Spec.ProducedArtifacts[newArtifact.Type]; ok && !ps.Disabled {
@@ -502,49 +602,55 @@ func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Arti
 	return newPathMappings, newArtifacts, nil
 }
 
-func getArtifactsToProcess(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, tconfig transformertypes.Transformer, pt processType) (artifactsToProcess, artifactsNotProcessed []transformertypes.Artifact) {
-	artifactsNotProcessed = []transformertypes.Artifact{}
-	artifactsToProcess = []transformertypes.Artifact{}
-	for _, na := range newArtifactsToProcess {
-		processConfig := tconfig.Spec.ConsumedArtifacts
-		if processSpec, ok := processConfig[na.Type]; ok && !processSpec.Disabled {
-			switch pt {
-			case passthrough:
-				if processSpec.Mode != transformertypes.MandatoryPassThrough {
-					artifactsNotProcessed = append(artifactsNotProcessed, na)
-					continue
-				}
-			case dependency:
-				if processSpec.Mode != transformertypes.OnDemandPassThrough {
-					artifactsNotProcessed = append(artifactsNotProcessed, na)
-					continue
-				}
-			default:
-				if processSpec.Mode == transformertypes.MandatoryPassThrough || processSpec.Mode == transformertypes.OnDemandPassThrough {
-					artifactsNotProcessed = append(artifactsNotProcessed, na)
-					continue
-				}
-			}
-			selected := true
-			if na.ProcessWith.String() != "" && pt != passthrough && pt != dependency {
-				s, err := selectTransformer(na.ProcessWith, tconfig)
-				if err != nil {
-					logrus.Errorf("Unable to process selector for transformer %s : %s", tconfig.Name, err)
-				} else if !s {
-					selected = false
-				}
-			}
-			if !selected {
-				artifactsNotProcessed = append(artifactsNotProcessed, na)
+func getArtifactsToProcess(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, tConfig transformertypes.Transformer, pt processType) ([]transformertypes.Artifact, []transformertypes.Artifact) {
+	artifactsToProcess := []transformertypes.Artifact{}
+	artifactsToNotProcess := []transformertypes.Artifact{}
+
+	for _, newArtifact := range newArtifactsToProcess {
+		processSpec, ok := tConfig.Spec.ConsumedArtifacts[newArtifact.Type]
+		if !ok || processSpec.Disabled {
+			artifactsToNotProcess = append(artifactsToNotProcess, newArtifact)
+			continue
+		}
+		switch pt {
+		case passthrough:
+			if processSpec.Mode != transformertypes.MandatoryPassThrough {
+				artifactsToNotProcess = append(artifactsToNotProcess, newArtifact)
 				continue
 			}
-			if processSpec.Merge {
-				artifactsToProcess = mergeArtifacts(append(artifactsToProcess, updatedArtifacts(allArtifacts, na)...))
+		case dependency:
+			if processSpec.Mode != transformertypes.OnDemandPassThrough {
+				artifactsToNotProcess = append(artifactsToNotProcess, newArtifact)
+				continue
 			}
-			artifactsToProcess = append(artifactsToProcess, na)
-		} else {
-			artifactsNotProcessed = append(artifactsNotProcessed, na)
+		default:
+			if processSpec.Mode == transformertypes.MandatoryPassThrough || processSpec.Mode == transformertypes.OnDemandPassThrough {
+				artifactsToNotProcess = append(artifactsToNotProcess, newArtifact)
+				continue
+			}
 		}
+		selected := true
+		if pt != passthrough && pt != dependency && newArtifact.ProcessWith.String() != "" {
+			isSelected, err := selectTransformer(newArtifact.ProcessWith, tConfig)
+			if err != nil {
+				logrus.Errorf("failed to process the selector %+v against the transformer %+v . Error: %q", newArtifact.ProcessWith, tConfig, err)
+				artifactsToNotProcess = append(artifactsToNotProcess, newArtifact)
+				continue
+			}
+			if !isSelected {
+				selected = false
+			}
+		}
+		if !selected {
+			artifactsToNotProcess = append(artifactsToNotProcess, newArtifact)
+			continue
+		}
+		if processSpec.Merge {
+			artifactsToProcess = mergeArtifacts(append(artifactsToProcess, updatedArtifacts(allArtifacts, newArtifact)...))
+		}
+		artifactsToProcess = append(artifactsToProcess, newArtifact)
+
 	}
-	return
+
+	return artifactsToProcess, artifactsToNotProcess
 }
