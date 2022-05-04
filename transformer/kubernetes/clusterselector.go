@@ -31,8 +31,6 @@ import (
 const (
 	// clusterTypeKey is the key for QA ID
 	clusterTypeKey = "clustertype"
-	// defaultClusterSelectorSuffix defines the default suffix for the QA IDs
-	defaultClusterSelectorSuffix = "cs"
 	// defaultStorageClassName defines the default storage class to be used
 	defaultStorageClassName = "default"
 	// defaultClusterType defines the default cluster type chosen by plan
@@ -81,9 +79,6 @@ func (t *ClusterSelectorTransformer) Init(tc transformertypes.Transformer, e *en
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.CSConfig, err)
 		return err
 	}
-	if t.CSConfig.QaSuffix == "" {
-		t.CSConfig.QaSuffix = defaultClusterSelectorSuffix
-	}
 	return nil
 }
 
@@ -112,7 +107,11 @@ func (t *ClusterSelectorTransformer) Transform(newArtifacts []transformertypes.A
 	if !common.IsStringPresent(clusterTypeList, def) {
 		def = clusterTypeList[0]
 	}
-	qaId := common.ConfigTargetKey + common.Delim + t.CSConfig.QaSuffix + common.Delim + clusterTypeKey
+	qaId := common.ConfigTargetKey + common.Delim
+	if t.CSConfig.QaSuffix != "" {
+		qaId = qaId + t.CSConfig.QaSuffix + common.Delim
+	}
+	qaId = qaId + clusterTypeKey
 	clusterType := qaengine.FetchSelectAnswer(qaId, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, def, clusterTypeList)
 	for ai := range newArtifacts {
 		if newArtifacts[ai].Configs == nil {
