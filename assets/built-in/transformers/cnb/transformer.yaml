@@ -14,7 +14,7 @@ spec:
     Service: 
       disabled: false
   produces:
-    CNBMetadata:
+    CNBDetectedService:
       disabled: false
   config:
     ImageName: "paketobuildpacks/builder:full"
