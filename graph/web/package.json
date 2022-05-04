@@ -1,6 +1,7 @@
 {
   "name": "my-app",
   "version": "0.1.0",
+  "packageManager": "yarn@1.22.15",
   "private": true,
   "dependencies": {
     "@testing-library/jest-dom": "^5.14.1",

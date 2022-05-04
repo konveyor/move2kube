@@ -30,13 +30,14 @@ LDFLAGS    := -w -s
 
 SRC        = $(shell find . -type f -name '*.go' -print)
 ASSETS     = $(shell find assets -type f -name '*' -print)
-WEB_SRC    = $(shell find graph/web/src -type f -name '*' -print)
+WEB_ASSETS = $(shell find graph/web/build -type f -name '*' -print)
 ARCH       = $(shell uname -p)
 GIT_COMMIT = $(shell git rev-parse HEAD)
 GIT_SHA    = $(shell git rev-parse --short HEAD)
 GIT_TAG    = $(shell git tag --points-at | tail -n 1)
 GIT_DIRTY  = $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
 HAS_UPX    = $(shell command -v upx >/dev/null && echo true || echo false)
+HAS_NODE   = $(shell command -v node >/dev/null && echo true || echo false)
 
 GOGET     := cd / && GO111MODULE=on go install 
 
@@ -80,14 +81,25 @@ help: ## This help.
 
 .PHONY: buildgraph
 buildgraph: ## Build the code for the graph web server
+ifeq ($(HAS_NODE),true)
 	cd graph/web && yarn && yarn run build
 	@printf "\033[32m-------------------------------------\n GRAPH BUILD SUCCESS\n-------------------------------------\033[0m\n"
+else
+	@echo 'Please install node to build the graph server files.'
+	@echo
+	@echo 'Install Node 16 or higher using Node Version Manager https://github.com/nvm-sh/nvm'
+	@echo 'Once nvm is installed, you can install NodeJS 16 by running "nvm install 16 && nvm use 16"'
+	@echo 'Run "node --version" to make sure it is v16.9.0 or higher and then enable CorePack by running "corepack enable"'
+	@echo 'CorePack will take care of installing the correct yarn version.'
+	@echo
+	@echo 'See https://nodejs.org/api/corepack.html for more information on CorePack.'
+endif
 
 .PHONY: build
-build: buildgraph get $(BINDIR)/$(BINNAME) ## Build go code
+build: get $(BINDIR)/$(BINNAME) ## Build go code
 	@printf "\033[32m-------------------------------------\n BUILD SUCCESS\n-------------------------------------\033[0m\n"
 
-$(BINDIR)/$(BINNAME): $(SRC) $(ASSETS) $(WEB_SRC)
+$(BINDIR)/$(BINNAME): $(SRC) $(ASSETS) $(WEB_ASSETS)
 	go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) .
 ifeq ($(HAS_UPX),true)
 	@echo 'upx detected. compressing binary...'

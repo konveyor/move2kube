@@ -8,7 +8,7 @@
 /coverage
 
 # production
-/build
+# /build # check in the production code to remove dependency on nodejs and yarn
 
 # misc
 .DS_Store
