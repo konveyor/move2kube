@@ -35,8 +35,14 @@ import (
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/api/resource"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/networking"
+)
+
+const (
+	// ResourceRequestKey is the config key for resource requests
+	ResourceRequestKey = "ResourceRequest"
 )
 
 // variableLiteralPattern to identify variable literals in environment names
@@ -184,16 +190,18 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			logrus.Debugf("Using cf manifest file at path %s to transform service %s", path, config.ServiceName)
 			application := applications[0]
 			serviceConfig := irtypes.Service{Name: sConfig.ServiceName}
-			serviceContainer := core.Container{Name: sConfig.ServiceName}
+			rList := core.ResourceList{"memory": resource.MustParse(fmt.Sprintf("%dM", cfinstanceapp.Application.Memory)),
+				"ephemeral-storage": resource.MustParse(fmt.Sprintf("%dM", cfinstanceapp.Application.DiskQuota))}
+			serviceContainer := core.Container{Name: sConfig.ServiceName,
+				Resources: core.ResourceRequirements{Requests: rList}}
 			serviceContainer.Image = config.ImageName
 			if serviceContainer.Image == "" {
 				serviceContainer.Image = sConfig.ServiceName
 			}
-			//TODO: Add support for services, health check, memory
-			if application.Instances.IsSet {
-				serviceConfig.Replicas = application.Instances.Value
-			} else if cfinstanceapp.Application.Instances != 0 {
+			if cfinstanceapp.Application.Instances != 0 {
 				serviceConfig.Replicas = cfinstanceapp.Application.Instances
+			} else if application.Instances.IsSet {
+				serviceConfig.Replicas = application.Instances.Value
 			}
 			secretName := config.ServiceName + common.VcapCfSecretSuffix
 			envList, vcapEnvMap := t.prioritizeAndAddEnvironmentVariables(cfinstanceapp, application.EnvironmentVariables,
@@ -214,20 +222,32 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			ir.Services[sConfig.ServiceName] = serviceConfig
 		}
 		if len(cConfig) != 0 {
-			containerizationOption := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment, fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName), []string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)}, cConfig[0], cConfig)
-			containerizationArtifact := getContainerizationConfig(sConfig.ServiceName, a.Paths[artifacts.ServiceDirPathType], a.Paths[artifacts.BuildArtifactPathType], containerizationOption)
-			if containerizationArtifact.Type == "" {
-				if config.ImageName == "" {
-					logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)
+			containerizationOptions := qaengine.FetchMultiSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment,
+				fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName),
+				[]string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)},
+				[]string{cConfig[0]}, cConfig)
+			secondaryArtifactsGenerated := false
+			for _, containerizationOption := range containerizationOptions {
+				containerizationArtifact := getContainerizationConfig(sConfig.ServiceName,
+					a.Paths[artifacts.ServiceDirPathType],
+					a.Paths[artifacts.BuildArtifactPathType],
+					containerizationOption)
+				if containerizationArtifact.Type == "" {
+					if config.ImageName == "" {
+						logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)
+					}
+				} else {
+					containerizationArtifact.Name = sConfig.ServiceName
+					if containerizationArtifact.Configs == nil {
+						containerizationArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
+					}
+					containerizationArtifact.Configs[irtypes.IRConfigType] = ir
+					containerizationArtifact.Configs[artifacts.ServiceConfigType] = sConfig
+					artifactsCreated = append(artifactsCreated, containerizationArtifact)
+					secondaryArtifactsGenerated = true
 				}
-			} else {
-				containerizationArtifact.Name = sConfig.ServiceName
-				if containerizationArtifact.Configs == nil {
-					containerizationArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
-				}
-				containerizationArtifact.Configs[irtypes.IRConfigType] = ir
-				containerizationArtifact.Configs[artifacts.ServiceConfigType] = sConfig
-				artifactsCreated = append(artifactsCreated, containerizationArtifact)
+			}
+			if secondaryArtifactsGenerated {
 				continue
 			}
 		}

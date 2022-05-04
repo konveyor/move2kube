@@ -1,0 +1,20 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: CNBContainerizer
+  labels:
+    move2kube.konveyor.io/task: containerization
+    move2kube.konveyor.io/built-in: true
+spec:
+  mode: "Container"
+  class: "CNBContainerizer"
+  directoryDetect:
+    levels: -1
+  consumes:
+    Service: 
+      disabled: false
+  produces:
+    CNBDetectedService:
+      disabled: false
+  config:
+    ImageName: "paketobuildpacks/builder:full"

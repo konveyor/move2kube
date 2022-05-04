@@ -61,9 +61,40 @@ type IR struct {
 	Storages        []Storage
 }
 
+// PodSpec is type alias for core.PodSpec
+type PodSpec core.PodSpec
+
+// MarshalYAML for the PodSpec type
+func (i PodSpec) MarshalYAML() (interface{}, error) {
+	objbytes, err := json.Marshal(i)
+	if err != nil {
+		return nil, err
+	}
+	mapobj := map[string]interface{}{}
+	err = json.Unmarshal(objbytes, &mapobj)
+	if err != nil {
+		return nil, err
+	}
+	return mapobj, nil
+}
+
+// MarshalYAML for the Service type
+func (service Service) MarshalYAML() (interface{}, error) {
+	objbytes, err := json.Marshal(service)
+	if err != nil {
+		return nil, err
+	}
+	mapobj := map[string]interface{}{}
+	err = json.Unmarshal(objbytes, &mapobj)
+	if err != nil {
+		return nil, err
+	}
+	return mapobj, nil
+}
+
 // Service defines structure of an IR service
 type Service struct {
-	core.PodSpec
+	PodSpec
 
 	Name                        string
 	BackendServiceName          string // Optional field when ingress name is not the same as backend service name
@@ -167,11 +198,13 @@ func (service *Service) merge(nService Service) {
 	if nService.BackendServiceName != "" {
 		service.BackendServiceName = nService.BackendServiceName
 	}
-	podSpecJSON, err1 := json.Marshal(k8sschema.ConvertToV1PodSpec(&service.PodSpec))
+	svcPodSpec := core.PodSpec(service.PodSpec)
+	podSpecJSON, err1 := json.Marshal(k8sschema.ConvertToV1PodSpec(&svcPodSpec))
 	if err1 != nil {
 		logrus.Errorf("Merge failed. Failed to marshal the first object %v to json. Error: %q", service.PodSpec, err1)
 	}
-	nPodSpecJSON, err2 := json.Marshal(k8sschema.ConvertToV1PodSpec(&nService.PodSpec))
+	nSvcPodSpec := core.PodSpec(nService.PodSpec)
+	nPodSpecJSON, err2 := json.Marshal(k8sschema.ConvertToV1PodSpec(&nSvcPodSpec))
 	if err2 != nil {
 		logrus.Errorf("Merge failed. Failed to marshal the second object %v to json. Error: %q", nService.PodSpec, err2)
 	}
@@ -185,7 +218,8 @@ func (service *Service) merge(nService Service) {
 			if err != nil {
 				logrus.Errorf("Failed to unmarshall object (%+v): %q", podSpec, err)
 			} else {
-				service.PodSpec = k8sschema.ConvertToPodSpec(&podSpec)
+				svcPodSpec := corev1.PodSpec(podSpec)
+				service.PodSpec = PodSpec(k8sschema.ConvertToPodSpec(&svcPodSpec))
 			}
 		}
 	}

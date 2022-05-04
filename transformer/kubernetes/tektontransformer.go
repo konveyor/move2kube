@@ -226,7 +226,7 @@ func (t *Tekton) setupEnhancedIR(oldir irtypes.IR, name string) irtypes.Enhanced
 			ServiceRelPath: "/" + gitEventListenerServiceName, // this has to be an absolute path otherwise k8s will complain
 			ServiceType:    core.ServiceTypeClusterIP,
 		}},
-		PodSpec: core.PodSpec{
+		PodSpec: irtypes.PodSpec{
 			Containers: []core.Container{{
 				Ports: []core.ContainerPort{{ContainerPort: port}},
 			}}},

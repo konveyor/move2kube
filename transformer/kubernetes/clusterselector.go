@@ -29,6 +29,8 @@ import (
 )
 
 const (
+	// clusterTypeKey is the key for QA ID
+	clusterTypeKey = "clustertype"
 	// defaultStorageClassName defines the default storage class to be used
 	defaultStorageClassName = "default"
 	// defaultClusterType defines the default cluster type chosen by plan
@@ -42,12 +44,19 @@ type ClusterSelectorTransformer struct {
 	Config   transformertypes.Transformer
 	Env      *environment.Environment
 	Clusters map[string]collecttypes.ClusterMetadata
+	CSConfig *ClusterSelectorConfig
+}
+
+// ClusterSelectorConfig represents the configuration of the cluster selector
+type ClusterSelectorConfig struct {
+	QaSuffix string `yaml:"qasuffix"`
 }
 
 // Init Initializes the transformer
 func (t *ClusterSelectorTransformer) Init(tc transformertypes.Transformer, e *environment.Environment) error {
 	t.Config = tc
 	t.Env = e
+	t.CSConfig = &ClusterSelectorConfig{}
 	filePaths, err := common.GetFilesByExt(e.Context, []string{".yml", ".yaml"})
 	if err != nil {
 		logrus.Warnf("Failed to fetch the cluster metadata yamls at path %q Error: %q", common.AssetsPath, err)
@@ -64,6 +73,11 @@ func (t *ClusterSelectorTransformer) Init(tc transformertypes.Transformer, e *en
 			continue
 		}
 		t.Clusters[cm.Name] = cm
+	}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, t.CSConfig)
+	if err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.CSConfig, err)
+		return err
 	}
 	return nil
 }
@@ -93,7 +107,12 @@ func (t *ClusterSelectorTransformer) Transform(newArtifacts []transformertypes.A
 	if !common.IsStringPresent(clusterTypeList, def) {
 		def = clusterTypeList[0]
 	}
-	clusterType := qaengine.FetchSelectAnswer(common.ConfigTargetClusterTypeKey, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, def, clusterTypeList)
+	qaId := common.ConfigTargetKey + common.Delim
+	if t.CSConfig.QaSuffix != "" {
+		qaId = qaId + t.CSConfig.QaSuffix + common.Delim
+	}
+	qaId = qaId + clusterTypeKey
+	clusterType := qaengine.FetchSelectAnswer(qaId, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, def, clusterTypeList)
 	for ai := range newArtifacts {
 		if newArtifacts[ai].Configs == nil {
 			newArtifacts[ai].Configs = make(map[transformertypes.ConfigType]interface{})

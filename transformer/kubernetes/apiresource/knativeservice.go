@@ -40,7 +40,7 @@ func (d *KnativeService) createNewResources(ir irtypes.EnhancedIR, supportedKind
 	objs := []runtime.Object{}
 
 	for _, service := range ir.Services {
-		podSpec := service.PodSpec
+		podSpec := core.PodSpec(service.PodSpec)
 		podSpec.RestartPolicy = core.RestartPolicyAlways
 		knativeservice := &knativev1.Service{
 			TypeMeta: metav1.TypeMeta{
