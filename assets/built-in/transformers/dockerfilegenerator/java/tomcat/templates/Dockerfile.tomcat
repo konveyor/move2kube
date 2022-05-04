@@ -15,9 +15,12 @@ RUN wget https://archive.apache.org/dist/tomcat/tomcat-10/v10.0.16/bin/apache-to
     rm -f apache-tomcat-10.0.16.tar.gz && \
     mv apache-tomcat-10.0.16 tomcat10 && \
     rm -r "$CATALINA_BASE"/webapps/ROOT && \
-    adduser -r tomcat && chown -R tomcat:tomcat tomcat10
-USER tomcat:tomcat
+    mkdir "$CATALINA_BASE"/webapps-javaee/ && \
+    adduser -r tomcat && chown -R tomcat:root tomcat10 && \
+    usermod -aG root tomcat && \
+    chmod -R g+rwX tomcat10/
+USER tomcat:root
 
-COPY --chown=tomcat:tomcat {{ if .BuildContainerName }}--from={{ .BuildContainerName }} {{ end }}{{ .DeploymentFilePath }} "$CATALINA_BASE"/webapps-javaee/
+COPY --chown=tomcat:root {{ if .BuildContainerName }}--from={{ .BuildContainerName }} {{ end }}{{ .DeploymentFilePath }} "$CATALINA_BASE"/webapps-javaee/
 EXPOSE {{ .Port }}
 CMD [ "/usr/local/tomcat10/bin/catalina.sh", "run" ]
