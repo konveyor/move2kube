@@ -40,6 +40,11 @@ type CNBContainerizer struct {
 	CNBEnv              *environment.Environment
 }
 
+const (
+	// LinuxFileSeperator is used to join paths for linux container file system
+	LinuxFileSeperator = "/"
+)
+
 // Init Initializes the transformer
 func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
@@ -57,7 +62,7 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environmen
 	}
 	t.CNBEnv, err = environment.NewEnvironment(envInfo, nil, environmenttypes.Container{
 		Image:      t.BuilderImageNameCfg.ImageName,
-		WorkingDir: filepath.Join(string(filepath.Separator), "tmp"),
+		WorkingDir: filepath.Join(LinuxFileSeperator, "tmp"),
 	})
 	if err != nil {
 		if !container.IsDisabled() {
