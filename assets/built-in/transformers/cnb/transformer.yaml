@@ -17,4 +17,4 @@ spec:
     CNBMetadata:
       disabled: false
   config:
-    CNBBuilder: "paketobuildpacks/builder:full"
+    ImageName: "paketobuildpacks/builder:full"

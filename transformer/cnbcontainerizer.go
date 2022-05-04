@@ -34,25 +34,20 @@ import (
 
 // CNBContainerizer implements Containerizer interface
 type CNBContainerizer struct {
-	Config    transformertypes.Transformer
-	CNBConfig CNBContainerizerYamlConfig
-	Env       *environment.Environment
-	CNBEnv    *environment.Environment
-}
-
-// CNBContainerizerYamlConfig represents the configuration of the CNBBuilder
-type CNBContainerizerYamlConfig struct {
-	BuilderImageName string `yaml:"CNBBuilder"`
+	Config              transformertypes.Transformer
+	BuilderImageNameCfg artifacts.ImageName
+	Env                 *environment.Environment
+	CNBEnv              *environment.Environment
 }
 
 // Init Initializes the transformer
 func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
-	t.CNBConfig = CNBContainerizerYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.CNBConfig)
+	t.BuilderImageNameCfg = artifacts.ImageName{}
+	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.BuilderImageNameCfg)
 	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.CNBConfig, err)
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.BuilderImageNameCfg, err)
 		return err
 	}
 	envInfo := environment.EnvInfo{
@@ -61,7 +56,7 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environmen
 		Source:      t.Env.GetEnvironmentSource(),
 	}
 	t.CNBEnv, err = environment.NewEnvironment(envInfo, nil, environmenttypes.Container{
-		Image:      t.CNBConfig.BuilderImageName,
+		Image:      t.BuilderImageNameCfg.ImageName,
 		WorkingDir: filepath.Join(string(filepath.Separator), "tmp"),
 	})
 	if err != nil {
@@ -101,9 +96,7 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (services map[string][]tr
 		Paths: map[transformertypes.PathType][]string{
 			artifacts.ServiceDirPathType: {dir},
 		},
-		Configs: map[string]interface{}{artifacts.CNBMetadataConfigType: artifacts.CNBMetadataConfig{
-			CNBBuilder: t.CNBConfig.BuilderImageName,
-		}}}}
+		Configs: map[string]interface{}{artifacts.ImageNameConfigType: t.BuilderImageNameCfg}}}
 	return map[string][]transformertypes.Artifact{"": detectedServices}, nil
 }
 
@@ -117,16 +110,16 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
-		var cConfig artifacts.CNBMetadataConfig
-		err = a.GetConfig(artifacts.CNBMetadataConfigType, &cConfig)
+		var iConfig artifacts.ImageName
+		err = a.GetConfig(artifacts.ImageNameConfigType, &iConfig)
 		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", cConfig, err)
+			logrus.Errorf("unable to load config for Transformer into %T : %s", iConfig, err)
 			continue
 		}
-		if cConfig.ImageName == "" {
-			cConfig.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
+		if iConfig.ImageName == "" {
+			iConfig.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
-		a.Configs[artifacts.CNBMetadataConfigType] = cConfig
+		a.Configs[artifacts.ImageNameConfigType] = iConfig
 		ir := irtypes.NewIR()
 		ir.Name = t.Env.GetProjectName()
 		if prevIR, ok := a.Configs[irtypes.IRConfigType].(irtypes.IR); ok {
@@ -146,7 +139,7 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			// Create a new container in a new service in the IR (new or existing)
 			container := irtypes.NewContainer()
 			container.AddExposedPort(common.DefaultServicePort)
-			ir.AddContainer(cConfig.ImageName, container)
+			ir.AddContainer(iConfig.ImageName, container)
 			irService := irtypes.NewServiceWithName(sConfig.ServiceName)
 			serviceContainerPorts := []core.ContainerPort{}
 			for _, eport := range container.ExposedPorts {
@@ -157,7 +150,7 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 				irService.AddPortForwarding(port, port, "")
 			}
 			serviceContainer := core.Container{Name: sConfig.ServiceName,
-				Image: cConfig.ImageName,
+				Image: iConfig.ImageName,
 				Ports: serviceContainerPorts}
 			irService.Containers = []core.Container{serviceContainer}
 			ir.Services[sConfig.ServiceName] = irService
