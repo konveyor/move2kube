@@ -1,5 +1,5 @@
 /*
- *  Copyright IBM Corporation 2021
+ *  Copyright IBM Corporation 2022
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,10 +16,12 @@
 
 package ir
 
+// ArgoCDResources holds all the ArgoCD specific resources.
 type ArgoCDResources struct {
 	Applications []Application
 }
 
+// Application holds the data for an ArgoCD application.
 type Application struct {
 	Name          string
 	RepoURL       string

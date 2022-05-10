@@ -1,5 +1,5 @@
 /*
- *  Copyright IBM Corporation 2021
+ *  Copyright IBM Corporation 2022
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -46,9 +46,10 @@ type ArgoCDYamlConfig struct {
 
 const (
 	defaultArgoCDYamlsOutputPath = common.DeployDir + string(os.PathSeparator) + common.CICDDir + string(os.PathSeparator) + "argocd"
-	baseAppName                  = "argo-app"
+	baseAppName                  = "deploy"
 )
 
+// Init Initializes the transformer
 func (t *ArgoCD) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
@@ -62,14 +63,17 @@ func (t *ArgoCD) Init(tc transformertypes.Transformer, env *environment.Environm
 	return nil
 }
 
+// GetConfig returns the configuration
 func (t *ArgoCD) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
 }
 
+// DirectoryDetect runs detect in each subdirectory
 func (*ArgoCD) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
 	return nil, nil
 }
 
+// Transform transforms artifacts understood by the transformer
 func (t *ArgoCD) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	logrus.Tracef("ArgoCD transformer Transform start")
 	defer logrus.Tracef("ArgoCD transformer Transform end")
@@ -141,8 +145,7 @@ func (t *ArgoCD) setupEnhancedIR(oldir irtypes.IR, projectName string) irtypes.E
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 	// Prefix the project name and make the name a valid k8s name.
 	p := func(baseName string) string {
-		r := common.GetRandomString()
-		return common.MakeStringDNSSubdomainNameCompliant(fmt.Sprintf("%s-%s-%s", projectName, baseName, r))
+		return common.MakeStringDNSSubdomainNameCompliant(fmt.Sprintf("%s-%s", projectName, baseName))
 	}
 	appName := p(baseAppName)
 	ir.ArgoCDResources = irtypes.ArgoCDResources{

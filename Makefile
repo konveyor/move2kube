@@ -59,7 +59,7 @@ LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.buildmetadata=${VERSION_
 
 LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.gitCommit=${GIT_COMMIT}
 LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.gitTreeState=${GIT_DIRTY}
-LDFLAGS += -extldflags "-static"
+# LDFLAGS += -extldflags "-static"
 
 # Setting container tool
 DOCKER_CMD := $(shell command -v docker 2> /dev/null)
