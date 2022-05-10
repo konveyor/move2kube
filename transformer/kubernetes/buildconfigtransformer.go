@@ -37,17 +37,6 @@ import (
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
-const (
-	defaultBuildConfigYamlsOutputPath = common.DeployDir + string(os.PathSeparator) + common.CICDDir + string(os.PathSeparator) + "buildconfig"
-	// BuildConfigArtifacts stores the BuildConfig Artifact Name
-	BuildConfigArtifacts transformertypes.ArtifactType = "BuildConfigYamls"
-)
-
-const (
-	baseBuildConfigName   = "clone-build-push"
-	baseWebHookSecretName = "web-hook"
-)
-
 // BuildConfig implements Transformer interface
 type BuildConfig struct {
 	Config            transformertypes.Transformer
@@ -60,13 +49,23 @@ type BuildConfigYamlConfig struct {
 	OutputPath string `yaml:"outputPath"`
 }
 
+const (
+	defaultBuildConfigYamlsOutputPath = common.DeployDir + string(os.PathSeparator) + common.CICDDir + string(os.PathSeparator) + "buildconfig"
+	// BuildConfigArtifacts stores the BuildConfig Artifact Name
+	BuildConfigArtifacts transformertypes.ArtifactType = "BuildConfigYamls"
+)
+
+const (
+	baseBuildConfigName   = "clone-build-push"
+	baseWebHookSecretName = "web-hook"
+)
+
 // Init initializes the transformer
 func (t *BuildConfig) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
 	t.BuildConfigConfig = &BuildConfigYamlConfig{}
-	err := common.GetObjFromInterface(t.Config.Spec.Config, t.BuildConfigConfig)
-	if err != nil {
+	if err := common.GetObjFromInterface(t.Config.Spec.Config, t.BuildConfigConfig); err != nil {
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.BuildConfigConfig, err)
 		return err
 	}
@@ -91,21 +90,21 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alread
 	logrus.Debugf("Translating IR using Buildconfig transformer")
 	pathMappings = []transformertypes.PathMapping{}
 	createdArtifacts = []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		if a.Type != irtypes.IRArtifactType {
+	for _, newArtifact := range newArtifacts {
+		if newArtifact.Type != irtypes.IRArtifactType {
 			continue
 		}
 		var ir irtypes.IR
-		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
 		var clusterConfig collecttypes.ClusterMetadata
-		if err := a.GetConfig(ClusterMetadata, &clusterConfig); err != nil {
+		if err := newArtifact.GetConfig(ClusterMetadata, &clusterConfig); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", clusterConfig, err)
 			continue
 		}
-		ir.Name = a.Name
+		ir.Name = newArtifact.Name
 		preprocessedIR, err := irpreprocessor.Preprocess(ir)
 		if err != nil {
 			logrus.Errorf("Unable to prepreocess IR : %s", err)

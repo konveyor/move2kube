@@ -24,6 +24,7 @@ type EnhancedIR struct {
 	ServiceAccounts []ServiceAccount
 	BuildConfigs    []BuildConfig
 	TektonResources TektonResources
+	ArgoCDResources ArgoCDResources
 }
 
 // ServiceAccount holds the details about the service account resource
