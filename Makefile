@@ -100,7 +100,7 @@ build: get $(BINDIR)/$(BINNAME) ## Build go code
 	@printf "\033[32m-------------------------------------\n BUILD SUCCESS\n-------------------------------------\033[0m\n"
 
 $(BINDIR)/$(BINNAME): $(SRC) $(ASSETS) $(WEB_ASSETS)
-	go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) .
+	CGO_ENABLED=0 go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) .
 ifeq ($(HAS_UPX),true)
 	@echo 'upx detected. compressing binary...'
 	upx $(BINDIR)/$(BINNAME)
