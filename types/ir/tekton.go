@@ -24,16 +24,6 @@ type TektonResources struct {
 	Pipelines        []Pipeline
 }
 
-// Ingress holds the details about the git event ingress resource
-// type Ingress struct {
-// 	Name              string
-// 	EventListenerName string
-// 	HostName          string
-// 	Port              int32
-// 	ServiceName       string
-// 	TLSSecretName     string
-// }
-
 // EventListener holds the details about the git event listener resource
 type EventListener struct {
 	Name                string

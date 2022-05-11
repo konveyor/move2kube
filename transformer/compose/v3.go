@@ -592,7 +592,7 @@ func (c *v3Loader) getHealthCheck(composeHealthCheck types.HealthCheckConfig) (c
 	probe := core.Probe{}
 
 	if len(composeHealthCheck.Test) > 1 {
-		probe.Handler = core.Handler{
+		probe.ProbeHandler = core.ProbeHandler{
 			Exec: &core.ExecAction{
 				// docker/cli adds "CMD-SHELL" to the struct, hence we remove the first element of composeHealthCheck.Test
 				Command: composeHealthCheck.Test[1:],

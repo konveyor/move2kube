@@ -103,28 +103,28 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 	logrus.Debugf("Translating IR using Kubernetes transformer")
 	pathMappings = []transformertypes.PathMapping{}
 	createdArtifacts = []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		if a.Type != irtypes.IRArtifactType {
+	for _, newArtifact := range newArtifacts {
+		if newArtifact.Type != irtypes.IRArtifactType {
 			continue
 		}
 		var ir irtypes.IR
-		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
 		var clusterConfig collecttypes.ClusterMetadata
-		if err := a.GetConfig(ClusterMetadata, &clusterConfig); err != nil {
+		if err := newArtifact.GetConfig(ClusterMetadata, &clusterConfig); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", clusterConfig, err)
 			continue
 		}
-		ir.Name = a.Name
+		ir.Name = newArtifact.Name
 		preprocessedIR, err := irpreprocessor.Preprocess(ir)
 		if err != nil {
 			logrus.Errorf("Unable to prepreocess IR : %s", err)
 		} else {
 			ir = preprocessedIR
 		}
-		apis := []apiresource.IAPIResource{
+		resources := []apiresource.IAPIResource{
 			new(apiresource.Service),
 			new(apiresource.ServiceAccount),
 			new(apiresource.RoleBinding),
@@ -139,7 +139,7 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Debugf("Generating Tekton pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
-		files, err := apiresource.TransformIRAndPersist(enhancedIR, tempDest, apis, clusterConfig)
+		files, err := apiresource.TransformIRAndPersist(enhancedIR, tempDest, resources, clusterConfig)
 		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err
@@ -156,14 +156,14 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 				DestPath: destPath,
 			})
 		}
-		a := transformertypes.Artifact{
+		createdArtifact := transformertypes.Artifact{
 			Name: t.Config.Name,
 			Type: artifacts.KubernetesYamlsArtifactType,
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.KubernetesYamlsPathType: {deployCICDDir},
 			},
 		}
-		createdArtifacts = append(createdArtifacts, a)
+		createdArtifacts = append(createdArtifacts, createdArtifact)
 		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
 	return pathMappings, createdArtifacts, nil

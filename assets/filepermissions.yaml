@@ -68,6 +68,7 @@
 "built-in/transformers/dockerfilegenerator/windows/winsilverlightweb/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/windows/winweb/templates/Dockerfile" : 0644
 "built-in/transformers/dockerfilegenerator/windows/winweb/transformer.yaml" : 0644
+"built-in/transformers/kubernetes/argocd/transformer.yaml" : 0644
 "built-in/transformers/kubernetes/buildconfig/transformer.yaml" : 0644
 "built-in/transformers/kubernetes/clusterselector/clusters/aws-eks.yaml" : 0644
 "built-in/transformers/kubernetes/clusterselector/clusters/azure-aks.yaml" : 0644
