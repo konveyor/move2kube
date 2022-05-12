@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import ReactFlow, { useNodesState, useEdgesState, MiniMap, Controls, Background } from "react-flow-renderer";
 
 function process(x) {
-  return x.split('\n').map(line => <div>{line}</div>)
+  return x.split('\n').map((line, i) => <div key={i}>{line}</div>)
 }
 
 const App = () => {
@@ -19,7 +19,7 @@ const App = () => {
             {process(node.data.label)}
             {node.data.pathMappings && <div className="on-hover-child"><div>pathMappings:</div>{process(node.data.pathMappings)}</div>}
           </div>);
-          return { ...node, data: { ...node.data, label: newLabel }};
+          return { ...node, data: { ...node.data, label: newLabel } };
         });
         setNodes(d.nodes);
         setEdges(d.edges);
