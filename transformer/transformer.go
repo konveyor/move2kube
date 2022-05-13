@@ -122,6 +122,19 @@ func init() {
 	transformerTypes = common.GetTypesMap(transformerObjs)
 }
 
+// RegisterTransformer allows for adding transformers after initialization
+func RegisterTransformer(tf Transformer) error {
+	tval := reflect.ValueOf(tf)
+	t := reflect.TypeOf(tval.Interface()).Elem()
+	tn := t.Name()
+	if ot, ok := transformerTypes[tn]; ok {
+		logrus.Errorf("Two transformer classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
+		return fmt.Errorf("couldn't register transformer %s because a transformer with that name already exists", tn)
+	}
+	transformerTypes[tn] = t
+	return nil
+}
+
 // Init initializes the transformers
 func Init(assetsPath, sourcePath string, selector labels.Selector, outputPath, projName string) (err error) {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
