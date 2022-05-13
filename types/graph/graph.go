@@ -42,6 +42,12 @@ type Edge struct {
 	Data map[string]interface{} `json:"data,omitempty"`
 }
 
+// GraphT is the final graph used by the web server.
+type GraphT struct {
+	Nodes []Node  `json:"nodes,omitempty"`
+	Edges []EdgeT `json:"edges,omitempty"`
+}
+
 // Node is the web UI version of Vertex.
 type Node struct {
 	Id       string   `json:"id"`

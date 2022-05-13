@@ -34,8 +34,7 @@ import (
 var content embed.FS
 
 // StartServer starts the graph server and web UI to display the nodes and edges.
-func StartServer(nodes []graphtypes.Node, edges []graphtypes.EdgeT, port int32) error {
-	graph := map[string]interface{}{"nodes": nodes, "edges": edges}
+func StartServer(graph graphtypes.GraphT, port int32) error {
 	jsonBytes, err := json.Marshal(graph)
 	if err != nil {
 		logrus.Fatalf("failed to marshal the graph to json. Error: %q", err)
