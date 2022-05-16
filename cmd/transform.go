@@ -113,15 +113,15 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		// Check if the default customization folder exists in the working directory.
 		// If not, skip the customization option
 		if _, err := os.Stat(flags.customizationsPath); os.IsNotExist(err) {
-			if flags.customizationsPath == common.DefaultConfigFilePath {
+			if flags.customizationsPath == common.DefaultConfigFilePath && !cmd.Flags().Changed(customizationsFlag) {
 				flags.customizationsPath = ""
 			} else {
-				logrus.Fatalf("Failed to find customization folder path %s Error: %q", flags.outpath, err)
+				logrus.Fatalf("Failed to find customization folder path %s Error: %q", flags.customizationsPath, err)
 			}
 		}
 		// Check if the default configuration file exists in the working directory.
 		// If not, skip the configuration option
-		if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath {
+		if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath && !cmd.Flags().Changed(configFlag) {
 			if _, err := os.Stat(flags.configs[0]); os.IsNotExist(err) {
 				flags.configs = []string{}
 			}
@@ -148,6 +148,22 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 			if flags.customizationsPath != "" {
 				p.Spec.CustomizationsDir = flags.customizationsPath
 				logrus.Warnf("Using the detected plan with specified customization. This might result in undesired results if the customization is different from what was given to plan. If you did not want to use the plan file at %s, delete it and rerun the command.", flags.planfile)
+			}
+		}
+		// Check if the default customization folder exists in the working directory.
+		// If not, skip the customization option
+		if _, err := os.Stat(flags.customizationsPath); os.IsNotExist(err) {
+			if flags.customizationsPath == common.DefaultConfigFilePath && !cmd.Flags().Changed(customizationsFlag) {
+				flags.customizationsPath = ""
+			} else {
+				logrus.Fatalf("Failed to find customization folder path %s Error: %q", flags.customizationsPath, err)
+			}
+		}
+		// Check if the default configuration file exists in the working directory.
+		// If not, skip the configuration option
+		if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath && !cmd.Flags().Changed(configFlag) {
+			if _, err := os.Stat(flags.configs[0]); os.IsNotExist(err) {
+				flags.configs = []string{}
 			}
 		}
 
