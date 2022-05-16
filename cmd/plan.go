@@ -65,8 +65,27 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	planfile := flags.planfile
 	srcpath := flags.srcpath
 	name := flags.name
+	// Check if the default customization folder exists in the working directory.
+	// If not, skip the customization option
+	if _, err := os.Stat(flags.customizationsPath); os.IsNotExist(err) {
+		if flags.customizationsPath == common.DefaultCustomizationFolder && !cmd.Flags().Changed(customizationsFlag) {
+			flags.customizationsPath = ""
+		} else {
+			logrus.Fatalf("Failed to find customization folder path %s Error: %q", flags.customizationsPath, err)
+		}
+	}
+	// Check if the default configuration file exists in the working directory.
+	// If not, skip the configuration option
+	if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath && !cmd.Flags().Changed(configFlag) {
+		if _, err := os.Stat(flags.configs[0]); os.IsNotExist(err) {
+			if !cmd.Flags().Changed(configFlag) {
+				flags.configs = []string{}
+			} else {
+				logrus.Fatalf("Failed to find config file path %s Error: %q", flags.configs[0], err)
+			}
+		}
+	}
 	customizationsPath := flags.customizationsPath
-
 	// Global settings
 	common.DisableLocalExecution = flags.disableLocalExecution
 	// Global settings
@@ -131,8 +150,8 @@ func GetPlanCommand() *cobra.Command {
 	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", ".", "Specify source directory.")
 	planCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
 	planCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	planCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored.")
-	planCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations.")
+	planCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", common.DefaultCustomizationFolder, "Specify directory where customizations are stored.")
+	planCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{common.DefaultConfigFilePath}, "Specify config file locations.")
 	planCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "t", "", "Specify the transformer selector.")
 	planCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use.")
 	planCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs.")
