@@ -113,7 +113,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		// Check if the default customization folder exists in the working directory.
 		// If not, skip the customization option
 		if _, err := os.Stat(flags.customizationsPath); os.IsNotExist(err) {
-			if flags.customizationsPath == common.DefaultConfigFilePath && !cmd.Flags().Changed(customizationsFlag) {
+			if flags.customizationsPath == common.DefaultCustomizationFolder && !cmd.Flags().Changed(customizationsFlag) {
 				flags.customizationsPath = ""
 			} else {
 				logrus.Fatalf("Failed to find customization folder path %s Error: %q", flags.customizationsPath, err)
@@ -123,7 +123,11 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		// If not, skip the configuration option
 		if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath && !cmd.Flags().Changed(configFlag) {
 			if _, err := os.Stat(flags.configs[0]); os.IsNotExist(err) {
-				flags.configs = []string{}
+				if !cmd.Flags().Changed(configFlag) {
+					flags.configs = []string{}
+				} else {
+					logrus.Fatalf("Failed to find config file path %s Error: %q", flags.configs[0], err)
+				}
 			}
 		}
 		p = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
@@ -153,7 +157,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		// Check if the default customization folder exists in the working directory.
 		// If not, skip the customization option
 		if _, err := os.Stat(flags.customizationsPath); os.IsNotExist(err) {
-			if flags.customizationsPath == common.DefaultConfigFilePath && !cmd.Flags().Changed(customizationsFlag) {
+			if flags.customizationsPath == common.DefaultCustomizationFolder && !cmd.Flags().Changed(customizationsFlag) {
 				flags.customizationsPath = ""
 			} else {
 				logrus.Fatalf("Failed to find customization folder path %s Error: %q", flags.customizationsPath, err)
@@ -161,9 +165,13 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		// Check if the default configuration file exists in the working directory.
 		// If not, skip the configuration option
-		if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath && !cmd.Flags().Changed(configFlag) {
+		if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath {
 			if _, err := os.Stat(flags.configs[0]); os.IsNotExist(err) {
-				flags.configs = []string{}
+				if !cmd.Flags().Changed(configFlag) {
+					flags.configs = []string{}
+				} else {
+					logrus.Fatalf("Failed to find config file path %s Error: %q", flags.configs[0], err)
+				}
 			}
 		}
 
