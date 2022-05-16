@@ -107,8 +107,17 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
+		// Check if the default customization folder exists in the working directory.
+		// If not, skip the customization option
 		if _, err := os.Stat(flags.customizationsPath); os.IsNotExist(err) {
 			flags.customizationsPath = ""
+		}
+		// Check if the default configuration file exists in the working directory.
+		// If not, skip the configuration option
+		if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath {
+			if _, err := os.Stat(flags.configs[0]); os.IsNotExist(err) {
+				flags.configs = []string{}
+			}
 		}
 		p = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
 	} else {
@@ -178,7 +187,7 @@ func GetTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location.")
 	transformCmd.Flags().StringVar(&flags.qaCacheOut, qaCacheOutFlag, ".", "Specify cache file output location.")
-	transformCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations.")
+	transformCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{common.DefaultConfigFilePath}, "Specify config file locations.")
 	transformCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use.")
 	transformCmd.Flags().BoolVar(&flags.persistPasswords, qaPersistPasswords, false, "Stores passwords too in the config.")
 	transformCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs.")

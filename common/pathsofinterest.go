@@ -27,6 +27,8 @@ const (
 	DefaultPlanFile = types.AppNameShort + ".plan"
 	// DefaultSourceFolder defines default name for plan file
 	DefaultSourceFolder = types.AppNameShort + "-input"
+	// DefaultConfigFilePath defines default config file path
+	DefaultConfigFilePath = types.AppNameShort + "-cfg.yaml"
 	// DefaultCustomizationFolder defines default name for plan file
 	DefaultCustomizationFolder = types.AppNameShort + "-customization"
 	// TempDirPrefix defines the prefix of the temp directory
