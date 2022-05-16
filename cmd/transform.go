@@ -94,6 +94,9 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if cmd.Flags().Changed(planFlag) {
 			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.planfile, err)
 		}
+		if !cmd.Flags().Changed(sourceFlag) {
+			logrus.Fatalf("Invalid usage. Must specify either path to a plan file or path to directory containing source code.")
+		}
 
 		// Global settings
 		checkSourcePath(flags.srcpath)
@@ -110,7 +113,11 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		// Check if the default customization folder exists in the working directory.
 		// If not, skip the customization option
 		if _, err := os.Stat(flags.customizationsPath); os.IsNotExist(err) {
-			flags.customizationsPath = ""
+			if flags.customizationsPath == common.DefaultConfigFilePath {
+				flags.customizationsPath = ""
+			} else {
+				logrus.Fatalf("Failed to find customization folder path %s Error: %q", flags.outpath, err)
+			}
 		}
 		// Check if the default configuration file exists in the working directory.
 		// If not, skip the configuration option
@@ -182,7 +189,7 @@ func GetTransformCommand() *cobra.Command {
 	// Basic options
 	transformCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	transformCmd.Flags().BoolVar(&flags.overwrite, overwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
-	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", common.DefaultSourceFolder, "Specify source directory to transform. If you already have a m2k.plan then this will override the sourceDir value specified in that plan.")
+	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory to transform. If you already have a m2k.plan then this will override the sourceDir value specified in that plan.")
 	transformCmd.Flags().StringVarP(&flags.outpath, outputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	transformCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location.")
