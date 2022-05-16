@@ -25,6 +25,10 @@ import (
 const (
 	// DefaultPlanFile defines default name for plan file
 	DefaultPlanFile = types.AppNameShort + ".plan"
+	// DefaultSourceFolder defines default name for plan file
+	DefaultSourceFolder = types.AppNameShort + "-input"
+	// DefaultCustomizationFolder defines default name for plan file
+	DefaultCustomizationFolder = types.AppNameShort + "-customization"
 	// TempDirPrefix defines the prefix of the temp directory
 	TempDirPrefix = types.AppNameShort + "-"
 	// AssetsDir defines the dir of the assets temp directory

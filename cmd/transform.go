@@ -94,9 +94,6 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if cmd.Flags().Changed(planFlag) {
 			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.planfile, err)
 		}
-		if !cmd.Flags().Changed(sourceFlag) {
-			logrus.Fatalf("Invalid usage. Must specify either path to a plan file or path to directory containing source code.")
-		}
 
 		// Global settings
 		checkSourcePath(flags.srcpath)
@@ -110,6 +107,9 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
+		if _, err := os.Stat(flags.customizationsPath); os.IsNotExist(err) {
+			flags.customizationsPath = ""
+		}
 		p = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.planfile)
@@ -173,7 +173,7 @@ func GetTransformCommand() *cobra.Command {
 	// Basic options
 	transformCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	transformCmd.Flags().BoolVar(&flags.overwrite, overwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
-	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory to transform. If you already have a m2k.plan then this will override the sourceDir value specified in that plan.")
+	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", common.DefaultSourceFolder, "Specify source directory to transform. If you already have a m2k.plan then this will override the sourceDir value specified in that plan.")
 	transformCmd.Flags().StringVarP(&flags.outpath, outputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	transformCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location.")
@@ -182,7 +182,7 @@ func GetTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use.")
 	transformCmd.Flags().BoolVar(&flags.persistPasswords, qaPersistPasswords, false, "Stores passwords too in the config.")
 	transformCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs.")
-	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored.")
+	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", common.DefaultCustomizationFolder, "Specify directory where customizations are stored.")
 	transformCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "t", "", "Specify the transformer selector.")
 	transformCmd.Flags().BoolVar(&flags.qaskip, qaSkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 
