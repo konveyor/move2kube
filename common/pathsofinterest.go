@@ -28,7 +28,7 @@ const (
 	// DefaultConfigFilePath defines default config file path
 	DefaultConfigFilePath = types.AppNameShort + "-default-config.yaml"
 	// DefaultCustomizationFolder defines default name for plan file
-	DefaultCustomizationFolder = types.AppNameShort + "-customization"
+	DefaultCustomizationFolder = types.AppNameShort + "-default-customizations"
 	// TempDirPrefix defines the prefix of the temp directory
 	TempDirPrefix = types.AppNameShort + "-"
 	// AssetsDir defines the dir of the assets temp directory

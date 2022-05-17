@@ -71,18 +71,14 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 		if flags.customizationsPath == common.DefaultCustomizationFolder && !cmd.Flags().Changed(customizationsFlag) {
 			flags.customizationsPath = ""
 		} else {
-			logrus.Fatalf("Failed to find customization folder path %s Error: %q", flags.customizationsPath, err)
+			logrus.Fatalf("Failed to find the customization directory at %s . Error: %q", flags.customizationsPath, err)
 		}
 	}
 	// Check if the default configuration file exists in the working directory.
 	// If not, skip the configuration option
 	if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath && !cmd.Flags().Changed(configFlag) {
 		if _, err := os.Stat(flags.configs[0]); os.IsNotExist(err) {
-			if !cmd.Flags().Changed(configFlag) {
-				flags.configs = []string{}
-			} else {
-				logrus.Fatalf("Failed to find config file path %s Error: %q", flags.configs[0], err)
-			}
+			flags.configs = []string{}
 		}
 	}
 	customizationsPath := flags.customizationsPath
