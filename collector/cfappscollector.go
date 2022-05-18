@@ -38,14 +38,66 @@ func (c *CfAppsCollector) GetAnnotations() []string {
 	return annotations
 }
 
+// getNewIbmcloudCfClient returns a new ibmcloud cf client
+func (c *CfAppsCollector) getNewIbmcloudCfClient(homeDir string) (*cfclient.Client, error) {
+	var client *cfclient.Client
+	cfclientConfig, err := cfclient.NewConfigFromCFHome(filepath.Join(homeDir, ".ibmcloud/"))
+	if err == nil {
+		client, err = cfclient.NewClient(cfclientConfig)
+		if err != nil {
+			logrus.Debugf("The .ibmcloud directory based cf login failed while creating new client. Falling back to the .bluemix directory based login")
+			cfclientConfig, err = cfclient.NewConfigFromCFHome(filepath.Join(homeDir, ".bluemix/"))
+			if err == nil {
+				client, err = cfclient.NewClient(cfclientConfig)
+				if err != nil {
+					logrus.Debugf("The .bluemix directory based cf login failed while creating new client.")
+				}
+			} else {
+				logrus.Debugf("Unable to get cf config from .bluemix directory : %s", err)
+			}
+		}
+	} else {
+		logrus.Debugf("Unable to get cf config from .ibmcloud directory : %s", err)
+		logrus.Debugf("The .ibmcloud directory based cf login failed. Falling back to the .bluemix directory based login")
+		cfclientConfig, err = cfclient.NewConfigFromCFHome(filepath.Join(homeDir, ".bluemix/"))
+		if err == nil {
+			client, err = cfclient.NewClient(cfclientConfig)
+			if err != nil {
+				logrus.Debugf("The .bluemix directory based cf login failed while creating new client.")
+			}
+		} else {
+			logrus.Debugf("Unable to get cf config from .bluemix directory : %s", err)
+		}
+	}
+	return client, err
+}
+
+// getNewClient returns a new client
+func (c *CfAppsCollector) getNewClient(homeDir string) (*cfclient.Client, error) {
+	var client *cfclient.Client
+	cfclientConfig, err := cfclient.NewConfigFromCF()
+	if err == nil {
+		client, err = cfclient.NewClient(cfclientConfig)
+		if err != nil {
+			logrus.Debugf("The .cf directory based cf login failed while creating new client. Falling back to .ibmcloud directory based login")
+			client, err = c.getNewIbmcloudCfClient(homeDir)
+		}
+	} else {
+		logrus.Debugf("Error while getting cf config : %s", err)
+		logrus.Debugf("The .cf directory based cf login failed. Falling back to the .ibmcloud directory based login")
+		client, err = c.getNewIbmcloudCfClient(homeDir)
+	}
+	return client, err
+}
+
 //Collect gets the cf app metadata by querying the cf app. Assumes that the authentication with cluster is already done.
 func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
-	cli, err := cfclient.NewConfigFromCF()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		logrus.Errorf("Error while getting cf config : %s", err)
+		logrus.Errorf("Error while getting current user's home directory: %s", err)
 		return err
 	}
-	client, err := cfclient.NewClient(cli)
+	client, err := c.getNewClient(homeDir)
 	if err != nil {
 		logrus.Errorf("Unable to connect to cf client : %s", err)
 		return err
