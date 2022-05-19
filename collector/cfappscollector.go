@@ -39,12 +39,7 @@ func (c *CfAppsCollector) GetAnnotations() []string {
 
 //Collect gets the cf app metadata by querying the cf app. Assumes that the authentication with cluster is already done.
 func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		logrus.Errorf("Error while getting current user's home directory: %s", err)
-		return err
-	}
-	client, err := getCfClient(homeDir)
+	client, err := getCfClient()
 	if err != nil {
 		logrus.Errorf("Unable to connect to cf client : %s", err)
 		return err
