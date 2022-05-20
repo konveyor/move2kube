@@ -24,39 +24,44 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// getClient returns a new client for the given cf home directory
+func getClient(cfHomeDir string) (*cfclient.Client, error) {
+	var cfClientConfig *cfclient.Config
+	var err error
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		logrus.Errorf("Error while getting current user's home directory: %s", err)
+		return nil, err
+	}
+	if cfHomeDir == "" {
+		cfClientConfig, err = cfclient.NewConfigFromCF()
+	} else {
+		cfClientConfig, err = cfclient.NewConfigFromCFHome(filepath.Join(homeDir, cfHomeDir))
+	}
+	if err != nil {
+		logrus.Debugf("Unable to get the cf config: %s", err)
+		return nil, err
+	}
+	client, err := cfclient.NewClient(cfClientConfig)
+	if err != nil {
+		if cfHomeDir == "" {
+			logrus.Debugf("Failed to create a new client using the config.json in .cf directory.")
+		} else {
+			logrus.Debugf("Failed to create a new client using the config.json in %s directory.", filepath.Join(homeDir, cfHomeDir, ".cf"))
+		}
+	}
+	return client, err
+}
+
 // getCfClient returns a new cf client
 func getCfClient() (*cfclient.Client, error) {
 	var client *cfclient.Client
 	var err error
-	var cfClientConfig *cfclient.Config
-	cfClientConfig, err = cfclient.NewConfigFromCF()
-	if err != nil {
-		logrus.Debugf("The .cf directory based cf login failed. Unable to get cf config: %s", err)
-	} else {
-		client, err = cfclient.NewClient(cfClientConfig)
-		if err != nil {
-			logrus.Debugf("The .cf directory based cf login failed while creating new client.")
-		} else {
-			return client, err
-		}
-	}
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		logrus.Errorf("Error while getting current user's home directory: %s", err)
-		return client, err
-	}
-	cfHomeDirs := [2]string{".ibmcloud", ".bluemix"}
+	cfHomeDirs := [3]string{"", ".ibmcloud", ".bluemix"}
 	for _, cfHomeDir := range cfHomeDirs {
-		cfClientConfig, err = cfclient.NewConfigFromCFHome(filepath.Join(homeDir, cfHomeDir))
-		if err != nil {
-			logrus.Debugf("The %s directory based cf login failed. Unable to get cf config : %s", cfHomeDir, err)
-		} else {
-			client, err = cfclient.NewClient(cfClientConfig)
-			if err != nil {
-				logrus.Debugf("The %s directory based cf login failed while creating new client.", cfHomeDir)
-			} else {
-				break
-			}
+		client, err = getClient(cfHomeDir)
+		if err == nil {
+			break
 		}
 	}
 	return client, err
