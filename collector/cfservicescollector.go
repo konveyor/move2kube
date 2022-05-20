@@ -24,7 +24,6 @@ import (
 	"github.com/konveyor/move2kube/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 
-	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/sirupsen/logrus"
 )
 
@@ -40,12 +39,7 @@ func (c *CfServicesCollector) GetAnnotations() []string {
 
 //Collect gets the cf service metadata by querying the cf app. Assumes that the authentication with cluster is already done.
 func (c *CfServicesCollector) Collect(inputPath string, outputPath string) error {
-	cli, err := cfclient.NewConfigFromCF()
-	if err != nil {
-		logrus.Errorf("Error while getting cf config : %s", err)
-		return err
-	}
-	client, err := cfclient.NewClient(cli)
+	client, err := getCfClient()
 	if err != nil {
 		logrus.Errorf("Unable to connect to cf client : %s", err)
 		return err
