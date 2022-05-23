@@ -224,7 +224,6 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 	var solutionFilePath string
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		logrus.Errorf("Error while trying to read directory: %s", err)
 		return nil, err
 	}
 	appName := ""
@@ -268,7 +267,6 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 	if appName == "" {
 		dirEntries, err := os.ReadDir(dir)
 		if err != nil {
-			logrus.Errorf("Error while trying to read directory : %s", err)
 			return nil, err
 		}
 		for _, de := range dirEntries {

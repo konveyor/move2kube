@@ -142,7 +142,6 @@ func GetConfFileForService(confFiles []string, serviceName string) string {
 func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		logrus.Errorf("Error while trying to read directory : %s", err)
 		return nil, err
 	}
 	for _, de := range dirEntries {
