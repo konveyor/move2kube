@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	defaultNodeVersion = "12"
+	defaultNodeVersion = "14"
 	packageJSONFile    = "package.json"
 )
 
@@ -146,7 +146,7 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
 		build := false
-		nodeVersion := t.NodejsConfig.DefaultNodejsVersion
+		var nodeVersion string
 		var packageJSON PackageJSON
 		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], packageJSONFile), &packageJSON); err != nil {
 			logrus.Debugf("unable to read the package.json file: %s", err)
@@ -160,6 +160,9 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 				}
 				nodeVersion = strings.TrimPrefix(semver.Major(node), "v")
 			}
+		}
+		if nodeVersion == "" {
+			nodeVersion = t.NodejsConfig.DefaultNodejsVersion
 		}
 		ports := ir.GetAllServicePorts()
 		if len(ports) == 0 {
