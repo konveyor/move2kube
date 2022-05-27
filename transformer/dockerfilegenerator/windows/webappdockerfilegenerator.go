@@ -61,7 +61,6 @@ func (t *WinWebAppDockerfileGenerator) GetConfig() (transformertypes.Transformer
 func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.Artifact, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		logrus.Errorf("Error while trying to read directory: %s", err)
 		return nil, err
 	}
 	appName := ""

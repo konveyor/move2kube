@@ -86,7 +86,6 @@ func getFilePermissions(path string) (permissions string, err error) {
 	}
 	dirEntries, err := os.ReadDir(path)
 	if err != nil {
-		logrus.Errorf("Error while trying to read directory : %s", err)
 		return "", err
 	}
 	for _, de := range dirEntries {

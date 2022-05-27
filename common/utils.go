@@ -127,7 +127,6 @@ func GetFilesByExtInCurrDir(inputPath string, exts []string) ([]string, error) {
 	}
 	dirEntries, err := os.ReadDir(inputPath)
 	if err != nil {
-		logrus.Warnf("Error while trying to read directory : %s", err)
 		return []string{}, err
 	}
 	for _, de := range dirEntries {
@@ -888,7 +887,6 @@ func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[str
 	}
 	dirEntries, err := embedFS.ReadDir(GetUnixPath(source))
 	if err != nil {
-		logrus.Errorf("Error while trying to read directory : %s", err)
 		return err
 	}
 	for _, de := range dirEntries {
