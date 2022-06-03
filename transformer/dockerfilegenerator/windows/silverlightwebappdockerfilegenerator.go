@@ -60,7 +60,6 @@ func (t *WinSilverLightWebAppDockerfileGenerator) GetConfig() (transformertypes.
 func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		logrus.Errorf("Error while trying to read directory: %s", err)
 		return nil, err
 	}
 	appName := ""

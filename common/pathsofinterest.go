@@ -23,12 +23,12 @@ import (
 )
 
 const (
-	// DefaultPlanFile defines default name for plan file
+	// DefaultPlanFile is the default name for the plan file
 	DefaultPlanFile = types.AppNameShort + ".plan"
-	// DefaultConfigFilePath defines default config file path
+	// DefaultConfigFilePath is the default config file path
 	DefaultConfigFilePath = types.AppNameShort + "-default-config.yaml"
-	// DefaultCustomizationFolder defines default name for plan file
-	DefaultCustomizationFolder = types.AppNameShort + "-default-customizations"
+	// DefaultCustomizationDir is the default path for the customization directory
+	DefaultCustomizationDir = types.AppNameShort + "-default-customizations"
 	// TempDirPrefix defines the prefix of the temp directory
 	TempDirPrefix = types.AppNameShort + "-"
 	// AssetsDir defines the dir of the assets temp directory

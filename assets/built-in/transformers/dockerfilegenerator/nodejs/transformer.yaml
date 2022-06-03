@@ -18,4 +18,4 @@ spec:
     DockerfileForService:
       disabled: false
   config:
-    defaultNodejsVersion: "12"
+    defaultNodejsVersion: "14"

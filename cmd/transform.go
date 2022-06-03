@@ -76,6 +76,32 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	if flags.outpath, err = filepath.Abs(flags.outpath); err != nil {
 		logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.outpath, err)
 	}
+	// Check if the default customization folder exists in the working directory.
+	// If not, skip the customization option
+	if !cmd.Flags().Changed(customizationsFlag) {
+		if _, err := os.Stat(common.DefaultCustomizationDir); err == nil {
+			flags.customizationsPath = common.DefaultCustomizationDir
+			// make all path(s) absolute
+			flags.customizationsPath, err = filepath.Abs(flags.customizationsPath)
+			if err != nil {
+				logrus.Fatalf("Failed to make the customizations directory path %q absolute. Error: %q", flags.customizationsPath, err)
+			}
+		}
+	}
+	// Check if the default configuration file exists in the working directory.
+	// If not, skip the configuration option
+	if !cmd.Flags().Changed(configFlag) {
+		if _, err := os.Stat(common.DefaultConfigFilePath); err == nil {
+			flags.configs = []string{common.DefaultConfigFilePath}
+		}
+	}
+	// make all path(s) absolute
+	for i, c := range flags.configs {
+		if c, err := filepath.Abs(c); err != nil {
+			logrus.Fatalf("failed to make the config file path %s absolute. Error: %q", c, err)
+		}
+		flags.configs[i] = c
+	}
 
 	// Global settings
 	common.IgnoreEnvironment = flags.ignoreEnv
@@ -110,22 +136,6 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
-		// Check if the default customization folder exists in the working directory.
-		// If not, skip the customization option
-		if _, err := os.Stat(flags.customizationsPath); os.IsNotExist(err) {
-			if flags.customizationsPath == common.DefaultCustomizationFolder && !cmd.Flags().Changed(customizationsFlag) {
-				flags.customizationsPath = ""
-			} else {
-				logrus.Fatalf("Failed to find the customization directory at %s . Error: %q", flags.customizationsPath, err)
-			}
-		}
-		// Check if the default configuration file exists in the working directory.
-		// If not, skip the configuration option
-		if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath && !cmd.Flags().Changed(configFlag) {
-			if _, err := os.Stat(flags.configs[0]); os.IsNotExist(err) {
-				flags.configs = []string{}
-			}
-		}
 		p = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.planfile)
@@ -148,22 +158,6 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 			if flags.customizationsPath != "" {
 				p.Spec.CustomizationsDir = flags.customizationsPath
 				logrus.Warnf("Using the detected plan with specified customization. This might result in undesired results if the customization is different from what was given to plan. If you did not want to use the plan file at %s, delete it and rerun the command.", flags.planfile)
-			}
-		}
-		// Check if the default customization folder exists in the working directory.
-		// If not, skip the customization option
-		if _, err := os.Stat(flags.customizationsPath); os.IsNotExist(err) {
-			if flags.customizationsPath == common.DefaultCustomizationFolder && !cmd.Flags().Changed(customizationsFlag) {
-				flags.customizationsPath = ""
-			} else {
-				logrus.Fatalf("Failed to find customization folder path %s Error: %q", flags.customizationsPath, err)
-			}
-		}
-		// Check if the default configuration file exists in the working directory.
-		// If not, skip the configuration option
-		if len(flags.configs) == 1 && flags.configs[0] == common.DefaultConfigFilePath && !cmd.Flags().Changed(configFlag) {
-			if _, err := os.Stat(flags.configs[0]); os.IsNotExist(err) {
-				flags.configs = []string{}
 			}
 		}
 
@@ -210,11 +204,11 @@ func GetTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location.")
 	transformCmd.Flags().StringVar(&flags.qaCacheOut, qaCacheOutFlag, ".", "Specify cache file output location.")
-	transformCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{common.DefaultConfigFilePath}, "Specify config file locations.")
+	transformCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations. By default we look for "+common.DefaultConfigFilePath)
 	transformCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use.")
 	transformCmd.Flags().BoolVar(&flags.persistPasswords, qaPersistPasswords, false, "Stores passwords too in the config.")
 	transformCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs.")
-	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", common.DefaultCustomizationFolder, "Specify directory where customizations are stored.")
+	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored. By default we look for "+common.DefaultCustomizationDir)
 	transformCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "t", "", "Specify the transformer selector.")
 	transformCmd.Flags().BoolVar(&flags.qaskip, qaSkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
 
