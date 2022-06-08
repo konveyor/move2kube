@@ -74,8 +74,9 @@ func ImageRegistryNamespace() string {
 }
 
 // IngressHost returns Ingress host
-func IngressHost(defaulthost string) string {
-	return qaengine.FetchStringAnswer(common.ConfigIngressHostKey, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaulthost)
+func IngressHost(defaulthost string, clusterQaLabel string) string {
+	key := common.ConfigTargetKey + common.Delim + clusterQaLabel + common.Delim + common.ConfigIngressHostKey
+	return qaengine.FetchStringAnswer(key, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaulthost)
 }
 
 // MinimumReplicaCount returns minimum replica count

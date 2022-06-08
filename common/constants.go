@@ -132,7 +132,7 @@ const (
 	// ConfigIngressClassName represents the ingress class name
 	ConfigIngressClassName = ConfigIngressKey + d + "ingressclassname"
 	//ConfigIngressHostKey represents Ingress host Key
-	ConfigIngressHostKey = ConfigIngressKey + d + "host"
+	ConfigIngressHostKey = "ingress" + d + "host"
 	//ConfigIngressTLSKey represents ingress tls Key
 	ConfigIngressTLSKey = ConfigIngressKey + d + "tls"
 	//ConfigTargetClusterTypeKey represents target cluster type key
