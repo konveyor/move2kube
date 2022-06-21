@@ -36,7 +36,9 @@ GIT_COMMIT = $(shell git rev-parse HEAD)
 GIT_SHA    = $(shell git rev-parse --short HEAD)
 GIT_TAG    = $(shell git tag --points-at | tail -n 1)
 GIT_DIRTY  = $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
+ifeq ($(HAS_UPX),)
 HAS_UPX    = $(shell command -v upx >/dev/null && echo true || echo false)
+endif
 HAS_NODE   = $(shell command -v node >/dev/null && echo true || echo false)
 
 GOGET     := cd / && GO111MODULE=on go install 
