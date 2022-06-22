@@ -165,7 +165,7 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ steps.info.outputs.go_version }}
-      - run: VERSION='${{ github.event.inputs.tag }}' HAS_UPX='false' make dist
+      - run: VERSION='${{ github.event.inputs.tag }}' make dist
       - name: upload release assets
         uses: konveyor/upload-release-action@v3
         with:
