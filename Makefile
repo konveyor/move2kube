@@ -36,7 +36,6 @@ GIT_COMMIT = $(shell git rev-parse HEAD)
 GIT_SHA    = $(shell git rev-parse --short HEAD)
 GIT_TAG    = $(shell git tag --points-at | tail -n 1)
 GIT_DIRTY  = $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
-HAS_UPX    = $(shell command -v upx >/dev/null && echo true || echo false)
 HAS_NODE   = $(shell command -v node >/dev/null && echo true || echo false)
 
 GOGET     := cd / && GO111MODULE=on go install 
@@ -101,14 +100,6 @@ build: get $(BINDIR)/$(BINNAME) ## Build go code
 
 $(BINDIR)/$(BINNAME): $(SRC) $(ASSETS) $(WEB_ASSETS)
 	CGO_ENABLED=0 go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) .
-ifeq ($(HAS_UPX),true)
-	@echo 'upx detected. compressing binary...'
-	upx $(BINDIR)/$(BINNAME)
-else
-	@echo 'For smaller binaries, please install upx:'
-	@echo 'MacOS: brew install upx'
-	@echo 'Linux: sudo apt-get install upx'
-endif
 	mkdir -p $(GOPATH)/bin/
 	cp $(BINDIR)/$(BINNAME) $(GOPATH)/bin/
 
@@ -166,14 +157,6 @@ build-cross: $(GOX) clean
 
 .PHONY: dist
 dist: clean build-cross ## Build distribution
-ifeq ($(HAS_UPX),true)
-	@echo 'upx detected. compressing binary...'
-	upx $(shell find . -type f -name '$(BINNAME)')
-else
-	@echo 'For smaller binaries, please install upx:'
-	@echo 'MacOS: brew install upx'
-	@echo 'Linux: sudo apt-get install upx'
-endif
 	mkdir -p $(DISTDIR)/files
 	cp -r ./LICENSE ./USAGE.md ./samples $(DISTDIR)/files/
 	cd $(DISTDIR) && go run ../scripts/dist/builddist.go -b $(BINNAME) -v $(VERSION)
