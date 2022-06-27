@@ -51,6 +51,22 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// FindIndex returns the index of the first element that satisfies the condition.
+// It returns -1 if none of the elements satisfy the condition.
+func FindIndex[T comparable](vs []T, condition func(T) bool) int {
+	for i, v := range vs {
+		if condition(v) {
+			return i
+		}
+	}
+	return -1
+}
+
+// JoinQASubKeys joins sub keys into a valid QA key using the proper delimiter
+func JoinQASubKeys(xs ...string) string {
+	return strings.Join(xs, Delim)
+}
+
 // GetYamlsWithTypeMeta returns files by yaml kind
 func GetYamlsWithTypeMeta(inputPath string, kindFilter string) ([]string, error) {
 	var result []string

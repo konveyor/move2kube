@@ -222,7 +222,8 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			ir.Services[sConfig.ServiceName] = serviceConfig
 		}
 		if len(cConfig) != 0 {
-			containerizationOptions := qaengine.FetchMultiSelectAnswer(common.ConfigServicesKey+common.Delim+sConfig.ServiceName+common.Delim+common.ConfigContainerizationOptionServiceKeySegment,
+			quesKey := common.JoinQASubKeys(common.ConfigServicesKey, sConfig.ServiceName, common.ConfigContainerizationOptionServiceKeySegment)
+			containerizationOptions := qaengine.FetchMultiSelectAnswer(quesKey,
 				fmt.Sprintf("Select the transformer to use for containerization %s :", sConfig.ServiceName),
 				[]string{fmt.Sprintf("Select containerization option to use %s", sConfig.ServiceName)},
 				[]string{cConfig[0]}, cConfig)

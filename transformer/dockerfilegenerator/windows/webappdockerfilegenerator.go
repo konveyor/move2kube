@@ -17,13 +17,14 @@
 package windows
 
 import (
-	"encoding/xml"
-	"os"
+	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/qaengine"
+	dotnetutils "github.com/konveyor/move2kube/transformer/dockerfilegenerator/dotnet"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/konveyor/move2kube/types/source/dotnet"
@@ -32,11 +33,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// WebTemplateConfig implements .Net Web config interface
+const (
+	buildStageC           = "dotnetwebbuildstage"
+	defaultBuildOutputDir = "bin"
+)
+
+// WebTemplateConfig contains the data to fill the Dockerfile template
 type WebTemplateConfig struct {
-	Ports            []int32
-	AppName          string
-	BaseImageVersion string
+	Ports              []int32
+	AppName            string
+	BaseImageVersion   string
+	BuildContainerName string
+	CopyFrom           string
+	IncludeBuildStage  bool
+	IncludeRunStage    bool
 }
 
 // WinWebAppDockerfileGenerator implements the Transformer interface
@@ -58,81 +68,87 @@ func (t *WinWebAppDockerfileGenerator) GetConfig() (transformertypes.Transformer
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.Artifact, err error) {
-	dirEntries, err := os.ReadDir(dir)
+func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
+	slnPaths, err := common.GetFilesByExt(dir, []string{dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list the dot net visual studio solution files in the directory %s . Error: %q", dir, err)
 	}
-	appName := ""
-	for _, de := range dirEntries {
-		if filepath.Ext(de.Name()) != dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT {
-			continue
-		}
-		csProjPaths, err := parseSolutionFile(filepath.Join(dir, de.Name()))
-		if err != nil {
-			logrus.Errorf("%s", err)
-			continue
-		}
-
-		if len(csProjPaths) == 0 {
-			logrus.Errorf("No projects available for the solution: %s", de.Name())
-			continue
-		}
-
-		for _, csPath := range csProjPaths {
-			projPath := filepath.Join(strings.TrimSpace(dir), strings.TrimSpace(csPath))
-			byteValue, err := os.ReadFile(projPath)
-			if err != nil {
-				logrus.Debugf("Could not read the project file: %s", err)
-				continue
-			}
-
-			configuration := dotnet.CSProj{}
-			err = xml.Unmarshal(byteValue, &configuration)
-			if err != nil {
-				logrus.Errorf("Could not parse the project file: %s", err)
-				continue
-			}
-
-			if configuration.PropertyGroup == nil ||
-				configuration.PropertyGroup.TargetFrameworkVersion == "" ||
-				!dotnet.FourXPattern.MatchString(configuration.PropertyGroup.TargetFrameworkVersion) {
-				continue
-			}
-
-			isWebProj, err := isWeb(configuration)
-			if err != nil {
-				logrus.Errorf("%s", err)
-				continue
-			}
-			if !isWebProj {
-				continue
-			}
-
-			isSLProj, err := isSilverlight(configuration)
-			if err != nil {
-				logrus.Errorf("%s", err)
-				continue
-			}
-			if isSLProj {
-				continue
-			}
-
-			appName = strings.TrimSuffix(filepath.Base(de.Name()), filepath.Ext(de.Name()))
-		}
-
-		// Exit soon of after the solution file is found
-		break
-	}
-
-	if appName == "" {
+	if len(slnPaths) == 0 {
+		// TODO: handle the case where there's no .sln file but only a .csproj file
 		return nil, nil
 	}
-
-	namedServices = map[string][]transformertypes.Artifact{
+	if len(slnPaths) > 1 {
+		logrus.Debugf("more than one visual studio solution file detected. Number of .sln files %d", len(slnPaths))
+	}
+	slnPath := slnPaths[0]
+	appName := filepath.Base(dir)
+	relCSProjPaths, err := getCSProjPathsFromSlnFile(slnPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse the vs solution file at path %s . Error: %q", slnPath, err)
+	}
+	if len(relCSProjPaths) == 0 {
+		return nil, fmt.Errorf("no child projects found in the solution file at the path: %s", slnPath)
+	}
+	childProjects := []artifacts.DotNetChildProject{}
+	csProjPaths := []string{}
+	foundNonSilverLightWebProject := false
+	for _, relCSProjPath := range relCSProjPaths {
+		logrus.Debugf("looking at the c sharp project file at path %s", relCSProjPath)
+		csProjPath := filepath.Join(dir, relCSProjPath)
+		configuration, err := parseCSProj(csProjPath)
+		if err != nil {
+			logrus.Errorf("failed to parse the c sharp project file at path %s . Error: %q", csProjPath, err)
+			continue
+		}
+		if idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" }); idx == -1 ||
+			!dotnet.Version4.MatchString(configuration.PropertyGroups[idx].TargetFrameworkVersion) {
+			logrus.Errorf("the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, configuration.PropertyGroups[idx].TargetFrameworkVersion)
+			continue
+		}
+		isWebProj, err := isWeb(configuration)
+		if err != nil {
+			logrus.Errorf("failed to determine if the c sharp project file at the path %s is a web project. Error: %q", csProjPath, err)
+			continue
+		}
+		if !isWebProj {
+			logrus.Debugf("the c sharp project file at path %s is not a web project", csProjPath)
+			continue
+		}
+		isSLProj, err := isSilverlight(configuration)
+		if err != nil {
+			logrus.Errorf("failed to determine if the c sharp project file at the path %s is a SilverLight project. Error: %q", csProjPath, err)
+			continue
+		}
+		if isSLProj {
+			logrus.Debugf("the c sharp project file at path %s is a SilverLight project", csProjPath)
+			continue
+		}
+		foundNonSilverLightWebProject = true
+		childProjectName := getChildProjectName(csProjPath)
+		csProjPaths = append(csProjPaths, csProjPath)
+		childProjects = append(childProjects, artifacts.DotNetChildProject{
+			Name:          childProjectName,
+			RelCSProjPath: relCSProjPath,
+		})
+	}
+	if !foundNonSilverLightWebProject {
+		return nil, nil
+	}
+	namedServices := map[string][]transformertypes.Artifact{
 		appName: {{
+			Name: appName,
+			Type: artifacts.ServiceArtifactType,
 			Paths: map[transformertypes.PathType][]string{
-				artifacts.ServiceDirPathType: {dir},
+				artifacts.ServiceRootDirPathType:          {dir},
+				artifacts.ServiceDirPathType:              {dir},
+				dotnetutils.DotNetCoreCsprojFilesPathType: csProjPaths,
+			},
+			Configs: map[transformertypes.ConfigType]interface{}{
+				artifacts.DotNetConfigType: artifacts.DotNetConfig{
+					DotNetAppName:         appName,
+					IsSolutionFilePresent: true,
+					ChildProjects:         childProjects,
+				},
 			},
 		}},
 	}
@@ -143,74 +159,194 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (namedService
 func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
-		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
-		}
-		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+	for _, newArtifact := range newArtifacts {
+		dotNetConfig := artifacts.DotNetConfig{}
+		if err := newArtifact.GetConfig(artifacts.DotNetConfigType, &dotNetConfig); err != nil {
 			continue
 		}
-		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
-		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 || len(newArtifact.Paths[dotnetutils.DotNetCoreCsprojFilesPathType]) == 0 {
+			logrus.Errorf("service directories are missing from the dot net artifact")
+			continue
 		}
+		selectedBuildOption, err := dotnetutils.AskUserForDockerfileType(dotNetConfig.DotNetAppName)
+		if err != nil {
+			logrus.Errorf("failed to ask the user what type of dockerfile they prefer. Error: %q", err)
+			continue
+		}
+		logrus.Debugf("user chose to generate Dockefiles that have '%s'", selectedBuildOption)
+
+		// ask the user which child projects should be run in the K8s cluster
+
+		selectedChildProjectNames := []string{}
+		for _, childProject := range dotNetConfig.ChildProjects {
+			selectedChildProjectNames = append(selectedChildProjectNames, childProject.Name)
+		}
+		if len(selectedChildProjectNames) > 1 {
+			quesKey := fmt.Sprintf(common.ConfigServicesDotNetChildProjectsNamesKey, dotNetConfig.DotNetAppName)
+			desc := fmt.Sprintf("For the multi-project Dot Net app '%s', please select all the child projects that should be run as services in the cluster:", dotNetConfig.DotNetAppName)
+			hints := []string{"deselect any child project that should not be run (example: libraries)"}
+			selectedChildProjectNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildProjectNames, selectedChildProjectNames)
+			if len(selectedChildProjectNames) == 0 {
+				return pathMappings, artifactsCreated, fmt.Errorf("user deselected all the child projects of the dot net multi-project app '%s'", dotNetConfig.DotNetAppName)
+			}
+		}
+
+		serviceDir := newArtifact.Paths[artifacts.ServiceRootDirPathType][0]
+		relServiceDir, err := filepath.Rel(t.Env.GetEnvironmentSource(), serviceDir)
+		if err != nil {
+			logrus.Errorf("failed to make the service directory path %s relative to the source directory %s . Error: %q", serviceDir, t.Env.GetEnvironmentSource(), err)
+			continue
+		}
+
 		ir := irtypes.IR{}
 		irPresent := true
-		err = a.GetConfig(irtypes.IRConfigType, &ir)
-		if err != nil {
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			irPresent = false
-			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
+			logrus.Debugf("unable to load config for Transformer into %T . Error: %q", ir, err)
 		}
+
 		detectedPorts := ir.GetAllServicePorts()
 		if len(detectedPorts) == 0 {
 			detectedPorts = append(detectedPorts, common.DefaultServicePort)
 		}
-		detectedPorts = commonqa.GetPortsForService(detectedPorts, a.Name)
-		var webConfig WebTemplateConfig
-		webConfig.AppName = a.Name
-		webConfig.Ports = detectedPorts
-		webConfig.BaseImageVersion = dotnet.DefaultBaseImageVersion
 
-		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
-		}
+		// copy over the source dir to hold the dockerfiles we genrate
+
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
 			DestPath: common.DefaultSourceDir,
-		}, transformertypes.PathMapping{
-			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
-			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
-			TemplateConfig: webConfig,
 		})
-		paths := a.Paths
-		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
-		p := transformertypes.Artifact{
-			Name:  sImageName.ImageName,
-			Type:  artifacts.DockerfileArtifactType,
-			Paths: paths,
-			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
-			},
+
+		// build is always done at the top level using the .sln file regardless of the build option selected
+
+		imageToCopyFrom := common.MakeStringContainerImageNameCompliant(dotNetConfig.DotNetAppName + "-" + buildStageC)
+		if selectedBuildOption == dotnetutils.NO_BUILD_STAGE {
+			imageToCopyFrom = "" // files will be copied from the local file system instead of a builder image
 		}
-		dfs := transformertypes.Artifact{
-			Name:  sConfig.ServiceName,
-			Type:  artifacts.DockerfileForServiceArtifactType,
-			Paths: a.Paths,
-			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
-				artifacts.ServiceConfigType:   sConfig,
-			},
+
+		// generate the base image Dockerfile
+
+		if selectedBuildOption == dotnetutils.BUILD_IN_BASE_IMAGE {
+			webConfig := WebTemplateConfig{
+				AppName:            dotNetConfig.DotNetAppName,
+				BaseImageVersion:   dotnet.DefaultBaseImageVersion,
+				IncludeBuildStage:  true,
+				IncludeRunStage:    false,
+				BuildContainerName: imageToCopyFrom,
+			}
+
+			// path mapping to generate the Dockerfile for the child project
+
+			dockerfilePath := filepath.Join(common.DefaultSourceDir, relServiceDir, common.DefaultDockerfileName+"."+buildStageC)
+			pathMappings = append(pathMappings, transformertypes.PathMapping{
+				Type:           transformertypes.TemplatePathMappingType,
+				SrcPath:        common.DefaultDockerfileName,
+				DestPath:       dockerfilePath,
+				TemplateConfig: webConfig,
+			})
+
+			// artifacts to inform other transformers of the Dockerfile we generated
+
+			paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}
+			serviceName := artifacts.ServiceConfig{ServiceName: dotNetConfig.DotNetAppName}
+			imageName := artifacts.ImageName{ImageName: imageToCopyFrom}
+			dockerfileArtifact := transformertypes.Artifact{
+				Name:  imageName.ImageName,
+				Type:  artifacts.DockerfileArtifactType,
+				Paths: paths,
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.ServiceConfigType:   serviceName,
+					artifacts.ImageNameConfigType: imageName,
+				},
+			}
+			artifactsCreated = append(artifactsCreated, dockerfileArtifact)
 		}
-		if irPresent {
-			dfs.Configs[irtypes.IRConfigType] = ir
+
+		for _, childProject := range dotNetConfig.ChildProjects {
+
+			// only look at the child modules the user selected
+
+			if !common.IsStringPresent(selectedChildProjectNames, childProject.Name) {
+				continue
+			}
+
+			// parse the .csproj file to get the output path
+			csProjPath := filepath.Join(serviceDir, childProject.RelCSProjPath)
+			configuration, err := parseCSProj(csProjPath)
+			if err != nil {
+				logrus.Errorf("failed to parse the c sharp project file at path %s . Error: %q", csProjPath, err)
+				continue
+			}
+
+			// have the user select the ports to use for the child project
+
+			selectedPorts := commonqa.GetPortsForService(detectedPorts, common.JoinQASubKeys(dotNetConfig.DotNetAppName, "childProjects", childProject.Name))
+
+			// data to fill the Dockerfile template
+
+			relCSProjDir := filepath.Dir(childProject.RelCSProjPath)
+			buildOutputDir := defaultBuildOutputDir
+			idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.OutputPath != "" })
+			if idx != -1 {
+				buildOutputDir = filepath.Clean(common.GetUnixPath(configuration.PropertyGroups[idx].OutputPath))
+			}
+			copyFrom := filepath.Join("/app", relCSProjDir, buildOutputDir) + "/"
+			if selectedBuildOption == dotnetutils.NO_BUILD_STAGE {
+				copyFrom = buildOutputDir + "/" // files will be copied from the local file system instead of a builder image
+			}
+
+			webConfig := WebTemplateConfig{
+				AppName:            childProject.Name,
+				Ports:              selectedPorts,
+				BaseImageVersion:   dotnet.DefaultBaseImageVersion,
+				IncludeBuildStage:  selectedBuildOption == dotnetutils.BUILD_IN_EVERY_IMAGE,
+				IncludeRunStage:    true,
+				BuildContainerName: imageToCopyFrom,
+				CopyFrom:           copyFrom,
+			}
+
+			// path mapping to generate the Dockerfile for the child project
+
+			dockerfilePath := filepath.Join(common.DefaultSourceDir, relServiceDir, relCSProjDir, common.DefaultDockerfileName)
+			pathMappings = append(pathMappings, transformertypes.PathMapping{
+				Type:           transformertypes.TemplatePathMappingType,
+				SrcPath:        common.DefaultDockerfileName,
+				DestPath:       dockerfilePath,
+				TemplateConfig: webConfig,
+			})
+
+			// artifacts to inform other transformers of the Dockerfile we generated
+
+			paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}
+			serviceName := artifacts.ServiceConfig{ServiceName: childProject.Name}
+			imageName := artifacts.ImageName{ImageName: common.MakeStringContainerImageNameCompliant(childProject.Name)}
+			dockerfileArtifact := transformertypes.Artifact{
+				Name:  imageName.ImageName,
+				Type:  artifacts.DockerfileArtifactType,
+				Paths: paths,
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.ServiceConfigType:   serviceName,
+					artifacts.ImageNameConfigType: imageName,
+				},
+			}
+			dockerfileServiceArtifact := transformertypes.Artifact{
+				Name:  imageName.ImageName,
+				Type:  artifacts.DockerfileForServiceArtifactType,
+				Paths: paths,
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.ServiceConfigType:   serviceName,
+					artifacts.ImageNameConfigType: imageName,
+				},
+			}
+			if irPresent {
+				dockerfileServiceArtifact.Configs[irtypes.IRConfigType] = ir
+			}
+			artifactsCreated = append(artifactsCreated, dockerfileArtifact, dockerfileServiceArtifact)
 		}
-		artifactsCreated = append(artifactsCreated, p, dfs)
 	}
 	return pathMappings, artifactsCreated, nil
+}
+
+func getChildProjectName(csProjPath string) string {
+	return strings.TrimSuffix(filepath.Base(csProjPath), filepath.Ext(csProjPath))
 }

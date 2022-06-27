@@ -315,7 +315,7 @@ func (t *Tekton) createGitSecret(name, gitRepoDomain string) irtypes.Storage {
 		} else {
 			problemDesc := fmt.Sprintf("Unable to find the public key for the domain %s from known_hosts, please enter it. If don't know the public key, just leave this empty and you will be able to add it later: ", gitRepoDomain)
 			hints := []string{"Ex : " + sshkeys.DomainToPublicKeys["github.com"][0]}
-			qaKey := common.ConfigRepoLoadPubDomainsKey + common.Delim + `"` + gitRepoDomain + `"` + common.Delim + "pubkey"
+			qaKey := common.JoinQASubKeys(common.ConfigRepoLoadPubDomainsKey, `"`+gitRepoDomain+`"`, "pubkey")
 			knownHosts = qaengine.FetchStringAnswer(qaKey, problemDesc, hints, knownHostsPlaceholder)
 		}
 

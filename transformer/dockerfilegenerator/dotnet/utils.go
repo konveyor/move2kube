@@ -1,5 +1,5 @@
 /*
- *  Copyright IBM Corporation 2021
+ *  Copyright IBM Corporation 2022
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -14,14 +14,13 @@
  *  limitations under the License.
  */
 
-package java
+package dotnet
 
 import (
 	"fmt"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
-	"github.com/sirupsen/logrus"
 )
 
 type buildOption string
@@ -35,28 +34,8 @@ const (
 	BUILD_IN_EVERY_IMAGE buildOption = "build-stage-in-every-image"
 )
 
-const (
-	defaultAppPathInContainer = "/app"
-	defaultJavaVersion        = "17"
-	defaultJavaPackage        = "java-17-openjdk-devel"
-)
-
-func getJavaPackage(mappingFile string, version string) (pkg string, err error) {
-	var javaPackageNamesMapping JavaPackageNamesMapping
-	if err := common.ReadMove2KubeYaml(mappingFile, &javaPackageNamesMapping); err != nil {
-		logrus.Debugf("Could not load mapping at %s", mappingFile)
-		return "", err
-	}
-	v, ok := javaPackageNamesMapping.Spec.PackageVersions[version]
-	if !ok {
-		logrus.Infof("Matching java package not found for java version : %s. Going with default.", version)
-		return defaultJavaPackage, nil
-	}
-	return v, nil
-}
-
-// askUserForDockerfileType asks the user what type of Dockerfiles to generate.
-func askUserForDockerfileType(rootProjectName string) (buildOption, error) {
+// AskUserForDockerfileType asks the user what type of Dockerfiles to generate.
+func AskUserForDockerfileType(rootProjectName string) (buildOption, error) {
 	quesId := common.JoinQASubKeys(common.ConfigServicesKey, rootProjectName, "dockerfileType")
 	desc := fmt.Sprintf("What type of Dockerfiles should be generated for the service '%s'?", rootProjectName)
 	options := []string{
@@ -66,7 +45,7 @@ func askUserForDockerfileType(rootProjectName string) (buildOption, error) {
 	}
 	def := BUILD_IN_BASE_IMAGE
 	hints := []string{
-		fmt.Sprintf("[%s] There is no build stage. Dockerfiles will only contain the run stage. The jar/war/ear files will need to be built and present in the file system already, for them to get copied into the container.", NO_BUILD_STAGE),
+		fmt.Sprintf("[%s] There is no build stage. Dockerfiles will only contain the run stage. The .dll files will need to be built and present in the file system already, for them to get copied into the container.", NO_BUILD_STAGE),
 		fmt.Sprintf("[%s] Put the build stage in a separate Dockerfile and create a base image.", BUILD_IN_BASE_IMAGE),
 		fmt.Sprintf("[%s] Put the build stage in every Dockerfile to make it self contained. (Warning: This may cause one build per Dockerfile.)", BUILD_IN_EVERY_IMAGE),
 	}

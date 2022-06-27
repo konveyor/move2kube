@@ -130,7 +130,10 @@ func detectConfFiles(dir string) ([]string, error) {
 func GetConfFileForService(confFiles []string, serviceName string) string {
 	noAnswer := "none of the above"
 	confFiles = append(confFiles, noAnswer)
-	selectedConfFile := qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigApacheConfFileForServiceKeySegment, fmt.Sprintf("Choose the apache config file to be used for the service %s", serviceName), []string{fmt.Sprintf("Selected apache config file will be used for identifying the port to be exposed for the service %s", serviceName)}, confFiles[0], confFiles)
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigApacheConfFileForServiceKeySegment)
+	desc := fmt.Sprintf("Choose the apache config file to be used for the service %s", serviceName)
+	hints := []string{fmt.Sprintf("Selected apache config file will be used for identifying the port to be exposed for the service %s", serviceName)}
+	selectedConfFile := qaengine.FetchSelectAnswer(quesKey, desc, hints, confFiles[0], confFiles)
 	if selectedConfFile == noAnswer {
 		logrus.Debugf("No apache config file selected for the service %s", serviceName)
 		return ""
