@@ -28,11 +28,11 @@ type buildOption string
 
 const (
 	// NO_BUILD_STAGE don't generate the build stage in Dockerfiles
-	NO_BUILD_STAGE buildOption = "no-build-stage"
+	NO_BUILD_STAGE buildOption = "no build stage"
 	// BUILD_IN_BASE_IMAGE generate the build stage and put it in a separate Dockerfile
-	BUILD_IN_BASE_IMAGE buildOption = "build-stage-in-base-image"
+	BUILD_IN_BASE_IMAGE buildOption = "build stage in base image"
 	// BUILD_IN_EVERY_IMAGE generate the build stage in every Dockerfile
-	BUILD_IN_EVERY_IMAGE buildOption = "build-stage-in-every-image"
+	BUILD_IN_EVERY_IMAGE buildOption = "build stage in every image"
 )
 
 const (

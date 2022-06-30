@@ -249,7 +249,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 				dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroups[idx].TargetFramework) {
 				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, projPath)
 			} else {
-				logrus.Warnf("unable to find compatible ASP.NET Core target framework for the csproj file at path %s hence skipping. Actual: %#v", projPath, csprojConfiguration.PropertyGroups)
+				logrus.Debugf("unable to find compatible ASP.NET Core target framework for the csproj file at path %s hence skipping. Actual: %#v", projPath, csprojConfiguration.PropertyGroups)
 			}
 		}
 		if len(dotNetCoreCsprojPaths) == 0 {
@@ -286,7 +286,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 				appName = strings.TrimSuffix(filepath.Base(csprojFilePath), filepath.Ext(csprojFilePath))
 				break // Exit soon after the valid csproj file is found
 			}
-			logrus.Warnf("unable to find compatible ASP.NET Core target framework for the csproj file at path %s hence skipping. Actual: %#v", csprojFilePath, csprojConfiguration.PropertyGroups)
+			logrus.Debugf("unable to find compatible ASP.NET Core target framework for the csproj file at path %s hence skipping. Actual: %#v", csprojFilePath, csprojConfiguration.PropertyGroups)
 		}
 	}
 
@@ -412,7 +412,7 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 			dotNetCoreTemplateConfig.DotNetVersion = frameworkVersion[0][1]
 		}
 		if dotNetCoreTemplateConfig.DotNetVersion == "" {
-			logrus.Warnf("Unable to find compatible version for the '%s' service. Using default version: %s . Actual: %#v", a.Name, t.DotNetCoreConfig.DefaultDotNetCoreVersion, csprojConfiguration.PropertyGroups)
+			logrus.Debugf("unable to find compatible version for the '%s' service. Using default version: %s . Actual: %#v", a.Name, t.DotNetCoreConfig.DefaultDotNetCoreVersion, csprojConfiguration.PropertyGroups)
 			dotNetCoreTemplateConfig.DotNetVersion = t.DotNetCoreConfig.DefaultDotNetCoreVersion
 		}
 		if sImageName.ImageName == "" {

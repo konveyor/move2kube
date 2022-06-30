@@ -69,19 +69,60 @@ func (t *WinWebAppDockerfileGenerator) GetConfig() (transformertypes.Transformer
 
 // DirectoryDetect runs detect in each sub directory
 func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
-	slnPaths, err := common.GetFilesByExt(dir, []string{dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT})
+	slnPaths, err := common.GetFilesByExtInCurrDir(dir, []string{dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list the dot net visual studio solution files in the directory %s . Error: %q", dir, err)
 	}
+	appName := filepath.Base(dir)
 	if len(slnPaths) == 0 {
-		// TODO: handle the case where there's no .sln file but only a .csproj file
-		return nil, nil
+		csProjPaths, err := common.GetFilesByExtInCurrDir(dir, []string{dotnetutils.CSPROJ_FILE_EXT})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list the dot net c sharp project files in the directory %s . Error: %q", dir, err)
+		}
+		if len(csProjPaths) == 0 {
+			return nil, nil
+		}
+		childProjects := []artifacts.DotNetChildProject{}
+		for _, csProjPath := range csProjPaths {
+			configuration, err := parseCSProj(csProjPath)
+			if err != nil {
+				logrus.Errorf("failed to parse the c sharp project file at path %s . Error: %q", csProjPath, err)
+				continue
+			}
+			if idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" }); idx == -1 ||
+				!dotnet.Version4.MatchString(configuration.PropertyGroups[idx].TargetFrameworkVersion) {
+				logrus.Errorf("the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, configuration.PropertyGroups[idx].TargetFrameworkVersion)
+				continue
+			}
+			childProjects = append(childProjects, artifacts.DotNetChildProject{
+				Name:          getChildProjectName(csProjPath),
+				RelCSProjPath: filepath.Base(csProjPath),
+			})
+		}
+		namedServices := map[string][]transformertypes.Artifact{
+			appName: {{
+				Name: appName,
+				Type: artifacts.ServiceArtifactType,
+				Paths: map[transformertypes.PathType][]string{
+					artifacts.ServiceRootDirPathType:          {dir},
+					artifacts.ServiceDirPathType:              {dir},
+					dotnetutils.DotNetCoreCsprojFilesPathType: csProjPaths,
+				},
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.DotNetConfigType: artifacts.DotNetConfig{
+						DotNetAppName:         appName,
+						IsSolutionFilePresent: false,
+						ChildProjects:         childProjects,
+					},
+				},
+			}},
+		}
+		return namedServices, nil
 	}
 	if len(slnPaths) > 1 {
 		logrus.Debugf("more than one visual studio solution file detected. Number of .sln files %d", len(slnPaths))
 	}
 	slnPath := slnPaths[0]
-	appName := filepath.Base(dir)
 	relCSProjPaths, err := getCSProjPathsFromSlnFile(slnPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the vs solution file at path %s . Error: %q", slnPath, err)
