@@ -12,20 +12,21 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+{{ if .IncludeBuildStage }}
 # Build Stage
-FROM --platform=windows/amd64 mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} As builder
+FROM --platform=windows/amd64 mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} AS {{ .BuildContainerName }}
 WORKDIR /app
 COPY . .
 RUN nuget restore
-
-COPY {{ .AppName }}/. ./{{ .AppName }}/
-WORKDIR /app/{{ .AppName }}
 RUN msbuild /p:Configuration=Release
+{{- end }}
 
+{{ if .IncludeRunStage }}
 # Run Stage
 FROM --platform=windows/amd64 microsoft/aspnet:4.7.2 AS runtime
 {{- range .Ports}}
 EXPOSE {{.}}
 {{- end}}
 WORKDIR /inetpub/wwwroot
-COPY --from=builder /app/{{ .AppName }}/. ./
+COPY {{ if .BuildContainerName }}--from={{ .BuildContainerName }}{{ end }} {{ .CopyFrom }} ./
+{{- end }}

@@ -51,6 +51,22 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// FindIndex returns the index of the first element that satisfies the condition.
+// It returns -1 if none of the elements satisfy the condition.
+func FindIndex[T comparable](vs []T, condition func(T) bool) int {
+	for i, v := range vs {
+		if condition(v) {
+			return i
+		}
+	}
+	return -1
+}
+
+// JoinQASubKeys joins sub keys into a valid QA key using the proper delimiter
+func JoinQASubKeys(xs ...string) string {
+	return strings.Join(xs, Delim)
+}
+
 // GetYamlsWithTypeMeta returns files by yaml kind
 func GetYamlsWithTypeMeta(inputPath string, kindFilter string) ([]string, error) {
 	var result []string
@@ -111,23 +127,25 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 }
 
 // GetFilesByExtInCurrDir returns the files present in current directory which have one of the specified extensions
-func GetFilesByExtInCurrDir(inputPath string, exts []string) ([]string, error) {
+func GetFilesByExtInCurrDir(dir string, exts []string) ([]string, error) {
 	var files []string
-	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
-		logrus.Warnf("Error in walking through files due to : %q", err)
-		return nil, err
-	} else if !info.IsDir() {
-		fext := filepath.Ext(inputPath)
+	info, err := os.Stat(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat the directory %s . Error: %q", dir, err)
+	}
+	if !info.IsDir() {
+		logrus.Warnf("the provided path %s is not a directory", dir)
+		fext := filepath.Ext(dir)
 		for _, ext := range exts {
 			if fext == ext {
-				return []string{inputPath}, nil
+				return []string{dir}, nil
 			}
 		}
-		return []string{}, nil
+		return nil, nil
 	}
-	dirEntries, err := os.ReadDir(inputPath)
+	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		return []string{}, err
+		return nil, fmt.Errorf("failed to read the directory %s . Error: %q", dir, err)
 	}
 	for _, de := range dirEntries {
 		if de.IsDir() {
@@ -136,7 +154,8 @@ func GetFilesByExtInCurrDir(inputPath string, exts []string) ([]string, error) {
 		fext := filepath.Ext(de.Name())
 		for _, ext := range exts {
 			if fext == ext {
-				files = append(files, filepath.Join(inputPath, de.Name()))
+				files = append(files, filepath.Join(dir, de.Name()))
+				break
 			}
 		}
 	}

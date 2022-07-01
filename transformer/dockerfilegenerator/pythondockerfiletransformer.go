@@ -128,7 +128,10 @@ func getMainPythonFileForService(mainPythonFilesPath []string, baseDir string, s
 			mainPythonFilesRelPath = append(mainPythonFilesRelPath, mainPythonFileRelPath)
 		}
 	}
-	return qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigMainPythonFileForServiceKeySegment, fmt.Sprintf("Select the main file to be used for the service %s :", serviceName), []string{fmt.Sprintf("Selected main file will be used for the service %s", serviceName)}, mainPythonFilesRelPath[0], mainPythonFilesRelPath)
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigMainPythonFileForServiceKeySegment)
+	desc := fmt.Sprintf("Select the main file to be used for the service %s :", serviceName)
+	hints := []string{fmt.Sprintf("Selected main file will be used for the service %s", serviceName)}
+	return qaengine.FetchSelectAnswer(quesKey, desc, hints, mainPythonFilesRelPath[0], mainPythonFilesRelPath)
 }
 
 // getStartingPythonFileForService returns the starting python file used by a service
@@ -139,7 +142,10 @@ func getStartingPythonFileForService(pythonFilesPath []string, baseDir string, s
 			pythonFilesRelPath = append(pythonFilesRelPath, pythonFileRelPath)
 		}
 	}
-	return qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigStartingPythonFileForServiceKeySegment, fmt.Sprintf("Select the python file to be used for the service %s :", serviceName), []string{fmt.Sprintf("Selected python file will be used for starting the service %s", serviceName)}, pythonFilesRelPath[0], pythonFilesRelPath)
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigStartingPythonFileForServiceKeySegment)
+	desc := fmt.Sprintf("Select the python file to be used for the service %s :", serviceName)
+	hints := []string{fmt.Sprintf("Selected python file will be used for starting the service %s", serviceName)}
+	return qaengine.FetchSelectAnswer(quesKey, desc, hints, pythonFilesRelPath[0], pythonFilesRelPath)
 }
 
 // DirectoryDetect runs detect in each sub directory

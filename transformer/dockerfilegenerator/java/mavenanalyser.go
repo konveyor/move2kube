@@ -338,7 +338,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 
 		// have the user select the port to use
 
-		selectedPort := commonqa.GetPortForService(detectedPorts, mavenConfig.MavenAppName+common.Delim+"childModules"+common.Delim+childModule.Name)
+		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(mavenConfig.MavenAppName, "childModules", childModule.Name))
 		if childModuleInfo.SpringBoot != nil {
 			envVarsMap["SERVER_PORT"] = fmt.Sprintf("%d", selectedPort)
 		} else {
@@ -442,7 +442,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 	// ask the user which maven profiles should be used while building the app
 
 	selectedMavenProfiles := qaengine.FetchMultiSelectAnswer(
-		common.ConfigServicesKey+common.Delim+mavenConfig.MavenAppName+common.Delim+"mavenProfiles",
+		common.JoinQASubKeys(common.ConfigServicesKey, mavenConfig.MavenAppName, "mavenProfiles"),
 		fmt.Sprintf("select the maven profiles to use for the service '%s'", mavenConfig.MavenAppName),
 		[]string{"the selected maven profiles will be used during the build"},
 		rootPomInfo.MavenProfiles,

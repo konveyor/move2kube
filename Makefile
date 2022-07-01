@@ -108,7 +108,7 @@ get: go.mod
 	go mod download
 
 .PHONY: generate
-generate:
+generate: ## Generate assets
 	go generate ${PKG}
 
 # -- Test --
