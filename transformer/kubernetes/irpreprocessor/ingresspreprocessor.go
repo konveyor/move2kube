@@ -41,7 +41,7 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 				portForwarding.ServiceRelPath = "/" + serviceName
 			}
 			noneServiceType := "Don't create service"
-			portKeyPart := common.ConfigServicesKey + common.Delim + `"` + serviceName + `"` + common.Delim + `"` + fmt.Sprintf("%d", portForwarding.ServicePort.Number) + `"` + common.Delim
+			portKeyPart := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, `"`+fmt.Sprintf("%d", portForwarding.ServicePort.Number)+`"`) + common.Delim
 			options := []string{common.IngressKind, string(core.ServiceTypeLoadBalancer), string(core.ServiceTypeNodePort), string(core.ServiceTypeClusterIP), noneServiceType}
 			desc := fmt.Sprintf("What kind of service/ingress should be created for the service %s's %d port?", serviceName, portForwarding.ServicePort.Number)
 			hints := []string{"Choose " + common.IngressKind + " if you want a ingress/route resource to be created"}

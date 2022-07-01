@@ -242,7 +242,7 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 			return starlark.None, fmt.Errorf("the key 'id' is missing from the question object %+v", argI)
 		}
 		if !strings.HasPrefix(prob.ID, common.BaseKey) {
-			prob.ID = common.BaseKey + common.Delim + prob.ID
+			prob.ID = common.JoinQASubKeys(common.BaseKey, prob.ID)
 		}
 		// type
 		if prob.Type == "" {

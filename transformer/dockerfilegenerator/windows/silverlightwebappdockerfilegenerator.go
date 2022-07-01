@@ -67,7 +67,7 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (s
 		if filepath.Ext(de.Name()) != dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT {
 			continue
 		}
-		csProjPaths, err := parseSolutionFile(filepath.Join(dir, de.Name()))
+		csProjPaths, err := getCSProjPathsFromSlnFile(filepath.Join(dir, de.Name()))
 		if err != nil {
 			logrus.Errorf("%s", err)
 			continue
@@ -93,10 +93,9 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (s
 				continue
 			}
 
-			if configuration.PropertyGroup == nil ||
-				configuration.PropertyGroup.TargetFrameworkVersion == "" ||
-				!dotnet.FourXPattern.MatchString(configuration.PropertyGroup.TargetFrameworkVersion) {
-				logrus.Debugf("Not a supported dotnet framework [%s]", configuration.PropertyGroup.TargetFrameworkVersion)
+			if idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" }); idx == -1 ||
+				!dotnet.Version4.MatchString(configuration.PropertyGroups[idx].TargetFrameworkVersion) {
+				logrus.Errorf("the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csPath, configuration.PropertyGroups[idx].TargetFrameworkVersion)
 				continue
 			}
 

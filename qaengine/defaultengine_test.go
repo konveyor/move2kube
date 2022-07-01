@@ -33,7 +33,7 @@ func TestDefaultEngine(t *testing.T) {
 		e := NewDefaultEngine()
 		AddEngine(e)
 		defaultRegistryURL := "quay.io"
-		key := common.BaseKey + common.Delim + "input"
+		key := common.JoinQASubKeys(common.BaseKey, "input")
 		answer := FetchStringAnswer(key, "Enter the name of the registry : ", []string{"Ex : " + defaultRegistryURL}, defaultRegistryURL)
 		if answer != defaultRegistryURL {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
@@ -48,7 +48,7 @@ func TestDefaultEngine(t *testing.T) {
 		e := NewDefaultEngine()
 		AddEngine(e)
 
-		key := common.BaseKey + common.Delim + "select"
+		key := common.JoinQASubKeys(common.BaseKey, "select")
 		desc := "Test description"
 		context := []string{"Test context"}
 		def := "Option B"
@@ -68,7 +68,7 @@ func TestDefaultEngine(t *testing.T) {
 		e := NewDefaultEngine()
 		AddEngine(e)
 
-		key := common.BaseKey + common.Delim + "multiselect"
+		key := common.JoinQASubKeys(common.BaseKey, "multiselect")
 		desc := "Test description"
 		context := []string{"Test context"}
 		def := []string{"Option A", "Option C"}
@@ -88,7 +88,7 @@ func TestDefaultEngine(t *testing.T) {
 		e := NewDefaultEngine()
 		AddEngine(e)
 
-		key := common.BaseKey + common.Delim + "confirm"
+		key := common.JoinQASubKeys(common.BaseKey, "confirm")
 		desc := "Test description"
 		context := []string{"Test context"}
 		def := true
@@ -107,7 +107,7 @@ func TestDefaultEngine(t *testing.T) {
 		e := NewDefaultEngine()
 		AddEngine(e)
 
-		key := common.BaseKey + common.Delim + "multiline"
+		key := common.JoinQASubKeys(common.BaseKey, "multiline")
 		desc := "Test description"
 		context := []string{"Test context"}
 		def := `line1

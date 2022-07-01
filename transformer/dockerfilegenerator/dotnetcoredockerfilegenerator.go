@@ -28,6 +28,7 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/qaengine"
+	dotnetutils "github.com/konveyor/move2kube/transformer/dockerfilegenerator/dotnet"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/konveyor/move2kube/types/source/dotnet"
@@ -43,16 +44,6 @@ const (
 var (
 	portRegex       = regexp.MustCompile(`:(\d+)`)
 	dotnetcoreRegex = regexp.MustCompile(`net(?:(?:coreapp)|(?:standard))?(\d+\.\d+)`)
-)
-
-const (
-	// CSPROJ_FILE_EXT is the file extension for C# (C Sharp) projects.
-	CSPROJ_FILE_EXT    = ".csproj"
-	launchSettingsJSON = "launchSettings.json"
-	// DotNetCoreCsprojFilesPathType points to the csproj files path of dotnetcore projects
-	DotNetCoreCsprojFilesPathType transformertypes.PathType = "DotNetCoreCsprojPathType"
-	// DotNetCoreSolutionFilePathType points to the solution file path of dotnetcore project
-	DotNetCoreSolutionFilePathType transformertypes.PathType = "DotNetCoreSolutionPathType"
 )
 
 // DotNetCoreTemplateConfig implements DotNetCore config interface
@@ -140,7 +131,10 @@ func getPublishProfile(publishProfileFilesPath []string, serviceName, baseDir st
 	if len(publishProfileFilesRelPath) == 1 {
 		publishProfileFileRelPath = publishProfileFilesRelPath[0]
 	} else if len(publishProfileFilesRelPath) > 1 {
-		publishProfileFileRelPath = qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigPublishProfileForServiceKeySegment, fmt.Sprintf("Select the publish profile to be used for the service %s :", serviceName), []string{fmt.Sprintf("Selected publish profile will be used for publishing the service %s", serviceName)}, publishProfileFilesRelPath[0], publishProfileFilesRelPath)
+		quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigPublishProfileForServiceKeySegment)
+		desc := fmt.Sprintf("Select the publish profile to be used for the service %s :", serviceName)
+		hints := []string{fmt.Sprintf("Selected publish profile will be used for publishing the service %s", serviceName)}
+		publishProfileFileRelPath = qaengine.FetchSelectAnswer(quesKey, desc, hints, publishProfileFilesRelPath[0], publishProfileFilesRelPath)
 	}
 	if publishProfileFileRelPath != "" {
 		publishUrl, err = parsePublishProfileFile(filepath.Join(baseDir, publishProfileFileRelPath))
@@ -196,7 +190,10 @@ func getCsprojFileForService(csprojFilesPath []string, baseDir string, serviceNa
 			csprojFilesRelPath = append(csprojFilesRelPath, csprojFileRelPath)
 		}
 	}
-	return qaengine.FetchSelectAnswer(common.ConfigServicesKey+common.Delim+serviceName+common.Delim+common.ConfigCsprojFileForServiceKeySegment, fmt.Sprintf("Select the csproj file to be used for the service %s :", serviceName), []string{fmt.Sprintf("Selected csproj file will be used for starting the service %s", serviceName)}, csprojFilesRelPath[defaultCsprojFileIndex], csprojFilesRelPath)
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigCsprojFileForServiceKeySegment)
+	desc := fmt.Sprintf("Select the csproj file to be used for the service %s :", serviceName)
+	hints := []string{fmt.Sprintf("Selected csproj file will be used for starting the service %s", serviceName)}
+	return qaengine.FetchSelectAnswer(quesKey, desc, hints, csprojFilesRelPath[defaultCsprojFileIndex], csprojFilesRelPath)
 }
 
 // getCsprojPathsFromSolutionFile parses the solution file for cs project file paths
@@ -211,7 +208,7 @@ func getCsprojPathsFromSolutionFile(inputPath string) ([]string, error) {
 		serviceDirPath := match[1]
 		serviceDirPath = strings.TrimSpace(serviceDirPath)
 		serviceDirPath = common.GetUnixPath(serviceDirPath)
-		if filepath.Ext(serviceDirPath) != CSPROJ_FILE_EXT {
+		if filepath.Ext(serviceDirPath) != dotnetutils.CSPROJ_FILE_EXT {
 			continue
 		}
 		serviceDirPaths = append(serviceDirPaths, serviceDirPath)
@@ -248,10 +245,11 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 				logrus.Debugf("Error while reading the csproj file (%s) : %s", projPath, err)
 				continue
 			}
-			if dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
+			if idx := common.FindIndex(csprojConfiguration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFramework != "" }); idx != -1 &&
+				dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroups[idx].TargetFramework) {
 				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, projPath)
 			} else {
-				logrus.Warnf("unable to find compatible ASP.NET Core target framework for the csproj file at path %s hence skipping. Actual: %s", projPath, csprojConfiguration.PropertyGroup.TargetFramework)
+				logrus.Debugf("unable to find compatible ASP.NET Core target framework for the csproj file at path %s hence skipping. Actual: %#v", projPath, csprojConfiguration.PropertyGroups)
 			}
 		}
 		if len(dotNetCoreCsprojPaths) == 0 {
@@ -273,7 +271,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 			if de.IsDir() {
 				continue
 			}
-			if filepath.Ext(de.Name()) != CSPROJ_FILE_EXT {
+			if filepath.Ext(de.Name()) != dotnetutils.CSPROJ_FILE_EXT {
 				continue
 			}
 			csprojFilePath := filepath.Join(dir, de.Name())
@@ -282,12 +280,13 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 				logrus.Errorf("unable to read the csproj file at path %s . Error: %q", csprojFilePath, err)
 				continue
 			}
-			if dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroup.TargetFramework) {
+			if idx := common.FindIndex(csprojConfiguration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFramework != "" }); idx != -1 &&
+				dotnetcoreRegex.MatchString(csprojConfiguration.PropertyGroups[idx].TargetFramework) {
 				dotNetCoreCsprojPaths = append(dotNetCoreCsprojPaths, csprojFilePath)
 				appName = strings.TrimSuffix(filepath.Base(csprojFilePath), filepath.Ext(csprojFilePath))
 				break // Exit soon after the valid csproj file is found
 			}
-			logrus.Warnf("unable to find compatible ASP.NET Core target framework for the csproj file at path %s hence skipping. Actual: %s", csprojFilePath, csprojConfiguration.PropertyGroup.TargetFramework)
+			logrus.Debugf("unable to find compatible ASP.NET Core target framework for the csproj file at path %s hence skipping. Actual: %#v", csprojFilePath, csprojConfiguration.PropertyGroups)
 		}
 	}
 
@@ -298,12 +297,12 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 
 	dotnetcoreService := transformertypes.Artifact{
 		Paths: map[transformertypes.PathType][]string{
-			artifacts.ServiceDirPathType:  {dir},
-			DotNetCoreCsprojFilesPathType: dotNetCoreCsprojPaths,
+			artifacts.ServiceDirPathType:              {dir},
+			dotnetutils.DotNetCoreCsprojFilesPathType: dotNetCoreCsprojPaths,
 		},
 	}
 	if solutionFilePath != "" {
-		dotnetcoreService.Paths[DotNetCoreSolutionFilePathType] = []string{solutionFilePath}
+		dotnetcoreService.Paths[dotnetutils.DotNetCoreSolutionFilePathType] = []string{solutionFilePath}
 	}
 	services = map[string][]transformertypes.Artifact{
 		appName: {dotnetcoreService},
@@ -341,26 +340,26 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 		ports := ir.GetAllServicePorts()
 		var dotNetCoreTemplateConfig DotNetCoreTemplateConfig
 		var csprojRelFilePath string
-		if len(a.Paths[DotNetCoreCsprojFilesPathType]) == 1 {
-			csprojRelFilePath, err = filepath.Rel(a.Paths[artifacts.ServiceDirPathType][0], a.Paths[DotNetCoreCsprojFilesPathType][0])
+		if len(a.Paths[dotnetutils.DotNetCoreCsprojFilesPathType]) == 1 {
+			csprojRelFilePath, err = filepath.Rel(a.Paths[artifacts.ServiceDirPathType][0], a.Paths[dotnetutils.DotNetCoreCsprojFilesPathType][0])
 			if err != nil {
-				logrus.Errorf("Unable to convert csproj file path %s to be relative : %s", a.Paths[DotNetCoreCsprojFilesPathType][0], err)
+				logrus.Errorf("Unable to convert csproj file path %s to be relative : %s", a.Paths[dotnetutils.DotNetCoreCsprojFilesPathType][0], err)
 				continue
 			}
 		} else {
-			csprojRelFilePath = getCsprojFileForService(a.Paths[DotNetCoreCsprojFilesPathType], a.Paths[artifacts.ServiceDirPathType][0], a.Name)
+			csprojRelFilePath = getCsprojFileForService(a.Paths[dotnetutils.DotNetCoreCsprojFilesPathType], a.Paths[artifacts.ServiceDirPathType][0], a.Name)
 		}
 		publishProfileFilesPath := findPublishProfiles(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], csprojRelFilePath))
 		dotNetCoreTemplateConfig.PublishProfileFilePath, dotNetCoreTemplateConfig.PublishUrl = getPublishProfile(publishProfileFilesPath, a.Name, a.Paths[artifacts.ServiceDirPathType][0])
 		dotNetCoreTemplateConfig.CsprojFilePath = csprojRelFilePath
 		dotnetProjectName := strings.TrimSuffix(filepath.Base(dotNetCoreTemplateConfig.CsprojFilePath), filepath.Ext(dotNetCoreTemplateConfig.CsprojFilePath))
 		dotNetCoreTemplateConfig.CsprojFileName = dotnetProjectName
-		jsonFiles, err := common.GetFilesByName(a.Paths[artifacts.ServiceDirPathType][0], []string{launchSettingsJSON, packageJSONFile}, nil)
+		jsonFiles, err := common.GetFilesByName(a.Paths[artifacts.ServiceDirPathType][0], []string{dotnetutils.LaunchSettingsJSON, packageJSONFile}, nil)
 		if err != nil {
 			logrus.Debugf("Error while finding json files %s", err)
 		}
 		for _, jsonFile := range jsonFiles {
-			if filepath.Base(jsonFile) == launchSettingsJSON {
+			if filepath.Base(jsonFile) == dotnetutils.LaunchSettingsJSON {
 				launchSettings := LaunchSettings{}
 				if err := common.ReadJSON(jsonFile, &launchSettings); err != nil {
 					logrus.Errorf("Unable to read the launchSettings.json file: %s", err)
@@ -402,12 +401,18 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 			logrus.Errorf("Could not read the project file (%s) : %s", filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], csprojRelFilePath), err)
 			continue
 		}
-		frameworkVersion := dotnetcoreRegex.FindAllStringSubmatch(csprojConfiguration.PropertyGroup.TargetFramework, -1)
+		idx := common.FindIndex(csprojConfiguration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFramework != "" })
+		if idx == -1 {
+			logrus.Errorf("failed to find the target framework in any of the property groups inside the .csproj file")
+			continue
+		}
+		cand := csprojConfiguration.PropertyGroups[idx]
+		frameworkVersion := dotnetcoreRegex.FindAllStringSubmatch(cand.TargetFramework, -1)
 		if len(frameworkVersion) != 0 && len(frameworkVersion[0]) == 2 {
 			dotNetCoreTemplateConfig.DotNetVersion = frameworkVersion[0][1]
 		}
 		if dotNetCoreTemplateConfig.DotNetVersion == "" {
-			logrus.Warnf("Unable to find compatible version for %s service %s target framework. Using default version: %s", a.Name, csprojConfiguration.PropertyGroup.TargetFramework, t.DotNetCoreConfig.DefaultDotNetCoreVersion)
+			logrus.Debugf("unable to find compatible version for the '%s' service. Using default version: %s . Actual: %#v", a.Name, t.DotNetCoreConfig.DefaultDotNetCoreVersion, csprojConfiguration.PropertyGroups)
 			dotNetCoreTemplateConfig.DotNetVersion = t.DotNetCoreConfig.DefaultDotNetCoreVersion
 		}
 		if sImageName.ImageName == "" {

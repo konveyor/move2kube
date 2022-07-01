@@ -17,6 +17,7 @@
 package windows
 
 import (
+	"encoding/xml"
 	"fmt"
 	"os"
 	"runtime"
@@ -24,6 +25,18 @@ import (
 
 	"github.com/konveyor/move2kube/types/source/dotnet"
 )
+
+func parseCSProj(path string) (dotnet.CSProj, error) {
+	configuration := dotnet.CSProj{}
+	csProjBytes, err := os.ReadFile(path)
+	if err != nil {
+		return configuration, fmt.Errorf("failed to read the c sharp project file at path %s . Error: %q", path, err)
+	}
+	if err := xml.Unmarshal(csProjBytes, &configuration); err != nil {
+		return configuration, fmt.Errorf("failed to parse the c sharp project file at path %s . Error: %q", path, err)
+	}
+	return configuration, nil
+}
 
 // isSilverlight checks if the app is silverlight by looking for silverlight regex patterns
 func isSilverlight(configuration dotnet.CSProj) (bool, error) {
@@ -61,27 +74,24 @@ func isWeb(configuration dotnet.CSProj) (bool, error) {
 	return false, nil
 }
 
-// parseSolutionFile parses the solution file for cs project file paths
-func parseSolutionFile(inputPath string) ([]string, error) {
-	solFileTxt, err := os.ReadFile(inputPath)
+// getCSProjPathsFromSlnFile parses the solution file for cs project file paths
+func getCSProjPathsFromSlnFile(inputPath string) ([]string, error) {
+	slnBytes, err := os.ReadFile(inputPath)
 	if err != nil {
-		return nil, fmt.Errorf("could not open the solution file: %s", err)
+		return nil, fmt.Errorf("failed to open the solution file at path %s . Error: %q", inputPath, err)
 	}
-	serviceDirPaths := make([]string, 0)
-	l := dotnet.ProjBlockRegex.FindAllStringSubmatch(string(solFileTxt), -1)
-	for _, path := range l {
-		if len(path) == 0 {
+	csProjPaths := []string{}
+	subMatches := dotnet.ProjBlockRegex.FindAllStringSubmatch(string(slnBytes), -1)
+	notWindows := runtime.GOOS != "windows"
+	for _, subMatch := range subMatches {
+		if len(subMatch) == 0 {
 			continue
 		}
-		serviceDirPaths = append(serviceDirPaths, path[1])
-	}
-	separator := fmt.Sprintf("%c", os.PathSeparator)
-	for i, c := range serviceDirPaths {
-		c = strings.Trim(c, `"`)
-		if runtime.GOOS != "windows" {
-			c = strings.ReplaceAll(c, `\`, separator)
+		csProjPath := strings.Trim(subMatch[1], `"`)
+		if notWindows {
+			csProjPath = strings.ReplaceAll(csProjPath, `\`, string(os.PathSeparator))
 		}
-		serviceDirPaths[i] = c
+		csProjPaths = append(csProjPaths, csProjPath)
 	}
-	return serviceDirPaths, nil
+	return csProjPaths, nil
 }

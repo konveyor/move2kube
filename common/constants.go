@@ -167,6 +167,8 @@ const (
 	ConfigActiveSpringBootProfilesForServiceKeySegment = "activespringbootprofiles"
 	// ConfigServicesChildModulesNamesKey is true if a detected child module/sub-project of a service is enabled for transformation
 	ConfigServicesChildModulesNamesKey = ConfigServicesKey + d + "%s" + d + "childModules" + d + Special + d + "enable"
+	// ConfigServicesDotNetChildProjectsNamesKey is true if a detected child-project of a dot net service is enabled for transformation
+	ConfigServicesDotNetChildProjectsNamesKey = ConfigServicesKey + d + "%s" + d + "childProjects" + d + Special + d + "enable"
 	// ConfigServicesChildModulesSpringProfilesKey is the list of spring profiles for this child module. 1st arg is service name and 2nd is child module name.
 	ConfigServicesChildModulesSpringProfilesKey = ConfigServicesKey + d + "%s" + d + "childModules" + d + "%s" + d + "springBootProfiles"
 )

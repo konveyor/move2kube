@@ -37,7 +37,7 @@ func TestCacheEngine(t *testing.T) {
 		AddEngine(e)
 		// SetWriteConfig(tmpTestPath)
 
-		key := common.BaseKey + common.Delim + "input"
+		key := common.JoinQASubKeys(common.BaseKey, "input")
 		desc := "Enter the container registry username : "
 		context := []string{"Enter username for container registry login"}
 		def := ""
@@ -59,7 +59,7 @@ func TestCacheEngine(t *testing.T) {
 		AddEngine(e)
 		// SetWriteConfig(tmpTestPath)
 
-		key := common.BaseKey + common.Delim + "select"
+		key := common.JoinQASubKeys(common.BaseKey, "select")
 		desc := "What type of container registry login do you want to use?"
 		context := []string{"Docker login from config mode, will use the default config from your local machine."}
 		def := "No authentication"
@@ -81,7 +81,7 @@ func TestCacheEngine(t *testing.T) {
 		AddEngine(e)
 		// SetWriteConfig(tmpTestPath)
 
-		key := common.BaseKey + common.Delim + "multline"
+		key := common.JoinQASubKeys(common.BaseKey, "multline")
 		desc := "Multiline input problem test description : "
 		context := []string{"Multiline input problem test context."}
 		cachedAnswer := `line1 
@@ -104,7 +104,7 @@ line3
 		AddEngine(e)
 		// SetWriteConfig(tmpTestPath)
 
-		key := common.BaseKey + common.Delim + "confirm"
+		key := common.JoinQASubKeys(common.BaseKey, "confirm")
 		desc := "Confirm problem test description : "
 		context := []string{"Confirm input problem test context."}
 		def := true
@@ -125,7 +125,7 @@ line3
 		AddEngine(e)
 		// SetWriteConfig(tmpTestPath)
 
-		key := common.BaseKey + common.Delim + "multiselect"
+		key := common.JoinQASubKeys(common.BaseKey, "multiselect")
 		desc := "MultiSelect input problem test description : "
 		context := []string{"MultiSelect input problem test context"}
 		def := []string{"Option A", "Option C"}
