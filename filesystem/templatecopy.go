@@ -18,6 +18,7 @@ package filesystem
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -159,8 +160,7 @@ func writeTemplateToFile(tpl string, config interface{}, writepath string,
 	}
 	err = packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
-		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)
-		return err
+		return fmt.Errorf("unable to transform template to string using the data. Error: %q . Data: %+v Template: %q", err, config, tpl)
 	}
 	err = os.WriteFile(writepath, tplbuffer.Bytes(), filemode)
 	if err != nil {

@@ -26,6 +26,22 @@ import (
 	"github.com/konveyor/move2kube/types/source/dotnet"
 )
 
+/*
+func getJavaPackage(mappingFile string, version string) (pkg string, err error) {
+	var javaPackageNamesMapping JavaPackageNamesMapping
+	if err := common.ReadMove2KubeYaml(mappingFile, &javaPackageNamesMapping); err != nil {
+		logrus.Debugf("Could not load mapping at %s", mappingFile)
+		return "", err
+	}
+	v, ok := javaPackageNamesMapping.Spec.PackageVersions[version]
+	if !ok {
+		logrus.Infof("Matching java package not found for java version : %s. Going with default.", version)
+		return defaultJavaPackage, nil
+	}
+	return v, nil
+}
+*/
+
 func parseCSProj(path string) (dotnet.CSProj, error) {
 	configuration := dotnet.CSProj{}
 	csProjBytes, err := os.ReadFile(path)
