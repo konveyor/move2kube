@@ -14,7 +14,7 @@
 
 {{ if .IncludeBuildStage }}
 # Build Stage
-FROM --platform=windows/amd64 mcr.microsoft.com/dotnet/framework/sdk:{{ .BaseImageVersion }} AS {{ .BuildContainerName }}
+FROM --platform=windows/amd64 mcr.microsoft.com/dotnet/framework/sdk:{{ .BuildStageImageTag }} AS {{ .BuildContainerName }}
 WORKDIR /app
 COPY . .
 RUN nuget restore
@@ -23,7 +23,7 @@ RUN msbuild /p:Configuration=Release
 
 {{ if .IncludeRunStage }}
 # Run Stage
-FROM --platform=windows/amd64 microsoft/aspnet:4.7.2 AS runtime
+FROM --platform=windows/amd64 mcr.microsoft.com/dotnet/framework/aspnet:{{ .RunStageImageTag }}
 {{- range .Ports}}
 EXPOSE {{.}}
 {{- end}}

@@ -17,3 +17,5 @@ spec:
       disabled: false
     DockerfileForService:
       disabled: false
+  externalFiles:
+    "../mappings/dotnetwindowsversionmapping.yaml" : mappings/dotnetwindowsversionmapping.yaml

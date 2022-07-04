@@ -34,31 +34,52 @@ import (
 )
 
 const (
-	buildStageC           = "dotnetwebbuildstage"
-	defaultBuildOutputDir = "bin"
+	buildStageC             = "dotnetwebbuildstage"
+	defaultBuildOutputDir   = "bin"
+	defaultRunStageImageTag = "4.8"
 )
+
+func (t *WinWebAppDockerfileGenerator) getImageTagFromVersion(version string) string {
+	for imageTag, versions := range t.imageTagToSupportedVersions {
+		if common.FindIndex(versions, func(v string) bool { return v == version || "v"+v == version }) != -1 {
+			return imageTag
+		}
+	}
+	return defaultRunStageImageTag
+}
 
 // WebTemplateConfig contains the data to fill the Dockerfile template
 type WebTemplateConfig struct {
-	Ports              []int32
 	AppName            string
-	BaseImageVersion   string
-	BuildContainerName string
-	CopyFrom           string
+	Ports              []int32
 	IncludeBuildStage  bool
+	BuildStageImageTag string
+	BuildContainerName string
 	IncludeRunStage    bool
+	RunStageImageTag   string
+	CopyFrom           string
 }
 
 // WinWebAppDockerfileGenerator implements the Transformer interface
 type WinWebAppDockerfileGenerator struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config                      transformertypes.Transformer
+	Env                         *environment.Environment
+	imageTagToSupportedVersions map[string][]string
 }
 
 // Init Initializes the transformer
-func (t *WinWebAppDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *WinWebAppDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
+	mappingFile := DotNetWindowsVersionMapping{}
+	mappingFilePath := filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath)
+	if err := common.ReadMove2KubeYaml(mappingFilePath, &mappingFile); err != nil {
+		return fmt.Errorf("failed to load the dot net windows version mapping file at path %s . Error: %q", mappingFilePath, err)
+	}
+	if len(mappingFile.Spec.ImageTagToSupportedVersions) == 0 {
+		return fmt.Errorf("the mapping file at path %s is invalid", mappingFilePath)
+	}
+	t.imageTagToSupportedVersions = mappingFile.Spec.ImageTagToSupportedVersions
 	return nil
 }
 
@@ -270,7 +291,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 		if selectedBuildOption == dotnetutils.BUILD_IN_BASE_IMAGE {
 			webConfig := WebTemplateConfig{
 				AppName:            dotNetConfig.DotNetAppName,
-				BaseImageVersion:   dotnet.DefaultBaseImageVersion,
+				BuildStageImageTag: dotnet.DefaultBaseImageVersion,
 				IncludeBuildStage:  true,
 				IncludeRunStage:    false,
 				BuildContainerName: imageToCopyFrom,
@@ -327,8 +348,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 
 			relCSProjDir := filepath.Dir(childProject.RelCSProjPath)
 			buildOutputDir := defaultBuildOutputDir
-			idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.OutputPath != "" })
-			if idx != -1 {
+			if idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.OutputPath != "" }); idx != -1 {
 				buildOutputDir = filepath.Clean(common.GetUnixPath(configuration.PropertyGroups[idx].OutputPath))
 			}
 			copyFrom := filepath.Join("/app", relCSProjDir, buildOutputDir) + "/"
@@ -336,14 +356,20 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 				copyFrom = buildOutputDir + "/" // files will be copied from the local file system instead of a builder image
 			}
 
+			targetFrameworkVersion := ""
+			if idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" }); idx != -1 {
+				targetFrameworkVersion = configuration.PropertyGroups[idx].TargetFrameworkVersion
+			}
+
 			webConfig := WebTemplateConfig{
 				AppName:            childProject.Name,
 				Ports:              selectedPorts,
-				BaseImageVersion:   dotnet.DefaultBaseImageVersion,
+				BuildStageImageTag: dotnet.DefaultBaseImageVersion,
 				IncludeBuildStage:  selectedBuildOption == dotnetutils.BUILD_IN_EVERY_IMAGE,
 				IncludeRunStage:    true,
 				BuildContainerName: imageToCopyFrom,
 				CopyFrom:           copyFrom,
+				RunStageImageTag:   t.getImageTagFromVersion(targetFrameworkVersion),
 			}
 
 			// path mapping to generate the Dockerfile for the child project

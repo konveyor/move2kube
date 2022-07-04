@@ -614,8 +614,7 @@ func GetStringFromTemplate(tpl string, config interface{}) (string, error) {
 	}
 	err = packageTemplate.Execute(&tplbuffer, config)
 	if err != nil {
-		logrus.Warnf("Unable to transform template %q to string using the data %v", tpl, config)
-		return "", err
+		return "", fmt.Errorf("unable to transform template to string using the data. Error: %q . Data: %+v Template: %q", err, config, tpl)
 	}
 	return tplbuffer.String(), nil
 }
