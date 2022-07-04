@@ -39,21 +39,8 @@ const (
 	defaultRunStageImageTag = "4.8"
 )
 
-var (
-	// imageTagToSupportedVersions is a mapping from image tag to dot net framework versions that image supports.
-	// Version compatibility table taken from https://hub.docker.com/_/microsoft-dotnet-framework-aspnet
-	imageTagToSupportedVersions = map[string][]string{
-		"4.8":   {"4.8"},
-		"4.7.2": {"4.7.2"},
-		"4.7.1": {"4.7.1"},
-		"4.7":   {"4.7"},
-		"4.6.2": {"4.6.2"},
-		"3.5":   {"4.7.2", "3.5", "3.0", "2.5"}, // indowsservercore-ltsc2019
-	}
-)
-
-func getImageTagFromVersion(version string) string {
-	for imageTag, versions := range imageTagToSupportedVersions {
+func (t *WinWebAppDockerfileGenerator) getImageTagFromVersion(version string) string {
+	for imageTag, versions := range t.imageTagToSupportedVersions {
 		if common.FindIndex(versions, func(v string) bool { return v == version || "v"+v == version }) != -1 {
 			return imageTag
 		}
@@ -75,14 +62,24 @@ type WebTemplateConfig struct {
 
 // WinWebAppDockerfileGenerator implements the Transformer interface
 type WinWebAppDockerfileGenerator struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config                      transformertypes.Transformer
+	Env                         *environment.Environment
+	imageTagToSupportedVersions map[string][]string
 }
 
 // Init Initializes the transformer
-func (t *WinWebAppDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *WinWebAppDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
+	mappingFile := DotNetWindowsVersionMapping{}
+	mappingFilePath := filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath)
+	if err := common.ReadMove2KubeYaml(mappingFilePath, &mappingFile); err != nil {
+		return fmt.Errorf("failed to load the dot net windows version mapping file at path %s . Error: %q", mappingFilePath, err)
+	}
+	if len(mappingFile.Spec.ImageTagToSupportedVersions) == 0 {
+		return fmt.Errorf("the mapping file at path %s is invalid", mappingFilePath)
+	}
+	t.imageTagToSupportedVersions = mappingFile.Spec.ImageTagToSupportedVersions
 	return nil
 }
 
@@ -372,7 +369,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 				IncludeRunStage:    true,
 				BuildContainerName: imageToCopyFrom,
 				CopyFrom:           copyFrom,
-				RunStageImageTag:   getImageTagFromVersion(targetFrameworkVersion),
+				RunStageImageTag:   t.getImageTagFromVersion(targetFrameworkVersion),
 			}
 
 			// path mapping to generate the Dockerfile for the child project

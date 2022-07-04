@@ -62,6 +62,7 @@
 "built-in/transformers/dockerfilegenerator/ruby/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/rust/templates/Dockerfile" : 0644
 "built-in/transformers/dockerfilegenerator/rust/transformer.yaml" : 0644
+"built-in/transformers/dockerfilegenerator/windows/mappings/dotnetwindowsversionmapping.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/windows/winconsole/templates/Dockerfile" : 0644
 "built-in/transformers/dockerfilegenerator/windows/winconsole/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/windows/winsilverlightweb/templates/Dockerfile" : 0644

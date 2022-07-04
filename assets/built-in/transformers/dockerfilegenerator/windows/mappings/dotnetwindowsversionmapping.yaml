@@ -1,0 +1,14 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: DotNetWindowsVersionMapping
+metadata:
+  name: DotNetWindowsVersionMapping
+spec:
+  # Version compatibility table taken from https://hub.docker.com/_/microsoft-dotnet-framework-aspnet
+  # imageTagToSupportedVersions is a mapping from image tag to dot net framework versions that image supports.
+  imageTagToSupportedVersions:
+    "4.8":   ["4.8"]
+    "4.7.2": ["4.7.2"]
+    "4.7.1": ["4.7.1"]
+    "4.7":   ["4.7"]
+    "4.6.2": ["4.6.2"]
+    "3.5":   ["4.7.2", "3.5", "3.0", "2.5"] # windowsservercore-ltsc2019
