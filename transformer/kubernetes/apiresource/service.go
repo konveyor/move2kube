@@ -343,6 +343,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 			if servicePort.Name == "" {
 				backendPort = networking.ServiceBackendPort{Number: servicePort.Port}
 			}
+
 			httpIngressPath := networking.HTTPIngressPath{
 				Path:     relPaths[i],
 				PathType: &pathType,
@@ -359,6 +360,8 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 	if len(hostHTTPIngressPaths) == 0 {
 		return nil
 	}
+	// Set the default ingressClass value
+	ingressClassName := qaengine.FetchStringAnswer(common.ConfigIngressClassName, "Provide the Ingress class name for ingress", []string{"Default set to nginx"}, "nginx")
 
 	// Configure the rule with the above fan-out paths
 	rules := []networking.IngressRule{}
@@ -402,8 +405,9 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 			Labels: getServiceLabels(ingressName),
 		},
 		Spec: networking.IngressSpec{
-			Rules: rules,
-			TLS:   tls,
+			Rules:            rules,
+			TLS:              tls,
+			IngressClassName: &ingressClassName,
 		},
 	}
 
