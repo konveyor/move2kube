@@ -407,8 +407,10 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 		Spec: networking.IngressSpec{
 			Rules:            rules,
 			TLS:              tls,
-			IngressClassName: &ingressClassName,
 		},
+	}
+	if ingressClassName != "" {
+	    ingress.Spec.IngressClassName = &ingressClassName
 	}
 
 	return &ingress
