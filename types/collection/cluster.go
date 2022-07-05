@@ -26,7 +26,7 @@ import (
 const ClusterMetadataKind types.Kind = "ClusterMetadata"
 
 // QaLabelKey is the keyname for the qaLabel
-const QaLabelKey = "qalabel"
+const QaLabelKey = types.GroupName + "/clusterqalabel"
 
 // ClusterMetadata for collect output
 type ClusterMetadata struct {
