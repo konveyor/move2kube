@@ -62,22 +62,21 @@ func newDockerEngine() (*dockerEngine, error) {
 	return engine, nil
 }
 
-func (e *dockerEngine) pullImage(image string) bool {
-	if a, ok := e.availableImages[image]; ok {
-		return a
+func (e *dockerEngine) pullImage(image string) error {
+	if _, ok := e.availableImages[image]; ok {
+		return nil
 	}
 	logrus.Infof("Pulling container image %s. This could take a few mins.", image)
 	out, err := e.cli.ImagePull(e.ctx, image, types.ImagePullOptions{})
 	if err != nil {
-		logrus.Debugf("Unable to pull image %s : %s", image, err)
 		e.availableImages[image] = false
-		return false
+		return fmt.Errorf("failed to pull the image '%s' using the docker client. Error: %q", image, err)
 	}
 	if b, err := io.ReadAll(out); err == nil {
 		logrus.Debug(cast.ToString(b))
 	}
 	e.availableImages[image] = true
-	return true
+	return nil
 }
 
 // RunCmdInContainer executes a container
@@ -147,9 +146,8 @@ func (e *dockerEngine) InspectImage(image string) (types.ImageInspect, error) {
 
 // CreateContainer creates a container
 func (e *dockerEngine) CreateContainer(image string) (containerid string, err error) {
-	if !e.pullImage(image) {
-		logrus.Debugf("Unable to pull image using docker : %s", image)
-		return "", fmt.Errorf("unable to pull image")
+	if err := e.pullImage(image); err != nil {
+		return "", fmt.Errorf("failed to pull the image '%s'. Error: %q", image, err)
 	}
 	contconfig := &container.Config{
 		Image: image,
@@ -181,9 +179,8 @@ func (e *dockerEngine) StopAndRemoveContainer(containerID string) (err error) {
 
 // CopyDirsIntoImage creates a container
 func (e *dockerEngine) CopyDirsIntoImage(image, newImageName string, paths map[string]string) (err error) {
-	if !e.pullImage(image) {
-		logrus.Debugf("Unable to pull image using docker : %s", image)
-		return fmt.Errorf("unable to pull image")
+	if err := e.pullImage(image); err != nil {
+		return fmt.Errorf("failed to pull the image '%s'. Error: %q", image, err)
 	}
 	cid, err := e.CreateContainer(image)
 	if err != nil {
@@ -281,8 +278,8 @@ func (e *dockerEngine) RemoveImage(image string) (err error) {
 
 // RunContainer executes a container
 func (e *dockerEngine) RunContainer(image string, cmd environmenttypes.Command, volsrc string, voldest string) (output string, containerStarted bool, err error) {
-	if !e.pullImage(image) {
-		return "", false, fmt.Errorf("unable to pull image '%s' using docker", image)
+	if err := e.pullImage(image); err != nil {
+		return "", false, fmt.Errorf("failed to pull the image '%s'. Error: %q", image, err)
 	}
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
