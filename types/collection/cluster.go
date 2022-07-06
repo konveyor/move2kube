@@ -25,8 +25,8 @@ import (
 // ClusterMetadataKind defines the kind of cluster metadata file
 const ClusterMetadataKind types.Kind = "ClusterMetadata"
 
-// QaLabelKey is the keyname for the qaLabel
-const QaLabelKey = types.GroupName + "/clusterqalabel"
+// ClusterQaLabelKey is the keyname for the clusterqalabel Key
+const ClusterQaLabelKey = types.GroupName + "/clusterqalabel"
 
 // ClusterMetadata for collect output
 type ClusterMetadata struct {

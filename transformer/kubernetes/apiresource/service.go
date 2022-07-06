@@ -292,7 +292,7 @@ func (d *Service) createRoute(irName string, service irtypes.Service, port core.
 
 	host := targetCluster.Spec.Host
 	if host == "" {
-		host = commonqa.IngressHost(d.getHostName(irName), targetCluster.Labels[collecttypes.QaLabelKey])
+		host = commonqa.IngressHost(d.getHostName(irName), targetCluster.Labels[collecttypes.ClusterQaLabelKey])
 	}
 	ph := host
 	if hostprefix != "" {
@@ -367,11 +367,14 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 	rules := []networking.IngressRule{}
 	host := targetCluster.Spec.Host
 	secretName := ""
-	if host == "" {
-		host = commonqa.IngressHost(d.getHostName(ir.Name), targetCluster.Labels[collecttypes.QaLabelKey])
-	}
 	defaultSecretName := ""
-	secretName = qaengine.FetchStringAnswer(common.ConfigIngressTLSKey, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
+	if host == "" {
+		qaLabel := targetCluster.Labels[collecttypes.ClusterQaLabelKey]
+		host = commonqa.IngressHost(d.getHostName(ir.Name), qaLabel)
+		secretName = qaengine.FetchStringAnswer(common.ConfigIngressTLSKey+common.Delim+qaLabel, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
+	} else {
+		secretName = qaengine.FetchStringAnswer(common.ConfigIngressTLSKey, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
+	}
 	for hostprefix, httpIngressPaths := range hostHTTPIngressPaths {
 		ph := host
 		if hostprefix != "" {

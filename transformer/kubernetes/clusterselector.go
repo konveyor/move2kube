@@ -51,7 +51,7 @@ type ClusterSelectorTransformer struct {
 
 // ClusterSelectorConfig represents the configuration of the cluster selector
 type ClusterSelectorConfig struct {
-	QaLabel string `yaml:"qalabel"`
+	ClusterQaLabel string `yaml:"clusterqalabel"`
 }
 
 // Init Initializes the transformer
@@ -81,8 +81,8 @@ func (t *ClusterSelectorTransformer) Init(tc transformertypes.Transformer, e *en
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.CSConfig, err)
 		return err
 	}
-	if t.CSConfig.QaLabel == "" {
-		t.CSConfig.QaLabel = defaultQaLabel
+	if t.CSConfig.ClusterQaLabel == "" {
+		t.CSConfig.ClusterQaLabel = defaultQaLabel
 	}
 	return nil
 }
@@ -112,7 +112,7 @@ func (t *ClusterSelectorTransformer) Transform(newArtifacts []transformertypes.A
 	if !common.IsStringPresent(clusterTypeList, def) {
 		def = clusterTypeList[0]
 	}
-	qaId := common.ConfigTargetKey + common.Delim + t.CSConfig.QaLabel + common.Delim + clusterTypeKey
+	qaId := common.ConfigTargetKey + common.Delim + t.CSConfig.ClusterQaLabel + common.Delim + clusterTypeKey
 	clusterType := qaengine.FetchSelectAnswer(qaId, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, def, clusterTypeList)
 	for ai := range newArtifacts {
 		if newArtifacts[ai].Configs == nil {
@@ -122,7 +122,7 @@ func (t *ClusterSelectorTransformer) Transform(newArtifacts []transformertypes.A
 		if cluster.Labels == nil {
 			cluster.Labels = make(map[string]string)
 		}
-		cluster.Labels[collecttypes.QaLabelKey] = t.CSConfig.QaLabel
+		cluster.Labels[collecttypes.ClusterQaLabelKey] = t.CSConfig.ClusterQaLabel
 		t.Clusters[clusterType] = cluster
 		newArtifacts[ai].Configs[ClusterMetadata] = t.Clusters[clusterType]
 	}
