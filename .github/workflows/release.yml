@@ -29,12 +29,6 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ steps.info.outputs.go_version }}
-
-      - name: install upx ^3.96 to compress binaries. The default 3.94 version has some issues with MacOS.
-        run: brew install upx
-      - run: ls -al "$(which upx)"
-      - run: upx --version
-
       - run: make ci
       - run: make test-coverage
       - name: upload coverage
@@ -171,12 +165,6 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ steps.info.outputs.go_version }}
-
-      - name: install upx ^3.96 to compress binaries. The default 3.94 version has some issues with MacOS.
-        run: brew install upx
-      - run: ls -al "$(which upx)"
-      - run: upx --version
-
       - run: VERSION='${{ github.event.inputs.tag }}' make dist
       - name: upload release assets
         uses: konveyor/upload-release-action@v3

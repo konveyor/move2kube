@@ -127,10 +127,14 @@ const (
 	ConfigRepoKeyPathsKey = ConfigRepoKeysKey + d + "paths"
 	//ConfigTransformerTypesKey represents Transformers type Key
 	ConfigTransformerTypesKey = ConfigTransformersKey + d + "types"
+	//IngressKey represents ingress keyword
+	IngressKey = "ingress"
 	//ConfigIngressKey represents Ingress Key
-	ConfigIngressKey = ConfigTargetKey + d + "ingress"
+	ConfigIngressKey = ConfigTargetKey + d + IngressKey
+	// ConfigIngressClassName represents the ingress class name
+	ConfigIngressClassName = ConfigIngressKey + d + "ingressclassname"
 	//ConfigIngressHostKey represents Ingress host Key
-	ConfigIngressHostKey = ConfigIngressKey + d + "host"
+	ConfigIngressHostKey = IngressKey + d + "host"
 	//ConfigIngressTLSKey represents ingress tls Key
 	ConfigIngressTLSKey = ConfigIngressKey + d + "tls"
 	//ConfigTargetClusterTypeKey represents target cluster type key
@@ -167,6 +171,8 @@ const (
 	ConfigActiveSpringBootProfilesForServiceKeySegment = "activespringbootprofiles"
 	// ConfigServicesChildModulesNamesKey is true if a detected child module/sub-project of a service is enabled for transformation
 	ConfigServicesChildModulesNamesKey = ConfigServicesKey + d + "%s" + d + "childModules" + d + Special + d + "enable"
+	// ConfigServicesDotNetChildProjectsNamesKey is true if a detected child-project of a dot net service is enabled for transformation
+	ConfigServicesDotNetChildProjectsNamesKey = ConfigServicesKey + d + "%s" + d + "childProjects" + d + Special + d + "enable"
 	// ConfigServicesChildModulesSpringProfilesKey is the list of spring profiles for this child module. 1st arg is service name and 2nd is child module name.
 	ConfigServicesChildModulesSpringProfilesKey = ConfigServicesKey + d + "%s" + d + "childModules" + d + "%s" + d + "springBootProfiles"
 )

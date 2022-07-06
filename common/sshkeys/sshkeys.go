@@ -167,7 +167,7 @@ func loadSSHKey(filename string) (string, error) {
 			return "", err
 		}
 
-		qaKey := common.ConfigRepoPrivKey + common.Delim + `"` + filename + `"` + common.Delim + "password"
+		qaKey := common.JoinQASubKeys(common.ConfigRepoPrivKey, `"`+filename+`"`, "password")
 		desc := fmt.Sprintf("Enter the password to decrypt the private key %q : ", filename)
 		hints := []string{"Password:"}
 		password := qaengine.FetchPasswordAnswer(qaKey, desc, hints)
@@ -199,7 +199,7 @@ func GetSSHKey(domain string) (string, bool) {
 	filenames := privateKeysToConsider
 	noAnswer := "none of the above"
 	filenames = append(filenames, noAnswer)
-	qaKey := common.ConfigRepoKeysKey + common.Delim + `"` + domain + `"` + common.Delim + "key"
+	qaKey := common.JoinQASubKeys(common.ConfigRepoKeysKey, `"`+domain+`"`, "key")
 	desc := fmt.Sprintf("Select the key to use for the git domain %s :", domain)
 	hints := []string{fmt.Sprintf("If none of the keys are correct, select %s", noAnswer)}
 	filename := qaengine.FetchSelectAnswer(qaKey, desc, hints, noAnswer, filenames)

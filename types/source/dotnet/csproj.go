@@ -23,14 +23,14 @@ import (
 )
 
 var (
-	// FourXPattern is the framework version pattern
-	FourXPattern = regexp.MustCompile("v4*")
+	// Version4 is the framework version pattern
+	Version4 = regexp.MustCompile("v4*")
 	// WebLib is the key library used in web applications
 	WebLib = regexp.MustCompile("^System.Web*")
 	// WebSLLib is the key library used in web sliverlight applications
 	WebSLLib = regexp.MustCompile("Silverlight.js")
 	// ProjBlockRegex pattern
-	ProjBlockRegex = regexp.MustCompile(`(?m)^Project\([^)]+\)[^,]+\s*,\s*\"([^"]+)\"`)
+	ProjBlockRegex = regexp.MustCompile(`(?m)^Project\([^)]+\)[^,]+,\s*\"([^"]+)\"`)
 )
 
 const (
@@ -44,10 +44,10 @@ const (
 
 // CSProj defines the .csproj file
 type CSProj struct {
-	XMLName       xml.Name       `xml:"Project"`
-	Sdk           string         `xml:"Sdk,attr"`
-	PropertyGroup *PropertyGroup `xml:"PropertyGroup"`
-	ItemGroups    []ItemGroup    `xml:"ItemGroup"`
+	XMLName        xml.Name        `xml:"Project"`
+	Sdk            string          `xml:"Sdk,attr"`
+	PropertyGroups []PropertyGroup `xml:"PropertyGroup"`
+	ItemGroups     []ItemGroup     `xml:"ItemGroup"`
 }
 
 // ItemGroup is defined in .csproj file to list items used in the project
@@ -82,6 +82,7 @@ type PropertyGroup struct {
 	Condition              string      `xml:"Condition,attr"`
 	TargetFramework        string      `xml:"TargetFramework"`
 	TargetFrameworkVersion string      `xml:"TargetFrameworkVersion"`
+	OutputPath             string      `xml:"OutputPath"`
 	Properties             *Properties `xml:"properties,omitempty"`
 }
 
