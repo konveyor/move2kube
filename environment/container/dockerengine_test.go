@@ -30,8 +30,8 @@ func TestIsBuilderAvailable(t *testing.T) {
 		image := "quay.io/konveyor/move2kube"
 
 		// Test
-		if !provider.pullImage(image) {
-			t.Fatalf("Failed to find the image %q locally and/or pull it.", image)
+		if err := provider.pullImage(image); err != nil {
+			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
 		}
 	})
 
@@ -40,22 +40,22 @@ func TestIsBuilderAvailable(t *testing.T) {
 		image := "quay.io/konveyor/move2kube"
 
 		// Test
-		if !provider.pullImage(image) {
-			t.Fatalf("Failed to find the image %q locally and/or pull it.", image)
+		if err := provider.pullImage(image); err != nil {
+			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
 		}
 		if !provider.availableImages[image] {
 			t.Fatalf("Failed to add the image %q to the list of available images", image)
 		}
-		if !provider.pullImage(image) {
-			t.Fatalf("Failed to find the image %q locally and/or pull it.", image)
+		if err := provider.pullImage(image); err != nil {
+			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
 		}
 	})
 
 	t.Run("check for a non existent image", func(t *testing.T) {
 		provider, _ := newDockerEngine()
 		image := "this/doesnotexist:foobar"
-		if provider.pullImage(image) {
-			t.Fatalf("Should not have succeeded. The image %q does not exist", image)
+		if err := provider.pullImage(image); err == nil {
+			t.Fatalf("Should not have succeeded. The image '%s' does not exist", image)
 		}
 	})
 }

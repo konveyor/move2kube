@@ -55,14 +55,11 @@ type ContainerEngine interface {
 func initContainerEngine() (err error) {
 	workingEngine, err = newDockerEngine()
 	if err != nil {
-		logrus.Debugf("Unable to use docker : %s", err)
-		return err
+		return fmt.Errorf("failed to use docker as the container engine. Error: %q", err)
 	}
 	//TODO: Add Support for podman
 	if workingEngine == nil {
-		err := fmt.Errorf("no working container runtime available")
-		logrus.Errorf("%s", err)
-		return err
+		return fmt.Errorf("no working container runtime available")
 	}
 	return nil
 }
@@ -72,7 +69,9 @@ func GetContainerEngine() ContainerEngine {
 	if !inited {
 		disabled = !qaengine.FetchBoolAnswer(common.ConfigSpawnContainersKey, "Allow spawning containers?", []string{"If this setting is set to false, those transformers that rely on containers will not work."}, false)
 		if !disabled {
-			initContainerEngine()
+			if err := initContainerEngine(); err != nil {
+				logrus.Fatalf("failed to initialize the container engine. Error: %q", err)
+			}
 		}
 		inited = true
 	}

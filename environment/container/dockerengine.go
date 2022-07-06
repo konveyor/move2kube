@@ -48,38 +48,35 @@ func newDockerEngine() (*dockerEngine, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		logrus.Debugf("Unable to create docker client : %s", err)
-		return nil, err
+		return nil, fmt.Errorf("unable to create docker client. Error: %q", err)
 	}
-	e := &dockerEngine{
+	engine := &dockerEngine{
 		availableImages: map[string]bool{},
 		cli:             cli,
 		ctx:             ctx,
 	}
-	_, _, err = e.RunContainer(testimage, environmenttypes.Command{}, "", "")
+	_, _, err = engine.RunContainer(testimage, environmenttypes.Command{}, "", "")
 	if err != nil {
-		logrus.Errorf("Unable to run test container : %s", err)
-		return nil, err
+		return engine, fmt.Errorf("unable to run test image '%s' as a container. Error: %q", testimage, err)
 	}
-	return e, nil
+	return engine, nil
 }
 
-func (e *dockerEngine) pullImage(image string) bool {
-	if a, ok := e.availableImages[image]; ok {
-		return a
+func (e *dockerEngine) pullImage(image string) error {
+	if _, ok := e.availableImages[image]; ok {
+		return nil
 	}
 	logrus.Infof("Pulling container image %s. This could take a few mins.", image)
 	out, err := e.cli.ImagePull(e.ctx, image, types.ImagePullOptions{})
 	if err != nil {
-		logrus.Debugf("Unable to pull image %s : %s", image, err)
 		e.availableImages[image] = false
-		return false
+		return fmt.Errorf("failed to pull the image '%s' using the docker client. Error: %q", image, err)
 	}
 	if b, err := io.ReadAll(out); err == nil {
 		logrus.Debug(cast.ToString(b))
 	}
 	e.availableImages[image] = true
-	return true
+	return nil
 }
 
 // RunCmdInContainer executes a container
@@ -149,9 +146,8 @@ func (e *dockerEngine) InspectImage(image string) (types.ImageInspect, error) {
 
 // CreateContainer creates a container
 func (e *dockerEngine) CreateContainer(image string) (containerid string, err error) {
-	if !e.pullImage(image) {
-		logrus.Debugf("Unable to pull image using docker : %s", image)
-		return "", fmt.Errorf("unable to pull image")
+	if err := e.pullImage(image); err != nil {
+		return "", fmt.Errorf("failed to pull the image '%s'. Error: %q", image, err)
 	}
 	contconfig := &container.Config{
 		Image: image,
@@ -183,9 +179,8 @@ func (e *dockerEngine) StopAndRemoveContainer(containerID string) (err error) {
 
 // CopyDirsIntoImage creates a container
 func (e *dockerEngine) CopyDirsIntoImage(image, newImageName string, paths map[string]string) (err error) {
-	if !e.pullImage(image) {
-		logrus.Debugf("Unable to pull image using docker : %s", image)
-		return fmt.Errorf("unable to pull image")
+	if err := e.pullImage(image); err != nil {
+		return fmt.Errorf("failed to pull the image '%s'. Error: %q", image, err)
 	}
 	cid, err := e.CreateContainer(image)
 	if err != nil {
@@ -283,19 +278,15 @@ func (e *dockerEngine) RemoveImage(image string) (err error) {
 
 // RunContainer executes a container
 func (e *dockerEngine) RunContainer(image string, cmd environmenttypes.Command, volsrc string, voldest string) (output string, containerStarted bool, err error) {
-	if !e.pullImage(image) {
-		logrus.Debugf("Unable to pull image using docker : %s", image)
-		return "", false, fmt.Errorf("unable to pull image")
+	if err := e.pullImage(image); err != nil {
+		return "", false, fmt.Errorf("failed to pull the image '%s'. Error: %q", image, err)
 	}
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		logrus.Debugf("Error during docker client creation : %s", err)
-		return "", false, err
+		return "", false, fmt.Errorf("failed to create a docker client. Error: %q", err)
 	}
-	contconfig := &container.Config{
-		Image: image,
-	}
+	contconfig := &container.Config{Image: image}
 	if (volsrc == "" && voldest != "") || (volsrc != "" && voldest == "") {
 		logrus.Warnf("Either volume source (%s) or destination (%s) is empty. Ingoring volume mount.", volsrc, voldest)
 	}
@@ -312,28 +303,25 @@ func (e *dockerEngine) RunContainer(image string, cmd environmenttypes.Command, 
 	}
 	resp, err := cli.ContainerCreate(ctx, contconfig, hostconfig, nil, nil, "")
 	if err != nil {
-		logrus.Debugf("Error during container creation : %s", err)
+		logrus.Debugf("failed to create the container with contconfig %+v and hostconfig %+v . Error: %q", contconfig, hostconfig, err)
 		resp, err = cli.ContainerCreate(ctx, contconfig, nil, nil, nil, "")
 		if err != nil {
-			logrus.Debugf("Container creation failed with image %s with no volumes", image)
-			return "", false, err
+			return "", false, fmt.Errorf("container creation failed for image '%s' with no volumes", image)
 		}
 		logrus.Debugf("Container %s created with image %s with no volumes", resp.ID, image)
 		defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true})
 		if volsrc != "" && voldest != "" {
 			err = copyDir(ctx, cli, resp.ID, volsrc, voldest)
 			if err != nil {
-				logrus.Debugf("Container data copy failed for image %s with volume %s:%s : %s", image, volsrc, voldest, err)
-				return "", false, err
+				return "", false, fmt.Errorf("container data copy failed for image '%s' with volume (%s:%s). Error: %q", image, volsrc, voldest, err)
 			}
-			logrus.Debugf("Data copied from %s to %s in container %s with image %s", volsrc, voldest, resp.ID, image)
+			logrus.Debugf("Data copied from (%s) to (%s) in container '%s' with image '%s'", volsrc, voldest, resp.ID, image)
 		}
 	}
 	logrus.Debugf("Container %s created with image %s", resp.ID, image)
 	defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true})
 	if err = cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		logrus.Debugf("Error during container startup of container %s : %s", resp.ID, err)
-		return "", false, err
+		return "", false, fmt.Errorf("failed to startup the container '%s' . Error: %q", resp.ID, err)
 	}
 	statusCh, errCh := cli.ContainerWait(
 		ctx,
