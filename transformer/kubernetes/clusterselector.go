@@ -33,6 +33,8 @@ const (
 	clusterTypeKey = "clustertype"
 	// defaultStorageClassName defines the default storage class to be used
 	defaultStorageClassName = "default"
+	// defaultQaLabel defines the default storage QA label to be used in the absence of any user-defined name
+	defaultQaLabel = "default"
 	// defaultClusterType defines the default cluster type chosen by plan
 	defaultClusterType = "Kubernetes"
 	// ClusterMetadata config stores cluster configuration of selected cluster
@@ -49,7 +51,7 @@ type ClusterSelectorTransformer struct {
 
 // ClusterSelectorConfig represents the configuration of the cluster selector
 type ClusterSelectorConfig struct {
-	QaSuffix string `yaml:"qasuffix"`
+	ClusterQaLabel string `yaml:"clusterqalabel"`
 }
 
 // Init Initializes the transformer
@@ -79,6 +81,9 @@ func (t *ClusterSelectorTransformer) Init(tc transformertypes.Transformer, e *en
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.CSConfig, err)
 		return err
 	}
+	if t.CSConfig.ClusterQaLabel == "" {
+		t.CSConfig.ClusterQaLabel = defaultQaLabel
+	}
 	return nil
 }
 
@@ -107,16 +112,18 @@ func (t *ClusterSelectorTransformer) Transform(newArtifacts []transformertypes.A
 	if !common.IsStringPresent(clusterTypeList, def) {
 		def = clusterTypeList[0]
 	}
-	qaId := common.ConfigTargetKey + common.Delim
-	if t.CSConfig.QaSuffix != "" {
-		qaId = qaId + t.CSConfig.QaSuffix + common.Delim
-	}
-	qaId = qaId + clusterTypeKey
+	qaId := common.ConfigTargetKey + common.Delim + t.CSConfig.ClusterQaLabel + common.Delim + clusterTypeKey
 	clusterType := qaengine.FetchSelectAnswer(qaId, "Choose the cluster type:", []string{"Choose the cluster type you would like to target"}, def, clusterTypeList)
 	for ai := range newArtifacts {
 		if newArtifacts[ai].Configs == nil {
 			newArtifacts[ai].Configs = make(map[transformertypes.ConfigType]interface{})
 		}
+		cluster := t.Clusters[clusterType]
+		if cluster.Labels == nil {
+			cluster.Labels = make(map[string]string)
+		}
+		cluster.Labels[collecttypes.ClusterQaLabelKey] = t.CSConfig.ClusterQaLabel
+		t.Clusters[clusterType] = cluster
 		newArtifacts[ai].Configs[ClusterMetadata] = t.Clusters[clusterType]
 	}
 	return nil, newArtifacts, nil

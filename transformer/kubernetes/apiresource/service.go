@@ -58,7 +58,7 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 			// Create services depending on whether the service needs to be externally exposed
 			if common.IsStringPresent(supportedKinds, routeKind) {
 				//Create Route
-				routeObjs := d.createRoutes(service, ir, targetCluster.Spec)
+				routeObjs := d.createRoutes(service, ir, targetCluster)
 				for _, routeObj := range routeObjs {
 					objs = append(objs, routeObj)
 				}
@@ -83,7 +83,7 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 
 	// Create one ingress for all services
 	if ingressEnabled {
-		obj := d.createIngress(ir, targetCluster.Spec)
+		obj := d.createIngress(ir, targetCluster)
 		if obj != nil {
 			objs = append(objs, obj)
 		}
@@ -268,14 +268,14 @@ func (d *Service) ingressToService(ingress networking.Ingress) []runtime.Object 
 	return objs
 }
 
-func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) [](*okdroutev1.Route) {
+func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) [](*okdroutev1.Route) {
 	routes := [](*okdroutev1.Route){}
 	servicePorts, hostPrefixes, relPaths, _ := d.getExposeInfo(service)
 	for i, servicePort := range servicePorts {
 		if relPaths[i] == "" {
 			continue
 		}
-		route := d.createRoute(ir.Name, service, servicePort, hostPrefixes[i], relPaths[i], ir, targetClusterSpec)
+		route := d.createRoute(ir.Name, service, servicePort, hostPrefixes[i], relPaths[i], ir, targetCluster)
 		routes = append(routes, route)
 	}
 	return routes
@@ -286,13 +286,13 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR, t
 //[https://bugzilla.redhat.com/show_bug.cgi?id=1773682]
 // Can't use https because of this https://github.com/openshift/origin/issues/2162
 // When service has multiple ports,the route needs a port name. Port number doesn't seem to work.
-func (d *Service) createRoute(irName string, service irtypes.Service, port core.ServicePort, hostprefix, path string, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) *okdroutev1.Route {
+func (d *Service) createRoute(irName string, service irtypes.Service, port core.ServicePort, hostprefix, path string, ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) *okdroutev1.Route {
 	weight := int32(1)                                    //Hard-coded to 1 to avoid Helm v3 errors
 	ingressArray := []okdroutev1.RouteIngress{{Host: ""}} //Hard-coded to empty string to avoid Helm v3 errors
 
-	host := targetClusterSpec.Host
+	host := targetCluster.Spec.Host
 	if host == "" {
-		host = commonqa.IngressHost(d.getHostName(irName))
+		host = commonqa.IngressHost(d.getHostName(irName), targetCluster.Labels[collecttypes.ClusterQaLabelKey])
 	}
 	ph := host
 	if hostprefix != "" {
@@ -325,7 +325,7 @@ func (d *Service) createRoute(irName string, service irtypes.Service, port core.
 }
 
 // createIngress creates a single ingress for all services
-func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) *networking.Ingress {
+func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) *networking.Ingress {
 	pathType := networking.PathTypePrefix
 
 	hostHTTPIngressPaths := map[string][]networking.HTTPIngressPath{} //[hostprefix]
@@ -365,13 +365,16 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetClusterSpec collect
 
 	// Configure the rule with the above fan-out paths
 	rules := []networking.IngressRule{}
-	host := targetClusterSpec.Host
+	host := targetCluster.Spec.Host
 	secretName := ""
-	if host == "" {
-		host = commonqa.IngressHost(d.getHostName(ir.Name))
-	}
 	defaultSecretName := ""
-	secretName = qaengine.FetchStringAnswer(common.ConfigIngressTLSKey, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
+	if host == "" {
+		qaLabel := targetCluster.Labels[collecttypes.ClusterQaLabelKey]
+		host = commonqa.IngressHost(d.getHostName(ir.Name), qaLabel)
+		secretName = qaengine.FetchStringAnswer(common.ConfigIngressTLSKey+common.Delim+qaLabel, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
+	} else {
+		secretName = qaengine.FetchStringAnswer(common.ConfigIngressTLSKey, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
+	}
 	for hostprefix, httpIngressPaths := range hostHTTPIngressPaths {
 		ph := host
 		if hostprefix != "" {
