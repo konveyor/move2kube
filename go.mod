@@ -9,7 +9,7 @@ require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/Masterminds/sprig v2.22.0+incompatible
-	github.com/argoproj/argo-cd/v2 v2.3.3
+	github.com/argoproj/argo-cd/v2 v2.3.5
 	github.com/cloudfoundry-community/go-cfclient v0.0.0-20220509215243-5e4f7e9cf503
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
