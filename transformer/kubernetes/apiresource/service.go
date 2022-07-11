@@ -365,7 +365,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 		qaLabel = targetCluster.Labels[collecttypes.ClusterQaLabelKey]
 	}
 	// QALabel prefix for cluster
-	qaId := common.ConfigTargetKey + common.Delim + qaLabel
+	qaId := common.JoinQASubKeys(common.ConfigTargetKey, qaLabel)
 	// Set the default ingressClass value
 	ingressClassName := qaengine.FetchStringAnswer(common.JoinQASubKeys(qaId, common.ConfigIngressClassNameKeySuffix), "Provide the Ingress class name for ingress", []string{"Leave empty to use the cluster default"}, "")
 
