@@ -129,11 +129,11 @@ const (
 	ConfigTransformerTypesKey = ConfigTransformersKey + d + "types"
 	//IngressKey represents ingress keyword
 	IngressKey = "ingress"
-	// ConfigIngressClassName represents the ingress class name
+	// ConfigIngressClassNameKeySuffix represents the ingress class name
 	ConfigIngressClassNameKeySuffix = IngressKey + d + "ingressclassname"
-	//ConfigIngressHostKey represents Ingress host Key
+	//ConfigIngressHostKeySuffix represents Ingress host Key
 	ConfigIngressHostKeySuffix = IngressKey + d + "host"
-	//ConfigIngressTLSKey represents ingress tls Key
+	//ConfigIngressTLSKeySuffix represents ingress tls Key
 	ConfigIngressTLSKeySuffix = IngressKey + d + "tls"
 	//ConfigTargetClusterTypeKey represents target cluster type key
 	ConfigTargetClusterTypeKey = ConfigTargetKey + d + "clustertype"
