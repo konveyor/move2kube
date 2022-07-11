@@ -360,7 +360,10 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 	if len(hostHTTPIngressPaths) == 0 {
 		return nil
 	}
-	qaLabel := targetCluster.Labels[collecttypes.ClusterQaLabelKey]
+	qaLabel := collecttypes.DefaultClusterSpecificQaLabel
+	if _, ok := targetCluster.Labels[collecttypes.ClusterQaLabelKey]; ok {
+		qaLabel = targetCluster.Labels[collecttypes.ClusterQaLabelKey]
+	}
 	// QALabel prefix for cluster
 	qaId := common.ConfigTargetKey + common.Delim + qaLabel
 	// Set the default ingressClass value
