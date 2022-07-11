@@ -364,7 +364,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 	// QALabel prefix for cluster
 	qaId := common.ConfigTargetKey + common.Delim + qaLabel
 	// Set the default ingressClass value
-	ingressClassName := qaengine.FetchStringAnswer(qaId+common.Delim+common.ConfigIngressClassNameKeySuffix, "Provide the Ingress class name for ingress", []string{"Leave empty to use the cluster default"}, "")
+	ingressClassName := qaengine.FetchStringAnswer(common.JoinQASubKeys(qaId, common.ConfigIngressClassNameKeySuffix), "Provide the Ingress class name for ingress", []string{"Leave empty to use the cluster default"}, "")
 
 	// Configure the rule with the above fan-out paths
 	rules := []networking.IngressRule{}
