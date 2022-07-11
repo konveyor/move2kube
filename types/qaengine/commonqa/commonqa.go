@@ -75,7 +75,7 @@ func ImageRegistryNamespace() string {
 
 // IngressHost returns Ingress host
 func IngressHost(defaulthost string, clusterQaLabel string) string {
-	key := common.ConfigTargetKey + common.Delim + clusterQaLabel + common.Delim + common.ConfigIngressHostKey
+	key := common.ConfigTargetKey + common.Delim + clusterQaLabel + common.Delim + common.ConfigIngressHostKeySuffix
 	return qaengine.FetchStringAnswer(key, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaulthost)
 }
 
