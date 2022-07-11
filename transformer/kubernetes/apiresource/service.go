@@ -374,7 +374,7 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 	if host == "" {
 		host = commonqa.IngressHost(d.getHostName(ir.Name), qaLabel)
 	}
-	secretName = qaengine.FetchStringAnswer(qaId+common.Delim+common.ConfigIngressTLSKeySuffix, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
+	secretName = qaengine.FetchStringAnswer(common.JoinQASubKeys(qaId, common.ConfigIngressTLSKeySuffix), "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
 	for hostprefix, httpIngressPaths := range hostHTTPIngressPaths {
 		ph := host
 		if hostprefix != "" {
