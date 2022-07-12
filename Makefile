@@ -17,7 +17,8 @@ BINNAME     ?= move2kube
 BINDIR      := $(CURDIR)/bin
 DISTDIR		:= $(CURDIR)/_dist
 TARGETS     := darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64
-REGISTRYNS  := quay.io/konveyor
+MULTI_ARCH_TARGET_PLATFORMS := linux/amd64,linux/arm64
+REGISTRYNS  ?= quay.io/konveyor
 
 GOPATH        = $(shell go env GOPATH)
 GOX           = $(GOPATH)/bin/gox
@@ -195,3 +196,25 @@ endif
 	# To help with reusing layers and hence speeding up build
 	${CONTAINER_TOOL} push ${REGISTRYNS}/${BINNAME}-builder:${VERSION}
 	${CONTAINER_TOOL} push ${REGISTRYNS}/${BINNAME}:${VERSION}
+
+.PHONY: cmultibuildpush
+cmultibuildpush: ## Build and push multi arch container image
+ifndef CONTAINER_TOOL
+	$(error No container tool (docker, podman) found in your environment. Please, install one)
+endif
+
+ifdef DOCKER_CMD
+	@echo "Building image for multiple architectures with $(CONTAINER_TOOL)"
+
+	## TODO: When docker exporter supports exporting manifest lists we can separate out this into two steps: build and push
+
+	${CONTAINER_TOOL} buildx create --name m2k-builder --driver-opt network=host --use --platform ${MULTI_ARCH_TARGET_PLATFORMS}
+
+	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --target builder --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
+	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}:${VERSION} --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
+
+	${CONTAINER_TOOL} buildx rm m2k-builder
+else
+	## TODO: Add support with podman for multi architectures image build
+	$(error podman support is yet to be added)
+endif
