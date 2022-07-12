@@ -199,11 +199,9 @@ endif
 
 .PHONY: cmultibuildpush
 cmultibuildpush: ## Build and push multi arch container image
-ifndef CONTAINER_TOOL
-	$(error No container tool (docker, podman) found in your environment. Please, install one)
+ifndef DOCKER_CMD
+	$(error Docker wasn't detected. Please install docker and try again.)
 endif
-
-ifdef DOCKER_CMD
 	@echo "Building image for multiple architectures with $(CONTAINER_TOOL)"
 
 	## TODO: When docker exporter supports exporting manifest lists we can separate out this into two steps: build and push
@@ -214,7 +212,3 @@ ifdef DOCKER_CMD
 	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}:${VERSION} --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
 
 	${CONTAINER_TOOL} buildx rm m2k-builder
-else
-	## TODO: Add support with podman for multi architectures image build
-	$(error podman support is yet to be added)
-endif
