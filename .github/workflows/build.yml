@@ -39,15 +39,18 @@ jobs:
       - uses: actions/checkout@v2
       - id: info
         uses: konveyor/get-env-info@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
       - name: pull latest image to reuse layers
         run: |
           docker pull quay.io/konveyor/move2kube:latest || true
           docker pull quay.io/konveyor/move2kube-builder:latest || true
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build image
-        run: VERSION='${{ github.run_id }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
-      - name: push temporary image to quay
-        run: VERSION='${{ github.run_id }}' make cpush
+        run: VERSION='${{ github.run_id }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cmultibuildpush
       - name: run tests in move2kube-tests
         uses: felixp8/dispatch-and-wait@v0.1.0
         with:
@@ -87,6 +90,11 @@ jobs:
           else
             echo "::set-output name=tag::$BRANCH"
           fi
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
       - name: pull latest image to reuse layers
         run: |
           docker pull quay.io/konveyor/move2kube:latest || true
@@ -94,12 +102,10 @@ jobs:
           docker pull quay.io/konveyor/move2kube:${{ github.run_id }}
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build image
-        run: VERSION='${{ steps.image_tag.outputs.tag }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
+        run: VERSION='${{ steps.image_tag.outputs.tag }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cmultibuildpush
       - if: always()
         name: delete temporary image from quay
         run: skopeo delete docker://quay.io/konveyor/move2kube:${{ github.run_id }}
-      - name: push image to quay
-        run: VERSION='${{ steps.image_tag.outputs.tag }}' make cpush
       - name: trigger move2kube-api build
         uses: actions/github-script@v3
         with:
