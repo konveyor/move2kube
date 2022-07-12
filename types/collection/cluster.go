@@ -28,6 +28,9 @@ const ClusterMetadataKind types.Kind = "ClusterMetadata"
 // ClusterQaLabelKey is the keyname for the clusterqalabel Key
 const ClusterQaLabelKey = types.GroupName + "/clusterqalabel"
 
+// DefaultClusterSpecificQaLabel defines the default storage QA label to be used in the absence of any user-defined name
+const DefaultClusterSpecificQaLabel = "default"
+
 // ClusterMetadata for collect output
 type ClusterMetadata struct {
 	types.TypeMeta   `yaml:",inline"`

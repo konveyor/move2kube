@@ -360,8 +360,14 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 	if len(hostHTTPIngressPaths) == 0 {
 		return nil
 	}
+	qaLabel := collecttypes.DefaultClusterSpecificQaLabel
+	if _, ok := targetCluster.Labels[collecttypes.ClusterQaLabelKey]; ok {
+		qaLabel = targetCluster.Labels[collecttypes.ClusterQaLabelKey]
+	}
+	// QALabel prefix for cluster
+	qaId := common.JoinQASubKeys(common.ConfigTargetKey, qaLabel)
 	// Set the default ingressClass value
-	ingressClassName := qaengine.FetchStringAnswer(common.ConfigIngressClassName, "Provide the Ingress class name for ingress", []string{"Leave empty to use the cluster default"}, "")
+	ingressClassName := qaengine.FetchStringAnswer(common.JoinQASubKeys(qaId, common.ConfigIngressClassNameKeySuffix), "Provide the Ingress class name for ingress", []string{"Leave empty to use the cluster default"}, "")
 
 	// Configure the rule with the above fan-out paths
 	rules := []networking.IngressRule{}
@@ -369,12 +375,9 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 	secretName := ""
 	defaultSecretName := ""
 	if host == "" {
-		qaLabel := targetCluster.Labels[collecttypes.ClusterQaLabelKey]
 		host = commonqa.IngressHost(d.getHostName(ir.Name), qaLabel)
-		secretName = qaengine.FetchStringAnswer(common.ConfigIngressTLSKey+common.Delim+qaLabel, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
-	} else {
-		secretName = qaengine.FetchStringAnswer(common.ConfigIngressTLSKey, "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
 	}
+	secretName = qaengine.FetchStringAnswer(common.JoinQASubKeys(qaId, common.ConfigIngressTLSKeySuffix), "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
 	for hostprefix, httpIngressPaths := range hostHTTPIngressPaths {
 		ph := host
 		if hostprefix != "" {
@@ -408,12 +411,12 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 			Labels: getServiceLabels(ingressName),
 		},
 		Spec: networking.IngressSpec{
-			Rules:            rules,
-			TLS:              tls,
+			Rules: rules,
+			TLS:   tls,
 		},
 	}
 	if ingressClassName != "" {
-	    ingress.Spec.IngressClassName = &ingressClassName
+		ingress.Spec.IngressClassName = &ingressClassName
 	}
 
 	return &ingress
