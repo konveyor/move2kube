@@ -33,6 +33,8 @@ const (
 	clusterTypeKey = "clustertype"
 	// defaultStorageClassName defines the default storage class to be used
 	defaultStorageClassName = "default"
+	// defaultQALabel defines the default QA label to be use
+	defaultQALabel = "default"
 	// defaultClusterType defines the default cluster type chosen by plan
 	defaultClusterType = "Kubernetes"
 	// ClusterMetadata config stores cluster configuration of selected cluster
@@ -80,7 +82,7 @@ func (t *ClusterSelectorTransformer) Init(tc transformertypes.Transformer, e *en
 		return err
 	}
 	if t.CSConfig.ClusterQaLabel == "" {
-		t.CSConfig.ClusterQaLabel = collecttypes.ClusterQaLabelKey
+		t.CSConfig.ClusterQaLabel = defaultQALabel
 	}
 	return nil
 }
@@ -110,9 +112,11 @@ func (t *ClusterSelectorTransformer) Transform(newArtifacts []transformertypes.A
 	if !common.IsStringPresent(clusterTypeList, def) {
 		def = clusterTypeList[0]
 	}
-	clusterType := qaengine.FetchSelectAnswer(common.JoinQASubKeys(common.ConfigTargetKey, t.CSConfig.ClusterQaLabel, clusterTypeKey),
+	clusterType := qaengine.FetchSelectAnswer(
+		common.JoinQASubKeys(common.ConfigTargetKey, t.CSConfig.ClusterQaLabel, clusterTypeKey),
 		"Choose the cluster type:",
-		[]string{"Choose the cluster type you would like to target"}, def, clusterTypeList)
+		[]string{"Choose the cluster type you would like to target"}, def, clusterTypeList,
+	)
 	for ai := range newArtifacts {
 		if newArtifacts[ai].Configs == nil {
 			newArtifacts[ai].Configs = make(map[transformertypes.ConfigType]interface{})
