@@ -41,8 +41,6 @@ HAS_NODE   = $(shell command -v node >/dev/null && echo true || echo false)
 
 GOGET     := cd / && GO111MODULE=on go install 
 
-export DOCKER_BUILDKIT := 1
-
 ifdef VERSION
 	BINARY_VERSION = $(VERSION)
 endif

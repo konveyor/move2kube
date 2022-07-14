@@ -59,7 +59,7 @@ jobs:
           docker pull quay.io/konveyor/move2kube-builder:latest || true
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build temporary image
-        run: VERSION='${{ github.run_id }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
+        run: export DOCKER_BUILDKIT=1 && VERSION='${{ github.run_id }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
       - name: push temporary image to quay
         run: VERSION='${{ github.run_id }}'  make cpush
       - name: run tests in move2kube-tests
@@ -200,7 +200,7 @@ jobs:
           docker pull quay.io/konveyor/move2kube:${{ github.run_id }}
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build container image
-        run: VERSION='${{ github.event.inputs.tag }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
+        run: export DOCKER_BUILDKIT=1 && VERSION='${{ github.event.inputs.tag }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
       - if: always()
         name: delete temporary image from quay
         run: skopeo delete docker://quay.io/konveyor/move2kube:${{ github.run_id }}
