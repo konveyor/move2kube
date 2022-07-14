@@ -208,7 +208,7 @@ endif
 
 	${CONTAINER_TOOL} buildx create --name m2k-builder --driver-opt network=host --use --platform ${MULTI_ARCH_TARGET_PLATFORMS}
 
-	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --target builder --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
-	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}:${VERSION} --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
+	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --target builder --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
+	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
 
 	${CONTAINER_TOOL} buildx rm m2k-builder

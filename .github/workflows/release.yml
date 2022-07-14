@@ -59,9 +59,7 @@ jobs:
           docker pull quay.io/konveyor/move2kube-builder:latest || true
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build temporary image
-        run: export DOCKER_BUILDKIT=1 && VERSION='${{ github.run_id }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
-      - name: push temporary image to quay
-        run: VERSION='${{ github.run_id }}'  make cpush
+        run: VERSION='${{ github.run_id }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cmultibuildpush
       - name: run tests in move2kube-tests
         uses: felixp8/dispatch-and-wait@v0.1.0
         with:
@@ -200,12 +198,10 @@ jobs:
           docker pull quay.io/konveyor/move2kube:${{ github.run_id }}
       - run: echo "${{ secrets.QUAY_BOT_PASSWORD }}" | docker login --username "${{ secrets.QUAY_BOT_USERNAME }}" --password-stdin quay.io
       - name: build container image
-        run: export DOCKER_BUILDKIT=1 && VERSION='${{ github.event.inputs.tag }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cbuild
+        run: VERSION='${{ github.event.inputs.tag }}' GO_VERSION='${{ steps.info.outputs.go_version }}' make cmultibuildpush
       - if: always()
         name: delete temporary image from quay
         run: skopeo delete docker://quay.io/konveyor/move2kube:${{ github.run_id }}
-      - name: push image to quay
-        run: VERSION='${{ github.event.inputs.tag }}' make cpush
       - name: success slack notification
         uses: rtCamp/action-slack-notify@v2
         env:
