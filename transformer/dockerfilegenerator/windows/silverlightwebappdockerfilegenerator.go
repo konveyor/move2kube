@@ -67,22 +67,22 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (s
 		if filepath.Ext(de.Name()) != dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT {
 			continue
 		}
-		csProjPaths, err := getCSProjPathsFromSlnFile(filepath.Join(dir, de.Name()))
+		relCSProjPaths, err := getCSProjPathsFromSlnFile(filepath.Join(dir, de.Name()), false)
 		if err != nil {
 			logrus.Errorf("%s", err)
 			continue
 		}
 
-		if len(csProjPaths) == 0 {
+		if len(relCSProjPaths) == 0 {
 			logrus.Errorf("No projects available for the solution: %s", de.Name())
 			continue
 		}
 
-		for _, csPath := range csProjPaths {
-			projPath := filepath.Join(strings.TrimSpace(dir), strings.TrimSpace(csPath))
-			byteValue, err := os.ReadFile(projPath)
+		for _, relCSProjPath := range relCSProjPaths {
+			csProjPath := filepath.Join(dir, strings.TrimSpace(relCSProjPath))
+			byteValue, err := os.ReadFile(csProjPath)
 			if err != nil {
-				logrus.Debugf("Could not read the project file: %s", err)
+				logrus.Errorf("failed to read the c sharp project file at path %s . Error: %q", csProjPath, err)
 				continue
 			}
 
@@ -93,9 +93,14 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (s
 				continue
 			}
 
-			if idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" }); idx == -1 ||
-				!dotnet.Version4.MatchString(configuration.PropertyGroups[idx].TargetFrameworkVersion) {
-				logrus.Errorf("the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csPath, configuration.PropertyGroups[idx].TargetFrameworkVersion)
+			idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" })
+			if idx == -1 {
+				logrus.Debugf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
+				continue
+			}
+			targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
+			if !dotnet.Version4.MatchString(targetFrameworkVersion) {
+				logrus.Errorf("silverlight dot net tranformer: the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
 				continue
 			}
 

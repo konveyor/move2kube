@@ -20,9 +20,11 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
+	dotnetutils "github.com/konveyor/move2kube/transformer/dockerfilegenerator/dotnet"
 	"github.com/konveyor/move2kube/types/source/dotnet"
 )
 
@@ -90,8 +92,9 @@ func isWeb(configuration dotnet.CSProj) (bool, error) {
 	return false, nil
 }
 
-// getCSProjPathsFromSlnFile parses the solution file for cs project file paths
-func getCSProjPathsFromSlnFile(inputPath string) ([]string, error) {
+// getCSProjPathsFromSlnFile parses the solution file for cs project file paths.
+// If "allPaths" is true then every path we find will be returned (not just c sharp project files).
+func getCSProjPathsFromSlnFile(inputPath string, allPaths bool) ([]string, error) {
 	slnBytes, err := os.ReadFile(inputPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open the solution file at path %s . Error: %q", inputPath, err)
@@ -106,6 +109,9 @@ func getCSProjPathsFromSlnFile(inputPath string) ([]string, error) {
 		csProjPath := strings.Trim(subMatch[1], `"`)
 		if notWindows {
 			csProjPath = strings.ReplaceAll(csProjPath, `\`, string(os.PathSeparator))
+		}
+		if !allPaths && filepath.Ext(csProjPath) != dotnetutils.CSPROJ_FILE_EXT {
+			continue
 		}
 		csProjPaths = append(csProjPaths, csProjPath)
 	}

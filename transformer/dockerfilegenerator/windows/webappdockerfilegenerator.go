@@ -110,9 +110,14 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 				logrus.Errorf("failed to parse the c sharp project file at path %s . Error: %q", csProjPath, err)
 				continue
 			}
-			if idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" }); idx == -1 ||
-				!dotnet.Version4.MatchString(configuration.PropertyGroups[idx].TargetFrameworkVersion) {
-				logrus.Errorf("the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, configuration.PropertyGroups[idx].TargetFrameworkVersion)
+			idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" })
+			if idx == -1 {
+				logrus.Errorf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
+				continue
+			}
+			targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
+			if !dotnet.Version4.MatchString(targetFrameworkVersion) {
+				logrus.Errorf("the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
 				continue
 			}
 			childProjects = append(childProjects, artifacts.DotNetChildProject{
@@ -144,7 +149,7 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 		logrus.Debugf("more than one visual studio solution file detected. Number of .sln files %d", len(slnPaths))
 	}
 	slnPath := slnPaths[0]
-	relCSProjPaths, err := getCSProjPathsFromSlnFile(slnPath)
+	relCSProjPaths, err := getCSProjPathsFromSlnFile(slnPath, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the vs solution file at path %s . Error: %q", slnPath, err)
 	}
@@ -162,9 +167,14 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 			logrus.Errorf("failed to parse the c sharp project file at path %s . Error: %q", csProjPath, err)
 			continue
 		}
-		if idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" }); idx == -1 ||
-			!dotnet.Version4.MatchString(configuration.PropertyGroups[idx].TargetFrameworkVersion) {
-			logrus.Errorf("the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, configuration.PropertyGroups[idx].TargetFrameworkVersion)
+		idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" })
+		if idx == -1 {
+			logrus.Debugf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
+			continue
+		}
+		targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
+		if !dotnet.Version4.MatchString(targetFrameworkVersion) {
+			logrus.Errorf("webapp dot net tranformer: the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
 			continue
 		}
 		isWebProj, err := isWeb(configuration)

@@ -314,25 +314,30 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
+	for _, newArtifact := range newArtifacts {
+		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 {
+			logrus.Errorf("the service directory is missing from the artifact %+v", newArtifact)
+			continue
+		}
+		serviceDir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), serviceDir)
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", serviceDir, err)
 		}
 		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		err = newArtifact.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
 		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		err = newArtifact.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
 		ir := irtypes.IR{}
 		irPresent := true
-		err = a.GetConfig(irtypes.IRConfigType, &ir)
+		err = newArtifact.GetConfig(irtypes.IRConfigType, &ir)
 		if err != nil {
 			irPresent = false
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
@@ -340,21 +345,21 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 		ports := ir.GetAllServicePorts()
 		var dotNetCoreTemplateConfig DotNetCoreTemplateConfig
 		var csprojRelFilePath string
-		if len(a.Paths[dotnetutils.DotNetCoreCsprojFilesPathType]) == 1 {
-			csprojRelFilePath, err = filepath.Rel(a.Paths[artifacts.ServiceDirPathType][0], a.Paths[dotnetutils.DotNetCoreCsprojFilesPathType][0])
+		if len(newArtifact.Paths[dotnetutils.DotNetCoreCsprojFilesPathType]) == 1 {
+			csprojRelFilePath, err = filepath.Rel(serviceDir, newArtifact.Paths[dotnetutils.DotNetCoreCsprojFilesPathType][0])
 			if err != nil {
-				logrus.Errorf("Unable to convert csproj file path %s to be relative : %s", a.Paths[dotnetutils.DotNetCoreCsprojFilesPathType][0], err)
+				logrus.Errorf("Unable to convert csproj file path %s to be relative : %s", newArtifact.Paths[dotnetutils.DotNetCoreCsprojFilesPathType][0], err)
 				continue
 			}
 		} else {
-			csprojRelFilePath = getCsprojFileForService(a.Paths[dotnetutils.DotNetCoreCsprojFilesPathType], a.Paths[artifacts.ServiceDirPathType][0], a.Name)
+			csprojRelFilePath = getCsprojFileForService(newArtifact.Paths[dotnetutils.DotNetCoreCsprojFilesPathType], serviceDir, newArtifact.Name)
 		}
-		publishProfileFilesPath := findPublishProfiles(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], csprojRelFilePath))
-		dotNetCoreTemplateConfig.PublishProfileFilePath, dotNetCoreTemplateConfig.PublishUrl = getPublishProfile(publishProfileFilesPath, a.Name, a.Paths[artifacts.ServiceDirPathType][0])
+		publishProfileFilesPath := findPublishProfiles(filepath.Join(serviceDir, csprojRelFilePath))
+		dotNetCoreTemplateConfig.PublishProfileFilePath, dotNetCoreTemplateConfig.PublishUrl = getPublishProfile(publishProfileFilesPath, newArtifact.Name, serviceDir)
 		dotNetCoreTemplateConfig.CsprojFilePath = csprojRelFilePath
 		dotnetProjectName := strings.TrimSuffix(filepath.Base(dotNetCoreTemplateConfig.CsprojFilePath), filepath.Ext(dotNetCoreTemplateConfig.CsprojFilePath))
 		dotNetCoreTemplateConfig.CsprojFileName = dotnetProjectName
-		jsonFiles, err := common.GetFilesByName(a.Paths[artifacts.ServiceDirPathType][0], []string{dotnetutils.LaunchSettingsJSON, packageJSONFile}, nil)
+		jsonFiles, err := common.GetFilesByName(serviceDir, []string{dotnetutils.LaunchSettingsJSON, packageJSONFile}, nil)
 		if err != nil {
 			logrus.Debugf("Error while finding json files %s", err)
 		}
@@ -394,25 +399,25 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 				}
 			}
 		}
-		dotNetCoreTemplateConfig.Ports = commonqa.GetPortsForService(ports, a.Name)
+		dotNetCoreTemplateConfig.Ports = commonqa.GetPortsForService(ports, newArtifact.Name)
 		csprojConfiguration := &dotnet.CSProj{}
-		err = common.ReadXML(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], csprojRelFilePath), csprojConfiguration)
-		if err != nil {
-			logrus.Errorf("Could not read the project file (%s) : %s", filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], csprojRelFilePath), err)
+		csProjPath := filepath.Join(serviceDir, csprojRelFilePath)
+		if err := common.ReadXML(csProjPath, csprojConfiguration); err != nil {
+			logrus.Errorf("Could not read the project file (%s) : %s", csProjPath, err)
 			continue
 		}
 		idx := common.FindIndex(csprojConfiguration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFramework != "" })
 		if idx == -1 {
-			logrus.Errorf("failed to find the target framework in any of the property groups inside the .csproj file")
+			logrus.Errorf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
 			continue
 		}
-		cand := csprojConfiguration.PropertyGroups[idx]
-		frameworkVersion := dotnetcoreRegex.FindAllStringSubmatch(cand.TargetFramework, -1)
+		versionPropGroup := csprojConfiguration.PropertyGroups[idx]
+		frameworkVersion := dotnetcoreRegex.FindAllStringSubmatch(versionPropGroup.TargetFramework, -1)
 		if len(frameworkVersion) != 0 && len(frameworkVersion[0]) == 2 {
 			dotNetCoreTemplateConfig.DotNetVersion = frameworkVersion[0][1]
 		}
 		if dotNetCoreTemplateConfig.DotNetVersion == "" {
-			logrus.Debugf("unable to find compatible version for the '%s' service. Using default version: %s . Actual: %#v", a.Name, t.DotNetCoreConfig.DefaultDotNetCoreVersion, csprojConfiguration.PropertyGroups)
+			logrus.Debugf("unable to find compatible version for the '%s' service. Using default version: %s . Actual: %#v", newArtifact.Name, t.DotNetCoreConfig.DefaultDotNetCoreVersion, csprojConfiguration.PropertyGroups)
 			dotNetCoreTemplateConfig.DotNetVersion = t.DotNetCoreConfig.DefaultDotNetCoreVersion
 		}
 		if sImageName.ImageName == "" {
@@ -427,7 +432,7 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
 			TemplateConfig: dotNetCoreTemplateConfig,
 		})
-		paths := a.Paths
+		paths := newArtifact.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
 			Name:  sImageName.ImageName,
@@ -440,7 +445,7 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 		dfs := transformertypes.Artifact{
 			Name:  sConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
-			Paths: a.Paths,
+			Paths: newArtifact.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 				artifacts.ServiceConfigType:   sConfig,
