@@ -53,6 +53,11 @@ jobs:
           ref: ${{ github.event.inputs.commit_ref }}
       - id: info
         uses: konveyor/get-env-info@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
       - name: pull latest image to reuse layers
         run: |
           docker pull quay.io/konveyor/move2kube:latest || true
@@ -191,6 +196,11 @@ jobs:
           ref: ${{ github.event.inputs.commit_ref }}
       - id: info
         uses: konveyor/get-env-info@v1
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
       - name: pull latest image to reuse layers
         run: |
           docker pull quay.io/konveyor/move2kube:latest || true
