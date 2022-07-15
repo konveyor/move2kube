@@ -86,7 +86,7 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(AppCfgFilePath 
 		return nil, fmt.Errorf("could not parse the App.config file: %s", err)
 	}
 
-	ports := make([]int32, 0)
+	ports := []int32{}
 	for _, addKey := range appCfg.AppCfgSettings.AddList {
 		parsedURL, err := url.ParseRequestURI(addKey.Value)
 		if err != nil {
@@ -151,7 +151,7 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(AppCfgFilePath 
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -162,38 +162,42 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (services
 		if filepath.Ext(de.Name()) != dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT {
 			continue
 		}
-		csProjPaths, err := getCSProjPathsFromSlnFile(filepath.Join(dir, de.Name()))
+		relCSProjPaths, err := getCSProjPathsFromSlnFile(filepath.Join(dir, de.Name()), false)
 		if err != nil {
 			logrus.Errorf("%s", err)
 			continue
 		}
 
-		if len(csProjPaths) == 0 {
+		if len(relCSProjPaths) == 0 {
 			logrus.Errorf("No projects available for the solution: %s", de.Name())
 			continue
 		}
 
-		for _, csPath := range csProjPaths {
-			projPath := filepath.Join(strings.TrimSpace(dir), strings.TrimSpace(csPath))
-			byteValue, err := os.ReadFile(projPath)
+		for _, relCSProjPath := range relCSProjPaths {
+			csProjPath := filepath.Join(dir, strings.TrimSpace(relCSProjPath))
+			byteValue, err := os.ReadFile(csProjPath)
 			if err != nil {
-				logrus.Debugf("Could not read the project file: %s", err)
+				logrus.Errorf("failed to read the c sharp project file at path %s . Error: %q", csProjPath, err)
 				continue
 			}
-
 			configuration := dotnet.CSProj{}
-			err = xml.Unmarshal(byteValue, &configuration)
-			if err != nil {
+			if err := xml.Unmarshal(byteValue, &configuration); err != nil {
 				logrus.Errorf("Could not parse the project file: %s", err)
 				continue
 			}
-
-			if idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" }); idx == -1 ||
-				!dotnet.Version4.MatchString(configuration.PropertyGroups[idx].TargetFrameworkVersion) {
-				logrus.Errorf("the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csPath, configuration.PropertyGroups[idx].TargetFrameworkVersion)
+			idx := common.FindIndex(
+				configuration.PropertyGroups,
+				func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" },
+			)
+			if idx == -1 {
+				logrus.Debugf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
 				continue
 			}
-
+			targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
+			if !dotnet.Version4.MatchString(targetFrameworkVersion) {
+				logrus.Errorf("console dot net tranformer: the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
+				continue
+			}
 			isWebProj, err := isWeb(configuration)
 			if err != nil {
 				logrus.Errorf("%s", err)
@@ -202,13 +206,11 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (services
 			if isWebProj {
 				continue
 			}
-
-			appCfgFilePath := filepath.Join(dir, filepath.Dir(csPath), AppCfgFile)
+			appCfgFilePath := filepath.Join(dir, filepath.Dir(relCSProjPath), AppCfgFile)
 			if _, err = os.Stat(appCfgFilePath); os.IsNotExist(err) {
 				continue
 			}
 			appConfigList = append(appConfigList, appCfgFilePath)
-
 			appName = strings.TrimSuffix(filepath.Base(de.Name()), filepath.Ext(de.Name()))
 		}
 
@@ -220,7 +222,7 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (services
 		return nil, nil
 	}
 
-	services = map[string][]transformertypes.Artifact{
+	services := map[string][]transformertypes.Artifact{
 		appName: {{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.ServiceDirPathType: {dir},
@@ -235,31 +237,35 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (services
 func (t *WinConsoleAppDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
+	for _, newArtifact := range newArtifacts {
+		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 {
+			continue
+		}
+		serviceDir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
+		relServiceDir, err := filepath.Rel(t.Env.GetEnvironmentSource(), serviceDir)
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", serviceDir, err)
 		}
 		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
+		err = newArtifact.GetConfig(artifacts.ServiceConfigType, &sConfig)
 		if err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
 		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		err = newArtifact.GetConfig(artifacts.ImageNameConfigType, &sImageName)
 		if err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
 		}
 		ir := irtypes.IR{}
 		irPresent := true
-		err = a.GetConfig(irtypes.IRConfigType, &ir)
+		err = newArtifact.GetConfig(irtypes.IRConfigType, &ir)
 		if err != nil {
 			irPresent = false
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
 		var detectedPorts []int32
-		for _, appConfigFilePath := range a.Paths[AppConfigFilePathListType] {
+		for _, appConfigFilePath := range newArtifact.Paths[AppConfigFilePathListType] {
 			portList, err := t.parseAppConfigForPort(appConfigFilePath)
 			if err != nil {
 				logrus.Errorf("%s", err)
@@ -272,9 +278,9 @@ func (t *WinConsoleAppDockerfileGenerator) Transform(newArtifacts []transformert
 		if len(detectedPorts) == 0 {
 			detectedPorts = ir.GetAllServicePorts()
 		}
-		detectedPorts = commonqa.GetPortsForService(detectedPorts, a.Name)
+		detectedPorts = commonqa.GetPortsForService(detectedPorts, newArtifact.Name)
 		var consoleConfig ConsoleTemplateConfig
-		consoleConfig.AppName = a.Name
+		consoleConfig.AppName = newArtifact.Name
 		consoleConfig.Ports = detectedPorts
 		consoleConfig.BaseImageVersion = dotnet.DefaultBaseImageVersion
 
@@ -287,11 +293,11 @@ func (t *WinConsoleAppDockerfileGenerator) Transform(newArtifacts []transformert
 		}, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
 			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
-			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
+			DestPath:       filepath.Join(common.DefaultSourceDir, relServiceDir),
 			TemplateConfig: consoleConfig,
 		})
-		paths := a.Paths
-		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
+		paths := newArtifact.Paths
+		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relServiceDir, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
 			Name:  sImageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
@@ -303,7 +309,7 @@ func (t *WinConsoleAppDockerfileGenerator) Transform(newArtifacts []transformert
 		dfs := transformertypes.Artifact{
 			Name:  sConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
-			Paths: a.Paths,
+			Paths: newArtifact.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.ImageNameConfigType: sImageName,
 				artifacts.ServiceConfigType:   sConfig,
