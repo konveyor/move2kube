@@ -24,9 +24,11 @@ ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 
 # Download Go.
 ARG GO_VERSION=1.18
-ARG TARGETARCH=amd64
-ARG TARGETOS=linux
-RUN curl -o go.tgz "https://dl.google.com/go/go${GO_VERSION}.${TARGETOS}-${TARGETARCH}.tar.gz" \
+ARG TARGETARCH
+ARG TARGETOS
+ENV TARGETARCH_ENV=${TARGETARCH:-amd64}
+ENV TARGETOS_ENV=${TARGETOS:-linux}
+RUN curl -o go.tgz "https://dl.google.com/go/go${GO_VERSION}.${TARGETOS_ENV}-${TARGETARCH_ENV}.tar.gz" \
     && tar -xzf go.tgz \
     && mv go /usr/local/ \
     && rm go.tgz
