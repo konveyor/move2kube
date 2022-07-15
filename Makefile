@@ -182,8 +182,8 @@ ifndef CONTAINER_TOOL
 	$(error No container tool (docker, podman) found in your environment. Please, install one)
 endif
 	@echo "Building image with $(CONTAINER_TOOL)"
-	${CONTAINER_TOOL} build -t ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --target builder                          --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
-	${CONTAINER_TOOL} build -t ${REGISTRYNS}/${BINNAME}:${VERSION}         --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
+	DOCKER_BUILDKIT=1 ${CONTAINER_TOOL} build -t ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --target builder                          --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
+	DOCKER_BUILDKIT=1 ${CONTAINER_TOOL} build -t ${REGISTRYNS}/${BINNAME}:${VERSION}         --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} .
 	${CONTAINER_TOOL} tag ${REGISTRYNS}/${BINNAME}-builder:${VERSION} ${REGISTRYNS}/${BINNAME}-builder:latest
 	${CONTAINER_TOOL} tag ${REGISTRYNS}/${BINNAME}:${VERSION} ${REGISTRYNS}/${BINNAME}:latest
 
@@ -208,7 +208,7 @@ endif
 
 	${CONTAINER_TOOL} buildx create --name m2k-builder --driver-opt network=host --use --platform ${MULTI_ARCH_TARGET_PLATFORMS}
 
-	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --target builder --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
-	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}:${VERSION} --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
+	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}-builder:${VERSION} --tag ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --target builder --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
+	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}:${VERSION} --tag ${REGISTRYNS}/${BINNAME}:latest --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
 
 	${CONTAINER_TOOL} buildx rm m2k-builder
