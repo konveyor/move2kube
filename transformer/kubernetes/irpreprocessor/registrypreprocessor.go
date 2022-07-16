@@ -54,7 +54,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 	}
 	for _, service := range ir.Services {
 		for _, container := range service.Containers {
-			if !common.IsStringPresent(newimages, container.Image) {
+			if !common.IsPresent(newimages, container.Image) {
 				parts := strings.Split(container.Image, "/")
 				if len(parts) == 3 {
 					registryList = append(registryList, parts[0])
@@ -64,9 +64,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		}
 	}
 	reg := commonqa.ImageRegistry()
-	if !common.IsStringPresent(usedRegistries, reg) {
-		usedRegistries = append(usedRegistries, reg)
-	}
+	usedRegistries = common.AppendIfNotPresent(usedRegistries, reg)
 	imagePullSecrets := map[string]string{} // registryurl, pull secret
 	registryAuthList := map[string]string{} //Registry url and auth
 	if !common.IgnoreEnvironment {
@@ -82,9 +80,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 				if regurl == "" {
 					continue
 				}
-				if !common.IsStringPresent(registryList, regurl) {
-					registryList = append(registryList, regurl)
-				}
+				registryList = common.AppendIfNotPresent(registryList, regurl)
 				if regauth.Auth != "" {
 					registryAuthList[regurl] = regauth.Auth
 				}
@@ -139,7 +135,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 
 	for sn, service := range ir.Services {
 		for i, serviceContainer := range service.Containers {
-			if common.IsStringPresent(newimages, serviceContainer.Image) {
+			if common.IsPresent(newimages, serviceContainer.Image) {
 				image, tag := common.GetImageNameAndTag(serviceContainer.Image)
 				if reg != "" && ns != "" {
 					serviceContainer.Image = reg + "/" + ns + "/" + image + ":" + tag

@@ -55,7 +55,7 @@ func (sb *SpringBootConfig) Merge(newsbobj interface{}) bool {
 	if sb.SpringBootVersion != newsbptr.SpringBootVersion {
 		logrus.Errorf("Incompatible springboot version found during merge for app %s", sb.SpringBootAppName)
 	}
-	*sb.SpringBootProfiles = common.MergeStringSlices(*sb.SpringBootProfiles, *newsbptr.SpringBootProfiles...)
+	*sb.SpringBootProfiles = common.MergeSlices(*sb.SpringBootProfiles, *newsbptr.SpringBootProfiles)
 	// merge profile ports
 	if sb.SpringBootProfilePorts == nil {
 		sb.SpringBootProfilePorts = map[string][]int32{}

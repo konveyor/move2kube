@@ -48,7 +48,7 @@ func (*ImageStream) getSupportedKinds() []string {
 // createNewResources converts IR to runtime objects
 func (imageStream *ImageStream) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
-	if !common.IsStringPresent(supportedKinds, imageStreamKind) {
+	if !common.IsPresent(supportedKinds, imageStreamKind) {
 		logrus.Debugf("Could not find a valid resource type in cluster to create an ImageStream")
 		return objs
 	}
@@ -95,7 +95,7 @@ func (*ImageStream) createImageStream(name, tag string, imageName string, irCont
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
 func (imageStream *ImageStream) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
-	if common.IsStringPresent(imageStream.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+	if common.IsPresent(imageStream.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}
 	return nil, false

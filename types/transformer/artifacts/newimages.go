@@ -44,6 +44,6 @@ func (ni *NewImages) Merge(newniobj interface{}) bool {
 		}
 		newniptr = &newni
 	}
-	ni.ImageNames = common.MergeStringSlices(ni.ImageNames, newniptr.ImageNames...)
+	ni.ImageNames = common.MergeSlices(ni.ImageNames, newniptr.ImageNames)
 	return true
 }

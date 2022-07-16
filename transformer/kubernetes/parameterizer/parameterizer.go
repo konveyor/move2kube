@@ -69,7 +69,7 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 		}
 		normEnvs = append(normEnvs, normEnv)
 	}
-	if len(normEnvs) == 0 || (shouldGenerateDefaultEnv && !common.IsStringPresent(normEnvs, parameterizerDefaultEnvironment)) {
+	if len(normEnvs) == 0 || (shouldGenerateDefaultEnv && !common.IsPresent(normEnvs, parameterizerDefaultEnvironment)) {
 		shouldGenerateDefaultEnv = true
 		normEnvs = append(normEnvs, parameterizerDefaultEnvironment)
 	}
@@ -308,7 +308,7 @@ func getParameters(templ string) ([]string, error) {
 }
 
 func doesMatchEnv(p ParameterValueT, env, kind, apiVersion, metadataName string, matches map[string]string) bool {
-	if p.Envs != nil && !common.IsStringPresent(p.Envs, string(env)) {
+	if p.Envs != nil && !common.IsPresent(p.Envs, string(env)) {
 		return false
 	}
 	if p.Kind != "" && p.Kind != kind {
@@ -507,7 +507,7 @@ func parameterizeFilter(envs []string, k k8sschema.K8sResourceT, p Parameterizer
 		if filter.Envs != nil {
 			found := false
 			for _, env := range envs {
-				if common.IsStringPresent(filter.Envs, env) {
+				if common.IsPresent(filter.Envs, env) {
 					found = true
 					break
 				}

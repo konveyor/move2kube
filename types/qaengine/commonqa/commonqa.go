@@ -49,9 +49,7 @@ func ImageRegistry() string {
 				if regurl == "" {
 					continue
 				}
-				if !common.IsStringPresent(registryList, regurl) {
-					registryList = append(registryList, regurl)
-				}
+				registryList = common.AppendIfNotPresent(registryList, regurl)
 				if regauth.Auth != "" {
 					defreg = regurl
 					registryAuthList[regurl] = regauth.Auth
@@ -59,9 +57,7 @@ func ImageRegistry() string {
 			}
 		}
 	}
-	if !common.IsStringPresent(registryList, defaultRegistryURL) {
-		registryList = append(registryList, defaultRegistryURL)
-	}
+	registryList = common.AppendIfNotPresent(registryList, defaultRegistryURL)
 	if defreg == "" {
 		defreg = defaultRegistryURL
 	}

@@ -346,7 +346,7 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 
 		// only look at the child modules the user selected
 
-		if !common.IsStringPresent(selectedChildModuleNames, childModule.Name) {
+		if !common.IsPresent(selectedChildModuleNames, childModule.Name) {
 			continue
 		}
 
@@ -575,11 +575,11 @@ func getPackagingFromGradle(gradleBuild *gradle.Gradle) artifacts.JavaPackaging 
 		return ""
 	}
 	pluginIds := gradleBuild.GetPluginIDs()
-	if common.IsStringPresent(pluginIds, string(artifacts.JarPackaging)) {
+	if common.IsPresent(pluginIds, string(artifacts.JarPackaging)) {
 		return artifacts.JarPackaging
-	} else if common.IsStringPresent(pluginIds, string(artifacts.EarPackaging)) {
+	} else if common.IsPresent(pluginIds, string(artifacts.EarPackaging)) {
 		return artifacts.EarPackaging
-	} else if common.IsStringPresent(pluginIds, string(artifacts.WarPackaging)) {
+	} else if common.IsPresent(pluginIds, string(artifacts.WarPackaging)) {
 		return artifacts.WarPackaging
 	}
 	return ""
@@ -780,7 +780,7 @@ func getDeploymentFilePathFromGradle(gradleBuild *gradle.Gradle, buildScriptPath
 
 	// second we look in the shadowJar block to override the archive name
 
-	if common.IsStringPresent(gradleBuild.GetPluginIDs(), gradleShadowJarPluginC) {
+	if common.IsPresent(gradleBuild.GetPluginIDs(), gradleShadowJarPluginC) {
 		archiveClassifier = gradleShadowJarPluginDefaultClassifierC
 		if gb2, ok := gradleBuild.Blocks[gradleShadowJarPluginBlockC]; ok {
 			updateArchiveNameFromJarBlock(gb2)

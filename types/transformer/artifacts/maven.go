@@ -64,6 +64,6 @@ func (mc *MavenConfig) Merge(newmcobj interface{}) bool {
 	if mc.PackagingType != newmcptr.PackagingType || mc.MavenAppName != newmcptr.MavenAppName {
 		return false
 	}
-	mc.MavenProfiles = common.MergeStringSlices(mc.MavenProfiles, newmcptr.MavenProfiles...)
+	mc.MavenProfiles = common.MergeSlices(mc.MavenProfiles, newmcptr.MavenProfiles)
 	return true
 }

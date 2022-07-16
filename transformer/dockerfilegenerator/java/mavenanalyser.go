@@ -289,7 +289,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 
 		// only look at the child modules the user selected
 
-		if !common.IsStringPresent(selectedChildModuleNames, childModule.Name) {
+		if !common.IsPresent(selectedChildModuleNames, childModule.Name) {
 			continue
 		}
 

@@ -85,7 +85,7 @@ func (c *ClusterMetadataSpec) Merge(newc ClusterMetadataSpec) bool {
 	// Allow only intersection of storage classes
 	newslice := []string{}
 	for _, sc := range c.StorageClasses {
-		if common.IsStringPresent(newc.StorageClasses, sc) {
+		if common.IsPresent(newc.StorageClasses, sc) {
 			newslice = append(newslice, sc)
 		}
 	}

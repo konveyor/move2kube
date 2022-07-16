@@ -27,6 +27,6 @@ const (
 	LaunchSettingsJSON = "launchSettings.json"
 	// DotNetCoreCsprojFilesPathType points to the csproj files path of dotnetcore projects
 	DotNetCoreCsprojFilesPathType transformertypes.PathType = "DotNetCoreCsprojPathType"
-	// DotNetCoreSolutionFilePathType points to the solution file path of dotnetcore project
+	// DotNetCoreSolutionFilePathType points to the solution file path of a dot net core project
 	DotNetCoreSolutionFilePathType transformertypes.PathType = "DotNetCoreSolutionPathType"
 )

@@ -109,7 +109,7 @@ func (t *ClusterSelectorTransformer) Transform(newArtifacts []transformertypes.A
 		return nil, nil, err
 	}
 	def := defaultClusterType
-	if !common.IsStringPresent(clusterTypeList, def) {
+	if !common.IsPresent(clusterTypeList, def) {
 		def = clusterTypeList[0]
 	}
 	clusterType := qaengine.FetchSelectAnswer(

@@ -82,7 +82,7 @@ func (o *APIResource) convertObjectsToSupportedVersion(objs []runtime.Object, ta
 
 func (o *APIResource) isSupportedKind(obj runtime.Object) bool {
 	kind := obj.GetObjectKind().GroupVersionKind().Kind
-	return common.IsStringPresent(o.getSupportedKinds(), kind)
+	return common.IsPresent(o.getSupportedKinds(), kind)
 }
 
 // loadResource returns false if it could not handle the resource.

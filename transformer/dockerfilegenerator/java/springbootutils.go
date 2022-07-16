@@ -272,11 +272,7 @@ func getSpringBootAppNameProfilesAndPorts(springbootMetadataFiles SpringBootMeta
 			}
 			activeProfiles := getSpringProfiles(activeProfilesStr)
 			// add to list of known spring profiles
-			for _, activeProfile := range activeProfiles {
-				if !common.IsStringPresent(profiles, activeProfile) {
-					profiles = append(profiles, activeProfile)
-				}
-			}
+			profiles = common.AppendIfNotPresent(profiles, activeProfiles...)
 			// get ports
 			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
 				if len(activeProfiles) > 0 {
@@ -294,9 +290,7 @@ func getSpringBootAppNameProfilesAndPorts(springbootMetadataFiles SpringBootMeta
 				continue
 			}
 			// add to list of known spring profiles
-			if !common.IsStringPresent(profiles, activeProfile) {
-				profiles = append(profiles, activeProfile)
-			}
+			profiles = common.AppendIfNotPresent(profiles, activeProfile)
 			// get ports
 			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
 				profilePorts[activeProfile] = append(profilePorts[activeProfile], int32(appPort))
@@ -327,11 +321,7 @@ func getSpringBootAppNameProfilesAndPorts(springbootMetadataFiles SpringBootMeta
 			}
 			activeProfiles := getSpringProfiles(activeProfilesStr)
 			// add to list of known spring profiles
-			for _, activeProfile := range activeProfiles {
-				if !common.IsStringPresent(profiles, activeProfile) {
-					profiles = append(profiles, activeProfile)
-				}
-			}
+			profiles = common.AppendIfNotPresent(profiles, activeProfiles...)
 			// get ports
 			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
 				if len(activeProfiles) > 0 {
@@ -349,9 +339,7 @@ func getSpringBootAppNameProfilesAndPorts(springbootMetadataFiles SpringBootMeta
 				continue
 			}
 			// add to list of known spring profiles
-			if !common.IsStringPresent(profiles, activeProfile) {
-				profiles = append(profiles, activeProfile)
-			}
+			profiles = common.AppendIfNotPresent(profiles, activeProfile)
 			// get ports
 			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
 				profilePorts[activeProfile] = append(profilePorts[activeProfile], int32(appPort))

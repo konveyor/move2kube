@@ -59,7 +59,7 @@ func (*TriggerBinding) createNewResource(irtriggerbinding irtypes.TriggerBinding
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
 func (tb *TriggerBinding) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
-	if common.IsStringPresent(tb.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+	if common.IsPresent(tb.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}
 	return nil, false

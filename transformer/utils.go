@@ -203,7 +203,7 @@ func mergePathSliceMaps(map1 map[transformertypes.PathType][]string, map2 map[tr
 		return map1
 	}
 	for k, v := range map2 {
-		map1[k] = common.MergeStringSlices(map1[k], v...)
+		map1[k] = common.MergeSlices(map1[k], v)
 	}
 	return map1
 }

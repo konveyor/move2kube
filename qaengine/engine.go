@@ -323,7 +323,7 @@ func ValidateProblem(prob qatypes.Problem) error {
 				return fmt.Errorf("expected the defaults to be an array of strings for the QA multiselect problem: %+v\nError: %q", prob, err)
 			}
 			for _, def := range defaults {
-				if !common.IsStringPresent(prob.Options, def) {
+				if !common.IsPresent(prob.Options, def) {
 					return fmt.Errorf("one of the defaults [%s] is not present in the options for the QA multiselect problem: %+v", def, prob)
 				}
 			}
@@ -337,7 +337,7 @@ func ValidateProblem(prob qatypes.Problem) error {
 			if !ok {
 				return fmt.Errorf("expected the default to be a string for the QA select problem: %+v", prob)
 			}
-			if !common.IsStringPresent(prob.Options, def) {
+			if !common.IsPresent(prob.Options, def) {
 				return fmt.Errorf("the default [%s] is not present in the options for the QA select problem: %+v", def, prob)
 			}
 		}

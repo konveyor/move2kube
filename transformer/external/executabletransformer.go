@@ -67,7 +67,7 @@ func (t *Executable) Init(tc transformertypes.Transformer, env *environment.Envi
 			logrus.Infof("Starting transformer that requires QA without QA.")
 		}
 	}
-	if !common.IsStringPresent(t.ExecConfig.Platforms, runtime.GOOS) && t.ExecConfig.Container.Image == "" {
+	if !common.IsPresent(t.ExecConfig.Platforms, runtime.GOOS) && t.ExecConfig.Container.Image == "" {
 		return fmt.Errorf("platform %s not supported by transformer %s", runtime.GOOS, tc.Name)
 	}
 	t.Env, err = environment.NewEnvironment(env.EnvInfo, qaRPCReceiverAddr, t.ExecConfig.Container)

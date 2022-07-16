@@ -109,7 +109,7 @@ func (*TriggerTemplate) createNewResource(tt irtypes.TriggerTemplate, ir irtypes
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
 func (tt *TriggerTemplate) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
-	if common.IsStringPresent(tt.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+	if common.IsPresent(tt.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}
 	return nil, false

@@ -239,7 +239,7 @@ func (c *Config) AddSolution(p Problem) error {
 		return fmt.Errorf("failed to add the problem\n%+v\nto the config. The base key is empty", p)
 	}
 	for _, option := range p.Options {
-		isOptionSelected := common.IsStringPresent(selectedAnswers, option)
+		isOptionSelected := common.IsPresent(selectedAnswers, option)
 		newKey := baseKey + common.Delim + option + common.Delim + lastKeySegment
 		set(newKey, isOptionSelected, c.yamlMap)
 		set(newKey, isOptionSelected, c.writeYamlMap)

@@ -75,7 +75,7 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 		if err != nil {
 			logrus.Errorf("Unable to read Image config : %s", err)
 		}
-		ipt.Images = common.MergeStringSlices(ipt.Images, images.ImageNames...)
+		ipt.Images = common.MergeSlices(ipt.Images, images.ImageNames)
 	}
 	if len(ipt.Images) == 0 {
 		return nil, nil, nil

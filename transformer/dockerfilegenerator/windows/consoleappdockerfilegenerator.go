@@ -29,6 +29,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	dotnetutils "github.com/konveyor/move2kube/transformer/dockerfilegenerator/dotnet"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/konveyor/move2kube/types/source/dotnet"
@@ -162,7 +163,7 @@ func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (map[stri
 		if filepath.Ext(de.Name()) != dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT {
 			continue
 		}
-		relCSProjPaths, err := getCSProjPathsFromSlnFile(filepath.Join(dir, de.Name()), false)
+		relCSProjPaths, err := dotnetutils.GetCSProjPathsFromSlnFile(filepath.Join(dir, de.Name()), false)
 		if err != nil {
 			logrus.Errorf("%s", err)
 			continue

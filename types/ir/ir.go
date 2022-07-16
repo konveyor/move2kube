@@ -228,7 +228,7 @@ func (service *Service) merge(nService Service) {
 	if nService.Replicas != 0 {
 		service.Replicas = nService.Replicas
 	}
-	service.Networks = common.MergeStringSlices(service.Networks, nService.Networks...)
+	service.Networks = common.MergeSlices(service.Networks, nService.Networks)
 	service.OnlyIngress = service.OnlyIngress && nService.OnlyIngress
 	service.Daemon = service.Daemon && nService.Daemon
 	for _, pf := range nService.ServiceToPodPortForwardings {
@@ -298,7 +298,7 @@ func (c *ContainerImage) Merge(newc ContainerImage) bool {
 		logrus.Errorf("Two different users found for image : %d in %d. Ignoring new users.", c.UserID, newc.UserID)
 	}
 	c.ExposedPorts = common.MergeSlices(c.ExposedPorts, newc.ExposedPorts)
-	c.AccessedDirs = common.MergeStringSlices(c.AccessedDirs, newc.AccessedDirs...)
+	c.AccessedDirs = common.MergeSlices(c.AccessedDirs, newc.AccessedDirs)
 	c.Build.Merge(newc.Build)
 	return true
 }
@@ -324,16 +324,12 @@ func (c *ContainerBuild) Merge(newc ContainerBuild) bool {
 
 // AddExposedPort adds an exposed port to a container
 func (c *ContainerImage) AddExposedPort(port int32) {
-	if !common.IsPresent(c.ExposedPorts, port) {
-		c.ExposedPorts = append(c.ExposedPorts, port)
-	}
+	c.ExposedPorts = common.AppendIfNotPresent(c.ExposedPorts, port)
 }
 
 // AddAccessedDirs adds accessed directories to container
 func (c *ContainerImage) AddAccessedDirs(dirname string) {
-	if !common.IsStringPresent(c.AccessedDirs, dirname) {
-		c.AccessedDirs = append(c.AccessedDirs, dirname)
-	}
+	c.AccessedDirs = common.AppendIfNotPresent(c.AccessedDirs, dirname)
 }
 
 // NewIR creates a new IR
