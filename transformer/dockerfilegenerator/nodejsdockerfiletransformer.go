@@ -19,6 +19,7 @@ package dockerfilegenerator
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -97,6 +98,50 @@ func (t *NodejsDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 	return t.Config, t.Env
 }
 
+// fundNearest returns the closest number in the arr to the given num
+func findNearest(arr []int, num int) int {
+	n := len(arr)
+	if num <= arr[0] {
+		return arr[0]
+	}
+	if num >= arr[n-1] {
+		return arr[n-1]
+	}
+	i := 0
+	j := n
+	mid := 0
+	for i < j {
+		mid = (i + j) / 2
+		if arr[mid] == num {
+			return arr[mid]
+		}
+		if num < arr[mid] {
+			if mid > 0 && num > arr[mid-1] {
+				return getNearest(arr[mid-1], arr[mid], num)
+			}
+			j = mid
+		} else {
+			if mid < n-1 && num < arr[mid+1] {
+				return getNearest(arr[mid], arr[mid+1], num)
+			}
+			i = mid + 1
+		}
+	}
+	return arr[mid]
+}
+
+// getNearest returns the number closest to the given num out of the two numbers
+func getNearest(v1, v2, num int) int {
+	if v1 > v2 {
+		return getNearest(v2, v1, num)
+	}
+	if num-v1 >= v2-num {
+		return v2
+	} else {
+		return v1
+	}
+}
+
 // DirectoryDetect runs detect in each sub directory
 func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	var packageJSON PackageJSON
@@ -116,6 +161,54 @@ func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 		}},
 	}
 	return services, nil
+}
+
+// getNodeVersion returns the Node version to be used for the service
+func getNodeVersion(node string, allowedNodeVersions []int) string {
+	var getNextVersion, getPrevVersion bool
+	if strings.HasPrefix(node, ">=") || strings.HasPrefix(node, ">") {
+		node = strings.TrimPrefix(node, ">=")
+		node = strings.TrimPrefix(node, ">")
+		getNextVersion = true
+	}
+	if strings.HasPrefix(node, "<=") || strings.HasPrefix(node, "<") {
+		node = strings.TrimPrefix(node, "<=")
+		node = strings.TrimPrefix(node, "<")
+		getPrevVersion = true
+	}
+	if !strings.HasPrefix(node, "v") {
+		node = "v" + node
+	}
+	nodeVersion := strings.TrimPrefix(semver.Major(node), "v")
+	if getNextVersion {
+		version, err := strconv.Atoi(nodeVersion)
+		if err != nil {
+			logrus.Errorf("unable to convert node major version '%s' to int", nodeVersion)
+		} else {
+			if version%2 == 0 { // to make the version closest to the next allowed even version
+				version = version + 2
+			} else {
+				version = version + 1
+			}
+		}
+		version = findNearest(allowedNodeVersions, version)
+		nodeVersion = strconv.FormatInt(int64(version), 10)
+	}
+	if getPrevVersion {
+		version, err := strconv.Atoi(nodeVersion)
+		if err != nil {
+			logrus.Errorf("unable to convert node major version '%s' to int", nodeVersion)
+		} else {
+			if version%2 == 0 { // to make the version closest to the previous allowed even version
+				version = version - 2
+			} else {
+				version = version - 1
+			}
+		}
+		version = findNearest(allowedNodeVersions, version)
+		nodeVersion = strconv.FormatInt(int64(version), 10)
+	}
+	return nodeVersion
 }
 
 // Transform transforms the artifacts
@@ -146,6 +239,7 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
 		build := false
+		allowedNodeVersions := []int{10, 12, 14, 16}
 		var nodeVersion string
 		var packageJSON PackageJSON
 		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], packageJSONFile), &packageJSON); err != nil {
@@ -155,10 +249,10 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 				build = true
 			}
 			if node, ok := packageJSON.Engines["node"]; ok {
-				if !strings.HasPrefix(node, "v") {
-					node = "v" + node
+				nodeVersion = getNodeVersion(node, allowedNodeVersions)
+				if nodeVersion == "" {
+					nodeVersion = t.NodejsConfig.DefaultNodejsVersion
 				}
-				nodeVersion = strings.TrimPrefix(semver.Major(node), "v")
 			}
 		}
 		if nodeVersion == "" {
