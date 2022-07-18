@@ -137,9 +137,8 @@ func getNearest(v1, v2, num int) int {
 	}
 	if num-v1 >= v2-num {
 		return v2
-	} else {
-		return v1
 	}
+	return v1
 }
 
 // DirectoryDetect runs detect in each sub directory
