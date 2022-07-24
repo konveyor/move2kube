@@ -113,7 +113,7 @@ func (t *ClusterSelectorTransformer) Transform(newArtifacts []transformertypes.A
 		def = clusterTypeList[0]
 	}
 	clusterType := qaengine.FetchSelectAnswer(
-		common.JoinQASubKeys(common.ConfigTargetKey, t.CSConfig.ClusterQaLabel, clusterTypeKey),
+		common.JoinQASubKeys(common.ConfigTargetKey, `"`+t.CSConfig.ClusterQaLabel+`"`, clusterTypeKey),
 		"Choose the cluster type:",
 		[]string{"Choose the cluster type you would like to target"}, def, clusterTypeList,
 	)

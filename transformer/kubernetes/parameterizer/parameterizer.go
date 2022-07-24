@@ -560,7 +560,7 @@ func parameterizeHelperHelm(envs []string, k k8sschema.K8sResourceT, p Parameter
 			}
 			flagNoID := p.Question.ID == ""
 			if flagNoID {
-				p.Question.ID = common.JoinQASubKeys(ParamQuesIDPrefix, apiVersion, kind, key)
+				p.Question.ID = common.JoinQASubKeys(ParamQuesIDPrefix, `"`+apiVersion+`"`, `"`+kind+`"`, key)
 			}
 			filledDesc, err := fillCustomTemplate(p.Question.Desc, kind, apiVersion, metadataName, resultKV.Matches)
 			if err != nil {
@@ -799,7 +799,7 @@ func parameterizeHelperKustomize(envs []string, k k8sschema.K8sResourceT, p Para
 			}
 			flagNoID := p.Question.ID == ""
 			if flagNoID {
-				p.Question.ID = common.JoinQASubKeys(ParamQuesIDPrefix, apiVersion, kind, key)
+				p.Question.ID = common.JoinQASubKeys(ParamQuesIDPrefix, `"`+apiVersion+`"`, `"`+kind+`"`, key)
 			}
 			filledDesc, err := fillCustomTemplate(p.Question.Desc, kind, apiVersion, metadataName, resultKV.Matches)
 			if err != nil {
@@ -887,7 +887,7 @@ func parameterizeHelperOCTemplates(envs []string, k k8sschema.K8sResourceT, p Pa
 			}
 			flagNoID := p.Question.ID == ""
 			if flagNoID {
-				p.Question.ID = common.JoinQASubKeys(ParamQuesIDPrefix, apiVersion, kind, key)
+				p.Question.ID = common.JoinQASubKeys(ParamQuesIDPrefix, `"`+apiVersion+`"`, `"`+kind+`"`, key)
 			}
 			filledDesc, err := fillCustomTemplate(p.Question.Desc, kind, apiVersion, metadataName, resultKV.Matches)
 			if err != nil {

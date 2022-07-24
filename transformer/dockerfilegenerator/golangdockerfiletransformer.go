@@ -151,7 +151,7 @@ func (t *GolangDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		if len(detectedPorts) == 0 {
 			detectedPorts = append(detectedPorts, common.DefaultServicePort)
 		}
-		detectedPorts = commonqa.GetPortsForService(detectedPorts, a.Name)
+		detectedPorts = commonqa.GetPortsForService(detectedPorts, `"`+a.Name+`"`)
 		var golangConfig GolangTemplateConfig
 		golangConfig.AppName = a.Name
 		golangConfig.Ports = detectedPorts

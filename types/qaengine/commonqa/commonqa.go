@@ -71,7 +71,7 @@ func ImageRegistryNamespace() string {
 
 // IngressHost returns Ingress host
 func IngressHost(defaulthost string, clusterQaLabel string) string {
-	key := common.JoinQASubKeys(common.ConfigTargetKey, clusterQaLabel, common.ConfigIngressHostKeySuffix)
+	key := common.JoinQASubKeys(common.ConfigTargetKey, `"`+clusterQaLabel+`"`, common.ConfigIngressHostKeySuffix)
 	return qaengine.FetchStringAnswer(key, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaulthost)
 }
 
@@ -81,7 +81,7 @@ func MinimumReplicaCount(defaultminreplicas string) string {
 }
 
 // GetPortsForService returns ports used by a service
-func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
+func GetPortsForService(detectedPorts []int32, qaSubKey string) []int32 {
 	var selectedPortsStr, detectedPortsStr []string
 	var exposePorts []int32
 	if len(detectedPorts) != 0 {
@@ -89,9 +89,9 @@ func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
 			detectedPortsStr = append(detectedPortsStr, strconv.Itoa(int(detectedPort)))
 		}
 		allDetectedPortsStr := append(detectedPortsStr, qatypes.OtherAnswer)
-		quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigPortsForServiceKeySegment)
-		desc := fmt.Sprintf("Select ports to be exposed for the service %s :", serviceName)
-		hints := []string{"Select Other if you want to add more ports"}
+		quesKey := common.JoinQASubKeys(common.ConfigServicesKey, qaSubKey, common.ConfigPortsForServiceKeySegment)
+		desc := fmt.Sprintf("Select ports to be exposed for the service '%s' :", qaSubKey)
+		hints := []string{"Select 'Other' if you want to add more ports"}
 		selectedPortsStr = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, detectedPortsStr, allDetectedPortsStr)
 	}
 	for _, portStr := range selectedPortsStr {
@@ -110,7 +110,7 @@ func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
 
 // GetPortForService returns the port to expose the service on.
 func GetPortForService(detectedPorts []int32, serviceName string) int32 {
-	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigPortForServiceKeySegment)
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, common.ConfigPortForServiceKeySegment)
 	desc := fmt.Sprintf("Select the port to be exposed for the service %s :", serviceName)
 	hints := []string{"Select 'Other' if you want to expose the service using a different port."}
 	detectedPortStrs := []string{}

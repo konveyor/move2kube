@@ -395,7 +395,7 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 
 		// have the user select the port to use
 
-		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(gradleConfig.RootProjectName, "childModules", childModule.Name))
+		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(`"`+gradleConfig.RootProjectName+`"`, "childModules", `"`+childModule.Name+`"`))
 		if childModuleInfo.SpringBoot != nil {
 			envVarsMap["SERVER_PORT"] = fmt.Sprintf("%d", selectedPort)
 		} else {

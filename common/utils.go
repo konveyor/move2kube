@@ -51,6 +51,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// Map applies the given function over all the elements and returns a new slice with the results.
+func Map[T1 interface{}, T2 interface{}](vs []T1, f func(T1) T2) []T2 {
+	var ws []T2
+	for _, v := range vs {
+		ws = append(ws, f(v))
+	}
+	return ws
+}
+
 // Filter returns the elements that satisfy the condition.
 // It returns nil if none of the elements satisfy the condition.
 func Filter[T comparable](vs []T, condition func(T) bool) []T {

@@ -397,7 +397,7 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 
 		// select a profile to use for publishing the child project
 
-		qaSubKey := common.JoinQASubKeys(dotNetConfig.DotNetAppName, "childProjects", childProject.Name)
+		qaSubKey := common.JoinQASubKeys(`"`+dotNetConfig.DotNetAppName+`"`, "childProjects", `"`+childProject.Name+`"`)
 		relSelectedProfilePath, _, err := getPublishProfile(publishProfilePaths, qaSubKey, serviceDir)
 		if err != nil {
 			logrus.Errorf("failed to select one of the publish profiles for the asp net app. Error: %q Profiles: %+v", err, publishProfilePaths)
@@ -617,26 +617,3 @@ func modifyUrlsToListenOnAllAddresses(src string) (string, []int32, error) {
 	}
 	return strings.Join(newUrls, ";"), ports, nil
 }
-
-// // getCsprojFileForService returns the start-up csproj file used by a service
-// func getCsprojFileForService(csprojFilesPath []string, baseDir string, serviceName string) string {
-// 	var defaultCsprojFileIndex int
-// 	for i, csprojFilePath := range csprojFilesPath {
-// 		publishProfileFiles := findPublishProfiles(csprojFilePath)
-// 		if len(publishProfileFiles) != 0 {
-// 			defaultCsprojFileIndex = i
-// 			break
-// 		}
-// 	}
-// 	var csprojFilesRelPath []string
-// 	for _, csprojFilePath := range csprojFilesPath {
-// 		if csprojFileRelPath, err := filepath.Rel(baseDir, csprojFilePath); err == nil {
-// 			csprojFileRelPath = common.GetUnixPath(csprojFileRelPath)
-// 			csprojFilesRelPath = append(csprojFilesRelPath, csprojFileRelPath)
-// 		}
-// 	}
-// 	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigCsprojFileForServiceKeySegment)
-// 	desc := fmt.Sprintf("Select the csproj file to be used for the service %s :", serviceName)
-// 	hints := []string{fmt.Sprintf("Selected csproj file will be used for starting the service %s", serviceName)}
-// 	return qaengine.FetchSelectAnswer(quesKey, desc, hints, csprojFilesRelPath[defaultCsprojFileIndex], csprojFilesRelPath)
-// }

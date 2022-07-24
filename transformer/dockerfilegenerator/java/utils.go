@@ -57,7 +57,7 @@ func getJavaPackage(mappingFile string, version string) (pkg string, err error) 
 
 // askUserForDockerfileType asks the user what type of Dockerfiles to generate.
 func askUserForDockerfileType(rootProjectName string) (buildOption, error) {
-	quesId := common.JoinQASubKeys(common.ConfigServicesKey, rootProjectName, "dockerfileType")
+	quesId := common.JoinQASubKeys(common.ConfigServicesKey, `"`+rootProjectName+`"`, "dockerfileType")
 	desc := fmt.Sprintf("What type of Dockerfiles should be generated for the service '%s'?", rootProjectName)
 	options := []string{
 		string(NO_BUILD_STAGE),

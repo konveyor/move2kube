@@ -279,7 +279,7 @@ func (t *WinConsoleAppDockerfileGenerator) Transform(newArtifacts []transformert
 		if len(detectedPorts) == 0 {
 			detectedPorts = ir.GetAllServicePorts()
 		}
-		detectedPorts = commonqa.GetPortsForService(detectedPorts, newArtifact.Name)
+		detectedPorts = commonqa.GetPortsForService(detectedPorts, `"`+newArtifact.Name+`"`)
 		var consoleConfig ConsoleTemplateConfig
 		consoleConfig.AppName = newArtifact.Name
 		consoleConfig.Ports = detectedPorts

@@ -365,9 +365,11 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 		qaLabel = targetCluster.Labels[collecttypes.ClusterQaLabelKey]
 	}
 	// QALabel prefix for cluster
-	qaId := common.JoinQASubKeys(common.ConfigTargetKey, qaLabel)
+	qaId := common.JoinQASubKeys(common.ConfigTargetKey, `"`+qaLabel+`"`)
 	// Set the default ingressClass value
-	ingressClassName := qaengine.FetchStringAnswer(common.JoinQASubKeys(qaId, common.ConfigIngressClassNameKeySuffix), "Provide the Ingress class name for ingress", []string{"Leave empty to use the cluster default"}, "")
+	quesKeyClass := common.JoinQASubKeys(qaId, common.ConfigIngressClassNameKeySuffix)
+	descClass := "Provide the Ingress class name for ingress"
+	ingressClassName := qaengine.FetchStringAnswer(quesKeyClass, descClass, []string{"Leave empty to use the cluster default"}, "")
 
 	// Configure the rule with the above fan-out paths
 	rules := []networking.IngressRule{}
@@ -377,7 +379,9 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 	if host == "" {
 		host = commonqa.IngressHost(d.getHostName(ir.Name), qaLabel)
 	}
-	secretName = qaengine.FetchStringAnswer(common.JoinQASubKeys(qaId, common.ConfigIngressTLSKeySuffix), "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
+	quesKeyTLS := common.JoinQASubKeys(qaId, common.ConfigIngressTLSKeySuffix)
+	descTLS := "Provide the TLS secret for ingress"
+	secretName = qaengine.FetchStringAnswer(quesKeyTLS, descTLS, []string{"Leave empty to use http"}, defaultSecretName)
 	for hostprefix, httpIngressPaths := range hostHTTPIngressPaths {
 		ph := host
 		if hostprefix != "" {

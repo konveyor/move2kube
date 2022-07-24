@@ -352,7 +352,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 
 			// have the user select the ports to use for the child project
 
-			selectedPorts := commonqa.GetPortsForService(detectedPorts, common.JoinQASubKeys(dotNetConfig.DotNetAppName, "childProjects", childProject.Name))
+			selectedPorts := commonqa.GetPortsForService(detectedPorts, common.JoinQASubKeys(`"`+dotNetConfig.DotNetAppName+`"`, "childProjects", `"`+childProject.Name+`"`))
 
 			// data to fill the Dockerfile template
 

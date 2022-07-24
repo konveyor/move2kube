@@ -175,7 +175,7 @@ func (t *WinSilverLightWebAppDockerfileGenerator) Transform(newArtifacts []trans
 		if len(detectedPorts) == 0 {
 			detectedPorts = append(detectedPorts, common.DefaultServicePort)
 		}
-		detectedPorts = commonqa.GetPortsForService(detectedPorts, a.Name)
+		detectedPorts = commonqa.GetPortsForService(detectedPorts, `"`+a.Name+`"`)
 		var silverLightConfig SilverLightTemplateConfig
 		silverLightConfig.AppName = a.Name
 		silverLightConfig.Ports = detectedPorts

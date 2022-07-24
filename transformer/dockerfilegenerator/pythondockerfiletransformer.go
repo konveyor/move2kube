@@ -128,7 +128,7 @@ func getMainPythonFileForService(mainPythonFilesPath []string, baseDir string, s
 			mainPythonFilesRelPath = append(mainPythonFilesRelPath, mainPythonFileRelPath)
 		}
 	}
-	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigMainPythonFileForServiceKeySegment)
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, common.ConfigMainPythonFileForServiceKeySegment)
 	desc := fmt.Sprintf("Select the main file to be used for the service %s :", serviceName)
 	hints := []string{fmt.Sprintf("Selected main file will be used for the service %s", serviceName)}
 	return qaengine.FetchSelectAnswer(quesKey, desc, hints, mainPythonFilesRelPath[0], mainPythonFilesRelPath)
@@ -142,7 +142,7 @@ func getStartingPythonFileForService(pythonFilesPath []string, baseDir string, s
 			pythonFilesRelPath = append(pythonFilesRelPath, pythonFileRelPath)
 		}
 	}
-	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigStartingPythonFileForServiceKeySegment)
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, common.ConfigStartingPythonFileForServiceKeySegment)
 	desc := fmt.Sprintf("Select the python file to be used for the service %s :", serviceName)
 	hints := []string{fmt.Sprintf("Selected python file will be used for starting the service %s", serviceName)}
 	return qaengine.FetchSelectAnswer(quesKey, desc, hints, pythonFilesRelPath[0], pythonFilesRelPath)
