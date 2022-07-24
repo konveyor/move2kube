@@ -232,6 +232,7 @@ func (t *DotNetCoreDockerfileGenerator) Transform(newArtifacts []transformertype
 	return pathMappings, artifactsCreated, nil
 }
 
+// TransformArtifact transforms a single artifact
 func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transformertypes.Artifact, oldArtifacts []transformertypes.Artifact, dotNetConfig artifacts.DotNetConfig) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
