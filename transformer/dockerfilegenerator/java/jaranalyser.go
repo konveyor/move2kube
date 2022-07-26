@@ -24,6 +24,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
@@ -218,6 +219,14 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 				artifacts.ServiceConfigType:   serviceConfig,
 			},
 		}
+
+		// preserve the ir config and inject cloud foundry vcap properties if it is present
+
+		ir := irtypes.IR{}
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err == nil {
+			dockerfileForServiceArtifact.Configs[irtypes.IRConfigType] = ir
+		}
+
 		createdArtifacts = append(createdArtifacts, dockerfileArtifact, dockerfileForServiceArtifact)
 	}
 	return pathMappings, createdArtifacts, nil
