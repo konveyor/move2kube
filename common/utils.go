@@ -596,6 +596,16 @@ func IsPresent[C comparable](list []C, value C) bool {
 	return false
 }
 
+// IsStringPresent is like IsPresent but does case-insensitive comparison of strings
+func IsStringPresent(list []string, value string) bool {
+	for _, val := range list {
+		if strings.EqualFold(val, value) {
+			return true
+		}
+	}
+	return false
+}
+
 // AppendIfNotPresent checks if a value is present in a slice and if not appends it to the slice
 func AppendIfNotPresent[C comparable](list []C, values ...C) []C {
 	for _, value := range values {

@@ -28,7 +28,6 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -53,29 +52,40 @@ const (
 )
 
 func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
-	usedRegistries := []string{}
-	registryList := []string{qatypes.OtherAnswer}
-	newimages := []string{}
-	for in, container := range ir.ContainerImages {
+	// find all the new images that we are going to create
+
+	newImageNames := []string{}
+	for imageName, container := range ir.ContainerImages {
 		if container.Build.ContainerBuildType != "" {
-			newimages = append(newimages, in)
+			newImageNames = append(newImageNames, imageName)
 		}
 	}
+
+	// find all the registries that we use for our images
+
+	usedRegistries := []string{}
 	for _, service := range ir.Services {
 		for _, container := range service.Containers {
-			if !common.IsPresent(newimages, container.Image) {
+			if !common.IsPresent(newImageNames, container.Image) {
+
+				// if it's a pre-existing image then find the registry where the image exists
+
 				parts := strings.Split(container.Image, "/")
 				if len(parts) == 3 {
-					registryList = append(registryList, parts[0])
 					usedRegistries = append(usedRegistries, parts[0])
 				}
 			}
 		}
 	}
-	reg := commonqa.ImageRegistry()
-	usedRegistries = common.AppendIfNotPresent(usedRegistries, reg)
-	imagePullSecrets := map[string]string{}                    // registryurl, pull secret
-	registryAuthList := map[string]dockerclitypes.AuthConfig{} //Registry url and auth
+
+	// ask the user for the registry url where new images should be pushed
+
+	registryToPushImagesTo := commonqa.ImageRegistry()
+	usedRegistries = common.AppendIfNotPresent(usedRegistries, registryToPushImagesTo)
+
+	// get the login credentials for each registry we use by parsing the docker config.json file
+
+	registryAuthList := map[string]dockerclitypes.AuthConfig{} // registry url -> login credentials
 	if !common.IgnoreEnvironment {
 		defaultDockerConfigDir := dockercliconfig.Dir()
 		configFile, err := dockercliconfig.Load(defaultDockerConfigDir)
@@ -97,12 +107,15 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 						continue
 					}
 				}
-				registryList = common.AppendIfNotPresent(registryList, u.Host)
 				registryAuthList[regurl] = regauth
 			}
 		}
 	}
-	ns := commonqa.ImageRegistryNamespace()
+
+	// ask the user what type of login to use for each registry that we use
+
+	imagePullSecrets := map[string]string{} // registry url -> pull secret name
+	registryNamespace := commonqa.ImageRegistryNamespace()
 	for _, registry := range usedRegistries {
 		if _, ok := imagePullSecrets[registry]; !ok {
 			imagePullSecrets[registry] = common.NormalizeForMetadataName(strings.ReplaceAll(registry, ".", "-") + imagePullSecretSuffix)
@@ -110,7 +123,10 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		regAuth := dockerclitypes.AuthConfig{}
 		authOptions := []string{string(existingPullSecretLogin), string(noLogin), string(usernamePasswordLogin)}
 		defaultOption := noLogin
-		if auth, ok := registryAuthList[registry]; ok {
+		if auth, err := fuzzyMatch(registry, registryAuthList); err == nil {
+
+			// if we find the credentials for the registry in the docker config.json then use that as the default option
+
 			regAuth = auth
 			authOptions = append(authOptions, string(dockerConfigLogin))
 			defaultOption = dockerConfigLogin
@@ -135,51 +151,74 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 			logrus.Debugf("using the credentials from the docker config.json file")
 		}
 		if regAuth != (dockerclitypes.AuthConfig{}) {
-			// create a valid docker config json file using the credentials
-			dconfigfile := dockercliconfigfile.ConfigFile{AuthConfigs: map[string]dockerclitypes.AuthConfig{registry: regAuth}}
-			dconfigbuffer := new(bytes.Buffer)
-			if err := dconfigfile.SaveToWriter(dconfigbuffer); err == nil {
+
+			// create a valid docker config.json file using the credentials
+
+			configFile := dockercliconfigfile.ConfigFile{AuthConfigs: map[string]dockerclitypes.AuthConfig{registry: regAuth}}
+			configFileContents := new(bytes.Buffer)
+			if err := configFile.SaveToWriter(configFileContents); err != nil {
+				logrus.Warnf("failed to create auth string. Error: %q", err)
+			} else {
 				ir.AddStorage(irtypes.Storage{
 					Name:        imagePullSecrets[registry],
 					StorageType: irtypes.PullSecretKind,
-					Content:     map[string][]byte{".dockerconfigjson": dconfigbuffer.Bytes()},
+					Content:     map[string][]byte{".dockerconfigjson": configFileContents.Bytes()},
 				})
-			} else {
-				logrus.Warnf("Unable to create auth string : %s", err)
 			}
 		}
 	}
 
-	for sn, service := range ir.Services {
-		for i, serviceContainer := range service.Containers {
-			if common.IsPresent(newimages, serviceContainer.Image) {
-				image, tag := common.GetImageNameAndTag(serviceContainer.Image)
-				if reg != "" && ns != "" {
-					serviceContainer.Image = reg + "/" + ns + "/" + image + ":" + tag
-				} else if ns != "" {
-					serviceContainer.Image = ns + "/" + image + ":" + tag
+	for serviceName, service := range ir.Services {
+		for i, container := range service.Containers {
+			if common.IsPresent(newImageNames, container.Image) {
+				image, tag := common.GetImageNameAndTag(container.Image)
+				if registryToPushImagesTo != "" && registryNamespace != "" {
+					container.Image = registryToPushImagesTo + "/" + registryNamespace + "/" + image + ":" + tag
+				} else if registryNamespace != "" {
+					container.Image = registryNamespace + "/" + image + ":" + tag
 				} else {
-					serviceContainer.Image = image + ":" + tag
+					container.Image = image + ":" + tag
 				}
-				service.Containers[i] = serviceContainer
+				service.Containers[i] = container
 			}
-			parts := strings.Split(serviceContainer.Image, "/")
-			if len(parts) == 3 {
-				reg := parts[0]
-				if ps, ok := imagePullSecrets[reg]; ok {
-					found := false
-					for _, eps := range service.ImagePullSecrets {
-						if eps.Name == ps {
-							found = true
-						}
-					}
-					if !found {
-						service.ImagePullSecrets = append(service.ImagePullSecrets, core.LocalObjectReference{Name: ps})
-					}
+			parts := strings.Split(container.Image, "/")
+			if len(parts) != 3 {
+				continue
+			}
+			reg := parts[0]
+			pullSecretName, ok := imagePullSecrets[reg]
+			if !ok {
+				continue
+			}
+			found := false
+			for _, eps := range service.ImagePullSecrets {
+				if eps.Name == pullSecretName {
+					found = true
 				}
+			}
+			if !found {
+				service.ImagePullSecrets = append(service.ImagePullSecrets, core.LocalObjectReference{Name: pullSecretName})
 			}
 		}
-		ir.Services[sn] = service
+		ir.Services[serviceName] = service
 	}
 	return ir, nil
+}
+
+func fuzzyMatch(regUrl string, regAuthMap map[string]dockerclitypes.AuthConfig) (dockerclitypes.AuthConfig, error) {
+	for k, v := range regAuthMap {
+		if strings.EqualFold(k, regUrl) {
+			return v, nil
+		}
+	}
+	if regUrl == "docker.io" {
+		if v, ok := regAuthMap["index.docker.io"]; ok {
+			return v, nil
+		}
+	} else if regUrl == "index.docker.io" {
+		if v, ok := regAuthMap["docker.io"]; ok {
+			return v, nil
+		}
+	}
+	return dockerclitypes.AuthConfig{}, fmt.Errorf("failed to find the creds for the registry url '%s'", regUrl)
 }

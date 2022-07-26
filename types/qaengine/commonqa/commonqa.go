@@ -62,7 +62,7 @@ func ImageRegistry() string {
 	if defreg == "" {
 		defreg = defaultRegistryURL
 	}
-	return qaengine.FetchSelectAnswer(common.ConfigImageRegistryURLKey, "Enter the URL of the image registry : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList)
+	return qaengine.FetchSelectAnswer(common.ConfigImageRegistryURLKey, "Enter the URL of the image registry where the new images should be pushed : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList)
 }
 
 // ImageRegistryNamespace returns Image Registry Namespace
