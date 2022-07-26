@@ -31,6 +31,7 @@ import (
 	"github.com/magiconair/properties"
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 	"k8s.io/kubernetes/pkg/apis/core"
 )
@@ -156,7 +157,7 @@ func flattenPropertyKey(prefix string, unflattenedValueI interface{}) []Flattene
 	case string:
 		return []FlattenedProperty{{Name: prefix, Value: unflattenedValue}}
 	case int:
-		return []FlattenedProperty{{Name: prefix, Value: fmt.Sprintf("%d", unflattenedValue)}}
+		return []FlattenedProperty{{Name: prefix, Value: cast.ToString(unflattenedValue)}}
 	case bool:
 		return []FlattenedProperty{{Name: prefix, Value: fmt.Sprintf("%t", unflattenedValue)}}
 	default:

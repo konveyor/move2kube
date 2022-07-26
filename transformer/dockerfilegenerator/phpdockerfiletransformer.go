@@ -208,7 +208,7 @@ func (t *PHPDockerfileGenerator) Transform(newArtifacts []transformertypes.Artif
 				}
 			}
 			if phpConfig.ConfFilePort == 0 {
-				phpConfig.ConfFilePort = commonqa.GetPortForService(detectedPorts, a.Name)
+				phpConfig.ConfFilePort = commonqa.GetPortForService(detectedPorts, `"`+a.Name+`"`)
 			}
 		}
 		if sImageName.ImageName == "" {

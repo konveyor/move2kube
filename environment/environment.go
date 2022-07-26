@@ -24,7 +24,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"text/template"
 
@@ -36,6 +35,7 @@ import (
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 const (
@@ -109,7 +109,7 @@ func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr, c environmenttypes
 		for _, envvar := range envvars {
 			envvarpair := strings.SplitN(envvar, "=", 2)
 			if len(envvarpair) > 0 && envVariableName == c.Image && len(envvarpair) > 1 {
-				_, err := strconv.Atoi(envvarpair[1])
+				_, err := cast.ToIntE(envvarpair[1])
 				if err != nil {
 					envInfo.Context = envvarpair[1]
 					env.Env, err = NewLocal(envInfo, grpcQAReceiver)

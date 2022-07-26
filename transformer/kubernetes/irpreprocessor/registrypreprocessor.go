@@ -34,14 +34,23 @@ import (
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
+// registryPreProcessor preprocesses image registry related configurations
+type registryPreProcessor struct {
+}
+
+type registryLoginOption string
+
+const (
+	noLogin                 registryLoginOption = "no authentication"
+	usernamePasswordLogin   registryLoginOption = "username and password"
+	existingPullSecretLogin registryLoginOption = "use an existing pull secret"
+	dockerConfigLogin       registryLoginOption = "use the credentials from the docker config.json file"
+)
+
 const (
 	// imagePullSecretSuffix is the suffix that will be appended to pull secret name
 	imagePullSecretSuffix = "-imagepullsecret"
 )
-
-// registryPreProcessor preprocesses image registry related configurations
-type registryPreProcessor struct {
-}
 
 func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 	usedRegistries := []string{}
@@ -65,67 +74,75 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 	}
 	reg := commonqa.ImageRegistry()
 	usedRegistries = common.AppendIfNotPresent(usedRegistries, reg)
-	imagePullSecrets := map[string]string{} // registryurl, pull secret
-	registryAuthList := map[string]string{} //Registry url and auth
+	imagePullSecrets := map[string]string{}                    // registryurl, pull secret
+	registryAuthList := map[string]dockerclitypes.AuthConfig{} //Registry url and auth
 	if !common.IgnoreEnvironment {
-		configFile, err := dockercliconfig.Load(dockercliconfig.Dir())
-		if err == nil {
+		defaultDockerConfigDir := dockercliconfig.Dir()
+		configFile, err := dockercliconfig.Load(defaultDockerConfigDir)
+		if err != nil {
+			logrus.Errorf("failed to load the docker config.json file in the directory %s . Error: %q", defaultDockerConfigDir, err)
+		} else {
 			for regurl, regauth := range configFile.AuthConfigs {
 				u, err := url.Parse(regurl)
-				if err == nil {
-					if u.Host != "" {
-						regurl = u.Host
-					}
-				}
-				if regurl == "" {
+				if err != nil {
+					logrus.Errorf("failed to parse the string '%s' as a url. Error: %q", regurl, err)
 					continue
 				}
-				registryList = common.AppendIfNotPresent(registryList, regurl)
-				if regauth.Auth != "" {
-					registryAuthList[regurl] = regauth.Auth
+				if u.Host == "" {
+					if u.Scheme != "" {
+						continue
+					}
+					u, err = url.Parse("http://" + regurl)
+					if err != nil || u.Host == "" {
+						continue
+					}
 				}
+				registryList = common.AppendIfNotPresent(registryList, u.Host)
+				registryAuthList[regurl] = regauth
 			}
 		}
 	}
 	ns := commonqa.ImageRegistryNamespace()
 	for _, registry := range usedRegistries {
-		dauth := dockerclitypes.AuthConfig{}
-		const dockerConfigLogin = "Docker login from config"
-		const noAuthLogin = "No authentication"
-		const userLogin = "UserName/Password"
-		const useExistingPullSecret = "Use existing pull secret"
-		authOptions := []string{useExistingPullSecret, noAuthLogin, userLogin}
 		if _, ok := imagePullSecrets[registry]; !ok {
 			imagePullSecrets[registry] = common.NormalizeForMetadataName(strings.ReplaceAll(registry, ".", "-") + imagePullSecretSuffix)
 		}
+		regAuth := dockerclitypes.AuthConfig{}
+		authOptions := []string{string(existingPullSecretLogin), string(noLogin), string(usernamePasswordLogin)}
+		defaultOption := noLogin
 		if auth, ok := registryAuthList[registry]; ok {
-			dauth.Auth = auth
-			authOptions = append(authOptions, dockerConfigLogin)
+			regAuth = auth
+			authOptions = append(authOptions, string(dockerConfigLogin))
+			defaultOption = dockerConfigLogin
 		}
-		auth := qaengine.FetchSelectAnswer(common.ConfigImageRegistryLoginTypeKey, fmt.Sprintf("[%s] What type of container registry login do you want to use?", registry), []string{"Docker login from config mode, will use the default config from your local machine."}, noAuthLogin, authOptions)
-		if auth == noAuthLogin {
-			dauth.Auth = ""
-		} else if auth == useExistingPullSecret {
-			ps := qaengine.FetchStringAnswer(common.ConfigImageRegistryPullSecretKey, fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "")
+		quesKey := fmt.Sprintf(common.ConfigImageRegistryLoginTypeKey, `"`+registry+`"`)
+		desc := fmt.Sprintf("[%s] What type of container registry login do you want to use?", registry)
+		hints := []string{"Docker login from config mode, will use the default config from your local machine."}
+		auth := qaengine.FetchSelectAnswer(quesKey, desc, hints, string(defaultOption), authOptions)
+		switch registryLoginOption(auth) {
+		case noLogin:
+			regAuth.Auth = ""
+		case existingPullSecretLogin:
+			qaKey := fmt.Sprintf(common.ConfigImageRegistryPullSecretKey, `"`+registry+`"`)
+			ps := qaengine.FetchStringAnswer(qaKey, fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "")
 			imagePullSecrets[registry] = ps
-		} else if auth != dockerConfigLogin {
-			un := qaengine.FetchStringAnswer(common.ConfigImageRegistryUserNameKey, fmt.Sprintf("[%s] Enter the container registry username : ", registry), []string{"Enter username for container registry login"}, "iamapikey")
-			dauth.Username = un
-			dauth.Password = qaengine.FetchPasswordAnswer(common.ConfigImageRegistryPasswordKey, fmt.Sprintf("[%s] Enter the container registry password : ", registry), []string{"Enter password for container registry login."})
+		case usernamePasswordLogin:
+			qaUsernameKey := fmt.Sprintf(common.ConfigImageRegistryUserNameKey, `"`+registry+`"`)
+			regAuth.Username = qaengine.FetchStringAnswer(qaUsernameKey, fmt.Sprintf("[%s] Enter the username to login into the registry : ", registry), nil, "iamapikey")
+			qaPasswordKey := fmt.Sprintf(common.ConfigImageRegistryPasswordKey, `"`+registry+`"`)
+			regAuth.Password = qaengine.FetchPasswordAnswer(qaPasswordKey, fmt.Sprintf("[%s] Enter the password to login into the registry : ", registry), nil)
+		case dockerConfigLogin:
+			logrus.Debugf("using the credentials from the docker config.json file")
 		}
-		if dauth != (dockerclitypes.AuthConfig{}) {
-			dconfigfile := dockercliconfigfile.ConfigFile{
-				AuthConfigs: map[string]dockerclitypes.AuthConfig{registry: dauth},
-			}
+		if regAuth != (dockerclitypes.AuthConfig{}) {
+			// create a valid docker config json file using the credentials
+			dconfigfile := dockercliconfigfile.ConfigFile{AuthConfigs: map[string]dockerclitypes.AuthConfig{registry: regAuth}}
 			dconfigbuffer := new(bytes.Buffer)
-			err := dconfigfile.SaveToWriter(dconfigbuffer)
-			if err == nil {
-				data := map[string][]byte{}
-				data[".dockerconfigjson"] = dconfigbuffer.Bytes()
+			if err := dconfigfile.SaveToWriter(dconfigbuffer); err == nil {
 				ir.AddStorage(irtypes.Storage{
 					Name:        imagePullSecrets[registry],
 					StorageType: irtypes.PullSecretKind,
-					Content:     data,
+					Content:     map[string][]byte{".dockerconfigjson": dconfigbuffer.Bytes()},
 				})
 			} else {
 				logrus.Warnf("Unable to create auth string : %s", err)

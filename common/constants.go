@@ -146,13 +146,13 @@ const (
 	//ConfigImageRegistryNamespaceKey represents image registry namespace Key
 	ConfigImageRegistryNamespaceKey = ConfigImageRegistryKey + d + "namespace"
 	//ConfigImageRegistryLoginTypeKey represents image registry login type Key
-	ConfigImageRegistryLoginTypeKey = ConfigImageRegistryKey + d + "logintype"
+	ConfigImageRegistryLoginTypeKey = ConfigImageRegistryKey + d + "%s" + d + "logintype"
 	//ConfigImageRegistryPullSecretKey represents image registry pull secret Key
-	ConfigImageRegistryPullSecretKey = ConfigImageRegistryKey + d + "pullsecret"
+	ConfigImageRegistryPullSecretKey = ConfigImageRegistryKey + d + "%s" + d + "pullsecret"
 	//ConfigImageRegistryUserNameKey represents image registry login Username Key
-	ConfigImageRegistryUserNameKey = ConfigImageRegistryKey + d + "username"
+	ConfigImageRegistryUserNameKey = ConfigImageRegistryKey + d + "%s" + d + "username"
 	//ConfigImageRegistryPasswordKey represents image registry login Password Key
-	ConfigImageRegistryPasswordKey = ConfigImageRegistryKey + d + "password"
+	ConfigImageRegistryPasswordKey = ConfigImageRegistryKey + d + "%s" + d + "password"
 	//ConfigStoragesPVCForHostPathKey represents key for PVC for Host Path
 	ConfigStoragesPVCForHostPathKey = ConfigStoragesKey + d + "pvcforhostpath"
 	//ConfigStoragesPerClaimStorageClassKey represents key for having different storage class for claim

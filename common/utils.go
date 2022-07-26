@@ -43,6 +43,7 @@ import (
 	"github.com/konveyor/move2kube/types"
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	"github.com/xrash/smetrics"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1041,7 +1042,7 @@ func IsParent(child, parent string) bool {
 
 // GetRandomString generates a random string
 func GetRandomString() string {
-	return fmt.Sprintf("%d", rand.Intn(10000000))
+	return cast.ToString(rand.Intn(10000000))
 }
 
 // SplitOnDotExpectInsideQuotes splits a string on dot.

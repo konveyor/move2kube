@@ -27,6 +27,7 @@ import (
 	"github.com/konveyor/move2kube/qaengine"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 // ImageRegistry returns Image Registry URL
@@ -86,7 +87,7 @@ func GetPortsForService(detectedPorts []int32, qaSubKey string) []int32 {
 	var exposePorts []int32
 	if len(detectedPorts) != 0 {
 		for _, detectedPort := range detectedPorts {
-			detectedPortsStr = append(detectedPortsStr, strconv.Itoa(int(detectedPort)))
+			detectedPortsStr = append(detectedPortsStr, cast.ToString(detectedPort))
 		}
 		allDetectedPortsStr := append(detectedPortsStr, qatypes.OtherAnswer)
 		quesKey := common.JoinQASubKeys(common.ConfigServicesKey, qaSubKey, common.ConfigPortsForServiceKeySegment)
@@ -109,16 +110,16 @@ func GetPortsForService(detectedPorts []int32, qaSubKey string) []int32 {
 }
 
 // GetPortForService returns the port to expose the service on.
-func GetPortForService(detectedPorts []int32, serviceName string) int32 {
-	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, common.ConfigPortForServiceKeySegment)
-	desc := fmt.Sprintf("Select the port to be exposed for the service %s :", serviceName)
+func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, qaSubKey, common.ConfigPortForServiceKeySegment)
+	desc := fmt.Sprintf("Select the port to be exposed for the '%s' service :", qaSubKey)
 	hints := []string{"Select 'Other' if you want to expose the service using a different port."}
 	detectedPortStrs := []string{}
 	for _, detectedPort := range detectedPorts {
-		detectedPortStrs = append(detectedPortStrs, fmt.Sprintf("%d", detectedPort))
+		detectedPortStrs = append(detectedPortStrs, cast.ToString(detectedPort))
 	}
 	if len(detectedPortStrs) == 0 {
-		detectedPortStrs = append(detectedPortStrs, fmt.Sprintf("%d", common.DefaultServicePort))
+		detectedPortStrs = append(detectedPortStrs, cast.ToString(common.DefaultServicePort))
 	}
 	detectedPortStrs = append(detectedPortStrs, qatypes.OtherAnswer)
 	selectedPortStr := qaengine.FetchSelectAnswer(quesKey, desc, hints, detectedPortStrs[0], detectedPortStrs)

@@ -28,6 +28,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 // JarAnalyser implements Transformer interface
@@ -103,7 +104,7 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.JarConfigType: artifacts.JarArtifactConfig{
 					DeploymentFilePath: relPath,
-					EnvVariables:       map[string]string{"PORT": fmt.Sprintf("%d", t.JarConfig.DefaultPort)},
+					EnvVariables:       map[string]string{"PORT": cast.ToString(t.JarConfig.DefaultPort)},
 					Port:               t.JarConfig.DefaultPort,
 					JavaVersion:        t.JarConfig.JavaVersion,
 				},

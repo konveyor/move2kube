@@ -22,7 +22,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
@@ -33,6 +32,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 // GradleAnalyser implements Transformer interface
@@ -397,9 +397,9 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 
 		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(`"`+gradleConfig.RootProjectName+`"`, "childModules", `"`+childModule.Name+`"`))
 		if childModuleInfo.SpringBoot != nil {
-			envVarsMap["SERVER_PORT"] = fmt.Sprintf("%d", selectedPort)
+			envVarsMap["SERVER_PORT"] = cast.ToString(selectedPort)
 		} else {
-			envVarsMap["PORT"] = fmt.Sprintf("%d", selectedPort)
+			envVarsMap["PORT"] = cast.ToString(selectedPort)
 		}
 
 		// find the path to the artifact (jar/war/ear) which should get copied into the run stage
@@ -645,15 +645,15 @@ func getJavaVersionFromGradle(build *gradle.Gradle) string {
 		if gb, ok := gb.Blocks["toolchain"]; ok {
 			if len(gb.Metadata[languageVersionC]) > 0 {
 				ss := gradle.GetSingleArgumentFromFuntionCall(gb.Metadata[languageVersionC][0], "JavaLanguageVersion.of")
-				gradleJavaVersion, err := strconv.Atoi(ss)
+				gradleJavaVersion, err := cast.ToIntE(ss)
 				if err != nil {
 					logrus.Errorf("failed to parse the string '%s' as an integer. Error: %q", ss, err)
 					return ""
 				}
 				if gradleJavaVersion < 10 {
-					return "1." + fmt.Sprintf("%d", gradleJavaVersion)
+					return "1." + cast.ToString(gradleJavaVersion)
 				}
-				return fmt.Sprintf("%d", gradleJavaVersion)
+				return cast.ToString(gradleJavaVersion)
 			}
 		}
 	}

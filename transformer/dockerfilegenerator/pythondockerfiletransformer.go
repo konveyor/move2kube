@@ -236,7 +236,7 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		if len(ports) == 0 {
 			ports = []int32{common.DefaultServicePort}
 		}
-		pythonTemplateConfig.Port = commonqa.GetPortForService(ports, a.Name)
+		pythonTemplateConfig.Port = commonqa.GetPortForService(ports, `"`+a.Name+`"`)
 		if len(a.Paths[artifacts.ServiceDirPathType]) == 0 {
 			logrus.Errorf("The service directory path is missing for the artifact: %+v", a)
 			continue
