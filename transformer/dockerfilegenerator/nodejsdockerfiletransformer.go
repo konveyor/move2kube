@@ -101,6 +101,50 @@ func (t *NodejsDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 	return t.Config, t.Env
 }
 
+//  findNearest returns the closest number in the arr to the given num
+func findNearest(arr []int, num int) int {
+	n := len(arr)
+	sort.Ints(arr)
+	if num <= arr[0] {
+		return arr[0]
+	}
+	if num >= arr[n-1] {
+		return arr[n-1]
+	}
+	i := 0
+	j := n
+	mid := 0
+	for i < j {
+		mid = (i + j) / 2
+		if arr[mid] == num {
+			return arr[mid]
+		}
+		if num < arr[mid] {
+			if mid > 0 && num > arr[mid-1] {
+				return getNearest(arr[mid-1], arr[mid], num)
+			}
+			j = mid
+		} else {
+			if mid < n-1 && num < arr[mid+1] {
+				return getNearest(arr[mid], arr[mid+1], num)
+			}
+			i = mid + 1
+		}
+	}
+	return arr[mid]
+}
+
+// getNearest returns the number closest to the given num out of the two numbers
+func getNearest(v1, v2, num int) int {
+	if v1 > v2 {
+		return getNearest(v2, v1, num)
+	}
+	if num-v1 >= v2-num {
+		return v2
+	}
+	return v1
+}
+
 // getNodeVersion returns the Node version to be used for the service
 func getNodeVersion(versionConstraint, defaultNodejsVersion string, supportedVersions []int) string {
 	v1, err := version.NewVersion(versionConstraint)
@@ -113,17 +157,18 @@ func getNodeVersion(versionConstraint, defaultNodejsVersion string, supportedVer
 			logrus.Errorf("unable to convert Node major version '%d' to int. Selecting default Node version- %s", nodeVersion, defaultNodejsVersion)
 			return defaultNodejsVersion
 		}
-		if nodeVersion%2 != 0 { // to make the version closest to the previous even version
-			nodeVersion = nodeVersion - 1
-		}
-		sort.Ints(supportedVersions)
-		if nodeVersion < supportedVersions[0] {
-			return strconv.Itoa(supportedVersions[0])
-		}
-		if nodeVersion > supportedVersions[len(supportedVersions)-1] {
-			return strconv.Itoa((supportedVersions[len(supportedVersions)-1]))
-		}
-		return strconv.Itoa(nodeVersion)
+		return strconv.Itoa(findNearest(supportedVersions, nodeVersion))
+		// if nodeVersion%2 != 0 { // to make the version closest to the previous even version
+		// 	nodeVersion = nodeVersion - 1
+		// }
+		// sort.Ints(supportedVersions)
+		// if nodeVersion < supportedVersions[0] {
+		// 	return strconv.Itoa(supportedVersions[0])
+		// }
+		// if nodeVersion > supportedVersions[len(supportedVersions)-1] {
+		// 	return strconv.Itoa((supportedVersions[len(supportedVersions)-1]))
+		// }
+		// return strconv.Itoa(nodeVersion)
 	}
 	constraints, err := version.NewConstraint(versionConstraint)
 	if err != nil {
