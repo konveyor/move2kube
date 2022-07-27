@@ -19,6 +19,7 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/go-cmp v0.5.7
 	github.com/gorilla/mux v1.8.0
+	github.com/hashicorp/go-version v1.6.0
 	github.com/joho/godotenv v1.4.0
 	github.com/magiconair/properties v1.8.5
 	github.com/mikefarah/yq/v4 v4.16.2

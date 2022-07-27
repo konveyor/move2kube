@@ -19,9 +19,11 @@ package dockerfilegenerator
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/joho/godotenv"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -29,7 +31,6 @@ import (
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"golang.org/x/mod/semver"
@@ -39,6 +40,8 @@ const (
 	defaultNodeVersion = "14"
 	packageJSONFile    = "package.json"
 )
+
+var supportedNodeVersions = []int{14, 16, 12, 10}
 
 // NodejsDockerfileGenerator implements the Transformer interface
 type NodejsDockerfileGenerator struct {
@@ -98,47 +101,44 @@ func (t *NodejsDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 	return t.Config, t.Env
 }
 
-// fundNearest returns the closest number in the arr to the given num
-func findNearest(arr []int, num int) int {
-	n := len(arr)
-	if num <= arr[0] {
-		return arr[0]
-	}
-	if num >= arr[n-1] {
-		return arr[n-1]
-	}
-	i := 0
-	j := n
-	mid := 0
-	for i < j {
-		mid = (i + j) / 2
-		if arr[mid] == num {
-			return arr[mid]
+// getNodeVersion returns the Node version to be used for the service
+func getNodeVersion(versionConstraint, defaultNodejsVersion string, supportedVersions []int) string {
+	v1, err := version.NewVersion(versionConstraint)
+	if err == nil {
+		logrus.Debugf("the constraint is a Node version: %#v", v1)
+		node := "v" + versionConstraint
+		version := strings.TrimPrefix(semver.Major(node), "v")
+		nodeVersion, err := strconv.Atoi(version)
+		if err != nil {
+			logrus.Errorf("unable to convert Node major version '%d' to int. Selecting default Node version- %s", nodeVersion, defaultNodejsVersion)
+			return defaultNodejsVersion
 		}
-		if num < arr[mid] {
-			if mid > 0 && num > arr[mid-1] {
-				return getNearest(arr[mid-1], arr[mid], num)
-			}
-			j = mid
-		} else {
-			if mid < n-1 && num < arr[mid+1] {
-				return getNearest(arr[mid], arr[mid+1], num)
-			}
-			i = mid + 1
+		if nodeVersion%2 != 0 { // to make the version closest to the previous even version
+			nodeVersion = nodeVersion - 1
+		}
+		sort.Ints(supportedVersions)
+		if nodeVersion < supportedVersions[0] {
+			return strconv.Itoa(supportedVersions[0])
+		}
+		if nodeVersion > supportedVersions[len(supportedVersions)-1] {
+			return strconv.Itoa((supportedVersions[len(supportedVersions)-1]))
+		}
+		return strconv.Itoa(nodeVersion)
+	}
+	constraints, err := version.NewConstraint(versionConstraint)
+	if err != nil {
+		logrus.Errorf("failed to parse the Node version constraint string. Error: %q Actual: %s", err, versionConstraint)
+		return defaultNodejsVersion
+	}
+	for _, supportedVersion := range supportedVersions {
+		ver, _ := version.NewVersion(strconv.Itoa(supportedVersion))
+		if constraints.Check(ver) {
+			logrus.Debugf("%#v satisfies constraints %#v\n", ver, constraints)
+			return strconv.Itoa(supportedVersion)
 		}
 	}
-	return arr[mid]
-}
-
-// getNearest returns the number closest to the given num out of the two numbers
-func getNearest(v1, v2, num int) int {
-	if v1 > v2 {
-		return getNearest(v2, v1, num)
-	}
-	if num-v1 >= v2-num {
-		return v2
-	}
-	return v1
+	logrus.Infof("no supported Node version detected in package.json. Selecting default Node version- %s", defaultNodejsVersion)
+	return defaultNodeVersion
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -160,54 +160,6 @@ func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 		}},
 	}
 	return services, nil
-}
-
-// getNodeVersion returns the Node version to be used for the service
-func getNodeVersion(node string, allowedNodeVersions []int) string {
-	var getNextVersion, getPrevVersion bool
-	if strings.HasPrefix(node, ">=") || strings.HasPrefix(node, ">") {
-		node = strings.TrimPrefix(node, ">=")
-		node = strings.TrimPrefix(node, ">")
-		getNextVersion = true
-	}
-	if strings.HasPrefix(node, "<=") || strings.HasPrefix(node, "<") {
-		node = strings.TrimPrefix(node, "<=")
-		node = strings.TrimPrefix(node, "<")
-		getPrevVersion = true
-	}
-	if !strings.HasPrefix(node, "v") {
-		node = "v" + node
-	}
-	nodeVersion := strings.TrimPrefix(semver.Major(node), "v")
-	if getNextVersion {
-		version, err := strconv.Atoi(nodeVersion)
-		if err != nil {
-			logrus.Errorf("unable to convert node major version '%s' to int", nodeVersion)
-		} else {
-			if version%2 == 0 { // to make the version closest to the next allowed even version
-				version = version + 2
-			} else {
-				version = version + 1
-			}
-		}
-		version = findNearest(allowedNodeVersions, version)
-		nodeVersion = strconv.FormatInt(int64(version), 10)
-	}
-	if getPrevVersion {
-		version, err := strconv.Atoi(nodeVersion)
-		if err != nil {
-			logrus.Errorf("unable to convert node major version '%s' to int", nodeVersion)
-		} else {
-			if version%2 == 0 { // to make the version closest to the previous allowed even version
-				version = version - 2
-			} else {
-				version = version - 1
-			}
-		}
-		version = findNearest(allowedNodeVersions, version)
-		nodeVersion = strconv.FormatInt(int64(version), 10)
-	}
-	return nodeVersion
 }
 
 // Transform transforms the artifacts
@@ -238,7 +190,6 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
 		build := false
-		allowedNodeVersions := []int{10, 12, 14, 16}
 		var nodeVersion string
 		var packageJSON PackageJSON
 		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], packageJSONFile), &packageJSON); err != nil {
@@ -247,11 +198,8 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			if _, ok := packageJSON.Scripts["build"]; ok {
 				build = true
 			}
-			if node, ok := packageJSON.Engines["node"]; ok {
-				nodeVersion = getNodeVersion(node, allowedNodeVersions)
-				if nodeVersion == "" {
-					nodeVersion = t.NodejsConfig.DefaultNodejsVersion
-				}
+			if nodeVersionConstraint, ok := packageJSON.Engines["node"]; ok {
+				nodeVersion = getNodeVersion(nodeVersionConstraint, t.NodejsConfig.DefaultNodejsVersion, supportedNodeVersions)
 			}
 		}
 		if nodeVersion == "" {
