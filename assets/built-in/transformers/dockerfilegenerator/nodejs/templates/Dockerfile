@@ -12,7 +12,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM registry.access.redhat.com/ubi8/nodejs-{{ .NodeVersion }}
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+RUN microdnf update && microdnf install wget xz tar && microdnf clean all && \
+    wget https://nodejs.org/dist/{{ .NodeVersion }}/node-{{ .NodeVersion }}-linux-x64.tar.xz && \
+    tar -xJf node-{{ .NodeVersion }}-linux-x64.tar.xz && \
+    mv node-{{ .NodeVersion }}-linux-x64 /node && \
+    rm -f node-{{ .NodeVersion }}-linux-x64.tar.xz
+ENV PATH="$PATH:/node/bin"
 COPY . .
 RUN npm install
 {{- if .Build }}

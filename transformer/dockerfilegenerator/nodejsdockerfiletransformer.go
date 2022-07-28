@@ -19,31 +19,44 @@ package dockerfilegenerator
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/types"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
-	"golang.org/x/mod/semver"
 )
 
 const (
-	defaultNodeVersion = "14"
-	packageJSONFile    = "package.json"
+	packageJSONFile        = "package.json"
+	versionMappingFilePath = "mappings/nodeversions.yaml"
+	// NodeVersionsMappingKind defines kind of NodeVersionMappingKind
+	NodeVersionsMappingKind types.Kind = "NodeVersionsMapping"
 )
+
+// NodeVersionsMapping stores the Node versions mapping
+type NodeVersionsMapping struct {
+	types.TypeMeta   `yaml:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec             NodeVersionsMappingSpec `yaml:"spec,omitempty"`
+}
+
+// NodeVersionsMappingSpec stores the Node version spec
+type NodeVersionsMappingSpec struct {
+	NodeVersions []string `yaml:"nodeVersions"`
+}
 
 // NodejsDockerfileGenerator implements the Transformer interface
 type NodejsDockerfileGenerator struct {
 	Config       transformertypes.Transformer
 	Env          *environment.Environment
 	NodejsConfig *NodejsDockerfileYamlConfig
+	NodeVersions []string
 }
 
 // NodejsTemplateConfig implements Nodejs config interface
@@ -86,9 +99,22 @@ func (t *NodejsDockerfileGenerator) Init(tc transformertypes.Transformer, env *e
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.NodejsConfig, err)
 		return err
 	}
-	if t.NodejsConfig.DefaultNodejsVersion == "" {
-		t.NodejsConfig.DefaultNodejsVersion = defaultNodeVersion
+	mappingFile := NodeVersionsMapping{}
+	mappingFilePath := filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath)
+	if err := common.ReadMove2KubeYaml(mappingFilePath, &mappingFile); err != nil {
+		return fmt.Errorf("failed to load the Node versions mapping file at path %s . Error: %q", mappingFilePath, err)
 	}
+	if len(mappingFile.Spec.NodeVersions) == 0 {
+		return fmt.Errorf("the mapping file at path %s is invalid", mappingFilePath)
+	}
+	t.NodeVersions = mappingFile.Spec.NodeVersions
+	if len(t.NodeVersions) == 0 {
+		return fmt.Errorf("atleast one node version should be specified in the nodeversions mappings file- %s", mappingFilePath)
+	}
+	if t.NodejsConfig.DefaultNodejsVersion == "" {
+		t.NodejsConfig.DefaultNodejsVersion = t.NodeVersions[0]
+	}
+	logrus.Debugf("Extracted node versions from nodeversion mappings file - %+v", t.NodeVersions)
 	return nil
 }
 
@@ -149,19 +175,18 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		var nodeVersion string
 		var packageJSON PackageJSON
 		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], packageJSONFile), &packageJSON); err != nil {
-			logrus.Debugf("unable to read the package.json file: %s", err)
-		} else {
-			if _, ok := packageJSON.Scripts["build"]; ok {
-				build = true
-			}
-			if node, ok := packageJSON.Engines["node"]; ok {
-				if !strings.HasPrefix(node, "v") {
-					node = "v" + node
-				}
-				nodeVersion = strings.TrimPrefix(semver.Major(node), "v")
-			}
+			logrus.Errorf("unable to read the package.json file: %s", err)
+			continue
+		}
+		if _, ok := packageJSON.Scripts["build"]; ok {
+			build = true
+		}
+		if nodeVersionConstraint, ok := packageJSON.Engines["node"]; ok {
+			nodeVersion = getNodeVersion(nodeVersionConstraint, t.NodejsConfig.DefaultNodejsVersion, t.NodeVersions)
+			logrus.Debugf("Selected nodeVersion is - %s", nodeVersion)
 		}
 		if nodeVersion == "" {
+			logrus.Infof("No Node version specified in the package.json file. Selecting the default Node version- %s", t.NodejsConfig.DefaultNodejsVersion)
 			nodeVersion = t.NodejsConfig.DefaultNodejsVersion
 		}
 		ports := ir.GetAllServicePorts()
