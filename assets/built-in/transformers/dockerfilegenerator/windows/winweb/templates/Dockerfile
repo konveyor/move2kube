@@ -24,9 +24,10 @@ RUN msbuild /p:Configuration=Release
 {{ if .IncludeRunStage }}
 # Run Stage
 FROM --platform=windows/amd64 mcr.microsoft.com/dotnet/framework/aspnet:{{ .RunStageImageTag }}
-{{- range .Ports}}
-EXPOSE {{.}}
-{{- end}}
+ENV DOTNET_GENERATE_ASPNET_CERTIFICATE=false
 WORKDIR /inetpub/wwwroot
+{{- range .Ports }}
+EXPOSE {{ . }}
+{{- end }}
 COPY {{ if .BuildContainerName }}--from={{ .BuildContainerName }}{{ end }} {{ .CopyFrom }} ./
 {{- end }}

@@ -179,7 +179,7 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 				logrus.Debugf("Could not parse the .env file, %s", err)
 			}
 		}
-		port := commonqa.GetPortForService(ports, a.Name)
+		port := commonqa.GetPortForService(ports, `"`+a.Name+`"`)
 		var nodejsConfig NodejsTemplateConfig
 		nodejsConfig.Build = build
 		nodejsConfig.Port = port

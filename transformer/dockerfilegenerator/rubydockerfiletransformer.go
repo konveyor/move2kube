@@ -117,7 +117,7 @@ func (t *RubyDockerfileGenerator) Transform(newArtifacts []transformertypes.Arti
 		if len(detectedPorts) == 0 {
 			detectedPorts = append(detectedPorts, common.DefaultServicePort)
 		}
-		rubyConfig.Port = commonqa.GetPortForService(detectedPorts, a.Name)
+		rubyConfig.Port = commonqa.GetPortForService(detectedPorts, `"`+a.Name+`"`)
 		rubyConfig.AppName = a.Name
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)

@@ -31,6 +31,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 const (
@@ -289,7 +290,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 
 		// only look at the child modules the user selected
 
-		if !common.IsStringPresent(selectedChildModuleNames, childModule.Name) {
+		if !common.IsPresent(selectedChildModuleNames, childModule.Name) {
 			continue
 		}
 
@@ -338,11 +339,11 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 
 		// have the user select the port to use
 
-		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(mavenConfig.MavenAppName, "childModules", childModule.Name))
+		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(`"`+mavenConfig.MavenAppName+`"`, "childModules", `"`+childModule.Name+`"`))
 		if childModuleInfo.SpringBoot != nil {
-			envVarsMap["SERVER_PORT"] = fmt.Sprintf("%d", selectedPort)
+			envVarsMap["SERVER_PORT"] = cast.ToString(selectedPort)
 		} else {
-			envVarsMap["PORT"] = fmt.Sprintf("%d", selectedPort)
+			envVarsMap["PORT"] = cast.ToString(selectedPort)
 		}
 
 		// find the path to the artifact (jar/war/ear) which should get copied into the run stage
@@ -442,7 +443,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 	// ask the user which maven profiles should be used while building the app
 
 	selectedMavenProfiles := qaengine.FetchMultiSelectAnswer(
-		common.JoinQASubKeys(common.ConfigServicesKey, mavenConfig.MavenAppName, "mavenProfiles"),
+		common.JoinQASubKeys(common.ConfigServicesKey, `"`+mavenConfig.MavenAppName+`"`, "mavenProfiles"),
 		fmt.Sprintf("select the maven profiles to use for the service '%s'", mavenConfig.MavenAppName),
 		[]string{"the selected maven profiles will be used during the build"},
 		rootPomInfo.MavenProfiles,

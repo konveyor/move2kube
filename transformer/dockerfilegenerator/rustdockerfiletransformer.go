@@ -144,7 +144,7 @@ func (t *RustDockerfileGenerator) Transform(newArtifacts []transformertypes.Arti
 		if len(ports) == 0 {
 			ports = append(ports, common.DefaultServicePort)
 		}
-		rustConfig.Port = commonqa.GetPortForService(ports, a.Name)
+		rustConfig.Port = commonqa.GetPortForService(ports, `"`+a.Name+`"`)
 		if sImageName.ImageName == "" {
 			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}

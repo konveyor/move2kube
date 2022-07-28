@@ -43,6 +43,7 @@ import (
 	"github.com/konveyor/move2kube/types"
 	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	"github.com/xrash/smetrics"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,6 +51,27 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+// Map applies the given function over all the elements and returns a new slice with the results.
+func Map[T1 interface{}, T2 interface{}](vs []T1, f func(T1) T2) []T2 {
+	var ws []T2
+	for _, v := range vs {
+		ws = append(ws, f(v))
+	}
+	return ws
+}
+
+// Filter returns the elements that satisfy the condition.
+// It returns nil if none of the elements satisfy the condition.
+func Filter[T comparable](vs []T, condition func(T) bool) []T {
+	var ws []T
+	for _, v := range vs {
+		if condition(v) {
+			ws = append(ws, v)
+		}
+	}
+	return ws
+}
 
 // FindIndex returns the index of the first element that satisfies the condition.
 // It returns -1 if none of the elements satisfy the condition.
@@ -564,16 +586,6 @@ func NormalizeForEnvironmentVariableName(envName string) string {
 	return newName
 }
 
-// IsStringPresent checks if a value is present in a slice
-func IsStringPresent(list []string, value string) bool {
-	for _, val := range list {
-		if strings.EqualFold(val, value) {
-			return true
-		}
-	}
-	return false
-}
-
 // IsPresent checks if a value is present in a slice
 func IsPresent[C comparable](list []C, value C) bool {
 	for _, val := range list {
@@ -584,24 +596,29 @@ func IsPresent[C comparable](list []C, value C) bool {
 	return false
 }
 
-// MergeStringSlices merges two string slices
-func MergeStringSlices(slice1 []string, slice2 ...string) []string {
-	for _, item := range slice2 {
-		if !IsStringPresent(slice1, item) {
-			slice1 = append(slice1, item)
+// IsStringPresent is like IsPresent but does case-insensitive comparison of strings
+func IsStringPresent(list []string, value string) bool {
+	for _, val := range list {
+		if strings.EqualFold(val, value) {
+			return true
 		}
 	}
-	return slice1
+	return false
+}
+
+// AppendIfNotPresent checks if a value is present in a slice and if not appends it to the slice
+func AppendIfNotPresent[C comparable](list []C, values ...C) []C {
+	for _, value := range values {
+		if !IsPresent(list, value) {
+			list = append(list, value)
+		}
+	}
+	return list
 }
 
 // MergeSlices merges two slices
 func MergeSlices[C comparable](slice1 []C, slice2 []C) []C {
-	for _, item := range slice2 {
-		if !IsPresent(slice1, item) {
-			slice1 = append(slice1, item)
-		}
-	}
-	return slice1
+	return AppendIfNotPresent(slice1, slice2...)
 }
 
 // GetStringFromTemplate returns string for a template
@@ -669,7 +686,7 @@ func MergeStringSliceMaps(map1 map[string][]string, map2 map[string][]string) ma
 		return map1
 	}
 	for k, v := range map2 {
-		map1[k] = MergeStringSlices(map1[k], v...)
+		map1[k] = MergeSlices(map1[k], v)
 	}
 	return map1
 }
@@ -1035,7 +1052,7 @@ func IsParent(child, parent string) bool {
 
 // GetRandomString generates a random string
 func GetRandomString() string {
-	return fmt.Sprintf("%d", rand.Intn(10000000))
+	return cast.ToString(rand.Intn(10000000))
 }
 
 // SplitOnDotExpectInsideQuotes splits a string on dot.

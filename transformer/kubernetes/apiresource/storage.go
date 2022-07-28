@@ -54,7 +54,7 @@ func (s *Storage) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
 func (s *Storage) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
-	if common.IsStringPresent(s.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+	if common.IsPresent(s.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}
 	return nil, false

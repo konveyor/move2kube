@@ -19,7 +19,6 @@ package dockerfile
 import (
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
@@ -29,6 +28,7 @@ import (
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	dockerparser "github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/networking"
 )
@@ -115,7 +115,7 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, contextPath, imag
 				if dfchild == nil {
 					break
 				}
-				p, err := strconv.Atoi(dfchild.Value)
+				p, err := cast.ToIntE(dfchild.Value)
 				if err != nil {
 					logrus.Errorf("Unable to parse port %s as int in %s", dfchild.Value, dockerfilepath)
 					continue

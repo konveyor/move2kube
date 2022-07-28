@@ -56,14 +56,14 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 		exposeobjectcreated := false
 		if _, _, _, st := d.getExposeInfo(service); st != "" || service.OnlyIngress {
 			// Create services depending on whether the service needs to be externally exposed
-			if common.IsStringPresent(supportedKinds, routeKind) {
+			if common.IsPresent(supportedKinds, routeKind) {
 				//Create Route
 				routeObjs := d.createRoutes(service, ir, targetCluster)
 				for _, routeObj := range routeObjs {
 					objs = append(objs, routeObj)
 				}
 				exposeobjectcreated = true
-			} else if common.IsStringPresent(supportedKinds, common.IngressKind) {
+			} else if common.IsPresent(supportedKinds, common.IngressKind) {
 				//Create Ingress
 				// obj := d.createIngress(service)
 				// objs = append(objs, obj)
@@ -95,7 +95,7 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
 func (d *Service) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
 	lobj, _ := k8sschema.ConvertToLiasonScheme(obj)
-	if common.IsStringPresent(supportedKinds, routeKind) {
+	if common.IsPresent(supportedKinds, routeKind) {
 		if _, ok := obj.(*okdroutev1.Route); ok {
 			return []runtime.Object{obj}, true
 		}
@@ -105,7 +105,7 @@ func (d *Service) convertToClusterSupportedKinds(obj runtime.Object, supportedKi
 		if _, ok := lobj.(*core.Service); ok {
 			return []runtime.Object{obj}, true
 		}
-	} else if common.IsStringPresent(supportedKinds, common.IngressKind) {
+	} else if common.IsPresent(supportedKinds, common.IngressKind) {
 		if route, ok := obj.(*okdroutev1.Route); ok {
 			return d.routeToIngress(*route, ir, targetCluster.Spec), true
 		}
@@ -127,7 +127,7 @@ func (d *Service) convertToClusterSupportedKinds(obj runtime.Object, supportedKi
 			return []runtime.Object{obj}, true
 		}
 	}
-	if common.IsStringPresent(d.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+	if common.IsPresent(d.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}
 	return nil, false
@@ -365,9 +365,11 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 		qaLabel = targetCluster.Labels[collecttypes.ClusterQaLabelKey]
 	}
 	// QALabel prefix for cluster
-	qaId := common.JoinQASubKeys(common.ConfigTargetKey, qaLabel)
+	qaId := common.JoinQASubKeys(common.ConfigTargetKey, `"`+qaLabel+`"`)
 	// Set the default ingressClass value
-	ingressClassName := qaengine.FetchStringAnswer(common.JoinQASubKeys(qaId, common.ConfigIngressClassNameKeySuffix), "Provide the Ingress class name for ingress", []string{"Leave empty to use the cluster default"}, "")
+	quesKeyClass := common.JoinQASubKeys(qaId, common.ConfigIngressClassNameKeySuffix)
+	descClass := "Provide the Ingress class name for ingress"
+	ingressClassName := qaengine.FetchStringAnswer(quesKeyClass, descClass, []string{"Leave empty to use the cluster default"}, "")
 
 	// Configure the rule with the above fan-out paths
 	rules := []networking.IngressRule{}
@@ -377,7 +379,9 @@ func (d *Service) createIngress(ir irtypes.EnhancedIR, targetCluster collecttype
 	if host == "" {
 		host = commonqa.IngressHost(d.getHostName(ir.Name), qaLabel)
 	}
-	secretName = qaengine.FetchStringAnswer(common.JoinQASubKeys(qaId, common.ConfigIngressTLSKeySuffix), "Provide the TLS secret for ingress", []string{"Leave empty to use http"}, defaultSecretName)
+	quesKeyTLS := common.JoinQASubKeys(qaId, common.ConfigIngressTLSKeySuffix)
+	descTLS := "Provide the TLS secret for ingress"
+	secretName = qaengine.FetchStringAnswer(quesKeyTLS, descTLS, []string{"Leave empty to use http"}, defaultSecretName)
 	for hostprefix, httpIngressPaths := range hostHTTPIngressPaths {
 		ph := host
 		if hostprefix != "" {

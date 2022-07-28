@@ -380,7 +380,7 @@ func (c *ClusterCollector) groupOrderPolicy(mapKindGV *map[string][]string) {
 				continue
 			}
 
-			if common.IsStringPresent(sortedGV, gv) {
+			if common.IsPresent(sortedGV, gv) {
 				continue
 			}
 

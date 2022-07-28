@@ -44,7 +44,7 @@ func (d *NetworkPolicy) getSupportedKinds() []string {
 // createNewResources converts ir to runtime objects
 func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
-	if !common.IsStringPresent(supportedKinds, networkPolicyKind) {
+	if !common.IsPresent(supportedKinds, networkPolicyKind) {
 		logrus.Errorf("Could not find a valid resource type in cluster to create a NetworkPolicy")
 		return nil
 	}
@@ -66,7 +66,7 @@ func (d *NetworkPolicy) createNewResources(ir irtypes.EnhancedIR, supportedKinds
 
 // convertToClusterSupportedKinds converts kinds to cluster supported kinds
 func (d *NetworkPolicy) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
-	if common.IsStringPresent(d.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+	if common.IsPresent(d.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}
 	return nil, false

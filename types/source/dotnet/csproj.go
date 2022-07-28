@@ -24,11 +24,13 @@ import (
 
 var (
 	// Version4 is the framework version pattern
-	Version4 = regexp.MustCompile("v4*")
+	Version4 = regexp.MustCompile("v4")
 	// WebLib is the key library used in web applications
-	WebLib = regexp.MustCompile("^System.Web*")
+	WebLib = regexp.MustCompile(`^System\.Web`)
+	// AspNetWebLib is the key library used in asp net web applications
+	AspNetWebLib = regexp.MustCompile("AspNet")
 	// WebSLLib is the key library used in web sliverlight applications
-	WebSLLib = regexp.MustCompile("Silverlight.js")
+	WebSLLib = regexp.MustCompile(`Silverlight\.js`)
 	// ProjBlockRegex pattern
 	ProjBlockRegex = regexp.MustCompile(`(?m)^Project\([^)]+\)[^,]+,\s*\"([^"]+)\"`)
 )
@@ -52,16 +54,24 @@ type CSProj struct {
 
 // ItemGroup is defined in .csproj file to list items used in the project
 type ItemGroup struct {
-	XMLName    xml.Name    `xml:"ItemGroup"`
-	References []Reference `xml:"Reference"`
-	Contents   []Content   `xml:"Content"`
-	None       []None      `xml:"None"`
+	XMLName           xml.Name           `xml:"ItemGroup"`
+	PackageReferences []PackageReference `xml:"PackageReference"`
+	References        []Reference        `xml:"Reference"`
+	Contents          []Content          `xml:"Content"`
+	None              []None             `xml:"None"`
 }
 
-// Reference is defined in .csproj file to list references of the project
+// Reference is used in .csproj files to list dependencies
 type Reference struct {
 	XMLName xml.Name `xml:"Reference"`
 	Include string   `xml:"Include,attr"`
+}
+
+// PackageReference is used in .csproj files to list dependencies
+type PackageReference struct {
+	XMLName xml.Name `xml:"PackageReference"`
+	Include string   `xml:"Include,attr"`
+	Version string   `xml:"Version,attr"`
 }
 
 // Content defined in .csproj to define items used in the project

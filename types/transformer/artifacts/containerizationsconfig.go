@@ -41,6 +41,6 @@ func (co *ContainerizationOptionsConfig) Merge(newcoobj interface{}) bool {
 		}
 		newcoptr = &newco
 	}
-	*co = common.MergeStringSlices(*co, *newcoptr...)
+	*co = common.MergeSlices(*co, *newcoptr)
 	return true
 }

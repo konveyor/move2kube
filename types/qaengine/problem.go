@@ -25,6 +25,7 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/types/qaengine/qagrpc"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 // SolutionFormType is the type that defines different types of solutions possible
@@ -122,7 +123,7 @@ func ArrayToInterface(ans []string, problemType SolutionFormType) (ansI interfac
 		if len(ans) == 0 {
 			return false, nil
 		}
-		return strconv.ParseBool(ans[0])
+		return cast.ToBoolE(ans[0])
 	case MultiSelectSolutionFormType:
 		return ans, nil
 	default:
@@ -142,7 +143,7 @@ func (p *Problem) SetAnswer(ansI interface{}) error {
 			return fmt.Errorf("expected answer to be string. Actual value %+v is of type %T", ansI, ansI)
 		}
 		if p.Type == SelectSolutionFormType {
-			if !common.IsStringPresent(p.Options, ans) {
+			if !common.IsPresent(p.Options, ans) {
 				return fmt.Errorf("no matching value in options for %s", ans)
 			}
 		}
@@ -161,7 +162,7 @@ func (p *Problem) SetAnswer(ansI interface{}) error {
 		p.Answer = ans
 		filteredAns := []string{}
 		for _, a := range ans {
-			if !common.IsStringPresent(p.Options, a) {
+			if !common.IsPresent(p.Options, a) {
 				logrus.Debugf("No matching value in options for %s. Ignoring.", a)
 				continue
 			}

@@ -70,7 +70,7 @@ func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx conte
 	if len(tagParts) == 4 && tagParts[0] == structTagCondition && tagParts[2] == structTagCheckField {
 		targetField := structV.FieldByName(tagParts[1]).String()
 		validValues := strings.Split(tagParts[3], ",")
-		ctx.ShouldConvert = common.IsStringPresent(validValues, targetField)
+		ctx.ShouldConvert = common.IsPresent(validValues, targetField)
 		return ctx, nil
 	}
 	return ctx, fmt.Errorf("failed to process the tag. Actual tag: %s", tag)
@@ -87,7 +87,7 @@ func process(value reflect.Value, ctx context) error {
 			if ctx.CurrentMapKey.Kind() != reflect.String {
 				return fmt.Errorf("map keys are not of kind string. Actual kind: %v", ctx.CurrentMapKey.Kind())
 			}
-			if !common.IsStringPresent(ctx.MapKeysToConvert, ctx.CurrentMapKey.String()) {
+			if !common.IsPresent(ctx.MapKeysToConvert, ctx.CurrentMapKey.String()) {
 				break
 			}
 		}
@@ -132,7 +132,7 @@ func process(value reflect.Value, ctx context) error {
 				if ctx.CurrentMapKey.Kind() != reflect.String {
 					return fmt.Errorf("map keys are not of kind string. Actual kind: %v", ctx.CurrentMapKey.Kind())
 				}
-				if !common.IsStringPresent(ctx.MapKeysToConvert, ctx.CurrentMapKey.String()) {
+				if !common.IsPresent(ctx.MapKeysToConvert, ctx.CurrentMapKey.String()) {
 					continue
 				}
 			}

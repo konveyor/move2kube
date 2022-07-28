@@ -120,9 +120,7 @@ func (*CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (qatypes.Problem,
 		for _, lineAns := range strings.Split(multilineAns, "\n") {
 			lineAns = strings.TrimSpace(lineAns)
 			if lineAns != "" {
-				if !common.IsStringPresent(newAns, lineAns) {
-					newAns = append(newAns, lineAns)
-				}
+				newAns = common.AppendIfNotPresent(newAns, lineAns)
 			}
 		}
 	}

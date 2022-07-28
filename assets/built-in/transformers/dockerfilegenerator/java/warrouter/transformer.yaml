@@ -20,5 +20,5 @@ spec:
       matchLabels: 
         move2kube.konveyor.io/warprocessor: "true"
     question: 
-      id: "move2kube.services.{{ .name }}.wartransformer"
-      description: "Select the transformer to use for service {{ .name }}"
+      id: 'move2kube.services."{{ .name }}".wartransformer'
+      description: 'Select the transformer to use for the "{{ .name }}" service'

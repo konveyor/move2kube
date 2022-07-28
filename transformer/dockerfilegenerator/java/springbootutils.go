@@ -31,6 +31,7 @@ import (
 	"github.com/magiconair/properties"
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 	"k8s.io/kubernetes/pkg/apis/core"
 )
@@ -156,7 +157,7 @@ func flattenPropertyKey(prefix string, unflattenedValueI interface{}) []Flattene
 	case string:
 		return []FlattenedProperty{{Name: prefix, Value: unflattenedValue}}
 	case int:
-		return []FlattenedProperty{{Name: prefix, Value: fmt.Sprintf("%d", unflattenedValue)}}
+		return []FlattenedProperty{{Name: prefix, Value: cast.ToString(unflattenedValue)}}
 	case bool:
 		return []FlattenedProperty{{Name: prefix, Value: fmt.Sprintf("%t", unflattenedValue)}}
 	default:
@@ -272,11 +273,7 @@ func getSpringBootAppNameProfilesAndPorts(springbootMetadataFiles SpringBootMeta
 			}
 			activeProfiles := getSpringProfiles(activeProfilesStr)
 			// add to list of known spring profiles
-			for _, activeProfile := range activeProfiles {
-				if !common.IsStringPresent(profiles, activeProfile) {
-					profiles = append(profiles, activeProfile)
-				}
-			}
+			profiles = common.AppendIfNotPresent(profiles, activeProfiles...)
 			// get ports
 			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
 				if len(activeProfiles) > 0 {
@@ -294,9 +291,7 @@ func getSpringBootAppNameProfilesAndPorts(springbootMetadataFiles SpringBootMeta
 				continue
 			}
 			// add to list of known spring profiles
-			if !common.IsStringPresent(profiles, activeProfile) {
-				profiles = append(profiles, activeProfile)
-			}
+			profiles = common.AppendIfNotPresent(profiles, activeProfile)
 			// get ports
 			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
 				profilePorts[activeProfile] = append(profilePorts[activeProfile], int32(appPort))
@@ -327,11 +322,7 @@ func getSpringBootAppNameProfilesAndPorts(springbootMetadataFiles SpringBootMeta
 			}
 			activeProfiles := getSpringProfiles(activeProfilesStr)
 			// add to list of known spring profiles
-			for _, activeProfile := range activeProfiles {
-				if !common.IsStringPresent(profiles, activeProfile) {
-					profiles = append(profiles, activeProfile)
-				}
-			}
+			profiles = common.AppendIfNotPresent(profiles, activeProfiles...)
 			// get ports
 			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
 				if len(activeProfiles) > 0 {
@@ -349,9 +340,7 @@ func getSpringBootAppNameProfilesAndPorts(springbootMetadataFiles SpringBootMeta
 				continue
 			}
 			// add to list of known spring profiles
-			if !common.IsStringPresent(profiles, activeProfile) {
-				profiles = append(profiles, activeProfile)
-			}
+			profiles = common.AppendIfNotPresent(profiles, activeProfile)
 			// get ports
 			if appPort := props.GetInt(springBootServerPortKey, -1); appPort != -1 {
 				profilePorts[activeProfile] = append(profilePorts[activeProfile], int32(appPort))

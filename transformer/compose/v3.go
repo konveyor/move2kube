@@ -180,7 +180,7 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		serviceContainer.TTY = composeServiceConfig.Tty
 
 		if len(composeServiceConfig.Ports) == 0 {
-			selectedPort := commonqa.GetPortForService(nil, serviceConfig.Name)
+			selectedPort := commonqa.GetPortForService(nil, `"`+serviceConfig.Name+`"`)
 			composeServiceConfig.Ports = []types.ServicePortConfig{{Protocol: "tcp", Target: uint32(selectedPort), Published: uint32(selectedPort)}}
 		}
 

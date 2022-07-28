@@ -19,7 +19,6 @@ package windows
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -50,7 +49,6 @@ func (t *WinWebAppDockerfileGenerator) getImageTagFromVersion(version string) st
 
 // WebTemplateConfig contains the data to fill the Dockerfile template
 type WebTemplateConfig struct {
-	AppName            string
 	Ports              []int32
 	IncludeBuildStage  bool
 	BuildStageImageTag string
@@ -94,7 +92,6 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 	if err != nil {
 		return nil, fmt.Errorf("failed to list the dot net visual studio solution files in the directory %s . Error: %q", dir, err)
 	}
-	appName := filepath.Base(dir)
 	if len(slnPaths) == 0 {
 		csProjPaths, err := common.GetFilesByExtInCurrDir(dir, []string{dotnetutils.CSPROJ_FILE_EXT})
 		if err != nil {
@@ -105,14 +102,14 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 		}
 		childProjects := []artifacts.DotNetChildProject{}
 		for _, csProjPath := range csProjPaths {
-			configuration, err := parseCSProj(csProjPath)
+			configuration, err := dotnetutils.ParseCSProj(csProjPath)
 			if err != nil {
 				logrus.Errorf("failed to parse the c sharp project file at path %s . Error: %q", csProjPath, err)
 				continue
 			}
 			idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" })
 			if idx == -1 {
-				logrus.Errorf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
+				logrus.Debugf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
 				continue
 			}
 			targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
@@ -121,10 +118,12 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 				continue
 			}
 			childProjects = append(childProjects, artifacts.DotNetChildProject{
-				Name:          getChildProjectName(csProjPath),
-				RelCSProjPath: filepath.Base(csProjPath),
+				Name:            dotnetutils.GetChildProjectName(csProjPath),
+				RelCSProjPath:   filepath.Base(csProjPath),
+				TargetFramework: targetFrameworkVersion,
 			})
 		}
+		appName := dotnetutils.GetChildProjectName(csProjPaths[0])
 		namedServices := map[string][]transformertypes.Artifact{
 			appName: {{
 				Name: appName,
@@ -149,7 +148,8 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 		logrus.Debugf("more than one visual studio solution file detected. Number of .sln files %d", len(slnPaths))
 	}
 	slnPath := slnPaths[0]
-	relCSProjPaths, err := getCSProjPathsFromSlnFile(slnPath, false)
+	appName := dotnetutils.GetParentProjectName(slnPath)
+	relCSProjPaths, err := dotnetutils.GetCSProjPathsFromSlnFile(slnPath, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the vs solution file at path %s . Error: %q", slnPath, err)
 	}
@@ -160,9 +160,8 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 	csProjPaths := []string{}
 	foundNonSilverLightWebProject := false
 	for _, relCSProjPath := range relCSProjPaths {
-		logrus.Debugf("looking at the c sharp project file at path %s", relCSProjPath)
 		csProjPath := filepath.Join(dir, relCSProjPath)
-		configuration, err := parseCSProj(csProjPath)
+		configuration, err := dotnetutils.ParseCSProj(csProjPath)
 		if err != nil {
 			logrus.Errorf("failed to parse the c sharp project file at path %s . Error: %q", csProjPath, err)
 			continue
@@ -196,7 +195,7 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 			continue
 		}
 		foundNonSilverLightWebProject = true
-		childProjectName := getChildProjectName(csProjPath)
+		childProjectName := dotnetutils.GetChildProjectName(csProjPath)
 		csProjPaths = append(csProjPaths, csProjPath)
 		childProjects = append(childProjects, artifacts.DotNetChildProject{
 			Name:          childProjectName,
@@ -211,12 +210,14 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 			Name: appName,
 			Type: artifacts.ServiceArtifactType,
 			Paths: map[transformertypes.PathType][]string{
-				artifacts.ServiceRootDirPathType:          {dir},
-				artifacts.ServiceDirPathType:              {dir},
-				dotnetutils.DotNetCoreCsprojFilesPathType: csProjPaths,
+				artifacts.ServiceRootDirPathType:           {dir},
+				artifacts.ServiceDirPathType:               {dir},
+				dotnetutils.DotNetCoreSolutionFilePathType: {slnPath},
+				dotnetutils.DotNetCoreCsprojFilesPathType:  csProjPaths,
 			},
 			Configs: map[transformertypes.ConfigType]interface{}{
 				artifacts.DotNetConfigType: artifacts.DotNetConfig{
+					IsDotNetCore:          false,
 					DotNetAppName:         appName,
 					IsSolutionFilePresent: true,
 					ChildProjects:         childProjects,
@@ -233,11 +234,11 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, newArtifact := range newArtifacts {
 		dotNetConfig := artifacts.DotNetConfig{}
-		if err := newArtifact.GetConfig(artifacts.DotNetConfigType, &dotNetConfig); err != nil {
+		if err := newArtifact.GetConfig(artifacts.DotNetConfigType, &dotNetConfig); err != nil || dotNetConfig.IsDotNetCore {
 			continue
 		}
 		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 || len(newArtifact.Paths[dotnetutils.DotNetCoreCsprojFilesPathType]) == 0 {
-			logrus.Errorf("service directories are missing from the dot net artifact")
+			logrus.Errorf("the service directory is missing from the dot net artifact %+v", newArtifact)
 			continue
 		}
 		selectedBuildOption, err := dotnetutils.AskUserForDockerfileType(dotNetConfig.DotNetAppName)
@@ -274,7 +275,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 		irPresent := true
 		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			irPresent = false
-			logrus.Debugf("unable to load config for Transformer into %T . Error: %q", ir, err)
+			logrus.Debugf("failed to load the IR config from the dot net artifact. Error: %q Artifact: %+v", err, newArtifact)
 		}
 
 		detectedPorts := ir.GetAllServicePorts()
@@ -300,7 +301,6 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 
 		if selectedBuildOption == dotnetutils.BUILD_IN_BASE_IMAGE {
 			webConfig := WebTemplateConfig{
-				AppName:            dotNetConfig.DotNetAppName,
 				BuildStageImageTag: dotnet.DefaultBaseImageVersion,
 				IncludeBuildStage:  true,
 				IncludeRunStage:    false,
@@ -338,13 +338,13 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 
 			// only look at the child modules the user selected
 
-			if !common.IsStringPresent(selectedChildProjectNames, childProject.Name) {
+			if !common.IsPresent(selectedChildProjectNames, childProject.Name) {
 				continue
 			}
 
 			// parse the .csproj file to get the output path
 			csProjPath := filepath.Join(serviceDir, childProject.RelCSProjPath)
-			configuration, err := parseCSProj(csProjPath)
+			configuration, err := dotnetutils.ParseCSProj(csProjPath)
 			if err != nil {
 				logrus.Errorf("failed to parse the c sharp project file at path %s . Error: %q", csProjPath, err)
 				continue
@@ -352,7 +352,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 
 			// have the user select the ports to use for the child project
 
-			selectedPorts := commonqa.GetPortsForService(detectedPorts, common.JoinQASubKeys(dotNetConfig.DotNetAppName, "childProjects", childProject.Name))
+			selectedPorts := commonqa.GetPortsForService(detectedPorts, common.JoinQASubKeys(`"`+dotNetConfig.DotNetAppName+`"`, "childProjects", `"`+childProject.Name+`"`))
 
 			// data to fill the Dockerfile template
 
@@ -372,7 +372,6 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			}
 
 			webConfig := WebTemplateConfig{
-				AppName:            childProject.Name,
 				Ports:              selectedPorts,
 				BuildStageImageTag: dotnet.DefaultBaseImageVersion,
 				IncludeBuildStage:  selectedBuildOption == dotnetutils.BUILD_IN_EVERY_IMAGE,
@@ -422,8 +421,4 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 		}
 	}
 	return pathMappings, artifactsCreated, nil
-}
-
-func getChildProjectName(csProjPath string) string {
-	return strings.TrimSuffix(filepath.Base(csProjPath), filepath.Ext(csProjPath))
 }

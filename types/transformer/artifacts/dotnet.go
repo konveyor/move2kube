@@ -22,6 +22,7 @@ import (
 
 // DotNetConfig stores dot net related configuration information
 type DotNetConfig struct {
+	IsDotNetCore          bool                 `yaml:"isDotNetCore" json:"isDotNetCore"`
 	DotNetAppName         string               `yaml:"dotNetAppName,omitempty" json:"dotNetAppName,omitempty"`
 	IsSolutionFilePresent bool                 `yaml:"isSolutionFilePresent" json:"isSolutionFilePresent"`
 	ChildProjects         []DotNetChildProject `yaml:"childProjects,omitempty" json:"childProjects,omitempty"`
@@ -33,6 +34,8 @@ type DotNetChildProject struct {
 	Name string `yaml:"name" json:"name"`
 	// RelCSProjPath is the path to the child .csproj (relative to the parent .sln file)
 	RelCSProjPath string `yaml:"csProjPath" json:"csProjPath"`
+	// TargetFramework contains the target dot net core or dot net framework name and version
+	TargetFramework string `yaml:"targetFramework" json:"targetFramework"`
 }
 
 const (

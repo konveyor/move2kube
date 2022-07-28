@@ -98,9 +98,7 @@ func ConvertToPreferredVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 			logrus.Debugf("Unable to parse group version %s : %s", v, err)
 			continue
 		}
-		if !common.IsStringPresent(groups, gv.Group) {
-			groups = append(groups, gv.Group)
-		}
+		groups = common.AppendIfNotPresent(groups, gv.Group)
 	}
 	groups = append(groups, objgv.Group)
 	for _, g := range groups {

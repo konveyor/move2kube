@@ -27,6 +27,7 @@ import (
 	"github.com/konveyor/move2kube/qaengine"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 // ImageRegistry returns Image Registry URL
@@ -49,9 +50,7 @@ func ImageRegistry() string {
 				if regurl == "" {
 					continue
 				}
-				if !common.IsStringPresent(registryList, regurl) {
-					registryList = append(registryList, regurl)
-				}
+				registryList = common.AppendIfNotPresent(registryList, regurl)
 				if regauth.Auth != "" {
 					defreg = regurl
 					registryAuthList[regurl] = regauth.Auth
@@ -59,13 +58,11 @@ func ImageRegistry() string {
 			}
 		}
 	}
-	if !common.IsStringPresent(registryList, defaultRegistryURL) {
-		registryList = append(registryList, defaultRegistryURL)
-	}
+	registryList = common.AppendIfNotPresent(registryList, defaultRegistryURL)
 	if defreg == "" {
 		defreg = defaultRegistryURL
 	}
-	return qaengine.FetchSelectAnswer(common.ConfigImageRegistryURLKey, "Enter the URL of the image registry : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList)
+	return qaengine.FetchSelectAnswer(common.ConfigImageRegistryURLKey, "Enter the URL of the image registry where the new images should be pushed : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList)
 }
 
 // ImageRegistryNamespace returns Image Registry Namespace
@@ -75,7 +72,7 @@ func ImageRegistryNamespace() string {
 
 // IngressHost returns Ingress host
 func IngressHost(defaulthost string, clusterQaLabel string) string {
-	key := common.JoinQASubKeys(common.ConfigTargetKey, clusterQaLabel, common.ConfigIngressHostKeySuffix)
+	key := common.JoinQASubKeys(common.ConfigTargetKey, `"`+clusterQaLabel+`"`, common.ConfigIngressHostKeySuffix)
 	return qaengine.FetchStringAnswer(key, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaulthost)
 }
 
@@ -85,17 +82,17 @@ func MinimumReplicaCount(defaultminreplicas string) string {
 }
 
 // GetPortsForService returns ports used by a service
-func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
+func GetPortsForService(detectedPorts []int32, qaSubKey string) []int32 {
 	var selectedPortsStr, detectedPortsStr []string
 	var exposePorts []int32
 	if len(detectedPorts) != 0 {
 		for _, detectedPort := range detectedPorts {
-			detectedPortsStr = append(detectedPortsStr, strconv.Itoa(int(detectedPort)))
+			detectedPortsStr = append(detectedPortsStr, cast.ToString(detectedPort))
 		}
 		allDetectedPortsStr := append(detectedPortsStr, qatypes.OtherAnswer)
-		quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigPortsForServiceKeySegment)
-		desc := fmt.Sprintf("Select ports to be exposed for the service %s :", serviceName)
-		hints := []string{"Select Other if you want to add more ports"}
+		quesKey := common.JoinQASubKeys(common.ConfigServicesKey, qaSubKey, common.ConfigPortsForServiceKeySegment)
+		desc := fmt.Sprintf("Select ports to be exposed for the service '%s' :", qaSubKey)
+		hints := []string{"Select 'Other' if you want to add more ports"}
 		selectedPortsStr = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, detectedPortsStr, allDetectedPortsStr)
 	}
 	for _, portStr := range selectedPortsStr {
@@ -113,16 +110,16 @@ func GetPortsForService(detectedPorts []int32, serviceName string) []int32 {
 }
 
 // GetPortForService returns the port to expose the service on.
-func GetPortForService(detectedPorts []int32, serviceName string) int32 {
-	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigPortForServiceKeySegment)
-	desc := fmt.Sprintf("Select the port to be exposed for the service %s :", serviceName)
+func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, qaSubKey, common.ConfigPortForServiceKeySegment)
+	desc := fmt.Sprintf("Select the port to be exposed for the '%s' service :", qaSubKey)
 	hints := []string{"Select 'Other' if you want to expose the service using a different port."}
 	detectedPortStrs := []string{}
 	for _, detectedPort := range detectedPorts {
-		detectedPortStrs = append(detectedPortStrs, fmt.Sprintf("%d", detectedPort))
+		detectedPortStrs = append(detectedPortStrs, cast.ToString(detectedPort))
 	}
 	if len(detectedPortStrs) == 0 {
-		detectedPortStrs = append(detectedPortStrs, fmt.Sprintf("%d", common.DefaultServicePort))
+		detectedPortStrs = append(detectedPortStrs, cast.ToString(common.DefaultServicePort))
 	}
 	detectedPortStrs = append(detectedPortStrs, qatypes.OtherAnswer)
 	selectedPortStr := qaengine.FetchSelectAnswer(quesKey, desc, hints, detectedPortStrs[0], detectedPortStrs)

@@ -207,7 +207,7 @@ func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string,
 		Paths:   map[transformertypes.PathType][]string{composeFilePathType: {composeFilePath}},
 	}
 	if imagepath, ok := imageMetadataPaths[serviceImage]; ok {
-		ct.Paths[imageInfoPathType] = common.MergeStringSlices(ct.Paths[imageInfoPathType], imagepath)
+		ct.Paths[imageInfoPathType] = common.AppendIfNotPresent(ct.Paths[imageInfoPathType], imagepath)
 	}
 	logrus.Debugf("Found a docker compose service : %s", serviceName)
 	if relContextPath != "" {
@@ -224,8 +224,8 @@ func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string,
 			}
 		}
 		// Add reuse Dockerfile containerization option
-		ct.Paths[artifacts.DockerfilePathType] = common.MergeStringSlices(ct.Paths[artifacts.DockerfilePathType], dockerfilePath)
-		ct.Paths[artifacts.ServiceDirPathType] = common.MergeStringSlices(ct.Paths[artifacts.ServiceDirPathType], contextPath)
+		ct.Paths[artifacts.DockerfilePathType] = common.AppendIfNotPresent(ct.Paths[artifacts.DockerfilePathType], dockerfilePath)
+		ct.Paths[artifacts.ServiceDirPathType] = common.AppendIfNotPresent(ct.Paths[artifacts.ServiceDirPathType], contextPath)
 	}
 	return ct
 }

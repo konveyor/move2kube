@@ -12,32 +12,50 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM mcr.microsoft.com/dotnet/sdk:{{ .DotNetVersion }} AS builder
+{{ if .IncludeBuildStage }}
+
+# Build Stage
+FROM mcr.microsoft.com/dotnet/sdk:{{ .BuildStageImageTag }} AS {{ .BuildContainerName }}
+
+{{- if .IsNodeJSProject }}
+RUN apt-get update -y && \
+    apt-get install -y xz-utils && \
+    wget https://nodejs.org/dist/v16.16.0/node-v16.16.0-linux-x64.tar.xz && \
+    tar -xJf node-v16.16.0-linux-x64.tar.xz && \
+    mv node-v16.16.0-linux-x64 /node && \
+    rm node-v16.16.0-linux-x64.tar.xz
+ENV PATH="$PATH:/node/bin"
+{{- end }}
+
 WORKDIR /src
 COPY . .
-RUN mkdir app
-RUN dotnet restore {{ .CsprojFilePath }}
+RUN dotnet restore
 
-{{- if .IsNodeJSProject}}
-RUN curl https://deb.nodesource.com/setup_10.x -o setup_10.x && \
-    bash setup_10.x && \
-    apt-get install -y build-essential nodejs
-{{- end }}
-
-{{- if .PublishProfileFilePath }}
-RUN dotnet publish {{ .CsprojFilePath }} /p:PublishProfile={{ .PublishProfileFilePath}} -o /src/app/publish
+{{- if .PublishProfilePath }}
+RUN dotnet publish /p:PublishProfile={{ .PublishProfilePath }} --no-restore
 {{- else }}
-RUN dotnet publish {{ .CsprojFilePath }} -c Release -o /src/app/publish
+RUN dotnet publish -c release --no-restore
 {{- end }}
+
+{{- end }}
+
+
+{{ if .IncludeRunStage }}
 
 # Run Stage
-FROM mcr.microsoft.com/dotnet/aspnet:{{ .DotNetVersion }}
+FROM mcr.microsoft.com/dotnet/aspnet:{{ .RunStageImageTag }}
+ENV DOTNET_GENERATE_ASPNET_CERTIFICATE=false
 WORKDIR /app
-{{- range $port := .Ports }}
-EXPOSE {{ $port }}
+
+{{- range .Ports }}
+EXPOSE {{ . }}
 {{- end }}
-{{- if .HTTPPort }}
-ENV ASPNETCORE_URLS=http://+:{{ .HTTPPort }}
-{{- end}}
-COPY --from=builder /src/app/publish .
-CMD ["dotnet", "{{ .CsprojFileName }}.dll"]
+
+{{- range $k, $v := .EnvVariables }}
+ENV {{ $k }} {{ $v }}
+{{- end }}
+
+COPY {{ if .BuildContainerName }}--from={{ .BuildContainerName }}{{ end }} {{ .CopyFrom }} ./
+CMD ["dotnet", "{{ .EntryPointPath }}"]
+
+{{- end }}

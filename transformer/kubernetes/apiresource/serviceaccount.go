@@ -39,7 +39,7 @@ func (*ServiceAccount) getSupportedKinds() []string {
 // createNewResources creates the runtime objects from the intermediate representation.
 func (sa *ServiceAccount) createNewResources(ir irtypes.EnhancedIR, supportedKinds []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
 	objs := []runtime.Object{}
-	if common.IsStringPresent(supportedKinds, rbacv1.ServiceAccountKind) {
+	if common.IsPresent(supportedKinds, rbacv1.ServiceAccountKind) {
 		irresources := ir.ServiceAccounts
 		for _, irresource := range irresources {
 			objs = append(objs, sa.createNewResource(irresource))
@@ -65,7 +65,7 @@ func (*ServiceAccount) createNewResource(irserviceaccount irtypes.ServiceAccount
 
 // convertToClusterSupportedKinds converts the object to supported types if possible.
 func (sa *ServiceAccount) convertToClusterSupportedKinds(obj runtime.Object, supportedKinds []string, otherobjs []runtime.Object, _ irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) ([]runtime.Object, bool) {
-	if common.IsStringPresent(sa.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
+	if common.IsPresent(sa.getSupportedKinds(), obj.GetObjectKind().GroupVersionKind().Kind) {
 		return []runtime.Object{obj}, true
 	}
 	return nil, false

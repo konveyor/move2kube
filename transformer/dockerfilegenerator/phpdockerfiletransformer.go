@@ -130,7 +130,7 @@ func detectConfFiles(dir string) ([]string, error) {
 func GetConfFileForService(confFiles []string, serviceName string) string {
 	noAnswer := "none of the above"
 	confFiles = append(confFiles, noAnswer)
-	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigApacheConfFileForServiceKeySegment)
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, common.ConfigApacheConfFileForServiceKeySegment)
 	desc := fmt.Sprintf("Choose the apache config file to be used for the service %s", serviceName)
 	hints := []string{fmt.Sprintf("Selected apache config file will be used for identifying the port to be exposed for the service %s", serviceName)}
 	selectedConfFile := qaengine.FetchSelectAnswer(quesKey, desc, hints, confFiles[0], confFiles)
@@ -208,7 +208,7 @@ func (t *PHPDockerfileGenerator) Transform(newArtifacts []transformertypes.Artif
 				}
 			}
 			if phpConfig.ConfFilePort == 0 {
-				phpConfig.ConfFilePort = commonqa.GetPortForService(detectedPorts, a.Name)
+				phpConfig.ConfFilePort = commonqa.GetPortForService(detectedPorts, `"`+a.Name+`"`)
 			}
 		}
 		if sImageName.ImageName == "" {

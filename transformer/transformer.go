@@ -324,11 +324,11 @@ func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArti
 				return filepath.SkipDir
 			}
 		}
-		if common.IsStringPresent(knownServiceDirPaths, path) {
+		if common.IsPresent(knownServiceDirPaths, path) {
 			return filepath.SkipDir // TODO: Should we go inside the directory in this case?
 		}
-		if common.IsStringPresent(ignoreDirectories, path) {
-			if common.IsStringPresent(ignoreContents, path) {
+		if common.IsPresent(ignoreDirectories, path) {
+			if common.IsPresent(ignoreContents, path) {
 				return filepath.SkipDir
 			}
 			return nil
@@ -373,7 +373,7 @@ func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArti
 			}
 		}
 		logrus.Debugf("planning finished for the directory %s and %d services were detected", path, numfound)
-		if skipThisDir || common.IsStringPresent(ignoreContents, path) {
+		if skipThisDir || common.IsPresent(ignoreContents, path) {
 			return filepath.SkipDir
 		}
 		return nil

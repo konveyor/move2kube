@@ -22,7 +22,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
@@ -33,6 +32,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 )
 
 // GradleAnalyser implements Transformer interface
@@ -346,7 +346,7 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 
 		// only look at the child modules the user selected
 
-		if !common.IsStringPresent(selectedChildModuleNames, childModule.Name) {
+		if !common.IsPresent(selectedChildModuleNames, childModule.Name) {
 			continue
 		}
 
@@ -395,11 +395,11 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 
 		// have the user select the port to use
 
-		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(gradleConfig.RootProjectName, "childModules", childModule.Name))
+		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(`"`+gradleConfig.RootProjectName+`"`, "childModules", `"`+childModule.Name+`"`))
 		if childModuleInfo.SpringBoot != nil {
-			envVarsMap["SERVER_PORT"] = fmt.Sprintf("%d", selectedPort)
+			envVarsMap["SERVER_PORT"] = cast.ToString(selectedPort)
 		} else {
-			envVarsMap["PORT"] = fmt.Sprintf("%d", selectedPort)
+			envVarsMap["PORT"] = cast.ToString(selectedPort)
 		}
 
 		// find the path to the artifact (jar/war/ear) which should get copied into the run stage
@@ -575,11 +575,11 @@ func getPackagingFromGradle(gradleBuild *gradle.Gradle) artifacts.JavaPackaging 
 		return ""
 	}
 	pluginIds := gradleBuild.GetPluginIDs()
-	if common.IsStringPresent(pluginIds, string(artifacts.JarPackaging)) {
+	if common.IsPresent(pluginIds, string(artifacts.JarPackaging)) {
 		return artifacts.JarPackaging
-	} else if common.IsStringPresent(pluginIds, string(artifacts.EarPackaging)) {
+	} else if common.IsPresent(pluginIds, string(artifacts.EarPackaging)) {
 		return artifacts.EarPackaging
-	} else if common.IsStringPresent(pluginIds, string(artifacts.WarPackaging)) {
+	} else if common.IsPresent(pluginIds, string(artifacts.WarPackaging)) {
 		return artifacts.WarPackaging
 	}
 	return ""
@@ -645,15 +645,15 @@ func getJavaVersionFromGradle(build *gradle.Gradle) string {
 		if gb, ok := gb.Blocks["toolchain"]; ok {
 			if len(gb.Metadata[languageVersionC]) > 0 {
 				ss := gradle.GetSingleArgumentFromFuntionCall(gb.Metadata[languageVersionC][0], "JavaLanguageVersion.of")
-				gradleJavaVersion, err := strconv.Atoi(ss)
+				gradleJavaVersion, err := cast.ToIntE(ss)
 				if err != nil {
 					logrus.Errorf("failed to parse the string '%s' as an integer. Error: %q", ss, err)
 					return ""
 				}
 				if gradleJavaVersion < 10 {
-					return "1." + fmt.Sprintf("%d", gradleJavaVersion)
+					return "1." + cast.ToString(gradleJavaVersion)
 				}
-				return fmt.Sprintf("%d", gradleJavaVersion)
+				return cast.ToString(gradleJavaVersion)
 			}
 		}
 	}
@@ -780,7 +780,7 @@ func getDeploymentFilePathFromGradle(gradleBuild *gradle.Gradle, buildScriptPath
 
 	// second we look in the shadowJar block to override the archive name
 
-	if common.IsStringPresent(gradleBuild.GetPluginIDs(), gradleShadowJarPluginC) {
+	if common.IsPresent(gradleBuild.GetPluginIDs(), gradleShadowJarPluginC) {
 		archiveClassifier = gradleShadowJarPluginDefaultClassifierC
 		if gb2, ok := gradleBuild.Blocks[gradleShadowJarPluginBlockC]; ok {
 			updateArchiveNameFromJarBlock(gb2)
