@@ -17,5 +17,5 @@ spec:
       disabled: false
     DockerfileForService:
       disabled: false
-  config:
-    defaultNodejsVersion: "14"
+  externalFiles:
+    "../mappings/nodeversions.yaml" : mappings/nodeversions.yaml

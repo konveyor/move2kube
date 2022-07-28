@@ -1,0 +1,10 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: NodeVersionsMapping
+metadata:
+  name: NodeVersionsMapping
+spec:
+  nodeVersions:
+    - "v16.16.0"
+    - "v14.20.0"
+    - "v12.22.12"
+    - "v10.24.1"

@@ -1,8 +1,11 @@
 {
-  "name" : "main",
+  "name" : "nodejs-webapp",
   "version" : "0.1.0",
   "description": "This is a test web server",
   "keywords": ["test", "webserver"],
+  "engines": {
+    "node": "~>v14.10"
+  },
   "scripts": {
         "start": "node main.js"
    }

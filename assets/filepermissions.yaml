@@ -52,6 +52,7 @@
 "built-in/transformers/dockerfilegenerator/java/waranalyser/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/java/warrouter/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/java/zuul/transformer.yaml" : 0644
+"built-in/transformers/dockerfilegenerator/mappings/nodeversions.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/nodejs/templates/Dockerfile" : 0644
 "built-in/transformers/dockerfilegenerator/nodejs/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/php/templates/Dockerfile" : 0644

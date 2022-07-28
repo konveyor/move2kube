@@ -19,35 +19,44 @@ package dockerfilegenerator
 import (
 	"fmt"
 	"path/filepath"
-	"sort"
-	"strconv"
-	"strings"
 
-	"github.com/hashicorp/go-version"
 	"github.com/joho/godotenv"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/types"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
-	"golang.org/x/mod/semver"
 )
 
 const (
-	defaultNodeVersion = "14"
-	packageJSONFile    = "package.json"
+	packageJSONFile        = "package.json"
+	versionMappingFilePath = "mappings/nodeversions.yaml"
+	// NodeVersionsMappingKind defines kind of NodeVersionMappingKind
+	NodeVersionsMappingKind types.Kind = "NodeVersionsMapping"
 )
 
-var supportedNodeVersions = []int{14, 16, 12, 10}
+// NodeVersionsMapping stores the Node versions mapping
+type NodeVersionsMapping struct {
+	types.TypeMeta   `yaml:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec             NodeVersionsMappingSpec `yaml:"spec,omitempty"`
+}
+
+// NodeVersionsMappingSpec stores the Node version spec
+type NodeVersionsMappingSpec struct {
+	NodeVersions []string `yaml:"nodeVersions"`
+}
 
 // NodejsDockerfileGenerator implements the Transformer interface
 type NodejsDockerfileGenerator struct {
 	Config       transformertypes.Transformer
 	Env          *environment.Environment
 	NodejsConfig *NodejsDockerfileYamlConfig
+	NodeVersions []string
 }
 
 // NodejsTemplateConfig implements Nodejs config interface
@@ -90,100 +99,28 @@ func (t *NodejsDockerfileGenerator) Init(tc transformertypes.Transformer, env *e
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.NodejsConfig, err)
 		return err
 	}
-	if t.NodejsConfig.DefaultNodejsVersion == "" {
-		t.NodejsConfig.DefaultNodejsVersion = defaultNodeVersion
+	mappingFile := NodeVersionsMapping{}
+	mappingFilePath := filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath)
+	if err := common.ReadMove2KubeYaml(mappingFilePath, &mappingFile); err != nil {
+		return fmt.Errorf("failed to load the Node versions mapping file at path %s . Error: %q", mappingFilePath, err)
 	}
+	if len(mappingFile.Spec.NodeVersions) == 0 {
+		return fmt.Errorf("the mapping file at path %s is invalid", mappingFilePath)
+	}
+	t.NodeVersions = mappingFile.Spec.NodeVersions
+	if len(t.NodeVersions) == 0 {
+		return fmt.Errorf("atleast one node version should be specified in the nodeversions mappings file- %s", mappingFilePath)
+	}
+	if t.NodejsConfig.DefaultNodejsVersion == "" {
+		t.NodejsConfig.DefaultNodejsVersion = t.NodeVersions[0]
+	}
+	logrus.Debugf("Extracted node versions from nodeversion mappings file - %+v", t.NodeVersions)
 	return nil
 }
 
 // GetConfig returns the transformer config
 func (t *NodejsDockerfileGenerator) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
-}
-
-//  findNearest returns the closest number in the arr to the given num
-func findNearest(arr []int, num int) int {
-	n := len(arr)
-	sort.Ints(arr)
-	if num <= arr[0] {
-		return arr[0]
-	}
-	if num >= arr[n-1] {
-		return arr[n-1]
-	}
-	i := 0
-	j := n
-	mid := 0
-	for i < j {
-		mid = (i + j) / 2
-		if arr[mid] == num {
-			return arr[mid]
-		}
-		if num < arr[mid] {
-			if mid > 0 && num > arr[mid-1] {
-				return getNearest(arr[mid-1], arr[mid], num)
-			}
-			j = mid
-		} else {
-			if mid < n-1 && num < arr[mid+1] {
-				return getNearest(arr[mid], arr[mid+1], num)
-			}
-			i = mid + 1
-		}
-	}
-	return arr[mid]
-}
-
-// getNearest returns the number closest to the given num out of the two numbers
-func getNearest(v1, v2, num int) int {
-	if v1 > v2 {
-		return getNearest(v2, v1, num)
-	}
-	if num-v1 >= v2-num {
-		return v2
-	}
-	return v1
-}
-
-// getNodeVersion returns the Node version to be used for the service
-func getNodeVersion(versionConstraint, defaultNodejsVersion string, supportedVersions []int) string {
-	v1, err := version.NewVersion(versionConstraint)
-	if err == nil {
-		logrus.Debugf("the constraint is a Node version: %#v", v1)
-		node := "v" + versionConstraint
-		version := strings.TrimPrefix(semver.Major(node), "v")
-		nodeVersion, err := strconv.Atoi(version)
-		if err != nil {
-			logrus.Errorf("unable to convert Node major version '%d' to int. Selecting default Node version- %s", nodeVersion, defaultNodejsVersion)
-			return defaultNodejsVersion
-		}
-		return strconv.Itoa(findNearest(supportedVersions, nodeVersion))
-		// if nodeVersion%2 != 0 { // to make the version closest to the previous even version
-		// 	nodeVersion = nodeVersion - 1
-		// }
-		// sort.Ints(supportedVersions)
-		// if nodeVersion < supportedVersions[0] {
-		// 	return strconv.Itoa(supportedVersions[0])
-		// }
-		// if nodeVersion > supportedVersions[len(supportedVersions)-1] {
-		// 	return strconv.Itoa((supportedVersions[len(supportedVersions)-1]))
-		// }
-		// return strconv.Itoa(nodeVersion)
-	}
-	constraints, err := version.NewConstraint(versionConstraint)
-	if err != nil {
-		logrus.Errorf("failed to parse the Node version constraint string. Error: %q Actual: %s", err, versionConstraint)
-		return defaultNodejsVersion
-	}
-	for _, supportedVersion := range supportedVersions {
-		ver, _ := version.NewVersion(strconv.Itoa(supportedVersion))
-		if constraints.Check(ver) {
-			logrus.Debugf("%#v satisfies constraints %#v\n", ver, constraints)
-			return strconv.Itoa(supportedVersion)
-		}
-	}
-	logrus.Infof("no supported Node version detected in package.json. Selecting default Node version- %s", defaultNodejsVersion)
-	return defaultNodeVersion
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -238,16 +175,18 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		var nodeVersion string
 		var packageJSON PackageJSON
 		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], packageJSONFile), &packageJSON); err != nil {
-			logrus.Debugf("unable to read the package.json file: %s", err)
-		} else {
-			if _, ok := packageJSON.Scripts["build"]; ok {
-				build = true
-			}
-			if nodeVersionConstraint, ok := packageJSON.Engines["node"]; ok {
-				nodeVersion = getNodeVersion(nodeVersionConstraint, t.NodejsConfig.DefaultNodejsVersion, supportedNodeVersions)
-			}
+			logrus.Errorf("unable to read the package.json file: %s", err)
+			continue
+		}
+		if _, ok := packageJSON.Scripts["build"]; ok {
+			build = true
+		}
+		if nodeVersionConstraint, ok := packageJSON.Engines["node"]; ok {
+			nodeVersion = getNodeVersion(nodeVersionConstraint, t.NodejsConfig.DefaultNodejsVersion, t.NodeVersions)
+			logrus.Debugf("Selected nodeVersion is - %s", nodeVersion)
 		}
 		if nodeVersion == "" {
+			logrus.Infof("No Node version specified in the package.json file. Selecting the default Node version- %s", t.NodejsConfig.DefaultNodejsVersion)
 			nodeVersion = t.NodejsConfig.DefaultNodejsVersion
 		}
 		ports := ir.GetAllServicePorts()
