@@ -19,3 +19,5 @@ spec:
       disabled: false
   config:
       defaultDotNetCoreVersion: "5.0"
+  externalFiles:
+    "../mappings/nodeversions.yaml" : mappings/nodeversions.yaml
