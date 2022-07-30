@@ -219,9 +219,10 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		}
 		ports := ir.GetAllServicePorts()
 		if len(ports) == 0 {
-			envMap, err := godotenv.Read(filepath.Join(serviceDir, ".env"))
+			envPath := filepath.Join(serviceDir, ".env")
+			envMap, err := godotenv.Read(envPath)
 			if err != nil {
-				logrus.Debugf("failed to parse the .env file at the path %s . Error: %q", err)
+				logrus.Warnf("failed to parse the .env file at the path %s . Error: %q", envPath, err)
 			} else if portString, ok := envMap["PORT"]; ok {
 				port, err := cast.ToInt32E(portString)
 				if err != nil {
