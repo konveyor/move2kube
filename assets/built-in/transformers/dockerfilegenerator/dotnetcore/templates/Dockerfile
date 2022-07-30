@@ -18,12 +18,15 @@
 FROM mcr.microsoft.com/dotnet/sdk:{{ .BuildStageImageTag }} AS {{ .BuildContainerName }}
 
 {{- if .IsNodeJSProject }}
-RUN apt-get update -y && \
-    apt-get install -y xz-utils && \
-    wget https://nodejs.org/dist/v16.16.0/node-v16.16.0-linux-x64.tar.xz && \
-    tar -xJf node-v16.16.0-linux-x64.tar.xz && \
-    mv node-v16.16.0-linux-x64 /node && \
-    rm node-v16.16.0-linux-x64.tar.xz
+RUN apt-get update -y && apt-get install -y xz-utils && \
+    {{- if .NodeVersionProperties.url }}
+    wget {{ .NodeVersionProperties.url }} && \
+    {{- else }}
+    wget https://nodejs.org/dist/{{ .NodeVersion }}/node-{{ .NodeVersion }}-linux-x64.tar.xz && \
+    {{- end }}
+    tar -xJf node-{{ .NodeVersion }}-linux-x64.tar.xz && \
+    mv node-{{ .NodeVersion }}-linux-x64 /node && \
+    rm -f node-{{ .NodeVersion }}-linux-x64.tar.xz
 ENV PATH="$PATH:/node/bin"
 {{- end }}
 

@@ -77,8 +77,7 @@ func (t *Router) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 	artifactsCreated := []transformertypes.Artifact{}
 	filters, err := metav1.LabelSelectorAsSelector(&t.RouterConfig.TransformerSelector)
 	if err != nil {
-		logrus.Errorf("Unable to get transformer selector : %s", err)
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to get transformer selector. Error: %q", err)
 	}
 	transformers := GetInitializedTransformersF(filters)
 	transformerNames := []string{}
@@ -87,35 +86,36 @@ func (t *Router) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 		transformerNames = append(transformerNames, c.Name)
 	}
 	if len(transformerNames) == 0 {
-		err := fmt.Errorf("no transformers to choose for router %s", t.Config.Name)
-		logrus.Errorf("%s", err)
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("no transformers to choose for router %s", t.Config.Name)
 	}
-	for _, a := range newArtifacts {
-		filledID, err := t.GetStringFromTemplate(t.RouterConfig.RouterQuestion.ID, a)
+	for _, newArtifact := range newArtifacts {
+		filledID, err := t.GetStringFromTemplate(t.RouterConfig.RouterQuestion.ID, newArtifact)
 		if err != nil {
-			logrus.Errorf("Unable to get full string for ID %s : %s", t.RouterConfig.RouterQuestion.ID, err)
+			logrus.Errorf("failed to get full string for ID %s . Error: %q", t.RouterConfig.RouterQuestion.ID, err)
+			continue
 		}
-		filledDesc, err := t.GetStringFromTemplate(t.RouterConfig.RouterQuestion.Desc, a)
+		filledDesc, err := t.GetStringFromTemplate(t.RouterConfig.RouterQuestion.Desc, newArtifact)
 		if err != nil {
-			logrus.Errorf("Unable to get full string for Desc %s : %s", t.RouterConfig.RouterQuestion.Desc, err)
+			logrus.Errorf("failed to get full string for Desc %s . Error: %q", t.RouterConfig.RouterQuestion.Desc, err)
+			continue
 		}
 		filledHints := []string{}
 		for _, hint := range t.RouterConfig.RouterQuestion.Hints {
-			filledHint, err := t.GetStringFromTemplate(hint, a)
+			filledHint, err := t.GetStringFromTemplate(hint, newArtifact)
 			if err != nil {
-				logrus.Errorf("Unable to get full string for Hint %s : %s", hint, err)
+				logrus.Errorf("Unable to get full string for Hint %s . Error: %q", hint, err)
+				continue
 			}
 			filledHints = append(filledHints, filledHint)
 		}
-		logrus.Debugf("Using %s router to route %s artifact between %+v", t.Config.Name, a.Type, transformerNames)
+		logrus.Debugf("Using %s router to route %s artifact between %+v", t.Config.Name, newArtifact.Type, transformerNames)
 		transformerName := qaengine.FetchSelectAnswer(filledID, filledDesc, filledHints, transformerNames[0], transformerNames)
-		a.ProcessWith.MatchExpressions = []metav1.LabelSelectorRequirement{{
+		newArtifact.ProcessWith.MatchExpressions = []metav1.LabelSelectorRequirement{{
 			Key:      transformertypes.LabelName,
 			Operator: metav1.LabelSelectorOpIn,
 			Values:   []string{transformerName},
 		}}
-		artifactsCreated = append(artifactsCreated, a)
+		artifactsCreated = append(artifactsCreated, newArtifact)
 	}
 	return nil, artifactsCreated, nil
 }
