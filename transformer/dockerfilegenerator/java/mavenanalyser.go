@@ -445,7 +445,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 	selectedMavenProfiles := qaengine.FetchMultiSelectAnswer(
 		common.JoinQASubKeys(common.ConfigServicesKey, `"`+mavenConfig.MavenAppName+`"`, "mavenProfiles"),
 		fmt.Sprintf("Select the maven profiles to use for the '%s' service", mavenConfig.MavenAppName),
-		[]string{"the selected maven profiles will be used during the build"},
+		[]string{"The selected maven profiles will be used during the build."},
 		rootPomInfo.MavenProfiles,
 		rootPomInfo.MavenProfiles,
 	)
