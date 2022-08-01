@@ -18,6 +18,7 @@ package dockerfilegenerator
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -222,7 +223,9 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			envPath := filepath.Join(serviceDir, ".env")
 			envMap, err := godotenv.Read(envPath)
 			if err != nil {
-				logrus.Warnf("failed to parse the .env file at the path %s . Error: %q", envPath, err)
+				if !os.IsNotExist(err) {
+					logrus.Warnf("failed to parse the .env file at the path %s . Error: %q", envPath, err)
+				}
 			} else if portString, ok := envMap["PORT"]; ok {
 				port, err := cast.ToInt32E(portString)
 				if err != nil {
