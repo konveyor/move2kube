@@ -51,30 +51,25 @@ var (
 
 // DotNetCoreTemplateConfig implements DotNetCore config interface
 type DotNetCoreTemplateConfig struct {
-	IncludeBuildStage  bool
-	BuildStageImageTag string
-	BuildContainerName string
-	IsNodeJSProject    bool
-	PublishProfilePath string
-	IncludeRunStage    bool
-	RunStageImageTag   string
-	Ports              []int32
-	EntryPointPath     string
-	CopyFrom           string
-	EnvVariables       map[string]string
+	IncludeBuildStage     bool
+	BuildStageImageTag    string
+	BuildContainerName    string
+	IsNodeJSProject       bool
+	PublishProfilePath    string
+	IncludeRunStage       bool
+	RunStageImageTag      string
+	Ports                 []int32
+	EntryPointPath        string
+	CopyFrom              string
+	EnvVariables          map[string]string
+	NodeVersion           string
+	NodeVersionProperties map[string]string
+	PackageManager        string
 }
 
-// DotNetCoreDockerfileYamlConfig represents the configuration of the DotNetCore dockerfile
-type DotNetCoreDockerfileYamlConfig struct {
-	DefaultDotNetCoreVersion string `yaml:"defaultDotNetCoreVersion"`
-}
-
-// DotNetCoreDockerfileGenerator implements the Transformer interface
-type DotNetCoreDockerfileGenerator struct {
-	Config           transformertypes.Transformer
-	Env              *environment.Environment
-	DotNetCoreConfig *DotNetCoreDockerfileYamlConfig
-}
+// -----------------------------------------------------------------------------------
+// C Sharp Project XML file
+// -----------------------------------------------------------------------------------
 
 // PublishProfile defines the publish profile
 type PublishProfile struct {
@@ -89,12 +84,16 @@ type PropertyGroup struct {
 	PublishUrlS string   `xml:"publishUrl"`
 }
 
-//LaunchSettings defines launchSettings.json properties
+// -----------------------------------------------------------------------------------
+// Visual Studio launch settings json file
+// -----------------------------------------------------------------------------------
+
+// LaunchSettings is to load the launchSettings.json properties
 type LaunchSettings struct {
 	Profiles map[string]LaunchProfile `json:"profiles"`
 }
 
-//LaunchProfile implements launch profile properties
+// LaunchProfile implements launch profile properties
 type LaunchProfile struct {
 	CommandName          string            `json:"CommandName"`
 	LaunchBrowser        bool              `json:"launchBrowser"`
@@ -102,18 +101,51 @@ type LaunchProfile struct {
 	EnvironmentVariables map[string]string `json:"environmentVariables"`
 }
 
+// -----------------------------------------------------------------------------------
+// Transformer
+// -----------------------------------------------------------------------------------
+
+// DotNetCoreDockerfileGenerator implements the Transformer interface
+type DotNetCoreDockerfileGenerator struct {
+	Config           transformertypes.Transformer
+	Env              *environment.Environment
+	DotNetCoreConfig *DotNetCoreDockerfileYamlConfig
+	Spec             NodeVersionsMappingSpec
+	SortedVersions   []string
+}
+
+// DotNetCoreDockerfileYamlConfig represents the configuration of the DotNetCore dockerfile
+type DotNetCoreDockerfileYamlConfig struct {
+	DefaultDotNetCoreVersion string `yaml:"defaultDotNetCoreVersion"`
+	NodejsDockerfileYamlConfig
+}
+
 // Init Initializes the transformer
-func (t *DotNetCoreDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *DotNetCoreDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
+
+	// load the config
 	t.DotNetCoreConfig = &DotNetCoreDockerfileYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, t.DotNetCoreConfig)
-	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.DotNetCoreConfig, err)
-		return err
+	if err := common.GetObjFromInterface(t.Config.Spec.Config, t.DotNetCoreConfig); err != nil {
+		return fmt.Errorf("failed to load the config for the transformer %+v into %T . Error: %q", t.Config.Spec.Config, t.DotNetCoreConfig, err)
 	}
 	if t.DotNetCoreConfig.DefaultDotNetCoreVersion == "" {
 		t.DotNetCoreConfig.DefaultDotNetCoreVersion = defaultDotNetCoreVersion
+	}
+	if t.DotNetCoreConfig.DefaultPackageManager == "" {
+		t.DotNetCoreConfig.DefaultPackageManager = defaultPackageManager
+	}
+
+	// load the version mapping file
+	mappingFilePath := filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath)
+	spec, err := LoadNodeVersionMappingsFile(mappingFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to load the node version mappings file at path %s . Error: %q", versionMappingFilePath, err)
+	}
+	t.Spec = spec
+	if t.DotNetCoreConfig.DefaultNodejsVersion == "" {
+		t.DotNetCoreConfig.DefaultNodejsVersion = t.Spec.NodeVersions[0][versionKey]
 	}
 	return nil
 }
@@ -291,28 +323,54 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 	// look for a package.json file to see if the project requires nodejs installed in order to build
 
 	isNodeJSProject := false
+	nodeVersion := t.DotNetCoreConfig.DefaultNodejsVersion
+	packageManager := t.DotNetCoreConfig.DefaultPackageManager
 	packageJsonPaths, err := common.GetFilesByName(serviceDir, []string{packageJSONFile}, nil)
 	if err != nil {
 		return pathMappings, artifactsCreated, fmt.Errorf("failed to look for package.json files in the directory %s . Error: %q", serviceDir, err)
 	}
 	if len(packageJsonPaths) > 0 {
-		packageJsonPath := packageJsonPaths[0]
-		packageJSON := PackageJSON{}
-		if err := common.ReadJSON(packageJsonPath, &packageJSON); err != nil {
-			logrus.Errorf("failed to parse the package.json file at path %s . Error: %q", packageJsonPath, err)
-		} else {
+		versionConstraints := []string{}
+		packageManagers := []string{}
+		for _, packageJsonPath := range packageJsonPaths {
+			packageJson := PackageJSON{}
+			if err := common.ReadJSON(packageJsonPath, &packageJson); err != nil {
+				logrus.Errorf("failed to parse the package.json file at path %s . Error: %q", packageJsonPath, err)
+				continue
+			}
 			isNodeJSProject = true
+			if versionConstraint, ok := packageJson.Engines["node"]; ok {
+				versionConstraints = append(versionConstraints, versionConstraint)
+			}
+			if packageJson.PackageManager != "" {
+				parts := strings.Split(packageJson.PackageManager, "@")
+				if len(parts) > 0 {
+					packageManagers = append(packageManagers, parts[0])
+				}
+			}
+		}
+		if len(versionConstraints) > 0 {
+			nodeVersion = getNodeVersion(versionConstraints[0], t.DotNetCoreConfig.DefaultNodejsVersion, t.SortedVersions)
+		}
+		if len(packageManagers) > 0 {
+			packageManager = packageManagers[0]
 		}
 	}
 
 	// generate the base image Dockerfile
-
+	var props map[string]string
+	if idx := common.FindIndex(t.Spec.NodeVersions, func(x map[string]string) bool { return x[versionKey] == nodeVersion }); idx != -1 {
+		props = t.Spec.NodeVersions[idx]
+	}
 	if selectedBuildOption == dotnetutils.BUILD_IN_BASE_IMAGE {
 		webConfig := DotNetCoreTemplateConfig{
-			IncludeBuildStage:  true,
-			BuildStageImageTag: defaultDotNetCoreVersion,
-			BuildContainerName: imageToCopyFrom,
-			IsNodeJSProject:    isNodeJSProject,
+			IncludeBuildStage:     true,
+			BuildStageImageTag:    defaultDotNetCoreVersion,
+			BuildContainerName:    imageToCopyFrom,
+			IsNodeJSProject:       isNodeJSProject,
+			NodeVersion:           nodeVersion,
+			NodeVersionProperties: props,
+			PackageManager:        packageManager,
 		}
 
 		// path mapping to generate the Dockerfile for the child project
@@ -405,16 +463,25 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 			continue
 		}
 
-		dotNetCoreTemplateConfig := DotNetCoreTemplateConfig{
-			IncludeBuildStage:  selectedBuildOption == dotnetutils.BUILD_IN_EVERY_IMAGE,
-			BuildStageImageTag: defaultDotNetCoreVersion,
-			BuildContainerName: imageToCopyFrom,
-			EntryPointPath:     childProject.Name + ".dll",
-			RunStageImageTag:   targetFrameworkVersion,
-			IncludeRunStage:    true,
-			CopyFrom:           copyFrom,
-			PublishProfilePath: relSelectedProfilePath,
-			EnvVariables:       map[string]string{},
+		nodeVersion := t.DotNetCoreConfig.DefaultNodejsVersion
+		var props map[string]string
+		if idx := common.FindIndex(t.Spec.NodeVersions, func(x map[string]string) bool { return x[versionKey] == nodeVersion }); idx != -1 {
+			props = t.Spec.NodeVersions[idx]
+		}
+
+		templateConfig := DotNetCoreTemplateConfig{
+			IncludeBuildStage:     selectedBuildOption == dotnetutils.BUILD_IN_EVERY_IMAGE,
+			BuildStageImageTag:    defaultDotNetCoreVersion,
+			BuildContainerName:    imageToCopyFrom,
+			EntryPointPath:        childProject.Name + ".dll",
+			RunStageImageTag:      targetFrameworkVersion,
+			IncludeRunStage:       true,
+			CopyFrom:              copyFrom,
+			PublishProfilePath:    relSelectedProfilePath,
+			EnvVariables:          map[string]string{},
+			NodeVersion:           nodeVersion,
+			NodeVersionProperties: props,
+			PackageManager:        t.DotNetCoreConfig.DefaultPackageManager,
 		}
 
 		// look for a package.json file to see if the project requires nodejs installed in order to build
@@ -426,11 +493,26 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 					logrus.Warnf("found multiple package.json files for the child project %s . Actual: %+v", childProject.Name, childPackageJsonPaths)
 				}
 				packageJsonPath := childPackageJsonPaths[0]
-				packageJSON := PackageJSON{}
-				if err := common.ReadJSON(packageJsonPath, &packageJSON); err != nil {
+				packageJson := PackageJSON{}
+				if err := common.ReadJSON(packageJsonPath, &packageJson); err != nil {
 					logrus.Errorf("failed to parse the package.json file at path %s . Error: %q", packageJsonPath, err)
 				} else {
-					dotNetCoreTemplateConfig.IsNodeJSProject = true
+					templateConfig.IsNodeJSProject = true
+					if nodeVersionConstraint, ok := packageJson.Engines["node"]; ok {
+						nodeVersion = getNodeVersion(nodeVersionConstraint, t.DotNetCoreConfig.DefaultNodejsVersion, t.SortedVersions)
+						var props map[string]string
+						if idx := common.FindIndex(t.Spec.NodeVersions, func(x map[string]string) bool { return x[versionKey] == nodeVersion }); idx != -1 {
+							props = t.Spec.NodeVersions[idx]
+						}
+						templateConfig.NodeVersion = nodeVersion
+						templateConfig.NodeVersionProperties = props
+					}
+					if packageJson.PackageManager != "" {
+						parts := strings.Split(packageJson.PackageManager, "@")
+						if len(parts) > 0 {
+							templateConfig.PackageManager = parts[0]
+						}
+					}
 				}
 			}
 		}
@@ -463,7 +545,7 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 					logrus.Errorf("failed to parse and modify the application listen urls: '%s' . Error: %q", v.ApplicationURL, err)
 					continue
 				}
-				dotNetCoreTemplateConfig.EnvVariables["ASPNETCORE_URLS"] = newAppUrls
+				templateConfig.EnvVariables["ASPNETCORE_URLS"] = newAppUrls
 				for _, port := range ports {
 					childProjectPorts = common.AppendIfNotPresent(childProjectPorts, port)
 				}
@@ -475,14 +557,14 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 
 		// have the user select the ports to use for the child project
 
-		dotNetCoreTemplateConfig.Ports = commonqa.GetPortsForService(childProjectPorts, qaSubKey)
+		templateConfig.Ports = commonqa.GetPortsForService(childProjectPorts, qaSubKey)
 
 		dockerfilePath := filepath.Join(common.DefaultSourceDir, relServiceDir, relCSProjDir, common.DefaultDockerfileName)
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
 			SrcPath:        common.DefaultDockerfileName,
 			DestPath:       dockerfilePath,
-			TemplateConfig: dotNetCoreTemplateConfig,
+			TemplateConfig: templateConfig,
 		})
 
 		// artifacts to inform other transformers of the Dockerfile we generated

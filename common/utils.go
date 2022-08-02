@@ -75,7 +75,7 @@ func Filter[T comparable](vs []T, condition func(T) bool) []T {
 
 // FindIndex returns the index of the first element that satisfies the condition.
 // It returns -1 if none of the elements satisfy the condition.
-func FindIndex[T comparable](vs []T, condition func(T) bool) int {
+func FindIndex[T interface{}](vs []T, condition func(T) bool) int {
 	for i, v := range vs {
 		if condition(v) {
 			return i
@@ -1014,11 +1014,12 @@ func SplitYAML(rawYAML []byte) ([][]byte, error) {
 	}
 }
 
-// ReverseInPlace reverses a slice of strings in place.
-func ReverseInPlace(xs []string) {
-	for i := 0; i < len(xs)/2; i++ {
-		j := len(xs) - i - 1
+// ReverseInPlace reverses a slice in place.
+func ReverseInPlace[T interface{}](xs []T) {
+	for i, j := 0, len(xs)-1; i < j; {
 		xs[i], xs[j] = xs[j], xs[i]
+		i++
+		j--
 	}
 }
 

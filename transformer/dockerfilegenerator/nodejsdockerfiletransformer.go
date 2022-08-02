@@ -18,7 +18,10 @@ package dockerfilegenerator
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/konveyor/move2kube/common"
@@ -30,14 +33,44 @@ import (
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
+	"golang.org/x/mod/semver"
 )
 
-const (
-	packageJSONFile        = "package.json"
-	versionMappingFilePath = "mappings/nodeversions.yaml"
-	// NodeVersionsMappingKind defines kind of NodeVersionMappingKind
-	NodeVersionsMappingKind types.Kind = "NodeVersionsMapping"
-)
+// -----------------------------------------------------------------------------------
+// Struct to load the package.json file
+// -----------------------------------------------------------------------------------
+
+// PackageJSON represents NodeJS package.json
+type PackageJSON struct {
+	Private        bool              `json:"private"`
+	Name           string            `json:"name"`
+	Version        string            `json:"version"`
+	Description    string            `json:"description"`
+	Homepage       string            `json:"homepage"`
+	License        string            `json:"license"`
+	Main           string            `json:"main"`
+	PackageManager string            `json:"packageManager,omitempty"`
+	Keywords       []string          `json:"keywords,omitempty"`
+	Files          []string          `json:"files,omitempty"`
+	Os             []string          `json:"os,omitempty"`
+	CPU            []string          `json:"cpu,omitempty"`
+	Scripts        map[string]string `json:"scripts,omitempty"`
+	Engines        map[string]string `json:"engines,omitempty"`
+	Dependencies   map[string]string `json:"dependencies,omitempty"`
+}
+
+// NodejsTemplateConfig implements Nodejs config interface
+type NodejsTemplateConfig struct {
+	Port                  int32
+	Build                 bool
+	NodeVersion           string
+	NodeVersionProperties map[string]string
+	PackageManager        string
+}
+
+// -----------------------------------------------------------------------------------
+// Mappings file
+// -----------------------------------------------------------------------------------
 
 // NodeVersionsMapping stores the Node versions mapping
 type NodeVersionsMapping struct {
@@ -48,73 +81,62 @@ type NodeVersionsMapping struct {
 
 // NodeVersionsMappingSpec stores the Node version spec
 type NodeVersionsMappingSpec struct {
-	NodeVersions []string `yaml:"nodeVersions"`
+	DisableSort  bool                `yaml:"disableSort"`
+	NodeVersions []map[string]string `yaml:"nodeVersions"`
 }
+
+// -----------------------------------------------------------------------------------
+// Transformer
+// -----------------------------------------------------------------------------------
 
 // NodejsDockerfileGenerator implements the Transformer interface
 type NodejsDockerfileGenerator struct {
 	Config       transformertypes.Transformer
 	Env          *environment.Environment
 	NodejsConfig *NodejsDockerfileYamlConfig
-	NodeVersions []string
-}
-
-// NodejsTemplateConfig implements Nodejs config interface
-type NodejsTemplateConfig struct {
-	Port        int32
-	Build       bool
-	NodeVersion string
+	Spec         NodeVersionsMappingSpec
 }
 
 // NodejsDockerfileYamlConfig represents the configuration of the Nodejs dockerfile
 type NodejsDockerfileYamlConfig struct {
-	DefaultNodejsVersion string `yaml:"defaultNodejsVersion"`
+	DefaultNodejsVersion  string `yaml:"defaultNodejsVersion"`
+	DefaultPackageManager string `yaml:"defaultPackageManager"`
 }
 
-// PackageJSON represents NodeJS package.json
-type PackageJSON struct {
-	Name         string            `json:"name"`
-	Version      string            `json:"version"`
-	Description  string            `json:"description"`
-	Keywords     []string          `json:"keywords"`
-	Homepage     string            `json:"homepage"`
-	License      string            `json:"license"`
-	Files        []string          `json:"files"`
-	Main         string            `json:"main"`
-	Scripts      map[string]string `json:"scripts"`
-	Os           []string          `json:"os"`
-	CPU          []string          `json:"cpu"`
-	Private      bool              `json:"private"`
-	Engines      map[string]string `json:"engines"`
-	Dependencies map[string]string `json:"dependencies"`
-}
+const (
+	packageJSONFile        = "package.json"
+	versionMappingFilePath = "mappings/nodeversions.yaml"
+	defaultPackageManager  = "npm"
+	versionKey             = "version"
+	// NodeVersionsMappingKind defines kind of NodeVersionMappingKind
+	NodeVersionsMappingKind types.Kind = "NodeVersionsMapping"
+)
 
 // Init Initializes the transformer
-func (t *NodejsDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *NodejsDockerfileGenerator) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
+
+	// load the config
 	t.NodejsConfig = &NodejsDockerfileYamlConfig{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, t.NodejsConfig)
-	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.NodejsConfig, err)
-		return err
+	if err := common.GetObjFromInterface(t.Config.Spec.Config, t.NodejsConfig); err != nil {
+		return fmt.Errorf("unable to load config for Transformer %+v into %T . Error: %q", t.Config.Spec.Config, t.NodejsConfig, err)
 	}
-	mappingFile := NodeVersionsMapping{}
+	if t.NodejsConfig.DefaultPackageManager == "" {
+		t.NodejsConfig.DefaultPackageManager = defaultPackageManager
+	}
+
+	// load the version mapping file
 	mappingFilePath := filepath.Join(t.Env.GetEnvironmentContext(), versionMappingFilePath)
-	if err := common.ReadMove2KubeYaml(mappingFilePath, &mappingFile); err != nil {
-		return fmt.Errorf("failed to load the Node versions mapping file at path %s . Error: %q", mappingFilePath, err)
+	spec, err := LoadNodeVersionMappingsFile(mappingFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to load the node version mappings file at path %s . Error: %q", versionMappingFilePath, err)
 	}
-	if len(mappingFile.Spec.NodeVersions) == 0 {
-		return fmt.Errorf("the mapping file at path %s is invalid", mappingFilePath)
-	}
-	t.NodeVersions = mappingFile.Spec.NodeVersions
-	if len(t.NodeVersions) == 0 {
-		return fmt.Errorf("atleast one node version should be specified in the nodeversions mappings file- %s", mappingFilePath)
-	}
+	t.Spec = spec
 	if t.NodejsConfig.DefaultNodejsVersion == "" {
-		t.NodejsConfig.DefaultNodejsVersion = t.NodeVersions[0]
+		t.NodejsConfig.DefaultNodejsVersion = t.Spec.NodeVersions[0][versionKey]
 	}
-	logrus.Debugf("Extracted node versions from nodeversion mappings file - %+v", t.NodeVersions)
+	logrus.Debugf("Extracted node versions from nodeversion mappings file - %+v", t.Spec)
 	return nil
 }
 
@@ -124,21 +146,19 @@ func (t *NodejsDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	var packageJSON PackageJSON
-	if err := common.ReadJSON(filepath.Join(dir, packageJSONFile), &packageJSON); err != nil {
-		logrus.Debugf("unable to read the package.json file: %s", err)
+func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
+	packageJsonPath := filepath.Join(dir, packageJSONFile)
+	packageJson := PackageJSON{}
+	if err := common.ReadJSON(packageJsonPath, &packageJson); err != nil {
+		logrus.Debugf("failed to read the package.json file at the path %s . Error: %q", packageJsonPath, err)
 		return nil, nil
 	}
-	if packageJSON.Name == "" {
-		err = fmt.Errorf("unable to get name of nodejs service at %s. Ignoring", dir)
-		return nil, err
+	if packageJson.Name == "" {
+		return nil, fmt.Errorf("unable to get name of nodejs service at %s. Ignoring", dir)
 	}
-	services = map[string][]transformertypes.Artifact{
-		packageJSON.Name: {{
-			Paths: map[transformertypes.PathType][]string{
-				artifacts.ServiceDirPathType: {dir},
-			},
+	services := map[string][]transformertypes.Artifact{
+		packageJson.Name: {{
+			Paths: map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {dir}},
 		}},
 	}
 	return services, nil
@@ -148,69 +168,87 @@ func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
-		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
-		}
-		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+	for _, newArtifact := range newArtifacts {
+		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 {
 			continue
 		}
-		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		serviceDir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), serviceDir)
 		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+			logrus.Errorf("Unable to convert source path %s to be relative. Error: %q", serviceDir, err)
+		}
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T . Error: %q", serviceConfig, err)
+			continue
+		}
+		imageName := artifacts.ImageName{}
+		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T . Error: %q", imageName, err)
 		}
 		ir := irtypes.IR{}
 		irPresent := true
-		err = a.GetConfig(irtypes.IRConfigType, &ir)
-		if err != nil {
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			irPresent = false
-			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
+			logrus.Debugf("unable to load config for Transformer into %T . Error: %q", ir, err)
 		}
 		build := false
-		var nodeVersion string
-		var packageJSON PackageJSON
-		if err := common.ReadJSON(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], packageJSONFile), &packageJSON); err != nil {
-			logrus.Errorf("unable to read the package.json file: %s", err)
+		packageJSON := PackageJSON{}
+		packageJsonPath := filepath.Join(serviceDir, packageJSONFile)
+		if err := common.ReadJSON(packageJsonPath, &packageJSON); err != nil {
+			logrus.Errorf("failed to parse the package.json file at path %s . Error: %q", packageJsonPath, err)
 			continue
 		}
 		if _, ok := packageJSON.Scripts["build"]; ok {
 			build = true
 		}
+		nodeVersion := t.NodejsConfig.DefaultNodejsVersion
 		if nodeVersionConstraint, ok := packageJSON.Engines["node"]; ok {
-			nodeVersion = getNodeVersion(nodeVersionConstraint, t.NodejsConfig.DefaultNodejsVersion, t.NodeVersions)
+			nodeVersion = getNodeVersion(
+				nodeVersionConstraint,
+				t.NodejsConfig.DefaultNodejsVersion,
+				common.Map(t.Spec.NodeVersions, func(x map[string]string) string { return x[versionKey] }),
+			)
 			logrus.Debugf("Selected nodeVersion is - %s", nodeVersion)
 		}
-		if nodeVersion == "" {
-			logrus.Infof("No Node version specified in the package.json file. Selecting the default Node version- %s", t.NodejsConfig.DefaultNodejsVersion)
-			nodeVersion = t.NodejsConfig.DefaultNodejsVersion
+		packageManager := t.NodejsConfig.DefaultPackageManager
+		if packageJSON.PackageManager != "" {
+			parts := strings.Split(packageJSON.PackageManager, "@")
+			if len(parts) > 0 {
+				packageManager = parts[0]
+			}
 		}
 		ports := ir.GetAllServicePorts()
 		if len(ports) == 0 {
-			envMap, err := godotenv.Read(filepath.Join(a.Paths[artifacts.ServiceDirPathType][0], ".env"))
-			if err == nil {
-				portString, ok := envMap["PORT"]
-				if ok {
-					port, err := cast.ToInt32E(portString)
-					if err == nil {
-						ports = []int32{port}
-					}
+			envPath := filepath.Join(serviceDir, ".env")
+			envMap, err := godotenv.Read(envPath)
+			if err != nil {
+				if !os.IsNotExist(err) {
+					logrus.Warnf("failed to parse the .env file at the path %s . Error: %q", envPath, err)
 				}
-			} else {
-				logrus.Debugf("Could not parse the .env file, %s", err)
+			} else if portString, ok := envMap["PORT"]; ok {
+				port, err := cast.ToInt32E(portString)
+				if err != nil {
+					logrus.Errorf("failed to parse the port string '%s' as an integer. Error: %q", portString, err)
+				} else {
+					ports = []int32{port}
+				}
 			}
 		}
-		port := commonqa.GetPortForService(ports, `"`+a.Name+`"`)
-		var nodejsConfig NodejsTemplateConfig
-		nodejsConfig.Build = build
-		nodejsConfig.Port = port
-		nodejsConfig.NodeVersion = nodeVersion
-		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
+		port := commonqa.GetPortForService(ports, `"`+newArtifact.Name+`"`)
+		var props map[string]string
+		if idx := common.FindIndex(t.Spec.NodeVersions, func(x map[string]string) bool { return x[versionKey] == nodeVersion }); idx != -1 {
+			props = t.Spec.NodeVersions[idx]
+		}
+		nodejsConfig := NodejsTemplateConfig{
+			Build:                 build,
+			Port:                  port,
+			NodeVersion:           nodeVersion,
+			NodeVersionProperties: props,
+			PackageManager:        packageManager,
+		}
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
@@ -221,23 +259,23 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
 			TemplateConfig: nodejsConfig,
 		})
-		paths := a.Paths
+		paths := newArtifact.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
-			Name:  sImageName.ImageName,
+			Name:  imageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
 			Paths: paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ImageNameConfigType: imageName,
 			},
 		}
 		dfs := transformertypes.Artifact{
-			Name:  sConfig.ServiceName,
+			Name:  serviceConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
-			Paths: a.Paths,
+			Paths: newArtifact.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
-				artifacts.ServiceConfigType:   sConfig,
+				artifacts.ImageNameConfigType: imageName,
+				artifacts.ServiceConfigType:   serviceConfig,
 			},
 		}
 		if irPresent {
@@ -246,4 +284,28 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		artifactsCreated = append(artifactsCreated, p, dfs)
 	}
 	return pathMappings, artifactsCreated, nil
+}
+
+// LoadNodeVersionMappingsFile loads the node version mappings file
+func LoadNodeVersionMappingsFile(mappingFilePath string) (NodeVersionsMappingSpec, error) {
+	mappingFile := NodeVersionsMapping{}
+	if err := common.ReadMove2KubeYaml(mappingFilePath, &mappingFile); err != nil {
+		return mappingFile.Spec, fmt.Errorf("failed to load the Node versions mapping file at path %s . Error: %q", mappingFilePath, err)
+	}
+	// validate the file
+	if len(mappingFile.Spec.NodeVersions) == 0 {
+		return mappingFile.Spec, fmt.Errorf("the node version mappings file at path %s is invalid. Atleast one node version should be specified", mappingFilePath)
+	}
+	for i, v := range mappingFile.Spec.NodeVersions {
+		if _, ok := v[versionKey]; !ok {
+			return mappingFile.Spec, fmt.Errorf("the version is missing from the object %#v at the %dth index in the array", mappingFile.Spec.NodeVersions[i], i)
+		}
+	}
+	// sort the list using semantic version comparison
+	if !mappingFile.Spec.DisableSort {
+		sort.SliceStable(mappingFile.Spec.NodeVersions, func(i, j int) bool {
+			return semver.Compare(mappingFile.Spec.NodeVersions[i][versionKey], mappingFile.Spec.NodeVersions[j][versionKey]) == 1
+		})
+	}
+	return mappingFile.Spec, nil
 }

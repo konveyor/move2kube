@@ -14,15 +14,19 @@
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 RUN microdnf update && microdnf install wget xz tar && microdnf clean all && \
+    {{- if .NodeVersionProperties.url }}
+    wget {{ .NodeVersionProperties.url }} && \
+    {{- else }}
     wget https://nodejs.org/dist/{{ .NodeVersion }}/node-{{ .NodeVersion }}-linux-x64.tar.xz && \
+    {{- end }}
     tar -xJf node-{{ .NodeVersion }}-linux-x64.tar.xz && \
     mv node-{{ .NodeVersion }}-linux-x64 /node && \
     rm -f node-{{ .NodeVersion }}-linux-x64.tar.xz
 ENV PATH="$PATH:/node/bin"
 COPY . .
-RUN npm install
+RUN {{ .PackageManager }} install
 {{- if .Build }}
-RUN npm run build
+RUN {{ .PackageManager }} run build
 {{- end}}
 EXPOSE {{ .Port }}
-CMD npm run start
+CMD {{ .PackageManager }} run start
