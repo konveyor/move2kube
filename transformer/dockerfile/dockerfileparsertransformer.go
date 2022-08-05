@@ -65,6 +65,9 @@ func (t *DockerfileParser) Transform(newArtifacts []transformertypes.Artifact, a
 		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
 			logrus.Errorf("unable to load the service config from the artifact %+v . Error: %q", newArtifact, err)
 		}
+		if serviceConfig.ServiceName == "" {
+			serviceConfig.ServiceName = common.MakeStringK8sServiceNameCompliant(newArtifact.Name)
+		}
 		imageName := artifacts.ImageName{}
 		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
 			logrus.Errorf("unable to load the imagename config from the artifact %+v . Error: %q", newArtifact, err)

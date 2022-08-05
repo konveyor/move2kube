@@ -89,7 +89,9 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 		return nil, nil
 	}
 	for _, path := range paths {
-		serviceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+		rawServiceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+		serviceName := common.MakeStringK8sServiceNameCompliant(rawServiceName)
+		imageName := common.MakeStringContainerImageNameCompliant(rawServiceName)
 		relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), path)
 		if err != nil {
 			logrus.Errorf("failed to make the path %s relative to the sourc code directory %s . Error: %q", path, t.Env.GetEnvironmentSource(), err)
@@ -109,7 +111,7 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 					JavaVersion:        t.JarConfig.JavaVersion,
 				},
 				artifacts.ServiceConfigType:   artifacts.ServiceConfig{ServiceName: serviceName},
-				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: serviceName},
+				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: imageName},
 			},
 		}
 		services[serviceName] = append(services[serviceName], newArtifact)

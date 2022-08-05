@@ -94,12 +94,15 @@ func (t *Tomcat) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 			logrus.Debugf("failed to load service config from the artifact: %+v . Error: %q", newArtifact, err)
 			continue
 		}
+		if serviceConfig.ServiceName == "" {
+			serviceConfig.ServiceName = common.MakeStringK8sServiceNameCompliant(newArtifact.Name)
+		}
 		imageName := artifacts.ImageName{}
 		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
 			logrus.Debugf("failed to load image name config from the artifact: %+v . Error: %q", imageName, err)
 		}
 		if imageName.ImageName == "" {
-			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(newArtifact.Name)
 		}
 		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 {
 			logrus.Errorf("service directory missing from artifact: %+v", newArtifact)

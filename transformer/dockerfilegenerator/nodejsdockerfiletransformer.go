@@ -182,6 +182,9 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			logrus.Errorf("unable to load config for Transformer into %T . Error: %q", serviceConfig, err)
 			continue
 		}
+		if serviceConfig.ServiceName == "" {
+			serviceConfig.ServiceName = common.MakeStringK8sServiceNameCompliant(newArtifact.Name)
+		}
 		imageName := artifacts.ImageName{}
 		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T . Error: %q", imageName, err)

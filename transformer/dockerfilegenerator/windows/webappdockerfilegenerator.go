@@ -320,7 +320,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			// artifacts to inform other transformers of the Dockerfile we generated
 
 			paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}
-			serviceName := artifacts.ServiceConfig{ServiceName: dotNetConfig.DotNetAppName}
+			serviceName := artifacts.ServiceConfig{ServiceName: common.MakeStringK8sServiceNameCompliant(dotNetConfig.DotNetAppName)}
 			imageName := artifacts.ImageName{ImageName: imageToCopyFrom}
 			dockerfileArtifact := transformertypes.Artifact{
 				Name:  imageName.ImageName,
@@ -394,7 +394,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			// artifacts to inform other transformers of the Dockerfile we generated
 
 			paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}
-			serviceName := artifacts.ServiceConfig{ServiceName: childProject.Name}
+			serviceName := artifacts.ServiceConfig{ServiceName: common.MakeStringK8sServiceNameCompliant(childProject.Name)}
 			imageName := artifacts.ImageName{ImageName: common.MakeStringContainerImageNameCompliant(childProject.Name)}
 			dockerfileArtifact := transformertypes.Artifact{
 				Name:  imageName.ImageName,

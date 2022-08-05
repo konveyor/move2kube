@@ -80,7 +80,9 @@ func (t *WarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 		return nil, nil
 	}
 	for _, path := range paths {
-		serviceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+		rawServiceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+		serviceName := common.MakeStringK8sServiceNameCompliant(rawServiceName)
+		imageName := common.MakeStringContainerImageNameCompliant(rawServiceName)
 		newArtifact := transformertypes.Artifact{
 			Type: artifacts.ServiceArtifactType,
 			Paths: map[transformertypes.PathType][]string{
@@ -93,7 +95,7 @@ func (t *WarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 					JavaVersion:        t.WarConfig.JavaVersion,
 				},
 				artifacts.ServiceConfigType:   artifacts.ServiceConfig{ServiceName: serviceName},
-				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: serviceName},
+				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: imageName},
 			},
 		}
 		services[serviceName] = append(services[serviceName], newArtifact)
