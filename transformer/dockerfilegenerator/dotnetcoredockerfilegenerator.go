@@ -282,7 +282,7 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 		selectedChildProjectNames = append(selectedChildProjectNames, childProject.Name)
 	}
 	if len(selectedChildProjectNames) > 1 {
-		quesKey := fmt.Sprintf(common.ConfigServicesDotNetChildProjectsNamesKey, dotNetConfig.DotNetAppName)
+		quesKey := fmt.Sprintf(common.ConfigServicesDotNetChildProjectsNamesKey, `"`+dotNetConfig.DotNetAppName+`"`)
 		desc := fmt.Sprintf("For the multi-project Dot Net Core app '%s', please select all the child projects that should be run as services in the cluster:", dotNetConfig.DotNetAppName)
 		hints := []string{"deselect any child project that should not be run (example: libraries)"}
 		selectedChildProjectNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildProjectNames, selectedChildProjectNames)

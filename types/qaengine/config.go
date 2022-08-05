@@ -240,7 +240,7 @@ func (c *Config) AddSolution(p Problem) error {
 	}
 	for _, option := range p.Options {
 		isOptionSelected := common.IsPresent(selectedAnswers, option)
-		newKey := baseKey + common.Delim + option + common.Delim + lastKeySegment
+		newKey := baseKey + common.Delim + `"` + option + `"` + common.Delim + lastKeySegment
 		set(newKey, isOptionSelected, c.yamlMap)
 		set(newKey, isOptionSelected, c.writeYamlMap)
 	}
