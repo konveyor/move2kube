@@ -435,8 +435,8 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 					DeploymentFilePath: insideContainerDepFilePath,
 					EnvVariables:       envVarsMap,
 				},
-				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: childModule.Name},
-				artifacts.ServiceConfigType:   artifacts.ServiceConfig{ServiceName: childModule.Name},
+				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: common.MakeStringContainerImageNameCompliant(childModule.Name)},
+				artifacts.ServiceConfigType:   artifacts.ServiceConfig{ServiceName: common.MakeStringK8sServiceNameCompliant(childModule.Name)},
 			},
 		}
 		createdArtifacts = append(createdArtifacts, runStageArtifact)

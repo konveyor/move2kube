@@ -90,12 +90,15 @@ func (t *Jboss) Transform(newArtifacts []transformertypes.Artifact, alreadySeenA
 			logrus.Errorf("unable to load config for Transformer into %T : %s", serviceConfig, err)
 			continue
 		}
+		if serviceConfig.ServiceName == "" {
+			serviceConfig.ServiceName = common.MakeStringK8sServiceNameCompliant(newArtifact.Name)
+		}
 		imageName := artifacts.ImageName{}
 		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T : %s", imageName, err)
 		}
 		if imageName.ImageName == "" {
-			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(newArtifact.Name)
 		}
 		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 {
 			logrus.Errorf("service directory missing from artifact: %+v", newArtifact)

@@ -731,6 +731,17 @@ func MakeStringDNSNameCompliant(s string) string {
 	return name
 }
 
+// MakeStringDNSNameCompliantWithoutDots makes the string into a valid DNS name without dots.
+func MakeStringDNSNameCompliantWithoutDots(s string) string {
+	name := strings.ToLower(s)
+	name = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllLiteralString(name, "-")
+	start, end := name[0], name[len(name)-1]
+	if start == '-' || end == '-' {
+		logrus.Debugf("The first and/or last characters of the string %q are not alphanumeric.", s)
+	}
+	return name
+}
+
 // MakeStringContainerImageNameCompliant makes the string into a valid image name.
 func MakeStringContainerImageNameCompliant(s string) string {
 	if strings.TrimSpace(s) == "" {
@@ -776,7 +787,25 @@ func MakeStringDNSLabelNameCompliant(s string) string {
 		name = name[:63-33] // leave room for the hash (32 chars) plus hyphen (1 char).
 		name = name + "-" + hash
 	}
-	return MakeStringDNSNameCompliant(name)
+	return MakeStringDNSNameCompliantWithoutDots(name)
+}
+
+// MakeStringK8sServiceNameCompliant makes the string a valid K8s service name.
+// See https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
+// See https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#rfc-1035-label-names
+// 1. contain at most 63 characters
+// 2. contain only lowercase alphanumeric characters or '-'
+// 3. start with an alphabetic character
+// 4. end with an alphanumeric character
+func MakeStringK8sServiceNameCompliant(s string) string {
+	if strings.TrimSpace(s) == "" {
+		logrus.Errorf("empty string given to create k8s service name")
+		return s
+	}
+	if !regexp.MustCompile(`^[a-z]`).MatchString(s) {
+		logrus.Warnf("the given k8s service name '%s' starts with a non-alphabetic character", s)
+	}
+	return MakeStringDNSLabelNameCompliant(s)
 }
 
 // MakeStringEnvNameCompliant makes the string into a valid Environment variable name.
