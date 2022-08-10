@@ -152,10 +152,6 @@ jobs:
         with:
           ref: ${{ github.event.inputs.commit_ref }}
           fetch-depth: 0
-      - id: semver_parser
-        uses: booxmedialtd/ws-action-parse-semver@v1
-        with:
-          input_string: ${{ github.event.inputs.tag }}
       - name: create release draft
         uses: konveyor/create-release-draft@v1
         with:
