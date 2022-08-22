@@ -802,7 +802,7 @@ func MakeStringK8sServiceNameCompliant(s string) string {
 		logrus.Errorf("empty string given to create k8s service name")
 		return s
 	}
-	if !regexp.MustCompile(`^[a-z]`).MatchString(s) {
+	if !regexp.MustCompile(`^[a-zA-Z]`).MatchString(s) {
 		logrus.Warnf("the given k8s service name '%s' starts with a non-alphabetic character", s)
 	}
 	return MakeStringDNSLabelNameCompliant(s)
