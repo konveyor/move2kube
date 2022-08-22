@@ -48,31 +48,44 @@ func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, tran
 		transformerSelectorObj = transformerSelectorObj.Add(requirements...)
 	}
 	transformer.InitTransformers(plan.Spec.Transformers, transformerSelectorObj, plan.Spec.SourceDir, outputPath, plan.Name, true)
+
+	// select only the services the user is interested in
 	serviceNames := []string{}
-	planServices := map[string]plantypes.PlanArtifact{}
-	for sn, st := range plan.Spec.Services {
-		for _, t := range st {
-			if _, err := transformer.GetTransformerByName(t.TransformerName); err == nil {
-				serviceNames = append(serviceNames, sn)
-				t.ServiceName = sn
-				planServices[sn] = t
-				break
-			}
-			logrus.Debugf("Ignoring transformer %+v for service %s due to deselected transformer", t, sn)
-		}
-		if _, ok := planServices[sn]; !ok {
-			logrus.Warnf("No transformers selected for service %s. Ignoring.", sn)
-		}
+	for serviceName := range plan.Spec.Services {
+		serviceNames = append(serviceNames, serviceName)
 	}
 	sort.Strings(serviceNames)
-	selectedServices := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
-	selectedPlanServices := []plantypes.PlanArtifact{}
-	for _, selectedService := range selectedServices {
-		selectedPlanServices = append(selectedPlanServices, planServices[selectedService])
+	selectedServiceNames := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
+
+	// select the first valid transformation option for each selected service
+	selectedTransformationOptions := []plantypes.PlanArtifact{}
+	for _, selectedServiceName := range selectedServiceNames {
+		options := plan.Spec.Services[selectedServiceName]
+		found := false
+		if len(options) > 1 {
+			logrus.Infof("Found multiple transformation options for the service '%s'. Selecting the first valid option.", selectedServiceName)
+		}
+		for _, option := range options {
+			if _, err := transformer.GetTransformerByName(option.TransformerName); err != nil {
+				logrus.Errorf("failed to get the transformer named '%s' for the service '%s' . Error: %q", option.TransformerName, selectedServiceName, err)
+				continue
+			}
+			option.ServiceName = selectedServiceName
+			selectedTransformationOptions = append(selectedTransformationOptions, option)
+			logrus.Infof("Using the transformer option '%s' for the service '%s'.", option.TransformerName, selectedServiceName)
+			found = true
+			break
+		}
+		if !found {
+			logrus.Warnf("No valid transformers were found for the service '%s'. Skipping.", selectedServiceName)
+		}
 	}
-	if err := transformer.Transform(selectedPlanServices, plan.Spec.SourceDir, outputPath); err != nil {
-		logrus.Fatalf("Failed to transform the plan. Error: %q", err)
+
+	// transform the selected services using the selected transformation options
+	if err := transformer.Transform(selectedTransformationOptions, plan.Spec.SourceDir, outputPath); err != nil {
+		logrus.Fatalf("Failed to transform using the plan. Error: %q", err)
 	}
+
 	logrus.Infof("Transformation done")
 }
 
