@@ -72,7 +72,7 @@ func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, tran
 			}
 			option.ServiceName = selectedServiceName
 			selectedTransformationOptions = append(selectedTransformationOptions, option)
-			logrus.Infof("Using the transformer option '%s' for the service '%s'.", option.TransformerName, selectedServiceName)
+			logrus.Infof("Using the transformation option '%s' for the service '%s'.", option.TransformerName, selectedServiceName)
 			found = true
 			break
 		}
