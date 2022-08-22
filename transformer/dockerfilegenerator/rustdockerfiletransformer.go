@@ -17,6 +17,7 @@
 package dockerfilegenerator
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -84,22 +85,28 @@ func (t *RustDockerfileGenerator) GetConfig() (transformertypes.Transformer, *en
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *RustDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	if _, err := os.Stat(filepath.Join(dir, cargoTomlFile)); err == nil {
-		var cargoTomlConfig CargoTomlConfig
-		if _, err := toml.DecodeFile(filepath.Join(dir, cargoTomlFile), &cargoTomlConfig); err == nil {
-			serviceName := cargoTomlConfig.Package.Name
-			services = map[string][]transformertypes.Artifact{
-				serviceName: {{
-					Paths: map[transformertypes.PathType][]string{
-						artifacts.ServiceDirPathType: {dir},
-					},
-				}},
-			}
-			return services, nil
-		}
+func (t *RustDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
+	cargoPath := filepath.Join(dir, cargoTomlFile)
+	if _, err := os.Stat(filepath.Join(dir, cargoPath)); err != nil {
+		return nil, nil
 	}
-	return nil, nil
+	cargoTomlConfig := CargoTomlConfig{}
+	if _, err := toml.DecodeFile(cargoPath, &cargoTomlConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse the cargo.toml file at path %s . Error: %q", cargoPath, err)
+	}
+	serviceName := cargoTomlConfig.Package.Name
+	normalizedServiceName := common.MakeStringK8sServiceNameCompliant(serviceName)
+	services := map[string][]transformertypes.Artifact{
+		normalizedServiceName: {{
+			Paths: map[transformertypes.PathType][]string{
+				artifacts.ServiceDirPathType: {dir},
+			},
+			Configs: map[transformertypes.ConfigType]interface{}{
+				artifacts.OriginalNameConfigType: artifacts.OriginalNameConfig{OriginalName: serviceName},
+			},
+		}},
+	}
+	return services, nil
 }
 
 // Transform transforms the artifacts

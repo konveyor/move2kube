@@ -18,6 +18,7 @@ package windows
 
 import (
 	"encoding/xml"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,86 +59,88 @@ func (t *WinSilverLightWebAppDockerfileGenerator) GetConfig() (transformertypes.
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	dirEntries, err := os.ReadDir(dir)
+func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
+	slnPaths, err := common.GetFilesByExtInCurrDir(dir, []string{dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list the dot net visual studio solution files in the directory %s . Error: %q", dir, err)
 	}
-	appName := ""
-	for _, de := range dirEntries {
-		if filepath.Ext(de.Name()) != dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT {
-			continue
-		}
-		relCSProjPaths, err := dotnetutils.GetCSProjPathsFromSlnFile(filepath.Join(dir, de.Name()), false)
+	if len(slnPaths) == 0 {
+		return nil, nil
+	}
+	if len(slnPaths) > 1 {
+		logrus.Debugf("more than one visual studio solution file detected. Number of .sln files %d", len(slnPaths))
+	}
+	slnPath := slnPaths[0]
+	appName := dotnetutils.GetParentProjectName(slnPath)
+	normalizedAppName := common.MakeStringK8sServiceNameCompliant(appName)
+
+	relCSProjPaths, err := dotnetutils.GetCSProjPathsFromSlnFile(slnPath, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the .csproj paths from .sln file at path %s . Error: %q", slnPath, err)
+	}
+
+	if len(relCSProjPaths) == 0 {
+		return nil, fmt.Errorf("no c sharp projects available found in the.sln path %s", slnPath)
+	}
+
+	found := false
+	for _, relCSProjPath := range relCSProjPaths {
+		csProjPath := filepath.Join(dir, strings.TrimSpace(relCSProjPath))
+		csProjBytes, err := os.ReadFile(csProjPath)
 		if err != nil {
-			logrus.Errorf("%s", err)
+			logrus.Errorf("failed to read the c sharp project file at path %s . Error: %q", csProjPath, err)
 			continue
 		}
 
-		if len(relCSProjPaths) == 0 {
-			logrus.Errorf("No projects available for the solution: %s", de.Name())
+		configuration := dotnet.CSProj{}
+		if err := xml.Unmarshal(csProjBytes, &configuration); err != nil {
+			logrus.Errorf("failed to parse the project file at path %s . Error: %q", csProjPath, err)
 			continue
 		}
 
-		for _, relCSProjPath := range relCSProjPaths {
-			csProjPath := filepath.Join(dir, strings.TrimSpace(relCSProjPath))
-			byteValue, err := os.ReadFile(csProjPath)
-			if err != nil {
-				logrus.Errorf("failed to read the c sharp project file at path %s . Error: %q", csProjPath, err)
-				continue
-			}
-
-			configuration := dotnet.CSProj{}
-			err = xml.Unmarshal(byteValue, &configuration)
-			if err != nil {
-				logrus.Errorf("Could not parse the project file: %s", err)
-				continue
-			}
-
-			idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" })
-			if idx == -1 {
-				logrus.Debugf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
-				continue
-			}
-			targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
-			if !dotnet.Version4.MatchString(targetFrameworkVersion) {
-				logrus.Errorf("silverlight dot net tranformer: the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
-				continue
-			}
-
-			isWebProj, err := isWeb(configuration)
-			if err != nil {
-				logrus.Errorf("%s", err)
-				continue
-			}
-			if !isWebProj {
-				continue
-			}
-
-			isSLProj, err := isSilverlight(configuration)
-			if err != nil {
-				logrus.Errorf("%s", err)
-				continue
-			}
-			if !isSLProj {
-				continue
-			}
-
-			appName = strings.TrimSuffix(filepath.Base(de.Name()), filepath.Ext(de.Name()))
+		idx := common.FindIndex(configuration.PropertyGroups, func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" })
+		if idx == -1 {
+			logrus.Debugf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
+			continue
+		}
+		targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
+		if !dotnet.Version4.MatchString(targetFrameworkVersion) {
+			logrus.Errorf("silverlight dot net tranformer: the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
+			continue
 		}
 
-		// Exit soon of after the solution file is found
-		break
+		isWebProj, err := isWeb(configuration)
+		if err != nil {
+			logrus.Errorf("failed to detect if it's a web/asp net project. Error: %q", err)
+			continue
+		}
+		if !isWebProj {
+			continue
+		}
+
+		isSLProj, err := isSilverlight(configuration)
+		if err != nil {
+			logrus.Errorf("failed to detect if it's a silverlight project. Error: %q", err)
+			continue
+		}
+		if !isSLProj {
+			continue
+		}
+
+		found = true
 	}
 
-	if appName == "" {
+	if !found {
 		return nil, nil
 	}
 
-	services = map[string][]transformertypes.Artifact{
-		appName: {{
+	services := map[string][]transformertypes.Artifact{
+		normalizedAppName: {{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.ServiceDirPathType: {dir},
+			},
+			Configs: map[transformertypes.ConfigType]interface{}{
+				artifacts.OriginalNameConfigType: artifacts.OriginalNameConfig{OriginalName: appName},
 			},
 		}},
 	}

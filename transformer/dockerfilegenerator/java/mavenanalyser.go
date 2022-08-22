@@ -195,14 +195,13 @@ func (t *MavenAnalyser) DirectoryDetect(dir string) (map[string][]transformertyp
 	// create the service artifact
 
 	serviceArtifact := transformertypes.Artifact{
-		Name:  mavenConfig.MavenAppName,
-		Type:  artifacts.ServiceArtifactType,
 		Paths: paths,
 		Configs: map[transformertypes.ConfigType]interface{}{
 			artifacts.MavenConfigType: mavenConfig,
 		},
 	}
-	services := map[string][]transformertypes.Artifact{serviceArtifact.Name: {serviceArtifact}}
+	normalizedServiceName := common.MakeStringK8sServiceNameCompliant(mavenConfig.MavenAppName)
+	services := map[string][]transformertypes.Artifact{normalizedServiceName: {serviceArtifact}}
 
 	return services, nil
 }
@@ -213,6 +212,11 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, newArtifact := range newArtifacts {
 		if newArtifact.Type != artifacts.ServiceArtifactType {
+			continue
+		}
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", serviceConfig, err)
 			continue
 		}
 		mavenConfig := artifacts.MavenConfig{}
@@ -230,7 +234,7 @@ func (t *MavenAnalyser) Transform(newArtifacts []transformertypes.Artifact, alre
 			logrus.Errorf("failed to load the pom.xml file at path %s . Error: %q", rootPomFilePath, err)
 			continue
 		}
-		currPathMappings, currArtifacts, err := t.TransformArtifact(newArtifact, alreadySeenArtifacts, pom, rootPomFilePath, mavenConfig)
+		currPathMappings, currArtifacts, err := t.TransformArtifact(newArtifact, alreadySeenArtifacts, pom, rootPomFilePath, serviceConfig, mavenConfig)
 		if err != nil {
 			logrus.Errorf("failed to transform the artifact: %+v . Error: %q", newArtifact, err)
 			continue
@@ -254,11 +258,11 @@ type infoT struct {
 }
 
 // TransformArtifact is the same as Transform but operating on a single artifact and its pom.xml at a time.
-func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact, pom *maven.Pom, rootPomFilePath string, mavenConfig artifacts.MavenConfig) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact, pom *maven.Pom, rootPomFilePath string, serviceConfig artifacts.ServiceConfig, mavenConfig artifacts.MavenConfig) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 
-	selectedBuildOption, err := askUserForDockerfileType(mavenConfig.MavenAppName)
+	selectedBuildOption, err := askUserForDockerfileType(serviceConfig.ServiceName)
 	if err != nil {
 		return pathMappings, createdArtifacts, err
 	}
@@ -271,19 +275,19 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 		selectedChildModuleNames = append(selectedChildModuleNames, childModule.Name)
 	}
 	if len(selectedChildModuleNames) > 1 {
-		quesKey := fmt.Sprintf(common.ConfigServicesChildModulesNamesKey, mavenConfig.MavenAppName)
-		desc := fmt.Sprintf("For the multi-module Maven project '%s', please select all the child modules that should be run as services in the cluster:", mavenConfig.MavenAppName)
+		quesKey := fmt.Sprintf(common.ConfigServicesChildModulesNamesKey, `"`+serviceConfig.ServiceName+`"`)
+		desc := fmt.Sprintf("For the multi-module Maven project '%s', please select all the child modules that should be run as services in the cluster:", serviceConfig.ServiceName)
 		hints := []string{"deselect child modules that should not be run (like libraries)"}
 		selectedChildModuleNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildModuleNames, selectedChildModuleNames)
 		if len(selectedChildModuleNames) == 0 {
-			return pathMappings, createdArtifacts, fmt.Errorf("user deselected all the child modules of the maven multi-module project '%s'", mavenConfig.MavenAppName)
+			return pathMappings, createdArtifacts, fmt.Errorf("user deselected all the child modules of the maven multi-module project '%s'", serviceConfig.ServiceName)
 		}
 	}
 
 	// have jar/war/ear analyzer transformers generate a Dockerfile with only the run stage for each of the child modules
 
 	lowestJavaVersion := ""
-	imageToCopyFrom := mavenConfig.MavenAppName + "-" + buildStageC
+	imageToCopyFrom := serviceConfig.ServiceName + "-" + buildStageC
 	serviceRootDir := newArtifact.Paths[artifacts.ServiceRootDirPathType][0]
 
 	for _, childModule := range mavenConfig.ChildModules {
@@ -326,7 +330,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 		envVarsMap := map[string]string{}
 		if childModuleInfo.SpringBoot != nil {
 			if childModuleInfo.SpringBoot.SpringBootProfiles != nil && len(*childModuleInfo.SpringBoot.SpringBootProfiles) != 0 {
-				quesKey := fmt.Sprintf(common.ConfigServicesChildModulesSpringProfilesKey, mavenConfig.MavenAppName, childModule.Name)
+				quesKey := fmt.Sprintf(common.ConfigServicesChildModulesSpringProfilesKey, `"`+serviceConfig.ServiceName+`"`, `"`+childModule.Name+`"`)
 				selectedSpringProfiles := qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, *childModuleInfo.SpringBoot.SpringBootProfiles, *childModuleInfo.SpringBoot.SpringBootProfiles)
 				for _, selectedSpringProfile := range selectedSpringProfiles {
 					detectedPorts = append(detectedPorts, childModuleInfo.SpringBoot.SpringBootProfilePorts[selectedSpringProfile]...)
@@ -339,7 +343,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 
 		// have the user select the port to use
 
-		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(`"`+mavenConfig.MavenAppName+`"`, "childModules", `"`+childModule.Name+`"`))
+		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(`"`+serviceConfig.ServiceName+`"`, "childModules", `"`+childModule.Name+`"`))
 		if childModuleInfo.SpringBoot != nil {
 			envVarsMap["SERVER_PORT"] = cast.ToString(selectedPort)
 		} else {
@@ -443,8 +447,8 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 	// ask the user which maven profiles should be used while building the app
 
 	selectedMavenProfiles := qaengine.FetchMultiSelectAnswer(
-		common.JoinQASubKeys(common.ConfigServicesKey, `"`+mavenConfig.MavenAppName+`"`, "mavenProfiles"),
-		fmt.Sprintf("Select the maven profiles to use for the '%s' service", mavenConfig.MavenAppName),
+		common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceConfig.ServiceName+`"`, "mavenProfiles"),
+		fmt.Sprintf("Select the maven profiles to use for the '%s' service", serviceConfig.ServiceName),
 		[]string{"The selected maven profiles will be used during the build."},
 		rootPomInfo.MavenProfiles,
 		rootPomInfo.MavenProfiles,

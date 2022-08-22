@@ -32,6 +32,8 @@ type DotNetConfig struct {
 type DotNetChildProject struct {
 	// Name is the name of the child project
 	Name string `yaml:"name" json:"name"`
+	// OriginalName is the name of the child project before normalization
+	OriginalName string `yaml:"originalName" json:"originalName"`
 	// RelCSProjPath is the path to the child .csproj (relative to the parent .sln file)
 	RelCSProjPath string `yaml:"csProjPath" json:"csProjPath"`
 	// TargetFramework contains the target dot net core or dot net framework name and version

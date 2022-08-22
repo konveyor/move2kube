@@ -17,7 +17,7 @@
 package transformer
 
 import (
-	"errors"
+	"fmt"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -83,25 +83,19 @@ func (t *CNBContainerizer) GetConfig() (transformertypes.Transformer, *environme
 // DirectoryDetect runs detect in each sub directory
 func (t *CNBContainerizer) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	path := dir
-	cmd := environmenttypes.Command{
-		"/cnb/lifecycle/detector", "-app", t.CNBEnv.Encode(path).(string)}
+	cmd := environmenttypes.Command{"/cnb/lifecycle/detector", "-app", t.CNBEnv.Encode(path).(string)}
 	stdout, stderr, exitcode, err := t.CNBEnv.Exec(cmd)
 	if err != nil {
-		if errors.Is(err, &environment.EnvironmentNotActiveError{}) {
-			logrus.Debugf("%s", err)
-			return nil, err
-		}
-		logrus.Errorf("Detect failed %s : %s : %d : %s", stdout, stderr, exitcode, err)
-		return nil, err
+		logrus.Debugf("CNB detector failed. exit code: %d error: %q\nstdout: %s\nstderr: %s", exitcode, err, stdout, stderr)
+		return nil, fmt.Errorf("CNB detector failed with exitcode %d . Error: %q", exitcode, err)
 	} else if exitcode != 0 {
-		logrus.Debugf("Detect did not succeed %s : %s : %d", stdout, stderr, exitcode)
+		logrus.Debugf("CNB detector gave a non-zero exit code. exit code: %d\nstdout: %s\nstderr: %s", exitcode, stdout, stderr)
 		return nil, nil
 	}
 	detectedServices := []transformertypes.Artifact{{
-		Paths: map[transformertypes.PathType][]string{
-			artifacts.ServiceDirPathType: {dir},
-		},
-		Configs: map[string]interface{}{artifacts.ImageNameConfigType: t.BuilderImageNameCfg}}}
+		Paths:   map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {dir}},
+		Configs: map[string]interface{}{artifacts.ImageNameConfigType: t.BuilderImageNameCfg},
+	}}
 	return map[string][]transformertypes.Artifact{"": detectedServices}, nil
 }
 

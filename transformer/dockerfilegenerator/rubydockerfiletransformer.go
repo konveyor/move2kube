@@ -17,8 +17,8 @@
 package dockerfilegenerator
 
 import (
+	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -58,31 +58,34 @@ func (t *RubyDockerfileGenerator) GetConfig() (transformertypes.Transformer, *en
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	Gemfiles, err := common.GetFilesByName(dir, []string{"Gemfile"}, nil)
+func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
+	gemfilePaths, err := common.GetFilesByName(dir, []string{"Gemfile"}, nil)
 	if err != nil {
-		logrus.Debugf("Cannot get the Gemfile: %s", err)
+		return nil, fmt.Errorf("failed to look for Gemfiles in the dir %s . Error: %q", dir, err)
+	}
+	if len(gemfilePaths) == 0 {
 		return nil, nil
 	}
-	if len(Gemfiles) > 0 {
-		rubyFiles, err := common.GetFilesByExt(dir, []string{rubyFileExt})
-		if err != nil {
-			logrus.Errorf("Error while finding ruby files %s", err)
-		}
-		var serviceName string
-		if len(rubyFiles) == 1 {
-			serviceName = strings.TrimSuffix(filepath.Base(rubyFiles[0]), rubyFileExt)
-		}
-		services = map[string][]transformertypes.Artifact{
-			serviceName: {{
-				Paths: map[transformertypes.PathType][]string{
-					artifacts.ServiceDirPathType: {dir},
-				},
-			}},
-		}
-		return services, nil
+	rubyFiles, err := common.GetFilesByExt(dir, []string{rubyFileExt})
+	if err != nil {
+		return nil, fmt.Errorf("failed to look for ruby files in the directory %s . Error: %q", dir, err)
 	}
-	return nil, nil
+	if len(rubyFiles) == 0 {
+		return nil, fmt.Errorf("found a Gemfile, but didn't find any ruby files in the directory %s", dir)
+	}
+	serviceName := filepath.Base(dir)
+	normalizedServiceName := common.MakeStringK8sServiceNameCompliant(serviceName)
+	services := map[string][]transformertypes.Artifact{
+		normalizedServiceName: {{
+			Paths: map[transformertypes.PathType][]string{
+				artifacts.ServiceDirPathType: {dir},
+			},
+			Configs: map[transformertypes.ConfigType]interface{}{
+				artifacts.OriginalNameConfigType: artifacts.OriginalNameConfig{OriginalName: serviceName},
+			},
+		}},
+	}
+	return services, nil
 }
 
 // Transform transforms the artifacts

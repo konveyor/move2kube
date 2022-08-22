@@ -20,9 +20,16 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 )
 
+// OriginalNameConfig stores the original name of the app
+type OriginalNameConfig struct {
+	OriginalName string `yaml:"originalName,omitempty" json:"originalName,omitempty"`
+}
+
 const (
 	// ServiceDirPathType points to the service context directory.
 	ServiceDirPathType transformertypes.PathType = "ServiceDirectories"
 	// ServiceRootDirPathType points to the directory of the root project for a service.
 	ServiceRootDirPathType transformertypes.PathType = "ServiceRootDirectory"
+	// OriginalNameConfigType stores the original name of the app
+	OriginalNameConfigType transformertypes.ConfigType = "OriginalName"
 )

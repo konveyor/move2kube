@@ -156,9 +156,14 @@ func (t *NodejsDockerfileGenerator) DirectoryDetect(dir string) (map[string][]tr
 	if packageJson.Name == "" {
 		return nil, fmt.Errorf("unable to get name of nodejs service at %s. Ignoring", dir)
 	}
+	serviceName := packageJson.Name
+	normalizedServiceName := common.MakeStringK8sServiceNameCompliant(serviceName)
 	services := map[string][]transformertypes.Artifact{
-		packageJson.Name: {{
+		normalizedServiceName: {{
 			Paths: map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {dir}},
+			Configs: map[transformertypes.ConfigType]interface{}{
+				artifacts.OriginalNameConfigType: artifacts.OriginalNameConfig{OriginalName: serviceName},
+			},
 		}},
 	}
 	return services, nil
@@ -182,12 +187,12 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			logrus.Errorf("unable to load config for Transformer into %T . Error: %q", serviceConfig, err)
 			continue
 		}
-		if serviceConfig.ServiceName == "" {
-			serviceConfig.ServiceName = common.MakeStringK8sServiceNameCompliant(newArtifact.Name)
-		}
 		imageName := artifacts.ImageName{}
 		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
 			logrus.Debugf("unable to load config for Transformer into %T . Error: %q", imageName, err)
+		}
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
 		}
 		ir := irtypes.IR{}
 		irPresent := true
@@ -249,9 +254,6 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			NodeVersion:           nodeVersion,
 			NodeVersionProperties: props,
 			PackageManager:        packageManager,
-		}
-		if imageName.ImageName == "" {
-			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,

@@ -79,10 +79,9 @@ func (t *ZuulAnalyser) DirectoryDetect(dir string) (services map[string][]transf
 func (t *ZuulAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		var ir irtypes.IR
-		err := a.GetConfig(irtypes.IRConfigType, &ir)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
+		ir := irtypes.IR{}
+		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T Error: %q", ir, err)
 			continue
 		}
 		for sn, s := range ir.Services {
