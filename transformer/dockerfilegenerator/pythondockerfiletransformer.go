@@ -23,7 +23,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -33,20 +32,6 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	pythonExt           = ".py"
-	django              = "django"
-	requirementsTxtFile = "requirements.txt"
-	//RequirementsTxtPathType points to the requirements.txt file if it's present
-	RequirementsTxtPathType transformertypes.PathType = "RequirementsTxtPathType"
-	// PythonServiceConfigType points to python config
-	PythonServiceConfigType transformertypes.ConfigType = "PythonConfig"
-	// MainPythonFilesPathType points to the .py files path which contain main function
-	MainPythonFilesPathType transformertypes.PathType = "MainPythonFilesPathType"
-	// PythonFilesPathType points to the .py files path
-	PythonFilesPathType transformertypes.PathType = "PythonFilesPathType"
 )
 
 // PythonDockerfileGenerator implements the Transformer interface
@@ -69,8 +54,22 @@ type PythonConfig struct {
 	IsDjango bool `json:"IsDjango" yaml:"IsDjango"`
 }
 
+const (
+	pythonExt           = ".py"
+	requirementsTxtFile = "requirements.txt"
+	//RequirementsTxtPathType points to the requirements.txt file if it's present
+	RequirementsTxtPathType transformertypes.PathType = "RequirementsTxtPathType"
+	// PythonServiceConfigType points to python config
+	PythonServiceConfigType transformertypes.ConfigType = "PythonConfig"
+	// MainPythonFilesPathType points to the .py files path which contain main function
+	MainPythonFilesPathType transformertypes.PathType = "MainPythonFilesPathType"
+	// PythonFilesPathType points to the .py files path
+	PythonFilesPathType transformertypes.PathType = "PythonFilesPathType"
+)
+
 var (
-	pythonMainRegex = regexp.MustCompile(`^if\s+__name__\s*==\s*['"]__main__['"]\s*:\s+$`)
+	djangoRegex     = regexp.MustCompile(`(?m)^[Dd]jango`)
+	pythonMainRegex = regexp.MustCompile(`^if\s+__name__\s*==\s*['"]__main__['"]\s*:\s*$`)
 )
 
 // Init Initializes the transformer
@@ -88,24 +87,25 @@ func (t *PythonDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 // findMainScripts returns the path of .py files having the main function
 func findMainScripts(pythonFilesPath []string) ([]string, error) {
 	if len(pythonFilesPath) == 0 {
-		return []string{}, nil
+		return nil, nil
 	}
-	var pythonMainFiles []string
+	pythonMainFiles := []string{}
 	for _, pythonFilePath := range pythonFilesPath {
 		pythonFile, err := os.Open(pythonFilePath)
 		if err != nil {
-			logrus.Debugf("Failed to open the file %s", pythonFilePath)
+			logrus.Debugf("failed to open the file at path %s . Error: %q", pythonFilePath, err)
+			continue
 		}
+		defer pythonFile.Close()
 		scanner := bufio.NewScanner(pythonFile)
 		scanner.Split(bufio.ScanLines)
 		for scanner.Scan() {
 			if pythonMainRegex.MatchString(scanner.Text()) {
 				pythonMainFiles = append(pythonMainFiles, pythonFilePath)
+				break
 			}
 		}
-	}
-	if len(pythonMainFiles) == 0 {
-		return []string{}, fmt.Errorf("could not find the main function in python files")
+		pythonFile.Close()
 	}
 	return pythonMainFiles, nil
 }
@@ -114,10 +114,10 @@ func findMainScripts(pythonFilesPath []string) ([]string, error) {
 func findDjangoDependency(reqTxtFilePath string) bool {
 	reqTxtFile, err := ioutil.ReadFile(reqTxtFilePath)
 	if err != nil {
-		logrus.Warnf("Error in reading the file %s: %s.", reqTxtFilePath, err)
+		logrus.Warnf("failed to read the file at path %s . Error: %q", reqTxtFilePath, err)
 		return false
 	}
-	return strings.Contains(string(reqTxtFile), django)
+	return djangoRegex.MatchString(string(reqTxtFile))
 }
 
 // getMainPythonFileForService returns the main file used by a service
@@ -149,105 +149,103 @@ func getStartingPythonFileForService(pythonFilesPath []string, baseDir string, s
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *PythonDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+func (t *PythonDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
 	pythonFilesPath, err := common.GetFilesByExtInCurrDir(dir, []string{pythonExt})
 	if err != nil {
-		logrus.Errorf("Error while finding python files %s", err)
-		return nil, nil
+		return nil, fmt.Errorf("failed to look for python files in the directory %s . Error: %q", dir, err)
 	}
 	if len(pythonFilesPath) == 0 {
 		return nil, nil
 	}
 	mainPythonFilesPath, err := findMainScripts(pythonFilesPath)
-	if err == nil || len(pythonFilesPath) > 0 {
-		var serviceName, requirementsTxtPath string
-		var isDjango bool
-		requirementsTxtFiles, err := common.GetFilesInCurrentDirectory(dir, []string{requirementsTxtFile}, nil)
-		if err != nil {
-			logrus.Debugf("Cannot get the requirements.txt file: %s", err)
-		}
-		if len(requirementsTxtFiles) == 1 {
-			requirementsTxtPath = requirementsTxtFiles[0]
-			isDjango = findDjangoDependency(requirementsTxtFiles[0])
-		}
-		pythonService := transformertypes.Artifact{
-			Paths: map[transformertypes.PathType][]string{
-				artifacts.ServiceDirPathType: {dir},
-				MainPythonFilesPathType:      mainPythonFilesPath,
-				PythonFilesPathType:          pythonFilesPath,
-			}, Configs: map[transformertypes.ConfigType]interface{}{
-				PythonServiceConfigType: PythonConfig{
-					IsDjango: isDjango,
-				},
-			},
-		}
-		if requirementsTxtPath != "" {
-			pythonService.Paths[RequirementsTxtPathType] = []string{requirementsTxtPath}
-		}
-		services = map[string][]transformertypes.Artifact{
-			serviceName: {pythonService},
-		}
-		return services, nil
+	if err != nil {
+		logrus.Debugf("failed to find the python files in the project at directory %s that have a main function. Error: %q", dir, err)
 	}
-	return nil, nil
+	serviceName := filepath.Base(dir)
+	normalizedServiceName := common.MakeStringK8sServiceNameCompliant(serviceName)
+	pythonService := transformertypes.Artifact{
+		Paths: map[transformertypes.PathType][]string{
+			artifacts.ServiceDirPathType: {dir},
+			MainPythonFilesPathType:      mainPythonFilesPath,
+			PythonFilesPathType:          pythonFilesPath,
+		}, Configs: map[transformertypes.ConfigType]interface{}{
+			artifacts.OriginalNameConfigType: artifacts.OriginalNameConfig{OriginalName: serviceName},
+		},
+	}
+
+	// check if it is a Django project
+	pythonService.Configs[PythonServiceConfigType] = PythonConfig{IsDjango: false}
+	requirementsTxtFiles, err := common.GetFilesInCurrentDirectory(dir, []string{requirementsTxtFile}, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to look for the requirements.txt file in the directory %s . Error: %q", dir, err)
+	}
+	if len(requirementsTxtFiles) > 0 {
+		requirementsTxtPath := requirementsTxtFiles[0]
+		pythonService.Paths[RequirementsTxtPathType] = []string{requirementsTxtPath}
+		pythonService.Configs[PythonServiceConfigType] = PythonConfig{IsDjango: findDjangoDependency(requirementsTxtPath)}
+	}
+	return map[string][]transformertypes.Artifact{normalizedServiceName: {pythonService}}, nil
 }
 
 // Transform transforms the artifacts
 func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
-		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
-		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
-		}
-		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+	for _, newArtifact := range newArtifacts {
+		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 {
+			logrus.Errorf("the service directory is missing from the artifact: %+v", newArtifact)
 			continue
 		}
-		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
+		serviceDir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
+		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), serviceDir)
 		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+			logrus.Errorf("Unable to convert source path %s to be relative : %s", serviceDir, err)
+			continue
+		}
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", serviceConfig, err)
+			continue
+		}
+		imageName := artifacts.ImageName{}
+		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", imageName, err)
+		}
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
 		}
 		ir := irtypes.IR{}
 		irPresent := true
-		err = a.GetConfig(irtypes.IRConfigType, &ir)
-		if err != nil {
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			irPresent = false
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
 		var pythonTemplateConfig PythonTemplateConfig
-		if len(a.Paths[MainPythonFilesPathType]) > 0 {
-			pythonTemplateConfig.StartingScriptRelPath = getMainPythonFileForService(a.Paths[MainPythonFilesPathType], a.Paths[artifacts.ServiceDirPathType][0], a.Name)
+		if len(newArtifact.Paths[MainPythonFilesPathType]) > 0 {
+			pythonTemplateConfig.StartingScriptRelPath = getMainPythonFileForService(newArtifact.Paths[MainPythonFilesPathType], serviceDir, newArtifact.Name)
 		} else {
-			pythonTemplateConfig.StartingScriptRelPath = getStartingPythonFileForService(a.Paths[PythonFilesPathType], a.Paths[artifacts.ServiceDirPathType][0], a.Name)
+			pythonTemplateConfig.StartingScriptRelPath = getStartingPythonFileForService(newArtifact.Paths[PythonFilesPathType], serviceDir, newArtifact.Name)
 		}
-		pythonTemplateConfig.AppName = a.Name
+		pythonTemplateConfig.AppName = newArtifact.Name
 		var pythonConfig PythonConfig
-		err = a.GetConfig(PythonServiceConfigType, &pythonConfig)
+		err = newArtifact.GetConfig(PythonServiceConfigType, &pythonConfig)
 		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+			logrus.Debugf("unable to load config for Transformer into %T : %s", imageName, err)
 		}
 		pythonTemplateConfig.IsDjango = pythonConfig.IsDjango
 		ports := ir.GetAllServicePorts()
 		if len(ports) == 0 {
 			ports = []int32{common.DefaultServicePort}
 		}
-		pythonTemplateConfig.Port = commonqa.GetPortForService(ports, `"`+a.Name+`"`)
-		if len(a.Paths[artifacts.ServiceDirPathType]) == 0 {
-			logrus.Errorf("The service directory path is missing for the artifact: %+v", a)
+		pythonTemplateConfig.Port = commonqa.GetPortForService(ports, `"`+newArtifact.Name+`"`)
+		if len(newArtifact.Paths[artifacts.ServiceDirPathType]) == 0 {
+			logrus.Errorf("The service directory path is missing for the artifact: %+v", newArtifact)
 			continue
 		}
-		if len(a.Paths[RequirementsTxtPathType]) != 0 {
-			if requirementsTxt, err := filepath.Rel(a.Paths[artifacts.ServiceDirPathType][0], a.Paths[RequirementsTxtPathType][0]); err == nil {
+		if len(newArtifact.Paths[RequirementsTxtPathType]) != 0 {
+			if requirementsTxt, err := filepath.Rel(serviceDir, newArtifact.Paths[RequirementsTxtPathType][0]); err == nil {
 				pythonTemplateConfig.RequirementsTxt = requirementsTxt
 			}
-		}
-		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
@@ -258,23 +256,24 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			DestPath:       filepath.Join(common.DefaultSourceDir, relSrcPath),
 			TemplateConfig: pythonTemplateConfig,
 		})
-		paths := a.Paths
+		paths := newArtifact.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
-			Name:  sImageName.ImageName,
+			Name:  imageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
 			Paths: paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ServiceConfigType:   serviceConfig,
+				artifacts.ImageNameConfigType: imageName,
 			},
 		}
 		dfs := transformertypes.Artifact{
-			Name:  sConfig.ServiceName,
+			Name:  serviceConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
-			Paths: a.Paths,
+			Paths: newArtifact.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
-				artifacts.ServiceConfigType:   sConfig,
+				artifacts.ServiceConfigType:   serviceConfig,
+				artifacts.ImageNameConfigType: imageName,
 			},
 		}
 		if irPresent {

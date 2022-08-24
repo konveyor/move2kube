@@ -137,7 +137,7 @@ func (c *Config) specialGetSolution(p Problem) (Problem, error) {
 	// We take the mere existence of 'a.b.c.d' to indicate that the user wants to skip the question.
 	atleastOneKeyHasLastSegment := false
 	for k := range baseValueMap {
-		newK := baseKey + common.Delim + k + common.Delim + lastKeySegment
+		newK := baseKey + common.Delim + `"` + k + `"` + common.Delim + lastKeySegment
 		lastKeySegmentValue, ok := c.Get(newK)
 		if !ok {
 			continue
@@ -156,7 +156,7 @@ func (c *Config) specialGetSolution(p Problem) (Problem, error) {
 	selectedOptions := []string{}
 	for _, option := range p.Options {
 		isOptionSelected := true
-		newKey := baseKey + common.Delim + option + common.Delim + lastKeySegment
+		newKey := baseKey + common.Delim + `"` + option + `"` + common.Delim + lastKeySegment
 		if newValue, ok := c.Get(newKey); ok {
 			isOptionSelected, ok = newValue.(bool)
 			if !ok {

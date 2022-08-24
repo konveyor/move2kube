@@ -251,12 +251,11 @@ func (t *GradleAnalyser) DirectoryDetect(dir string) (map[string][]transformerty
 	}
 
 	serviceArtifact := transformertypes.Artifact{
-		Name:    gradleConfig.RootProjectName,
-		Type:    artifacts.ServiceArtifactType,
 		Paths:   paths,
 		Configs: map[transformertypes.ConfigType]interface{}{artifacts.GradleConfigType: gradleConfig},
 	}
-	services := map[string][]transformertypes.Artifact{gradleConfig.RootProjectName: {serviceArtifact}}
+	normalizedServiceName := common.MakeStringK8sServiceNameCompliant(gradleConfig.RootProjectName)
+	services := map[string][]transformertypes.Artifact{normalizedServiceName: {serviceArtifact}}
 	return services, nil
 }
 
@@ -270,6 +269,12 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 		// only process service artifacts
 
 		if newArtifact.Type != artifacts.ServiceArtifactType {
+			continue
+		}
+
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", serviceConfig, err)
 			continue
 		}
 
@@ -297,7 +302,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 
 		// transform a single service artifact (probably created during the plan phase by GradleAnalyser.DirectoryDetect)
 
-		currPathMappings, currCreatedArtifacts, err := t.TransformArtifact(newArtifact, alreadySeenArtifacts, gradleConfig)
+		currPathMappings, currCreatedArtifacts, err := t.TransformArtifact(newArtifact, alreadySeenArtifacts, serviceConfig, gradleConfig)
 		if err != nil {
 			logrus.Errorf("failed to transform the artifact: %+v . Error: %q", newArtifact, err)
 			continue
@@ -310,7 +315,7 @@ func (t *GradleAnalyser) Transform(newArtifacts []transformertypes.Artifact, alr
 }
 
 // TransformArtifact transforms a single artifact.
-func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact, gradleConfig artifacts.GradleConfig) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact, serviceConfig artifacts.ServiceConfig, gradleConfig artifacts.GradleConfig) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 
@@ -327,19 +332,19 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 		selectedChildModuleNames = append(selectedChildModuleNames, childModule.Name)
 	}
 	if len(selectedChildModuleNames) > 1 {
-		quesKey := fmt.Sprintf(common.ConfigServicesChildModulesNamesKey, gradleConfig.RootProjectName)
-		desc := fmt.Sprintf("For the multi-module Gradle project '%s', please select all the child modules that should be run as services in the cluster:", gradleConfig.RootProjectName)
+		quesKey := fmt.Sprintf(common.ConfigServicesChildModulesNamesKey, `"`+serviceConfig.ServiceName+`"`)
+		desc := fmt.Sprintf("For the multi-module Gradle project '%s', please select all the child modules that should be run as services in the cluster:", serviceConfig.ServiceName)
 		hints := []string{"deselect child modules that should not be run (like libraries)"}
 		selectedChildModuleNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildModuleNames, selectedChildModuleNames)
 		if len(selectedChildModuleNames) == 0 {
-			return pathMappings, createdArtifacts, fmt.Errorf("user deselected all the child modules of the gradle multi-module project '%s'", gradleConfig.RootProjectName)
+			return pathMappings, createdArtifacts, fmt.Errorf("user deselected all the child modules of the gradle multi-module project '%s'", serviceConfig.ServiceName)
 		}
 	}
 
 	// have jar/war/ear analyzer transformers generate a Dockerfile with only the run stage for each of the child modules
 
 	lowestJavaVersion := ""
-	imageToCopyFrom := gradleConfig.RootProjectName + "-" + buildStageC
+	imageToCopyFrom := serviceConfig.ServiceName + "-" + buildStageC
 	serviceRootDir := newArtifact.Paths[artifacts.ServiceRootDirPathType][0]
 
 	for _, childModule := range gradleConfig.ChildModules {
@@ -382,7 +387,7 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 		envVarsMap := map[string]string{}
 		if childModuleInfo.SpringBoot != nil {
 			if childModuleInfo.SpringBoot.SpringBootProfiles != nil && len(*childModuleInfo.SpringBoot.SpringBootProfiles) != 0 {
-				quesKey := fmt.Sprintf(common.ConfigServicesChildModulesSpringProfilesKey, gradleConfig.RootProjectName, childModule.Name)
+				quesKey := fmt.Sprintf(common.ConfigServicesChildModulesSpringProfilesKey, `"`+serviceConfig.ServiceName+`"`, `"`+childModule.Name+`"`)
 				selectedSpringProfiles := qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, *childModuleInfo.SpringBoot.SpringBootProfiles, *childModuleInfo.SpringBoot.SpringBootProfiles)
 				for _, selectedSpringProfile := range selectedSpringProfiles {
 					detectedPorts = append(detectedPorts, childModuleInfo.SpringBoot.SpringBootProfilePorts[selectedSpringProfile]...)
@@ -395,7 +400,7 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 
 		// have the user select the port to use
 
-		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(`"`+gradleConfig.RootProjectName+`"`, "childModules", `"`+childModule.Name+`"`))
+		selectedPort := commonqa.GetPortForService(detectedPorts, common.JoinQASubKeys(`"`+serviceConfig.ServiceName+`"`, "childModules", `"`+childModule.Name+`"`))
 		if childModuleInfo.SpringBoot != nil {
 			envVarsMap["SERVER_PORT"] = cast.ToString(selectedPort)
 		} else {

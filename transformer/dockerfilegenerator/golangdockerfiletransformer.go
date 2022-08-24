@@ -17,6 +17,7 @@
 package dockerfilegenerator
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -78,7 +79,7 @@ func (t *GolangDockerfileGenerator) GetConfig() (transformertypes.Transformer, *
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
 	modFilePath := filepath.Join(dir, "go.mod")
 	data, err := os.ReadFile(modFilePath)
 	if err != nil {
@@ -86,8 +87,7 @@ func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 	}
 	modFile, err := modfile.Parse(modFilePath, data, nil)
 	if err != nil {
-		logrus.Errorf("Error while parsing the go.mod file : %s", err)
-		return nil, nil
+		return nil, fmt.Errorf("failed to parse the go.mod file at path %s . Error: %q", modFilePath, err)
 	}
 	prefix, _, ok := module.SplitPathVersion(modFile.Module.Mod.Path)
 	if !ok {
@@ -95,11 +95,15 @@ func (t *GolangDockerfileGenerator) DirectoryDetect(dir string) (services map[st
 		return nil, nil
 	}
 	serviceName := filepath.Base(prefix)
-	services = map[string][]transformertypes.Artifact{
-		serviceName: {{
+	normalizedServiceName := common.MakeStringK8sServiceNameCompliant(serviceName)
+	services := map[string][]transformertypes.Artifact{
+		normalizedServiceName: {{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.ServiceDirPathType: {dir},
 				GolangModFilePathType:        {modFilePath},
+			},
+			Configs: map[transformertypes.ConfigType]interface{}{
+				artifacts.OriginalNameConfigType: artifacts.OriginalNameConfig{OriginalName: serviceName},
 			},
 		}},
 	}
@@ -114,22 +118,23 @@ func (t *GolangDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
-		}
-		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
-		sImageName := artifacts.ImageName{}
-		err = a.GetConfig(artifacts.ImageNameConfigType, &sImageName)
-		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := a.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", serviceConfig, err)
+			continue
+		}
+		imageName := artifacts.ImageName{}
+		if err := a.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", imageName, err)
+		}
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
 		}
 		ir := irtypes.IR{}
 		irPresent := true
-		err = a.GetConfig(irtypes.IRConfigType, &ir)
-		if err != nil {
+		if err := a.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			irPresent = false
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
@@ -152,14 +157,12 @@ func (t *GolangDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			detectedPorts = append(detectedPorts, common.DefaultServicePort)
 		}
 		detectedPorts = commonqa.GetPortsForService(detectedPorts, `"`+a.Name+`"`)
-		var golangConfig GolangTemplateConfig
-		golangConfig.AppName = a.Name
-		golangConfig.Ports = detectedPorts
-		golangConfig.GoVersion = modFile.Go.Version
-
-		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
+		golangConfig := GolangTemplateConfig{
+			AppName:   a.Name,
+			Ports:     detectedPorts,
+			GoVersion: modFile.Go.Version,
 		}
+
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
 			DestPath: common.DefaultSourceDir,
@@ -172,20 +175,21 @@ func (t *GolangDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		paths := a.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relSrcPath, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
-			Name:  sImageName.ImageName,
+			Name:  imageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
 			Paths: paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ServiceConfigType:   serviceConfig,
+				artifacts.ImageNameConfigType: imageName,
 			},
 		}
 		dfs := transformertypes.Artifact{
-			Name:  sConfig.ServiceName,
+			Name:  serviceConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
 			Paths: a.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
-				artifacts.ServiceConfigType:   sConfig,
+				artifacts.ServiceConfigType:   serviceConfig,
+				artifacts.ImageNameConfigType: imageName,
 			},
 		}
 		if irPresent {

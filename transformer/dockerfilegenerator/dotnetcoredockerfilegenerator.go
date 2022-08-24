@@ -169,6 +169,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 	}
 	slnPath := slnPaths[0]
 	appName := dotnetutils.GetParentProjectName(slnPath)
+	normalizedAppName := common.MakeStringK8sServiceNameCompliant(appName)
 	relCSProjPaths, err := dotnetutils.GetCSProjPathsFromSlnFile(slnPath, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the vs solution file at path %s . Error: %q", slnPath, err)
@@ -207,9 +208,11 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 		}
 		// foundNonSilverLightWebProject = true
 		childProjectName := dotnetutils.GetChildProjectName(csProjPath)
+		normalizedChildProjectName := common.MakeStringK8sServiceNameCompliant(childProjectName)
 		csProjPaths = append(csProjPaths, csProjPath)
 		childProjects = append(childProjects, artifacts.DotNetChildProject{
-			Name:            childProjectName,
+			Name:            normalizedChildProjectName,
+			OriginalName:    childProjectName,
 			RelCSProjPath:   relCSProjPath,
 			TargetFramework: targetFramework,
 		})
@@ -218,9 +221,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 		return nil, nil
 	}
 	namedServices := map[string][]transformertypes.Artifact{
-		appName: {{
-			Name: appName,
-			Type: artifacts.ServiceArtifactType,
+		normalizedAppName: {{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.ServiceRootDirPathType:           {dir},
 				artifacts.ServiceDirPathType:               {dir},
@@ -269,7 +270,7 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 
-	selectedBuildOption, err := dotnetutils.AskUserForDockerfileType(dotNetConfig.DotNetAppName)
+	selectedBuildOption, err := dotnetutils.AskUserForDockerfileType(newArtifact.Name)
 	if err != nil {
 		return pathMappings, artifactsCreated, fmt.Errorf("failed to ask the user what type of dockerfile they prefer. Error: %q", err)
 	}
@@ -282,12 +283,12 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 		selectedChildProjectNames = append(selectedChildProjectNames, childProject.Name)
 	}
 	if len(selectedChildProjectNames) > 1 {
-		quesKey := fmt.Sprintf(common.ConfigServicesDotNetChildProjectsNamesKey, `"`+dotNetConfig.DotNetAppName+`"`)
-		desc := fmt.Sprintf("For the multi-project Dot Net Core app '%s', please select all the child projects that should be run as services in the cluster:", dotNetConfig.DotNetAppName)
+		quesKey := fmt.Sprintf(common.ConfigServicesDotNetChildProjectsNamesKey, `"`+newArtifact.Name+`"`)
+		desc := fmt.Sprintf("For the multi-project Dot Net Core app '%s', please select all the child projects that should be run as services in the cluster:", newArtifact.Name)
 		hints := []string{"deselect any child project that should not be run (example: libraries)"}
 		selectedChildProjectNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildProjectNames, selectedChildProjectNames)
 		if len(selectedChildProjectNames) == 0 {
-			return pathMappings, artifactsCreated, fmt.Errorf("user deselected all the child projects of the dot net core multi-project app '%s'", dotNetConfig.DotNetAppName)
+			return pathMappings, artifactsCreated, fmt.Errorf("user deselected all the child projects of the dot net core multi-project app '%s'", newArtifact.Name)
 		}
 	}
 
@@ -315,7 +316,7 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 
 	// build is always done at the top level using the .sln file regardless of the build option selected
 
-	imageToCopyFrom := common.MakeStringContainerImageNameCompliant(dotNetConfig.DotNetAppName + "-" + buildStageC)
+	imageToCopyFrom := common.MakeStringContainerImageNameCompliant(newArtifact.Name + "-" + buildStageC)
 	if selectedBuildOption == dotnetutils.NO_BUILD_STAGE {
 		imageToCopyFrom = "" // files will be copied from the local file system instead of a builder image
 	}
@@ -386,7 +387,7 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 		// artifacts to inform other transformers of the Dockerfile we generated
 
 		paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}
-		serviceName := artifacts.ServiceConfig{ServiceName: common.MakeStringK8sServiceNameCompliant(dotNetConfig.DotNetAppName)}
+		serviceName := artifacts.ServiceConfig{ServiceName: newArtifact.Name}
 		imageName := artifacts.ImageName{ImageName: imageToCopyFrom}
 		dockerfileArtifact := transformertypes.Artifact{
 			Name:  imageName.ImageName,
@@ -456,7 +457,7 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 
 		// select a profile to use for publishing the child project
 
-		qaSubKey := common.JoinQASubKeys(`"`+dotNetConfig.DotNetAppName+`"`, "childProjects", `"`+childProject.Name+`"`)
+		qaSubKey := common.JoinQASubKeys(`"`+newArtifact.Name+`"`, "childProjects", `"`+childProject.Name+`"`)
 		relSelectedProfilePath, _, err := getPublishProfile(publishProfilePaths, qaSubKey, serviceDir)
 		if err != nil {
 			logrus.Errorf("failed to select one of the publish profiles for the asp net app. Error: %q Profiles: %+v", err, publishProfilePaths)
@@ -570,14 +571,14 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 		// artifacts to inform other transformers of the Dockerfile we generated
 
 		paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}
-		serviceName := artifacts.ServiceConfig{ServiceName: common.MakeStringK8sServiceNameCompliant(childProject.Name)}
+		serviceConfig := artifacts.ServiceConfig{ServiceName: childProject.Name}
 		imageName := artifacts.ImageName{ImageName: common.MakeStringContainerImageNameCompliant(childProject.Name)}
 		dockerfileArtifact := transformertypes.Artifact{
 			Name:  imageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
 			Paths: paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ServiceConfigType:   serviceName,
+				artifacts.ServiceConfigType:   serviceConfig,
 				artifacts.ImageNameConfigType: imageName,
 			},
 		}
@@ -586,7 +587,7 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 			Type:  artifacts.DockerfileForServiceArtifactType,
 			Paths: paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ServiceConfigType:   serviceName,
+				artifacts.ServiceConfigType:   serviceConfig,
 				artifacts.ImageNameConfigType: imageName,
 			},
 		}

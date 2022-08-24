@@ -67,14 +67,12 @@ func (t *CloudFoundry) GetConfig() (transformertypes.Transformer, *environment.E
 }
 
 // DirectoryDetect detects cloud foundry projects in various directories
-func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	services = map[string][]transformertypes.Artifact{}
+func (t *CloudFoundry) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
 	filePaths, err := common.GetFilesByExt(dir, []string{".yml", ".yaml"})
 	if err != nil {
-		logrus.Warnf("Unable to fetch yaml files and recognize cf manifest yamls at path %q Error: %q", dir, err)
-		return services, err
+		return nil, fmt.Errorf("failed to look for yaml files in the directory %s . Error: %q", dir, err)
 	}
-	services = map[string][]transformertypes.Artifact{}
+	services := map[string][]transformertypes.Artifact{}
 	// Load instance apps, if available
 	cfInstanceApps := map[string][]collecttypes.CfApp{} //path
 	for _, filePath := range filePaths {
@@ -143,7 +141,8 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 			if runningManifestPath != "" {
 				ct.Paths[artifacts.CfRunningManifestPathType] = append(ct.Paths[artifacts.CfRunningManifestPathType], runningManifestPath)
 			}
-			services[applicationName] = []transformertypes.Artifact{ct}
+			normalizedServiceName := common.MakeStringK8sServiceNameCompliant(applicationName)
+			services[normalizedServiceName] = []transformertypes.Artifact{ct}
 		}
 	}
 	return services, nil
@@ -153,59 +152,56 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (services map[string][]transf
 func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
-		var config artifacts.CloudFoundryConfig
-		err := a.GetConfig(artifacts.CloudFoundryConfigType, &config)
+		cfConfig := artifacts.CloudFoundryConfig{}
+		err := a.GetConfig(artifacts.CloudFoundryConfigType, &cfConfig)
 		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", config, err)
+			logrus.Errorf("unable to load config for Transformer into %T : %s", cfConfig, err)
 			continue
 		}
-		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := a.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", serviceConfig, err)
 			continue
 		}
-		var cConfig artifacts.ContainerizationOptionsConfig
-		err = a.GetConfig(artifacts.ContainerizationOptionsConfigType, &cConfig)
-		if err != nil {
+		containerizationOptionsConfig := artifacts.ContainerizationOptionsConfig{}
+		if err := a.GetConfig(artifacts.ContainerizationOptionsConfigType, &containerizationOptionsConfig); err != nil {
 			logrus.Debugf("Unable to get containerization config : %s", err)
 		}
 		ir := irtypes.NewIR()
-		var cfinstanceapp collecttypes.CfApp
-		logrus.Debugf("Transforming %s", config.ServiceName)
+		cfinstanceapp := collecttypes.CfApp{}
+		logrus.Debugf("Transforming %s", cfConfig.ServiceName)
 		if runninginstancefile, ok := a.Paths[artifacts.CfRunningManifestPathType]; ok {
-			var err error
-			cfinstanceapp, err = getCfAppInstance(runninginstancefile[0], config.ServiceName)
+			cfinstanceapp, err = getCfAppInstance(runninginstancefile[0], cfConfig.ServiceName)
 			if err != nil {
 				logrus.Debugf("The file at path %s is not a valid cf apps file. Error: %q", runninginstancefile[0], err)
 			}
 		}
 		if paths, ok := a.Paths[artifacts.CfManifestPathType]; ok {
 			path := paths[0] // TODO: what about the rest of the manifests?
-			applications, _, err := t.readApplicationManifest(path, config.ServiceName)
+			applications, _, err := t.readApplicationManifest(path, cfConfig.ServiceName)
 			if err != nil {
 				logrus.Debugf("Error while trying to parse manifest : %s", err)
 				continue
 			}
-			logrus.Debugf("Using cf manifest file at path %s to transform service %s", path, config.ServiceName)
+			logrus.Debugf("Using cf manifest file at path %s to transform service %s", path, cfConfig.ServiceName)
 			application := applications[0]
-			serviceConfig := irtypes.Service{Name: sConfig.ServiceName}
+			irService := irtypes.Service{Name: serviceConfig.ServiceName}
 			rList := core.ResourceList{"memory": resource.MustParse(fmt.Sprintf("%dM", cfinstanceapp.Application.Memory)),
 				"ephemeral-storage": resource.MustParse(fmt.Sprintf("%dM", cfinstanceapp.Application.DiskQuota))}
-			serviceContainer := core.Container{Name: sConfig.ServiceName,
+			serviceContainer := core.Container{Name: serviceConfig.ServiceName,
 				Resources: core.ResourceRequirements{Requests: rList}}
-			serviceContainer.Image = config.ImageName
+			serviceContainer.Image = cfConfig.ImageName
 			if serviceContainer.Image == "" {
-				serviceContainer.Image = sConfig.ServiceName
+				serviceContainer.Image = serviceConfig.ServiceName
 			}
 			if cfinstanceapp.Application.Instances != 0 {
-				serviceConfig.Replicas = cfinstanceapp.Application.Instances
+				irService.Replicas = cfinstanceapp.Application.Instances
 			} else if application.Instances.IsSet {
-				serviceConfig.Replicas = application.Instances.Value
+				irService.Replicas = application.Instances.Value
 			}
-			secretName := config.ServiceName + common.VcapCfSecretSuffix
+			secretName := cfConfig.ServiceName + common.VcapCfSecretSuffix
 			envList, vcapEnvMap := t.prioritizeAndAddEnvironmentVariables(cfinstanceapp, application.EnvironmentVariables,
-				secretName, config.ServiceName)
+				secretName, cfConfig.ServiceName)
 			serviceContainer.Env = append(serviceContainer.Env, envList...)
 			ir.Storages = append(ir.Storages, irtypes.Storage{Name: secretName,
 				StorageType: irtypes.SecretKind,
@@ -216,37 +212,37 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 				// Forward the port on the k8s service to the k8s pod.
 				podPort := networking.ServiceBackendPort{Number: int32(port)}
 				servicePort := podPort
-				serviceConfig.AddPortForwarding(servicePort, podPort, "")
+				irService.AddPortForwarding(servicePort, podPort, "")
 			}
-			serviceConfig.Containers = []core.Container{serviceContainer}
-			ir.Services[sConfig.ServiceName] = serviceConfig
+			irService.Containers = []core.Container{serviceContainer}
+			ir.Services[serviceConfig.ServiceName] = irService
 		}
-		if len(cConfig) != 0 {
-			quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+sConfig.ServiceName+`"`, common.ConfigContainerizationOptionServiceKeySegment)
+		if len(containerizationOptionsConfig) != 0 {
+			quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceConfig.ServiceName+`"`, common.ConfigContainerizationOptionServiceKeySegment)
 			containerizationOptions := qaengine.FetchMultiSelectAnswer(
 				quesKey,
-				fmt.Sprintf("Select the transformer to use for containerizing the '%s' service :", sConfig.ServiceName),
+				fmt.Sprintf("Select the transformer to use for containerizing the '%s' service :", serviceConfig.ServiceName),
 				nil,
-				[]string{cConfig[0]},
-				cConfig,
+				[]string{containerizationOptionsConfig[0]},
+				containerizationOptionsConfig,
 			)
 			secondaryArtifactsGenerated := false
 			for _, containerizationOption := range containerizationOptions {
-				containerizationArtifact := getContainerizationConfig(sConfig.ServiceName,
+				containerizationArtifact := getContainerizationConfig(serviceConfig.ServiceName,
 					a.Paths[artifacts.ServiceDirPathType],
 					a.Paths[artifacts.BuildArtifactPathType],
 					containerizationOption)
 				if containerizationArtifact.Type == "" {
-					if config.ImageName == "" {
-						logrus.Errorf("No containerization option found for service %s", sConfig.ServiceName)
+					if cfConfig.ImageName == "" {
+						logrus.Errorf("No containerization option found for service %s", serviceConfig.ServiceName)
 					}
 				} else {
-					containerizationArtifact.Name = sConfig.ServiceName
+					containerizationArtifact.Name = serviceConfig.ServiceName
 					if containerizationArtifact.Configs == nil {
 						containerizationArtifact.Configs = map[transformertypes.ConfigType]interface{}{}
 					}
 					containerizationArtifact.Configs[irtypes.IRConfigType] = ir
-					containerizationArtifact.Configs[artifacts.ServiceConfigType] = sConfig
+					containerizationArtifact.Configs[artifacts.ServiceConfigType] = serviceConfig
 					artifactsCreated = append(artifactsCreated, containerizationArtifact)
 					secondaryArtifactsGenerated = true
 				}

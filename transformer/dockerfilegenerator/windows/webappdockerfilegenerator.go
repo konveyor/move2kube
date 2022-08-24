@@ -117,17 +117,19 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 				logrus.Errorf("the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
 				continue
 			}
+			childProjectName := dotnetutils.GetChildProjectName(csProjPath)
+			normalizedChildProjectName := common.MakeStringK8sServiceNameCompliant(childProjectName)
 			childProjects = append(childProjects, artifacts.DotNetChildProject{
-				Name:            dotnetutils.GetChildProjectName(csProjPath),
+				Name:            normalizedChildProjectName,
+				OriginalName:    childProjectName,
 				RelCSProjPath:   filepath.Base(csProjPath),
 				TargetFramework: targetFrameworkVersion,
 			})
 		}
 		appName := dotnetutils.GetChildProjectName(csProjPaths[0])
+		normalizedAppName := common.MakeStringK8sServiceNameCompliant(appName)
 		namedServices := map[string][]transformertypes.Artifact{
-			appName: {{
-				Name: appName,
-				Type: artifacts.ServiceArtifactType,
+			normalizedAppName: {{
 				Paths: map[transformertypes.PathType][]string{
 					artifacts.ServiceRootDirPathType:          {dir},
 					artifacts.ServiceDirPathType:              {dir},
@@ -149,6 +151,7 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 	}
 	slnPath := slnPaths[0]
 	appName := dotnetutils.GetParentProjectName(slnPath)
+	normalizedAppName := common.MakeStringK8sServiceNameCompliant(appName)
 	relCSProjPaths, err := dotnetutils.GetCSProjPathsFromSlnFile(slnPath, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the vs solution file at path %s . Error: %q", slnPath, err)
@@ -196,9 +199,11 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 		}
 		foundNonSilverLightWebProject = true
 		childProjectName := dotnetutils.GetChildProjectName(csProjPath)
+		normalizedChildProjectName := common.MakeStringK8sServiceNameCompliant(childProjectName)
 		csProjPaths = append(csProjPaths, csProjPath)
 		childProjects = append(childProjects, artifacts.DotNetChildProject{
-			Name:          childProjectName,
+			Name:          normalizedChildProjectName,
+			OriginalName:  childProjectName,
 			RelCSProjPath: relCSProjPath,
 		})
 	}
@@ -206,8 +211,8 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 		return nil, nil
 	}
 	namedServices := map[string][]transformertypes.Artifact{
-		appName: {{
-			Name: appName,
+		normalizedAppName: {{
+			Name: normalizedAppName,
 			Type: artifacts.ServiceArtifactType,
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.ServiceRootDirPathType:           {dir},
@@ -241,7 +246,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			logrus.Errorf("the service directory is missing from the dot net artifact %+v", newArtifact)
 			continue
 		}
-		selectedBuildOption, err := dotnetutils.AskUserForDockerfileType(dotNetConfig.DotNetAppName)
+		selectedBuildOption, err := dotnetutils.AskUserForDockerfileType(newArtifact.Name)
 		if err != nil {
 			logrus.Errorf("failed to ask the user what type of dockerfile they prefer. Error: %q", err)
 			continue
@@ -255,12 +260,12 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			selectedChildProjectNames = append(selectedChildProjectNames, childProject.Name)
 		}
 		if len(selectedChildProjectNames) > 1 {
-			quesKey := fmt.Sprintf(common.ConfigServicesDotNetChildProjectsNamesKey, dotNetConfig.DotNetAppName)
-			desc := fmt.Sprintf("For the multi-project Dot Net app '%s', please select all the child projects that should be run as services in the cluster:", dotNetConfig.DotNetAppName)
+			quesKey := fmt.Sprintf(common.ConfigServicesDotNetChildProjectsNamesKey, `"`+newArtifact.Name+`"`)
+			desc := fmt.Sprintf("For the multi-project Dot Net app '%s', please select all the child projects that should be run as services in the cluster:", newArtifact.Name)
 			hints := []string{"deselect any child project that should not be run (example: libraries)"}
 			selectedChildProjectNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildProjectNames, selectedChildProjectNames)
 			if len(selectedChildProjectNames) == 0 {
-				return pathMappings, artifactsCreated, fmt.Errorf("user deselected all the child projects of the dot net multi-project app '%s'", dotNetConfig.DotNetAppName)
+				return pathMappings, artifactsCreated, fmt.Errorf("user deselected all the child projects of the dot net multi-project app '%s'", newArtifact.Name)
 			}
 		}
 
@@ -292,7 +297,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 
 		// build is always done at the top level using the .sln file regardless of the build option selected
 
-		imageToCopyFrom := common.MakeStringContainerImageNameCompliant(dotNetConfig.DotNetAppName + "-" + buildStageC)
+		imageToCopyFrom := common.MakeStringContainerImageNameCompliant(newArtifact.Name + "-" + buildStageC)
 		if selectedBuildOption == dotnetutils.NO_BUILD_STAGE {
 			imageToCopyFrom = "" // files will be copied from the local file system instead of a builder image
 		}
@@ -320,7 +325,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			// artifacts to inform other transformers of the Dockerfile we generated
 
 			paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}
-			serviceName := artifacts.ServiceConfig{ServiceName: common.MakeStringK8sServiceNameCompliant(dotNetConfig.DotNetAppName)}
+			serviceName := artifacts.ServiceConfig{ServiceName: newArtifact.Name}
 			imageName := artifacts.ImageName{ImageName: imageToCopyFrom}
 			dockerfileArtifact := transformertypes.Artifact{
 				Name:  imageName.ImageName,
@@ -352,7 +357,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 
 			// have the user select the ports to use for the child project
 
-			selectedPorts := commonqa.GetPortsForService(detectedPorts, common.JoinQASubKeys(`"`+dotNetConfig.DotNetAppName+`"`, "childProjects", `"`+childProject.Name+`"`))
+			selectedPorts := commonqa.GetPortsForService(detectedPorts, common.JoinQASubKeys(`"`+newArtifact.Name+`"`, "childProjects", `"`+childProject.Name+`"`))
 
 			// data to fill the Dockerfile template
 
@@ -394,7 +399,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			// artifacts to inform other transformers of the Dockerfile we generated
 
 			paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}
-			serviceName := artifacts.ServiceConfig{ServiceName: common.MakeStringK8sServiceNameCompliant(childProject.Name)}
+			serviceName := artifacts.ServiceConfig{ServiceName: childProject.Name}
 			imageName := artifacts.ImageName{ImageName: common.MakeStringContainerImageNameCompliant(childProject.Name)}
 			dockerfileArtifact := transformertypes.Artifact{
 				Name:  imageName.ImageName,

@@ -153,81 +153,85 @@ func (t *WinConsoleAppDockerfileGenerator) parseAppConfigForPort(AppCfgFilePath 
 
 // DirectoryDetect runs detect in each sub directory
 func (t *WinConsoleAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
-	dirEntries, err := os.ReadDir(dir)
+	slnPaths, err := common.GetFilesByExtInCurrDir(dir, []string{dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list the dot net visual studio solution files in the directory %s . Error: %q", dir, err)
 	}
-	appName := ""
-	appConfigList := []string{}
-	for _, de := range dirEntries {
-		if filepath.Ext(de.Name()) != dotnet.VISUAL_STUDIO_SOLUTION_FILE_EXT {
-			continue
-		}
-		relCSProjPaths, err := dotnetutils.GetCSProjPathsFromSlnFile(filepath.Join(dir, de.Name()), false)
+	if len(slnPaths) == 0 {
+		return nil, nil
+	}
+	if len(slnPaths) > 1 {
+		logrus.Debugf("more than one visual studio solution file detected. Number of .sln files %d", len(slnPaths))
+	}
+	slnPath := slnPaths[0]
+	appName := dotnetutils.GetParentProjectName(slnPath)
+	normalizedAppName := common.MakeStringK8sServiceNameCompliant(appName)
+
+	relCSProjPaths, err := dotnetutils.GetCSProjPathsFromSlnFile(slnPath, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the .csproj paths from .sln file at path %s . Error: %q", slnPath, err)
+	}
+
+	if len(relCSProjPaths) == 0 {
+		return nil, fmt.Errorf("no c sharp projects available found in the .sln at path %s", slnPath)
+	}
+
+	appCfgFilePaths := []string{}
+
+	found := false
+	for _, relCSProjPath := range relCSProjPaths {
+		csProjPath := filepath.Join(dir, strings.TrimSpace(relCSProjPath))
+		csProjBytes, err := os.ReadFile(csProjPath)
 		if err != nil {
-			logrus.Errorf("%s", err)
+			logrus.Errorf("failed to read the c sharp project file at path %s . Error: %q", csProjPath, err)
 			continue
 		}
-
-		if len(relCSProjPaths) == 0 {
-			logrus.Errorf("No projects available for the solution: %s", de.Name())
+		configuration := dotnet.CSProj{}
+		if err := xml.Unmarshal(csProjBytes, &configuration); err != nil {
+			logrus.Errorf("failed to parse the xml c sharp project file at path %s . Error: %q", csProjPath, err)
 			continue
 		}
-
-		for _, relCSProjPath := range relCSProjPaths {
-			csProjPath := filepath.Join(dir, strings.TrimSpace(relCSProjPath))
-			byteValue, err := os.ReadFile(csProjPath)
-			if err != nil {
-				logrus.Errorf("failed to read the c sharp project file at path %s . Error: %q", csProjPath, err)
-				continue
-			}
-			configuration := dotnet.CSProj{}
-			if err := xml.Unmarshal(byteValue, &configuration); err != nil {
-				logrus.Errorf("Could not parse the project file: %s", err)
-				continue
-			}
-			idx := common.FindIndex(
-				configuration.PropertyGroups,
-				func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" },
-			)
-			if idx == -1 {
-				logrus.Debugf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
-				continue
-			}
-			targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
-			if !dotnet.Version4.MatchString(targetFrameworkVersion) {
-				logrus.Errorf("console dot net tranformer: the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
-				continue
-			}
-			isWebProj, err := isWeb(configuration)
-			if err != nil {
-				logrus.Errorf("%s", err)
-				continue
-			}
-			if isWebProj {
-				continue
-			}
-			appCfgFilePath := filepath.Join(dir, filepath.Dir(relCSProjPath), AppCfgFile)
-			if _, err = os.Stat(appCfgFilePath); os.IsNotExist(err) {
-				continue
-			}
-			appConfigList = append(appConfigList, appCfgFilePath)
-			appName = strings.TrimSuffix(filepath.Base(de.Name()), filepath.Ext(de.Name()))
+		idx := common.FindIndex(
+			configuration.PropertyGroups,
+			func(x dotnet.PropertyGroup) bool { return x.TargetFrameworkVersion != "" },
+		)
+		if idx == -1 {
+			logrus.Debugf("failed to find the target framework in any of the property groups inside the c sharp project file at path %s", csProjPath)
+			continue
 		}
-
-		// Exit soon of after the solution file is found
-		break
+		targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
+		if !dotnet.Version4.MatchString(targetFrameworkVersion) {
+			logrus.Errorf("console dot net tranformer: the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
+			continue
+		}
+		isWebProj, err := isWeb(configuration)
+		if err != nil {
+			logrus.Errorf("failed to detect if it's a web/asp net project. Error: %q", err)
+			continue
+		}
+		if isWebProj {
+			continue
+		}
+		found = true
+		appCfgFilePath := filepath.Join(dir, filepath.Dir(relCSProjPath), AppCfgFile)
+		if _, err := os.Stat(appCfgFilePath); err != nil {
+			continue
+		}
+		appCfgFilePaths = append(appCfgFilePaths, appCfgFilePath)
 	}
 
-	if appName == "" {
+	if !found {
 		return nil, nil
 	}
 
 	services := map[string][]transformertypes.Artifact{
-		appName: {{
+		normalizedAppName: {{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.ServiceDirPathType: {dir},
-				AppConfigFilePathListType:    appConfigList,
+				AppConfigFilePathListType:    appCfgFilePaths,
+			},
+			Configs: map[transformertypes.ConfigType]interface{}{
+				artifacts.OriginalNameConfigType: artifacts.OriginalNameConfig{OriginalName: appName},
 			},
 		}},
 	}
@@ -245,27 +249,25 @@ func (t *WinConsoleAppDockerfileGenerator) Transform(newArtifacts []transformert
 		serviceDir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
 		relServiceDir, err := filepath.Rel(t.Env.GetEnvironmentSource(), serviceDir)
 		if err != nil {
-			logrus.Errorf("Unable to convert source path %s to be relative : %s", serviceDir, err)
-		}
-		var sConfig artifacts.ServiceConfig
-		err = newArtifact.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
+			logrus.Errorf("Unable to convert source path %s to be relative. Error: %q", serviceDir, err)
 			continue
 		}
-		sImageName := artifacts.ImageName{}
-		err = newArtifact.GetConfig(artifacts.ImageNameConfigType, &sImageName)
-		if err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", sImageName, err)
+		serviceConfig := artifacts.ServiceConfig{}
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T : %s", serviceConfig, err)
+			continue
+		}
+		imageName := artifacts.ImageName{}
+		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
+			logrus.Debugf("unable to load config for Transformer into %T : %s", imageName, err)
 		}
 		ir := irtypes.IR{}
 		irPresent := true
-		err = newArtifact.GetConfig(irtypes.IRConfigType, &ir)
-		if err != nil {
+		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
 			irPresent = false
 			logrus.Debugf("unable to load config for Transformer into %T : %s", ir, err)
 		}
-		var detectedPorts []int32
+		detectedPorts := []int32{}
 		for _, appConfigFilePath := range newArtifact.Paths[AppConfigFilePathListType] {
 			portList, err := t.parseAppConfigForPort(appConfigFilePath)
 			if err != nil {
@@ -285,8 +287,8 @@ func (t *WinConsoleAppDockerfileGenerator) Transform(newArtifacts []transformert
 		consoleConfig.Ports = detectedPorts
 		consoleConfig.BaseImageVersion = dotnet.DefaultBaseImageVersion
 
-		if sImageName.ImageName == "" {
-			sImageName.ImageName = common.MakeStringContainerImageNameCompliant(sConfig.ServiceName)
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:     transformertypes.SourcePathMappingType,
@@ -300,20 +302,20 @@ func (t *WinConsoleAppDockerfileGenerator) Transform(newArtifacts []transformert
 		paths := newArtifact.Paths
 		paths[artifacts.DockerfilePathType] = []string{filepath.Join(common.DefaultSourceDir, relServiceDir, common.DefaultDockerfileName)}
 		p := transformertypes.Artifact{
-			Name:  sImageName.ImageName,
+			Name:  imageName.ImageName,
 			Type:  artifacts.DockerfileArtifactType,
 			Paths: paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
+				artifacts.ImageNameConfigType: imageName,
 			},
 		}
 		dfs := transformertypes.Artifact{
-			Name:  sConfig.ServiceName,
+			Name:  serviceConfig.ServiceName,
 			Type:  artifacts.DockerfileForServiceArtifactType,
 			Paths: newArtifact.Paths,
 			Configs: map[transformertypes.ConfigType]interface{}{
-				artifacts.ImageNameConfigType: sImageName,
-				artifacts.ServiceConfigType:   sConfig,
+				artifacts.ImageNameConfigType: imageName,
+				artifacts.ServiceConfigType:   serviceConfig,
 			},
 		}
 		if irPresent {

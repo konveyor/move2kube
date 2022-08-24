@@ -142,25 +142,27 @@ func GetConfFileForService(confFiles []string, serviceName string) string {
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	dirEntries, err := os.ReadDir(dir)
+func (t *PHPDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
+	phpFiles, err := common.GetFilesByExtInCurrDir(dir, []string{phpExt})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to look for .php files in the directory %s . Error: %q", dir, err)
 	}
-	for _, de := range dirEntries {
-		if de.IsDir() {
-			continue
-		}
-		if filepath.Ext(de.Name()) != phpExt {
-			continue
-		}
-		return map[string][]transformertypes.Artifact{"": {{
+	if len(phpFiles) == 0 {
+		return nil, nil
+	}
+	serviceName := filepath.Base(dir)
+	normalizedServiceName := common.MakeStringK8sServiceNameCompliant(serviceName)
+	services := map[string][]transformertypes.Artifact{
+		normalizedServiceName: {{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.ServiceDirPathType: {dir},
 			},
-		}}}, nil
+			Configs: map[transformertypes.ConfigType]interface{}{
+				artifacts.OriginalNameConfigType: artifacts.OriginalNameConfig{OriginalName: serviceName},
+			},
+		}},
 	}
-	return nil, nil
+	return services, nil
 }
 
 // Transform transforms the artifacts

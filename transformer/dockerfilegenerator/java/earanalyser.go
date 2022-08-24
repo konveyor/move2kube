@@ -17,6 +17,7 @@
 package java
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -69,25 +70,23 @@ func (t *EarAnalyser) GetConfig() (transformertypes.Transformer, *environment.En
 }
 
 // DirectoryDetect runs detect in each sub directory
-func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	services = map[string][]transformertypes.Artifact{}
+func (t *EarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
 	paths, err := common.GetFilesInCurrentDirectory(dir, nil, []string{".*[.]ear"})
 	if err != nil {
-		logrus.Errorf("Error while parsing directory %s for jar file : %s", dir, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to look for .ear archives in the directory %s . Error: %q", dir, err)
 	}
 	if len(paths) == 0 {
 		return nil, nil
 	}
+	services := map[string][]transformertypes.Artifact{}
 	for _, path := range paths {
-		rawServiceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-		serviceName := common.MakeStringK8sServiceNameCompliant(rawServiceName)
-		imageName := common.MakeStringContainerImageNameCompliant(rawServiceName)
 		relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), path)
 		if err != nil {
-			logrus.Errorf("failed to make the path %s relative to the sourc code directory %s . Error: %q", path, t.Env.GetEnvironmentSource(), err)
+			logrus.Errorf("failed to make the path %s relative to the source code directory %s . Error: %q", path, t.Env.GetEnvironmentSource(), err)
 			continue
 		}
+		serviceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+		normalizedServiceName := common.MakeStringK8sServiceNameCompliant(serviceName)
 		newArtifact := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.EarPathType:        {path},
@@ -98,13 +97,13 @@ func (t *EarAnalyser) DirectoryDetect(dir string) (services map[string][]transfo
 					DeploymentFilePath: relPath,
 					JavaVersion:        t.EarConfig.JavaVersion,
 				},
-				artifacts.ServiceConfigType:   artifacts.ServiceConfig{ServiceName: serviceName},
-				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: imageName},
+				artifacts.OriginalNameConfigType: artifacts.OriginalNameConfig{OriginalName: serviceName},
+				artifacts.ImageNameConfigType:    artifacts.ImageName{ImageName: common.MakeStringContainerImageNameCompliant(serviceName)},
 			},
 		}
-		services[serviceName] = append(services[serviceName], newArtifact)
+		services[normalizedServiceName] = append(services[normalizedServiceName], newArtifact)
 	}
-	return
+	return services, nil
 }
 
 // Transform transforms the artifacts

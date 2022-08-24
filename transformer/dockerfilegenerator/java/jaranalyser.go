@@ -89,16 +89,14 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 		return nil, nil
 	}
 	for _, path := range paths {
-		rawServiceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-		serviceName := common.MakeStringK8sServiceNameCompliant(rawServiceName)
-		imageName := common.MakeStringContainerImageNameCompliant(rawServiceName)
 		relPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), path)
 		if err != nil {
 			logrus.Errorf("failed to make the path %s relative to the sourc code directory %s . Error: %q", path, t.Env.GetEnvironmentSource(), err)
 			continue
 		}
+		serviceName := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+		normalizedServiceName := common.MakeStringK8sServiceNameCompliant(serviceName)
 		newArtifact := transformertypes.Artifact{
-			Name: serviceName,
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.JarPathType:        {path},
 				artifacts.ServiceDirPathType: {dir},
@@ -110,11 +108,9 @@ func (t *JarAnalyser) DirectoryDetect(dir string) (map[string][]transformertypes
 					Port:               t.JarConfig.DefaultPort,
 					JavaVersion:        t.JarConfig.JavaVersion,
 				},
-				artifacts.ServiceConfigType:   artifacts.ServiceConfig{ServiceName: serviceName},
-				artifacts.ImageNameConfigType: artifacts.ImageName{ImageName: imageName},
 			},
 		}
-		services[serviceName] = append(services[serviceName], newArtifact)
+		services[normalizedServiceName] = append(services[normalizedServiceName], newArtifact)
 	}
 	return services, nil
 }
@@ -135,10 +131,14 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 		serviceConfig := artifacts.ServiceConfig{}
 		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
 			logrus.Debugf("failed to load the service config from the artifact %+v . Error: %q", newArtifact, err)
+			continue
 		}
 		imageName := artifacts.ImageName{}
 		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
 			logrus.Debugf("failed to load the image name config from the artifact %+v . Error: %q", newArtifact, err)
+		}
+		if imageName.ImageName == "" {
+			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
 		}
 		// get the Dockerfile template
 		dockerfileTemplate, _, err := t.getDockerfileTemplate(newArtifact)
