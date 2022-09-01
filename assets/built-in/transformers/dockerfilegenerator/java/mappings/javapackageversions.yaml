@@ -10,3 +10,7 @@ spec:
     "8": "java-1.8.0-openjdk-devel"
     "11": "java-11-openjdk-devel"
     "17": "java-17-openjdk-devel"
+    "JavaVersion.VERSION_1_7": "java-1.8.0-openjdk-devel" # only java 8, 11 and 17 are available
+    "JavaVersion.VERSION_1_8": "java-1.8.0-openjdk-devel"
+    "JavaVersion.VERSION_11": "java-11-openjdk-devel"
+    "JavaVersion.VERSION_17": "java-17-openjdk-devel"
