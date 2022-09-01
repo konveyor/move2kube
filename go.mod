@@ -69,6 +69,8 @@ require (
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
+	github.com/antchfx/xmlquery v1.3.12 // indirect
+	github.com/antchfx/xpath v1.2.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr v0.0.0-20211106181442-e4c1a74c66bd // indirect
 	github.com/argoproj/gitops-engine v0.6.2 // indirect
 	github.com/argoproj/pkg v0.11.1-0.20211203175135-36c59d8fafe0 // indirect
