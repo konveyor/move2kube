@@ -31,9 +31,114 @@ import (
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/magiconair/properties"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
+
+// An example parsed build.gradle file (useful for writing more gradle parsing logic)
+// ---------------------------------------------------------------------------------------------------------
+// var exampleBuildGradleFile = &gradle.Gradle{
+// 	Repositories: []gradle.GradleRepository{
+// 		{
+// 			Type: "unknown",
+// 			Data: gradle.GradleRepositoryData{Name: "mavenCentral()"},
+// 		},
+// 	},
+// 	Dependencies: []gradle.GradleDependency{
+// 		gradle.GradleDependency{
+// 			GradleGAV: gradle.GradleGAV{
+// 				Group:   "",
+// 				Name:    "\"org.springframework.boot:spring-boot-starter-web\"",
+// 				Version: "",
+// 			},
+// 			Type:     "implementation",
+// 			Excludes: []map[string]string(nil),
+// 		},
+// 		gradle.GradleDependency{
+// 			GradleGAV: gradle.GradleGAV{
+// 				Group:   "",
+// 				Name:    "\"org.springframework.boot:spring-boot-starter-actuator\"",
+// 				Version: "",
+// 			},
+// 			Type:     "implementation",
+// 			Excludes: []map[string]string(nil),
+// 		},
+// 		gradle.GradleDependency{
+// 			GradleGAV: gradle.GradleGAV{
+// 				Group:   "",
+// 				Name:    "\"org.springframework.boot:spring-boot-starter-data-jpa\"",
+// 				Version: "",
+// 			},
+// 			Type:     "implementation",
+// 			Excludes: []map[string]string(nil),
+// 		},
+// 		gradle.GradleDependency{
+// 			GradleGAV: gradle.GradleGAV{
+// 				Group:   "",
+// 				Name:    "\"org.springframework.boot:spring-boot-starter-data-mongodb\"",
+// 				Version: "",
+// 			},
+// 			Type:     "implementation",
+// 			Excludes: []map[string]string(nil),
+// 		},
+// 		gradle.GradleDependency{
+// 			GradleGAV: gradle.GradleGAV{
+// 				Group:   "",
+// 				Name:    "\"org.springframework.boot:spring-boot-starter-data-redis\"",
+// 				Version: "",
+// 			},
+// 			Type:     "implementation",
+// 			Excludes: []map[string]string(nil),
+// 		},
+// 		gradle.GradleDependency{
+// 			GradleGAV: gradle.GradleGAV{
+// 				Group:   "",
+// 				Name:    "\"org.springframework.boot:spring-boot-starter-validation\"",
+// 				Version: "",
+// 			},
+// 			Type:     "implementation",
+// 			Excludes: []map[string]string(nil),
+// 		},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "", Name: "\"io.pivotal.cfenv:java-cfenv-boot:${javaCfEnvVersion}\"", Version: ""}, Type: "implementation", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "", Name: "\"org.apache.commons:commons-pool2\"", Version: ""}, Type: "runtimeOnly", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "", Name: "\"com.h2database:h2\"", Version: ""}, Type: "runtimeOnly", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "", Name: "\"mysql:mysql-connector-java\"", Version: ""}, Type: "runtimeOnly", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "", Name: "\"org.postgresql:postgresql\"", Version: ""}, Type: "runtimeOnly", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "", Name: "\"com.microsoft.sqlserver:mssql-jdbc\"", Version: ""}, Type: "runtimeOnly", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "org.webjars", Name: "bootstrap", Version: "3.1.1"}, Type: "implementation", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "org.webjars", Name: "angularjs", Version: "1.2.16"}, Type: "implementation", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "org.webjars", Name: "angular-ui", Version: "0.4.0-2"}, Type: "implementation", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "org.webjars", Name: "angular-ui-bootstrap", Version: "0.10.0-1"}, Type: "implementation", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "org.webjars", Name: "jquery", Version: "2.1.0-2"}, Type: "implementation", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{GradleGAV: gradle.GradleGAV{Group: "", Name: "\"junit:junit\"", Version: ""}, Type: "testImplementation", Excludes: []map[string]string(nil)},
+// 		gradle.GradleDependency{
+// 			GradleGAV: gradle.GradleGAV{Group: "", Name: "\"org.springframework.boot:spring-boot-starter-test\"", Version: ""},
+// 			Type:      "testImplementation", Excludes: []map[string]string(nil),
+// 		},
+// 	},
+// 	Plugins: []gradle.GradlePlugin{
+// 		gradle.GradlePlugin{"id": "org.springframework.boot", "version": "2.6.7"},
+// 		gradle.GradlePlugin{"id": "io.spring.dependency-management", "version": "1.0.11.RELEASE"},
+// 		gradle.GradlePlugin{"id": "java"},
+// 		gradle.GradlePlugin{"id": "eclipse-wtp"},
+// 		gradle.GradlePlugin{"id": "idea"},
+// 	},
+// 	Metadata: map[string][]string(nil),
+// 	Blocks: map[string]gradle.Gradle{
+// 		"ext": gradle.Gradle{Repositories: []gradle.GradleRepository(nil), Dependencies: []gradle.GradleDependency(nil), Plugins: []gradle.GradlePlugin(nil), Metadata: map[string][]string{"javaCfEnvVersion": []string{"2.4.0"}}, Blocks: map[string]gradle.Gradle(nil)},
+// 		"jar": gradle.Gradle{Repositories: []gradle.GradleRepository(nil), Dependencies: []gradle.GradleDependency(nil), Plugins: []gradle.GradlePlugin(nil), Metadata: map[string][]string{"enabled": []string{"false"}}, Blocks: map[string]gradle.Gradle(nil)},
+// 		"java": gradle.Gradle{
+// 			Repositories: []gradle.GradleRepository(nil),
+// 			Dependencies: []gradle.GradleDependency(nil),
+// 			Plugins:      []gradle.GradlePlugin(nil),
+// 			Metadata:     map[string][]string{"sourceCompatibility": []string{"JavaVersion.VERSION_1_8"}, "targetCompatibility": []string{"JavaVersion.VERSION_1_8"}},
+// 			Blocks:       map[string]gradle.Gradle(nil),
+// 		},
+// 	},
+// }
+
+// ---------------------------------------------------------------
 
 // GradleAnalyser implements Transformer interface
 type GradleAnalyser struct {
@@ -95,6 +200,8 @@ const (
 	projectLibsDirNameC                     = "libsDirName"
 	buildDirC                               = "buildDir"
 	languageVersionC                        = "languageVersion"
+	sourceCompatibilityC                    = "sourceCompatibility"
+	targetCompatibilityC                    = "targetCompatibility"
 	dirFnNameC                              = "layout.buildDirectory.dir"
 	projectNameC                            = "name"
 	gradleDefaultBuildDirC                  = "build" // https://docs.gradle.org/current/userguide/writing_build_scripts.html#sec:standard_project_properties
@@ -566,6 +673,7 @@ func getInfoFromBuildGradle(gradleBuildPtr *gradle.Gradle, gradleBuildFilePath s
 		}
 		info.Type = artType
 		info.JavaVersion = getJavaVersionFromGradle(gradleBuildPtr)
+
 		deploymentFilePath, err := getDeploymentFilePathFromGradle(gradleBuildPtr, gradleBuildFilePath, filepath.Dir(gradleBuildFilePath), gradleConfig, packType)
 		if err != nil {
 			return info, fmt.Errorf("failed to get the output path for the gradle build script %+v . Error: %q", gradleBuild, err)
@@ -641,15 +749,15 @@ func (t *GradleAnalyser) getJavaPackage(javaVersion string) (string, error) {
 }
 
 // getJavaVersionFromGradle finds the java version from a gradle build script (build.gradle).
-func getJavaVersionFromGradle(build *gradle.Gradle) string {
-	if build == nil {
+func getJavaVersionFromGradle(buildGradleFile *gradle.Gradle) string {
+	if buildGradleFile == nil {
 		return ""
 	}
 	// https://docs.gradle.org/current/userguide/java_plugin.html#sec:java-extension
-	if gb, ok := build.Blocks["java"]; ok {
-		if gb, ok := gb.Blocks["toolchain"]; ok {
-			if len(gb.Metadata[languageVersionC]) > 0 {
-				ss := gradle.GetSingleArgumentFromFuntionCall(gb.Metadata[languageVersionC][0], "JavaLanguageVersion.of")
+	if gb, ok := buildGradleFile.Blocks["java"]; ok {
+		if gbb, ok := gb.Blocks["toolchain"]; ok {
+			if len(gbb.Metadata[languageVersionC]) > 0 {
+				ss := gradle.GetSingleArgumentFromFuntionCall(gbb.Metadata[languageVersionC][0], "JavaLanguageVersion.of")
 				gradleJavaVersion, err := cast.ToIntE(ss)
 				if err != nil {
 					logrus.Errorf("failed to parse the string '%s' as an integer. Error: %q", ss, err)
@@ -659,6 +767,15 @@ func getJavaVersionFromGradle(build *gradle.Gradle) string {
 					return "1." + cast.ToString(gradleJavaVersion)
 				}
 				return cast.ToString(gradleJavaVersion)
+			}
+		} else {
+			sourceOrTargetVersions := gb.Metadata[targetCompatibilityC]
+			if len(sourceOrTargetVersions) == 0 {
+				sourceOrTargetVersions = gb.Metadata[sourceCompatibilityC]
+			}
+			if len(sourceOrTargetVersions) > 0 {
+				sourceOrTargetVersion := sourceOrTargetVersions[0]
+				return sourceOrTargetVersion
 			}
 		}
 	}
@@ -791,6 +908,24 @@ func getDeploymentFilePathFromGradle(gradleBuild *gradle.Gradle, buildScriptPath
 			updateArchiveNameFromJarBlock(gb2)
 		}
 	}
+
+	rootGradlePropertiesPaths, err := common.GetFilesInCurrentDirectory(serviceDir, []string{"gradle.properties"}, nil)
+	if err != nil {
+		logrus.Errorf("failed to look for a gradle.properties file in the directory %s . Error: %q", serviceDir, err)
+	} else if len(rootGradlePropertiesPaths) > 0 {
+		if len(rootGradlePropertiesPaths) > 1 {
+			logrus.Errorf("expected there to be at most one gradle.properties file. actual: %+v", rootGradlePropertiesPaths)
+		}
+		rootGradlePropertiesPath := rootGradlePropertiesPaths[0]
+		rootGradleProperties, err := properties.LoadFile(rootGradlePropertiesPath, properties.UTF8)
+		if err != nil {
+			logrus.Errorf("failed to parse the gradle.properties at path %s . Error: %q", rootGradlePropertiesPath, err)
+		}
+		if v, ok := rootGradleProperties.Get("version"); ok {
+			archiveVersion = v
+		}
+	}
+
 	if archivePath != "" {
 		return filepath.Join(serviceDir, archivePath), nil
 	}
