@@ -65,10 +65,11 @@ const (
 )
 
 var (
-	initialized      = false
-	transformerTypes = map[string]reflect.Type{}
-	transformers     = []Transformer{}
-	transformerMap   = map[string]Transformer{}
+	initialized           = false
+	transformerTypes      = map[string]reflect.Type{}
+	transformers          = []Transformer{}
+	transformersByDefault = []Transformer{}
+	transformerMap        = map[string]Transformer{}
 )
 
 func init() {
@@ -118,6 +119,7 @@ func init() {
 		new(kubernetes.KubernetesVersionChanger),
 
 		new(ReadMeGenerator),
+		new(VpcContractGenerator),
 	}
 	transformerTypes = common.GetTypesMap(transformerObjs)
 }
@@ -217,6 +219,9 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		} else {
 			transformers = append(transformers, transformer)
 			transformerMap[selectedTransformerName] = transformer
+			if transformerConfig.Spec.InvokesByDefault.Enabled {
+				transformersByDefault = append(transformersByDefault, transformer)
+			}
 		}
 	}
 	initialized = true
@@ -406,7 +411,12 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 	newArtifactsToProcess := []transformertypes.Artifact{}
 	pathMappings := []transformertypes.PathMapping{}
 	iteration := 1
+	// transform default transformers
 	logrus.Infof("Iteration %d", iteration)
+	for _, transformerByDefault := range transformersByDefault {
+		newPathMappings, _, _ := transformerByDefault.Transform(nil, nil)
+		pathMappings = append(pathMappings, newPathMappings...)
+	}
 	for _, planArtifact := range planArtifacts {
 		planArtifact.ProcessWith = *metav1.AddLabelToSelector(&planArtifact.ProcessWith, transformertypes.LabelName, string(planArtifact.TransformerName))
 		if planArtifact.Type == "" {

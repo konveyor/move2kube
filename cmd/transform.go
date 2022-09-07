@@ -120,9 +120,9 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if cmd.Flags().Changed(planFlag) {
 			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.planfile, err)
 		}
-		if !cmd.Flags().Changed(sourceFlag) {
-			logrus.Fatalf("Invalid usage. Must specify either path to a plan file or path to directory containing source code.")
-		}
+		// if !cmd.Flags().Changed(sourceFlag) {
+		// 	logrus.Fatalf("Invalid usage. Must specify either path to a plan file or path to directory containing source code.")
+		// }
 
 		// Global settings
 		checkSourcePath(flags.srcpath)
@@ -147,9 +147,9 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if p, err = plan.ReadPlan(flags.planfile, sourceDir); err != nil {
 			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.planfile, err)
 		}
-		if len(p.Spec.Services) == 0 {
+		if len(p.Spec.Services) == 0 && len(p.Spec.TransformersByDefault) == 0 {
 			logrus.Debugf("Plan : %+v", p)
-			logrus.Fatalf("Failed to find any services. Aborting.")
+			logrus.Fatalf("Failed to find any services or default transformers. Aborting.")
 		}
 		if cmd.Flags().Changed(nameFlag) {
 			p.Name = flags.name
@@ -196,10 +196,15 @@ func GetTransformCommand() *cobra.Command {
 		SuggestFor: []string{"translate"},
 	}
 
+	defsrcpath, err := os.MkdirTemp("", "move2kubesrc*")
+	if err != nil {
+		logrus.Errorf("Unable to create default temp src dir : %s", err)
+	}
+
 	// Basic options
 	transformCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	transformCmd.Flags().BoolVar(&flags.overwrite, overwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
-	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory to transform. If you already have a m2k.plan then this will override the sourceDir value specified in that plan.")
+	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", defsrcpath, "Specify source directory to transform. If you already have a m2k.plan then this will override the sourceDir value specified in that plan.")
 	transformCmd.Flags().StringVarP(&flags.outpath, outputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
 	transformCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location.")

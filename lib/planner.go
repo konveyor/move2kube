@@ -52,6 +52,10 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	for _, t := range ts {
 		config, _ := t.GetConfig()
 		p.Spec.Transformers[config.Name] = config.Spec.FilePath
+
+		if config.Spec.InvokesByDefault.Enabled {
+			p.Spec.TransformersByDefault[config.Name] = config.Spec.FilePath
+		}
 	}
 	logrus.Infoln("Configuration loading done")
 

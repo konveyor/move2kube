@@ -1,0 +1,44 @@
+env: |
+  type: env
+  logging:
+    logDNA:
+      hostname: {{ .LogHostName }}
+      ingestionKey: {{ .IngestionKey }}
+      port: {{ .LogPort }}
+  volumes:
+    {{- range $k, $v := .EnvVolumes}}
+    {{$k}}:
+      {{- range $vk, $vv := $v}}
+      {{$vk}}: {{$vv}}
+      {{- end}}
+    {{- end}}
+workload: |
+  type: workload
+  auths:
+    {{- range $k, $v := .Auths}}
+    {{$k}}:
+      {{- range $vk, $vv := $v}}
+      {{$vk}}: {{$vv}}
+      {{- end}}
+    {{- end}}
+  compose:
+    archive: {{ .ComposeArchive }}
+  images:
+    dct:
+      {{- range $k, $v := .Images}}
+      {{$k}}:
+        {{- range $vk, $vv := $v}}
+        {{$vk}}: {{$vv}}
+        {{- end}}
+      {{- end}}
+  volumes:
+    {{- range $k, $v := .WorkloadVolumes}}
+    {{$k}}:
+      {{- range $vk, $vv := $v}}
+      {{$vk}}: {{$vv}}
+      {{- end}}
+    {{- end}}
+  env:
+    {{- range $vk, $vv := .WorkloadEnvs}}
+    {{$vk}}: {{$vv}}
+    {{- end}}

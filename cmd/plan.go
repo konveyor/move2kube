@@ -154,7 +154,12 @@ func GetPlanCommand() *cobra.Command {
 		Run:   func(cmd *cobra.Command, _ []string) { planHandler(cmd, flags) },
 	}
 
-	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", ".", "Specify source directory.")
+	defsrcpath, err := os.MkdirTemp("", "move2kubesrc*")
+	if err != nil {
+		logrus.Errorf("Unable to create default temp src dir : %s", err)
+	}
+
+	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", defsrcpath, "Specify source directory.")
 	planCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
 	planCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	planCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored. By default we look for "+common.DefaultCustomizationDir)
@@ -165,7 +170,7 @@ func GetPlanCommand() *cobra.Command {
 	planCmd.Flags().IntVar(&flags.progressServerPort, planProgressPortFlag, 0, "Port for the plan progress server. If not provided, the server won't be started.")
 	planCmd.Flags().BoolVar(&flags.disableLocalExecution, common.DisableLocalExecutionFlag, false, "Allow files to be executed locally.")
 
-	must(planCmd.MarkFlagRequired(sourceFlag))
+	// must(planCmd.MarkFlagRequired(sourceFlag))
 	must(planCmd.Flags().MarkHidden(planProgressPortFlag))
 
 	return planCmd

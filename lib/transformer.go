@@ -81,6 +81,8 @@ func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, tran
 		}
 	}
 
+	// invoke by default transformers
+
 	// transform the selected services using the selected transformation options
 	if err := transformer.Transform(selectedTransformationOptions, plan.Spec.SourceDir, outputPath); err != nil {
 		logrus.Fatalf("Failed to transform using the plan. Error: %q", err)
