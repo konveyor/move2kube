@@ -414,7 +414,12 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 	// transform default transformers
 	logrus.Infof("Iteration %d", iteration)
 	for _, transformerByDefault := range transformersByDefault {
-		newPathMappings, _, _ := transformerByDefault.Transform(nil, nil)
+		tDefaultConfig, _ := transformerByDefault.GetConfig()
+		newPathMappings, defaultArtifact, err := transformerByDefault.Transform(nil, nil)
+		if err != nil {
+			logrus.Errorf("failed to transform using the transformer %s. Error: %q", tDefaultConfig.Name, err)
+		}
+		newArtifactsToProcess = append(newArtifactsToProcess, defaultArtifact...)
 		pathMappings = append(pathMappings, newPathMappings...)
 	}
 	for _, planArtifact := range planArtifacts {

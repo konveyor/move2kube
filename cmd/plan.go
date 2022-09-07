@@ -65,6 +65,12 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	planfile := flags.planfile
 	srcpath := flags.srcpath
 	name := flags.name
+	if !cmd.Flags().Changed(sourceFlag) {
+		srcpath, err = os.MkdirTemp("", "move2kubesrc*")
+		if err != nil {
+			logrus.Errorf("Unable to create default temp src dir : %s", err)
+		}
+	}
 	// Check if the default customization folder exists in the working directory.
 	// If not, skip the customization option
 	if !cmd.Flags().Changed(customizationsFlag) {
@@ -154,12 +160,7 @@ func GetPlanCommand() *cobra.Command {
 		Run:   func(cmd *cobra.Command, _ []string) { planHandler(cmd, flags) },
 	}
 
-	defsrcpath, err := os.MkdirTemp("", "move2kubesrc*")
-	if err != nil {
-		logrus.Errorf("Unable to create default temp src dir : %s", err)
-	}
-
-	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", defsrcpath, "Specify source directory.")
+	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", ".", "Specify source directory.")
 	planCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
 	planCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	planCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored. By default we look for "+common.DefaultCustomizationDir)
