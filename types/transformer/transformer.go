@@ -49,7 +49,7 @@ type TransformerSpec struct {
 	InvokesByDefault   InvokesByDefault                       `yaml:"invokesByDefault" json:"invokesByDefault"`
 }
 
-// InvokesByDefault stores config for default transformers
+// InvokesByDefault stores config to toggle default transformers
 type InvokesByDefault struct {
 	Enabled bool `yaml:"enabled" json:"enabled"`
 }

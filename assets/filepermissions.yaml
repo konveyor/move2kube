@@ -88,5 +88,3 @@
 "built-in/transformers/kubernetes/tekton/transformer.yaml" : 0644
 "built-in/transformers/readmegenerator/templates/Readme.md" : 0644
 "built-in/transformers/readmegenerator/transformer.yaml" : 0644
-"built-in/transformers/vpccontractgenerator/templates/contract.yaml" : 0644
-"built-in/transformers/vpccontractgenerator/transformer.yaml" : 0644

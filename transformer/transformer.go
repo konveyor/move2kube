@@ -119,7 +119,6 @@ func init() {
 		new(kubernetes.KubernetesVersionChanger),
 
 		new(ReadMeGenerator),
-		new(VpcContractGenerator),
 	}
 	transformerTypes = common.GetTypesMap(transformerObjs)
 }

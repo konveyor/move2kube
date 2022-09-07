@@ -53,6 +53,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 		config, _ := t.GetConfig()
 		p.Spec.Transformers[config.Name] = config.Spec.FilePath
 
+		// add default transformers to the plan file
 		if config.Spec.InvokesByDefault.Enabled {
 			p.Spec.TransformersByDefault[config.Name] = config.Spec.FilePath
 		}

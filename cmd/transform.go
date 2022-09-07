@@ -120,6 +120,8 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if cmd.Flags().Changed(planFlag) {
 			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.planfile, err)
 		}
+		// check if the source is not given.
+		// if not, create a temporary source folder
 		if !cmd.Flags().Changed(sourceFlag) {
 			flags.srcpath, err = os.MkdirTemp("", "move2kubesrc*")
 			if err != nil {

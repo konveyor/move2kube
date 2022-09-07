@@ -65,6 +65,9 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	planfile := flags.planfile
 	srcpath := flags.srcpath
 	name := flags.name
+
+	// check if the source is not given.
+	// if not, create a temporary source folder
 	if !cmd.Flags().Changed(sourceFlag) {
 		srcpath, err = os.MkdirTemp("", "move2kubesrc*")
 		if err != nil {
