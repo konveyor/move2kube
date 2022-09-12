@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -66,14 +67,14 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	srcpath := flags.srcpath
 	name := flags.name
 
-	// check if the source is not given.
-	// if not, create a temporary source folder
-	if !cmd.Flags().Changed(sourceFlag) {
-		srcpath, err = os.MkdirTemp("", "move2kubesrc*")
-		if err != nil {
-			logrus.Errorf("Unable to create default temp src dir : %s", err)
-		}
-	}
+	// // check if the source is not given.
+	// // if not, create a temporary source folder
+	// if !cmd.Flags().Changed(sourceFlag) {
+	// 	srcpath, err = os.MkdirTemp("", "move2kubesrc*")
+	// 	if err != nil {
+	// 		logrus.Errorf("Unable to create default temp src dir : %s", err)
+	// 	}
+	// }
 	// Check if the default customization folder exists in the working directory.
 	// If not, skip the customization option
 	if !cmd.Flags().Changed(customizationsFlag) {
@@ -110,16 +111,19 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	if err != nil {
 		logrus.Fatalf("Failed to make the plan file path %q absolute. Error: %q", planfile, err)
 	}
-	srcpath, err = filepath.Abs(srcpath)
-	if err != nil {
-		logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
-	}
-	fi, err := os.Stat(srcpath)
-	if err != nil {
-		logrus.Fatalf("Unable to access source directory : %s", err)
-	}
-	if !fi.IsDir() {
-		logrus.Fatalf("Input is a file, expected directory: %s", srcpath)
+	var fi fs.FileInfo
+	if srcpath != "" {
+		srcpath, err = filepath.Abs(srcpath)
+		if err != nil {
+			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
+		}
+		fi, err = os.Stat(srcpath)
+		if err != nil {
+			logrus.Fatalf("Unable to access source directory : %s", err)
+		}
+		if !fi.IsDir() {
+			logrus.Fatalf("Input is a file, expected directory: %s", srcpath)
+		}
 	}
 	fi, err = os.Stat(planfile)
 	if os.IsNotExist(err) {
@@ -163,7 +167,7 @@ func GetPlanCommand() *cobra.Command {
 		Run:   func(cmd *cobra.Command, _ []string) { planHandler(cmd, flags) },
 	}
 
-	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", ".", "Specify source directory.")
+	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory.")
 	planCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
 	planCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	planCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored. By default we look for "+common.DefaultCustomizationDir)

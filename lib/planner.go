@@ -61,9 +61,11 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	logrus.Infoln("Configuration loading done")
 
 	logrus.Infoln("Start planning")
-	p.Spec.Services, err = transformer.GetServices(p.Name, inputPath)
-	if err != nil {
-		logrus.Errorf("Unable to create plan : %s", err)
+	if inputPath != "" {
+		p.Spec.Services, err = transformer.GetServices(p.Name, inputPath)
+		if err != nil {
+			logrus.Errorf("Unable to create plan : %s", err)
+		}
 	}
 	logrus.Infoln("Planning done")
 	logrus.Infof("No of services identified : %d", len(p.Spec.Services))

@@ -197,6 +197,7 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			continue
 		}
 		serviceDir := newArtifact.Paths[artifacts.ServiceDirPathType][0]
+		logrus.Info(t.Env.GetEnvironmentSource())
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), serviceDir)
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", serviceDir, err)

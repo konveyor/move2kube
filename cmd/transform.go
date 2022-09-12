@@ -120,21 +120,24 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if cmd.Flags().Changed(planFlag) {
 			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.planfile, err)
 		}
-		// check if the source is not given.
-		// if not, create a temporary source folder
-		if !cmd.Flags().Changed(sourceFlag) {
-			flags.srcpath, err = os.MkdirTemp("", "move2kubesrc*")
-			if err != nil {
-				logrus.Errorf("Unable to create default temp src dir : %s", err)
-			}
-		}
+		// // check if the source is not given.
+		// // if not, create a temporary source folder
+		// if !cmd.Flags().Changed(sourceFlag) {
+		// 	flags.srcpath, err = os.MkdirTemp("", "move2kubesrc*")
+		// 	if err != nil {
+		// 		logrus.Errorf("Unable to create default temp src dir : %s", err)
+		// 	}
+		// }
 
 		// Global settings
-		checkSourcePath(flags.srcpath)
 		flags.outpath = filepath.Join(flags.outpath, flags.name)
 		checkOutputPath(flags.outpath, flags.overwrite)
-		if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
-			logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
+		if flags.srcpath != "" {
+			logrus.Info("log2")
+			checkSourcePath(flags.srcpath)
+			if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
+				logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
+			}
 		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
@@ -167,12 +170,17 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 
 		// Global settings
-		checkSourcePath(p.Spec.SourceDir)
+		if p.Spec.SourceDir != "" {
+			logrus.Info("log1")
+			checkSourcePath(p.Spec.SourceDir)
+		}
 		lib.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)
 		flags.outpath = filepath.Join(flags.outpath, p.Name)
 		checkOutputPath(flags.outpath, flags.overwrite)
-		if p.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.SourceDir) || common.IsParent(p.Spec.SourceDir, flags.outpath) {
-			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.SourceDir, flags.outpath)
+		if p.Spec.SourceDir != "" {
+			if p.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.SourceDir) || common.IsParent(p.Spec.SourceDir, flags.outpath) {
+				logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.SourceDir, flags.outpath)
+			}
 		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)

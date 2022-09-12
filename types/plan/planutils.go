@@ -30,14 +30,14 @@ import (
 func ReadPlan(path string, sourceDir string) (Plan, error) {
 	plan := Plan{}
 	var err error
+	absSourceDir := ""
 	if err = common.ReadMove2KubeYaml(path, &plan); err != nil {
 		logrus.Errorf("Failed to load the plan file at path %q Error %q", path, err)
 		return plan, err
 	}
-	if sourceDir != "" {
-		plan.Spec.SourceDir = sourceDir
+	if plan.Spec.SourceDir != "" {
+		absSourceDir, err = filepath.Abs(plan.Spec.SourceDir)
 	}
-	absSourceDir, err := filepath.Abs(plan.Spec.SourceDir)
 	if err != nil {
 		logrus.Errorf("Unable to convert sourceDir to full path : %s", err)
 		return plan, err
@@ -45,7 +45,9 @@ func ReadPlan(path string, sourceDir string) (Plan, error) {
 	if err = pathconverters.MakePlanPathsAbsolute(&plan, absSourceDir, common.TempPath); err != nil {
 		return plan, err
 	}
+
 	plan.Spec.SourceDir = absSourceDir
+
 	return plan, err
 }
 
@@ -61,8 +63,10 @@ func WritePlan(path string, plan Plan) error {
 		logrus.Errorf("Unable to get current working dir : %s", err)
 		return err
 	}
-	if newPlan.Spec.SourceDir, err = filepath.Rel(wd, plan.Spec.SourceDir); err != nil {
-		return err
+	if plan.Spec.SourceDir != "" {
+		if newPlan.Spec.SourceDir, err = filepath.Rel(wd, plan.Spec.SourceDir); err != nil {
+			return err
+		}
 	}
 	return common.WriteYaml(path, newPlan)
 }
