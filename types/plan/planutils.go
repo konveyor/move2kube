@@ -45,9 +45,7 @@ func ReadPlan(path string, sourceDir string) (Plan, error) {
 	if err = pathconverters.MakePlanPathsAbsolute(&plan, absSourceDir, common.TempPath); err != nil {
 		return plan, err
 	}
-
 	plan.Spec.SourceDir = absSourceDir
-
 	return plan, err
 }
 

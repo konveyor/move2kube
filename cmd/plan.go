@@ -67,14 +67,6 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	srcpath := flags.srcpath
 	name := flags.name
 
-	// // check if the source is not given.
-	// // if not, create a temporary source folder
-	// if !cmd.Flags().Changed(sourceFlag) {
-	// 	srcpath, err = os.MkdirTemp("", "move2kubesrc*")
-	// 	if err != nil {
-	// 		logrus.Errorf("Unable to create default temp src dir : %s", err)
-	// 	}
-	// }
 	// Check if the default customization folder exists in the working directory.
 	// If not, skip the customization option
 	if !cmd.Flags().Changed(customizationsFlag) {
@@ -178,7 +170,6 @@ func GetPlanCommand() *cobra.Command {
 	planCmd.Flags().IntVar(&flags.progressServerPort, planProgressPortFlag, 0, "Port for the plan progress server. If not provided, the server won't be started.")
 	planCmd.Flags().BoolVar(&flags.disableLocalExecution, common.DisableLocalExecutionFlag, false, "Allow files to be executed locally.")
 
-	// must(planCmd.MarkFlagRequired(sourceFlag))
 	must(planCmd.Flags().MarkHidden(planProgressPortFlag))
 
 	return planCmd

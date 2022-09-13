@@ -120,20 +120,11 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if cmd.Flags().Changed(planFlag) {
 			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.planfile, err)
 		}
-		// // check if the source is not given.
-		// // if not, create a temporary source folder
-		// if !cmd.Flags().Changed(sourceFlag) {
-		// 	flags.srcpath, err = os.MkdirTemp("", "move2kubesrc*")
-		// 	if err != nil {
-		// 		logrus.Errorf("Unable to create default temp src dir : %s", err)
-		// 	}
-		// }
 
 		// Global settings
 		flags.outpath = filepath.Join(flags.outpath, flags.name)
 		checkOutputPath(flags.outpath, flags.overwrite)
 		if flags.srcpath != "" {
-			logrus.Info("log2")
 			checkSourcePath(flags.srcpath)
 			if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
 				logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
@@ -171,7 +162,6 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 
 		// Global settings
 		if p.Spec.SourceDir != "" {
-			logrus.Info("log1")
 			checkSourcePath(p.Spec.SourceDir)
 		}
 		lib.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)

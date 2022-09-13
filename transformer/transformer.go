@@ -411,16 +411,18 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 	pathMappings := []transformertypes.PathMapping{}
 	iteration := 1
 	// transform default transformers
-	logrus.Infof("Iteration %d", iteration)
+	graph := graphtypes.NewGraph()
+	startVertexId := graph.AddVertex("start", iteration, nil)
 	for _, transformerByDefault := range transformersByDefault {
-		tDefaultConfig, _ := transformerByDefault.GetConfig()
-		newPathMappings, defaultArtifact, err := transformerByDefault.Transform(nil, nil)
+		tDefaultConfig, defaultEnv := transformerByDefault.GetConfig()
+		newPathMappings, defaultArtifacts, err := runSingleTransform(nil, nil, transformerByDefault, tDefaultConfig, defaultEnv, graph, iteration)
 		if err != nil {
 			logrus.Errorf("failed to transform using the transformer %s. Error: %q", tDefaultConfig.Name, err)
 		}
-		newArtifactsToProcess = append(newArtifactsToProcess, defaultArtifact...)
+		newArtifactsToProcess = append(newArtifactsToProcess, defaultArtifacts...)
 		pathMappings = append(pathMappings, newPathMappings...)
 	}
+	logrus.Infof("Iteration %d", iteration)
 	for _, planArtifact := range planArtifacts {
 		planArtifact.ProcessWith = *metav1.AddLabelToSelector(&planArtifact.ProcessWith, transformertypes.LabelName, string(planArtifact.TransformerName))
 		if planArtifact.Type == "" {
@@ -438,11 +440,9 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 		planArtifact.Configs[artifacts.ServiceConfigType] = serviceConfig
 		newArtifactsToProcess = append(newArtifactsToProcess, planArtifact.Artifact)
 	}
-	allArtifacts = newArtifactsToProcess
 
 	// logging
-	graph := graphtypes.NewGraph()
-	startVertexId := graph.AddVertex("start", iteration, nil)
+	allArtifacts = newArtifactsToProcess
 	for _, artifact := range newArtifactsToProcess {
 		artifact.Configs[graphtypes.GraphSourceVertexKey] = startVertexId
 	}
