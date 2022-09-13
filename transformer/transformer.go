@@ -65,11 +65,11 @@ const (
 )
 
 var (
-	initialized           = false
-	transformerTypes      = map[string]reflect.Type{}
-	transformers          = []Transformer{}
-	transformersByDefault = []Transformer{}
-	transformerMap        = map[string]Transformer{}
+	initialized                  = false
+	transformerTypes             = map[string]reflect.Type{}
+	transformers                 = []Transformer{}
+	invokedByDefaultTransformers = []Transformer{}
+	transformerMap               = map[string]Transformer{}
 )
 
 func init() {
@@ -218,8 +218,8 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		} else {
 			transformers = append(transformers, transformer)
 			transformerMap[selectedTransformerName] = transformer
-			if transformerConfig.Spec.InvokesByDefault.Enabled {
-				transformersByDefault = append(transformersByDefault, transformer)
+			if transformerConfig.Spec.InvokedByDefault.Enabled {
+				invokedByDefaultTransformers = append(invokedByDefaultTransformers, transformer)
 			}
 		}
 	}
@@ -413,9 +413,9 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 	// transform default transformers
 	graph := graphtypes.NewGraph()
 	startVertexId := graph.AddVertex("start", iteration, nil)
-	for _, transformerByDefault := range transformersByDefault {
-		tDefaultConfig, defaultEnv := transformerByDefault.GetConfig()
-		newPathMappings, defaultArtifacts, err := runSingleTransform(nil, nil, transformerByDefault, tDefaultConfig, defaultEnv, graph, iteration)
+	for _, invokedByDefaultTransformer := range invokedByDefaultTransformers {
+		tDefaultConfig, defaultEnv := invokedByDefaultTransformer.GetConfig()
+		newPathMappings, defaultArtifacts, err := runSingleTransform(nil, nil, invokedByDefaultTransformer, tDefaultConfig, defaultEnv, graph, iteration)
 		if err != nil {
 			logrus.Errorf("failed to transform using the transformer %s. Error: %q", tDefaultConfig.Name, err)
 		}

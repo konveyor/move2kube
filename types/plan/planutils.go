@@ -35,6 +35,9 @@ func ReadPlan(path string, sourceDir string) (Plan, error) {
 		logrus.Errorf("Failed to load the plan file at path %q Error %q", path, err)
 		return plan, err
 	}
+	if sourceDir != "" {
+		plan.Spec.SourceDir = sourceDir
+	}
 	if plan.Spec.SourceDir != "" {
 		absSourceDir, err = filepath.Abs(plan.Spec.SourceDir)
 	}

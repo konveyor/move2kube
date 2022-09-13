@@ -146,7 +146,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if p, err = plan.ReadPlan(flags.planfile, sourceDir); err != nil {
 			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.planfile, err)
 		}
-		if len(p.Spec.Services) == 0 && len(p.Spec.TransformersByDefault) == 0 {
+		if len(p.Spec.Services) == 0 && len(p.Spec.InvokedByDefaultTransformers) == 0 {
 			logrus.Debugf("Plan : %+v", p)
 			logrus.Fatalf("Failed to find any services or default transformers. Aborting.")
 		}
@@ -167,10 +167,8 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		lib.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)
 		flags.outpath = filepath.Join(flags.outpath, p.Name)
 		checkOutputPath(flags.outpath, flags.overwrite)
-		if p.Spec.SourceDir != "" {
-			if p.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.SourceDir) || common.IsParent(p.Spec.SourceDir, flags.outpath) {
-				logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.SourceDir, flags.outpath)
-			}
+		if p.Spec.SourceDir != "" && (p.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.SourceDir) || common.IsParent(p.Spec.SourceDir, flags.outpath)) {
+			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.SourceDir, flags.outpath)
 		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)

@@ -46,11 +46,11 @@ type TransformerSpec struct {
 	OverrideSelector   labels.Selector                        `yaml:"-" json:"-"`
 	TemplatesDir       string                                 `yaml:"templates" json:"templates"` // Relative to yaml directory or working directory in image
 	Config             interface{}                            `yaml:"config" json:"config"`
-	InvokesByDefault   InvokesByDefault                       `yaml:"invokesByDefault" json:"invokesByDefault"`
+	InvokedByDefault   InvokedByDefault                       `yaml:"invokedByDefault" json:"invokedByDefault"`
 }
 
-// InvokesByDefault stores config to toggle default transformers
-type InvokesByDefault struct {
+// InvokedByDefault stores config to toggle transformers invoke by default
+type InvokedByDefault struct {
 	Enabled bool `yaml:"enabled" json:"enabled"`
 }
 
