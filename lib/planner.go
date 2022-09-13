@@ -52,13 +52,20 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	for _, t := range ts {
 		config, _ := t.GetConfig()
 		p.Spec.Transformers[config.Name] = config.Spec.FilePath
+
+		// add default transformers to the plan file
+		if config.Spec.InvokedByDefault.Enabled {
+			p.Spec.InvokedByDefaultTransformers = append(p.Spec.InvokedByDefaultTransformers, config.Name)
+		}
 	}
 	logrus.Infoln("Configuration loading done")
 
 	logrus.Infoln("Start planning")
-	p.Spec.Services, err = transformer.GetServices(p.Name, inputPath)
-	if err != nil {
-		logrus.Errorf("Unable to create plan : %s", err)
+	if inputPath != "" {
+		p.Spec.Services, err = transformer.GetServices(p.Name, inputPath)
+		if err != nil {
+			logrus.Errorf("Unable to create plan : %s", err)
+		}
 	}
 	logrus.Infoln("Planning done")
 	logrus.Infof("No of services identified : %d", len(p.Spec.Services))

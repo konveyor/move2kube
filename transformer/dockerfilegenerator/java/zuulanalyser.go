@@ -45,10 +45,14 @@ type Zuul struct {
 func (t *ZuulAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
-	yamlpaths, err := common.GetFilesByExt(env.GetEnvironmentSource(), []string{".yaml", ".yml"})
-	if err != nil {
-		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", env.GetEnvironmentSource(), err)
-		return err
+	envSource := env.GetEnvironmentSource()
+	var yamlpaths []string
+	if envSource != "" {
+		yamlpaths, err = common.GetFilesByExt(env.GetEnvironmentSource(), []string{".yaml", ".yml"})
+		if err != nil {
+			logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", env.GetEnvironmentSource(), err)
+			return err
+		}
 	}
 	t.services = map[string]string{}
 	for _, path := range yamlpaths {

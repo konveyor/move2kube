@@ -38,7 +38,8 @@ type Spec struct {
 	SourceDir         string `yaml:"sourceDir"`
 	CustomizationsDir string `yaml:"customizationsDir,omitempty"`
 
-	Services map[string][]PlanArtifact `yaml:"services"` //[servicename]
+	Services                     map[string][]PlanArtifact `yaml:"services"` //[servicename]
+	InvokedByDefaultTransformers []string                  `yaml:"invokedByDefaultTransformers,omitempty"`
 
 	TransformerSelector metav1.LabelSelector `yaml:"transformerSelector,omitempty"`
 	Transformers        map[string]string    `yaml:"transformers,omitempty" m2kpath:"normal"` //[name]filepath
@@ -63,8 +64,9 @@ func NewPlan() Plan {
 			Name: common.DefaultProjectName,
 		},
 		Spec: Spec{
-			Services:     map[string][]PlanArtifact{},
-			Transformers: map[string]string{},
+			Services:                     map[string][]PlanArtifact{},
+			Transformers:                 map[string]string{},
+			InvokedByDefaultTransformers: []string{},
 		},
 	}
 	return plan

@@ -120,16 +120,15 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if cmd.Flags().Changed(planFlag) {
 			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.planfile, err)
 		}
-		if !cmd.Flags().Changed(sourceFlag) {
-			logrus.Fatalf("Invalid usage. Must specify either path to a plan file or path to directory containing source code.")
-		}
 
 		// Global settings
-		checkSourcePath(flags.srcpath)
 		flags.outpath = filepath.Join(flags.outpath, flags.name)
 		checkOutputPath(flags.outpath, flags.overwrite)
-		if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
-			logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
+		if flags.srcpath != "" {
+			checkSourcePath(flags.srcpath)
+			if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
+				logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
+			}
 		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
@@ -147,9 +146,9 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if p, err = plan.ReadPlan(flags.planfile, sourceDir); err != nil {
 			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.planfile, err)
 		}
-		if len(p.Spec.Services) == 0 {
+		if len(p.Spec.Services) == 0 && len(p.Spec.InvokedByDefaultTransformers) == 0 {
 			logrus.Debugf("Plan : %+v", p)
-			logrus.Fatalf("Failed to find any services. Aborting.")
+			logrus.Fatalf("Failed to find any services or default transformers. Aborting.")
 		}
 		if cmd.Flags().Changed(nameFlag) {
 			p.Name = flags.name
@@ -162,11 +161,13 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 
 		// Global settings
-		checkSourcePath(p.Spec.SourceDir)
+		if p.Spec.SourceDir != "" {
+			checkSourcePath(p.Spec.SourceDir)
+		}
 		lib.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)
 		flags.outpath = filepath.Join(flags.outpath, p.Name)
 		checkOutputPath(flags.outpath, flags.overwrite)
-		if p.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.SourceDir) || common.IsParent(p.Spec.SourceDir, flags.outpath) {
+		if p.Spec.SourceDir != "" && (p.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.SourceDir) || common.IsParent(p.Spec.SourceDir, flags.outpath)) {
 			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.SourceDir, flags.outpath)
 		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {

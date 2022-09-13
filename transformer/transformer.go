@@ -65,10 +65,11 @@ const (
 )
 
 var (
-	initialized      = false
-	transformerTypes = map[string]reflect.Type{}
-	transformers     = []Transformer{}
-	transformerMap   = map[string]Transformer{}
+	initialized                  = false
+	transformerTypes             = map[string]reflect.Type{}
+	transformers                 = []Transformer{}
+	invokedByDefaultTransformers = []Transformer{}
+	transformerMap               = map[string]Transformer{}
 )
 
 func init() {
@@ -217,6 +218,9 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		} else {
 			transformers = append(transformers, transformer)
 			transformerMap[selectedTransformerName] = transformer
+			if transformerConfig.Spec.InvokedByDefault.Enabled {
+				invokedByDefaultTransformers = append(invokedByDefaultTransformers, transformer)
+			}
 		}
 	}
 	initialized = true
@@ -406,6 +410,18 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 	newArtifactsToProcess := []transformertypes.Artifact{}
 	pathMappings := []transformertypes.PathMapping{}
 	iteration := 1
+	// transform default transformers
+	graph := graphtypes.NewGraph()
+	startVertexId := graph.AddVertex("start", iteration, nil)
+	for _, invokedByDefaultTransformer := range invokedByDefaultTransformers {
+		tDefaultConfig, defaultEnv := invokedByDefaultTransformer.GetConfig()
+		newPathMappings, defaultArtifacts, err := runSingleTransform(nil, nil, invokedByDefaultTransformer, tDefaultConfig, defaultEnv, graph, iteration)
+		if err != nil {
+			logrus.Errorf("failed to transform using the transformer %s. Error: %q", tDefaultConfig.Name, err)
+		}
+		newArtifactsToProcess = append(newArtifactsToProcess, defaultArtifacts...)
+		pathMappings = append(pathMappings, newPathMappings...)
+	}
 	logrus.Infof("Iteration %d", iteration)
 	for _, planArtifact := range planArtifacts {
 		planArtifact.ProcessWith = *metav1.AddLabelToSelector(&planArtifact.ProcessWith, transformertypes.LabelName, string(planArtifact.TransformerName))
@@ -424,11 +440,9 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 		planArtifact.Configs[artifacts.ServiceConfigType] = serviceConfig
 		newArtifactsToProcess = append(newArtifactsToProcess, planArtifact.Artifact)
 	}
-	allArtifacts = newArtifactsToProcess
 
 	// logging
-	graph := graphtypes.NewGraph()
-	startVertexId := graph.AddVertex("start", iteration, nil)
+	allArtifacts = newArtifactsToProcess
 	for _, artifact := range newArtifactsToProcess {
 		artifact.Configs[graphtypes.GraphSourceVertexKey] = startVertexId
 	}
