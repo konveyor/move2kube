@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig"
@@ -145,6 +146,15 @@ func templateCopyDeletionCallBack(source, destination string, addOnConfigAsIface
 	return nil
 }
 
+// execTemplate executes the template and returns the filled template
+func execTemplate(t *template.Template) func(string, interface{}) (string, error) {
+	return func(name string, v interface{}) (string, error) {
+		var buf strings.Builder
+		err := t.ExecuteTemplate(&buf, name, v)
+		return buf.String(), err
+	}
+}
+
 // writeTemplateToFile writes a templated string to a file
 func writeTemplateToFile(tpl string, config interface{}, writepath string,
 	filemode os.FileMode, openingDelimiter string, closingDelimiter string) error {
@@ -153,7 +163,14 @@ func writeTemplateToFile(tpl string, config interface{}, writepath string,
 		openingDelimiter = "{{"
 		closingDelimiter = "}}"
 	}
-	packageTemplate, err := template.New("").Delims(openingDelimiter, closingDelimiter).Funcs(sprig.TxtFuncMap()).Parse(tpl)
+	packageTemplate := template.New("")
+	var err error
+	methodMap := template.FuncMap{
+		"execTemplate":   execTemplate(packageTemplate),
+		"encAesCbcPbkdf": common.EncryptAesCbcWithPbkdfWrapper,
+		"encRsaCert":     common.EncryptRsaCertWrapper,
+	}
+	template.Must(packageTemplate.Delims(openingDelimiter, closingDelimiter).Funcs(sprig.TxtFuncMap()).Funcs(methodMap).Parse(tpl))
 	if err != nil {
 		logrus.Errorf("Unable to parse the template : %s", err)
 		return err
