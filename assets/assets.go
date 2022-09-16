@@ -27,3 +27,7 @@ var AssetsDir embed.FS
 //AssetFilePermissions is embedded file having permissions information for the assets
 //go:embed filepermissions.yaml
 var AssetFilePermissions string
+
+//IbmHyperProtectCert is embedded file having IBM Hyper Protect encryption certificate
+//go:embed ibm-hyper-protect-container-runtime-1-0-s390x-4-encrypt.crt
+var IbmHyperProtectCert string
