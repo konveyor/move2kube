@@ -26,18 +26,12 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/konveyor/move2kube/assets"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/pbkdf2"
 )
 
-// RsaCertEncryptWrapper can be used to encrypt the data using RSA PKCS1v15 algorithm with certificate as key
-func RsaCertEncryptWrapper(certificate string, data string) string {
-	if certificate == "" {
-		logrus.Info("using certificate from IBM Hyper Protect Container Runtime")
-		certificate = assets.IbmHyperProtectCert
-	}
+// EncryptRsaCertWrapper can be used to encrypt the data using RSA PKCS1v15 algorithm with certificate as key
+func EncryptRsaCertWrapper(certificate string, data string) string {
 
 	rsaPublicKey, err := getRSAPublicKeyFromCertificate([]byte(certificate))
 	if err != nil {
@@ -52,8 +46,8 @@ func RsaCertEncryptWrapper(certificate string, data string) string {
 	return string(out)
 }
 
-// AesCbcEncryptWithPbkdfWrapper can be used to encrypt the data using AES 256 CBC mode with Pbkdf key derivation
-func AesCbcEncryptWithPbkdfWrapper(key string, data string) string {
+// EncryptAesCbcWithPbkdfWrapper can be used to encrypt the data using AES 256 CBC mode with Pbkdf key derivation
+func EncryptAesCbcWithPbkdfWrapper(key string, data string) string {
 	salt := make([]byte, 16)
 	_, err := rand.Read(salt)
 	if err != nil {

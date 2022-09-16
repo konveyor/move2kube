@@ -146,8 +146,8 @@ func templateCopyDeletionCallBack(source, destination string, addOnConfigAsIface
 	return nil
 }
 
-// execTpl executes the template and returns the filled template
-func execTpl(t *template.Template) func(string, interface{}) (string, error) {
+// execTemplate executes the template and returns the filled template
+func execTemplate(t *template.Template) func(string, interface{}) (string, error) {
 	return func(name string, v interface{}) (string, error) {
 		var buf strings.Builder
 		err := t.ExecuteTemplate(&buf, name, v)
@@ -166,9 +166,9 @@ func writeTemplateToFile(tpl string, config interface{}, writepath string,
 	packageTemplate := template.New("")
 	var err error
 	methodMap := template.FuncMap{
-		"execTpl":        execTpl(packageTemplate),
-		"aesCbcPbkdfEnc": common.AesCbcEncryptWithPbkdfWrapper,
-		"rsaCertEnc":     common.RsaCertEncryptWrapper,
+		"execTemplate":   execTemplate(packageTemplate),
+		"encAesCbcPbkdf": common.EncryptAesCbcWithPbkdfWrapper,
+		"encRsaCert":     common.EncryptRsaCertWrapper,
 	}
 	template.Must(packageTemplate.Delims(openingDelimiter, closingDelimiter).Funcs(sprig.TxtFuncMap()).Funcs(methodMap).Parse(tpl))
 	if err != nil {
