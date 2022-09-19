@@ -52,6 +52,7 @@ const (
 	transformerConfigVarName = "config"
 	projectVarName           = "project"
 	resourcesDirVarName      = "resources_dir"
+	outputDirVarName         = "output_dir"
 
 	// Function names
 	qaFnName = "query"
@@ -121,6 +122,11 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Enviro
 	t.StarGlobals[sourceDirVarName], err = starutil.Marshal(env.GetEnvironmentSource())
 	if err != nil {
 		logrus.Errorf("Unable to load source : %s", err)
+		return err
+	}
+	t.StarGlobals[outputDirVarName], err = starutil.Marshal(env.GetEnvironmentOutput())
+	if err != nil {
+		logrus.Errorf("Unable to load output : %s", err)
 		return err
 	}
 	t.StarGlobals[tempDirVarName], err = starutil.Marshal(env.TempPath)
