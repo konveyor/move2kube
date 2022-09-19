@@ -51,6 +51,7 @@ const (
 	templatesRelDirVarName   = "templates_reldir"
 	transformerConfigVarName = "config"
 	projectVarName           = "project"
+	assetsDirVarName         = "assets_dir"
 
 	// Function names
 	qaFnName = "query"
@@ -128,6 +129,11 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Enviro
 		return err
 	}
 	t.StarGlobals[templatesRelDirVarName], err = starutil.Marshal(env.RelTemplatesDir)
+	if err != nil {
+		logrus.Errorf("Unable to load source : %s", err)
+		return err
+	}
+	t.StarGlobals[assetsDirVarName], err = starutil.Marshal(filepath.Join(env.GetEnvironmentContext(), "assets"))
 	if err != nil {
 		logrus.Errorf("Unable to load source : %s", err)
 		return err
