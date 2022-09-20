@@ -17,6 +17,9 @@
 package common
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -25,6 +28,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
+	"os"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/pbkdf2"
@@ -130,4 +136,74 @@ func aesCbcEncryptWithPbkdf(password, salt, plainText []byte) ([]byte, error) {
 // http://justsolve.archiveteam.org/wiki/OpenSSL_salted_format
 func toOpenSSLFormat(salt, cipherText []byte) []byte {
 	return append(append([]byte("Salted__"), salt...), cipherText...)
+}
+
+// CreateTarArchiveStringWrapper can be used to archive a set of files and return tar archive string
+func CreateTarArchiveStringWrapper(filePathsStr string) string {
+	// get files slice from string delimited by ,
+	files := strings.Split(filePathsStr, ",")
+
+	// create a new writer
+	buf := new(bytes.Buffer)
+	err := createTarArchive(files, buf)
+	if err != nil {
+		logrus.Errorf("failed to create tar archive for the given files : %s", err)
+	}
+
+	return buf.String()
+
+}
+
+func createTarArchive(files []string, buf io.Writer) error {
+	// create writer for gzip
+	gzipWriter := gzip.NewWriter(buf)
+	defer gzipWriter.Close()
+	// create writer for tar
+	tarWriter := tar.NewWriter(gzipWriter)
+	defer tarWriter.Close()
+	for _, file := range files {
+		err := addFileToTar(tarWriter, file)
+		if err != nil {
+			return fmt.Errorf("failed to add file to archive : %s", err)
+		}
+	}
+
+	return nil
+}
+
+func addFileToTar(tarWriter *tar.Writer, filename string) error {
+	// open the file
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// get file info
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	// create tar header
+	header, err := tar.FileInfoHeader(info, "")
+	if err != nil {
+		return err
+	}
+
+	// set file name in the header
+	header.Name = filename
+
+	// write file header to tar
+	err = tarWriter.WriteHeader(header)
+	if err != nil {
+		return err
+	}
+
+	// copy the file content in to the tar
+	_, err = io.Copy(tarWriter, file)
+	if err != nil {
+		return err
+	}
+	return nil
 }
