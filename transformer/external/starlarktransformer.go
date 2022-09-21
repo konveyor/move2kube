@@ -70,11 +70,11 @@ const (
 	fspathRelFnName              = "pathrel"
 
 	// encryption functions
-	encaescbcpbkdfFnName = "encaescbcpbkdf"
-	encrsacertFnName     = "encrsacert"
+	encAesCbcPbkdfFnName = "enc_aes_cbc_pbkdf"
+	encRsaCertFnName     = "enc_rsa_cert"
 	// archival functions
-	archtargzipstrFnName = "archtargzipstr"
-	archtarstrFnName     = "archtarstr"
+	archTarGZipStrFnName = "arch_tar_gzip_str"
+	archTarStrFnName     = "arch_tar_str"
 )
 
 // Starlark implements transformer interface and is used to write simple external transformers
@@ -346,8 +346,8 @@ func (t *Starlark) addCryptoModules() {
 	t.StarGlobals["crypto"] = &starlarkstruct.Module{
 		Name: "crypto",
 		Members: starlark.StringDict{
-			encaescbcpbkdfFnName: t.getStarlarkEncAesCbcPbkdf(),
-			encrsacertFnName:     t.getStarlarkEncRsaCert(),
+			encAesCbcPbkdfFnName: t.getStarlarkEncAesCbcPbkdf(),
+			encRsaCertFnName:     t.getStarlarkEncRsaCert(),
 		},
 	}
 }
@@ -356,8 +356,8 @@ func (t *Starlark) addArchiveModules() {
 	t.StarGlobals["archive"] = &starlarkstruct.Module{
 		Name: "archive",
 		Members: starlark.StringDict{
-			archtargzipstrFnName: t.getStarlarkArchTarGZipStr(),
-			archtarstrFnName:     t.getStarlarkArchTarStr(),
+			archTarGZipStrFnName: t.getStarlarkArchTarGZipStr(),
+			archTarStrFnName:     t.getStarlarkArchTarStr(),
 		},
 	}
 }
@@ -692,9 +692,9 @@ func (t *Starlark) getStarlarkFSPathRel() *starlark.Builtin {
 }
 
 func (t *Starlark) getStarlarkEncAesCbcPbkdf() *starlark.Builtin {
-	return starlark.NewBuiltin(encaescbcpbkdfFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.NewBuiltin(encAesCbcPbkdfFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var key, data string
-		if err := starlark.UnpackPositionalArgs(encaescbcpbkdfFnName, args, kwargs, 2, &key, &data); err != nil {
+		if err := starlark.UnpackPositionalArgs(encAesCbcPbkdfFnName, args, kwargs, 2, &key, &data); err != nil {
 			return nil, err
 		}
 		return starlark.String(common.EncryptAesCbcWithPbkdfWrapper(key, data)), nil
@@ -702,9 +702,9 @@ func (t *Starlark) getStarlarkEncAesCbcPbkdf() *starlark.Builtin {
 }
 
 func (t *Starlark) getStarlarkEncRsaCert() *starlark.Builtin {
-	return starlark.NewBuiltin(encrsacertFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.NewBuiltin(encRsaCertFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var certificate, data string
-		if err := starlark.UnpackPositionalArgs(encrsacertFnName, args, kwargs, 2, &certificate, &data); err != nil {
+		if err := starlark.UnpackPositionalArgs(encRsaCertFnName, args, kwargs, 2, &certificate, &data); err != nil {
 			return nil, err
 		}
 		return starlark.String(common.EncryptRsaCertWrapper(certificate, data)), nil
@@ -712,9 +712,9 @@ func (t *Starlark) getStarlarkEncRsaCert() *starlark.Builtin {
 }
 
 func (t *Starlark) getStarlarkArchTarGZipStr() *starlark.Builtin {
-	return starlark.NewBuiltin(archtargzipstrFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.NewBuiltin(archTarGZipStrFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var srcDir string
-		if err := starlark.UnpackPositionalArgs(archtargzipstrFnName, args, kwargs, 1, &srcDir); err != nil {
+		if err := starlark.UnpackPositionalArgs(archTarGZipStrFnName, args, kwargs, 1, &srcDir); err != nil {
 			return nil, err
 		}
 		if !t.Env.IsPathValid(srcDir) {
@@ -725,9 +725,9 @@ func (t *Starlark) getStarlarkArchTarGZipStr() *starlark.Builtin {
 }
 
 func (t *Starlark) getStarlarkArchTarStr() *starlark.Builtin {
-	return starlark.NewBuiltin(archtarstrFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.NewBuiltin(archTarStrFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var srcDir string
-		if err := starlark.UnpackPositionalArgs(archtarstrFnName, args, kwargs, 1, &srcDir); err != nil {
+		if err := starlark.UnpackPositionalArgs(archTarStrFnName, args, kwargs, 1, &srcDir); err != nil {
 			return nil, err
 		}
 		if !t.Env.IsPathValid(srcDir) {
