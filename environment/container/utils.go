@@ -29,7 +29,7 @@ import (
 )
 
 func copyDirToContainer(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
-	reader := common.ReadDirAsTar(src, dst, common.DefaultCompressionType)
+	reader := common.ReadDirAsTar(src, dst, common.NoCompression)
 	if reader == nil {
 		err := fmt.Errorf("error during create tar archive from '%s'", src)
 		logrus.Error(err)
@@ -75,7 +75,7 @@ func copyFromContainer(ctx context.Context, cli *client.Client, containerID stri
 }
 
 func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
-	reader := common.ReadDirAsTar(src, dst, common.DefaultCompressionType)
+	reader := common.ReadDirAsTar(src, dst, common.NoCompression)
 	if reader == nil {
 		err := fmt.Errorf("error during create tar archive from '%s'", src)
 		logrus.Error(err)

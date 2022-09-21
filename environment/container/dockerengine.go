@@ -246,7 +246,7 @@ func (e *dockerEngine) CopyDirsFromContainer(containerID string, paths map[strin
 // BuildImage creates a container
 func (e *dockerEngine) BuildImage(image, context, dockerfile string) (err error) {
 	logrus.Infof("Building container image %s. This could take a few mins.", image)
-	reader := common.ReadDirAsTar(context, "", common.DefaultCompressionType)
+	reader := common.ReadDirAsTar(context, "", common.NoCompression)
 	resp, err := e.cli.ImageBuild(e.ctx, reader, types.ImageBuildOptions{
 		Dockerfile: dockerfile,
 		Tags:       []string{image},

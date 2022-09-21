@@ -1349,6 +1349,23 @@ func CreateTarArchiveGZipStringWrapper(srcDir string) string {
 
 }
 
+// CreateTarArchiveStringWrapper can be used to archive a set of files and compression without compression and return tar archive string
+func CreateTarArchiveStringWrapper(srcDir string) string {
+	reader := ReadDirAsTar(srcDir, "", NoCompression)
+	if reader == nil {
+		logrus.Errorf("error during create tar archive from '%s'", srcDir)
+	}
+	defer reader.Close()
+	buf := new(bytes.Buffer)
+	_, err := io.Copy(buf, reader)
+	if err != nil {
+		logrus.Errorf("failed to copy bytes to buffer : %s", err)
+	}
+
+	return buf.String()
+
+}
+
 // ReadDirAsTar creates the Tar with given compression format and return ReadCloser interface
 func ReadDirAsTar(srcDir, basePath string, compressionType CompressionType) io.ReadCloser {
 	errChan := make(chan error)

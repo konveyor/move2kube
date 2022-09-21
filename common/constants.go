@@ -226,6 +226,6 @@ type CompressionType = string
 const (
 	// GZipCompressionType allows archival using gzip compression format
 	GZipCompressionType CompressionType = "GZip"
-	// DefaultCompressionType allows archival without compression
-	DefaultCompressionType CompressionType = "Default"
+	// NoCompression allows archival without compression
+	NoCompression CompressionType = "None"
 )
