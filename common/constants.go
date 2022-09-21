@@ -219,3 +219,13 @@ var PlanProgressNumBaseDetectTransformers = 0
 
 // PlanProgressNumDirectories keeps track of the number of files/folders analyzed during planning
 var PlanProgressNumDirectories = 0
+
+// CompressionType refers to the compression type
+type CompressionType = string
+
+const (
+	// GZipCompressionType allows archival using gzip compression format
+	GZipCompressionType CompressionType = "GZip"
+	// DefaultCompressionType allows archival without compression
+	DefaultCompressionType CompressionType = "Default"
+)

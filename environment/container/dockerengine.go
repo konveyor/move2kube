@@ -28,6 +28,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/konveyor/move2kube/common"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -245,7 +246,7 @@ func (e *dockerEngine) CopyDirsFromContainer(containerID string, paths map[strin
 // BuildImage creates a container
 func (e *dockerEngine) BuildImage(image, context, dockerfile string) (err error) {
 	logrus.Infof("Building container image %s. This could take a few mins.", image)
-	reader := readDirAsTar(context, "")
+	reader := common.ReadDirAsTar(context, "", common.DefaultCompressionType)
 	resp, err := e.cli.ImageBuild(e.ctx, reader, types.ImageBuildOptions{
 		Dockerfile: dockerfile,
 		Tags:       []string{image},

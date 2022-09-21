@@ -17,7 +17,9 @@
 package common
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"embed"
 	"encoding/json"
@@ -39,6 +41,7 @@ import (
 	"unicode"
 
 	"github.com/Masterminds/sprig"
+	"github.com/docker/docker/pkg/ioutils"
 	"github.com/go-git/go-git/v5"
 	"github.com/konveyor/move2kube/types"
 	"github.com/mitchellh/mapstructure"
@@ -1327,4 +1330,113 @@ func ReplaceStartingTerminatingHyphens(str, startReplaceStr, endReplaceStr strin
 		str = str[:len(str)-1] + endReplaceStr
 	}
 	return str
+}
+
+// CreateTarArchiveGZipStringWrapper can be used to archive a set of files and compression using gzip and return tar archive string
+func CreateTarArchiveGZipStringWrapper(srcDir string) string {
+	reader := ReadDirAsTar(srcDir, "", GZipCompressionType)
+	if reader == nil {
+		logrus.Errorf("error during create tar archive from '%s'", srcDir)
+	}
+	defer reader.Close()
+	buf := new(bytes.Buffer)
+	_, err := io.Copy(buf, reader)
+	if err != nil {
+		logrus.Errorf("failed to copy bytes to buffer : %s", err)
+	}
+
+	return buf.String()
+
+}
+
+// ReadDirAsTar creates the Tar with given compression format and return ReadCloser interface
+func ReadDirAsTar(srcDir, basePath string, compressionType CompressionType) io.ReadCloser {
+	errChan := make(chan error)
+	pr, pw := io.Pipe()
+	go func() {
+		err := writeDirToTar(pw, srcDir, basePath, compressionType)
+		errChan <- err
+	}()
+	closed := false
+	return ioutils.NewReadCloserWrapper(pr, func() error {
+		if closed {
+			return errors.New("reader already closed")
+		}
+		perr := pr.Close()
+		if err := <-errChan; err != nil {
+			closed = true
+			if perr == nil {
+				return err
+			}
+			return fmt.Errorf("%s - %s", perr, err)
+		}
+		closed = true
+		return nil
+	})
+}
+
+func writeDirToTar(w *io.PipeWriter, srcDir, basePath string, compressionType CompressionType) error {
+	defer w.Close()
+	var tw *tar.Writer
+	switch compressionType {
+	case GZipCompressionType:
+		// create writer for gzip
+		gzipWriter := gzip.NewWriter(w)
+		defer gzipWriter.Close()
+		tw = tar.NewWriter(gzipWriter)
+	default:
+		tw = tar.NewWriter(w)
+	}
+	defer tw.Close()
+	return filepath.Walk(srcDir, func(file string, fi os.FileInfo, err error) error {
+		if err != nil {
+			logrus.Debugf("Error walking folder to copy to container : %s", err)
+			return err
+		}
+		if fi.Mode()&os.ModeSocket != 0 {
+			return nil
+		}
+		var header *tar.Header
+		if fi.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(file)
+			if err != nil {
+				return err
+			}
+			// Ensure that symlinks have Linux link names
+			header, err = tar.FileInfoHeader(fi, filepath.ToSlash(target))
+			if err != nil {
+				return err
+			}
+		} else {
+			header, err = tar.FileInfoHeader(fi, fi.Name())
+			if err != nil {
+				return err
+			}
+		}
+		relPath, err := filepath.Rel(srcDir, file)
+		if err != nil {
+			logrus.Debugf("Error walking folder to copy to container : %s", err)
+			return err
+		} else if relPath == "." {
+			return nil
+		}
+		header.Name = filepath.ToSlash(filepath.Join(basePath, relPath))
+		if err := tw.WriteHeader(header); err != nil {
+			logrus.Debugf("Error walking folder to copy to container : %s", err)
+			return err
+		}
+		if fi.Mode().IsRegular() {
+			f, err := os.Open(file)
+			if err != nil {
+				logrus.Debugf("Error walking folder to copy to container : %s", err)
+				return err
+			}
+			defer f.Close()
+			if _, err := io.Copy(tw, f); err != nil {
+				logrus.Debugf("Error walking folder to copy to container : %s", err)
+				return err
+			}
+		}
+		return nil
+	})
 }

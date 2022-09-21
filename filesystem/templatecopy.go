@@ -169,7 +169,7 @@ func writeTemplateToFile(tpl string, config interface{}, writepath string,
 		"execTemplate":   execTemplate(packageTemplate),
 		"encAesCbcPbkdf": common.EncryptAesCbcWithPbkdfWrapper,
 		"encRsaCert":     common.EncryptRsaCertWrapper,
-		"archTarStr":     common.CreateTarArchiveStringWrapper,
+		"archTarGZipStr": common.CreateTarArchiveGZipStringWrapper,
 	}
 	template.Must(packageTemplate.Delims(openingDelimiter, closingDelimiter).Funcs(sprig.TxtFuncMap()).Funcs(methodMap).Parse(tpl))
 	if err != nil {
