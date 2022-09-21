@@ -1334,35 +1334,40 @@ func ReplaceStartingTerminatingHyphens(str, startReplaceStr, endReplaceStr strin
 
 // CreateTarArchiveGZipStringWrapper can be used to archive a set of files and compression using gzip and return tar archive string
 func CreateTarArchiveGZipStringWrapper(srcDir string) string {
-	reader := ReadDirAsTar(srcDir, "", GZipCompressionType)
-	if reader == nil {
-		logrus.Errorf("error during create tar archive from '%s'", srcDir)
-	}
-	defer reader.Close()
-	buf := new(bytes.Buffer)
-	_, err := io.Copy(buf, reader)
+	archivedData, err := createTarArchive(srcDir, GZipCompression)
 	if err != nil {
-		logrus.Errorf("failed to copy bytes to buffer : %s", err)
+		logrus.Errorf("failed to create archive string with the given compression mode %s : %s", NoCompression, err)
 	}
 
-	return buf.String()
+	return archivedData.String()
 
 }
 
-// CreateTarArchiveStringWrapper can be used to archive a set of files and compression without compression and return tar archive string
-func CreateTarArchiveStringWrapper(srcDir string) string {
-	reader := ReadDirAsTar(srcDir, "", NoCompression)
-	if reader == nil {
-		logrus.Errorf("error during create tar archive from '%s'", srcDir)
+// CreateTarArchiveNoCompressionStringWrapper can be used to archive a set of files and compression without compression and return tar archive string
+func CreateTarArchiveNoCompressionStringWrapper(srcDir string) string {
+	archivedData, err := createTarArchive(srcDir, NoCompression)
+	if err != nil {
+		logrus.Errorf("failed to create archive string with the given compression mode %s : %s", NoCompression, err)
 	}
+
+	return archivedData.String()
+
+}
+
+func createTarArchive(srcDir string, compressionType CompressionType) (*bytes.Buffer, error) {
+	reader := ReadDirAsTar(srcDir, "", compressionType)
+	if reader == nil {
+		return nil, fmt.Errorf("error during create tar archive from '%s'", srcDir)
+	}
+
 	defer reader.Close()
 	buf := new(bytes.Buffer)
 	_, err := io.Copy(buf, reader)
 	if err != nil {
-		logrus.Errorf("failed to copy bytes to buffer : %s", err)
+		return nil, fmt.Errorf("failed to copy bytes to buffer : %s", err)
 	}
 
-	return buf.String()
+	return buf, nil
 
 }
 
@@ -1396,7 +1401,7 @@ func writeDirToTar(w *io.PipeWriter, srcDir, basePath string, compressionType Co
 	defer w.Close()
 	var tw *tar.Writer
 	switch compressionType {
-	case GZipCompressionType:
+	case GZipCompression:
 		// create writer for gzip
 		gzipWriter := gzip.NewWriter(w)
 		defer gzipWriter.Close()

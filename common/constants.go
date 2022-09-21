@@ -224,8 +224,8 @@ var PlanProgressNumDirectories = 0
 type CompressionType = string
 
 const (
-	// GZipCompressionType allows archival using gzip compression format
-	GZipCompressionType CompressionType = "GZip"
+	// GZipCompression allows archival using gzip compression format
+	GZipCompression CompressionType = "GZip"
 	// NoCompression allows archival without compression
 	NoCompression CompressionType = "None"
 )
