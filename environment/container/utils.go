@@ -17,23 +17,19 @@
 package container
 
 import (
-	"archive/tar"
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/ioutils"
+	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 )
 
 func copyDirToContainer(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
-	reader := readDirAsTar(src, dst)
+	reader := common.ReadDirAsTar(src, dst, common.NoCompression)
 	if reader == nil {
 		err := fmt.Errorf("error during create tar archive from '%s'", src)
 		logrus.Error(err)
@@ -78,90 +74,8 @@ func copyFromContainer(ctx context.Context, cli *client.Client, containerID stri
 	return archive.CopyTo(preArchive, copyInfo, destPath)
 }
 
-func readDirAsTar(srcDir, basePath string) io.ReadCloser {
-	errChan := make(chan error)
-	pr, pw := io.Pipe()
-	go func() {
-		err := writeDirToTar(pw, srcDir, basePath)
-		errChan <- err
-	}()
-	closed := false
-	return ioutils.NewReadCloserWrapper(pr, func() error {
-		if closed {
-			return errors.New("reader already closed")
-		}
-		perr := pr.Close()
-		if err := <-errChan; err != nil {
-			closed = true
-			if perr == nil {
-				return err
-			}
-			return fmt.Errorf("%s - %s", perr, err)
-		}
-		closed = true
-		return nil
-	})
-}
-
-func writeDirToTar(w *io.PipeWriter, srcDir, basePath string) error {
-	defer w.Close()
-	tw := tar.NewWriter(w)
-	defer tw.Close()
-	return filepath.Walk(srcDir, func(file string, fi os.FileInfo, err error) error {
-		if err != nil {
-			logrus.Debugf("Error walking folder to copy to container : %s", err)
-			return err
-		}
-		if fi.Mode()&os.ModeSocket != 0 {
-			return nil
-		}
-		var header *tar.Header
-		if fi.Mode()&os.ModeSymlink != 0 {
-			target, err := os.Readlink(file)
-			if err != nil {
-				return err
-			}
-			// Ensure that symlinks have Linux link names
-			header, err = tar.FileInfoHeader(fi, filepath.ToSlash(target))
-			if err != nil {
-				return err
-			}
-		} else {
-			header, err = tar.FileInfoHeader(fi, fi.Name())
-			if err != nil {
-				return err
-			}
-		}
-		relPath, err := filepath.Rel(srcDir, file)
-		if err != nil {
-			logrus.Debugf("Error walking folder to copy to container : %s", err)
-			return err
-		} else if relPath == "." {
-			return nil
-		}
-		header.Name = filepath.ToSlash(filepath.Join(basePath, relPath))
-		if err := tw.WriteHeader(header); err != nil {
-			logrus.Debugf("Error walking folder to copy to container : %s", err)
-			return err
-		}
-		if fi.Mode().IsRegular() {
-			f, err := os.Open(file)
-			if err != nil {
-				logrus.Debugf("Error walking folder to copy to container : %s", err)
-				return err
-			}
-			defer f.Close()
-			if _, err := io.Copy(tw, f); err != nil {
-				logrus.Debugf("Error walking folder to copy to container : %s", err)
-				return err
-			}
-		}
-		return nil
-	})
-}
-
 func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
-	reader := readDirAsTar(src, dst)
+	reader := common.ReadDirAsTar(src, dst, common.NoCompression)
 	if reader == nil {
 		err := fmt.Errorf("error during create tar archive from '%s'", src)
 		logrus.Error(err)
