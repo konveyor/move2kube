@@ -1333,8 +1333,8 @@ func ReplaceStartingTerminatingHyphens(str, startReplaceStr, endReplaceStr strin
 }
 
 // CreateTarArchiveGZipStringWrapper can be used to archive a set of files and compression using gzip and return tar archive string
-func CreateTarArchiveGZipStringWrapper(srcDir string) string {
-	archivedData, err := createTarArchive(srcDir, GZipCompression)
+func CreateTarArchiveGZipStringWrapper(srcPath string) string {
+	archivedData, err := createTarArchive(srcPath, GZipCompression)
 	if err != nil {
 		logrus.Errorf("failed to create archive string with the given compression mode %s : %s", NoCompression, err)
 	}
@@ -1344,8 +1344,8 @@ func CreateTarArchiveGZipStringWrapper(srcDir string) string {
 }
 
 // CreateTarArchiveNoCompressionStringWrapper can be used to archive a set of files and compression without compression and return tar archive string
-func CreateTarArchiveNoCompressionStringWrapper(srcDir string) string {
-	archivedData, err := createTarArchive(srcDir, NoCompression)
+func CreateTarArchiveNoCompressionStringWrapper(srcPath string) string {
+	archivedData, err := createTarArchive(srcPath, NoCompression)
 	if err != nil {
 		logrus.Errorf("failed to create archive string with the given compression mode %s : %s", NoCompression, err)
 	}
@@ -1354,10 +1354,10 @@ func CreateTarArchiveNoCompressionStringWrapper(srcDir string) string {
 
 }
 
-func createTarArchive(srcDir string, compressionType CompressionType) (*bytes.Buffer, error) {
-	reader := ReadDirAsTar(srcDir, "", compressionType)
+func createTarArchive(srcPath string, compressionType CompressionType) (*bytes.Buffer, error) {
+	reader := ReadFilesAsTar(srcPath, "", compressionType)
 	if reader == nil {
-		return nil, fmt.Errorf("error during create tar archive from '%s'", srcDir)
+		return nil, fmt.Errorf("error during create tar archive from '%s'", srcPath)
 	}
 
 	defer reader.Close()
@@ -1371,12 +1371,12 @@ func createTarArchive(srcDir string, compressionType CompressionType) (*bytes.Bu
 
 }
 
-// ReadDirAsTar creates the Tar with given compression format and return ReadCloser interface
-func ReadDirAsTar(srcDir, basePath string, compressionType CompressionType) io.ReadCloser {
+// ReadFilesAsTar creates the Tar with given compression format and return ReadCloser interface
+func ReadFilesAsTar(srcPath, basePath string, compressionType CompressionType) io.ReadCloser {
 	errChan := make(chan error)
 	pr, pw := io.Pipe()
 	go func() {
-		err := writeDirToTar(pw, srcDir, basePath, compressionType)
+		err := writeToTar(pw, srcPath, basePath, compressionType)
 		errChan <- err
 	}()
 	closed := false
@@ -1397,7 +1397,7 @@ func ReadDirAsTar(srcDir, basePath string, compressionType CompressionType) io.R
 	})
 }
 
-func writeDirToTar(w *io.PipeWriter, srcDir, basePath string, compressionType CompressionType) error {
+func writeToTar(w *io.PipeWriter, srcPath, basePath string, compressionType CompressionType) error {
 	defer w.Close()
 	var tw *tar.Writer
 	switch compressionType {
@@ -1410,7 +1410,13 @@ func writeDirToTar(w *io.PipeWriter, srcDir, basePath string, compressionType Co
 		tw = tar.NewWriter(w)
 	}
 	defer tw.Close()
-	return filepath.Walk(srcDir, func(file string, fi os.FileInfo, err error) error {
+	f, err := os.Stat(srcPath)
+	if err != nil {
+		logrus.Debugf("failed to stat the path : %s", err)
+		return err
+	}
+	mode := f.Mode()
+	return filepath.Walk(srcPath, func(file string, fi os.FileInfo, err error) error {
 		if err != nil {
 			logrus.Debugf("Error walking folder to copy to container : %s", err)
 			return err
@@ -1435,14 +1441,18 @@ func writeDirToTar(w *io.PipeWriter, srcDir, basePath string, compressionType Co
 				return err
 			}
 		}
-		relPath, err := filepath.Rel(srcDir, file)
-		if err != nil {
-			logrus.Debugf("Error walking folder to copy to container : %s", err)
-			return err
-		} else if relPath == "." {
-			return nil
+		if mode.IsDir() {
+			relPath, err := filepath.Rel(srcPath, file)
+			if err != nil {
+				logrus.Debugf("Error walking folder to copy to container : %s", err)
+				return err
+			} else if relPath == "." {
+				return nil
+			}
+			header.Name = filepath.ToSlash(filepath.Join(basePath, relPath))
+		} else {
+			header.Name = fi.Name()
 		}
-		header.Name = filepath.ToSlash(filepath.Join(basePath, relPath))
 		if err := tw.WriteHeader(header); err != nil {
 			logrus.Debugf("Error walking folder to copy to container : %s", err)
 			return err
@@ -1461,4 +1471,5 @@ func writeDirToTar(w *io.PipeWriter, srcDir, basePath string, compressionType Co
 		}
 		return nil
 	})
+
 }
