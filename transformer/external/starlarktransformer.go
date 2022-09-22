@@ -443,7 +443,7 @@ func (t *Starlark) getStarlarkFSGetYamlsWithTypeMeta() *starlark.Builtin {
 		var inputPath string
 		var kindFilter string
 		if err := starlark.UnpackArgs(fsGetYamIsWithTypeMetaFnName, args, kwargs, "inputpath", &inputPath, "kind", &kindFilter); err != nil {
-			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fsWriteFnName, err)
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fsGetYamIsWithTypeMetaFnName, err)
 		}
 		if kindFilter == "" {
 			return starlark.None, fmt.Errorf("kind is missing in find parameters")
@@ -478,15 +478,15 @@ func (t *Starlark) getStarlarkFindXmlPath() *starlark.Builtin {
 		}
 		fileHandle, err := os.Open(inputXmlFilePath)
 		if err != nil {
-			return starlark.None, fmt.Errorf("Could not read file in path: %s", inputXmlFilePath)
+			return starlark.None, fmt.Errorf("could not read file in path: %s", inputXmlFilePath)
 		}
 		doc, err := xmlquery.Parse(fileHandle)
 		if err != nil {
-			return starlark.None, fmt.Errorf("Could not parse xml file in path: %s", inputXmlFilePath)
+			return starlark.None, fmt.Errorf("could not parse xml file in path: %s", inputXmlFilePath)
 		}
 		expr, err := xpath.Compile(xmlPathExpr)
 		if err != nil {
-			return starlark.None, fmt.Errorf("Could not compile the xml path expression: %s", xmlPathExpr)
+			return starlark.None, fmt.Errorf("could not compile the xml path expression: %s", xmlPathExpr)
 		}
 		data := expr.Evaluate(xmlquery.CreateXPathNavigator(doc))
 		var result []interface{}
@@ -537,7 +537,7 @@ func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
 }
 
 func (t *Starlark) getStarlarkFSExists() *starlark.Builtin {
-	return starlark.NewBuiltin(qaFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return starlark.NewBuiltin(fsExistsFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var path string
 		if err := starlark.UnpackPositionalArgs(fsExistsFnName, args, kwargs, 1, &path); err != nil {
 			return nil, err
@@ -568,7 +568,7 @@ func (t *Starlark) getStarlarkFSIsDir() *starlark.Builtin {
 		}
 		fileInfo, err := os.Stat(path)
 		if err != nil {
-			return starlark.None, fmt.Errorf("Unable to retrieve file information")
+			return starlark.None, fmt.Errorf("unable to retrieve file information")
 		}
 		return starlark.Bool(fileInfo.IsDir()), nil
 	})
@@ -632,7 +632,7 @@ func (t *Starlark) getStarlarkFSGetFilesWithPattern() *starlark.Builtin {
 		extList = append(extList, extension)
 		fileList, err := common.GetFilesByExt(filePath, extList)
 		if err != nil {
-			return starlark.None, fmt.Errorf("File list for given pattern could not be retrieved")
+			return starlark.None, fmt.Errorf("file list for given pattern could not be retrieved")
 		}
 		var result []interface{}
 		for _, file := range fileList {
