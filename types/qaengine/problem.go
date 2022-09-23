@@ -39,7 +39,7 @@ const (
 	// InputSolutionFormType allows single line user input
 	InputSolutionFormType SolutionFormType = "Input"
 	// MultilineInputSolutionFormType allows multiple user input
-	MultilineInputSolutionFormType SolutionFormType = "MultiLineInput"
+	MultilineInputSolutionFormType SolutionFormType = "MultiLine"
 	// PasswordSolutionFormType allows password entry
 	PasswordSolutionFormType SolutionFormType = "Password"
 	// ConfirmSolutionFormType allows yes/no answers

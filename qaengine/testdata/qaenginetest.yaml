@@ -26,7 +26,7 @@ spec:
     - description: 'Multiline input problem test description : '
       hints:
         - Multiline input problem test hints.
-      type: MultiLineInput
+      type: MultiLine
       answer: |
               line1 
               line2 
