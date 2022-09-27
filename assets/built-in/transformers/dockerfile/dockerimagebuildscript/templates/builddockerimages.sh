@@ -18,9 +18,9 @@ if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
   exit 1
 fi
 
-cd .. # go to the parent directory so that all the relative paths will be correct
+cd {{ .RelSourceDir }} # go to the source directory so that all the relative paths will be correct
 
-{{- range $dockerfile := . }}
+{{- range $dockerfile := .Dockerfiles }}
 
 echo 'building image {{ $dockerfile.ImageName }}'
 cd {{ $dockerfile.ContextUnix }}

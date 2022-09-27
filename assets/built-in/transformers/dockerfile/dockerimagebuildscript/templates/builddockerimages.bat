@@ -19,10 +19,10 @@ if not %basename% == "scripts" (
     exit 1
 )
 
-REM go to the parent directory so that all the relative paths will be correct
-cd ..
+REM go to the source directory so that all the relative paths will be correct
+cd {{ .RelSourceDir }}
 
-{{- range $dockerfile := . }}
+{{- range $dockerfile := .Dockerfiles }}
 
 pushd {{ $dockerfile.ContextWindows }}
 {{ $dockerfile.ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .

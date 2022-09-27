@@ -17,6 +17,7 @@
 package dockerfile
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -27,13 +28,29 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	defaultDockerBuildScriptsOutputPath = common.ScriptsDir
+)
+
 // DockerfileImageBuildScript implements Transformer interface
 type DockerfileImageBuildScript struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config                           transformertypes.Transformer
+	Env                              *environment.Environment
+	DockerfileImageBuildScriptConfig *DockerfileImageBuildScriptConfig
 }
 
-// DockerfileImageBuildScriptTemplateConfig represents template config used by ImagePush script
+// DockerfileImageBuildScriptConfig stores the k8s related information
+type DockerfileImageBuildScriptConfig struct {
+	OutputPath string `yaml:"outputPath"`
+}
+
+// DockerfileImageBuildScriptTemplateConfigWrapper represents the data used to fill the build script generateor template
+type DockerfileImageBuildScriptTemplateConfigWrapper struct {
+	RelSourceDir string
+	Dockerfiles  []DockerfileImageBuildScriptTemplateConfig
+}
+
+// DockerfileImageBuildScriptTemplateConfig represents the data used to fill the build script generateor template
 type DockerfileImageBuildScriptTemplateConfig struct {
 	DockerfileName   string
 	ImageName        string
@@ -46,6 +63,14 @@ type DockerfileImageBuildScriptTemplateConfig struct {
 func (t *DockerfileImageBuildScript) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
+	t.DockerfileImageBuildScriptConfig = &DockerfileImageBuildScriptConfig{}
+	if err := common.GetObjFromInterface(t.Config.Spec.Config, t.DockerfileImageBuildScriptConfig); err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.DockerfileImageBuildScriptConfig, err)
+		return err
+	}
+	if t.DockerfileImageBuildScriptConfig.OutputPath == "" {
+		t.DockerfileImageBuildScriptConfig.OutputPath = defaultDockerBuildScriptsOutputPath
+	}
 	return nil
 }
 
@@ -145,18 +170,32 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 	if len(dockerfiles) == 0 {
 		return nil, nil, nil
 	}
+	relSourceDir, err := filepath.Rel(t.DockerfileImageBuildScriptConfig.OutputPath, common.DefaultSourceDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf(
+			"failed to make the sources directory %s relative to the scripts directory %s . Error: %q",
+			common.DefaultSourceDir,
+			t.DockerfileImageBuildScriptConfig.OutputPath,
+			err,
+		)
+	}
+	templateData := DockerfileImageBuildScriptTemplateConfigWrapper{
+		RelSourceDir: relSourceDir,
+		Dockerfiles:  dockerfiles,
+	}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
 		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
-		DestPath:       common.ScriptsDir,
-		TemplateConfig: dockerfiles,
+		DestPath:       t.DockerfileImageBuildScriptConfig.OutputPath,
+		TemplateConfig: templateData,
 	})
 	createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
 		Name: string(artifacts.ContainerImageBuildScriptArtifactType),
 		Type: artifacts.ContainerImageBuildScriptArtifactType,
-		Paths: map[transformertypes.PathType][]string{artifacts.ContainerImageBuildShScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.sh")},
+		Paths: map[transformertypes.PathType][]string{
+			artifacts.ContainerImageBuildShScriptPathType:         {filepath.Join(t.DockerfileImageBuildScriptConfig.OutputPath, "builddockerimages.sh")},
 			artifacts.ContainerImageBuildShScriptContextPathType:  {"."},
-			artifacts.ContainerImageBuildBatScriptPathType:        {filepath.Join(common.ScriptsDir, "builddockerimages.bat")},
+			artifacts.ContainerImageBuildBatScriptPathType:        {filepath.Join(t.DockerfileImageBuildScriptConfig.OutputPath, "builddockerimages.bat")},
 			artifacts.ContainerImageBuildBatScriptContextPathType: {"."},
 		},
 	})
