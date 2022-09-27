@@ -27,6 +27,8 @@ import (
 const (
 	// DisableLocalExecutionFlag is the name of the flag that tells us whether to use allow execution of executables locally
 	DisableLocalExecutionFlag = "disable-local-execution"
+	// FailOnEmptyPlan is the name of the flag that lets the user fail when the plan is empty (zero services, zero default transformers).
+	FailOnEmptyPlan = "fail-on-empty-plan"
 )
 
 const (
