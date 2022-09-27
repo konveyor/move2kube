@@ -563,16 +563,15 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 	return pathMappings, newArtifactsCreated, nil
 }
 
-func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Artifact, transformer Transformer, tconfig transformertypes.Transformer, env *environment.Environment, graph *graphtypes.Graph, iteration int) ([]transformertypes.PathMapping, []transformertypes.Artifact, int, error) {
+func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Artifact, transformer Transformer, tconfig transformertypes.Transformer, env *environment.Environment, graph *graphtypes.Graph, iteration int) (newPathMappings []transformertypes.PathMapping, newArtifacts []transformertypes.Artifact, targetVertexId int, err error) {
 	if err := env.Reset(); err != nil {
 		return nil, nil, -1, fmt.Errorf("failed to reset the environment: %+v Error: %q", env, err)
 	}
 
-	newPathMappings, newArtifacts, err := transformer.Transform(
+	newPathMappings, newArtifacts, err = transformer.Transform(
 		*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact),
 		*env.Encode(&allArtifacts).(*[]transformertypes.Artifact),
 	)
-	var targetVertexId int
 	// logging
 	{
 		vertexName := fmt.Sprintf("iteration: %d\nclass: %s\nname: %s", iteration, tconfig.Spec.Class, tconfig.Name)
