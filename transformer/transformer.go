@@ -409,17 +409,21 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 	var allArtifacts []transformertypes.Artifact
 	newArtifactsToProcess := []transformertypes.Artifact{}
 	pathMappings := []transformertypes.PathMapping{}
+	defaultNewArtifactsToProcess := []transformertypes.Artifact{}
 	iteration := 1
 	// transform default transformers
 	graph := graphtypes.NewGraph()
 	startVertexId := graph.AddVertex("start", iteration, nil)
 	for _, invokedByDefaultTransformer := range invokedByDefaultTransformers {
 		tDefaultConfig, defaultEnv := invokedByDefaultTransformer.GetConfig()
-		newPathMappings, defaultArtifacts, err := runSingleTransform(nil, nil, invokedByDefaultTransformer, tDefaultConfig, defaultEnv, graph, iteration)
+		newPathMappings, defaultArtifacts, vertexId, err := runSingleTransform(nil, nil, invokedByDefaultTransformer, tDefaultConfig, defaultEnv, graph, iteration)
 		if err != nil {
 			logrus.Errorf("failed to transform using the transformer %s. Error: %q", tDefaultConfig.Name, err)
 		}
-		newArtifactsToProcess = append(newArtifactsToProcess, defaultArtifacts...)
+		for _, artifact := range defaultArtifacts {
+			artifact.Configs[graphtypes.GraphSourceVertexKey] = vertexId
+		}
+		defaultNewArtifactsToProcess = append(defaultNewArtifactsToProcess, defaultArtifacts...)
 		pathMappings = append(pathMappings, newPathMappings...)
 	}
 	logrus.Infof("Iteration %d", iteration)
@@ -442,10 +446,11 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 	}
 
 	// logging
-	allArtifacts = newArtifactsToProcess
 	for _, artifact := range newArtifactsToProcess {
 		artifact.Configs[graphtypes.GraphSourceVertexKey] = startVertexId
 	}
+	newArtifactsToProcess = append(newArtifactsToProcess, defaultNewArtifactsToProcess...)
+	allArtifacts = newArtifactsToProcess
 	// logging
 
 	for {
@@ -514,7 +519,7 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 
 		logrus.Infof("Transformer %s processing %d artifacts", tConfig.Name, len(artifactsToConsume))
 
-		producedNewPathMappings, producedNewArtifacts, err := runSingleTransform(artifactsToConsume, allArtifacts, transformer, tConfig, env, graph, iteration)
+		producedNewPathMappings, producedNewArtifacts, _, err := runSingleTransform(artifactsToConsume, allArtifacts, transformer, tConfig, env, graph, iteration)
 		if err != nil {
 			logrus.Errorf("failed to run a single transformation using the transformer %+v on the artifacts %+v . Error: %q", tConfig, artifactsToConsume, err)
 			continue
@@ -558,20 +563,20 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 	return pathMappings, newArtifactsCreated, nil
 }
 
-func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Artifact, transformer Transformer, tconfig transformertypes.Transformer, env *environment.Environment, graph *graphtypes.Graph, iteration int) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Artifact, transformer Transformer, tconfig transformertypes.Transformer, env *environment.Environment, graph *graphtypes.Graph, iteration int) ([]transformertypes.PathMapping, []transformertypes.Artifact, int, error) {
 	if err := env.Reset(); err != nil {
-		return nil, nil, fmt.Errorf("failed to reset the environment: %+v Error: %q", env, err)
+		return nil, nil, -1, fmt.Errorf("failed to reset the environment: %+v Error: %q", env, err)
 	}
 
 	newPathMappings, newArtifacts, err := transformer.Transform(
 		*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact),
 		*env.Encode(&allArtifacts).(*[]transformertypes.Artifact),
 	)
-
+	var targetVertexId int
 	// logging
 	{
 		vertexName := fmt.Sprintf("iteration: %d\nclass: %s\nname: %s", iteration, tconfig.Spec.Class, tconfig.Name)
-		targetVertexId := graph.AddVertex(
+		targetVertexId = graph.AddVertex(
 			vertexName,
 			iteration,
 			map[string]interface{}{
@@ -608,7 +613,7 @@ func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Arti
 	// logging
 
 	if err != nil {
-		return newPathMappings, newArtifacts, fmt.Errorf("failed to transform artifacts using the transformer %s . Error: %q", tconfig.Name, err)
+		return newPathMappings, newArtifacts, -1, fmt.Errorf("failed to transform artifacts using the transformer %s . Error: %q", tconfig.Name, err)
 	}
 
 	filteredArtifacts := []transformertypes.Artifact{}
@@ -623,11 +628,11 @@ func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Arti
 	newPathMappings = env.ProcessPathMappings(newPathMappings)
 	newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
 	if err := processPathMappings(newPathMappings, env.Source, env.Output); err != nil {
-		return newPathMappings, newArtifacts, fmt.Errorf("failed to process the path mappings: %+v . Error: %q", newPathMappings, err)
+		return newPathMappings, newArtifacts, -1, fmt.Errorf("failed to process the path mappings: %+v . Error: %q", newPathMappings, err)
 	}
 	newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
 	newArtifacts = postProcessArtifacts(newArtifacts, tconfig)
-	return newPathMappings, newArtifacts, nil
+	return newPathMappings, newArtifacts, targetVertexId, nil
 }
 
 func getArtifactsToProcess(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, tConfig transformertypes.Transformer, pt processType) ([]transformertypes.Artifact, []transformertypes.Artifact) {
