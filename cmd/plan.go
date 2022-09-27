@@ -140,6 +140,10 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 		return
 	}
 	logrus.Infof("Plan can be found at [%s].", planfile)
+	if len(p.Spec.Services) == 0 && len(p.Spec.InvokedByDefaultTransformers) == 0 {
+		logrus.Debugf("Plan : %+v", p)
+		logrus.Fatalf("failed to find any services or default transformers.")
+	}
 }
 
 // GetPlanCommand returns a command to do the planning

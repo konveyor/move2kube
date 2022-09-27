@@ -136,6 +136,10 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
 		p = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
+		if len(p.Spec.Services) == 0 && len(p.Spec.InvokedByDefaultTransformers) == 0 {
+			logrus.Debugf("Plan : %+v", p)
+			logrus.Fatalf("failed to find any services or default transformers. Aborting.")
+		}
 	} else {
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.planfile)
 		sourceDir := ""
