@@ -144,9 +144,9 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	logrus.Infof("Plan can be found at [%s].", planfile)
 	if len(p.Spec.Services) == 0 && len(p.Spec.InvokedByDefaultTransformers) == 0 {
 		if flags.failOnEmptyPlan {
-			logrus.Fatalf("Did not detect any services in the directory %s", srcpath)
+			logrus.Fatalf("Did not detect any services in the directory %s . Also we didn't find any default transformers to run.", srcpath)
 		}
-		logrus.Warnf("Did not detect any services in the directory %s", srcpath)
+		logrus.Warnf("Did not detect any services in the directory %s . Also we didn't find any default transformers to run.", srcpath)
 	}
 }
 
