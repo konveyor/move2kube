@@ -41,6 +41,7 @@ type planFlags struct {
 	customizationsPath    string
 	transformerSelector   string
 	disableLocalExecution bool
+	failOnEmptyPlan       bool
 	//Configs contains a list of config files
 	configs []string
 	//Configs contains a list of key-value configs
@@ -139,10 +140,13 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 		logrus.Errorf("Unable to write plan file (%s) : %s", planfile, err)
 		return
 	}
+	logrus.Debugf("Plan : %+v", p)
 	logrus.Infof("Plan can be found at [%s].", planfile)
 	if len(p.Spec.Services) == 0 && len(p.Spec.InvokedByDefaultTransformers) == 0 {
-		logrus.Debugf("Plan : %+v", p)
-		logrus.Fatalf("failed to find any services or default transformers.")
+		if flags.failOnEmptyPlan {
+			logrus.Fatalf("Did not detect any services in the directory %s . Also we didn't find any default transformers to run.", srcpath)
+		}
+		logrus.Warnf("Did not detect any services in the directory %s . Also we didn't find any default transformers to run.", srcpath)
 	}
 }
 
@@ -173,6 +177,7 @@ func GetPlanCommand() *cobra.Command {
 	planCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs.")
 	planCmd.Flags().IntVar(&flags.progressServerPort, planProgressPortFlag, 0, "Port for the plan progress server. If not provided, the server won't be started.")
 	planCmd.Flags().BoolVar(&flags.disableLocalExecution, common.DisableLocalExecutionFlag, false, "Allow files to be executed locally.")
+	planCmd.Flags().BoolVar(&flags.failOnEmptyPlan, common.FailOnEmptyPlan, false, "If true, planning will exit with a failure exit code if no services are detected (and no default transformers are found).")
 
 	must(planCmd.Flags().MarkHidden(planProgressPortFlag))
 
