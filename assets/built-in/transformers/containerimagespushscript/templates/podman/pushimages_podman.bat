@@ -15,7 +15,6 @@
 :: Invoke as pushimages.bat <registry_url> <registry_namespace>
 
 @echo off
-{{ $containerRuntime := .ContainerRuntime }}
 IF "%2"=="" GOTO DEFAULT
 IF "%1"=="" GOTO DEFAULT
     SET REGISTRY_URL=%1
@@ -28,8 +27,8 @@ GOTO :MAIN
 
 :MAIN
 :: Uncomment the below line if you want to enable login before pushing
-:: {{ $containerRuntime }} login %REGISTRY_URL%
+:: podman login %REGISTRY_URL%
 
-{{range $image := .Images}}{{ $containerRuntime }} tag {{$image}} %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}
-{{ $containerRuntime }} push %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}
+{{range $image := .Images}}podman tag {{$image}} %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}
+podman push %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}
 {{end}}

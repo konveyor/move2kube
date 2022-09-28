@@ -87,6 +87,8 @@ const (
 	ConfigMinReplicasKey = BaseKey + d + "minreplicas"
 	//ConfigContainerRuntimeKey represents the container runtime to use
 	ConfigContainerRuntimeKey = BaseKey + d + "containerruntime"
+	//ConfigBuildxTargetPlatformKey represents the target platforms used in buildx scripts
+	ConfigBuildxTargetPlatformKey = BaseKey + d + "targetplatform"
 	//ConfigPortsForServiceKeySegment represents the ports used for service
 	ConfigPortsForServiceKeySegment = "ports"
 	//ConfigPortForServiceKeySegment represents the port used for service

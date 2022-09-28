@@ -20,12 +20,11 @@ fi
 
 cd .. # go to the parent directory so that all the relative paths will be correct
 
-{{- range $dockerfile := . }}
+{{- range $dockerfile := .DockerfilesConfig }}
 
 echo 'building image {{ $dockerfile.ImageName }}'
 cd {{ $dockerfile.ContextUnix }}
-{{ $dockerfile.ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
+podman build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 cd -
 {{- end }}
-
 echo 'done'
