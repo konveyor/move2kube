@@ -18,11 +18,12 @@ package graph
 
 // Graph contains transformers and artifacts being passed between them.
 type Graph struct {
-	vertexId int
-	edgeId   int
-	Version  string         `json:"version"`
-	Vertices map[int]Vertex `json:"vertices,omitempty"`
-	Edges    map[int]Edge   `json:"edges,omitempty"`
+	SourceVertexId int
+	vertexId       int
+	edgeId         int
+	Version        string         `json:"version"`
+	Vertices       map[int]Vertex `json:"vertices,omitempty"`
+	Edges          map[int]Edge   `json:"edges,omitempty"`
 }
 
 // Vertex is a single transformer.
@@ -100,11 +101,12 @@ const (
 // NewGraph creates a new graph.
 func NewGraph() *Graph {
 	return &Graph{
-		vertexId: -1,
-		edgeId:   -1,
-		Version:  GraphFileVersion,
-		Vertices: map[int]Vertex{},
-		Edges:    map[int]Edge{},
+		SourceVertexId: -1,
+		vertexId:       -1,
+		edgeId:         -1,
+		Version:        GraphFileVersion,
+		Vertices:       map[int]Vertex{},
+		Edges:          map[int]Edge{},
 	}
 }
 
@@ -112,6 +114,9 @@ func NewGraph() *Graph {
 func (g *Graph) AddVertex(name string, iteration int, data map[string]interface{}) int {
 	g.vertexId++
 	g.Vertices[g.vertexId] = Vertex{Id: g.vertexId, Iteration: iteration, Name: name, Data: data}
+	if g.SourceVertexId == -1 {
+		g.SourceVertexId = g.vertexId
+	}
 	return g.vertexId
 }
 
