@@ -584,7 +584,7 @@ func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Arti
 		// transformers that are invoked by default has source vertex as start
 		if tconfig.Spec.InvokedByDefault.Enabled {
 			edgeName := fmt.Sprintf("%d -> %d (invoked by default)", 0, targetVertexId)
-			graph.AddEdge(0, targetVertexId, edgeName, nil)
+			graph.AddEdge(graph.SourceVertexId, targetVertexId, edgeName, nil)
 		}
 		for _, artifact := range artifactsToProcess {
 			sourceVertexId, ok := artifact.Configs[graphtypes.GraphSourceVertexKey].(int)
