@@ -19,7 +19,7 @@ if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
 fi
 
 cd .. # go to the parent directory so that all the relative paths will be correct
-{{- if .DockerContainerRuntime }}
+{{- if .DockerBuild }}
 {{- range $dockerfile := .DockerfilesConfig }}
 
 echo 'building image {{ $dockerfile.ImageName }}'
@@ -27,7 +27,7 @@ cd {{ $dockerfile.ContextUnix }}
 docker build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 cd -
 {{- end }}
-{{- else if .PodmanContainerRuntime }}
+{{- else if .PodmanBuild }}
 {{- range $dockerfile := .DockerfilesConfig }}
 
 echo 'building image {{ $dockerfile.ImageName }}'
@@ -35,7 +35,7 @@ cd {{ $dockerfile.ContextUnix }}
 podman build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 cd -
 {{- end }}
-{{ else if .BuildxContainerRuntime }}
+{{ else if .BuildxBuild }}
 if [ "$#" -ne 3 ]; then
     REGISTRY_URL={{ .RegistryURL }}
     REGISTRY_NAMESPACE={{ .RegistryNamespace }}

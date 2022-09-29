@@ -58,6 +58,12 @@ const (
 	TODOAnnotation = types.GroupName + "/todo."
 	// DefaultBuildContainerName stores default build container name
 	DefaultBuildContainerName = "builder"
+	// DockerBuildSystem refers to docker build system for building and pushing images
+	DockerBuildSystem = "docker"
+	// PodmanBuildSystem refers to podman build system for building and pushing images
+	PodmanBuildSystem = "podman"
+	// BuildxBuildSystem refers to buildx build system for building and pushing images
+	BuildxBuildSystem = "buildx"
 	// ShExt is the extension of sh file
 	ShExt = ".sh"
 	// BatExt is the extension of bat file
@@ -85,8 +91,8 @@ const (
 	ConfigStoragesKey = BaseKey + d + "storages"
 	//ConfigMinReplicasKey represents Ingress host Key
 	ConfigMinReplicasKey = BaseKey + d + "minreplicas"
-	//ConfigContainerRuntimeKey represents the container runtime to use
-	ConfigContainerRuntimeKey = BaseKey + d + "containerruntime"
+	//ConfigBuildSystemKey represents the container build system to use
+	ConfigBuildSystemKey = BaseKey + d + "buildsystem"
 	//ConfigBuildxTargetPlatformKey represents the target platforms used in buildx scripts
 	ConfigBuildxTargetPlatformKey = BaseKey + d + "targetplatform"
 	//ConfigPortsForServiceKeySegment represents the ports used for service

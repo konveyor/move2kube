@@ -26,13 +26,13 @@ GOTO :MAIN
     SET REGISTRY_NAMESPACE={{ .RegistryNamespace }}
 
 :MAIN
-{{- if .DockerContainerRuntime }}
+{{- if .DockerBuild }}
 :: Uncomment the below line if you want to enable login before pushing
 :: docker login %REGISTRY_URL%
 {{range $image := .Images}}docker tag {{$image}} %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}
 docker push %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}
 {{ end }}
-{{- else if .PodmanContainerRuntime }}
+{{- else if .PodmanBuild }}
 :: podman login %REGISTRY_URL%
 
 {{range $image := .Images}}podman tag {{$image}} %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}

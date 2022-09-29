@@ -39,11 +39,11 @@ type ContainerImagesPushScript struct {
 
 // ImagePushTemplateConfig represents template config used by ImagePush script
 type ImagePushTemplateConfig struct {
-	RegistryURL            string
-	RegistryNamespace      string
-	Images                 []string
-	DockerContainerRuntime bool
-	PodmanContainerRuntime bool
+	RegistryURL       string
+	RegistryNamespace string
+	Images            []string
+	DockerBuild       bool
+	PodmanBuild       bool
 }
 
 // Init Initializes the transformer
@@ -83,29 +83,29 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 	}
 	ipt.RegistryURL = commonqa.ImageRegistry()
 	ipt.RegistryNamespace = commonqa.ImageRegistryNamespace()
-	selectedContainerRuntimes := commonqa.GetContainerRuntimes()
-	if len(selectedContainerRuntimes) == 1 && selectedContainerRuntimes[0] == "buildx" {
+	selectedBuildSystems := commonqa.GetBuildSystems()
+	if len(selectedBuildSystems) == 1 && selectedBuildSystems[0] == common.BuildxBuildSystem {
 		return nil, nil, nil
 	}
 	containerImagePushShScriptPaths := []string{}
 	containerImagePushBatScriptPaths := []string{}
-	for _, containerRuntime := range selectedContainerRuntimes {
-		switch containerRuntime {
-		case "docker":
-			ipt.DockerContainerRuntime = true
-		case "podman":
-			ipt.PodmanContainerRuntime = true
-		case "buildx":
+	for _, buildSystem := range selectedBuildSystems {
+		switch buildSystem {
+		case common.DockerBuildSystem:
+			ipt.DockerBuild = true
+		case common.PodmanBuildSystem:
+			ipt.PodmanBuild = true
+		case common.BuildxBuildSystem:
 			continue
 		default:
-			logrus.Errorf("unsupported container runtime %s", containerRuntime)
+			logrus.Errorf("unsupported container build system %s", buildSystem)
 			continue
 		}
-		containerImagePushShScriptPaths = append(containerImagePushShScriptPaths, filepath.Join(common.ScriptsDir, pushImagesFileName+"_"+containerRuntime+common.ShExt))
-		containerImagePushBatScriptPaths = append(containerImagePushBatScriptPaths, filepath.Join(common.ScriptsDir, pushImagesFileName+"_"+containerRuntime+common.ShExt))
+		containerImagePushShScriptPaths = append(containerImagePushShScriptPaths, filepath.Join(common.ScriptsDir, pushImagesFileName+"_"+buildSystem+common.ShExt))
+		containerImagePushBatScriptPaths = append(containerImagePushBatScriptPaths, filepath.Join(common.ScriptsDir, pushImagesFileName+"_"+buildSystem+common.ShExt))
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir, containerRuntime),
+			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir, buildSystem),
 			DestPath:       common.ScriptsDir,
 			TemplateConfig: ipt,
 		})

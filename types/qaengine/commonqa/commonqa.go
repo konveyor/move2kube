@@ -136,28 +136,12 @@ func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
 	return int32(selectedPort)
 }
 
-// GetContainerRuntime returns the container runtime
-func GetContainerRuntime() string {
-	containerRuntimes := []string{"docker", "podman"}
-	return qaengine.FetchSelectAnswer(common.ConfigContainerRuntimeKey, "Select the container runtime to use :", []string{"The container runtime selected will be used in the scripts"}, containerRuntimes[0], containerRuntimes)
-}
-
-// GetContainerRuntimes returns the container runtimes
-func GetContainerRuntimes() []string {
-	containerRuntimes := []string{"docker", "podman", "buildx"}
-	selectedContainerRuntimes := qaengine.FetchMultiSelectAnswer(common.ConfigContainerRuntimeKey, "Select the container runtime(s) to use :", []string{"The selected container runtime(s) will be used in the scripts"}, []string{containerRuntimes[0]}, containerRuntimes)
-	if len(selectedContainerRuntimes) != 0 {
-		return selectedContainerRuntimes
+// GetBuildSystems returns the container build systems
+func GetBuildSystems() []string {
+	buildSystems := []string{common.DockerBuildSystem, common.PodmanBuildSystem, common.BuildxBuildSystem}
+	selectedBuildSystems := qaengine.FetchMultiSelectAnswer(common.ConfigBuildSystemKey, "Select the container build system(s) to use :", []string{"The selected container build system(s) will be used in the scripts"}, []string{buildSystems[0]}, buildSystems)
+	if len(selectedBuildSystems) != 0 {
+		return selectedBuildSystems
 	}
-	return []string{"docker"}
-}
-
-// GetTargetPlatforms returns the target platforms for which buildx has to create the images
-func GetTargetPlatforms() []string {
-	targetPlatforms := []string{"linux/amd64", "linux/s390x", "linux/ppc64le", "linux/arm64"}
-	selectedTargetPlatforms := qaengine.FetchMultiSelectAnswer(common.ConfigBuildxTargetPlatformKey, "Select the target architecture(s) for which the image(s) should be created :", []string{"The selected target platform(s) will be used in the --platform flag in the buildx build command"}, []string{targetPlatforms[0]}, targetPlatforms)
-	if len(selectedTargetPlatforms) != 0 {
-		return selectedTargetPlatforms
-	}
-	return []string{"linux/amd64"}
+	return []string{common.DockerBuildSystem}
 }

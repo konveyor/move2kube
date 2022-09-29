@@ -21,21 +21,21 @@ if not %basename% == "scripts" (
 
 REM go to the parent directory so that all the relative paths will be correct
 cd ..
-{{- if .DockerContainerRuntime }}
+{{- if .DockerBuild }}
 {{- range $dockerfile := .DockerfilesConfig }}
 
 pushd {{ $dockerfile.ContextWindows }}
 docker build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 popd
 {{- end }}
-{{- else if .PodmanContainerRuntime }}
+{{- else if .PodmanBuild }}
 {{- range $dockerfile := .DockerfilesConfig }}
 
 pushd {{ $dockerfile.ContextWindows }}
 podman build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 popd
 {{- end }}
-{{- else if .BuildxContainerRuntime }}
+{{- else if .BuildxBuild }}
 @echo off
 IF "%3"=="" GOTO DEFAULT
 IF "%2"=="" GOTO DEFAULT

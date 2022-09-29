@@ -22,10 +22,15 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	linuxAMD64Arch = "linux/amd64"
 )
 
 // DockerfileImageBuildScript implements Transformer interface
@@ -36,13 +41,13 @@ type DockerfileImageBuildScript struct {
 
 // DockerfileImageBuildScriptTemplateConfig represents template config used by ImageBuild script
 type DockerfileImageBuildScriptTemplateConfig struct {
-	DockerfilesConfig      []DockerfileImageBuildConfig
-	RegistryURL            string
-	RegistryNamespace      string
-	TargetPlatforms        string
-	DockerContainerRuntime bool
-	PodmanContainerRuntime bool
-	BuildxContainerRuntime bool
+	DockerfilesConfig []DockerfileImageBuildConfig
+	RegistryURL       string
+	RegistryNamespace string
+	TargetPlatforms   string
+	DockerBuild       bool
+	PodmanBuild       bool
+	BuildxBuild       bool
 }
 
 // DockerfileImageBuildConfig contains the Dockerfile image build config to be used in the ImageBuild script
@@ -63,6 +68,16 @@ func (t *DockerfileImageBuildScript) Init(tc transformertypes.Transformer, env *
 // GetConfig returns the transformer config
 func (t *DockerfileImageBuildScript) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
+}
+
+// getTargetPlatforms returns the target platforms for which buildx has to create the images
+func getTargetPlatforms() []string {
+	targetPlatforms := []string{linuxAMD64Arch, "linux/s390x", "linux/ppc64le", "linux/arm64"}
+	selectedTargetPlatforms := qaengine.FetchMultiSelectAnswer(common.ConfigBuildxTargetPlatformKey, "Select the target architecture(s) for which the image(s) should be created :", []string{"The selected target platform(s) will be used in the --platform flag in the buildx build command"}, []string{targetPlatforms[0]}, targetPlatforms)
+	if len(selectedTargetPlatforms) != 0 {
+		return selectedTargetPlatforms
+	}
+	return []string{linuxAMD64Arch}
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -144,7 +159,7 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 	if len(dockerfilesImageBuildConfig) == 0 {
 		return nil, nil, nil
 	}
-	selectedContainerRuntimes := commonqa.GetContainerRuntimes()
+	selectedBuildSystems := commonqa.GetBuildSystems()
 	containerImageBuildShScriptPaths := []string{}
 	containerImageBuildBatScriptPaths := []string{}
 	dockerfileImageBuildScriptConfig := DockerfileImageBuildScriptTemplateConfig{
@@ -152,28 +167,28 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 		RegistryNamespace: commonqa.ImageRegistryNamespace(),
 		DockerfilesConfig: dockerfilesImageBuildConfig,
 	}
-	for _, containerRuntime := range selectedContainerRuntimes {
-		switch containerRuntime {
-		case "docker":
-			dockerfileImageBuildScriptConfig.DockerContainerRuntime = true
-			containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, "buildandpushdockerimages_"+containerRuntime+common.ShExt))
-			containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, "buildandpushdockerimages_"+containerRuntime+common.BatExt))
-		case "buildx":
-			dockerfileImageBuildScriptConfig.BuildxContainerRuntime = true
-			containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+containerRuntime+common.ShExt))
-			containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+containerRuntime+common.BatExt))
-			dockerfileImageBuildScriptConfig.TargetPlatforms = strings.Join(commonqa.GetTargetPlatforms(), ",")
-		case "podman":
-			dockerfileImageBuildScriptConfig.PodmanContainerRuntime = true
-			containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+containerRuntime+common.ShExt))
-			containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+containerRuntime+common.BatExt))
+	for _, buildSystem := range selectedBuildSystems {
+		switch buildSystem {
+		case common.DockerBuildSystem:
+			dockerfileImageBuildScriptConfig.DockerBuild = true
+			containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, "buildandpushdockerimages_"+buildSystem+common.ShExt))
+			containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, "buildandpushdockerimages_"+buildSystem+common.BatExt))
+		case common.BuildxBuildSystem:
+			dockerfileImageBuildScriptConfig.BuildxBuild = true
+			containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+buildSystem+common.ShExt))
+			containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+buildSystem+common.BatExt))
+			dockerfileImageBuildScriptConfig.TargetPlatforms = strings.Join(getTargetPlatforms(), ",")
+		case common.PodmanBuildSystem:
+			dockerfileImageBuildScriptConfig.PodmanBuild = true
+			containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+buildSystem+common.ShExt))
+			containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+buildSystem+common.BatExt))
 		default:
-			logrus.Errorf("unsupported container runtime %s", containerRuntime)
+			logrus.Errorf("unsupported container build system %s", buildSystem)
 			continue
 		}
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
 			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir, containerRuntime),
+			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir, buildSystem),
 			DestPath:       common.ScriptsDir,
 			TemplateConfig: dockerfileImageBuildScriptConfig,
 		})
