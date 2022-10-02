@@ -372,12 +372,14 @@ func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArti
 			logrus.Debugf("[%s] Done", config.Name)
 			numfound += len(newPlanServices)
 			if len(newPlanServices) > 0 {
+				msg := getNamedAndUnNamedServicesLogMessage(newPlanServices)
 				relpath, err := filepath.Rel(inputPath, path)
 				if err != nil {
 					logrus.Errorf("failed to make the directory %s relative to the input directory %s . Error: %q", path, inputPath, err)
+					logrus.Infof("%s in %s", msg, path)
 					continue
 				}
-				logrus.Infof("%s in %s", getNamedAndUnNamedServicesLogMessage(newPlanServices), relpath)
+				logrus.Infof("%s in %s", msg, relpath)
 			}
 		}
 		logrus.Debugf("planning finished for the directory %s and %d services were detected", path, numfound)
