@@ -268,7 +268,7 @@ func GetInitializedTransformersF(filters labels.Selector) []Transformer {
 
 // GetServices returns the list of services detected in a directory
 func GetServices(prjName string, dir string) (map[string][]plantypes.PlanArtifact, error) {
-	services := map[string][]plantypes.PlanArtifact{}
+	planServices := map[string][]plantypes.PlanArtifact{}
 	logrus.Infoln("Planning started on the base directory")
 	logrus.Debugf("Transformers: %+v", transformers)
 	for _, transformer := range transformers {
@@ -284,30 +284,30 @@ func GetServices(prjName string, dir string) (map[string][]plantypes.PlanArtifac
 		newServices, err := transformer.DirectoryDetect(env.Encode(dir).(string))
 		if err != nil {
 			logrus.Errorf("[%s] Failed . Error: %q", config.Name, err)
-		} else {
-			newServices := getPlanArtifactsFromArtifacts(*env.Decode(&newServices).(*map[string][]transformertypes.Artifact), config)
-			services = plantypes.MergeServices(services, newServices)
-			if len(newServices) > 0 {
-				logrus.Infof(getNamedAndUnNamedServicesLogMessage(newServices))
-			}
-			common.PlanProgressNumBaseDetectTransformers++
-			logrus.Infof("[%s] Done", config.Name)
+			continue
 		}
+		newPlanServices := getPlanArtifactsFromArtifacts(*env.Decode(&newServices).(*map[string][]transformertypes.Artifact), config)
+		planServices = plantypes.MergeServices(planServices, newPlanServices)
+		if len(newPlanServices) > 0 {
+			logrus.Infof(getNamedAndUnNamedServicesLogMessage(newPlanServices))
+		}
+		common.PlanProgressNumBaseDetectTransformers++
+		logrus.Infof("[%s] Done", config.Name)
 	}
-	logrus.Infof("[Base Directory] %s", getNamedAndUnNamedServicesLogMessage(services))
+	logrus.Infof("[Base Directory] %s", getNamedAndUnNamedServicesLogMessage(planServices))
 	logrus.Infoln("Planning finished on the base directory")
 	logrus.Infoln("Planning started on its sub directories")
-	nservices, err := walkForServices(dir, services)
+	nservices, err := walkForServices(dir, planServices)
 	if err != nil {
 		logrus.Errorf("Transformation planning - Directory Walk failed : %s", err)
 	} else {
-		services = nservices
+		planServices = nservices
 		logrus.Infoln("Planning finished on its sub directories")
 	}
-	logrus.Infof("[Directory Walk] %s", getNamedAndUnNamedServicesLogMessage(services))
-	services = nameServices(prjName, services)
-	logrus.Infof("[Named Services] Identified %d named services", len(services))
-	return services, nil
+	logrus.Infof("[Directory Walk] %s", getNamedAndUnNamedServicesLogMessage(planServices))
+	planServices = nameServices(prjName, planServices)
+	logrus.Infof("[Named Services] Identified %d named services", len(planServices))
+	return planServices, nil
 }
 
 func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArtifact) (map[string][]plantypes.PlanArtifact, error) {
@@ -370,10 +370,16 @@ func walkForServices(inputPath string, bservices map[string][]plantypes.PlanArti
 			newPlanServices := getPlanArtifactsFromArtifacts(*env.Decode(&newServicesToArtifacts).(*map[string][]transformertypes.Artifact), config)
 			services = plantypes.MergeServices(services, newPlanServices)
 			logrus.Debugf("[%s] Done", config.Name)
-			numfound += len(newServicesToArtifacts)
-			if len(newServicesToArtifacts) > 0 {
-				relpath, _ := filepath.Rel(inputPath, path)
-				logrus.Infof("%s in %s", getNamedAndUnNamedServicesLogMessage(newPlanServices), relpath)
+			numfound += len(newPlanServices)
+			if len(newPlanServices) > 0 {
+				msg := getNamedAndUnNamedServicesLogMessage(newPlanServices)
+				relpath, err := filepath.Rel(inputPath, path)
+				if err != nil {
+					logrus.Errorf("failed to make the directory %s relative to the input directory %s . Error: %q", path, inputPath, err)
+					logrus.Infof("%s in %s", msg, path)
+					continue
+				}
+				logrus.Infof("%s in %s", msg, relpath)
 			}
 		}
 		logrus.Debugf("planning finished for the directory %s and %d services were detected", path, numfound)
