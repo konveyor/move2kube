@@ -43,6 +43,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -176,11 +177,21 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 	}
 	transformerConfigs := getFilteredTransformers(transformerToInit, selector, logError)
 	transformerNames := []string{}
-	for transformerName := range transformerConfigs {
+	defaultSelectedTransformerNames := []string{}
+	for transformerName, t := range transformerConfigs {
 		transformerNames = append(transformerNames, transformerName)
+		if v, ok := t.ObjectMeta.Labels["move2kube.konveyor.io/default-selected"]; !ok || cast.ToBool(v) {
+			defaultSelectedTransformerNames = append(defaultSelectedTransformerNames, transformerName)
+		}
 	}
 	sort.Strings(transformerNames)
-	selectedTransformerNames := qaengine.FetchMultiSelectAnswer(common.ConfigTransformerTypesKey, "Select all transformer types that you are interested in:", []string{"Services that don't support any of the transformer types you are interested in will be ignored."}, transformerNames, transformerNames)
+	selectedTransformerNames := qaengine.FetchMultiSelectAnswer(
+		common.ConfigTransformerTypesKey,
+		"Select all transformer types that you are interested in:",
+		[]string{"Services that don't support any of the transformer types you are interested in will be ignored."},
+		defaultSelectedTransformerNames,
+		transformerNames,
+	)
 	for _, selectedTransformerName := range selectedTransformerNames {
 		transformerConfig := transformerConfigs[selectedTransformerName]
 		transformerClass, ok := transformerTypes[transformerConfig.Spec.Class]
