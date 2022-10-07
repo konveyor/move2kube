@@ -18,6 +18,7 @@ package lib
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/konveyor/move2kube/common"
@@ -29,7 +30,7 @@ import (
 )
 
 // Transform transforms the artifacts and writes output
-func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, transformerSelector string) {
+func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, transformerSelector string) error {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	logrus.Infof("Starting transformation")
 
@@ -38,16 +39,18 @@ func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, tran
 
 	transformerSelectorObj, err := common.ConvertStringSelectorsToSelectors(transformerSelector)
 	if err != nil {
-		logrus.Errorf("Unable to parse the transformer selector string : %s", err)
+		return fmt.Errorf("failed to parse the transformer selector string. Error: %q", err)
 	}
 	selectorsInPlan, err := metav1.LabelSelectorAsSelector(&plan.Spec.TransformerSelector)
 	if err != nil {
-		logrus.Errorf("Unable to convert label selector to selector : %s", err)
-	} else {
-		requirements, _ := selectorsInPlan.Requirements()
-		transformerSelectorObj = transformerSelectorObj.Add(requirements...)
+		return fmt.Errorf("failed to convert label selector to selector. Error: %q", err)
 	}
-	transformer.InitTransformers(plan.Spec.Transformers, transformerSelectorObj, plan.Spec.SourceDir, outputPath, plan.Name, true)
+	requirements, _ := selectorsInPlan.Requirements()
+	transformerSelectorObj = transformerSelectorObj.Add(requirements...)
+
+	if _, err := transformer.InitTransformers(plan.Spec.Transformers, transformerSelectorObj, plan.Spec.SourceDir, outputPath, plan.Name, true); err != nil {
+		return fmt.Errorf("failed to initialize the transformers. Error: %q", err)
+	}
 
 	// select only the services the user is interested in
 	serviceNames := []string{}
@@ -83,10 +86,11 @@ func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, tran
 
 	// transform the selected services using the selected transformation options
 	if err := transformer.Transform(selectedTransformationOptions, plan.Spec.SourceDir, outputPath); err != nil {
-		logrus.Fatalf("Failed to transform using the plan. Error: %q", err)
+		return fmt.Errorf("failed to transform using the plan. Error: %q", err)
 	}
 
 	logrus.Infof("Transformation done")
+	return nil
 }
 
 // Destroy destroys the tranformers

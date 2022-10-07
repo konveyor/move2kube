@@ -14,6 +14,7 @@
 
 GO_VERSION  ?= $(shell go run ./scripts/detectgoversion/detect.go 2>/dev/null || printf '1.18')
 BINNAME     ?= move2kube
+IN_CICD     ?= false
 BINDIR      := $(CURDIR)/bin
 DISTDIR		:= $(CURDIR)/_dist
 TARGETS     := darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/s390x linux/ppc64le windows/amd64
@@ -23,7 +24,7 @@ REGISTRYNS  ?= quay.io/konveyor
 GOPATH        = $(shell go env GOPATH)
 GOX           = $(GOPATH)/bin/gox
 GOTEST        = ${GOPATH}/bin/gotest
-GOLANGCILINT  = $(GOPATH)/bin/golangci-lint 
+GOLANGCILINT  = golangci-lint
 GOLANGCOVER   = $(GOPATH)/bin/goveralls 
 
 PKG        := ./...
@@ -38,6 +39,7 @@ GIT_SHA    = $(shell git rev-parse --short HEAD)
 GIT_TAG    = $(shell git tag --points-at | tail -n 1)
 GIT_DIRTY  = $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
 HAS_NODE   = $(shell command -v node >/dev/null && echo true || echo false)
+HAS_LINT   = $(shell command -v ${GOLANGCILINT} >/dev/null && echo true || echo false)
 
 GOGET     := cd / && GO111MODULE=on go install 
 
@@ -134,7 +136,16 @@ test-coverage: ${GOLANGCOVER} ## Run tests with coverage
 	go test -run . $(PKG) -coverprofile=coverage.txt -covermode=atomic
 
 ${GOLANGCILINT}:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.45.2
+ifeq ($(HAS_LINT),false)
+    ifeq ($(IN_CICD),true)
+		@echo "installing ${GOLANGCILINT}"
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.50.0
+    else
+		@echo "Please install the '${GOLANGCILINT}' tool to run the linters."
+		@echo "https://golangci-lint.run/usage/install/#local-installation"
+		@exit 1
+    endif
+endif
 
 .PHONY: test-style
 test-style: ${GOLANGCILINT} 
@@ -169,10 +180,11 @@ clean:
 
 .PHONY: info
 info: ## Get version info
-	 @echo "Version:           ${VERSION}"
-	 @echo "Git Tag:           ${GIT_TAG}"
-	 @echo "Git Commit:        ${GIT_COMMIT}"
-	 @echo "Git Tree State:    ${GIT_DIRTY}"
+	@echo "inside CI/CD pipelines: ${IN_CICD}"
+	@echo "Version:           ${VERSION}"
+	@echo "Git Tag:           ${GIT_TAG}"
+	@echo "Git Commit:        ${GIT_COMMIT}"
+	@echo "Git Tree State:    ${GIT_DIRTY}"
 
 # -- Container Image --
 

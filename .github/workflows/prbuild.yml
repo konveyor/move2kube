@@ -1,6 +1,7 @@
 name: PR Build
 
 on:
+  workflow_dispatch: {}
   pull_request:
     branches:
       - "main"
@@ -17,7 +18,7 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ steps.info.outputs.go_version }}
-      - run: make ci
+      - run: IN_CICD=true make ci
       - run: make test-coverage
       - name: upload coverage
         uses: codecov/codecov-action@v1
