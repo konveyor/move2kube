@@ -17,14 +17,14 @@ if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
   echo 'please run this script from the "scripts" directory'
   exit 1
 fi
-
+{{- $containerRuntime := .ContainerRuntime }}
 cd .. # go to the parent directory so that all the relative paths will be correct
 
-{{- range $dockerfile := . }}
+{{- range $dockerfile := .DockerfilesConfig }}
 
 echo 'building image {{ $dockerfile.ImageName }}'
 cd {{ $dockerfile.ContextUnix }}
-{{ $dockerfile.ContainerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
+{{ $containerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 cd -
 {{- end }}
 

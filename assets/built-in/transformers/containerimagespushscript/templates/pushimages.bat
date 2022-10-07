@@ -29,7 +29,11 @@ GOTO :MAIN
 :MAIN
 :: Uncomment the below line if you want to enable login before pushing
 :: {{ $containerRuntime }} login %REGISTRY_URL%
+{{- range $image := .Images }}
 
-{{range $image := .Images}}{{ $containerRuntime }} tag {{$image}} %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}
-{{ $containerRuntime }} push %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{$image}}
-{{end}}
+echo "pushing image {{ $image }}"
+{{ $containerRuntime }} tag {{ $image }} %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{ $image }}
+{{ $containerRuntime }} push %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{ $image }}
+{{- end }}
+
+echo "done"

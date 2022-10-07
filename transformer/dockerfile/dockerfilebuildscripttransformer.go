@@ -27,19 +27,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	buildImagesFileName        = "buildimages"
+	buildAndPushImagesFileName = "buildandpushimages_multiarch"
+)
+
 // DockerfileImageBuildScript implements Transformer interface
 type DockerfileImageBuildScript struct {
 	Config transformertypes.Transformer
 	Env    *environment.Environment
 }
 
-// DockerfileImageBuildScriptTemplateConfig represents template config used by ImagePush script
+// DockerfileImageBuildScriptTemplateConfig represents template config used by ImageBuild script
 type DockerfileImageBuildScriptTemplateConfig struct {
-	DockerfileName   string
-	ImageName        string
-	ContextUnix      string
-	ContextWindows   string
-	ContainerRuntime string
+	DockerfilesConfig []DockerfileImageBuildConfig
+	RegistryURL       string
+	RegistryNamespace string
+	ContainerRuntime  string
+}
+
+// DockerfileImageBuildConfig contains the Dockerfile image build config to be used in the ImageBuild script
+type DockerfileImageBuildConfig struct {
+	DockerfileName string
+	ImageName      string
+	ContextUnix    string
+	ContextWindows string
 }
 
 // Init Initializes the transformer
@@ -62,7 +74,7 @@ func (t *DockerfileImageBuildScript) DirectoryDetect(dir string) (namedServices 
 // Transform transforms the artifacts
 func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
-	dockerfiles := []DockerfileImageBuildScriptTemplateConfig{}
+	dockerfilesImageBuildConfig := []DockerfileImageBuildConfig{}
 	createdArtifacts := []transformertypes.Artifact{}
 	processedImages := map[string]bool{}
 	for _, artifact := range append(alreadySeenArtifacts, newArtifacts...) {
@@ -81,6 +93,8 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 			continue
 		}
 		processedImages[imageName.ImageName] = true
+		var dockerfileImageBuildConfig DockerfileImageBuildConfig
+		dockerfileImageBuildConfig.ImageName = imageName.ImageName
 		for _, dockerfilePath := range artifact.Paths[artifacts.DockerfilePathType] {
 			dockerContextPath := filepath.Dir(dockerfilePath)
 			relDockerfilePath := filepath.Base(dockerfilePath)
@@ -93,43 +107,29 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 					continue
 				}
 			}
+			dockerfileImageBuildConfig.DockerfileName = relDockerfilePath
 			if common.IsParent(dockerfilePath, t.Env.GetEnvironmentSource()) {
 				relDockerContextPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), filepath.Dir(dockerfilePath))
 				if err != nil {
 					logrus.Errorf("failed to make the path %s relative to the base path %s . Error: %q", filepath.Dir(dockerfilePath), t.Env.GetEnvironmentSource(), err)
 					continue
 				}
-				t1 := DockerfileImageBuildScriptTemplateConfig{
-					ImageName:        imageName.ImageName,
-					ContextUnix:      common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relDockerContextPath)),
-					ContextWindows:   common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relDockerContextPath)),
-					DockerfileName:   relDockerfilePath,
-					ContainerRuntime: commonqa.GetContainerRuntime(),
-				}
-				dockerfiles = append(dockerfiles, t1)
+				dockerfileImageBuildConfig.ContextUnix = common.GetUnixPath(filepath.Join(common.DefaultSourceDir, relDockerContextPath))
+				dockerfileImageBuildConfig.ContextWindows = common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, relDockerContextPath))
+				dockerfilesImageBuildConfig = append(dockerfilesImageBuildConfig, dockerfileImageBuildConfig)
 			} else if common.IsParent(dockerfilePath, t.Env.GetEnvironmentOutput()) {
 				relDockerContextPath, err := filepath.Rel(t.Env.GetEnvironmentOutput(), filepath.Dir(dockerfilePath))
 				if err != nil {
 					logrus.Errorf("failed to make the path %s relative to the base path %s . Error: %q", filepath.Dir(dockerfilePath), t.Env.GetEnvironmentOutput(), err)
 					continue
 				}
-				t2 := DockerfileImageBuildScriptTemplateConfig{
-					ImageName:        imageName.ImageName,
-					ContextUnix:      common.GetUnixPath(relDockerContextPath),
-					ContextWindows:   common.GetWindowsPath(relDockerContextPath),
-					DockerfileName:   relDockerfilePath,
-					ContainerRuntime: commonqa.GetContainerRuntime(),
-				}
-				dockerfiles = append(dockerfiles, t2)
+				dockerfileImageBuildConfig.ContextUnix = common.GetUnixPath(relDockerContextPath)
+				dockerfileImageBuildConfig.ContextWindows = common.GetWindowsPath(relDockerContextPath)
+				dockerfilesImageBuildConfig = append(dockerfilesImageBuildConfig, dockerfileImageBuildConfig)
 			} else {
-				t3 := DockerfileImageBuildScriptTemplateConfig{
-					ImageName:        imageName.ImageName,
-					ContextUnix:      common.GetUnixPath(filepath.Join(common.DefaultSourceDir, dockerContextPath)),
-					ContextWindows:   common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, dockerContextPath)),
-					DockerfileName:   relDockerfilePath,
-					ContainerRuntime: commonqa.GetContainerRuntime(),
-				}
-				dockerfiles = append(dockerfiles, t3)
+				dockerfileImageBuildConfig.ContextUnix = common.GetUnixPath(filepath.Join(common.DefaultSourceDir, dockerContextPath))
+				dockerfileImageBuildConfig.ContextWindows = common.GetWindowsPath(filepath.Join(common.DefaultSourceDir, dockerContextPath))
+				dockerfilesImageBuildConfig = append(dockerfilesImageBuildConfig, dockerfileImageBuildConfig)
 			}
 			createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
 				Name: t.Env.ProjectName,
@@ -142,21 +142,31 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 			})
 		}
 	}
-	if len(dockerfiles) == 0 {
+	if len(dockerfilesImageBuildConfig) == 0 {
 		return nil, nil, nil
+	}
+	containerImageBuildShScriptPaths := []string{}
+	containerImageBuildBatScriptPaths := []string{}
+	dockerfileImageBuildScriptConfig := DockerfileImageBuildScriptTemplateConfig{
+		RegistryURL:       commonqa.ImageRegistry(),
+		RegistryNamespace: commonqa.ImageRegistryNamespace(),
+		DockerfilesConfig: dockerfilesImageBuildConfig,
+		ContainerRuntime:  commonqa.GetContainerRuntime(),
 	}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
 		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 		DestPath:       common.ScriptsDir,
-		TemplateConfig: dockerfiles,
+		TemplateConfig: dockerfileImageBuildScriptConfig,
 	})
+	containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, buildImagesFileName+common.ShExt), filepath.Join(common.ScriptsDir, buildAndPushImagesFileName+common.ShExt))
+	containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, buildImagesFileName+common.BatExt), filepath.Join(common.ScriptsDir, buildAndPushImagesFileName+common.BatExt))
 	createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
 		Name: string(artifacts.ContainerImageBuildScriptArtifactType),
 		Type: artifacts.ContainerImageBuildScriptArtifactType,
-		Paths: map[transformertypes.PathType][]string{artifacts.ContainerImageBuildShScriptPathType: {filepath.Join(common.ScriptsDir, "builddockerimages.sh")},
+		Paths: map[transformertypes.PathType][]string{artifacts.ContainerImageBuildShScriptPathType: containerImageBuildShScriptPaths,
 			artifacts.ContainerImageBuildShScriptContextPathType:  {"."},
-			artifacts.ContainerImageBuildBatScriptPathType:        {filepath.Join(common.ScriptsDir, "builddockerimages.bat")},
+			artifacts.ContainerImageBuildBatScriptPathType:        containerImageBuildBatScriptPaths,
 			artifacts.ContainerImageBuildBatScriptContextPathType: {"."},
 		},
 	})

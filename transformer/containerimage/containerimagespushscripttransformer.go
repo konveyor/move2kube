@@ -93,7 +93,7 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 		Name: string(artifacts.ContainerImagesPushScriptArtifactType),
 		Type: artifacts.ContainerImagesPushScriptArtifactType,
 		Paths: map[transformertypes.PathType][]string{artifacts.ContainerImagesPushShScriptPathType: {filepath.Join(common.ScriptsDir, pushImagesFileName+common.ShExt)},
-			artifacts.ContainerImagesPushBatScriptPathType: {filepath.Join(common.ScriptsDir, pushImagesFileName+common.ShExt)}},
+			artifacts.ContainerImagesPushBatScriptPathType: {filepath.Join(common.ScriptsDir, pushImagesFileName+common.BatExt)}},
 	}}
 	return pathMappings, artifacts, nil
 }

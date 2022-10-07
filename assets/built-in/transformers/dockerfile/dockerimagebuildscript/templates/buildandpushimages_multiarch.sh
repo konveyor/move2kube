@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#   Copyright IBM Corporation 2020
+#   Copyright IBM Corporation 2021
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,23 +13,29 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Invoke as pushimages.sh <registry_url> <registry_namespace>
-{{ $containerRuntime := .ContainerRuntime }}
+if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
+  echo 'please run this script from the "scripts" directory'
+  exit 1
+fi
+
+cd .. # go to the parent directory so that all the relative paths will be correct
 
 REGISTRY_URL={{ .RegistryURL }}
 REGISTRY_NAMESPACE={{ .RegistryNamespace }}
-if [ "$#" -eq 2 ]; then
-    REGISTRY_URL=$1
-    REGISTRY_NAMESPACE=$2
+PLATFORMS="linux/amd64,linux/arm64,linux/s390x,linux/ppc64le"
+if [ "$#" -eq 3 ]; then
+  REGISTRY_URL=$1
+  REGISTRY_NAMESPACE=$2
+  PLATFORMS=$3
 fi
-
 # Uncomment the below line if you want to enable login before pushing
-# {{ $containerRuntime }} login ${REGISTRY_URL}
-{{- range $image := .Images }}
+# docker login ${REGISTRY_URL}
+{{- range $dockerfile := .DockerfilesConfig }}
 
-echo 'pushing image {{ $image }}'
-{{ $containerRuntime }} tag {{ $image }} ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $image }}
-{{ $containerRuntime }} push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $image }}
+echo 'building and pushing image {{ $dockerfile.ImageName }}'
+cd {{ $dockerfile.ContextUnix }}
+docker buildx build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }}  --push --tag ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} .
+cd -
 {{- end }}
 
 echo 'done'
