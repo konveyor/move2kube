@@ -58,12 +58,6 @@ const (
 	TODOAnnotation = types.GroupName + "/todo."
 	// DefaultBuildContainerName stores default build container name
 	DefaultBuildContainerName = "builder"
-	// DockerBuildSystem refers to docker build system for building and pushing images
-	DockerBuildSystem = "docker"
-	// PodmanBuildSystem refers to podman build system for building and pushing images
-	PodmanBuildSystem = "podman"
-	// BuildxBuildSystem refers to buildx build system for building and pushing images
-	BuildxBuildSystem = "buildx"
 	// ShExt is the extension of sh file
 	ShExt = ".sh"
 	// BatExt is the extension of bat file
