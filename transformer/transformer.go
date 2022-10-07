@@ -37,6 +37,7 @@ import (
 	"github.com/konveyor/move2kube/transformer/dockerfilegenerator/windows"
 	"github.com/konveyor/move2kube/transformer/external"
 	"github.com/konveyor/move2kube/transformer/kubernetes"
+	"github.com/konveyor/move2kube/types"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	graphtypes "github.com/konveyor/move2kube/types/graph"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -63,6 +64,11 @@ const (
 	consume processType = iota
 	passthrough
 	dependency
+)
+
+const (
+	// DEFAULT_SELECTED_LABEL is a label that can be used to remove a transformer from the list of transformers that are selected by default.
+	DEFAULT_SELECTED_LABEL = types.GroupName + "/default-selected"
 )
 
 var (
@@ -180,7 +186,7 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 	defaultSelectedTransformerNames := []string{}
 	for transformerName, t := range transformerConfigs {
 		transformerNames = append(transformerNames, transformerName)
-		if v, ok := t.ObjectMeta.Labels["move2kube.konveyor.io/default-selected"]; !ok || cast.ToBool(v) {
+		if v, ok := t.ObjectMeta.Labels[DEFAULT_SELECTED_LABEL]; !ok || cast.ToBool(v) {
 			defaultSelectedTransformerNames = append(defaultSelectedTransformerNames, transformerName)
 		}
 	}
