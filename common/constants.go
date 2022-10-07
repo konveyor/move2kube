@@ -91,10 +91,8 @@ const (
 	ConfigStoragesKey = BaseKey + d + "storages"
 	//ConfigMinReplicasKey represents Ingress host Key
 	ConfigMinReplicasKey = BaseKey + d + "minreplicas"
-	//ConfigBuildSystemKey represents the container build system to use
-	ConfigBuildSystemKey = BaseKey + d + "buildsystem"
-	//ConfigBuildxTargetPlatformKey represents the target platforms used in buildx scripts
-	ConfigBuildxTargetPlatformKey = BaseKey + d + "targetplatform"
+	//ConfigContainerRuntimeKey represents the container runtime to use
+	ConfigContainerRuntimeKey = BaseKey + d + "containerruntime"
 	//ConfigPortsForServiceKeySegment represents the ports used for service
 	ConfigPortsForServiceKeySegment = "ports"
 	//ConfigPortForServiceKeySegment represents the port used for service

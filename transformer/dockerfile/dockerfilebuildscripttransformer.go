@@ -18,11 +18,9 @@ package dockerfile
 
 import (
 	"path/filepath"
-	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -30,7 +28,8 @@ import (
 )
 
 const (
-	linuxAMD64Arch = "linux/amd64"
+	buildImagesFileName        = "buildimages"
+	buildAndPushImagesFileName = "buildandpushimages_multiarch"
 )
 
 // DockerfileImageBuildScript implements Transformer interface
@@ -44,10 +43,7 @@ type DockerfileImageBuildScriptTemplateConfig struct {
 	DockerfilesConfig []DockerfileImageBuildConfig
 	RegistryURL       string
 	RegistryNamespace string
-	TargetPlatforms   string
-	DockerBuild       bool
-	PodmanBuild       bool
-	BuildxBuild       bool
+	ContainerRuntime  string
 }
 
 // DockerfileImageBuildConfig contains the Dockerfile image build config to be used in the ImageBuild script
@@ -68,16 +64,6 @@ func (t *DockerfileImageBuildScript) Init(tc transformertypes.Transformer, env *
 // GetConfig returns the transformer config
 func (t *DockerfileImageBuildScript) GetConfig() (transformertypes.Transformer, *environment.Environment) {
 	return t.Config, t.Env
-}
-
-// getTargetPlatforms returns the target platforms for which buildx has to create the images
-func getTargetPlatforms() []string {
-	targetPlatforms := []string{linuxAMD64Arch, "linux/s390x", "linux/ppc64le", "linux/arm64"}
-	selectedTargetPlatforms := qaengine.FetchMultiSelectAnswer(common.ConfigBuildxTargetPlatformKey, "Select the target architecture(s) for which the image(s) should be created :", []string{"The selected target platform(s) will be used in the --platform flag in the buildx build command"}, []string{targetPlatforms[0]}, targetPlatforms)
-	if len(selectedTargetPlatforms) != 0 {
-		return selectedTargetPlatforms
-	}
-	return []string{linuxAMD64Arch}
 }
 
 // DirectoryDetect runs detect in each sub directory
@@ -159,48 +145,22 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 	if len(dockerfilesImageBuildConfig) == 0 {
 		return nil, nil, nil
 	}
-	selectedBuildSystems := commonqa.GetBuildSystems()
 	containerImageBuildShScriptPaths := []string{}
 	containerImageBuildBatScriptPaths := []string{}
 	dockerfileImageBuildScriptConfig := DockerfileImageBuildScriptTemplateConfig{
 		RegistryURL:       commonqa.ImageRegistry(),
 		RegistryNamespace: commonqa.ImageRegistryNamespace(),
 		DockerfilesConfig: dockerfilesImageBuildConfig,
-	}
-	for _, buildSystem := range selectedBuildSystems {
-		switch buildSystem {
-		case common.DockerBuildSystem:
-			dockerfileImageBuildScriptConfig.DockerBuild = true
-			containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, "buildandpushdockerimages_"+buildSystem+common.ShExt))
-			containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, "buildandpushdockerimages_"+buildSystem+common.BatExt))
-		case common.BuildxBuildSystem:
-			dockerfileImageBuildScriptConfig.BuildxBuild = true
-			containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+buildSystem+common.ShExt))
-			containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+buildSystem+common.BatExt))
-			dockerfileImageBuildScriptConfig.TargetPlatforms = strings.Join(getTargetPlatforms(), ",")
-		case common.PodmanBuildSystem:
-			dockerfileImageBuildScriptConfig.PodmanBuild = true
-			containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+buildSystem+common.ShExt))
-			containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages_"+buildSystem+common.BatExt))
-		default:
-			logrus.Errorf("unsupported container build system %s", buildSystem)
-			continue
-		}
-		pathMappings = append(pathMappings, transformertypes.PathMapping{
-			Type:           transformertypes.TemplatePathMappingType,
-			SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir, buildSystem),
-			DestPath:       common.ScriptsDir,
-			TemplateConfig: dockerfileImageBuildScriptConfig,
-		})
+		ContainerRuntime:  commonqa.GetContainerRuntime(),
 	}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
-		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir, "default"),
+		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
 		DestPath:       common.ScriptsDir,
 		TemplateConfig: dockerfileImageBuildScriptConfig,
 	})
-	containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages"+common.ShExt))
-	containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, "builddockerimages"+common.BatExt))
+	containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, buildImagesFileName+common.ShExt), filepath.Join(common.ScriptsDir, buildAndPushImagesFileName+common.ShExt))
+	containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, buildImagesFileName+common.BatExt), filepath.Join(common.ScriptsDir, buildAndPushImagesFileName+common.BatExt))
 	createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
 		Name: string(artifacts.ContainerImageBuildScriptArtifactType),
 		Type: artifacts.ContainerImageBuildScriptArtifactType,

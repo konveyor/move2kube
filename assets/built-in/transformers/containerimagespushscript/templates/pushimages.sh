@@ -14,17 +14,22 @@
 #   limitations under the License.
 
 # Invoke as pushimages.sh <registry_url> <registry_namespace>
-if [ "$#" -ne 2 ]; then
-    REGISTRY_URL={{ .RegistryURL }}
-    REGISTRY_NAMESPACE={{ .RegistryNamespace }}
-else
+{{ $containerRuntime := .ContainerRuntime }}
+
+REGISTRY_URL={{ .RegistryURL }}
+REGISTRY_NAMESPACE={{ .RegistryNamespace }}
+if [ "$#" -eq 2 ]; then
     REGISTRY_URL=$1
     REGISTRY_NAMESPACE=$2
 fi
 
 # Uncomment the below line if you want to enable login before pushing
-# docker login ${REGISTRY_URL}
+# {{ $containerRuntime }} login ${REGISTRY_URL}
+{{- range $image := .Images }}
 
-{{range $image := .Images}}docker tag {{$image}} ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{$image}}
-docker push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{$image}}
-{{end}}
+echo 'pushing image {{ $image }}'
+{{ $containerRuntime }} tag {{ $image }} ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $image }}
+{{ $containerRuntime }} push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $image }}
+{{- end }}
+
+echo 'done'

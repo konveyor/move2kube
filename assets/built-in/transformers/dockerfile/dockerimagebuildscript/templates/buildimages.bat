@@ -18,14 +18,16 @@ if not %basename% == "scripts" (
     echo "please run this script from the 'scripts' directory"
     exit 1
 )
-
+{{- $containerRuntime := .ContainerRuntime }}
 REM go to the parent directory so that all the relative paths will be correct
 cd ..
 
 {{- range $dockerfile := .DockerfilesConfig }}
 
+echo "building image {{ $dockerfile.ImageName }}"
 pushd {{ $dockerfile.ContextWindows }}
-docker build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
+{{ $containerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 popd
 {{- end }}
+
 echo "done"

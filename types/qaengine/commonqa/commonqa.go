@@ -136,12 +136,8 @@ func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
 	return int32(selectedPort)
 }
 
-// GetBuildSystems returns the container build systems
-func GetBuildSystems() []string {
-	buildSystems := []string{common.DockerBuildSystem, common.PodmanBuildSystem, common.BuildxBuildSystem}
-	selectedBuildSystems := qaengine.FetchMultiSelectAnswer(common.ConfigBuildSystemKey, "Select the container build system(s) to use :", []string{"The selected container build system(s) will be used in the scripts"}, []string{buildSystems[0]}, buildSystems)
-	if len(selectedBuildSystems) != 0 {
-		return selectedBuildSystems
-	}
-	return []string{common.DockerBuildSystem}
+// GetContainerRuntime returns the container runtime
+func GetContainerRuntime() string {
+	containerRuntimes := []string{"docker", "podman"}
+	return qaengine.FetchSelectAnswer(common.ConfigContainerRuntimeKey, "Select the container runtime to use :", []string{"The container runtime selected will be used in the buildimages and pushimages scripts"}, containerRuntimes[0], containerRuntimes)
 }

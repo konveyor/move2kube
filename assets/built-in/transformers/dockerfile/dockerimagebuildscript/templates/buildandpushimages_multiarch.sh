@@ -19,38 +19,23 @@ if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
 fi
 
 cd .. # go to the parent directory so that all the relative paths will be correct
-{{- if .DockerBuild }}
-{{- range $dockerfile := .DockerfilesConfig }}
 
-echo 'building image {{ $dockerfile.ImageName }}'
-cd {{ $dockerfile.ContextUnix }}
-docker build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
-cd -
-{{- end }}
-{{- else if .PodmanBuild }}
-{{- range $dockerfile := .DockerfilesConfig }}
-
-echo 'building image {{ $dockerfile.ImageName }}'
-cd {{ $dockerfile.ContextUnix }}
-podman build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
-cd -
-{{- end }}
-{{ else if .BuildxBuild }}
-if [ "$#" -ne 3 ]; then
-    REGISTRY_URL={{ .RegistryURL }}
-    REGISTRY_NAMESPACE={{ .RegistryNamespace }}
-    PLATFORMS={{ .TargetPlatforms }}
-else
-    REGISTRY_URL=$1
-    REGISTRY_NAMESPACE=$2
-    PLATFORMS=$3
+REGISTRY_URL={{ .RegistryURL }}
+REGISTRY_NAMESPACE={{ .RegistryNamespace }}
+PLATFORMS="linux/amd64,linux/arm64,linux/s390x,linux/ppc64le"
+if [ "$#" -eq 3 ]; then
+  REGISTRY_URL=$1
+  REGISTRY_NAMESPACE=$2
+  PLATFORMS=$3
 fi
+# Uncomment the below line if you want to enable login before pushing
+# docker login ${REGISTRY_URL}
 {{- range $dockerfile := .DockerfilesConfig }}
 
-echo 'building image {{ $dockerfile.ImageName }}'
+echo 'building and pushing image {{ $dockerfile.ImageName }}'
 cd {{ $dockerfile.ContextUnix }}
 docker buildx build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }}  --push --tag ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} .
 cd -
 {{- end }}
-{{- end }}
+
 echo 'done'
