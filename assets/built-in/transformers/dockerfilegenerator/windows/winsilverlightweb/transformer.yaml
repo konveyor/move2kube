@@ -5,6 +5,7 @@ metadata:
   labels: 
     move2kube.konveyor.io/task: containerization
     move2kube.konveyor.io/built-in: true
+    move2kube.konveyor.io/default-selected: false
 spec:
   class: "WinSilverLightWebAppDockerfileGenerator"
   directoryDetect:

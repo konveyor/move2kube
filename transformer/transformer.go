@@ -37,12 +37,14 @@ import (
 	"github.com/konveyor/move2kube/transformer/dockerfilegenerator/windows"
 	"github.com/konveyor/move2kube/transformer/external"
 	"github.com/konveyor/move2kube/transformer/kubernetes"
+	"github.com/konveyor/move2kube/types"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	graphtypes "github.com/konveyor/move2kube/types/graph"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -62,6 +64,11 @@ const (
 	consume processType = iota
 	passthrough
 	dependency
+)
+
+const (
+	// DEFAULT_SELECTED_LABEL is a label that can be used to remove a transformer from the list of transformers that are selected by default.
+	DEFAULT_SELECTED_LABEL = types.GroupName + "/default-selected"
 )
 
 var (
@@ -137,10 +144,10 @@ func RegisterTransformer(tf Transformer) error {
 }
 
 // Init initializes the transformers
-func Init(assetsPath, sourcePath string, selector labels.Selector, outputPath, projName string) (err error) {
+func Init(assetsPath, sourcePath string, selector labels.Selector, outputPath, projName string) (map[string]string, error) {
 	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
-		return fmt.Errorf("failed to look for yaml files in the directory %s . Error: %q", assetsPath, err)
+		return nil, fmt.Errorf("failed to look for yaml files in the directory %s . Error: %q", assetsPath, err)
 	}
 	transformerFiles := map[string]string{}
 	for _, filePath := range filePaths {
@@ -154,18 +161,24 @@ func Init(assetsPath, sourcePath string, selector labels.Selector, outputPath, p
 		}
 		transformerFiles[tc.Name] = filePath
 	}
-	if err := InitTransformers(transformerFiles, selector, sourcePath, outputPath, projName, false); err != nil {
-		return fmt.Errorf("failed to initialize the transformers. Error: %q", err)
+	deselectedTransformers, err := InitTransformers(transformerFiles, selector, sourcePath, outputPath, projName, false)
+	if err != nil {
+		return deselectedTransformers, fmt.Errorf("failed to initialize the transformers. Error: %q", err)
 	}
-	return nil
+	return deselectedTransformers, nil
 }
 
 // InitTransformers initializes a subset of transformers
-func InitTransformers(transformerToInit map[string]string, selector labels.Selector, sourcePath string, outputPath, projName string, logError bool) error {
+func InitTransformers(transformerToInit map[string]string, selector labels.Selector, sourcePath string, outputPath, projName string, logError bool) (map[string]string, error) {
 	if initialized {
-		return nil
+		return nil, nil
 	}
-	transformerFilterString := qaengine.FetchStringAnswer(common.TransformerSelectorKey, "", []string{"Set the transformer selector config."}, "")
+	transformerFilterString := qaengine.FetchStringAnswer(
+		common.TransformerSelectorKey,
+		"Specify a Kubernetes style selector to select only the transformers that you want to run.",
+		[]string{"Leave empty to select everything. This is the default."},
+		"",
+	)
 	if transformerFilterString != "" {
 		if transformerFilter, err := common.ConvertStringSelectorsToSelectors(transformerFilterString); err != nil {
 			logrus.Errorf("failed to parse the transformer filter string: %s . Error: %q", transformerFilterString, err)
@@ -175,12 +188,40 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		}
 	}
 	transformerConfigs := getFilteredTransformers(transformerToInit, selector, logError)
+	deselectedTransformers := map[string]string{}
+	for t, tpath := range transformerToInit {
+		found := false
+		for k := range transformerConfigs {
+			if k == t {
+				found = true
+				break
+			}
+		}
+		if !found {
+			deselectedTransformers[t] = tpath
+		}
+	}
 	transformerNames := []string{}
-	for transformerName := range transformerConfigs {
+	defaultSelectedTransformerNames := []string{}
+	for transformerName, t := range transformerConfigs {
 		transformerNames = append(transformerNames, transformerName)
+		if v, ok := t.ObjectMeta.Labels[DEFAULT_SELECTED_LABEL]; !ok || cast.ToBool(v) {
+			defaultSelectedTransformerNames = append(defaultSelectedTransformerNames, transformerName)
+		}
 	}
 	sort.Strings(transformerNames)
-	selectedTransformerNames := qaengine.FetchMultiSelectAnswer(common.ConfigTransformerTypesKey, "Select all transformer types that you are interested in:", []string{"Services that don't support any of the transformer types you are interested in will be ignored."}, transformerNames, transformerNames)
+	selectedTransformerNames := qaengine.FetchMultiSelectAnswer(
+		common.ConfigTransformerTypesKey,
+		"Select all transformer types that you are interested in:",
+		[]string{"Services that don't support any of the transformer types you are interested in will be ignored."},
+		defaultSelectedTransformerNames,
+		transformerNames,
+	)
+	for _, t := range transformerNames {
+		if !common.IsPresent(selectedTransformerNames, t) {
+			deselectedTransformers[t] = transformerToInit[t]
+		}
+	}
 	for _, selectedTransformerName := range selectedTransformerNames {
 		transformerConfig := transformerConfigs[selectedTransformerName]
 		transformerClass, ok := transformerTypes[transformerConfig.Spec.Class]
@@ -206,8 +247,7 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		}
 		env, err := environment.NewEnvironment(envInfo, nil, environmenttypes.Container{})
 		if err != nil {
-			logrus.Errorf("failed to create the environment %+v . Error: %q", envInfo, err)
-			return err
+			return deselectedTransformers, fmt.Errorf("failed to create the environment %+v . Error: %q", envInfo, err)
 		}
 		if err := transformer.Init(transformerConfig, env); err != nil {
 			if _, ok := err.(*transformertypes.TransformerDisabledError); ok {
@@ -224,7 +264,7 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		}
 	}
 	initialized = true
-	return nil
+	return deselectedTransformers, nil
 }
 
 // Destroy destroys the transformers

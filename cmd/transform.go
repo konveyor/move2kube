@@ -135,7 +135,10 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
-		p = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
+		p, err = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
+		if err != nil {
+			logrus.Fatalf("failed to create the plan. Error: %q", err)
+		}
 		if len(p.Spec.Services) == 0 && len(p.Spec.InvokedByDefaultTransformers) == 0 {
 			logrus.Debugf("Plan : %+v", p)
 			logrus.Fatalf("failed to find any services or default transformers. Aborting.")
@@ -179,7 +182,9 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 	}
-	lib.Transform(ctx, p, flags.outpath, flags.transformerSelector)
+	if err := lib.Transform(ctx, p, flags.outpath, flags.transformerSelector); err != nil {
+		logrus.Fatalf("failed to transform. Error: %q", err)
+	}
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
 }
 

@@ -18,6 +18,7 @@ package lib
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/transformer"
@@ -26,8 +27,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//CreatePlan creates the plan from all planners
-func CreatePlan(ctx context.Context, inputPath, outputPath string, customizationsPath, transformerSelector, prjName string) plantypes.Plan {
+// CreatePlan creates the plan from all planners
+func CreatePlan(ctx context.Context, inputPath, outputPath string, customizationsPath, transformerSelector, prjName string) (plantypes.Plan, error) {
 	logrus.Debugf("Temp Dir : %s", common.TempPath)
 	p := plantypes.NewPlan()
 	p.Name = prjName
@@ -39,15 +40,19 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	}
 	transformerSelectorObj, err := metav1.ParseToLabelSelector(transformerSelector)
 	if err != nil {
-		logrus.Errorf("Unable to parse the transformer selector string : %s", err)
-	} else {
-		p.Spec.TransformerSelector = *transformerSelectorObj
+		return p, fmt.Errorf("failed to parse the transformer selector string. Error: %q", err)
 	}
+	p.Spec.TransformerSelector = *transformerSelectorObj
+
 	lblSelector, err := metav1.LabelSelectorAsSelector(transformerSelectorObj)
 	if err != nil {
-		logrus.Errorf("Unable to convert label selector to selector : %s", err)
+		return p, fmt.Errorf("failed to convert label selector to selector. Error: %q", err)
 	}
-	transformer.Init(common.AssetsPath, inputPath, lblSelector, outputPath, p.Name)
+	deselectedTransformers, err := transformer.Init(common.AssetsPath, inputPath, lblSelector, outputPath, p.Name)
+	if err != nil {
+		return p, fmt.Errorf("failed to initialize the transformers. Error: %q", err)
+	}
+	p.Spec.DisabledTransformers = deselectedTransformers
 	ts := transformer.GetInitializedTransformers()
 	for _, t := range ts {
 		config, _ := t.GetConfig()
@@ -69,5 +74,5 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	}
 	logrus.Infoln("Planning done")
 	logrus.Infof("No of services identified : %d", len(p.Spec.Services))
-	return p
+	return p, nil
 }

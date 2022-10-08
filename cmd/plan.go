@@ -135,10 +135,12 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	if flags.progressServerPort != 0 {
 		startPlanProgressServer(flags.progressServerPort)
 	}
-	p := lib.CreatePlan(ctx, srcpath, "", customizationsPath, flags.transformerSelector, name)
+	p, err := lib.CreatePlan(ctx, srcpath, "", customizationsPath, flags.transformerSelector, name)
+	if err != nil {
+		logrus.Fatalf("failed to create the plan. Error: %q", err)
+	}
 	if err = plantypes.WritePlan(planfile, p); err != nil {
-		logrus.Errorf("Unable to write plan file (%s) : %s", planfile, err)
-		return
+		logrus.Fatalf("failed to write the plan to file at path %s . Error: %q", planfile, err)
 	}
 	logrus.Debugf("Plan : %+v", p)
 	logrus.Infof("Plan can be found at [%s].", planfile)
