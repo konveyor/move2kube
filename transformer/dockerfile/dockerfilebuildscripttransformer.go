@@ -17,6 +17,7 @@
 package dockerfile
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
@@ -28,22 +29,30 @@ import (
 )
 
 const (
-	buildImagesFileName        = "buildimages"
-	buildAndPushImagesFileName = "buildandpushimages_multiarch"
+	buildImagesFileName                 = "buildimages"
+	buildAndPushImagesFileName          = "buildandpushimages_multiarch"
+	defaultDockerBuildScriptsOutputPath = common.ScriptsDir
 )
 
 // DockerfileImageBuildScript implements Transformer interface
 type DockerfileImageBuildScript struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config                           transformertypes.Transformer
+	Env                              *environment.Environment
+	DockerfileImageBuildScriptConfig *DockerfileImageBuildScriptConfig
 }
 
-// DockerfileImageBuildScriptTemplateConfig represents template config used by ImageBuild script
+// DockerfileImageBuildScriptConfig stores the transformer specific configuration
+type DockerfileImageBuildScriptConfig struct {
+	OutputPath string `yaml:"outputPath"`
+}
+
+// DockerfileImageBuildScriptTemplateConfig represents the data used to fill the build script generator template
 type DockerfileImageBuildScriptTemplateConfig struct {
-	DockerfilesConfig []DockerfileImageBuildConfig
-	RegistryURL       string
-	RegistryNamespace string
-	ContainerRuntime  string
+	RelParentOfSourceDir string
+	DockerfilesConfig    []DockerfileImageBuildConfig
+	RegistryURL          string
+	RegistryNamespace    string
+	ContainerRuntime     string
 }
 
 // DockerfileImageBuildConfig contains the Dockerfile image build config to be used in the ImageBuild script
@@ -58,6 +67,14 @@ type DockerfileImageBuildConfig struct {
 func (t *DockerfileImageBuildScript) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
+	t.DockerfileImageBuildScriptConfig = &DockerfileImageBuildScriptConfig{}
+	if err := common.GetObjFromInterface(t.Config.Spec.Config, t.DockerfileImageBuildScriptConfig); err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.DockerfileImageBuildScriptConfig, err)
+		return err
+	}
+	if t.DockerfileImageBuildScriptConfig.OutputPath == "" {
+		t.DockerfileImageBuildScriptConfig.OutputPath = defaultDockerBuildScriptsOutputPath
+	}
 	return nil
 }
 
@@ -145,26 +162,57 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 	if len(dockerfilesImageBuildConfig) == 0 {
 		return nil, nil, nil
 	}
+	relSourceDir, err := filepath.Rel(t.DockerfileImageBuildScriptConfig.OutputPath, common.DefaultSourceDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf(
+			"failed to make the sources directory %s relative to the scripts directory %s . Error: %q",
+			common.DefaultSourceDir,
+			t.DockerfileImageBuildScriptConfig.OutputPath,
+			err,
+		)
+	}
 	containerImageBuildShScriptPaths := []string{}
 	containerImageBuildBatScriptPaths := []string{}
-	dockerfileImageBuildScriptConfig := DockerfileImageBuildScriptTemplateConfig{
-		RegistryURL:       commonqa.ImageRegistry(),
-		RegistryNamespace: commonqa.ImageRegistryNamespace(),
-		DockerfilesConfig: dockerfilesImageBuildConfig,
-		ContainerRuntime:  commonqa.GetContainerRuntime(),
+	templateData := DockerfileImageBuildScriptTemplateConfig{
+		RelParentOfSourceDir: filepath.Join(relSourceDir, ".."),
+		RegistryURL:          commonqa.ImageRegistry(),
+		RegistryNamespace:    commonqa.ImageRegistryNamespace(),
+		DockerfilesConfig:    dockerfilesImageBuildConfig,
+		ContainerRuntime:     commonqa.GetContainerRuntime(),
 	}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
 		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
-		DestPath:       common.ScriptsDir,
-		TemplateConfig: dockerfileImageBuildScriptConfig,
+		DestPath:       t.DockerfileImageBuildScriptConfig.OutputPath,
+		TemplateConfig: templateData,
 	})
-	containerImageBuildShScriptPaths = append(containerImageBuildShScriptPaths, filepath.Join(common.ScriptsDir, buildImagesFileName+common.ShExt), filepath.Join(common.ScriptsDir, buildAndPushImagesFileName+common.ShExt))
-	containerImageBuildBatScriptPaths = append(containerImageBuildBatScriptPaths, filepath.Join(common.ScriptsDir, buildImagesFileName+common.BatExt), filepath.Join(common.ScriptsDir, buildAndPushImagesFileName+common.BatExt))
+	containerImageBuildShScriptPaths = append(
+		containerImageBuildShScriptPaths,
+		filepath.Join(
+			t.DockerfileImageBuildScriptConfig.OutputPath,
+			buildImagesFileName+common.ShExt,
+		),
+		filepath.Join(
+			t.DockerfileImageBuildScriptConfig.OutputPath,
+			buildAndPushImagesFileName+common.ShExt,
+		),
+	)
+	containerImageBuildBatScriptPaths = append(
+		containerImageBuildBatScriptPaths,
+		filepath.Join(
+			t.DockerfileImageBuildScriptConfig.OutputPath,
+			buildImagesFileName+common.BatExt,
+		),
+		filepath.Join(
+			t.DockerfileImageBuildScriptConfig.OutputPath,
+			buildAndPushImagesFileName+common.BatExt,
+		),
+	)
 	createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
 		Name: string(artifacts.ContainerImageBuildScriptArtifactType),
 		Type: artifacts.ContainerImageBuildScriptArtifactType,
-		Paths: map[transformertypes.PathType][]string{artifacts.ContainerImageBuildShScriptPathType: containerImageBuildShScriptPaths,
+		Paths: map[transformertypes.PathType][]string{
+			artifacts.ContainerImageBuildShScriptPathType:         containerImageBuildShScriptPaths,
 			artifacts.ContainerImageBuildShScriptContextPathType:  {"."},
 			artifacts.ContainerImageBuildBatScriptPathType:        containerImageBuildBatScriptPaths,
 			artifacts.ContainerImageBuildBatScriptContextPathType: {"."},

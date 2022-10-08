@@ -18,7 +18,7 @@ if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
   exit 1
 fi
 
-cd .. # go to the parent directory so that all the relative paths will be correct
+cd {{ .RelParentOfSourceDir }} # go to the parent directory so that all the relative paths will be correct
 
 REGISTRY_URL={{ .RegistryURL }}
 REGISTRY_NAMESPACE={{ .RegistryNamespace }}

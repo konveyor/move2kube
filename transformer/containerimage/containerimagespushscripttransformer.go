@@ -28,13 +28,20 @@ import (
 )
 
 const (
-	pushImagesFileName = "pushimages"
+	pushImagesFileName                 = "pushimages"
+	defaultDockerPushScriptsOutputPath = common.ScriptsDir
 )
 
 // ContainerImagesPushScript implements Transformer interface
 type ContainerImagesPushScript struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config                          transformertypes.Transformer
+	Env                             *environment.Environment
+	DockerfileImagePushScriptConfig *DockerfileImagePushScriptConfig
+}
+
+// DockerfileImagePushScriptConfig stores the transformer specific configuration
+type DockerfileImagePushScriptConfig struct {
+	OutputPath string `yaml:"outputPath"`
 }
 
 // ImagePushTemplateConfig represents template config used by ImagePush script
@@ -49,6 +56,14 @@ type ImagePushTemplateConfig struct {
 func (t *ContainerImagesPushScript) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
+	t.DockerfileImagePushScriptConfig = &DockerfileImagePushScriptConfig{}
+	if err := common.GetObjFromInterface(t.Config.Spec.Config, t.DockerfileImagePushScriptConfig); err != nil {
+		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.DockerfileImagePushScriptConfig, err)
+		return err
+	}
+	if t.DockerfileImagePushScriptConfig.OutputPath == "" {
+		t.DockerfileImagePushScriptConfig.OutputPath = defaultDockerPushScriptsOutputPath
+	}
 	return nil
 }
 
@@ -86,14 +101,15 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
 		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),
-		DestPath:       common.ScriptsDir,
+		DestPath:       t.DockerfileImagePushScriptConfig.OutputPath,
 		TemplateConfig: ipt,
 	})
 	artifacts := []transformertypes.Artifact{{
 		Name: string(artifacts.ContainerImagesPushScriptArtifactType),
 		Type: artifacts.ContainerImagesPushScriptArtifactType,
-		Paths: map[transformertypes.PathType][]string{artifacts.ContainerImagesPushShScriptPathType: {filepath.Join(common.ScriptsDir, pushImagesFileName+common.ShExt)},
-			artifacts.ContainerImagesPushBatScriptPathType: {filepath.Join(common.ScriptsDir, pushImagesFileName+common.BatExt)}},
+		Paths: map[transformertypes.PathType][]string{
+			artifacts.ContainerImagesPushShScriptPathType:  {filepath.Join(t.DockerfileImagePushScriptConfig.OutputPath, pushImagesFileName+common.ShExt)},
+			artifacts.ContainerImagesPushBatScriptPathType: {filepath.Join(t.DockerfileImagePushScriptConfig.OutputPath, pushImagesFileName+common.BatExt)}},
 	}}
 	return pathMappings, artifacts, nil
 }

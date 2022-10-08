@@ -18,7 +18,7 @@ if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
   exit 1
 fi
 {{- $containerRuntime := .ContainerRuntime }}
-cd .. # go to the parent directory so that all the relative paths will be correct
+cd {{ .RelParentOfSourceDir }} # go to the parent directory so that all the relative paths will be correct
 
 {{- range $dockerfile := .DockerfilesConfig }}
 

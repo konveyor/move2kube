@@ -20,7 +20,7 @@ if not %basename% == "scripts" (
 )
 
 REM go to the parent directory so that all the relative paths will be correct
-cd ..
+cd {{ .RelParentOfSourceDir }}
 
 @echo off
 IF "%3"=="" GOTO DEFAULT_PLATFORMS
