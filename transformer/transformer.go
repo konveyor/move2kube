@@ -18,6 +18,7 @@ package transformer
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,6 +29,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	containertypes "github.com/konveyor/move2kube/environment/container"
 	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/transformer/compose"
@@ -125,6 +127,7 @@ func init() {
 		new(kubernetes.BuildConfig),
 		new(kubernetes.Parameterizer),
 		new(kubernetes.KubernetesVersionChanger),
+		new(kubernetes.OperatorTransformer),
 
 		new(ReadMeGenerator),
 	}
@@ -162,7 +165,7 @@ func Init(assetsPath, sourcePath string, selector labels.Selector, outputPath, p
 		}
 		transformerFiles[tc.Name] = filePath
 	}
-	deselectedTransformers, err := InitTransformers(transformerFiles, selector, sourcePath, outputPath, projName, false)
+	deselectedTransformers, err := InitTransformers(transformerFiles, selector, sourcePath, outputPath, projName, false, false)
 	if err != nil {
 		return deselectedTransformers, fmt.Errorf("failed to initialize the transformers. Error: %q", err)
 	}
@@ -170,7 +173,7 @@ func Init(assetsPath, sourcePath string, selector labels.Selector, outputPath, p
 }
 
 // InitTransformers initializes a subset of transformers
-func InitTransformers(transformerToInit map[string]string, selector labels.Selector, sourcePath string, outputPath, projName string, logError bool) (map[string]string, error) {
+func InitTransformers(transformerToInit map[string]string, selector labels.Selector, sourcePath, outputPath, projName string, logError, preExistingPlan bool) (map[string]string, error) {
 	if initialized {
 		return nil, nil
 	}
@@ -246,30 +249,40 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 			Output:          outputPath,
 			Context:         transformerContextPath,
 			RelTemplatesDir: transformerConfig.Spec.TemplatesDir,
-			EnvPlatformConfig: environmenttypes.EnvPlatformConfig{Container: environmenttypes.Container{},
-				Platforms: []string{runtime.GOOS}},
+			EnvPlatformConfig: environmenttypes.EnvPlatformConfig{
+				Container: environmenttypes.Container{},
+				Platforms: []string{runtime.GOOS},
+			},
 		}
 		for src, dest := range transformerConfig.Spec.ExternalFiles {
 			if err := filesystem.Replicate(filepath.Join(transformerContextPath, src), filepath.Join(transformerContextPath, dest)); err != nil {
-				logrus.Errorf("Error while copying external files in transformer %s (%s:%s) : %s", transformerConfig.Name, src, dest, err)
+				logrus.Errorf(
+					"failed to copy external files for transformer '%s' from source path '%s' to destination path '%s' . Error: %q",
+					transformerConfig.Name, src, dest, err,
+				)
+			}
+		}
+		if preExistingPlan {
+			if v, ok := transformerConfig.Labels["move2kube.konveyor.io/container-based"]; ok && cast.ToBool(v) {
+				envInfo.SpawnContainers = true
 			}
 		}
 		env, err := environment.NewEnvironment(envInfo, nil)
 		if err != nil {
-			return deselectedTransformers, fmt.Errorf("failed to create the environment %+v . Error: %q", envInfo, err)
+			return deselectedTransformers, fmt.Errorf("failed to create the environment %+v . Error: %w", envInfo, err)
 		}
 		if err := transformer.Init(transformerConfig, env); err != nil {
-			if _, ok := err.(*transformertypes.TransformerDisabledError); ok {
-				logrus.Debugf("Unable to initialize transformer %s . Error: %q", transformerConfig.Name, err)
+			if errors.Is(err, containertypes.ErrNoContainerRuntime) {
+				logrus.Debugf("failed to initialize the transformer '%s' . Error: %q", transformerConfig.Name, err)
 			} else {
-				logrus.Errorf("Unable to initialize transformer %s . Error: %q", transformerConfig.Name, err)
+				logrus.Errorf("failed to initialize the transformer '%s' . Error: %q", transformerConfig.Name, err)
 			}
-		} else {
-			transformers = append(transformers, transformer)
-			transformerMap[selectedTransformerName] = transformer
-			if transformerConfig.Spec.InvokedByDefault.Enabled {
-				invokedByDefaultTransformers = append(invokedByDefaultTransformers, transformer)
-			}
+			continue
+		}
+		transformers = append(transformers, transformer)
+		transformerMap[selectedTransformerName] = transformer
+		if transformerConfig.Spec.InvokedByDefault.Enabled {
+			invokedByDefaultTransformers = append(invokedByDefaultTransformers, transformer)
 		}
 	}
 	initialized = true
@@ -332,7 +345,7 @@ func GetServices(prjName string, dir string) (map[string][]plantypes.PlanArtifac
 		logrus.Infof("[%s] Planning", config.Name)
 		newServices, err := transformer.DirectoryDetect(env.Encode(dir).(string))
 		if err != nil {
-			logrus.Errorf("[%s] Failed . Error: %q", config.Name, err)
+			logrus.Errorf("[%s] failed to look for services in the directory '%s' . Error: %q", config.Name, dir, err)
 			continue
 		}
 		newPlanServices := getPlanArtifactsFromArtifacts(*env.Decode(&newServices).(*map[string][]transformertypes.Artifact), config)

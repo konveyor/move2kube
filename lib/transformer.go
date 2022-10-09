@@ -30,26 +30,25 @@ import (
 )
 
 // Transform transforms the artifacts and writes output
-func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, transformerSelector string) error {
-	logrus.Debugf("Temp Dir : %s", common.TempPath)
+func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, outputPath string, transformerSelector string) error {
 	logrus.Infof("Starting transformation")
 
 	common.ProjectName = plan.Name
-	logrus.Debugf("Temp Dir : %s", common.TempPath)
+	logrus.Debugf("common.TempPath: '%s'", common.TempPath)
 
 	transformerSelectorObj, err := common.ConvertStringSelectorsToSelectors(transformerSelector)
 	if err != nil {
-		return fmt.Errorf("failed to parse the transformer selector string. Error: %q", err)
+		return fmt.Errorf("failed to parse the transformer selector string. Error: %w", err)
 	}
 	selectorsInPlan, err := metav1.LabelSelectorAsSelector(&plan.Spec.TransformerSelector)
 	if err != nil {
-		return fmt.Errorf("failed to convert label selector to selector. Error: %q", err)
+		return fmt.Errorf("failed to convert label selector to selector. Error: %w", err)
 	}
 	requirements, _ := selectorsInPlan.Requirements()
 	transformerSelectorObj = transformerSelectorObj.Add(requirements...)
 
-	if _, err := transformer.InitTransformers(plan.Spec.Transformers, transformerSelectorObj, plan.Spec.SourceDir, outputPath, plan.Name, true); err != nil {
-		return fmt.Errorf("failed to initialize the transformers. Error: %q", err)
+	if _, err := transformer.InitTransformers(plan.Spec.Transformers, transformerSelectorObj, plan.Spec.SourceDir, outputPath, plan.Name, true, preExistingPlan); err != nil {
+		return fmt.Errorf("failed to initialize the transformers. Error: %w", err)
 	}
 
 	// select only the services the user is interested in
@@ -86,7 +85,7 @@ func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, tran
 
 	// transform the selected services using the selected transformation options
 	if err := transformer.Transform(selectedTransformationOptions, plan.Spec.SourceDir, outputPath); err != nil {
-		return fmt.Errorf("failed to transform using the plan. Error: %q", err)
+		return fmt.Errorf("failed to transform using the plan. Error: %w", err)
 	}
 
 	logrus.Infof("Transformation done")

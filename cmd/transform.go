@@ -109,7 +109,8 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	// Global settings
 
 	// Parameter cleaning and curate plan
-	var p plan.Plan
+	transformationPlan := plan.Plan{}
+	preExistingPlan := false
 	fi, err := os.Stat(flags.planfile)
 	if err == nil && fi.IsDir() {
 		flags.planfile = filepath.Join(flags.planfile, common.DefaultPlanFile)
@@ -135,54 +136,55 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
-		p, err = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
+		transformationPlan, err = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
 		if err != nil {
 			logrus.Fatalf("failed to create the plan. Error: %q", err)
 		}
-		if len(p.Spec.Services) == 0 && len(p.Spec.InvokedByDefaultTransformers) == 0 {
-			logrus.Debugf("Plan : %+v", p)
+		if len(transformationPlan.Spec.Services) == 0 && len(transformationPlan.Spec.InvokedByDefaultTransformers) == 0 {
+			logrus.Debugf("Plan : %+v", transformationPlan)
 			logrus.Fatalf("failed to find any services or default transformers. Aborting.")
 		}
 	} else {
+		preExistingPlan = true
 		logrus.Infof("Detected a plan file at path %s. Will transform using this plan.", flags.planfile)
 		sourceDir := ""
 		if cmd.Flags().Changed(sourceFlag) {
 			sourceDir = flags.srcpath
 			logrus.Warnf("Using the detected plan with specified source. If you did not want to use the plan file at %s, delete it and rerun the command.", flags.planfile)
 		}
-		if p, err = plan.ReadPlan(flags.planfile, sourceDir); err != nil {
+		if transformationPlan, err = plan.ReadPlan(flags.planfile, sourceDir); err != nil {
 			logrus.Fatalf("Unable to read the plan at path %s Error: %q", flags.planfile, err)
 		}
-		if len(p.Spec.Services) == 0 && len(p.Spec.InvokedByDefaultTransformers) == 0 {
-			logrus.Debugf("Plan : %+v", p)
+		if len(transformationPlan.Spec.Services) == 0 && len(transformationPlan.Spec.InvokedByDefaultTransformers) == 0 {
+			logrus.Debugf("Plan : %+v", transformationPlan)
 			logrus.Fatalf("Failed to find any services or default transformers. Aborting.")
 		}
 		if cmd.Flags().Changed(nameFlag) {
-			p.Name = flags.name
+			transformationPlan.Name = flags.name
 		}
 		if cmd.Flags().Changed(customizationsFlag) {
 			if flags.customizationsPath != "" {
-				p.Spec.CustomizationsDir = flags.customizationsPath
+				transformationPlan.Spec.CustomizationsDir = flags.customizationsPath
 				logrus.Warnf("Using the detected plan with specified customization. This might result in undesired results if the customization is different from what was given to plan. If you did not want to use the plan file at %s, delete it and rerun the command.", flags.planfile)
 			}
 		}
 
 		// Global settings
-		if p.Spec.SourceDir != "" {
-			checkSourcePath(p.Spec.SourceDir)
+		if transformationPlan.Spec.SourceDir != "" {
+			checkSourcePath(transformationPlan.Spec.SourceDir)
 		}
-		lib.CheckAndCopyCustomizations(p.Spec.CustomizationsDir)
-		flags.outpath = filepath.Join(flags.outpath, p.Name)
+		lib.CheckAndCopyCustomizations(transformationPlan.Spec.CustomizationsDir)
+		flags.outpath = filepath.Join(flags.outpath, transformationPlan.Name)
 		checkOutputPath(flags.outpath, flags.overwrite)
-		if p.Spec.SourceDir != "" && (p.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, p.Spec.SourceDir) || common.IsParent(p.Spec.SourceDir, flags.outpath)) {
-			logrus.Fatalf("The source path %s and output path %s overlap.", p.Spec.SourceDir, flags.outpath)
+		if transformationPlan.Spec.SourceDir != "" && (transformationPlan.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, transformationPlan.Spec.SourceDir) || common.IsParent(transformationPlan.Spec.SourceDir, flags.outpath)) {
+			logrus.Fatalf("The source path %s and output path %s overlap.", transformationPlan.Spec.SourceDir, flags.outpath)
 		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
 		}
 		startQA(flags.qaflags)
 	}
-	if err := lib.Transform(ctx, p, flags.outpath, flags.transformerSelector); err != nil {
+	if err := lib.Transform(ctx, transformationPlan, preExistingPlan, flags.outpath, flags.transformerSelector); err != nil {
 		logrus.Fatalf("failed to transform. Error: %q", err)
 	}
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)

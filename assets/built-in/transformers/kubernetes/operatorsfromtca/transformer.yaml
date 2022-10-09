@@ -1,0 +1,30 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: OperatorsFromTCA
+  labels:
+    move2kube.konveyor.io/built-in: true
+    move2kube.konveyor.io/container-based: true
+spec:
+  class: "Executable"
+  mode: "Container"
+  isolated: true
+  directoryDetect:
+    levels: 1
+  consumes:
+    CollectOutput:
+      merge: false
+  produces:
+    OperatorsToInitialize:
+      merge: false
+  config:
+    platforms:
+      - "linux"
+    directoryDetectCMD: ["/opt/app-root/bin/python", "./detect.py"]
+    transformCMD: ["/opt/app-root/bin/python", "./transform.py"]
+    container:
+      image: quay.io/konveyor-move2kube-transformers/run-tca:latest
+      workingDir: "/app"
+      build:
+        dockerfile: "Dockerfile"
+        context: "."

@@ -17,6 +17,7 @@
 package container
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 
@@ -29,8 +30,10 @@ import (
 
 var (
 	inited        bool
-	disabled      bool
+	enabled       bool
 	workingEngine ContainerEngine
+	// ErrNoContainerRuntime is an error that indicates that no container runtime was found (Docker, Podman, etc.).
+	ErrNoContainerRuntime = errors.New("no working container runtime found")
 )
 
 // ContainerEngine defines interface to manage containers
@@ -45,7 +48,7 @@ type ContainerEngine interface {
 	CopyDirsFromContainer(containerID string, paths map[string]string) (err error)
 	BuildImage(image, context, dockerfile string) (err error)
 	RemoveImage(image string) (err error)
-	CreateContainer(image string) (containerid string, err error)
+	CreateContainer(container environmenttypes.Container) (containerid string, err error)
 	StopAndRemoveContainer(containerID string) (err error)
 	// RunContainer runs a container from an image
 	RunContainer(image string, cmd environmenttypes.Command, volsrc string, voldest string) (output string, containerStarted bool, err error)
@@ -53,9 +56,11 @@ type ContainerEngine interface {
 }
 
 func initContainerEngine() (err error) {
+	logrus.Trace("initContainerEngine start")
+	defer logrus.Trace("initContainerEngine end")
 	workingEngine, err = newDockerEngine()
 	if err != nil {
-		return fmt.Errorf("failed to use docker as the container engine. Error: %q", err)
+		return fmt.Errorf("failed to use docker as the container engine. Error: %w", err)
 	}
 	//TODO: Add Support for podman
 	if workingEngine == nil {
@@ -65,20 +70,31 @@ func initContainerEngine() (err error) {
 }
 
 // GetContainerEngine gets a working container engine
-func GetContainerEngine() ContainerEngine {
+func GetContainerEngine(spawnContainers bool) (ContainerEngine, error) {
+	logrus.Trace("GetContainerEngine start")
+	defer logrus.Trace("GetContainerEngine end")
 	if !inited {
-		disabled = !qaengine.FetchBoolAnswer(common.ConfigSpawnContainersKey, "Allow spawning containers?", []string{"If this setting is set to false, those transformers that rely on containers will not work."}, false, nil)
-		if !disabled {
+		enabled = qaengine.FetchBoolAnswer(
+			common.ConfigSpawnContainersKey,
+			"Allow spawning containers?",
+			[]string{"If this setting is set to false, those transformers that rely on containers will not work."},
+			spawnContainers,
+			nil,
+		)
+		if enabled {
 			if err := initContainerEngine(); err != nil {
-				logrus.Fatalf("failed to initialize the container engine. Error: %q", err)
+				return nil, fmt.Errorf("failed to initialize the container engine. Error: %w", err)
 			}
 		}
 		inited = true
 	}
-	return workingEngine
+	if workingEngine == nil {
+		return nil, ErrNoContainerRuntime
+	}
+	return workingEngine, nil
 }
 
 // IsDisabled returns whether the container environment is disabled
 func IsDisabled() bool {
-	return disabled
+	return !enabled
 }

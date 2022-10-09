@@ -1,0 +1,13 @@
+apiVersion: move2kube.konveyor.io/v1alpha1
+kind: Transformer
+metadata:
+  name: OperatorTransformer
+  labels:
+    move2kube.konveyor.io/built-in: true
+spec:
+  class: "OperatorTransformer"
+  directoryDetect:
+    levels: 0
+  consumes:
+    OperatorsToInitialize:
+      merge: false

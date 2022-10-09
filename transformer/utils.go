@@ -237,9 +237,9 @@ func getFilteredTransformers(transformerPaths map[string]string, selector labels
 		tc, err := getTransformerConfig(tfilepath)
 		if err != nil {
 			if logError {
-				logrus.Errorf("Unable to load %s as Transformer config : %s", tfilepath, err)
+				logrus.Errorf("failed to load '%s' as a Transformer config . Error: %q", tfilepath, err)
 			} else {
-				logrus.Debugf("Unable to load %s as Transformer config : %s", tfilepath, err)
+				logrus.Debugf("failed to load '%s' as a Transformer config . Error: %q", tfilepath, err)
 			}
 			continue
 		}

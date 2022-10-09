@@ -59,8 +59,7 @@ func copyDirToContainer(ctx context.Context, cli *client.Client, containerID, sr
 func copyFromContainer(ctx context.Context, cli *client.Client, containerID string, containerPath, destPath string) (err error) {
 	content, stat, err := cli.CopyFromContainer(ctx, containerID, containerPath)
 	if err != nil {
-		logrus.Errorf("Unable to copy from container : %s", err)
-		return err
+		return fmt.Errorf("failed to copy from the container with ID '%s' . Error: %w", containerID, err)
 	}
 	defer content.Close()
 	copyInfo := archive.CopyInfo{

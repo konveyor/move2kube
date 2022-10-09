@@ -40,106 +40,127 @@ const (
 // PeerContainer is supports spawning peer containers to run the environment
 type PeerContainer struct {
 	EnvInfo
-
-	WorkspaceSource  string
-	WorkspaceContext string
-
+	// WorkspaceSource is the directory where the input data resides in the new image.
+	WorkspaceSource string
+	// OriginalImage is the original image name (for the image without the input data).
+	OriginalImage string
+	// ContainerInfo contains info about the running container.
+	ContainerInfo environmenttypes.Container
+	// GRPCQAReceiver is used to ask questions and get answers using the GRPC protocol.
 	GRPCQAReceiver net.Addr
-
-	ImageName     string
-	ImageWithData string
-	CID           string // A started instance of ImageWithData
 }
 
 // NewPeerContainer creates an instance of peer container based environment
-func NewPeerContainer(envInfo EnvInfo, grpcQAReceiver net.Addr, c environmenttypes.Container) (ei EnvironmentInstance, err error) {
+func NewPeerContainer(envInfo EnvInfo, grpcQAReceiver net.Addr, containerInfo environmenttypes.Container, spawnContainers bool) (EnvironmentInstance, error) {
+	cengine, err := container.GetContainerEngine(spawnContainers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the container engine. Error: %w", err)
+	}
+	if containerInfo.WorkingDir == "" {
+		containerInfo.WorkingDir = filepath.Join(string(filepath.Separator), types.AppNameShort)
+	}
 	peerContainer := &PeerContainer{
 		EnvInfo:        envInfo,
-		ImageName:      c.Image,
+		OriginalImage:  containerInfo.Image,
+		ContainerInfo:  containerInfo,
 		GRPCQAReceiver: grpcQAReceiver,
 	}
-	if c.WorkingDir != "" {
-		peerContainer.WorkspaceContext = c.WorkingDir
-	} else {
-		peerContainer.WorkspaceContext = filepath.Join(string(filepath.Separator), types.AppNameShort)
-	}
 	peerContainer.WorkspaceSource = filepath.Join(string(filepath.Separator), DefaultWorkspaceDir)
-	cengine := container.GetContainerEngine()
-	if cengine == nil {
-		return ei, fmt.Errorf("no working container runtime found")
-	}
-	newImageName := peerContainer.ImageName + strings.ToLower(envInfo.Name+uniuri.NewLen(5))
-	err = cengine.CopyDirsIntoImage(peerContainer.ImageName, newImageName, map[string]string{envInfo.Source: peerContainer.WorkspaceSource})
-	if err != nil {
-		logrus.Debugf("Unable to create new container image with new data")
-		if c.ContainerBuild.Context != "" {
-			err = cengine.BuildImage(c.Image, filepath.Join(envInfo.Context, c.ContainerBuild.Context), c.ContainerBuild.Dockerfile)
-			if err != nil {
-				logrus.Errorf("Unable to build new container image for %s : %s", c.Image, err)
-				return ei, err
-			}
-			err = cengine.CopyDirsIntoImage(c.Image, newImageName, map[string]string{envInfo.Source: peerContainer.WorkspaceSource})
-			if err != nil {
-				logrus.Errorf("Unable to copy paths to new container image : %s", err)
-			}
-		} else {
-			return ei, err
+	peerContainer.ContainerInfo.Image = peerContainer.ContainerInfo.Image + strings.ToLower(envInfo.Name+uniuri.NewLen(5))
+	logrus.Debug("trying to create a new image with the input data")
+	if err := cengine.CopyDirsIntoImage(
+		peerContainer.OriginalImage,
+		peerContainer.ContainerInfo.Image,
+		map[string]string{envInfo.Source: peerContainer.WorkspaceSource},
+	); err != nil {
+		err := fmt.Errorf("failed to create a new container image with the input data copied into the container. Error: %w", err)
+		if peerContainer.ContainerInfo.ImageBuild.Context == "" {
+			return nil, err
+		}
+		logrus.Debug(err)
+		logrus.Debug("trying to build the original image before creating a new image with the input data")
+		imageBuildContext := filepath.Join(envInfo.Context, peerContainer.ContainerInfo.ImageBuild.Context)
+		if err := cengine.BuildImage(
+			peerContainer.ContainerInfo.Image,
+			imageBuildContext,
+			peerContainer.ContainerInfo.ImageBuild.Dockerfile,
+		); err != nil {
+			return nil, fmt.Errorf(
+				"failed to build the container image '%s' using the context directory '%s' and the Dockerfile at path '%s' . Error: %w",
+				peerContainer.ContainerInfo.Image,
+				imageBuildContext,
+				peerContainer.ContainerInfo.ImageBuild.Dockerfile,
+				err,
+			)
+		}
+		if err := cengine.CopyDirsIntoImage(
+			peerContainer.OriginalImage,
+			peerContainer.ContainerInfo.Image,
+			map[string]string{envInfo.Source: peerContainer.WorkspaceSource},
+		); err != nil {
+			return nil, fmt.Errorf("failed to copy paths to new container image. Error: %w", err)
 		}
 	}
-	peerContainer.ImageWithData = newImageName
-	cid, err := cengine.CreateContainer(newImageName)
+	cid, err := cengine.CreateContainer(peerContainer.ContainerInfo)
 	if err != nil {
-		logrus.Errorf("Unable to start container with image %s : %s", newImageName, cid)
-		return ei, err
+		return nil, fmt.Errorf("failed to create a container with the new image '%s' . Error: %w", peerContainer.ContainerInfo.Image, err)
 	}
-	peerContainer.CID = cid
+	peerContainer.ContainerInfo.ID = cid
 	return peerContainer, nil
 }
 
 // Reset resets the PeerContainer environment
 func (e *PeerContainer) Reset() error {
-	cengine := container.GetContainerEngine()
-	err := cengine.StopAndRemoveContainer(e.CID)
+	cengine, err := container.GetContainerEngine(false)
 	if err != nil {
-		logrus.Errorf("Unable to delete image %s : %s", e.ImageWithData, err)
+		return fmt.Errorf("failed to get the container engine. Error: %w", err)
 	}
-	cid, err := cengine.CreateContainer(e.ImageWithData)
+	if err := cengine.StopAndRemoveContainer(e.ContainerInfo.ID); err != nil {
+		return fmt.Errorf("failed to delete the image '%s' . Error: %q", e.ContainerInfo.Image, err)
+	}
+	cid, err := cengine.CreateContainer(e.ContainerInfo)
 	if err != nil {
-		logrus.Errorf("Unable to start container with image %s : %s", e.ImageWithData, cid)
-		return err
+		return fmt.Errorf("failed to start a container with the info: %+v . Error: %w", e.ContainerInfo, err)
 	}
-	e.CID = cid
+	e.ContainerInfo.ID = cid
 	return nil
 }
 
 // Stat returns stat info of the file/dir in the env
 func (e *PeerContainer) Stat(name string) (fs.FileInfo, error) {
-	cengine := container.GetContainerEngine()
-	return cengine.Stat(e.CID, name)
+	cengine, err := container.GetContainerEngine(false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the container engine. Error: %w", err)
+	}
+	return cengine.Stat(e.ContainerInfo.ID, name)
 }
 
 // Exec executes a command in the container
 func (e *PeerContainer) Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error) {
-	cengine := container.GetContainerEngine()
+	cengine, err := container.GetContainerEngine(false)
+	if err != nil {
+		return "", "", 0, fmt.Errorf("failed to get the container engine. Error: %w", err)
+	}
 	envs := []string{}
 	if e.GRPCQAReceiver != nil {
 		hostname := getIP()
 		port := cast.ToString(e.GRPCQAReceiver.(*net.TCPAddr).Port)
 		envs = append(envs, GRPCEnvName+"="+hostname+":"+port)
 	}
-	return cengine.RunCmdInContainer(e.CID, cmd, e.WorkspaceContext, envs)
+	return cengine.RunCmdInContainer(e.ContainerInfo.ID, cmd, e.ContainerInfo.WorkingDir, envs)
 }
 
 // Destroy destroys the container instance
 func (e *PeerContainer) Destroy() error {
-	cengine := container.GetContainerEngine()
-	err := cengine.StopAndRemoveContainer(e.CID)
+	cengine, err := container.GetContainerEngine(false)
 	if err != nil {
-		logrus.Errorf("Unable to stop and remove container %s : %s", e.CID, err)
+		return fmt.Errorf("failed to get the container engine. Error: %w", err)
 	}
-	err = cengine.RemoveImage(e.ImageWithData)
-	if err != nil {
-		logrus.Errorf("Unable to delete image %s : %s", e.ImageWithData, err)
+	if err := cengine.StopAndRemoveContainer(e.ContainerInfo.ID); err != nil {
+		return fmt.Errorf("failed to stop and remove the container with ID '%s' . Error: %w", e.ContainerInfo.ID, err)
+	}
+	if err := cengine.RemoveImage(e.ContainerInfo.Image); err != nil {
+		return fmt.Errorf("failed to delete the image '%s' . Error :%w", e.ContainerInfo.Image, err)
 	}
 	return nil
 }
@@ -148,36 +169,37 @@ func (e *PeerContainer) Destroy() error {
 func (e *PeerContainer) Download(path string) (string, error) {
 	output, err := os.MkdirTemp(e.TempPath, "*")
 	if err != nil {
-		logrus.Errorf("Unable to create temp dir : %s", err)
-		return path, err
+		return path, fmt.Errorf("failed to create temp dir. Error: %w", err)
 	}
-	cengine := container.GetContainerEngine()
-	err = cengine.CopyDirsFromContainer(e.CID, map[string]string{path: output})
+	cengine, err := container.GetContainerEngine(false)
 	if err != nil {
-		logrus.Errorf("Unable to copy data from container : %s", err)
-		return path, err
+		return "", fmt.Errorf("failed to get the container engine. Error: %w", err)
+	}
+	if err := cengine.CopyDirsFromContainer(e.ContainerInfo.ID, map[string]string{path: output}); err != nil {
+		return path, fmt.Errorf("failed to copy data from the container with ID '%s' . Error: %w", e.ContainerInfo.ID, err)
 	}
 	return output, nil
 }
 
 // Upload uploads the path from outside the environment into it
-func (e *PeerContainer) Upload(outpath string) (envpath string, err error) {
-	envpath = "/var/tmp/" + uniuri.NewLen(5) + "/" + filepath.Base(outpath)
-	cengine := container.GetContainerEngine()
-	err = cengine.CopyDirsIntoContainer(e.CID, map[string]string{outpath: envpath})
+func (e *PeerContainer) Upload(outpath string) (string, error) {
+	envpath := "/var/tmp/" + uniuri.NewLen(5) + "/" + filepath.Base(outpath)
+	cengine, err := container.GetContainerEngine(false)
 	if err != nil {
-		logrus.Errorf("Unable to copy data from container : %s", err)
-		return outpath, err
+		return envpath, fmt.Errorf("failed to get the container engine. Error: %w", err)
+	}
+	if err := cengine.CopyDirsIntoContainer(e.ContainerInfo.ID, map[string]string{outpath: envpath}); err != nil {
+		return envpath, fmt.Errorf("failed to copy data into the container with ID '%s' . Error: %w", e.ContainerInfo.ID, err)
 	}
 	return envpath, nil
 }
 
-// GetContext returns the context within the PeerContainer environment
+// GetContext returns the working directory inside the container.
 func (e *PeerContainer) GetContext() string {
-	return e.WorkspaceContext
+	return e.ContainerInfo.WorkingDir
 }
 
-// GetSource returns the source path within the PeerContainer environment
+// GetSource returns the directory where the input data resides in the new image.
 func (e *PeerContainer) GetSource() string {
 	return e.WorkspaceSource
 }

@@ -63,7 +63,7 @@ func (t *Kubernetes) Init(tc transformertypes.Transformer, e *environment.Enviro
 	t.KubernetesConfig = &KubernetesYamlConfig{}
 	err := common.GetObjFromInterface(t.Config.Spec.Config, t.KubernetesConfig)
 	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.KubernetesConfig, err)
+		logrus.Errorf("unable to load config for Transformer %+v into %T . Error: %q", t.Config.Spec.Config, t.KubernetesConfig, err)
 		return err
 	}
 	if t.KubernetesConfig.IngressName == "" {
