@@ -42,21 +42,21 @@ func collectHandler(flags collectFlags) {
 
 	if outpath != "" {
 		if outpath, err = filepath.Abs(outpath); err != nil {
-			logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", outpath, err)
+			logrus.Fatalf("Failed to make the output directory path '%s' absolute. Error: %q", outpath, err)
 		}
 	}
 	if srcpath != "" {
 		srcpath, err = filepath.Abs(srcpath)
 		if err != nil {
-			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)
+			logrus.Fatalf("Failed to make the source directory path '%s' absolute. Error: %q", srcpath, err)
 		}
 		fi, err := os.Stat(srcpath)
 		if os.IsNotExist(err) {
-			logrus.Fatalf("Source directory does not exist: %s.", err)
+			logrus.Fatalf("Source directory '%s' does not exist. Error: %q", srcpath, err)
 		} else if err != nil {
-			logrus.Fatalf("Error while accessing directory: %s. ", srcpath)
+			logrus.Fatalf("Error while accessing directory: '%s' . Error: %q", srcpath, err)
 		} else if !fi.IsDir() {
-			logrus.Fatalf("Source path is a file, expected directory: %s.", srcpath)
+			logrus.Fatalf("Source path is a file, expected '%s' to be a directory.", srcpath)
 		}
 	}
 	outpath = filepath.Join(filepath.Clean(outpath), types.AppNameShort+"_collect")
