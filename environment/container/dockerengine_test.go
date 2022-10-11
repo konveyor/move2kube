@@ -27,7 +27,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("normal use case", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "quay.io/konveyor/move2kube"
+		image := "quay.io/konveyor/move2kube-api"
 
 		// Test
 		if err := provider.pullImage(image); err != nil {
@@ -37,7 +37,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("normal use case where we get result from cache", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "quay.io/konveyor/move2kube"
+		image := "quay.io/konveyor/move2kube-api"
 
 		// Test
 		if err := provider.pullImage(image); err != nil {
