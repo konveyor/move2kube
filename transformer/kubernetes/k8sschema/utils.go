@@ -19,16 +19,14 @@ package k8sschema
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/types"
-	"gopkg.in/yaml.v3"
-
-	"github.com/google/go-cmp/cmp"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
@@ -172,7 +170,7 @@ func GetKubernetesObjsInDir(dir string) []runtime.Object {
 		return nil
 	}
 	for _, filePath := range filePaths {
-		data, err := ioutil.ReadFile(filePath)
+		data, err := os.ReadFile(filePath)
 		if err != nil {
 			logrus.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
 			continue
