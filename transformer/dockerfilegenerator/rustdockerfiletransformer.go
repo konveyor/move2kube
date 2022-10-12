@@ -55,7 +55,7 @@ type CargoTomlConfig struct {
 	Package PackageInfo
 }
 
-//PackageInfo implements package properties
+// PackageInfo implements package properties
 type PackageInfo struct {
 	Name    string
 	Version string
@@ -66,7 +66,7 @@ type RocketTomlConfig struct {
 	Global GlobalParameters
 }
 
-//GlobalParameters implements global properties in Rocket.toml
+// GlobalParameters implements global properties in Rocket.toml
 type GlobalParameters struct {
 	Address string
 	Port    int32
@@ -87,7 +87,7 @@ func (t *RustDockerfileGenerator) GetConfig() (transformertypes.Transformer, *en
 // DirectoryDetect runs detect in each sub directory
 func (t *RustDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
 	cargoPath := filepath.Join(dir, cargoTomlFile)
-	if _, err := os.Stat(filepath.Join(dir, cargoPath)); err != nil {
+	if _, err := os.Stat(cargoPath); err != nil {
 		return nil, nil
 	}
 	cargoTomlConfig := CargoTomlConfig{}

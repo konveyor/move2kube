@@ -19,7 +19,6 @@ package dockerfilegenerator
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -112,7 +111,7 @@ func findMainScripts(pythonFilesPath []string) ([]string, error) {
 
 // findDjangoDependency checks for django dependency in the requirements.txt file
 func findDjangoDependency(reqTxtFilePath string) bool {
-	reqTxtFile, err := ioutil.ReadFile(reqTxtFilePath)
+	reqTxtFile, err := os.ReadFile(reqTxtFilePath)
 	if err != nil {
 		logrus.Warnf("failed to read the file at path %s . Error: %q", reqTxtFilePath, err)
 		return false
