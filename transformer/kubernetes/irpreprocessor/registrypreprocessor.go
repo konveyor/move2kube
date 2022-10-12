@@ -134,19 +134,19 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		quesKey := fmt.Sprintf(common.ConfigImageRegistryLoginTypeKey, `"`+registry+`"`)
 		desc := fmt.Sprintf("[%s] What type of container registry login do you want to use?", registry)
 		hints := []string{"Docker login from config mode, will use the default config from your local machine."}
-		auth := qaengine.FetchSelectAnswer(quesKey, desc, hints, string(defaultOption), authOptions)
+		auth := qaengine.FetchSelectAnswer(quesKey, desc, hints, string(defaultOption), authOptions, nil)
 		switch registryLoginOption(auth) {
 		case noLogin:
 			regAuth.Auth = ""
 		case existingPullSecretLogin:
 			qaKey := fmt.Sprintf(common.ConfigImageRegistryPullSecretKey, `"`+registry+`"`)
-			ps := qaengine.FetchStringAnswer(qaKey, fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "")
+			ps := qaengine.FetchStringAnswer(qaKey, fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "", nil)
 			imagePullSecrets[registry] = ps
 		case usernamePasswordLogin:
 			qaUsernameKey := fmt.Sprintf(common.ConfigImageRegistryUserNameKey, `"`+registry+`"`)
-			regAuth.Username = qaengine.FetchStringAnswer(qaUsernameKey, fmt.Sprintf("[%s] Enter the username to login into the registry : ", registry), nil, "iamapikey")
+			regAuth.Username = qaengine.FetchStringAnswer(qaUsernameKey, fmt.Sprintf("[%s] Enter the username to login into the registry : ", registry), nil, "iamapikey", nil)
 			qaPasswordKey := fmt.Sprintf(common.ConfigImageRegistryPasswordKey, `"`+registry+`"`)
-			regAuth.Password = qaengine.FetchPasswordAnswer(qaPasswordKey, fmt.Sprintf("[%s] Enter the password to login into the registry : ", registry), nil)
+			regAuth.Password = qaengine.FetchPasswordAnswer(qaPasswordKey, fmt.Sprintf("[%s] Enter the password to login into the registry : ", registry), nil, nil)
 		case dockerConfigLogin:
 			logrus.Debugf("using the credentials from the docker config.json file")
 		}

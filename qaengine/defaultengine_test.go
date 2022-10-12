@@ -34,7 +34,7 @@ func TestDefaultEngine(t *testing.T) {
 		AddEngine(e)
 		defaultRegistryURL := "quay.io"
 		key := common.JoinQASubKeys(common.BaseKey, "input")
-		answer := FetchStringAnswer(key, "Enter the name of the registry : ", []string{"Ex : " + defaultRegistryURL}, defaultRegistryURL)
+		answer := FetchStringAnswer(key, "Enter the name of the registry : ", []string{"Ex : " + defaultRegistryURL}, defaultRegistryURL, nil)
 		if answer != defaultRegistryURL {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, defaultRegistryURL)
@@ -54,7 +54,7 @@ func TestDefaultEngine(t *testing.T) {
 		def := "Option B"
 		opts := []string{"Option A", "Option B", "Option C"}
 
-		answer := FetchSelectAnswer(key, desc, context, def, opts)
+		answer := FetchSelectAnswer(key, desc, context, def, opts, nil)
 		if answer != def {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, def)
@@ -74,7 +74,7 @@ func TestDefaultEngine(t *testing.T) {
 		def := []string{"Option A", "Option C"}
 		opts := []string{"Option A", "Option B", "Option C", "Option D"}
 
-		answer := FetchMultiSelectAnswer(key, desc, context, def, opts)
+		answer := FetchMultiSelectAnswer(key, desc, context, def, opts, nil)
 		if !cmp.Equal(answer, def) {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, def)
@@ -93,7 +93,7 @@ func TestDefaultEngine(t *testing.T) {
 		context := []string{"Test context"}
 		def := true
 
-		answer := FetchBoolAnswer(key, desc, context, def)
+		answer := FetchBoolAnswer(key, desc, context, def, nil)
 		if answer != def {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %v, expected answer: %v ",
 				answer, def)
@@ -114,7 +114,7 @@ func TestDefaultEngine(t *testing.T) {
 		line2
 		line3`
 
-		answer := FetchMultilineInputAnswer(key, desc, context, def)
+		answer := FetchMultilineInputAnswer(key, desc, context, def, nil)
 		if answer != def {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, def)

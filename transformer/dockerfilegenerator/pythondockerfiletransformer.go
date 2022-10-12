@@ -130,7 +130,7 @@ func getMainPythonFileForService(mainPythonFilesPath []string, baseDir string, s
 	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, common.ConfigMainPythonFileForServiceKeySegment)
 	desc := fmt.Sprintf("Select the main file to be used for the service %s :", serviceName)
 	hints := []string{fmt.Sprintf("Selected main file will be used for the service %s", serviceName)}
-	return qaengine.FetchSelectAnswer(quesKey, desc, hints, mainPythonFilesRelPath[0], mainPythonFilesRelPath)
+	return qaengine.FetchSelectAnswer(quesKey, desc, hints, mainPythonFilesRelPath[0], mainPythonFilesRelPath, nil)
 }
 
 // getStartingPythonFileForService returns the starting python file used by a service
@@ -144,7 +144,7 @@ func getStartingPythonFileForService(pythonFilesPath []string, baseDir string, s
 	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, common.ConfigStartingPythonFileForServiceKeySegment)
 	desc := fmt.Sprintf("Select the python file to be used for the service %s :", serviceName)
 	hints := []string{fmt.Sprintf("Selected python file will be used for starting the service %s", serviceName)}
-	return qaengine.FetchSelectAnswer(quesKey, desc, hints, pythonFilesRelPath[0], pythonFilesRelPath)
+	return qaengine.FetchSelectAnswer(quesKey, desc, hints, pythonFilesRelPath[0], pythonFilesRelPath, nil)
 }
 
 // DirectoryDetect runs detect in each sub directory

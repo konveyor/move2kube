@@ -249,7 +249,8 @@ func (t *Starlark) executeDetect(fn *starlark.Function, dir string) (services ma
 func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 	return starlark.NewBuiltin(qaFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		argDictValue := &starlark.Dict{}
-		if err := starlark.UnpackPositionalArgs(qaFnName, args, kwargs, 1, &argDictValue); err != nil {
+		var validation string
+		if err := starlark.UnpackPositionalArgs(qaFnName, args, kwargs, 2, &argDictValue, &validation); err != nil {
 			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Expected a single dict argument. Error: %q", qaFnName, err)
 		}
 		argI, err := starutil.Unmarshal(argDictValue)
@@ -273,6 +274,29 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 		if prob.Type == "" {
 			prob.Type = qatypes.InputSolutionFormType
 		}
+		logrus.Info(",", validation)
+		if validation != "" {
+			prob.Validation = func(ans interface{}) error {
+				validationFn := t.StarGlobals[validation]
+				fn, ok := validationFn.(*starlark.Function)
+				if !ok {
+					err = fmt.Errorf("%s is not a function", validationFn)
+					logrus.Errorf("%s", err)
+				}
+				answer, err := starutil.Marshal(ans)
+				if err != nil {
+					logrus.Errorf("unable to convert %s to starlark value : %s", ans, err)
+					return err
+				}
+				val, err := starlark.Call(t.StarThread, fn, starlark.Tuple{answer}, nil)
+				if err != nil {
+					logrus.Errorf("Unable to execute the starlark function: Error : %s Value : %s", err, val)
+					return err
+				}
+				return nil
+			}
+		}
+
 		resolved, err := qaengine.FetchAnswer(prob)
 		if err != nil {
 			logrus.Fatalf("failed to ask the question. Error: %q", err)

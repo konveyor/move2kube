@@ -286,7 +286,7 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 		quesKey := fmt.Sprintf(common.ConfigServicesDotNetChildProjectsNamesKey, `"`+newArtifact.Name+`"`)
 		desc := fmt.Sprintf("For the multi-project Dot Net Core app '%s', please select all the child projects that should be run as services in the cluster:", newArtifact.Name)
 		hints := []string{"deselect any child project that should not be run (example: libraries)"}
-		selectedChildProjectNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildProjectNames, selectedChildProjectNames)
+		selectedChildProjectNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildProjectNames, selectedChildProjectNames, nil)
 		if len(selectedChildProjectNames) == 0 {
 			return pathMappings, artifactsCreated, fmt.Errorf("user deselected all the child projects of the dot net core multi-project app '%s'", newArtifact.Name)
 		}
@@ -646,7 +646,7 @@ func getPublishProfile(profilePaths []string, subKey, baseDir string) (string, s
 	if len(relProfilePaths) > 1 {
 		quesKey := common.JoinQASubKeys(common.ConfigServicesKey, subKey, common.ConfigPublishProfileForServiceKeySegment)
 		desc := fmt.Sprintf("Select the profile to be use for publishing the ASP.NET child project %s :", subKey)
-		relSelectedProfilePath = qaengine.FetchSelectAnswer(quesKey, desc, nil, relSelectedProfilePath, relProfilePaths)
+		relSelectedProfilePath = qaengine.FetchSelectAnswer(quesKey, desc, nil, relSelectedProfilePath, relProfilePaths, nil)
 	}
 	selectedProfilePath := filepath.Join(baseDir, relSelectedProfilePath)
 	publishUrl, err := parsePublishProfileFile(selectedProfilePath)

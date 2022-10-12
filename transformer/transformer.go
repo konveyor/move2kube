@@ -178,6 +178,7 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		"Specify a Kubernetes style selector to select only the transformers that you want to run.",
 		[]string{"Leave empty to select everything. This is the default."},
 		"",
+		nil,
 	)
 	if transformerFilterString != "" {
 		if transformerFilter, err := common.ConvertStringSelectorsToSelectors(transformerFilterString); err != nil {
@@ -216,6 +217,7 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		[]string{"Services that don't support any of the transformer types you are interested in will be ignored."},
 		defaultSelectedTransformerNames,
 		transformerNames,
+		nil,
 	)
 	for _, t := range transformerNames {
 		if !common.IsPresent(selectedTransformerNames, t) {

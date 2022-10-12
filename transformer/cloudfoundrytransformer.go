@@ -225,6 +225,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 				nil,
 				[]string{containerizationOptionsConfig[0]},
 				containerizationOptionsConfig,
+				nil,
 			)
 			secondaryArtifactsGenerated := false
 			for _, containerizationOption := range containerizationOptions {

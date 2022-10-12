@@ -278,7 +278,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 		quesKey := fmt.Sprintf(common.ConfigServicesChildModulesNamesKey, `"`+serviceConfig.ServiceName+`"`)
 		desc := fmt.Sprintf("For the multi-module Maven project '%s', please select all the child modules that should be run as services in the cluster:", serviceConfig.ServiceName)
 		hints := []string{"deselect child modules that should not be run (like libraries)"}
-		selectedChildModuleNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildModuleNames, selectedChildModuleNames)
+		selectedChildModuleNames = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, selectedChildModuleNames, selectedChildModuleNames, nil)
 		if len(selectedChildModuleNames) == 0 {
 			return pathMappings, createdArtifacts, fmt.Errorf("user deselected all the child modules of the maven multi-module project '%s'", serviceConfig.ServiceName)
 		}
@@ -331,7 +331,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 		if childModuleInfo.SpringBoot != nil {
 			if childModuleInfo.SpringBoot.SpringBootProfiles != nil && len(*childModuleInfo.SpringBoot.SpringBootProfiles) != 0 {
 				quesKey := fmt.Sprintf(common.ConfigServicesChildModulesSpringProfilesKey, `"`+serviceConfig.ServiceName+`"`, `"`+childModule.Name+`"`)
-				selectedSpringProfiles := qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, *childModuleInfo.SpringBoot.SpringBootProfiles, *childModuleInfo.SpringBoot.SpringBootProfiles)
+				selectedSpringProfiles := qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, *childModuleInfo.SpringBoot.SpringBootProfiles, *childModuleInfo.SpringBoot.SpringBootProfiles, nil)
 				for _, selectedSpringProfile := range selectedSpringProfiles {
 					detectedPorts = append(detectedPorts, childModuleInfo.SpringBoot.SpringBootProfilePorts[selectedSpringProfile]...)
 				}
@@ -452,6 +452,7 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 		[]string{"The selected maven profiles will be used during the build."},
 		rootPomInfo.MavenProfiles,
 		rootPomInfo.MavenProfiles,
+		nil,
 	)
 
 	// fill in the Dockerfile template for the build stage and write it out using a pathmapping

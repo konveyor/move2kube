@@ -81,8 +81,14 @@ func (*CliEngine) fetchSelectAnswer(prob qatypes.Problem) (qatypes.Problem, erro
 		Options: prob.Options,
 		Default: def,
 	}
-	if err := survey.AskOne(prompt, &ans); err != nil {
-		logrus.Fatalf("Error while asking a question : %s", err)
+	if prob.Validation != nil {
+		if err := survey.AskOne(prompt, &ans, survey.WithValidator(prob.Validation)); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
+	} else {
+		if err := survey.AskOne(prompt, &ans); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
 	}
 	prob.Answer = ans
 	return prob, nil
@@ -96,8 +102,14 @@ func (*CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (qatypes.Problem,
 		Default: prob.Default,
 	}
 	tickIcon := func(icons *survey.IconSet) { icons.MarkedOption.Text = "[\u2713]" }
-	if err := survey.AskOne(prompt, &ans, survey.WithIcons(tickIcon)); err != nil {
-		logrus.Fatalf("Error while asking a question : %s", err)
+	if prob.Validation != nil {
+		if err := survey.AskOne(prompt, &ans, survey.WithIcons(tickIcon), survey.WithValidator(prob.Validation)); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
+	} else {
+		if err := survey.AskOne(prompt, &ans, survey.WithIcons(tickIcon)); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
 	}
 	otherAnsPresent := false
 	newAns := []string{}
@@ -114,8 +126,14 @@ func (*CliEngine) fetchMultiSelectAnswer(prob qatypes.Problem) (qatypes.Problem,
 			Message: getQAMessage(prob),
 			Default: "",
 		}
-		if err := survey.AskOne(prompt, &multilineAns); err != nil {
-			logrus.Fatalf("Error while asking a question : %s", err)
+		if prob.Validation != nil {
+			if err := survey.AskOne(prompt, &multilineAns, survey.WithValidator(prob.Validation)); err != nil {
+				logrus.Fatalf("Error while asking a question : %s", err)
+			}
+		} else {
+			if err := survey.AskOne(prompt, &multilineAns); err != nil {
+				logrus.Fatalf("Error while asking a question : %s", err)
+			}
 		}
 		for _, lineAns := range strings.Split(multilineAns, "\n") {
 			lineAns = strings.TrimSpace(lineAns)
@@ -137,8 +155,14 @@ func (*CliEngine) fetchConfirmAnswer(prob qatypes.Problem) (qatypes.Problem, err
 		Message: getQAMessage(prob),
 		Default: def,
 	}
-	if err := survey.AskOne(prompt, &ans); err != nil {
-		logrus.Fatalf("Error while asking a question : %s", err)
+	if prob.Validation != nil {
+		if err := survey.AskOne(prompt, &ans, survey.WithValidator(prob.Validation)); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
+	} else {
+		if err := survey.AskOne(prompt, &ans); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
 	}
 	prob.Answer = ans
 	return prob, nil
@@ -153,8 +177,14 @@ func (*CliEngine) fetchInputAnswer(prob qatypes.Problem) (qatypes.Problem, error
 		Message: getQAMessage(prob),
 		Default: def,
 	}
-	if err := survey.AskOne(prompt, &ans); err != nil {
-		logrus.Fatalf("Error while asking a question : %s", err)
+	if prob.Validation != nil {
+		if err := survey.AskOne(prompt, &ans, survey.WithValidator(prob.Validation)); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
+	} else {
+		if err := survey.AskOne(prompt, &ans); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
 	}
 	prob.Answer = ans
 	return prob, nil
@@ -169,8 +199,14 @@ func (*CliEngine) fetchMultilineInputAnswer(prob qatypes.Problem) (qatypes.Probl
 		Message: getQAMessage(prob),
 		Default: def,
 	}
-	if err := survey.AskOne(prompt, &ans); err != nil {
-		logrus.Fatalf("Error while asking a question : %s", err)
+	if prob.Validation != nil {
+		if err := survey.AskOne(prompt, &ans, survey.WithValidator(prob.Validation)); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
+	} else {
+		if err := survey.AskOne(prompt, &ans); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
 	}
 	prob.Answer = ans
 	return prob, nil
@@ -181,8 +217,14 @@ func (*CliEngine) fetchPasswordAnswer(prob qatypes.Problem) (qatypes.Problem, er
 	prompt := &survey.Password{
 		Message: getQAMessage(prob),
 	}
-	if err := survey.AskOne(prompt, &ans); err != nil {
-		logrus.Fatalf("Error while asking a question : %s", err)
+	if prob.Validation != nil {
+		if err := survey.AskOne(prompt, &ans, survey.WithValidator(prob.Validation)); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
+	} else {
+		if err := survey.AskOne(prompt, &ans); err != nil {
+			logrus.Fatalf("Error while asking a question : %s", err)
+		}
 	}
 	prob.Answer = ans
 	return prob, nil

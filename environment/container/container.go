@@ -67,7 +67,7 @@ func initContainerEngine() (err error) {
 // GetContainerEngine gets a working container engine
 func GetContainerEngine() ContainerEngine {
 	if !inited {
-		disabled = !qaengine.FetchBoolAnswer(common.ConfigSpawnContainersKey, "Allow spawning containers?", []string{"If this setting is set to false, those transformers that rely on containers will not work."}, false)
+		disabled = !qaengine.FetchBoolAnswer(common.ConfigSpawnContainersKey, "Allow spawning containers?", []string{"If this setting is set to false, those transformers that rely on containers will not work."}, false, nil)
 		if !disabled {
 			if err := initContainerEngine(); err != nil {
 				logrus.Fatalf("failed to initialize the container engine. Error: %q", err)
