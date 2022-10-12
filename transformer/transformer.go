@@ -223,7 +223,11 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		}
 	}
 	for _, selectedTransformerName := range selectedTransformerNames {
-		transformerConfig := transformerConfigs[selectedTransformerName]
+		transformerConfig, ok := transformerConfigs[selectedTransformerName]
+		if !ok {
+			logrus.Errorf("failed to find the config for the transformer with the name: '%s'", selectedTransformerName)
+			continue
+		}
 		transformerClass, ok := transformerTypes[transformerConfig.Spec.Class]
 		if !ok {
 			logrus.Errorf("failed to find the transformer class %s . Valid tranformer classes are: %+v", transformerConfig.Spec.Class, transformerTypes)
