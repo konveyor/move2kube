@@ -64,6 +64,7 @@ type Problem struct {
 	Hints       []string `protobuf:"bytes,4,rep,name=hints,proto3" json:"hints,omitempty"`
 	Options     []string `protobuf:"bytes,5,rep,name=options,proto3" json:"options,omitempty"`
 	Default     []string `protobuf:"bytes,6,rep,name=default,proto3" json:"default,omitempty"`
+	Pattern string `protobuf:"bytes,7,rep,name=pattern,proto3" json:"pattern,omitempty"`
 }
 
 func (x *Problem) Reset() {

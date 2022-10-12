@@ -61,7 +61,7 @@ type Problem struct {
 	Options    []string                `yaml:"options,omitempty" json:"options,omitempty"`
 	Default    interface{}             `yaml:"default,omitempty" json:"default,omitempty"`
 	Answer     interface{}             `yaml:"answer,omitempty" json:"answer,omitempty"`
-	Validation func(interface{}) error `yaml:"validation,omitempty" json:"validation,omitempty"`
+	Validation func(interface{}) error `yaml:"-" json:"-"`
 }
 
 // NewProblem creates a new problem object from a GRPC problem
@@ -71,14 +71,28 @@ func NewProblem(p *qagrpc.Problem) (prob Problem, err error) {
 		logrus.Errorf("Unable to convert defaults : %s", err)
 		return prob, err
 	}
-	return Problem{
+	pp := Problem{
 		ID:      p.Id,
 		Type:    SolutionFormType(p.Type),
 		Desc:    p.Description,
 		Hints:   p.Hints,
 		Options: p.Options,
 		Default: defaults,
-	}, nil
+	}
+	if p.Pattern != "" {
+		pp.Validation = func(ans interface{}) error {
+			reg, err := regexp.Compile(p.Pattern)
+			if err != nil {
+				return err
+			}
+			a := ans.(string)
+			if !reg.MatchString(a) {
+				return fmt.Errorf("does not match")
+			}
+			return nil
+		}
+	}
+	return pp, nil
 }
 
 // InterfaceToArray converts the answer interface to array

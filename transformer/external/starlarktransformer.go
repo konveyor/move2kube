@@ -250,7 +250,7 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 	return starlark.NewBuiltin(qaFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		argDictValue := &starlark.Dict{}
 		var validation string
-		if err := starlark.UnpackPositionalArgs(qaFnName, args, kwargs, 2, &argDictValue, &validation); err != nil {
+		if err := starlark.UnpackPositionalArgs(qaFnName, args, kwargs, 1, &argDictValue, &validation); err != nil {
 			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Expected a single dict argument. Error: %q", qaFnName, err)
 		}
 		argI, err := starutil.Unmarshal(argDictValue)
@@ -274,7 +274,6 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 		if prob.Type == "" {
 			prob.Type = qatypes.InputSolutionFormType
 		}
-		logrus.Info(",", validation)
 		if validation != "" {
 			prob.Validation = func(ans interface{}) error {
 				validationFn := t.StarGlobals[validation]
@@ -292,6 +291,14 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 				if err != nil {
 					logrus.Errorf("Unable to execute the starlark function: Error : %s Value : %s", err, val)
 					return err
+				}
+				value, err := starutil.Unmarshal(val)
+				if err != nil {
+					logrus.Errorf("Unable to unmarshal starlark function result : %s", err)
+					return err
+				}
+				if value.(string) != "" {
+					return fmt.Errorf("validation failed : %s", value.(string))
 				}
 				return nil
 			}
