@@ -70,14 +70,31 @@ func NewProblem(p *qagrpc.Problem) (prob Problem, err error) {
 		logrus.Errorf("Unable to convert defaults : %s", err)
 		return prob, err
 	}
-	return Problem{
+	pp := Problem{
 		ID:      p.Id,
 		Type:    SolutionFormType(p.Type),
 		Desc:    p.Description,
 		Hints:   p.Hints,
 		Options: p.Options,
 		Default: defaults,
-	}, nil
+	}
+	if p.Pattern != "" {
+		reg, err := regexp.Compile(p.Pattern)
+		if err != nil {
+			return pp, fmt.Errorf("not a valid regex pattern : Error : %s", err)
+		}
+		pp.Validator = func(ans interface{}) error {
+			a, ok := ans.(string)
+			if !ok {
+				return fmt.Errorf("expected input to be type String, got %T. Value : %+v", ans, ans)
+			}
+			if !reg.MatchString(a) {
+				return fmt.Errorf("pattern does not match : %s", a)
+			}
+			return nil
+		}
+	}
+	return pp, nil
 }
 
 // InterfaceToArray converts the answer interface to array

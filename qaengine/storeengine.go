@@ -17,8 +17,6 @@
 package qaengine
 
 import (
-	"fmt"
-
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 )
 
@@ -41,7 +39,7 @@ func (se *StoreEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error
 	if problem.Validator != nil {
 		err := problem.Validator(problem.Answer)
 		if err != nil {
-			return problem, fmt.Errorf("incorrect input. Error : %s", err)
+			return problem, &qatypes.ValidationError{Reason: err.Error()}
 		}
 	}
 	return problem, nil

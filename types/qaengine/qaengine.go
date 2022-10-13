@@ -19,6 +19,8 @@ Package qaengine contains the types used for the question answering part of the 
 */
 package qaengine
 
+import "fmt"
+
 // Store helps store answers
 type Store interface {
 	Load() error
@@ -26,4 +28,12 @@ type Store interface {
 
 	Write() error
 	AddSolution(p Problem) error
+}
+
+type ValidationError struct {
+	Reason string
+}
+
+func (v *ValidationError) Error() string {
+	return fmt.Sprintf("validation error: %s", v.Reason)
 }

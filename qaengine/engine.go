@@ -123,6 +123,10 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 		}
 		prob, err = e.FetchAnswer(prob)
 		if err != nil {
+			if _, ok := err.(*qatypes.ValidationError); ok {
+				logrus.Errorf("Error while fetching answer using engine %T Error: %q", e, err)
+				continue
+			}
 			logrus.Debugf("Error while fetching answer using engine %T Error: %q", e, err)
 			continue
 		}
