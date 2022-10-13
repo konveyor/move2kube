@@ -151,14 +151,6 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 			}
 		}
 	}
-	if prob.Validator != nil {
-		err := prob.Validator(prob.Answer)
-		if err != nil {
-			logrus.Errorf("incorrect input. Error : %s", err)
-			prob.Answer = nil
-			return FetchAnswer(prob)
-		}
-	}
 	for _, writeStore := range writeStores {
 		writeStore.AddSolution(prob)
 	}

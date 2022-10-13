@@ -17,6 +17,8 @@
 package qaengine
 
 import (
+	"fmt"
+
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 )
 
@@ -42,5 +44,14 @@ func (*DefaultEngine) IsInteractiveEngine() bool {
 // FetchAnswer fetches the default answers
 func (*DefaultEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	err := prob.SetAnswer(prob.Default)
-	return prob, err
+	if err != nil {
+		return prob, err
+	}
+	if prob.Validator != nil {
+		err := prob.Validator(prob.Answer)
+		if err != nil {
+			return prob, fmt.Errorf("default value is invalid. Error : %s", err)
+		}
+	}
+	return prob, nil
 }

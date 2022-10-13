@@ -36,6 +36,7 @@ import (
 	"github.com/qri-io/starlib"
 	starutil "github.com/qri-io/starlib/util"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
 )
@@ -275,28 +276,28 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 			prob.Type = qatypes.InputSolutionFormType
 		}
 		if validation != "" {
+			validationFn, ok := t.StarGlobals[validation]
+			if !ok {
+				return starlark.None, fmt.Errorf("provided validation function not found : %s", validation)
+			}
+			fn, ok := validationFn.(*starlark.Function)
+			if !ok {
+				return starlark.None, fmt.Errorf("%s is not a function", validationFn)
+			}
 			prob.Validator = func(ans interface{}) error {
-				validationFn := t.StarGlobals[validation]
-				fn, ok := validationFn.(*starlark.Function)
-				if !ok {
-					err = fmt.Errorf("%s is not a function", validationFn)
-					logrus.Errorf("%s", err)
-				}
 				answer, err := starutil.Marshal(ans)
 				if err != nil {
-					logrus.Errorf("unable to convert %s to starlark value : %s", ans, err)
-					return err
+					return fmt.Errorf("unable to convert %s to starlark value : %s", ans, err)
 				}
 				val, err := starlark.Call(t.StarThread, fn, starlark.Tuple{answer}, nil)
 				if err != nil {
-					logrus.Errorf("Unable to execute the starlark function: Error : %s Value : %s", err, val)
-					return err
+					return fmt.Errorf("unable to execute the starlark function: Error : %s", err)
 				}
 				value, err := starutil.Unmarshal(val)
 				if err != nil {
-					logrus.Errorf("Unable to unmarshal starlark function result : %s", err)
-					return err
+					return fmt.Errorf("unable to unmarshal starlark function result : %s", err)
 				}
+				// if empty string is returned then we assume validation is successful
 				if value.(string) != "" {
 					return fmt.Errorf("validation failed : %s", value.(string))
 				}
@@ -521,13 +522,13 @@ func (t *Starlark) getStarlarkFindXmlPath() *starlark.Builtin {
 		}
 		data := expr.Evaluate(xmlquery.CreateXPathNavigator(doc))
 		var result []interface{}
-		switch data.(type) {
+		switch d := data.(type) {
 		case bool:
-			result = append(result, strconv.FormatBool(data.(bool)))
+			result = append(result, cast.ToString(d))
 		case float64:
-			result = append(result, strconv.FormatFloat(data.(float64), 'E', -1, 64))
+			result = append(result, strconv.FormatFloat(d, 'E', -1, 64))
 		case string:
-			result = append(result, data.(string))
+			result = append(result, d)
 		case *xpath.NodeIterator:
 			iterator := data.(*xpath.NodeIterator)
 			for iterator.MoveNext() {

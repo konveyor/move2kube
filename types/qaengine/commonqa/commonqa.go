@@ -78,7 +78,16 @@ func IngressHost(defaulthost string, clusterQaLabel string) string {
 
 // MinimumReplicaCount returns minimum replica count
 func MinimumReplicaCount(defaultminreplicas string) string {
-	return qaengine.FetchStringAnswer(common.ConfigMinReplicasKey, "Provide the minimum number of replicas each service should have", []string{"If the value is 0 pods won't be started by default"}, defaultminreplicas, nil)
+	return qaengine.FetchStringAnswer(common.ConfigMinReplicasKey, "Provide the minimum number of replicas each service should have", []string{"If the value is 0 pods won't be started by default"}, defaultminreplicas, func(replicaCount interface{}) error {
+		replicaCountI, err := cast.ToIntE(replicaCount)
+		if err != nil {
+			return err
+		}
+		if replicaCountI < 0 {
+			return fmt.Errorf("replica count should be a positive number")
+		}
+		return nil
+	})
 }
 
 // GetPortsForService returns ports used by a service
