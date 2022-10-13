@@ -30,6 +30,7 @@ type Store interface {
 	AddSolution(p Problem) error
 }
 
+// ValidationError is the error while validating answer in QA Engine
 type ValidationError struct {
 	Reason string
 }
