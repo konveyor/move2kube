@@ -47,7 +47,7 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 			desc := fmt.Sprintf("What kind of service/ingress should be created for the service %s's %d port?", serviceName, portForwarding.ServicePort.Number)
 			hints := []string{"Choose " + common.IngressKind + " if you want a ingress/route resource to be created"}
 			quesKey := common.JoinQASubKeys(portKeyPart, "servicetype")
-			portForwarding.ServiceType = core.ServiceType(qaengine.FetchSelectAnswer(quesKey, desc, hints, common.IngressKind, options))
+			portForwarding.ServiceType = core.ServiceType(qaengine.FetchSelectAnswer(quesKey, desc, hints, common.IngressKind, options, nil))
 			if string(portForwarding.ServiceType) == noneServiceType {
 				portForwarding.ServiceType = ""
 			}
@@ -55,7 +55,7 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 				desc := fmt.Sprintf("Specify the ingress path to expose the service %s's %d port on?", serviceName, portForwarding.ServicePort.Number)
 				hints := []string{"Leave out leading / to use first part as subdomain"}
 				quesKey := common.JoinQASubKeys(portKeyPart, "urlpath")
-				portForwarding.ServiceRelPath = strings.TrimSpace(qaengine.FetchStringAnswer(quesKey, desc, hints, portForwarding.ServiceRelPath))
+				portForwarding.ServiceRelPath = strings.TrimSpace(qaengine.FetchStringAnswer(quesKey, desc, hints, portForwarding.ServiceRelPath, nil))
 				portForwarding.ServiceType = core.ServiceTypeClusterIP
 			} else {
 				portForwarding.ServiceRelPath = ""

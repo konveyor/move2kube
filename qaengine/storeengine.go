@@ -32,7 +32,17 @@ func (se *StoreEngine) StartEngine() error {
 
 // FetchAnswer fetches the answer from the store
 func (se *StoreEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
-	return se.store.GetSolution(prob)
+	problem, err := se.store.GetSolution(prob)
+	if err != nil {
+		return problem, err
+	}
+	if problem.Validator != nil {
+		err := problem.Validator(problem.Answer)
+		if err != nil {
+			return problem, &qatypes.ValidationError{Reason: err.Error()}
+		}
+	}
+	return problem, nil
 }
 
 // IsInteractiveEngine returns true if the engine interacts with the user

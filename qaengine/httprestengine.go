@@ -99,13 +99,14 @@ func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, err
 		logrus.Errorf("the QA problem object is invalid. Error: %q", err)
 		return prob, err
 	}
-	if prob.Answer == nil {
+	for prob.Answer == nil {
 		logrus.Debugf("Passing problem to HTTP REST QA Engine ID: %s, desc: %s", prob.ID, prob.Desc)
 		h.problemChan <- prob
 		prob = <-h.answerChan
 		if prob.Answer == nil {
 			return prob, fmt.Errorf("failed to resolve the QA problem: %+v", prob)
-		} else if prob.Type == qatypes.MultiSelectSolutionFormType {
+		}
+		if prob.Type == qatypes.MultiSelectSolutionFormType {
 			otherAnsPresent := false
 			ans, err := common.ConvertInterfaceToSliceOfStrings(prob.Answer)
 			if err != nil {
@@ -137,7 +138,17 @@ func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, err
 			}
 			prob.Answer = newAns
 		}
+		if prob.Validator == nil {
+			break
+		}
+		err := prob.Validator(prob.Answer)
+		if err == nil {
+			break
+		}
+		logrus.Errorf("incorrect input. Error : %s", err)
+		prob.Answer = nil
 	}
+
 	return prob, nil
 }
 

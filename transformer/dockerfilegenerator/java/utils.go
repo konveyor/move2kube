@@ -70,7 +70,7 @@ func askUserForDockerfileType(rootProjectName string) (buildOption, error) {
 		fmt.Sprintf("[%s] Put the build stage in a separate Dockerfile and create a base image.", BUILD_IN_BASE_IMAGE),
 		fmt.Sprintf("[%s] Put the build stage in every Dockerfile to make it self contained. (Warning: This may cause one build per Dockerfile.)", BUILD_IN_EVERY_IMAGE),
 	}
-	selectedBuildOption := buildOption(qaengine.FetchSelectAnswer(quesId, desc, hints, string(def), options))
+	selectedBuildOption := buildOption(qaengine.FetchSelectAnswer(quesId, desc, hints, string(def), options, nil))
 	switch selectedBuildOption {
 	case NO_BUILD_STAGE, BUILD_IN_BASE_IMAGE, BUILD_IN_EVERY_IMAGE:
 		return selectedBuildOption, nil

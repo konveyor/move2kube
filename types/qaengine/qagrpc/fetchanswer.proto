@@ -34,6 +34,7 @@ message Problem {
   repeated string hints = 4;
   repeated string options = 5;
   repeated string default = 6;
+  string pattern = 7;
 }
 
 message Answer {
