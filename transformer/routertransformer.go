@@ -109,7 +109,7 @@ func (t *Router) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 			filledHints = append(filledHints, filledHint)
 		}
 		logrus.Debugf("Using %s router to route %s artifact between %+v", t.Config.Name, newArtifact.Type, transformerNames)
-		transformerName := qaengine.FetchSelectAnswer(filledID, filledDesc, filledHints, transformerNames[0], transformerNames)
+		transformerName := qaengine.FetchSelectAnswer(filledID, filledDesc, filledHints, transformerNames[0], transformerNames, nil)
 		newArtifact.ProcessWith.MatchExpressions = []metav1.LabelSelectorRequirement{{
 			Key:      transformertypes.LabelName,
 			Operator: metav1.LabelSelectorOpIn,

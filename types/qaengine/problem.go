@@ -53,13 +53,14 @@ const (
 
 // Problem defines the QA problem
 type Problem struct {
-	ID      string           `yaml:"id" json:"id"`
-	Type    SolutionFormType `yaml:"type,omitempty" json:"type,omitempty"`
-	Desc    string           `yaml:"description,omitempty" json:"description,omitempty"`
-	Hints   []string         `yaml:"hints,omitempty" json:"hints,omitempty"`
-	Options []string         `yaml:"options,omitempty" json:"options,omitempty"`
-	Default interface{}      `yaml:"default,omitempty" json:"default,omitempty"`
-	Answer  interface{}      `yaml:"answer,omitempty" json:"answer,omitempty"`
+	ID        string                  `yaml:"id" json:"id"`
+	Type      SolutionFormType        `yaml:"type,omitempty" json:"type,omitempty"`
+	Desc      string                  `yaml:"description,omitempty" json:"description,omitempty"`
+	Hints     []string                `yaml:"hints,omitempty" json:"hints,omitempty"`
+	Options   []string                `yaml:"options,omitempty" json:"options,omitempty"`
+	Default   interface{}             `yaml:"default,omitempty" json:"default,omitempty"`
+	Answer    interface{}             `yaml:"answer,omitempty" json:"answer,omitempty"`
+	Validator func(interface{}) error `yaml:"-" json:"-"`
 }
 
 // NewProblem creates a new problem object from a GRPC problem
@@ -196,87 +197,93 @@ func (p *Problem) matchString(str1 string, str2 string) bool {
 }
 
 // NewSelectProblem creates a new instance of select problem
-func NewSelectProblem(probid, desc string, hints []string, def string, opts []string) (Problem, error) {
+func NewSelectProblem(probid, desc string, hints []string, def string, opts []string, validator func(interface{}) error) (Problem, error) {
 	var answer interface{}
 	if len(opts) == 1 {
 		answer = opts[0]
 	}
 	return Problem{
-		ID:      probid,
-		Desc:    desc,
-		Hints:   hints,
-		Type:    SelectSolutionFormType,
-		Default: def,
-		Options: opts,
-		Answer:  answer,
+		ID:        probid,
+		Desc:      desc,
+		Hints:     hints,
+		Type:      SelectSolutionFormType,
+		Default:   def,
+		Options:   opts,
+		Answer:    answer,
+		Validator: validator,
 	}, nil
 }
 
 // NewMultiSelectProblem creates a new instance of multiselect problem
-func NewMultiSelectProblem(probid, desc string, hints []string, def []string, opts []string) (Problem, error) {
+func NewMultiSelectProblem(probid, desc string, hints []string, def []string, opts []string, validator func(interface{}) error) (Problem, error) {
 	var answer interface{}
 	if len(opts) == 0 {
 		answer = []string{}
 	}
 	return Problem{
-		ID:      probid,
-		Type:    MultiSelectSolutionFormType,
-		Desc:    desc,
-		Hints:   hints,
-		Options: opts,
-		Default: def,
-		Answer:  answer,
+		ID:        probid,
+		Type:      MultiSelectSolutionFormType,
+		Desc:      desc,
+		Hints:     hints,
+		Options:   opts,
+		Default:   def,
+		Answer:    answer,
+		Validator: validator,
 	}, nil
 }
 
 // NewConfirmProblem creates a new instance of confirm problem
-func NewConfirmProblem(probid, desc string, hints []string, def bool) (Problem, error) {
+func NewConfirmProblem(probid, desc string, hints []string, def bool, validator func(interface{}) error) (Problem, error) {
 	return Problem{
-		ID:      probid,
-		Type:    ConfirmSolutionFormType,
-		Desc:    desc,
-		Hints:   hints,
-		Options: nil,
-		Default: def,
-		Answer:  nil,
+		ID:        probid,
+		Type:      ConfirmSolutionFormType,
+		Desc:      desc,
+		Hints:     hints,
+		Options:   nil,
+		Default:   def,
+		Answer:    nil,
+		Validator: validator,
 	}, nil
 }
 
 // NewInputProblem creates a new instance of input problem
-func NewInputProblem(probid, desc string, hints []string, def string) (Problem, error) {
+func NewInputProblem(probid, desc string, hints []string, def string, validator func(interface{}) error) (Problem, error) {
 	return Problem{
-		ID:      probid,
-		Type:    InputSolutionFormType,
-		Desc:    desc,
-		Hints:   hints,
-		Options: nil,
-		Default: def,
-		Answer:  nil,
+		ID:        probid,
+		Type:      InputSolutionFormType,
+		Desc:      desc,
+		Hints:     hints,
+		Options:   nil,
+		Default:   def,
+		Answer:    nil,
+		Validator: validator,
 	}, nil
 }
 
 // NewMultilineInputProblem creates a new instance of multiline input problem
-func NewMultilineInputProblem(probid, desc string, hints []string, def string) (Problem, error) {
+func NewMultilineInputProblem(probid, desc string, hints []string, def string, validator func(interface{}) error) (Problem, error) {
 	return Problem{
-		ID:      probid,
-		Type:    MultilineInputSolutionFormType,
-		Desc:    desc,
-		Hints:   hints,
-		Options: nil,
-		Default: def,
-		Answer:  nil,
+		ID:        probid,
+		Type:      MultilineInputSolutionFormType,
+		Desc:      desc,
+		Hints:     hints,
+		Options:   nil,
+		Default:   def,
+		Answer:    nil,
+		Validator: validator,
 	}, nil
 }
 
 // NewPasswordProblem creates a new instance of password problem
-func NewPasswordProblem(probid, desc string, hints []string) (p Problem, err error) {
+func NewPasswordProblem(probid, desc string, hints []string, validator func(interface{}) error) (p Problem, err error) {
 	return Problem{
-		ID:      probid,
-		Type:    PasswordSolutionFormType,
-		Desc:    desc,
-		Hints:   hints,
-		Options: nil,
-		Default: nil,
-		Answer:  nil,
+		ID:        probid,
+		Type:      PasswordSolutionFormType,
+		Desc:      desc,
+		Hints:     hints,
+		Options:   nil,
+		Default:   nil,
+		Answer:    nil,
+		Validator: validator,
 	}, nil
 }

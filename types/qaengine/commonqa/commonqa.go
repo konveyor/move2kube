@@ -62,23 +62,23 @@ func ImageRegistry() string {
 	if defreg == "" {
 		defreg = defaultRegistryURL
 	}
-	return qaengine.FetchSelectAnswer(common.ConfigImageRegistryURLKey, "Enter the URL of the image registry where the new images should be pushed : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList)
+	return qaengine.FetchSelectAnswer(common.ConfigImageRegistryURLKey, "Enter the URL of the image registry where the new images should be pushed : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList, nil)
 }
 
 // ImageRegistryNamespace returns Image Registry Namespace
 func ImageRegistryNamespace() string {
-	return qaengine.FetchStringAnswer(common.ConfigImageRegistryNamespaceKey, "Enter the namespace where the new images should be pushed : ", []string{"Ex : " + common.ProjectName}, common.ProjectName)
+	return qaengine.FetchStringAnswer(common.ConfigImageRegistryNamespaceKey, "Enter the namespace where the new images should be pushed : ", []string{"Ex : " + common.ProjectName}, common.ProjectName, nil)
 }
 
 // IngressHost returns Ingress host
 func IngressHost(defaulthost string, clusterQaLabel string) string {
 	key := common.JoinQASubKeys(common.ConfigTargetKey, `"`+clusterQaLabel+`"`, common.ConfigIngressHostKeySuffix)
-	return qaengine.FetchStringAnswer(key, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaulthost)
+	return qaengine.FetchStringAnswer(key, "Provide the ingress host domain", []string{"Ingress host domain is part of service URL"}, defaulthost, nil)
 }
 
 // MinimumReplicaCount returns minimum replica count
 func MinimumReplicaCount(defaultminreplicas string) string {
-	return qaengine.FetchStringAnswer(common.ConfigMinReplicasKey, "Provide the minimum number of replicas each service should have", []string{"If the value is 0 pods won't be started by default"}, defaultminreplicas)
+	return qaengine.FetchStringAnswer(common.ConfigMinReplicasKey, "Provide the minimum number of replicas each service should have", []string{"If the value is 0 pods won't be started by default"}, defaultminreplicas, nil)
 }
 
 // GetPortsForService returns ports used by a service
@@ -93,7 +93,7 @@ func GetPortsForService(detectedPorts []int32, qaSubKey string) []int32 {
 		quesKey := common.JoinQASubKeys(common.ConfigServicesKey, qaSubKey, common.ConfigPortsForServiceKeySegment)
 		desc := fmt.Sprintf("Select ports to be exposed for the service '%s' :", qaSubKey)
 		hints := []string{"Select 'Other' if you want to add more ports"}
-		selectedPortsStr = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, detectedPortsStr, allDetectedPortsStr)
+		selectedPortsStr = qaengine.FetchMultiSelectAnswer(quesKey, desc, hints, detectedPortsStr, allDetectedPortsStr, nil)
 	}
 	for _, portStr := range selectedPortsStr {
 		portStr = strings.TrimSpace(portStr)
@@ -122,7 +122,7 @@ func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
 		detectedPortStrs = append(detectedPortStrs, cast.ToString(common.DefaultServicePort))
 	}
 	detectedPortStrs = append(detectedPortStrs, qatypes.OtherAnswer)
-	selectedPortStr := qaengine.FetchSelectAnswer(quesKey, desc, hints, detectedPortStrs[0], detectedPortStrs)
+	selectedPortStr := qaengine.FetchSelectAnswer(quesKey, desc, hints, detectedPortStrs[0], detectedPortStrs, nil)
 	selectedPortStr = strings.TrimSpace(selectedPortStr)
 	selectedPort, err := strconv.ParseInt(selectedPortStr, 10, 32)
 	if err != nil {
@@ -139,5 +139,5 @@ func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
 // GetContainerRuntime returns the container runtime
 func GetContainerRuntime() string {
 	containerRuntimes := []string{"docker", "podman"}
-	return qaengine.FetchSelectAnswer(common.ConfigContainerRuntimeKey, "Select the container runtime to use :", []string{"The container runtime selected will be used in the buildimages and pushimages scripts"}, containerRuntimes[0], containerRuntimes)
+	return qaengine.FetchSelectAnswer(common.ConfigContainerRuntimeKey, "Select the container runtime to use :", []string{"The container runtime selected will be used in the buildimages and pushimages scripts"}, containerRuntimes[0], containerRuntimes, nil)
 }

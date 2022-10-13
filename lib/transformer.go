@@ -58,7 +58,7 @@ func Transform(ctx context.Context, plan plantypes.Plan, outputPath string, tran
 		serviceNames = append(serviceNames, serviceName)
 	}
 	sort.Strings(serviceNames)
-	selectedServiceNames := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames)
+	selectedServiceNames := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames, nil)
 
 	// select the first valid transformation option for each selected service
 	selectedTransformationOptions := []plantypes.PlanArtifact{}

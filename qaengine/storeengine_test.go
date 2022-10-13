@@ -44,7 +44,7 @@ func TestCacheEngine(t *testing.T) {
 
 		want := "testuser"
 
-		answer := FetchStringAnswer(key, desc, context, def)
+		answer := FetchStringAnswer(key, desc, context, def, nil)
 		if answer != want {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, want)
@@ -66,7 +66,7 @@ func TestCacheEngine(t *testing.T) {
 		opts := []string{"Use existing pull secret", "No authentication", "UserName/Password"}
 		want := "UserName/Password"
 
-		answer := FetchSelectAnswer(key, desc, context, def, opts)
+		answer := FetchSelectAnswer(key, desc, context, def, opts, nil)
 		if answer != want {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, want)
@@ -89,7 +89,7 @@ line2
 line3 
 `
 
-		answer := FetchMultilineInputAnswer(key, desc, context, "")
+		answer := FetchMultilineInputAnswer(key, desc, context, "", nil)
 		if answer != cachedAnswer {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, cachedAnswer)
@@ -110,7 +110,7 @@ line3
 		def := true
 		want := true
 
-		answer := FetchBoolAnswer(key, desc, context, def)
+		answer := FetchBoolAnswer(key, desc, context, def, nil)
 		if answer != want {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %v, expected answer: %v ",
 				answer, want)
@@ -131,7 +131,7 @@ line3
 		def := []string{"Option A", "Option C"}
 		opts := []string{"Option A", "Option B", "Option C", "Option D"}
 
-		answer := FetchMultiSelectAnswer(key, desc, context, def, opts)
+		answer := FetchMultiSelectAnswer(key, desc, context, def, opts, nil)
 		if !cmp.Equal(answer, def) {
 			t.Fatalf("Fetched answer was different from the default one. Fetched answer: %s, expected answer: %s ",
 				answer, def)

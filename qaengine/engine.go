@@ -151,6 +151,14 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 			}
 		}
 	}
+	if prob.Validator != nil {
+		err := prob.Validator(prob.Answer)
+		if err != nil {
+			logrus.Errorf("incorrect input. Error : %s", err)
+			prob.Answer = nil
+			return FetchAnswer(prob)
+		}
+	}
 	for _, writeStore := range writeStores {
 		writeStore.AddSolution(prob)
 	}
@@ -176,7 +184,7 @@ func WriteStoresToDisk() error {
 func changeSelectToInputForOther(prob qatypes.Problem) qatypes.Problem {
 	if prob.Type == qatypes.SelectSolutionFormType && prob.Answer != nil && prob.Answer.(string) == qatypes.OtherAnswer {
 		newDesc := string(qatypes.InputSolutionFormType) + " " + prob.Desc
-		newProb, err := qatypes.NewInputProblem(prob.ID, newDesc, nil, "")
+		newProb, err := qatypes.NewInputProblem(prob.ID, newDesc, nil, "", prob.Validator)
 		if err != nil {
 			logrus.Fatalf("failed to change the QA select type problem to input type problem: %+v\nError: %q", prob, err)
 		}
@@ -188,8 +196,8 @@ func changeSelectToInputForOther(prob qatypes.Problem) qatypes.Problem {
 // Convenience functions
 
 // FetchStringAnswer asks a input type question and gets a string as the answer
-func FetchStringAnswer(probid, desc string, context []string, def string) string {
-	problem, err := qatypes.NewInputProblem(probid, desc, context, def)
+func FetchStringAnswer(probid, desc string, context []string, def string, validator func(interface{}) error) string {
+	problem, err := qatypes.NewInputProblem(probid, desc, context, def, validator)
 	if err != nil {
 		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
@@ -205,8 +213,8 @@ func FetchStringAnswer(probid, desc string, context []string, def string) string
 }
 
 // FetchBoolAnswer asks a confirm type question and gets a boolean as the answer
-func FetchBoolAnswer(probid, desc string, context []string, def bool) bool {
-	problem, err := qatypes.NewConfirmProblem(probid, desc, context, def)
+func FetchBoolAnswer(probid, desc string, context []string, def bool, validator func(interface{}) error) bool {
+	problem, err := qatypes.NewConfirmProblem(probid, desc, context, def, validator)
 	if err != nil {
 		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
@@ -222,8 +230,8 @@ func FetchBoolAnswer(probid, desc string, context []string, def bool) bool {
 }
 
 // FetchSelectAnswer asks a select type question and gets a string as the answer
-func FetchSelectAnswer(probid, desc string, context []string, def string, options []string) string {
-	problem, err := qatypes.NewSelectProblem(probid, desc, context, def, options)
+func FetchSelectAnswer(probid, desc string, context []string, def string, options []string, validator func(interface{}) error) string {
+	problem, err := qatypes.NewSelectProblem(probid, desc, context, def, options, validator)
 	if err != nil {
 		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
@@ -239,8 +247,8 @@ func FetchSelectAnswer(probid, desc string, context []string, def string, option
 }
 
 // FetchMultiSelectAnswer asks a multi-select type question and gets a slice of strings as the answer
-func FetchMultiSelectAnswer(probid, desc string, context, def, options []string) []string {
-	problem, err := qatypes.NewMultiSelectProblem(probid, desc, context, def, options)
+func FetchMultiSelectAnswer(probid, desc string, context, def, options []string, validator func(interface{}) error) []string {
+	problem, err := qatypes.NewMultiSelectProblem(probid, desc, context, def, options, validator)
 	if err != nil {
 		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
@@ -256,8 +264,8 @@ func FetchMultiSelectAnswer(probid, desc string, context, def, options []string)
 }
 
 // FetchPasswordAnswer asks a password type question and gets a string as the answer
-func FetchPasswordAnswer(probid, desc string, context []string) string {
-	problem, err := qatypes.NewPasswordProblem(probid, desc, context)
+func FetchPasswordAnswer(probid, desc string, context []string, validator func(interface{}) error) string {
+	problem, err := qatypes.NewPasswordProblem(probid, desc, context, validator)
 	if err != nil {
 		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
@@ -273,8 +281,8 @@ func FetchPasswordAnswer(probid, desc string, context []string) string {
 }
 
 // FetchMultilineInputAnswer asks a multi-line type question and gets a string as the answer
-func FetchMultilineInputAnswer(probid, desc string, context []string, def string) string {
-	problem, err := qatypes.NewMultilineInputProblem(probid, desc, context, def)
+func FetchMultilineInputAnswer(probid, desc string, context []string, def string, validator func(interface{}) error) string {
+	problem, err := qatypes.NewMultilineInputProblem(probid, desc, context, def, validator)
 	if err != nil {
 		logrus.Fatalf("Unable to create problem. Error: %q", err)
 	}
