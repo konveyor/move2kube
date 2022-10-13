@@ -230,7 +230,7 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		}
 		transformerClass, ok := transformerTypes[transformerConfig.Spec.Class]
 		if !ok {
-			logrus.Errorf("failed to find the transformer class %s . Valid tranformer classes are: %+v", transformerConfig.Spec.Class, transformerTypes)
+			logrus.Errorf("failed to find the transformer class %s . Valid transformer classes are: %+v", transformerConfig.Spec.Class, transformerTypes)
 			continue
 		}
 		transformer := reflect.New(transformerClass).Interface().(Transformer)
