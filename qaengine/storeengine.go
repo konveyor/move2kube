@@ -36,13 +36,8 @@ func (se *StoreEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error
 	if err != nil {
 		return problem, err
 	}
-	if problem.Validator != nil {
-		err := problem.Validator(problem.Answer)
-		if err != nil {
-			return problem, &qatypes.ValidationError{Reason: err.Error()}
-		}
-	}
-	return problem, nil
+	err = problem.SetAnswer(problem.Answer, true)
+	return problem, err
 }
 
 // IsInteractiveEngine returns true if the engine interacts with the user

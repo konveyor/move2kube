@@ -108,7 +108,7 @@ func GetYamlsWithTypeMeta(inputPath string, kindFilter string) ([]string, error)
 	return result, nil
 }
 
-//GetFilesByExt returns files by extension
+// GetFilesByExt returns files by extension
 func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 	var files []string
 	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
@@ -187,7 +187,7 @@ func GetFilesByExtInCurrDir(dir string, exts []string) ([]string, error) {
 	return files, nil
 }
 
-//GetFilesByName returns files by name
+// GetFilesByName returns files by name
 func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]string, error) {
 	var files []string
 	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
@@ -293,7 +293,7 @@ func GetFilesInCurrentDirectory(path string, fileNames, fileNameRegexes []string
 	return matchedFilePaths, nil
 }
 
-//YamlAttrPresent returns YAML attributes
+// YamlAttrPresent returns YAML attributes
 func YamlAttrPresent(path string, attr string) (bool, interface{}) {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
@@ -1249,12 +1249,12 @@ func GetObjFromInterface(obj interface{}, loadinto interface{}) error {
 		Result:   &loadinto,
 		TagName:  "yaml",
 	})
-	logrus.Debugf("Loading data into %+v from %+v", loadinto, obj)
+	// logrus.Debugf("Loading data into %+v from %+v", loadinto, obj)
 	if err := decoder.Decode(obj); err != nil {
 		logrus.Errorf("Unable to load obj %+v into %T : %s", obj, loadinto, err)
 		return err
 	}
-	logrus.Debugf("Object Loaded is %+v", loadinto)
+	// logrus.Debugf("Object Loaded is %+v", loadinto)
 	return nil
 }
 
