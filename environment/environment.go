@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"text/template"
 
@@ -87,7 +88,11 @@ type EnvironmentInstance interface {
 }
 
 // NewEnvironment creates a new environment
-func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr, c environmenttypes.Container) (env *Environment, err error) {
+func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr) (env *Environment, err error) {
+	if !common.IsPresent(envInfo.EnvPlatformConfig.Platforms, runtime.GOOS) && envInfo.EnvPlatformConfig.Container.Image == "" {
+		return nil, fmt.Errorf("platform %s not supported", runtime.GOOS)
+	}
+	c := envInfo.EnvPlatformConfig.Container
 	tempPath, err := os.MkdirTemp(common.TempPath, "environment-"+envInfo.Name+"-*")
 	if err != nil {
 		logrus.Errorf("Unable to create temp dir : %s", err)

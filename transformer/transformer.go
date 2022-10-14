@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -245,13 +246,15 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 			Output:          outputPath,
 			Context:         transformerContextPath,
 			RelTemplatesDir: transformerConfig.Spec.TemplatesDir,
+			EnvPlatformConfig: environmenttypes.EnvPlatformConfig{Container: environmenttypes.Container{},
+				Platforms: []string{runtime.GOOS}},
 		}
 		for src, dest := range transformerConfig.Spec.ExternalFiles {
 			if err := filesystem.Replicate(filepath.Join(transformerContextPath, src), filepath.Join(transformerContextPath, dest)); err != nil {
 				logrus.Errorf("Error while copying external files in transformer %s (%s:%s) : %s", transformerConfig.Name, src, dest, err)
 			}
 		}
-		env, err := environment.NewEnvironment(envInfo, nil, environmenttypes.Container{})
+		env, err := environment.NewEnvironment(envInfo, nil)
 		if err != nil {
 			return deselectedTransformers, fmt.Errorf("failed to create the environment %+v . Error: %q", envInfo, err)
 		}

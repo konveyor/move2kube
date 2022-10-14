@@ -16,6 +16,10 @@
 
 package environment
 
+import (
+	environmenttypes "github.com/konveyor/move2kube/types/environment"
+)
+
 // EnvInfo stores the envionment generic info
 type EnvInfo struct {
 	Name        string
@@ -29,4 +33,5 @@ type EnvInfo struct {
 	CurrEnvOutputBasePath string
 	RelTemplatesDir       string
 	TempPath              string
+	EnvPlatformConfig     environmenttypes.EnvPlatformConfig
 }

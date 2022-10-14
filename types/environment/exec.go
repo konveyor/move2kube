@@ -16,5 +16,11 @@
 
 package environment
 
+// EnvPlatformConfig stores the platform specific details
+type EnvPlatformConfig struct {
+	Container Container `yaml:"container,omitempty"`
+	Platforms []string  `yaml:"platforms"`
+}
+
 // Command type stores information about a command
 type Command []string
