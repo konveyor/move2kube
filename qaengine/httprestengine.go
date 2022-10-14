@@ -99,7 +99,7 @@ func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, err
 		logrus.Errorf("the QA problem object is invalid. Error: %q", err)
 		return prob, err
 	}
-	for prob.Answer == nil {
+	if prob.Answer == nil {
 		logrus.Debugf("Passing problem to HTTP REST QA Engine ID: %s, desc: %s", prob.ID, prob.Desc)
 		h.problemChan <- prob
 		prob = <-h.answerChan
@@ -138,17 +138,7 @@ func (h *HTTPRESTEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, err
 			}
 			prob.Answer = newAns
 		}
-		if prob.Validator == nil {
-			break
-		}
-		err := prob.Validator(prob.Answer)
-		if err == nil {
-			break
-		}
-		logrus.Errorf("incorrect input. Error : %s", err)
-		prob.Answer = nil
 	}
-
 	return prob, nil
 }
 
@@ -167,7 +157,7 @@ func (h *HTTPRESTEngine) problemHandler(w http.ResponseWriter, r *http.Request) 
 
 // solutionHandler accepts solution for a single open problem.
 func (h *HTTPRESTEngine) solutionHandler(w http.ResponseWriter, r *http.Request) {
-	logrus.Debugf("QA Engine reading solution: %s", r.Body)
+	logrus.Debugf("QA Engine reading solution: %+v", r.Body)
 	// Read out the solution
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -190,7 +180,7 @@ func (h *HTTPRESTEngine) solutionHandler(w http.ResponseWriter, r *http.Request)
 		logrus.Errorf(errstr)
 		return
 	}
-	if err := h.currentProblem.SetAnswer(prob.Answer); err != nil {
+	if err := h.currentProblem.SetAnswer(prob.Answer, true); err != nil {
 		errstr := fmt.Sprintf("failed to set the solution as the answer. Error: %q", err)
 		http.Error(w, errstr, http.StatusNotAcceptable)
 		logrus.Errorf(errstr)
