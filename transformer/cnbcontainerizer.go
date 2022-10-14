@@ -19,6 +19,7 @@ package transformer
 import (
 	"fmt"
 	"path/filepath"
+	"runtime"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
@@ -59,11 +60,12 @@ func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environmen
 		Name:        tc.Name,
 		ProjectName: t.Env.GetProjectName(),
 		Source:      t.Env.GetEnvironmentSource(),
+		EnvPlatformConfig: environmenttypes.EnvPlatformConfig{Container: environmenttypes.Container{
+			Image:      t.BuilderImageNameCfg.ImageName,
+			WorkingDir: filepath.Join(LinuxFileSeperator, "tmp"),
+		}, Platforms: []string{runtime.GOOS}},
 	}
-	t.CNBEnv, err = environment.NewEnvironment(envInfo, nil, environmenttypes.Container{
-		Image:      t.BuilderImageNameCfg.ImageName,
-		WorkingDir: filepath.Join(LinuxFileSeperator, "tmp"),
-	})
+	t.CNBEnv, err = environment.NewEnvironment(envInfo, nil)
 	if err != nil {
 		if !container.IsDisabled() {
 			logrus.Errorf("Unable to create CNB environment : %s", err)
