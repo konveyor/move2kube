@@ -23,7 +23,10 @@ cd {{ .RelParentOfSourceDir }} # go to the parent directory so that all the rela
 REGISTRY_URL={{ .RegistryURL }}
 REGISTRY_NAMESPACE={{ .RegistryNamespace }}
 PLATFORMS="linux/amd64,linux/arm64,linux/s390x,linux/ppc64le"
-if [ "$#" -eq 3 ]; then
+if [ "$#" -eq 2 ]; then
+  REGISTRY_URL=$1
+  REGISTRY_NAMESPACE=$2
+elif [ "$#" -eq 3 ]; then
   REGISTRY_URL=$1
   REGISTRY_NAMESPACE=$2
   PLATFORMS=$3

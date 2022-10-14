@@ -15,25 +15,39 @@
 :: Invoke as pushimages.bat <registry_url> <registry_namespace>
 
 @echo off
-{{ $containerRuntime := .ContainerRuntime }}
-IF "%2"=="" GOTO DEFAULT
-IF "%1"=="" GOTO DEFAULT
+IF "%3"=="" GOTO DEFAULT_CONTAINER_RUNTIME
+SET CONTAINER_RUNTIME=%3%
+GOTO :REGISTRY
+
+:DEFAULT_CONTAINER_RUNTIME
+    SET CONTAINER_RUNTIME=docker
+
+:REGISTRY
+    IF "%2"=="" GOTO DEFAULT_REGISTRY
+    IF "%1"=="" GOTO DEFAULT_REGISTRY
     SET REGISTRY_URL=%1
     SET REGISTRY_NAMESPACE=%2
-GOTO :MAIN
+    GOTO :MAIN
 
-:DEFAULT
+:DEFAULT_REGISTRY
     SET REGISTRY_URL={{ .RegistryURL }}
     SET REGISTRY_NAMESPACE={{ .RegistryNamespace }}
 
+:UNSUPPORTED_BUILD_SYSTEM
+    echo 'Unsupported build system passed as an argument for pushing the images.'
+    GOTO SKIP
+
 :MAIN
+IF NOT %CONTAINER_RUNTIME% == "docker" IF NOT %CONTAINER_RUNTIME% == "podman" GOTO UNSUPPORTED_BUILD_SYSTEM
 :: Uncomment the below line if you want to enable login before pushing
-:: {{ $containerRuntime }} login %REGISTRY_URL%
+:: %CONTAINER_RUNTIME% login %REGISTRY_URL%
 {{- range $image := .Images }}
 
 echo "pushing image {{ $image }}"
-{{ $containerRuntime }} tag {{ $image }} %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{ $image }}
-{{ $containerRuntime }} push %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{ $image }}
+%CONTAINER_RUNTIME% tag {{ $image }} %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{ $image }}
+%CONTAINER_RUNTIME% push %REGISTRY_URL%/%REGISTRY_NAMESPACE%/{{ $image }}
 {{- end }}
 
 echo "done"
+
+:SKIP
