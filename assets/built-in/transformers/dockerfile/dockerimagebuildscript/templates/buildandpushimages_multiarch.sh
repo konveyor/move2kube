@@ -23,9 +23,11 @@ cd {{ .RelParentOfSourceDir }} # go to the parent directory so that all the rela
 REGISTRY_URL={{ .RegistryURL }}
 REGISTRY_NAMESPACE={{ .RegistryNamespace }}
 PLATFORMS="linux/amd64,linux/arm64,linux/s390x,linux/ppc64le"
-if [ "$#" -eq 3 ]; then
+if [ "$#" -gt 1 ]; then
   REGISTRY_URL=$1
   REGISTRY_NAMESPACE=$2
+fi
+if [ "$#" -eq 3 ]; then
   PLATFORMS=$3
 fi
 # Uncomment the below line if you want to enable login before pushing

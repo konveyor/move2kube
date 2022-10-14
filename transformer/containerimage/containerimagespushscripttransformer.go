@@ -49,7 +49,6 @@ type ImagePushTemplateConfig struct {
 	RegistryURL       string
 	RegistryNamespace string
 	Images            []string
-	ContainerRuntime  string
 }
 
 // Init Initializes the transformer
@@ -97,7 +96,6 @@ func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Ar
 	}
 	ipt.RegistryURL = commonqa.ImageRegistry()
 	ipt.RegistryNamespace = commonqa.ImageRegistryNamespace()
-	ipt.ContainerRuntime = commonqa.GetContainerRuntime()
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
 		SrcPath:        filepath.Join(t.Env.Context, t.Config.Spec.TemplatesDir),

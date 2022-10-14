@@ -13,23 +13,29 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Invoke as pushimages.sh <registry_url> <registry_namespace>
-{{ $containerRuntime := .ContainerRuntime }}
+# Invoke as pushimages.sh <registry_url> <registry_namespace> <container_runtime>
 
 REGISTRY_URL={{ .RegistryURL }}
 REGISTRY_NAMESPACE={{ .RegistryNamespace }}
-if [ "$#" -eq 2 ]; then
-    REGISTRY_URL=$1
-    REGISTRY_NAMESPACE=$2
+CONTAINER_RUNTIME=docker
+if [ "$#" -gt 1 ]; then
+  REGISTRY_URL=$1
+  REGISTRY_NAMESPACE=$2
 fi
-
+if [ "$#" -eq 3 ]; then
+    CONTAINER_RUNTIME=$3
+fi
+if [ "${CONTAINER_RUNTIME}" != "docker" ] && [ "${CONTAINER_RUNTIME}" != "podman" ]; then
+   echo 'Unsupported container runtime passed as an argument for pushing the images: '"${CONTAINER_RUNTIME}"
+   exit 1
+fi
 # Uncomment the below line if you want to enable login before pushing
-# {{ $containerRuntime }} login ${REGISTRY_URL}
+# ${CONTAINER_RUNTIME} login ${REGISTRY_URL}
 {{- range $image := .Images }}
 
 echo 'pushing image {{ $image }}'
-{{ $containerRuntime }} tag {{ $image }} ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $image }}
-{{ $containerRuntime }} push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $image }}
+${CONTAINER_RUNTIME} tag {{ $image }} ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $image }}
+${CONTAINER_RUNTIME} push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $image }}
 {{- end }}
 
 echo 'done'

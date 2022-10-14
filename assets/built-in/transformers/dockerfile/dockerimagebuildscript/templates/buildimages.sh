@@ -17,14 +17,21 @@ if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
   echo 'please run this script from the "scripts" directory'
   exit 1
 fi
-{{- $containerRuntime := .ContainerRuntime }}
+CONTAINER_RUNTIME=docker
+if [ "$#" -eq 1 ]; then
+    CONTAINER_RUNTIME=$1
+fi
+if [ "${CONTAINER_RUNTIME}" != "docker" ] && [ "${CONTAINER_RUNTIME}" != "podman" ]; then
+   echo 'Unsupported container runtime passed as an argument for building the images: '"${CONTAINER_RUNTIME}"
+   exit 1
+fi
 cd {{ .RelParentOfSourceDir }} # go to the parent directory so that all the relative paths will be correct
 
 {{- range $dockerfile := .DockerfilesConfig }}
 
 echo 'building image {{ $dockerfile.ImageName }}'
 cd {{ $dockerfile.ContextUnix }}
-{{ $containerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
+${CONTAINER_RUNTIME} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 cd -
 {{- end }}
 

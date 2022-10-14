@@ -18,7 +18,21 @@ if not %basename% == "scripts" (
     echo "please run this script from the 'scripts' directory"
     exit 1
 )
-{{- $containerRuntime := .ContainerRuntime }}
+
+@echo off
+IF "%1"=="" GOTO DEFAULT_CONTAINER_RUNTIME
+SET CONTAINER_RUNTIME=%1%
+GOTO :MAIN
+
+:DEFAULT_CONTAINER_RUNTIME
+    SET CONTAINER_RUNTIME=docker
+
+:UNSUPPORTED_BUILD_SYSTEM
+    echo 'Unsupported build system passed as an argument for pushing the images.'
+    GOTO SKIP
+
+:MAIN
+IF NOT %CONTAINER_RUNTIME% == "docker" IF NOT %CONTAINER_RUNTIME% == "podman" GOTO UNSUPPORTED_BUILD_SYSTEM
 REM go to the parent directory so that all the relative paths will be correct
 cd {{ .RelParentOfSourceDir }}
 
@@ -26,8 +40,10 @@ cd {{ .RelParentOfSourceDir }}
 
 echo "building image {{ $dockerfile.ImageName }}"
 pushd {{ $dockerfile.ContextWindows }}
-{{ $containerRuntime }} build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
+%CONTAINER_RUNTIME% build -f {{ $dockerfile.DockerfileName }} -t {{ $dockerfile.ImageName }} .
 popd
 {{- end }}
 
 echo "done"
+
+:SKIP

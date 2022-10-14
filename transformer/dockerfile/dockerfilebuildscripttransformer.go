@@ -52,7 +52,6 @@ type DockerfileImageBuildScriptTemplateConfig struct {
 	DockerfilesConfig    []DockerfileImageBuildConfig
 	RegistryURL          string
 	RegistryNamespace    string
-	ContainerRuntime     string
 }
 
 // DockerfileImageBuildConfig contains the Dockerfile image build config to be used in the ImageBuild script
@@ -178,7 +177,6 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 		RegistryURL:          commonqa.ImageRegistry(),
 		RegistryNamespace:    commonqa.ImageRegistryNamespace(),
 		DockerfilesConfig:    dockerfilesImageBuildConfig,
-		ContainerRuntime:     commonqa.GetContainerRuntime(),
 	}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
