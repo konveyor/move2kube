@@ -150,9 +150,14 @@ func ArrayToInterface(ans []string, problemType SolutionFormType) (ansI interfac
 }
 
 // SetAnswer sets the answer
-func (p *Problem) SetAnswer(ansI interface{}) error {
+func (p *Problem) SetAnswer(ansI interface{}, validate bool) error {
 	if ansI == nil {
 		return fmt.Errorf("the answer is nil")
+	}
+	if validate && p.Validator != nil {
+		if err := p.Validator(ansI); err != nil {
+			return &ValidationError{Reason: err.Error()}
+		}
 	}
 	switch p.Type {
 	case InputSolutionFormType, PasswordSolutionFormType, MultilineInputSolutionFormType, SelectSolutionFormType:
