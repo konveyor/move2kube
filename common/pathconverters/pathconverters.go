@@ -79,6 +79,8 @@ func processTag(structT reflect.Type, structV reflect.Value, i int, oldCtx conte
 func process(value reflect.Value, ctx context) error {
 	//logrus.Debugf("type [%v] ctx [%v]\n", value.Type(), ctx)
 	switch value.Kind() {
+	case reflect.Invalid:
+		logrus.Debugf("pathconverters.process got an invalid reflect.Value. Ignoring")
 	case reflect.String:
 		if !ctx.ShouldConvert {
 			break
@@ -142,6 +144,14 @@ func process(value reflect.Value, ctx context) error {
 			}
 			value.SetMapIndex(ctx.CurrentMapKey, reflect.ValueOf(s))
 		}
+	case reflect.Interface, reflect.Pointer:
+		if !value.IsNil() {
+			if err := process(value.Elem(), ctx); err != nil {
+				return err
+			}
+		}
+	case reflect.Int, reflect.Int32, reflect.Bool:
+		// Ignore
 	default:
 		logrus.Debugf("default. Actual kind: %s", value.Kind())
 	}
