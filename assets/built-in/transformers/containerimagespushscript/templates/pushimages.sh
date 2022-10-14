@@ -13,17 +13,16 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Invoke as pushimages.sh <registry_url> <registry_namespace>
+# Invoke as pushimages.sh <registry_url> <registry_namespace> <container_runtime>
 
 REGISTRY_URL={{ .RegistryURL }}
 REGISTRY_NAMESPACE={{ .RegistryNamespace }}
 CONTAINER_RUNTIME=docker
-if [ "$#" -eq 2 ]; then
-    REGISTRY_URL=$1
-    REGISTRY_NAMESPACE=$2
-elif [ "$#" -eq 3 ]; then
-    REGISTRY_URL=$1
-    REGISTRY_NAMESPACE=$2
+if [ "$#" -gt 1 ]; then
+  REGISTRY_URL=$1
+  REGISTRY_NAMESPACE=$2
+fi
+if [ "$#" -eq 3 ]; then
     CONTAINER_RUNTIME=$3
 fi
 if [ "${CONTAINER_RUNTIME}" != "docker" ] && [ "${CONTAINER_RUNTIME}" != "podman" ]; then

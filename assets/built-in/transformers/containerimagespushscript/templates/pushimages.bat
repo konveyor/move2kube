@@ -12,7 +12,7 @@
 ::  See the License for the specific language governing permissions and
 ::  limitations under the License.
 
-:: Invoke as pushimages.bat <registry_url> <registry_namespace>
+:: Invoke as pushimages.bat <registry_url> <registry_namespace> <container_runtime>
 
 @echo off
 IF "%3"=="" GOTO DEFAULT_CONTAINER_RUNTIME
