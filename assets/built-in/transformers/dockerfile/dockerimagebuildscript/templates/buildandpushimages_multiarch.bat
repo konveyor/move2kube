@@ -12,6 +12,12 @@
 ::  See the License for the specific language governing permissions and
 ::  limitations under the License.
 
+:: Invoke as buildandpush_multiarchimages.bat <registry_url> <registry_namespace> <comma_separated_platforms>
+:: Examples:
+:: 1) buildandpush_multiarchimages.bat
+:: 2) buildandpush_multiarchimages.bat index.docker.io your_registry_namespace
+:: 3) buildandpush_multiarchimages.bat quay.io your_quay_username linux/amd64,linux/arm64,linux/s390x
+
 for /F "delims=" %%i in ("%cd%") do set basename="%%~ni"
 
 if not %basename% == "scripts" (

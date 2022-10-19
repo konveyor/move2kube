@@ -13,7 +13,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# Invoke as pushimages.sh <registry_url> <registry_namespace> <container_runtime>
+# Invoke as ./pushimages.sh <registry_url> <registry_namespace> <container_runtime>
+# Examples:
+# 1) ./pushimages.sh
+# 2) ./pushimages.sh quay.io your_quay_username
+# 3) ./pushimages.sh index.docker.io your_registry_namespace podman
 
 REGISTRY_URL={{ .RegistryURL }}
 REGISTRY_NAMESPACE={{ .RegistryNamespace }}

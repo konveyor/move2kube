@@ -13,6 +13,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# Invoke as ./buildandpush_multiarchimages.sh <registry_url> <registry_namespace> <comma_separated_platforms>
+# Examples:
+# 1) ./buildandpush_multiarchimages.sh
+# 2) ./buildandpush_multiarchimages.sh index.docker.io your_registry_namespace
+# 3) ./buildandpush_multiarchimages.sh quay.io your_quay_username linux/amd64,linux/arm64,linux/s390x
+
 if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
   echo 'please run this script from the "scripts" directory'
   exit 1
