@@ -12,6 +12,11 @@
 ::  See the License for the specific language governing permissions and
 ::  limitations under the License.
 
+:: Invoke as buildimages.bat <container_runtime>
+:: Examples:
+:: 1) buildimages.bat
+:: 2) buildimages.bat podman
+
 for /F "delims=" %%i in ("%cd%") do set basename="%%~ni"
 
 if not %basename% == "scripts" (

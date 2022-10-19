@@ -13,6 +13,11 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+# Invoke as ./buildimages.sh <container_runtime>
+# Examples:
+# 1) ./buildimages.sh
+# 2) ./buildimages.sh podman
+
 if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
   echo 'please run this script from the "scripts" directory'
   exit 1

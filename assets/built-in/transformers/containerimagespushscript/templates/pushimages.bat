@@ -13,6 +13,10 @@
 ::  limitations under the License.
 
 :: Invoke as pushimages.bat <registry_url> <registry_namespace> <container_runtime>
+:: Examples:
+:: 1) pushimages.bat
+:: 2) pushimages.bat quay.io your_quay_username
+:: 3) pushimages.bat index.docker.io your_registry_namespace podman
 
 @echo off
 IF "%3"=="" GOTO DEFAULT_CONTAINER_RUNTIME
