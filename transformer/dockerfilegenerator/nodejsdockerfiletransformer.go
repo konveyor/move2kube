@@ -64,6 +64,7 @@ type NodejsTemplateConfig struct {
 	Port                  int32
 	Build                 bool
 	NodeVersion           string
+	NodeTag               string
 	NodeVersionProperties map[string]string
 	PackageManager        string
 }
@@ -99,8 +100,10 @@ type NodejsDockerfileGenerator struct {
 
 // NodejsDockerfileYamlConfig represents the configuration of the Nodejs dockerfile
 type NodejsDockerfileYamlConfig struct {
-	DefaultNodejsVersion  string `yaml:"defaultNodejsVersion"`
-	DefaultPackageManager string `yaml:"defaultPackageManager"`
+	DefaultNodejsVersion    string            `yaml:"defaultNodejsVersion"`
+	DefaultNodejsTag        string            `yaml:"defaultNodejsTag"`
+	DefaultPackageManager   string            `yaml:"defaultPackageManager"`
+	NodejsVersionTagMapping map[string]string `yaml:"nodejsVersionTagMapping"`
 }
 
 const (
@@ -108,6 +111,7 @@ const (
 	versionMappingFilePath = "mappings/nodeversions.yaml"
 	defaultPackageManager  = "npm"
 	versionKey             = "version"
+	tagKey                 = "tag"
 	// NodeVersionsMappingKind defines kind of NodeVersionMappingKind
 	NodeVersionsMappingKind types.Kind = "NodeVersionsMapping"
 )
@@ -135,8 +139,16 @@ func (t *NodejsDockerfileGenerator) Init(tc transformertypes.Transformer, env *e
 	t.Spec = spec
 	if t.NodejsConfig.DefaultNodejsVersion == "" {
 		t.NodejsConfig.DefaultNodejsVersion = t.Spec.NodeVersions[0][versionKey]
+		t.NodejsConfig.DefaultNodejsTag = t.Spec.NodeVersions[0][tagKey]
 	}
 	logrus.Debugf("Extracted node versions from nodeversion mappings file - %+v", t.Spec)
+	t.NodejsConfig.NodejsVersionTagMapping = make(map[string]string)
+	for _, nodeVersion := range t.Spec.NodeVersions {
+		if tag, ok := nodeVersion[tagKey]; ok {
+			t.NodejsConfig.NodejsVersionTagMapping[nodeVersion[versionKey]] = tag
+		}
+	}
+	logrus.Debugf("Extracted version-tag mappings are %+v", t.NodejsConfig.NodejsVersionTagMapping)
 	return nil
 }
 
@@ -211,6 +223,7 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			build = true
 		}
 		nodeVersion := t.NodejsConfig.DefaultNodejsVersion
+		nodeTag := t.NodejsConfig.DefaultNodejsTag
 		if nodeVersionConstraint, ok := packageJSON.Engines["node"]; ok {
 			nodeVersion = getNodeVersion(
 				nodeVersionConstraint,
@@ -218,6 +231,10 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 				common.Map(t.Spec.NodeVersions, func(x map[string]string) string { return x[versionKey] }),
 			)
 			logrus.Debugf("Selected nodeVersion is - %s", nodeVersion)
+		}
+		if tag, ok := t.NodejsConfig.NodejsVersionTagMapping[nodeVersion]; ok {
+			nodeTag = tag
+			logrus.Debugf("Selected nodeTag is - %s", nodeTag)
 		}
 		packageManager := t.NodejsConfig.DefaultPackageManager
 		if packageJSON.PackageManager != "" {
@@ -252,6 +269,7 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			Build:                 build,
 			Port:                  port,
 			NodeVersion:           nodeVersion,
+			NodeTag:               nodeTag,
 			NodeVersionProperties: props,
 			PackageManager:        packageManager,
 		}
