@@ -28,5 +28,11 @@ RUN {{ .PackageManager }} install
 {{- if .Build }}
 RUN {{ .PackageManager }} run build
 {{- end}}
+{{- if eq .PackageManager "npm" }}
+USER root
+RUN chown -R 1001:0 /opt/app-root/src/.npm
+RUN chmod -R 775 /opt/app-root/src/.npm
+USER 1001
+{{- end }}
 EXPOSE {{ .Port }}
 CMD {{ .PackageManager }} run start
