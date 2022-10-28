@@ -127,9 +127,8 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	if t.ExecConfig.TransformCMD == nil {
 		return nil, nil, fmt.Errorf("No transform script specified : %s", err)
 	}
-	containerInputDir, err := t.uploadInput(map[string][]transformertypes.Artifact{
-		"NewArtifacts":         newArtifacts,
-		"AlreadySeenArtifacts": alreadySeenArtifacts}, transformInputFile)
+	containerInputDir, err := t.uploadInput(transformertypes.TransformInput{NewArtifacts: newArtifacts,
+		AlreadySeenArtifacts: alreadySeenArtifacts}, transformInputFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Unable to copy transform input path to container : %s", err)
 	}
