@@ -117,31 +117,25 @@ func templateCopyAdditionCallBack(source, destination string, config interface{}
 
 func templateCopyDeletionCallBack(source, destination string, addOnConfigAsIface interface{}) error {
 	addOnConfig := AddOnConfig{}
-	err := common.GetObjFromInterface(addOnConfigAsIface, &addOnConfig)
-	if err != nil {
-		logrus.Errorf("Unable to get addOnConfig : %s", err)
-		return err
+	if err := common.GetObjFromInterface(addOnConfigAsIface, &addOnConfig); err != nil {
+		return fmt.Errorf("failed to get the addOnConfig object from the interface. Error: %w", err)
 	}
 	si, err := os.Stat(source)
 	if err != nil {
-		logrus.Errorf("Unable to stat source-path [%s] while detecting template copy: %s", source, err)
-		return err
+		return fmt.Errorf("failed to stat the file at source path '%s' . Error: %w", source, err)
 	}
 	destination, err = common.GetStringFromTemplate(destination, addOnConfig.Config)
 	if err != nil {
-		logrus.Errorf("Unable to fill the template of file path %s : %s", destination, err)
-		return err
+		return fmt.Errorf("failed to fill the template file at path '%s' using the config: %+v . Error: %w", destination, addOnConfig.Config, err)
 	}
-	os.RemoveAll(destination)
-	err = os.MkdirAll(destination, si.Mode())
-	if err != nil {
-		logrus.Errorf("Unable to create directory %s", destination)
-		return err
+	if err := os.RemoveAll(destination); err != nil {
+		return fmt.Errorf("failed to remove the directory '%s' . Error: %w", destination, err)
 	}
-	err = os.Chmod(destination, si.Mode())
-	if err != nil {
-		logrus.Errorf("Unable to copy permissions in file %s : %s", destination, err)
-		return err
+	if err := os.MkdirAll(destination, si.Mode()); err != nil {
+		return fmt.Errorf("failed to create the directory at path '%s' . Error: %w", destination, err)
+	}
+	if err := os.Chmod(destination, si.Mode()); err != nil {
+		return fmt.Errorf("failed to set the permissions of the destination file at path '%s' to be same as the source file. Error: %w", destination, err)
 	}
 	return nil
 }

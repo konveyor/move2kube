@@ -23,7 +23,6 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/environment/container"
 	environmenttypes "github.com/konveyor/move2kube/types/environment"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -36,9 +35,14 @@ import (
 // CNBContainerizer implements Containerizer interface
 type CNBContainerizer struct {
 	Config              transformertypes.Transformer
-	BuilderImageNameCfg artifacts.ImageName
+	BuilderImageNameCfg *CNBContainerizerConfig
 	Env                 *environment.Environment
 	CNBEnv              *environment.Environment
+}
+
+// CNBContainerizerConfig contains the configuration options for the CNB containerizer transformer.
+type CNBContainerizerConfig struct {
+	Container environmenttypes.Container
 }
 
 const (
@@ -47,31 +51,29 @@ const (
 )
 
 // Init Initializes the transformer
-func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
+func (t *CNBContainerizer) Init(tc transformertypes.Transformer, env *environment.Environment) error {
 	t.Config = tc
 	t.Env = env
-	t.BuilderImageNameCfg = artifacts.ImageName{}
-	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.BuilderImageNameCfg)
-	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.BuilderImageNameCfg, err)
-		return err
+	t.BuilderImageNameCfg = &CNBContainerizerConfig{}
+	if err := common.GetObjFromInterface(t.Config.Spec.Config, t.BuilderImageNameCfg); err != nil {
+		return fmt.Errorf("failed to load the config for Transformer %+v into %T . Error: %w", t.Config.Spec.Config, t.BuilderImageNameCfg, err)
 	}
+	t.BuilderImageNameCfg.Container.WorkingDir = filepath.Join(LinuxFileSeperator, "tmp")
+
 	envInfo := environment.EnvInfo{
 		Name:        tc.Name,
 		ProjectName: t.Env.GetProjectName(),
 		Source:      t.Env.GetEnvironmentSource(),
-		EnvPlatformConfig: environmenttypes.EnvPlatformConfig{Container: environmenttypes.Container{
-			Image:      t.BuilderImageNameCfg.ImageName,
-			WorkingDir: filepath.Join(LinuxFileSeperator, "tmp"),
-		}, Platforms: []string{runtime.GOOS}},
+		EnvPlatformConfig: environmenttypes.EnvPlatformConfig{
+			Container: t.BuilderImageNameCfg.Container,
+			Platforms: []string{runtime.GOOS},
+		},
+		SpawnContainers: env.SpawnContainers,
 	}
+	var err error
 	t.CNBEnv, err = environment.NewEnvironment(envInfo, nil)
 	if err != nil {
-		if !container.IsDisabled() {
-			logrus.Errorf("Unable to create CNB environment : %s", err)
-			return err
-		}
-		return &transformertypes.TransformerDisabledError{Err: err}
+		return fmt.Errorf("failed to create the CNB environment. Error: %w", err)
 	}
 	t.Env.AddChild(t.CNBEnv)
 	return nil
@@ -90,7 +92,8 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (services map[string][]tr
 	if err != nil {
 		logrus.Debugf("CNB detector failed. exit code: %d error: %q\nstdout: %s\nstderr: %s", exitcode, err, stdout, stderr)
 		return nil, fmt.Errorf("CNB detector failed with exitcode %d . Error: %q", exitcode, err)
-	} else if exitcode != 0 {
+	}
+	if exitcode != 0 {
 		logrus.Debugf("CNB detector gave a non-zero exit code. exit code: %d\nstdout: %s\nstderr: %s", exitcode, stdout, stderr)
 		return nil, nil
 	}
@@ -102,35 +105,33 @@ func (t *CNBContainerizer) DirectoryDetect(dir string) (services map[string][]tr
 }
 
 // Transform transforms the artifacts
-func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) (tPathMappings []transformertypes.PathMapping, tArtifacts []transformertypes.Artifact, err error) {
-	tArtifacts = []transformertypes.Artifact{}
-	for _, a := range newArtifacts {
+func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, oldArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+	createdArtifacts := []transformertypes.Artifact{}
+	for _, newArtifact := range newArtifacts {
 		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &sConfig); err != nil {
 			logrus.Errorf("unable to load config for Transformer into %T : %s", sConfig, err)
 			continue
 		}
 		var iConfig artifacts.ImageName
-		err = a.GetConfig(artifacts.ImageNameConfigType, &iConfig)
-		if err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", iConfig, err)
+		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &iConfig); err != nil {
+			logrus.Errorf("unable to load config for Transformer into %T . Error: %q", iConfig, err)
 			continue
 		}
 		ir := irtypes.NewIR()
 		ir.Name = t.Env.GetProjectName()
-		if prevIR, ok := a.Configs[irtypes.IRConfigType].(irtypes.IR); ok {
+		if prevIR, ok := newArtifact.Configs[irtypes.IRConfigType].(irtypes.IR); ok {
 			ir = prevIR
 		}
 		// Update an existing service with default port
-		if s, ok := ir.Services[sConfig.ServiceName]; ok {
-			if len(s.Containers) > 0 && len(s.Containers[0].Ports) == 0 {
+		if service, ok := ir.Services[sConfig.ServiceName]; ok {
+			if len(service.Containers) > 0 && len(service.Containers[0].Ports) == 0 {
 				// Add the port to the k8s pod.
-				s.Containers[0].Ports = []core.ContainerPort{{ContainerPort: common.DefaultServicePort}}
+				service.Containers[0].Ports = []core.ContainerPort{{ContainerPort: common.DefaultServicePort}}
 				// Forward the port on the k8s service to the k8s pod.
 				port := networking.ServiceBackendPort{Number: common.DefaultServicePort}
-				s.AddPortForwarding(port, port, "")
-				ir.Services[sConfig.ServiceName] = s
+				service.AddPortForwarding(port, port, "")
+				ir.Services[sConfig.ServiceName] = service
 			}
 		} else {
 			// Create a new container in a new service in the IR (new or existing)
@@ -152,13 +153,13 @@ func (t *CNBContainerizer) Transform(newArtifacts []transformertypes.Artifact, o
 			irService.Containers = []core.Container{serviceContainer}
 			ir.Services[sConfig.ServiceName] = irService
 		}
-		a.Configs[irtypes.IRConfigType] = ir
-		tArtifacts = append(tArtifacts, transformertypes.Artifact{
-			Name:    a.Name,
+		newArtifact.Configs[irtypes.IRConfigType] = ir
+		createdArtifacts = append(createdArtifacts, transformertypes.Artifact{
+			Name:    newArtifact.Name,
 			Type:    artifacts.CNBDetectedServiceArtifactType,
-			Paths:   a.Paths,
-			Configs: a.Configs,
+			Paths:   newArtifact.Paths,
+			Configs: newArtifact.Configs,
 		})
 	}
-	return nil, tArtifacts, nil
+	return nil, createdArtifacts, nil
 }

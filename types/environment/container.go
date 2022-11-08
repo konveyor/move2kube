@@ -18,13 +18,22 @@ package environment
 
 // Container stores container based execution information
 type Container struct {
-	Image          string         `yaml:"image"`
-	WorkingDir     string         `yaml:"workingDir,omitempty"`
-	ContainerBuild ContainerBuild `yaml:"build"`
+	// ID is the id of the running container.
+	ID string `yaml:"-"`
+	// Image is the image name and tag to use when starting the container.
+	Image string `yaml:"image"`
+	// KeepAliveCommand is the command to run when starting the container.
+	// It should keep the container alive so that the detect and transform commands can be executed later.
+	// By default we will use the entrypoint of the container.
+	KeepAliveCommand []string `yaml:"keepAliveCommand,omitempty"`
+	// WorkingDir is the directory where the command will be run.
+	WorkingDir string `yaml:"workingDir,omitempty"`
+	// ImageBuild contains the instructions to build the image used by this container.
+	ImageBuild ImageBuild `yaml:"build"`
 }
 
-// ContainerBuild stores container build information
-type ContainerBuild struct {
+// ImageBuild stores container build information
+type ImageBuild struct {
 	Dockerfile string `yaml:"dockerfile"` // Default : Look for Dockerfile in the same folder
 	Context    string `yaml:"context"`    // Default : Same folder as the yaml
 }

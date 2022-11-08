@@ -224,3 +224,11 @@ endif
 	${CONTAINER_TOOL} buildx build --platform ${MULTI_ARCH_TARGET_PLATFORMS} --tag ${REGISTRYNS}/${BINNAME}:${VERSION} --tag ${REGISTRYNS}/${BINNAME}:latest --cache-from ${REGISTRYNS}/${BINNAME}-builder:latest --cache-from ${REGISTRYNS}/${BINNAME}:latest --build-arg VERSION=${VERSION} --build-arg GO_VERSION=${GO_VERSION} --push .;
 
 	${CONTAINER_TOOL} buildx rm m2k-builder
+
+.PHONY: cbuildbuiltin
+cbuildbuiltin: ## Build all the images for the built-in containerized transformers
+	DOCKER_BUILDKIT=1 ${CONTAINER_TOOL} build -t quay.io/konveyor-move2kube-transformers/run-tca:${VERSION} assets/built-in/transformers/kubernetes/operatorsfromtca/
+
+.PHONY: cpushbuiltin
+cpushbuiltin: ## Push all the images for the built-in containerized transformers
+	${CONTAINER_TOOL} push quay.io/konveyor-move2kube-transformers/run-tca:${VERSION}

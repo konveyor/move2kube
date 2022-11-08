@@ -45,8 +45,7 @@ func newProcessor(options options) *processor {
 func (p *processor) process(source, destination string) error {
 	si, err := os.Stat(source)
 	if err != nil {
-		logrus.Errorf("Unable to stat source-path [%s] while processing in filesystem: %s", source, err)
-		return err
+		return fmt.Errorf("failed to stat the source path '%s' . Error: %w", source, err)
 	}
 	switch si.Mode() & os.ModeType {
 	case os.ModeDir:
@@ -73,14 +72,13 @@ func (p *processor) process(source, destination string) error {
 
 func (p *processor) processFile(source, destination string) error {
 	if p.options.processFileCallBack == nil {
-		err := fmt.Errorf("no function found to process file")
-		logrus.Errorf("%s", err)
-		return err
+		return fmt.Errorf("no function found to process file")
 	}
-	err := p.options.processFileCallBack(source, destination, p.options.config)
-	if err != nil {
-		logrus.Errorf("Unable to process file using custom function at %s. Copying normally : %s", source, err)
-		return err
+	if err := p.options.processFileCallBack(source, destination, p.options.config); err != nil {
+		return fmt.Errorf(
+			"failed to process the file at source path '%s' to destination '%s' using the config %+v . Copying normally. Error: %w",
+			source, destination, p.options.config, err,
+		)
 	}
 	return nil
 }

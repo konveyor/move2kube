@@ -16,11 +16,9 @@
 
 package environment
 
-// EnvironmentNotActiveError represents the error when an environment is not active and a function is called on it
-type EnvironmentNotActiveError struct {
-}
+import "errors"
 
-// Error implements the Error interface
-func (e *EnvironmentNotActiveError) Error() string {
-	return "environment Not active. Process is terminating"
-}
+var (
+	// ErrEnvironmentNotActive represents the error when an environment is not active and a function is called on it.
+	ErrEnvironmentNotActive = errors.New("environment Not active. Process is terminating")
+)

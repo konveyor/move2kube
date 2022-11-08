@@ -5,6 +5,7 @@ metadata:
   labels:
     move2kube.konveyor.io/task: containerization
     move2kube.konveyor.io/built-in: true
+    move2kube.konveyor.io/container-based: true
 spec:
   mode: "Container"
   class: "CNBContainerizer"
@@ -17,4 +18,6 @@ spec:
     CNBDetectedService:
       disabled: false
   config:
-    ImageName: "paketobuildpacks/builder:full"
+    container:
+      image: "paketobuildpacks/builder:full"
+      keepAliveCommand: ["tail", "-f", "/dev/null"]

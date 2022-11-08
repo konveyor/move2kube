@@ -1,5 +1,5 @@
 /*
- *  Copyright IBM Corporation 2021
+ *  Copyright IBM Corporation 2021, 2022
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -48,6 +48,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"github.com/xrash/smetrics"
+	encodingunicode "golang.org/x/text/encoding/unicode"
+	"golang.org/x/text/transform"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -456,33 +458,30 @@ func ReadMove2KubeYamlStrict(path string, out interface{}, kind string) error {
 	}
 	groupVersion, err := schema.ParseGroupVersion(groupVersionStr)
 	if err != nil {
-		logrus.Debugf("Failed to parse the apiVersion %s Error: %q", groupVersionStr, err)
-		return err
+		return fmt.Errorf("failed to parse the apiVersion: '%s' . Error: %w", groupVersionStr, err)
 	}
 	if groupVersion.Group != types.SchemeGroupVersion.Group {
-		err := fmt.Errorf("the file at path %s doesn't have the correct group. Expected group %s Actual group %s", path, types.SchemeGroupVersion.Group, groupVersion.Group)
-		logrus.Debug(err)
-		return err
+		return fmt.Errorf(
+			"the yaml file at path '%s' doesn't have the correct group. Expected: '%s' Actual: '%s'",
+			path, types.SchemeGroupVersion.Group, groupVersion.Group,
+		)
 	}
 	if groupVersion.Version != types.SchemeGroupVersion.Version {
-		logrus.Warnf("The file at path %s was generated using a different version. File version is %s and move2kube version is %s", path, groupVersion.Version, types.SchemeGroupVersion.Version)
+		logrus.Warnf(
+			"The yaml file at path '%s' was generated using a different version of Move2Kube. File version is '%s' and current Move2Kube version is '%s'",
+			path, groupVersion.Version, types.SchemeGroupVersion.Version,
+		)
 	}
 	actualKindI, ok := yamlMap["kind"]
 	if !ok {
-		err := fmt.Errorf("the file at path %s does not have a kind specified", path)
-		logrus.Debug(err)
-		return err
+		return fmt.Errorf("the kind is missing from the yaml file at path '%s'", path)
 	}
 	actualKind, ok := actualKindI.(string)
 	if !ok {
-		err := fmt.Errorf("the kind is not a string in the yaml file at path %s", path)
-		logrus.Debug(err)
-		return err
+		return fmt.Errorf("the kind is not a string in the yaml file at path '%s'", path)
 	}
 	if kind != "" && actualKind != kind {
-		err := fmt.Errorf("the file at path %s does not have the expected kind. Expected: %s Actual: %s", path, kind, actualKind)
-		logrus.Debug(err)
-		return err
+		return fmt.Errorf("the yaml file at path '%s' does not have the expected kind. Expected: '%s' Actual: '%s'", path, kind, actualKind)
 	}
 	jsonBytes, err := json.Marshal(yamlMap)
 	if err != nil {
@@ -491,8 +490,7 @@ func ReadMove2KubeYamlStrict(path string, out interface{}, kind string) error {
 	dec := json.NewDecoder(bytes.NewReader(jsonBytes))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(out); err != nil {
-		logrus.Debugf("Error occurred while unmarshalling yaml file at path %s Error: %q", path, err)
-		return err
+		return fmt.Errorf("failed to decode the string '%s' as json. Error: %w", string(jsonBytes), err)
 	}
 	return nil
 }
@@ -500,31 +498,39 @@ func ReadMove2KubeYamlStrict(path string, out interface{}, kind string) error {
 // WriteJSON writes an json to disk
 func WriteJSON(outputPath string, data interface{}) error {
 	var b bytes.Buffer
-	encoder := json.NewEncoder(&b)
-	if err := encoder.Encode(data); err != nil {
-		logrus.Error("Error while Encoding object")
-		return err
+	if err := json.NewEncoder(&b).Encode(data); err != nil {
+		return fmt.Errorf("failed to encode the object as xml. Object: %+v . Error: %w", data, err)
 	}
-	err := os.WriteFile(outputPath, b.Bytes(), DefaultFilePermission)
-	if err != nil {
-		logrus.Errorf("Error writing json to file: %s", err)
-		return err
+	if err := os.WriteFile(outputPath, b.Bytes(), DefaultFilePermission); err != nil {
+		return fmt.Errorf("failed to write the json file to path '%s' . Error: %w", outputPath, err)
 	}
 	return nil
 }
 
-// ReadJSON reads an json into an object
-func ReadJSON(file string, data interface{}) error {
-	jsonFile, err := os.ReadFile(file)
-	if err != nil {
-		logrus.Debugf("Error in reading json file %s: %s.", file, err)
-		return err
+// ConvertUtf8AndUtf16ToUtf8 converts UTF-8 and UTF-16 encoded text (with or without a BOM) into UTF-8 encoded text (without a BOM)
+func ConvertUtf8AndUtf16ToUtf8(original []byte) ([]byte, error) {
+	utf8and16 := encodingunicode.BOMOverride(encodingunicode.UTF8.NewDecoder())
+	buf := &bytes.Buffer{}
+	w1 := transform.NewWriter(buf, utf8and16)
+	if _, err := w1.Write(original); err != nil {
+		return nil, fmt.Errorf("failed to transform the bytes to utf-8. Error: %w\nOriginal bytes: %+v", err, original)
 	}
-	jsonFile = bytes.TrimPrefix(jsonFile, []byte("\xef\xbb\xbf"))
-	err = json.Unmarshal(jsonFile, &data)
+	err := w1.Close()
+	return buf.Bytes(), err
+}
+
+// ReadJSON reads an json into an object
+func ReadJSON(path string, data interface{}) error {
+	jsonBytes, err := os.ReadFile(path)
 	if err != nil {
-		logrus.Debugf("Error in unmarshalling json file %s: %s.", file, err)
-		return err
+		return fmt.Errorf("failed to read the json file at path '%s' . Error: %w", path, err)
+	}
+	jsonUtf8Bytes, err := ConvertUtf8AndUtf16ToUtf8(jsonBytes)
+	if err != nil {
+		return fmt.Errorf("failed to convert the json file at path '%s' to utf-8. Error: %w", path, err)
+	}
+	if err := json.Unmarshal(jsonUtf8Bytes, &data); err != nil {
+		return fmt.Errorf("failed to parse the json file at path '%s' . Error: %w\nBytes before transform: %+v\nBytes after transform: %+v", path, err, jsonBytes, jsonUtf8Bytes)
 	}
 	return nil
 }
@@ -533,13 +539,10 @@ func ReadJSON(file string, data interface{}) error {
 func ReadXML(file string, data interface{}) error {
 	xmlFile, err := os.ReadFile(file)
 	if err != nil {
-		logrus.Debugf("Error in reading xml file %s: %s.", file, err)
-		return err
+		return fmt.Errorf("failed to read the xml file at path '%s' . Error: %w", file, err)
 	}
-	err = xml.Unmarshal(xmlFile, &data)
-	if err != nil {
-		logrus.Debugf("Error in unmarshalling xml file %s: %s.", file, err)
-		return err
+	if err := xml.Unmarshal(xmlFile, &data); err != nil {
+		return fmt.Errorf("failed to parse the xml file at path '%s' . Error: %w", file, err)
 	}
 	return nil
 }
@@ -814,7 +817,7 @@ func MakeStringK8sServiceNameCompliant(s string) string {
 // MakeStringEnvNameCompliant makes the string into a valid Environment variable name.
 func MakeStringEnvNameCompliant(s string) string {
 	name := strings.ToUpper(s)
-	name = regexp.MustCompile(`[^a-z0-9_]`).ReplaceAllLiteralString(name, "_")
+	name = regexp.MustCompile(`[^A-Z0-9_]`).ReplaceAllLiteralString(name, "_")
 	if regexp.MustCompile(`^[0-9]`).Match([]byte(name)) {
 		logrus.Debugf("The first characters of the string %q must not be a digit.", s)
 	}
