@@ -32,11 +32,37 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	envMode      = "env"
+	argMode      = "arg"
+	envDelimiter = "="
+)
+
 // Executable implements transformer interface and is used to write simple external transformers
 type Executable struct {
 	Config     transformertypes.Transformer
 	Env        *environment.Environment
 	ExecConfig *ExecutableYamlConfig
+}
+
+// InputFormat input/output mode definition
+type InputFormat struct {
+	Mode    string `yaml:"mode"`
+	EnvName string `yaml:"envName,omitempty`
+	Path    string
+}
+
+// OutputFormat input/output mode definition
+type OutputFormat struct {
+	Mode    string `yaml:"mode"`
+	EnvName string `yaml:"envName,omitempty`
+	Path    string
+}
+
+// InputOutput input/output mode definitions for detect script
+type InputOutput struct {
+	Input  InputFormat  `yaml:"input"`
+	Output OutputFormat `yaml:"output"`
 }
 
 // ExecutableYamlConfig is the format of executable yaml config
@@ -46,6 +72,8 @@ type ExecutableYamlConfig struct {
 	DirectoryDetectCMD environmenttypes.Command   `yaml:"directoryDetectCMD"`
 	TransformCMD       environmenttypes.Command   `yaml:"transformCMD"`
 	Container          environmenttypes.Container `yaml:"container,omitempty"`
+	DetectScriptIO     InputOutput                `yaml:"detectScriptIO"`
+	TransformScriptIO  InputOutput                `yaml:"transformScriptIO"`
 }
 
 const (
@@ -100,10 +128,9 @@ func (t *Executable) DirectoryDetect(dir string) (services map[string][]transfor
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy the detect input path to container. Error: %w", err)
 	}
-	services, err = t.executeDetect(
-		t.ExecConfig.DirectoryDetectCMD,
-		filepath.Join(containerInputDir, detectInputFile),
-	)
+	t.ExecConfig.DetectScriptIO.Input.Path = filepath.Join(containerInputDir, detectInputFile)
+	t.ExecConfig.DetectScriptIO.Output.Path = filepath.Join(detectContainerOutputDir, detectOutputFile)
+	services, err = t.executeDetect(t.ExecConfig.DirectoryDetectCMD)
 	if err != nil {
 		return services, fmt.Errorf("failed to execute the detect script. Error: %w", err)
 	}
@@ -138,7 +165,24 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to upload the transform input into the environment at the path '%s' . Error: %w", transformInputFile, err)
 	}
-	stdout, stderr, exitcode, err := t.Env.Exec(append(t.ExecConfig.TransformCMD, filepath.Join(containerInputDir, transformInputFile)))
+	t.ExecConfig.TransformScriptIO.Input.Path = filepath.Join(containerInputDir, transformInputFile)
+	t.ExecConfig.TransformScriptIO.Output.Path = filepath.Join(transformContainerOutputDir, transformOutputFile)
+	cmdToRun := t.ExecConfig.TransformCMD
+	if t.ExecConfig.TransformScriptIO.Input.Mode == argMode {
+		cmdToRun = append(cmdToRun, "input="+t.ExecConfig.TransformScriptIO.Input.Path)
+	} else if t.ExecConfig.TransformScriptIO.Input.Mode == envMode {
+		t.Env.EnvKeyValueList = append(t.Env.EnvKeyValueList,
+			t.ExecConfig.TransformScriptIO.Input.EnvName+envDelimiter+t.ExecConfig.TransformScriptIO.Input.Path)
+		t.Env.Env.AddEnvironmentVariablesToInstance([]string{t.ExecConfig.TransformScriptIO.Input.EnvName + envDelimiter + t.ExecConfig.TransformScriptIO.Input.Path})
+	}
+	if t.ExecConfig.TransformScriptIO.Output.Mode == argMode {
+		cmdToRun = append(cmdToRun, "output="+t.ExecConfig.TransformScriptIO.Output.Path)
+	} else if t.ExecConfig.TransformScriptIO.Output.Mode == envMode {
+		t.Env.EnvKeyValueList = append(t.Env.EnvKeyValueList,
+			t.ExecConfig.TransformScriptIO.Output.EnvName+envDelimiter+t.ExecConfig.TransformScriptIO.Output.Path)
+		t.Env.Env.AddEnvironmentVariablesToInstance([]string{t.ExecConfig.TransformScriptIO.Output.EnvName + envDelimiter + t.ExecConfig.TransformScriptIO.Output.Path})
+	}
+	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run the transform.\nstdout: %s\nstderr: %s\nexit code: %d . Error: %w", stdout, stderr, exitcode, err)
 	}
@@ -161,14 +205,30 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	return pathMappings, createdArtifacts, nil
 }
 
-func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (services map[string][]transformertypes.Artifact, err error) {
-	stdout, stderr, exitcode, err := t.Env.Exec(append(cmd, dir))
+func (t *Executable) executeDetect(cmd environmenttypes.Command) (services map[string][]transformertypes.Artifact, err error) {
+	cmdToRun := cmd
+	if t.ExecConfig.DetectScriptIO.Input.Mode == argMode {
+		cmdToRun = append(cmdToRun, "input="+t.ExecConfig.DetectScriptIO.Input.Path)
+	} else if t.ExecConfig.DetectScriptIO.Input.Mode == envMode {
+		t.Env.EnvKeyValueList = append(t.Env.EnvKeyValueList,
+			t.ExecConfig.DetectScriptIO.Input.EnvName+envDelimiter+t.ExecConfig.DetectScriptIO.Input.Path)
+		t.Env.Env.AddEnvironmentVariablesToInstance([]string{t.ExecConfig.DetectScriptIO.Input.EnvName + envDelimiter + t.ExecConfig.DetectScriptIO.Input.Path})
+	}
+	if t.ExecConfig.DetectScriptIO.Output.Mode == argMode {
+		cmdToRun = append(cmdToRun, "output="+t.ExecConfig.DetectScriptIO.Output.Path)
+	} else if t.ExecConfig.DetectScriptIO.Output.Mode == envMode {
+		t.Env.EnvKeyValueList = append(t.Env.EnvKeyValueList,
+			t.ExecConfig.DetectScriptIO.Output.EnvName+envDelimiter+t.ExecConfig.DetectScriptIO.Output.Path)
+		t.Env.Env.AddEnvironmentVariablesToInstance([]string{t.ExecConfig.DetectScriptIO.Output.EnvName + envDelimiter + t.ExecConfig.DetectScriptIO.Output.Path})
+	}
+	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute the command in the environment.\nstdout: %s\nstderr: %s\nexit code: %d\nError: %w", stdout, stderr, exitcode, err)
 	} else if exitcode != 0 {
 		return nil, fmt.Errorf("the detect command failed with a non-zero exit code.\nstdout: %s\nstderr: %s\nexit code: %d", stdout, stderr, exitcode)
 	}
-	logrus.Debugf("The detect command for transformer '%s' succeeded in the directory '%s'\nstdout: %s\nstderr: %s", t.Config.Name, dir, stdout, stderr)
+	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d",
+		t.Config.Name, t.ExecConfig.DetectScriptIO.Input.Path, stdout, stderr, exitcode)
 	outputPath, err := t.Env.Env.Download(detectContainerOutputDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download the json output at path '%s' from the environment. Error: %w", outputPath, err)
@@ -183,8 +243,10 @@ func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (se
 			logrus.Warnf("failed in unmarshal the detect output file at path '%s' as config json. Error: %q", jsonOutputPath, err)
 		}
 		trans := transformertypes.Artifact{
-			Paths:   map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {dir}},
-			Configs: map[transformertypes.ConfigType]interface{}{TemplateConfigType: config},
+			Paths: map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {t.ExecConfig.DetectScriptIO.Input.Path}},
+			Configs: map[transformertypes.ConfigType]interface{}{
+				TemplateConfigType: config,
+			},
 		}
 		return map[string][]transformertypes.Artifact{"": {trans}}, nil
 	}

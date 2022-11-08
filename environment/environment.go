@@ -79,6 +79,7 @@ type EnvironmentInstance interface {
 	Stat(name string) (fs.FileInfo, error)
 	Download(envpath string) (outpath string, err error)
 	Upload(outpath string) (envpath string, err error)
+	AddEnvironmentVariablesToInstance(envList []string) error
 	Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error)
 	Destroy() error
 

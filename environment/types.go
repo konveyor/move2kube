@@ -33,6 +33,7 @@ type EnvInfo struct {
 	CurrEnvOutputBasePath string
 	RelTemplatesDir       string
 	TempPath              string
+	EnvKeyValueList       []string
 	EnvPlatformConfig     environmenttypes.EnvPlatformConfig
 	SpawnContainers       bool
 }
