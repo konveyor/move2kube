@@ -111,8 +111,8 @@ const (
 	packageJSONFile        = "package.json"
 	versionMappingFilePath = "mappings/nodeversions.yaml"
 	defaultPackageManager  = "npm"
-	versionKey             = "version"
 	// tagKey                 = "tag"
+	versionKey = "version"
 	// NodeVersionsMappingKind defines kind of NodeVersionMappingKind
 	NodeVersionsMappingKind types.Kind = "NodeVersionsMapping"
 )
