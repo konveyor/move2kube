@@ -474,7 +474,7 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 			IncludeBuildStage:     selectedBuildOption == dotnetutils.BUILD_IN_EVERY_IMAGE,
 			BuildStageImageTag:    defaultDotNetCoreVersion,
 			BuildContainerName:    imageToCopyFrom,
-			EntryPointPath:        childProject.Name + ".dll",
+			EntryPointPath:        childProject.OriginalName + ".dll",
 			RunStageImageTag:      targetFrameworkVersion,
 			IncludeRunStage:       true,
 			CopyFrom:              common.GetUnixPath(copyFrom),

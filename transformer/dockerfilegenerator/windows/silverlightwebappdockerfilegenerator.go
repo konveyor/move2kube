@@ -104,7 +104,7 @@ func (t *WinSilverLightWebAppDockerfileGenerator) DirectoryDetect(dir string) (m
 			continue
 		}
 		targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
-		if !dotnet.Version4.MatchString(targetFrameworkVersion) {
+		if !dotnet.Version4And3_5.MatchString(targetFrameworkVersion) {
 			logrus.Errorf("silverlight dot net tranformer: the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
 			continue
 		}
