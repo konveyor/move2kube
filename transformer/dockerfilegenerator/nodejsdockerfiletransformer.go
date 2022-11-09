@@ -61,10 +61,11 @@ type PackageJSON struct {
 
 // NodejsTemplateConfig implements Nodejs config interface
 type NodejsTemplateConfig struct {
-	Port                  int32
-	Build                 bool
-	NodeVersion           string
-	NodeTag               string
+	Port        int32
+	Build       bool
+	NodeVersion string
+	// NodeTag               string
+	NodeMajorVersion      string
 	NodeVersionProperties map[string]string
 	PackageManager        string
 }
@@ -100,8 +101,8 @@ type NodejsDockerfileGenerator struct {
 
 // NodejsDockerfileYamlConfig represents the configuration of the Nodejs dockerfile
 type NodejsDockerfileYamlConfig struct {
-	DefaultNodejsVersion    string            `yaml:"defaultNodejsVersion"`
-	DefaultNodejsTag        string            `yaml:"defaultNodejsTag"`
+	DefaultNodejsVersion string `yaml:"defaultNodejsVersion"`
+	// DefaultNodejsTag          string            `yaml:"defaultNodejsTag"`
 	DefaultPackageManager   string            `yaml:"defaultPackageManager"`
 	NodejsVersionTagMapping map[string]string `yaml:"nodejsVersionTagMapping"`
 }
@@ -111,7 +112,7 @@ const (
 	versionMappingFilePath = "mappings/nodeversions.yaml"
 	defaultPackageManager  = "npm"
 	versionKey             = "version"
-	tagKey                 = "tag"
+	// tagKey                 = "tag"
 	// NodeVersionsMappingKind defines kind of NodeVersionMappingKind
 	NodeVersionsMappingKind types.Kind = "NodeVersionsMapping"
 )
@@ -139,16 +140,16 @@ func (t *NodejsDockerfileGenerator) Init(tc transformertypes.Transformer, env *e
 	t.Spec = spec
 	if t.NodejsConfig.DefaultNodejsVersion == "" {
 		t.NodejsConfig.DefaultNodejsVersion = t.Spec.NodeVersions[0][versionKey]
-		t.NodejsConfig.DefaultNodejsTag = t.Spec.NodeVersions[0][tagKey]
+		// t.NodejsConfig.DefaultNodejsTag = t.Spec.NodeVersions[0][tagKey]
 	}
 	logrus.Debugf("Extracted node versions from nodeversion mappings file - %+v", t.Spec)
-	t.NodejsConfig.NodejsVersionTagMapping = make(map[string]string)
-	for _, nodeVersion := range t.Spec.NodeVersions {
-		if tag, ok := nodeVersion[tagKey]; ok {
-			t.NodejsConfig.NodejsVersionTagMapping[nodeVersion[versionKey]] = tag
-		}
-	}
-	logrus.Debugf("Extracted version-tag mappings are %+v", t.NodejsConfig.NodejsVersionTagMapping)
+	// t.NodejsConfig.NodejsVersionTagMapping = make(map[string]string)
+	// for _, nodeVersion := range t.Spec.NodeVersions {
+	// 	if tag, ok := nodeVersion[tagKey]; ok {
+	// 		t.NodejsConfig.NodejsVersionTagMapping[nodeVersion[versionKey]] = tag
+	// 	}
+	// }
+	// logrus.Debugf("Extracted version-tag mappings are %+v", t.NodejsConfig.NodejsVersionTagMapping)
 	return nil
 }
 
@@ -223,7 +224,7 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			build = true
 		}
 		nodeVersion := t.NodejsConfig.DefaultNodejsVersion
-		nodeTag := t.NodejsConfig.DefaultNodejsTag
+		// nodeTag := t.NodejsConfig.DefaultNodejsTag
 		if nodeVersionConstraint, ok := packageJSON.Engines["node"]; ok {
 			nodeVersion = getNodeVersion(
 				nodeVersionConstraint,
@@ -232,10 +233,10 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			)
 			logrus.Debugf("Selected nodeVersion is - %s", nodeVersion)
 		}
-		if tag, ok := t.NodejsConfig.NodejsVersionTagMapping[nodeVersion]; ok {
-			nodeTag = tag
-			logrus.Debugf("Selected nodeTag is - %s", nodeTag)
-		}
+		// if tag, ok := t.NodejsConfig.NodejsVersionTagMapping[nodeVersion]; ok {
+		// 	nodeTag = tag
+		// 	logrus.Debugf("Selected nodeTag is - %s", nodeTag)
+		// }
 		packageManager := t.NodejsConfig.DefaultPackageManager
 		if packageJSON.PackageManager != "" {
 			parts := strings.Split(packageJSON.PackageManager, "@")
@@ -266,10 +267,11 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			props = t.Spec.NodeVersions[idx]
 		}
 		nodejsConfig := NodejsTemplateConfig{
-			Build:                 build,
-			Port:                  port,
-			NodeVersion:           nodeVersion,
-			NodeTag:               nodeTag,
+			Build:       build,
+			Port:        port,
+			NodeVersion: nodeVersion,
+			// NodeTag:               nodeTag,
+			NodeMajorVersion:      strings.TrimPrefix(semver.Major(nodeVersion), "v"),
 			NodeVersionProperties: props,
 			PackageManager:        packageManager,
 		}

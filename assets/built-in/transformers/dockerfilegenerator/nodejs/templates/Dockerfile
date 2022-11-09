@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM node:{{ .NodeTag }}
+FROM registry.access.redhat.com/ubi8/nodejs-{{ .NodeMajorVersion }}
 COPY . .
 RUN {{ .PackageManager }} install
 {{- if .Build }}
