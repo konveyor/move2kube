@@ -42,9 +42,8 @@ import (
 )
 
 const (
-	baseDirectoryDetectFnName = "base_directory_detect"
-	directoryDetectFnName     = "directory_detect"
-	transformFnName           = "transform"
+	directoryDetectFnName = "directory_detect"
+	transformFnName       = "transform"
 
 	sourceDirVarName         = "source_dir"
 	contextDirVarName        = "context_dir"
