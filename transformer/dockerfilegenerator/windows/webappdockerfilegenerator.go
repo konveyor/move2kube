@@ -113,7 +113,7 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 				continue
 			}
 			targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
-			if !dotnet.Version4.MatchString(targetFrameworkVersion) {
+			if !dotnet.Version4And3_5.MatchString(targetFrameworkVersion) {
 				logrus.Errorf("the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
 				continue
 			}
@@ -175,7 +175,7 @@ func (t *WinWebAppDockerfileGenerator) DirectoryDetect(dir string) (map[string][
 			continue
 		}
 		targetFrameworkVersion := configuration.PropertyGroups[idx].TargetFrameworkVersion
-		if !dotnet.Version4.MatchString(targetFrameworkVersion) {
+		if !dotnet.Version4And3_5.MatchString(targetFrameworkVersion) {
 			logrus.Errorf("webapp dot net tranformer: the c sharp project file at path %s does not have a supported framework version. Actual version: %s", csProjPath, targetFrameworkVersion)
 			continue
 		}
@@ -306,7 +306,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 
 		if selectedBuildOption == dotnetutils.BUILD_IN_BASE_IMAGE {
 			webConfig := WebTemplateConfig{
-				BuildStageImageTag: dotnet.DefaultBaseImageVersion,
+				BuildStageImageTag: t.getImageTagFromVersion(dotnet.DefaultBaseImageVersion),
 				IncludeBuildStage:  true,
 				IncludeRunStage:    false,
 				BuildContainerName: imageToCopyFrom,
@@ -378,7 +378,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 
 			webConfig := WebTemplateConfig{
 				Ports:              selectedPorts,
-				BuildStageImageTag: dotnet.DefaultBaseImageVersion,
+				BuildStageImageTag: t.getImageTagFromVersion(targetFrameworkVersion),
 				IncludeBuildStage:  selectedBuildOption == dotnetutils.BUILD_IN_EVERY_IMAGE,
 				IncludeRunStage:    true,
 				BuildContainerName: imageToCopyFrom,

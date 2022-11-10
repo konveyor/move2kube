@@ -23,8 +23,8 @@ import (
 )
 
 var (
-	// Version4 is the framework version pattern
-	Version4 = regexp.MustCompile("v4")
+	// Version4And3_5 is the regex to match against specific Dot Net framework versions
+	Version4And3_5 = regexp.MustCompile(`(v4|v3\.5)`)
 	// WebLib is the key library used in web applications
 	WebLib = regexp.MustCompile(`^System\.Web`)
 	// AspNetWebLib is the key library used in asp net web applications
