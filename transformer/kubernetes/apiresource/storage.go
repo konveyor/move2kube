@@ -192,7 +192,7 @@ func convertVolumeBySupportedKind(volume core.Volume, cluster collecttypes.Clust
 	if volume.VolumeSource.HostPath != nil || volume.VolumeSource.EmptyDir != nil {
 		return volume
 	}
-	logrus.Warnf("Unsupported storage type (volume) detected")
+	logrus.Warnf("Unsupported storage type (volume) detected: %#v", volume)
 
 	return core.Volume{}
 }

@@ -111,7 +111,7 @@ func SetupConfigFile(writeConfigFile string, configStrings, configFiles, presets
 
 // FetchAnswer fetches the answer for the question
 func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
-	logrus.Debugf("Fetching answer for problem:\n%v", prob)
+	logrus.Debugf("Fetching answer for the problem: %#v", prob)
 	if prob.Answer != nil {
 		logrus.Debugf("Problem already solved.")
 		return prob, nil
