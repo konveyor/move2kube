@@ -1247,15 +1247,17 @@ func getGitRemoteByName(remotes []*git.Remote, remoteName string) *git.Remote {
 
 // GetObjFromInterface loads from map[string]interface{} to struct
 func GetObjFromInterface(obj interface{}, loadinto interface{}) error {
-	decoder, _ := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Metadata: nil,
-		Result:   &loadinto,
-		TagName:  "yaml",
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Result:  &loadinto,
+		TagName: "yaml",
+		Squash:  true,
 	})
+	if err != nil {
+		return fmt.Errorf("failed to get the mapstructure decoder for the type %T . Error: %w", loadinto, err)
+	}
 	// logrus.Debugf("Loading data into %+v from %+v", loadinto, obj)
 	if err := decoder.Decode(obj); err != nil {
-		logrus.Errorf("Unable to load obj %+v into %T : %s", obj, loadinto, err)
-		return err
+		return fmt.Errorf("failed to decode the object of type %T and value %+v into the type %T . Error: %w", obj, obj, loadinto, err)
 	}
 	// logrus.Debugf("Object Loaded is %+v", loadinto)
 	return nil
