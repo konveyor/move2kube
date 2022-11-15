@@ -88,7 +88,7 @@ func (t *CNBContainerizer) GetConfig() (transformertypes.Transformer, *environme
 func (t *CNBContainerizer) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	path := dir
 	cmd := environmenttypes.Command{"/cnb/lifecycle/detector", "-app", t.CNBEnv.Encode(path).(string)}
-	stdout, stderr, exitcode, err := t.CNBEnv.Exec(cmd)
+	stdout, stderr, exitcode, err := t.CNBEnv.Exec(cmd, nil)
 	if err != nil {
 		logrus.Debugf("CNB detector failed. exit code: %d error: %q\nstdout: %s\nstderr: %s", exitcode, err, stdout, stderr)
 		return nil, fmt.Errorf("CNB detector failed with exitcode %d . Error: %q", exitcode, err)

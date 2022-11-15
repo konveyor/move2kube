@@ -32,10 +32,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type IOMode string
+
 const (
-	envMode      = "env"
-	argMode      = "arg"
-	envDelimiter = "="
+	envMode      IOMode = "env"
+	argMode      IOMode = "arg"
+	defaultMode  IOMode = "default"
+	envDelimiter        = "="
 )
 
 // Executable implements transformer interface and is used to write simple external transformers
@@ -47,14 +50,14 @@ type Executable struct {
 
 // InputFormat input/output mode definition
 type InputFormat struct {
-	Mode    string `yaml:"mode"`
+	Mode    IOMode `yaml:"mode"`
 	EnvName string `yaml:"envName,omitempty`
 	Path    string
 }
 
 // OutputFormat input/output mode definition
 type OutputFormat struct {
-	Mode    string `yaml:"mode"`
+	Mode    IOMode `yaml:"mode"`
 	EnvName string `yaml:"envName,omitempty`
 	Path    string
 }
@@ -167,22 +170,26 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	}
 	t.ExecConfig.TransformScriptIO.Input.Path = filepath.Join(containerInputDir, transformInputFile)
 	t.ExecConfig.TransformScriptIO.Output.Path = filepath.Join(transformContainerOutputDir, transformOutputFile)
-	cmdToRun := t.ExecConfig.TransformCMD
-	if t.ExecConfig.TransformScriptIO.Input.Mode == argMode {
-		cmdToRun = append(cmdToRun, "input="+t.ExecConfig.TransformScriptIO.Input.Path)
-	} else if t.ExecConfig.TransformScriptIO.Input.Mode == envMode {
-		t.Env.EnvKeyValueList = append(t.Env.EnvKeyValueList,
-			t.ExecConfig.TransformScriptIO.Input.EnvName+envDelimiter+t.ExecConfig.TransformScriptIO.Input.Path)
-		t.Env.Env.AddEnvironmentVariablesToInstance([]string{t.ExecConfig.TransformScriptIO.Input.EnvName + envDelimiter + t.ExecConfig.TransformScriptIO.Input.Path})
+	kvMap := map[string][]string{}
+	kvMap["input"] = []string{"input" + envDelimiter + t.ExecConfig.TransformScriptIO.Input.Path}
+	kvMap["output"] = []string{"output" + envDelimiter + t.ExecConfig.TransformScriptIO.Output.Path}
+	kvMap["inputEnv"] = []string{
+		t.ExecConfig.TransformScriptIO.Input.EnvName +
+			envDelimiter +
+			t.ExecConfig.TransformScriptIO.Input.Path,
 	}
-	if t.ExecConfig.TransformScriptIO.Output.Mode == argMode {
-		cmdToRun = append(cmdToRun, "output="+t.ExecConfig.TransformScriptIO.Output.Path)
-	} else if t.ExecConfig.TransformScriptIO.Output.Mode == envMode {
-		t.Env.EnvKeyValueList = append(t.Env.EnvKeyValueList,
-			t.ExecConfig.TransformScriptIO.Output.EnvName+envDelimiter+t.ExecConfig.TransformScriptIO.Output.Path)
-		t.Env.Env.AddEnvironmentVariablesToInstance([]string{t.ExecConfig.TransformScriptIO.Output.EnvName + envDelimiter + t.ExecConfig.TransformScriptIO.Output.Path})
+	kvMap["outputEnv"] = []string{
+		t.ExecConfig.TransformScriptIO.Output.EnvName +
+			envDelimiter +
+			t.ExecConfig.TransformScriptIO.Output.Path,
 	}
-	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun)
+	cmdToRun, envList := t.configIO(
+		t.ExecConfig.TransformCMD,
+		t.ExecConfig.TransformScriptIO.Input.Mode,
+		t.ExecConfig.TransformScriptIO.Output.Mode,
+		kvMap,
+	)
+	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun, envList)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run the transform.\nstdout: %s\nstderr: %s\nexit code: %d . Error: %w", stdout, stderr, exitcode, err)
 	}
@@ -206,22 +213,26 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 }
 
 func (t *Executable) executeDetect(cmd environmenttypes.Command) (services map[string][]transformertypes.Artifact, err error) {
-	cmdToRun := cmd
-	if t.ExecConfig.DetectScriptIO.Input.Mode == argMode {
-		cmdToRun = append(cmdToRun, "input="+t.ExecConfig.DetectScriptIO.Input.Path)
-	} else if t.ExecConfig.DetectScriptIO.Input.Mode == envMode {
-		t.Env.EnvKeyValueList = append(t.Env.EnvKeyValueList,
-			t.ExecConfig.DetectScriptIO.Input.EnvName+envDelimiter+t.ExecConfig.DetectScriptIO.Input.Path)
-		t.Env.Env.AddEnvironmentVariablesToInstance([]string{t.ExecConfig.DetectScriptIO.Input.EnvName + envDelimiter + t.ExecConfig.DetectScriptIO.Input.Path})
+	kvMap := map[string][]string{}
+	kvMap["input"] = []string{"input" + envDelimiter + t.ExecConfig.DetectScriptIO.Input.Path}
+	kvMap["output"] = []string{"output" + envDelimiter + t.ExecConfig.DetectScriptIO.Output.Path}
+	kvMap["inputEnv"] = []string{
+		t.ExecConfig.DetectScriptIO.Input.EnvName +
+			envDelimiter +
+			t.ExecConfig.DetectScriptIO.Input.Path,
 	}
-	if t.ExecConfig.DetectScriptIO.Output.Mode == argMode {
-		cmdToRun = append(cmdToRun, "output="+t.ExecConfig.DetectScriptIO.Output.Path)
-	} else if t.ExecConfig.DetectScriptIO.Output.Mode == envMode {
-		t.Env.EnvKeyValueList = append(t.Env.EnvKeyValueList,
-			t.ExecConfig.DetectScriptIO.Output.EnvName+envDelimiter+t.ExecConfig.DetectScriptIO.Output.Path)
-		t.Env.Env.AddEnvironmentVariablesToInstance([]string{t.ExecConfig.DetectScriptIO.Output.EnvName + envDelimiter + t.ExecConfig.DetectScriptIO.Output.Path})
+	kvMap["outputEnv"] = []string{
+		t.ExecConfig.DetectScriptIO.Output.EnvName +
+			envDelimiter +
+			t.ExecConfig.DetectScriptIO.Output.Path,
 	}
-	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun)
+	cmdToRun, envList := t.configIO(
+		cmd,
+		t.ExecConfig.DetectScriptIO.Input.Mode,
+		t.ExecConfig.DetectScriptIO.Output.Mode,
+		kvMap,
+	)
+	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun, envList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute the command in the environment.\nstdout: %s\nstderr: %s\nexit code: %d\nError: %w", stdout, stderr, exitcode, err)
 	} else if exitcode != 0 {
@@ -265,4 +276,26 @@ func (t *Executable) uploadInput(data interface{}, inputFile string) (string, er
 		return "", fmt.Errorf("failed to copy input dir to new container image. Error: %w", err)
 	}
 	return containerInputDir, nil
+}
+
+func (t *Executable) configIO(cmd environmenttypes.Command,
+	iMode IOMode,
+	oMode IOMode,
+	kvMap map[string][]string) (
+	environmenttypes.Command,
+	[]string,
+) {
+	cmdToRun := cmd
+	envList := []string{}
+	if iMode == argMode {
+		cmdToRun = append(cmdToRun, kvMap["input"]...)
+	} else if iMode == envMode {
+		envList = append(envList, kvMap["inputEnv"]...)
+	}
+	if oMode == argMode {
+		cmdToRun = append(cmdToRun, kvMap["output"]...)
+	} else if oMode == envMode {
+		envList = append(envList, kvMap["outputEnv"]...)
+	}
+	return cmdToRun, envList
 }

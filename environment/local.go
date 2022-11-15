@@ -86,14 +86,8 @@ func (e *Local) Stat(name string) (fs.FileInfo, error) {
 	return os.Stat(name)
 }
 
-// AddEnvironmentVariablesToInstance adds the environment variables after the environment is created
-func (e *Local) AddEnvironmentVariablesToInstance(envList []string) error {
-	e.EnvKeyValueList = append(e.EnvKeyValueList, envList...)
-	return nil
-}
-
 // Exec executes an executable within the environment
-func (e *Local) Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error) {
+func (e *Local) Exec(cmd environmenttypes.Command, envList []string) (stdout string, stderr string, exitcode int, err error) {
 	if common.DisableLocalExecution {
 		return "", "", 0, fmt.Errorf("local execution prevented by %s flag", common.DisableLocalExecutionFlag)
 	}
@@ -108,7 +102,7 @@ func (e *Local) Exec(cmd environmenttypes.Command) (stdout string, stderr string
 	execcmd.Stdout = &outb
 	execcmd.Stderr = &errb
 	execcmd.Env = e.getEnv()
-	execcmd.Env = append(execcmd.Env, e.EnvKeyValueList...)
+	execcmd.Env = append(execcmd.Env, envList...)
 	if err := execcmd.Run(); err != nil {
 		var ee *exec.ExitError
 		var pe *os.PathError
