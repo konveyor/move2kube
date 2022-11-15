@@ -38,7 +38,6 @@ type IOMode string
 const (
 	envMode      IOMode = "env"
 	argMode      IOMode = "arg"
-	defaultMode  IOMode = "default"
 	envDelimiter        = "="
 )
 
