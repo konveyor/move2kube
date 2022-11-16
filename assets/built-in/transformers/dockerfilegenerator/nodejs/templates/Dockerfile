@@ -14,6 +14,9 @@
 
 FROM registry.access.redhat.com/ubi8/nodejs-{{ .NodeMajorVersion }}
 COPY . .
+{{- if eq .PackageManager "yarn" }}
+RUN npm install --global yarn
+{{- end }}
 RUN {{ .PackageManager }} install
 {{- if .Build }}
 RUN {{ .PackageManager }} run build
