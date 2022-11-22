@@ -32,13 +32,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// IOMode is the type of the mode used for I/O of detect and transform scripts.
-type IOMode string
-
 const (
-	envMode      IOMode = "env"
-	argMode      IOMode = "arg"
-	envDelimiter        = "="
+	envDelimiter              = "="
+	detectInputPathEnvKey     = "M2K_DETECT_INPUT_PATH"
+	detectOutputPathEnvKey    = "M2K_DETECT_OUTPUT_PATH"
+	transformInputPathEnvKey  = "M2K_TRANSFORM_INPUT_PATH"
+	transformOutputPathEnvKey = "M2K_TRANSFORM_OUTPUT_PATH"
 )
 
 // Executable implements transformer interface and is used to write simple external transformers
@@ -48,34 +47,13 @@ type Executable struct {
 	ExecConfig *ExecutableYamlConfig
 }
 
-// InputFormat input/output mode definition
-type InputFormat struct {
-	Mode    IOMode `yaml:"mode"`
-	EnvName string `yaml:"envName,omitempty`
-	Path    string
-}
-
-// OutputFormat input/output mode definition
-type OutputFormat struct {
-	Mode    IOMode `yaml:"mode"`
-	EnvName string `yaml:"envName,omitempty`
-	Path    string
-}
-
-// CommandFormat input/output mode and command definitions for detect and transform scripts
-type CommandFormat struct {
-	Cmd    environmenttypes.Command `yaml:"cmd"`
-	Input  InputFormat              `yaml:"input"`
-	Output OutputFormat             `yaml:"output"`
-}
-
 // ExecutableYamlConfig is the format of executable yaml config
 type ExecutableYamlConfig struct {
 	EnableQA           bool                       `yaml:"enableQA"`
 	Platforms          []string                   `yaml:"platforms"`
+	DirectoryDetectCMD environmenttypes.Command   `yaml:"directoryDetectCMD"`
+	TransformCMD       environmenttypes.Command   `yaml:"transformCMD"`
 	Container          environmenttypes.Container `yaml:"container,omitempty"`
-	DetectCmdFormat    CommandFormat              `yaml:"directoryDetect"`
-	TransformCmdFormat CommandFormat              `yaml:"transform"`
 }
 
 const (
@@ -123,16 +101,18 @@ func (t *Executable) GetConfig() (transformertypes.Transformer, *environment.Env
 
 // DirectoryDetect runs detect in each sub directory
 func (t *Executable) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	if t.ExecConfig.DetectCmdFormat.Cmd == nil {
+	if t.ExecConfig.DirectoryDetectCMD == nil {
 		return nil, nil
 	}
 	containerInputDir, err := t.uploadInput(map[string]string{"InputDirectory": dir}, detectInputFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy the detect input path to container. Error: %w", err)
 	}
-	t.ExecConfig.DetectCmdFormat.Input.Path = filepath.Join(containerInputDir, detectInputFile)
-	t.ExecConfig.DetectCmdFormat.Output.Path = filepath.Join(detectContainerOutputDir, detectOutputFile)
-	services, err = t.executeDetect(t.ExecConfig.DetectCmdFormat.Cmd)
+	services, err = t.executeDetect(
+		t.ExecConfig.DirectoryDetectCMD,
+		filepath.Join(containerInputDir, detectInputFile),
+		filepath.Join(detectContainerOutputDir, detectOutputFile),
+	)
 	if err != nil {
 		return services, fmt.Errorf("failed to execute the detect script. Error: %w", err)
 	}
@@ -154,7 +134,7 @@ func (t *Executable) DirectoryDetect(dir string) (services map[string][]transfor
 func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
-	if t.ExecConfig.TransformCmdFormat.Cmd == nil {
+	if t.ExecConfig.TransformCMD == nil {
 		return nil, nil, fmt.Errorf("no transform script specified")
 	}
 	containerInputDir, err := t.uploadInput(
@@ -167,25 +147,16 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to upload the transform input into the environment at the path '%s' . Error: %w", transformInputFile, err)
 	}
-	t.ExecConfig.TransformCmdFormat.Input.Path = filepath.Join(containerInputDir, transformInputFile)
-	t.ExecConfig.TransformCmdFormat.Output.Path = filepath.Join(transformContainerOutputDir, transformOutputFile)
-	kvMap := map[string][]string{}
-	kvMap["input"] = []string{"input" + envDelimiter + t.ExecConfig.TransformCmdFormat.Input.Path}
-	kvMap["output"] = []string{"output" + envDelimiter + t.ExecConfig.TransformCmdFormat.Output.Path}
-	kvMap["inputEnv"] = []string{
-		t.ExecConfig.TransformCmdFormat.Input.EnvName +
-			envDelimiter +
-			t.ExecConfig.TransformCmdFormat.Input.Path,
-	}
-	kvMap["outputEnv"] = []string{
-		t.ExecConfig.TransformCmdFormat.Output.EnvName +
-			envDelimiter +
-			t.ExecConfig.TransformCmdFormat.Output.Path,
-	}
+	transformInputPath := filepath.Join(containerInputDir, transformInputFile)
+	transformOutputPath := filepath.Join(transformContainerOutputDir, transformOutputFile)
 	cmdToRun, envList := t.configIO(
-		t.ExecConfig.TransformCmdFormat,
-		kvMap,
+		t.ExecConfig.TransformCMD,
+		map[string]string{
+			transformInputPathEnvKey:  transformInputPath,
+			transformOutputPathEnvKey: transformOutputPath,
+		},
 	)
+	logrus.Warnf("Transform command --> %v", cmdToRun)
 	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun, envList)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run the transform.\nstdout: %s\nstderr: %s\nexit code: %d . Error: %w", stdout, stderr, exitcode, err)
@@ -193,7 +164,7 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	if exitcode != 0 {
 		return nil, nil, fmt.Errorf("the transform script failed with non-zero exit code.\nstdout: %s\nstderr: %s\nexit code: %d", stdout, stderr, exitcode)
 	}
-	logrus.Debugf("the transform script '%s' succeeded.\nstdout: %s\nstderr: %s\nexit code: %d", t.Config.Name, stdout, stderr, exitcode)
+	logrus.Warnf("the transform script '%s' succeeded.\nstdout: %s\nstderr: %s\nexit code: %d", t.Config.Name, stdout, stderr, exitcode)
 	outputPath, err := t.Env.Env.Download(transformContainerOutputDir)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to download the json %s . Error: %q", outputPath, err)
@@ -209,39 +180,34 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	return pathMappings, createdArtifacts, nil
 }
 
-func (t *Executable) executeDetect(cmd environmenttypes.Command) (services map[string][]transformertypes.Artifact, err error) {
-	kvMap := map[string][]string{}
-	kvMap["input"] = []string{"input" + envDelimiter + t.ExecConfig.DetectCmdFormat.Input.Path}
-	kvMap["output"] = []string{"output" + envDelimiter + t.ExecConfig.DetectCmdFormat.Output.Path}
-	kvMap["inputEnv"] = []string{
-		t.ExecConfig.DetectCmdFormat.Input.EnvName +
-			envDelimiter +
-			t.ExecConfig.DetectCmdFormat.Input.Path,
-	}
-	kvMap["outputEnv"] = []string{
-		t.ExecConfig.DetectCmdFormat.Output.EnvName +
-			envDelimiter +
-			t.ExecConfig.DetectCmdFormat.Output.Path,
-	}
+func (t *Executable) executeDetect(
+	cmd environmenttypes.Command,
+	inputPath string,
+	outputPath string,
+) (services map[string][]transformertypes.Artifact, err error) {
 	cmdToRun, envList := t.configIO(
-		t.ExecConfig.DetectCmdFormat,
-		kvMap,
+		t.ExecConfig.DirectoryDetectCMD,
+		map[string]string{
+			detectInputPathEnvKey:  inputPath,
+			detectOutputPathEnvKey: outputPath,
+		},
 	)
+	logrus.Warnf("Detect command --> %v, %v", cmdToRun, envList)
 	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun, envList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute the command in the environment.\nstdout: %s\nstderr: %s\nexit code: %d\nError: %w", stdout, stderr, exitcode, err)
 	} else if exitcode != 0 {
 		return nil, fmt.Errorf("the detect command failed with a non-zero exit code.\nstdout: %s\nstderr: %s\nexit code: %d", stdout, stderr, exitcode)
 	}
-	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d",
-		t.Config.Name, t.ExecConfig.DetectCmdFormat.Input.Path, stdout, stderr, exitcode)
-	outputPath, err := t.Env.Env.Download(detectContainerOutputDir)
+	logrus.Warnf("%s Detect succeeded in %s : %s, %s, %d",
+		t.Config.Name, inputPath, stdout, stderr, exitcode)
+	outputPathFromContainer, err := t.Env.Env.Download(detectContainerOutputDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to download the json output at path '%s' from the environment. Error: %w", outputPath, err)
+		return nil, fmt.Errorf("failed to download the json output at path '%s' from the environment. Error: %w", outputPathFromContainer, err)
 	}
-	logrus.Debugf("Output detect JSON path: %v", outputPath)
+	logrus.Debugf("Output detect JSON path: %v", outputPathFromContainer)
 	output := map[string][]transformertypes.Artifact{}
-	jsonOutputPath := filepath.Join(outputPath, detectOutputFile)
+	jsonOutputPath := filepath.Join(outputPathFromContainer, detectOutputFile)
 	if err := common.ReadJSON(jsonOutputPath, &output); err != nil {
 		logrus.Warnf("failed in unmarshal the detect output file at path '%s' as json. Trying with config type. Error: %q", jsonOutputPath, err)
 		config := map[string]interface{}{}
@@ -249,7 +215,7 @@ func (t *Executable) executeDetect(cmd environmenttypes.Command) (services map[s
 			logrus.Warnf("failed in unmarshal the detect output file at path '%s' as config json. Error: %q", jsonOutputPath, err)
 		}
 		trans := transformertypes.Artifact{
-			Paths: map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {t.ExecConfig.DetectCmdFormat.Input.Path}},
+			Paths: map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {inputPath}},
 			Configs: map[transformertypes.ConfigType]interface{}{
 				TemplateConfigType: config,
 			},
@@ -274,22 +240,23 @@ func (t *Executable) uploadInput(data interface{}, inputFile string) (string, er
 }
 
 func (t *Executable) configIO(
-	cmdFormat CommandFormat,
-	kvMap map[string][]string) (
+	cmd environmenttypes.Command,
+	kvMap map[string]string) (
 	environmenttypes.Command,
 	[]string,
 ) {
-	cmdToRun := cmdFormat.Cmd
-	envList := []string{}
-	if cmdFormat.Input.Mode == argMode {
-		cmdToRun = append(cmdToRun, kvMap["input"]...)
-	} else if cmdFormat.Input.Mode == envMode {
-		envList = append(envList, kvMap["inputEnv"]...)
+	const dollarPrefix = "$"
+	cmdToRun := cmd
+	for envKey, value := range kvMap {
+		for index, token := range cmdToRun {
+			if token == dollarPrefix+envKey {
+				cmdToRun[index] = value
+			}
+		}
 	}
-	if cmdFormat.Output.Mode == argMode {
-		cmdToRun = append(cmdToRun, kvMap["output"]...)
-	} else if cmdFormat.Output.Mode == envMode {
-		envList = append(envList, kvMap["outputEnv"]...)
+	envList := []string{}
+	for envKey, value := range kvMap {
+		envList = append(envList, envKey+envDelimiter+value)
 	}
 	return cmdToRun, envList
 }
