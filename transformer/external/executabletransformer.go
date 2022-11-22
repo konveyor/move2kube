@@ -156,7 +156,6 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 			transformOutputPathEnvKey: transformOutputPath,
 		},
 	)
-	logrus.Warnf("Transform command --> %v", cmdToRun)
 	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun, envList)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run the transform.\nstdout: %s\nstderr: %s\nexit code: %d . Error: %w", stdout, stderr, exitcode, err)
@@ -164,7 +163,7 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	if exitcode != 0 {
 		return nil, nil, fmt.Errorf("the transform script failed with non-zero exit code.\nstdout: %s\nstderr: %s\nexit code: %d", stdout, stderr, exitcode)
 	}
-	logrus.Warnf("the transform script '%s' succeeded.\nstdout: %s\nstderr: %s\nexit code: %d", t.Config.Name, stdout, stderr, exitcode)
+	logrus.Debugf("the transform script '%s' succeeded.\nstdout: %s\nstderr: %s\nexit code: %d", t.Config.Name, stdout, stderr, exitcode)
 	outputPath, err := t.Env.Env.Download(transformContainerOutputDir)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to download the json %s . Error: %q", outputPath, err)
@@ -192,14 +191,13 @@ func (t *Executable) executeDetect(
 			detectOutputPathEnvKey: outputPath,
 		},
 	)
-	logrus.Warnf("Detect command --> %v, %v", cmdToRun, envList)
 	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun, envList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute the command in the environment.\nstdout: %s\nstderr: %s\nexit code: %d\nError: %w", stdout, stderr, exitcode, err)
 	} else if exitcode != 0 {
 		return nil, fmt.Errorf("the detect command failed with a non-zero exit code.\nstdout: %s\nstderr: %s\nexit code: %d", stdout, stderr, exitcode)
 	}
-	logrus.Warnf("%s Detect succeeded in %s : %s, %s, %d",
+	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d",
 		t.Config.Name, inputPath, stdout, stderr, exitcode)
 	outputPathFromContainer, err := t.Env.Env.Download(detectContainerOutputDir)
 	if err != nil {
