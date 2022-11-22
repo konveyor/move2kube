@@ -80,14 +80,15 @@ func NewPeerContainer(envInfo EnvInfo, grpcQAReceiver net.Addr, containerInfo en
 		logrus.Debug(err)
 		logrus.Debug("trying to build the original image before creating a new image with the input data")
 		imageBuildContext := filepath.Join(envInfo.Context, peerContainer.ContainerInfo.ImageBuild.Context)
+		logrus.Debugf("peerContainer.ContainerInfo.Image: '%s'", peerContainer.ContainerInfo.Image)
 		if err := cengine.BuildImage(
-			peerContainer.ContainerInfo.Image,
+			peerContainer.OriginalImage,
 			imageBuildContext,
 			peerContainer.ContainerInfo.ImageBuild.Dockerfile,
 		); err != nil {
 			return nil, fmt.Errorf(
 				"failed to build the container image '%s' using the context directory '%s' and the Dockerfile at path '%s' . Error: %w",
-				peerContainer.ContainerInfo.Image,
+				peerContainer.OriginalImage,
 				imageBuildContext,
 				peerContainer.ContainerInfo.ImageBuild.Dockerfile,
 				err,
