@@ -304,6 +304,9 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 		}
 
 		highestFrameworkVersion := ""
+		currPathMappings := []transformertypes.PathMapping{}
+		currArtifactsCreated := []transformertypes.Artifact{}
+
 		for _, childProject := range dotNetConfig.ChildProjects {
 
 			// only look at the child modules the user selected
@@ -362,7 +365,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			// path mapping to generate the Dockerfile for the child project
 
 			dockerfilePath := filepath.Join(common.DefaultSourceDir, relServiceDir, relCSProjDir, common.DefaultDockerfileName)
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
+			currPathMappings = append(currPathMappings, transformertypes.PathMapping{
 				Type:           transformertypes.TemplatePathMappingType,
 				SrcPath:        common.DefaultDockerfileName,
 				DestPath:       dockerfilePath,
@@ -395,7 +398,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			if irPresent {
 				dockerfileServiceArtifact.Configs[irtypes.IRConfigType] = ir
 			}
-			artifactsCreated = append(artifactsCreated, dockerfileArtifact, dockerfileServiceArtifact)
+			currArtifactsCreated = append(currArtifactsCreated, dockerfileArtifact, dockerfileServiceArtifact)
 		}
 
 		// generate the base image Dockerfile
@@ -415,12 +418,12 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			// path mapping to generate the Dockerfile for the child project
 
 			dockerfilePath := filepath.Join(common.DefaultSourceDir, relServiceDir, common.DefaultDockerfileName+"."+buildStageC)
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
+			currPathMappings = append([]transformertypes.PathMapping{{
 				Type:           transformertypes.TemplatePathMappingType,
 				SrcPath:        common.DefaultDockerfileName,
 				DestPath:       dockerfilePath,
 				TemplateConfig: webConfig,
-			})
+			}}, currPathMappings...)
 
 			// artifacts to inform other transformers of the Dockerfile we generated
 
@@ -436,8 +439,10 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 					artifacts.ImageNameConfigType: imageName,
 				},
 			}
-			artifactsCreated = append(artifactsCreated, dockerfileArtifact)
+			currArtifactsCreated = append([]transformertypes.Artifact{dockerfileArtifact}, currArtifactsCreated...)
 		}
+		pathMappings = append(pathMappings, currPathMappings...)
+		artifactsCreated = append(artifactsCreated, currArtifactsCreated...)
 	}
 	return pathMappings, artifactsCreated, nil
 }
