@@ -30,6 +30,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/mod/semver"
 )
 
 const (
@@ -302,42 +303,9 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			imageToCopyFrom = "" // files will be copied from the local file system instead of a builder image
 		}
 
-		// generate the base image Dockerfile
-
-		if selectedBuildOption == dotnetutils.BUILD_IN_BASE_IMAGE {
-			webConfig := WebTemplateConfig{
-				BuildStageImageTag: t.getImageTagFromVersion(dotnet.DefaultBaseImageVersion),
-				IncludeBuildStage:  true,
-				IncludeRunStage:    false,
-				BuildContainerName: imageToCopyFrom,
-			}
-
-			// path mapping to generate the Dockerfile for the child project
-
-			dockerfilePath := filepath.Join(common.DefaultSourceDir, relServiceDir, common.DefaultDockerfileName+"."+buildStageC)
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
-				Type:           transformertypes.TemplatePathMappingType,
-				SrcPath:        common.DefaultDockerfileName,
-				DestPath:       dockerfilePath,
-				TemplateConfig: webConfig,
-			})
-
-			// artifacts to inform other transformers of the Dockerfile we generated
-
-			paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}
-			serviceName := artifacts.ServiceConfig{ServiceName: newArtifact.Name}
-			imageName := artifacts.ImageName{ImageName: imageToCopyFrom}
-			dockerfileArtifact := transformertypes.Artifact{
-				Name:  imageName.ImageName,
-				Type:  artifacts.DockerfileArtifactType,
-				Paths: paths,
-				Configs: map[transformertypes.ConfigType]interface{}{
-					artifacts.ServiceConfigType:   serviceName,
-					artifacts.ImageNameConfigType: imageName,
-				},
-			}
-			artifactsCreated = append(artifactsCreated, dockerfileArtifact)
-		}
+		highestFrameworkVersion := ""
+		currPathMappings := []transformertypes.PathMapping{}
+		currArtifactsCreated := []transformertypes.Artifact{}
 
 		for _, childProject := range dotNetConfig.ChildProjects {
 
@@ -376,6 +344,14 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 				targetFrameworkVersion = configuration.PropertyGroups[idx].TargetFrameworkVersion
 			}
 
+			// keep track of the highest version among child projects
+			if targetFrameworkVersion != "" {
+				if highestFrameworkVersion == "" || (semver.IsValid(targetFrameworkVersion) && semver.Compare(highestFrameworkVersion, targetFrameworkVersion) == -1) {
+					highestFrameworkVersion = targetFrameworkVersion
+					logrus.Infof("Found a higher dot net framework version '%s'", highestFrameworkVersion)
+				}
+			}
+
 			webConfig := WebTemplateConfig{
 				Ports:              selectedPorts,
 				BuildStageImageTag: t.getImageTagFromVersion(targetFrameworkVersion),
@@ -389,7 +365,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			// path mapping to generate the Dockerfile for the child project
 
 			dockerfilePath := filepath.Join(common.DefaultSourceDir, relServiceDir, relCSProjDir, common.DefaultDockerfileName)
-			pathMappings = append(pathMappings, transformertypes.PathMapping{
+			currPathMappings = append(currPathMappings, transformertypes.PathMapping{
 				Type:           transformertypes.TemplatePathMappingType,
 				SrcPath:        common.DefaultDockerfileName,
 				DestPath:       dockerfilePath,
@@ -422,8 +398,51 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			if irPresent {
 				dockerfileServiceArtifact.Configs[irtypes.IRConfigType] = ir
 			}
-			artifactsCreated = append(artifactsCreated, dockerfileArtifact, dockerfileServiceArtifact)
+			currArtifactsCreated = append(currArtifactsCreated, dockerfileArtifact, dockerfileServiceArtifact)
 		}
+
+		// generate the base image Dockerfile
+
+		if selectedBuildOption == dotnetutils.BUILD_IN_BASE_IMAGE {
+			if highestFrameworkVersion == "" {
+				highestFrameworkVersion = dotnet.DefaultBaseImageVersion
+			}
+			logrus.Infof("Using the highest dot net framework version found '%s' for the build stage.", highestFrameworkVersion)
+			webConfig := WebTemplateConfig{
+				BuildStageImageTag: t.getImageTagFromVersion(highestFrameworkVersion),
+				IncludeBuildStage:  true,
+				IncludeRunStage:    false,
+				BuildContainerName: imageToCopyFrom,
+			}
+
+			// path mapping to generate the Dockerfile for the child project
+
+			dockerfilePath := filepath.Join(common.DefaultSourceDir, relServiceDir, common.DefaultDockerfileName+"."+buildStageC)
+			currPathMappings = append([]transformertypes.PathMapping{{
+				Type:           transformertypes.TemplatePathMappingType,
+				SrcPath:        common.DefaultDockerfileName,
+				DestPath:       dockerfilePath,
+				TemplateConfig: webConfig,
+			}}, currPathMappings...)
+
+			// artifacts to inform other transformers of the Dockerfile we generated
+
+			paths := map[transformertypes.PathType][]string{artifacts.DockerfilePathType: {dockerfilePath}}
+			serviceName := artifacts.ServiceConfig{ServiceName: newArtifact.Name}
+			imageName := artifacts.ImageName{ImageName: imageToCopyFrom}
+			dockerfileArtifact := transformertypes.Artifact{
+				Name:  imageName.ImageName,
+				Type:  artifacts.DockerfileArtifactType,
+				Paths: paths,
+				Configs: map[transformertypes.ConfigType]interface{}{
+					artifacts.ServiceConfigType:   serviceName,
+					artifacts.ImageNameConfigType: imageName,
+				},
+			}
+			currArtifactsCreated = append([]transformertypes.Artifact{dockerfileArtifact}, currArtifactsCreated...)
+		}
+		pathMappings = append(pathMappings, currPathMappings...)
+		artifactsCreated = append(artifactsCreated, currArtifactsCreated...)
 	}
 	return pathMappings, artifactsCreated, nil
 }
