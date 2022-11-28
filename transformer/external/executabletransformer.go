@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/dchest/uniuri"
 	"github.com/konveyor/move2kube/common"
@@ -247,9 +248,8 @@ func (t *Executable) configIO(
 	cmdToRun := cmd
 	for envKey, value := range kvMap {
 		for index, token := range cmdToRun {
-			if token == dollarPrefix+envKey {
-				cmdToRun[index] = value
-			}
+			regexExp := regexp.MustCompile(`\$` + envKey)
+			cmdToRun[index] = regexExp.ReplaceAllString(token, value)
 		}
 	}
 	envList := []string{}
