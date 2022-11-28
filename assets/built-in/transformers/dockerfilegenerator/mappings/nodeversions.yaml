@@ -4,11 +4,15 @@ metadata:
   name: NodeVersionsMapping
 spec:
   nodeVersions:
-    - version: "v16.16.0"
-      url: "https://nodejs.org/dist/v16.16.0/node-v16.16.0-linux-x64.tar.xz"
-    - version: "v14.20.0"
-      url: "https://nodejs.org/dist/v14.20.0/node-v14.20.0-linux-x64.tar.xz"
-    - version: "v12.22.12"
-      url: "https://nodejs.org/dist/v12.22.12/node-v12.22.12-linux-x64.tar.xz"
-    - version: "v10.24.1"
-      url: "https://nodejs.org/dist/v10.24.1/node-v10.24.1-linux-x64.tar.xz"
+    - version: "v16.17.1"
+      url: "https://nodejs.org/dist/v16.17.1/node-v16.17.1-linux-x64.tar.xz"
+      imageTag: "16.17.1-alpine"
+    - version: "v14.20.1"
+      url: "https://nodejs.org/dist/v14.20.1/node-v14.20.1-linux-x64.tar.xz"
+      imageTag: "14.20.1-alpine"
+    - version: "v12.22.5"
+      url: "https://nodejs.org/dist/v12.22.5/node-v12.22.5-linux-x64.tar.xz"
+      imageTag: "12.22.5-alpine"
+    - version: "v10.24.0"
+      url: "https://nodejs.org/dist/v10.24.0/node-v10.24.0-linux-x64.tar.xz"
+      imageTag: "10.24.0-alpine"

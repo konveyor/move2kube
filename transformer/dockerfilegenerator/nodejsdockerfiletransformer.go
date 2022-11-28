@@ -64,6 +64,8 @@ type NodejsTemplateConfig struct {
 	Port                  int32
 	Build                 bool
 	NodeVersion           string
+	NodeImageTag          string
+	NodeMajorVersion      string
 	NodeVersionProperties map[string]string
 	PackageManager        string
 }
@@ -107,6 +109,7 @@ const (
 	packageJSONFile        = "package.json"
 	versionMappingFilePath = "mappings/nodeversions.yaml"
 	defaultPackageManager  = "npm"
+	imageTagKey            = "imageTag"
 	versionKey             = "version"
 	// NodeVersionsMappingKind defines kind of NodeVersionMappingKind
 	NodeVersionsMappingKind types.Kind = "NodeVersionsMapping"
@@ -134,7 +137,11 @@ func (t *NodejsDockerfileGenerator) Init(tc transformertypes.Transformer, env *e
 	}
 	t.Spec = spec
 	if t.NodejsConfig.DefaultNodejsVersion == "" {
-		t.NodejsConfig.DefaultNodejsVersion = t.Spec.NodeVersions[0][versionKey]
+		if len(t.Spec.NodeVersions) != 0 {
+			if _, ok := t.Spec.NodeVersions[0][versionKey]; ok {
+				t.NodejsConfig.DefaultNodejsVersion = t.Spec.NodeVersions[0][versionKey]
+			}
+		}
 	}
 	logrus.Debugf("Extracted node versions from nodeversion mappings file - %+v", t.Spec)
 	return nil
@@ -249,9 +256,11 @@ func (t *NodejsDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			props = t.Spec.NodeVersions[idx]
 		}
 		nodejsConfig := NodejsTemplateConfig{
-			Build:                 build,
-			Port:                  port,
-			NodeVersion:           nodeVersion,
+			Build:       build,
+			Port:        port,
+			NodeVersion: nodeVersion,
+			// NodeImageTag:          getNodeImageTag(t.Spec.NodeVersions, nodeVersion), // To use this, change the base image in the Dockerfile template to- FROM node:{{ .NodeImageTag }}
+			NodeMajorVersion:      strings.TrimPrefix(semver.Major(nodeVersion), "v"),
 			NodeVersionProperties: props,
 			PackageManager:        packageManager,
 		}
@@ -313,4 +322,28 @@ func LoadNodeVersionMappingsFile(mappingFilePath string) (NodeVersionsMappingSpe
 		})
 	}
 	return mappingFile.Spec, nil
+}
+
+// getNodeImageTag returns the image tag to be used with the node base image in the Dockerfile
+func getNodeImageTag(nodeVersions []map[string]string, selectedNodeVersion string) string {
+	var nodeImageTag string
+	nodeVersionToImageTagMapping := make(map[string]string)
+	for _, nodeVersion := range nodeVersions {
+		if imageTag, ok := nodeVersion[imageTagKey]; ok {
+			nodeVersionToImageTagMapping[nodeVersion[versionKey]] = imageTag
+		}
+	}
+	logrus.Debugf("Extracted node version-image tag mappings are %+v", nodeVersionToImageTagMapping)
+	if imageTag, ok := nodeVersionToImageTagMapping[selectedNodeVersion]; ok {
+		nodeImageTag = imageTag
+		logrus.Debugf("Selected nodeImageTag is - %s", nodeImageTag)
+	}
+	if nodeImageTag == "" {
+		if len(nodeVersions) != 0 {
+			if _, ok := nodeVersions[0][imageTagKey]; ok {
+				nodeImageTag = nodeVersions[0][imageTagKey]
+			}
+		}
+	}
+	return nodeImageTag
 }
