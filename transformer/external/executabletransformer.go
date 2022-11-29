@@ -244,12 +244,17 @@ func (t *Executable) configIO(
 	environmenttypes.Command,
 	[]string,
 ) {
-	const dollarPrefix = "$"
+	bracketRegex := regexp.MustCompile(`[{\(\)}]`)
 	cmdToRun := cmd
 	for envKey, value := range kvMap {
 		for index, token := range cmdToRun {
-			regexExp := regexp.MustCompile(`\$({\()?` + envKey + `(}\))?`)
-			cmdToRun[index] = regexExp.ReplaceAllString(token, value)
+			if bracketRegex.Match([]byte(token)) {
+				regexExp := regexp.MustCompile(`\${` + envKey + `}|\$\(` + envKey + `\)`)
+				cmdToRun[index] = regexExp.ReplaceAllString(token, value)
+			} else {
+				regexExp := regexp.MustCompile(`\$` + envKey)
+				cmdToRun[index] = regexExp.ReplaceAllString(token, value)
+			}
 		}
 	}
 	envList := []string{}
