@@ -79,7 +79,7 @@ type EnvironmentInstance interface {
 	Stat(name string) (fs.FileInfo, error)
 	Download(envpath string) (outpath string, err error)
 	Upload(outpath string) (envpath string, err error)
-	Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error)
+	Exec(cmd environmenttypes.Command, envList []string) (stdout string, stderr string, exitcode int, err error)
 	Destroy() error
 
 	GetSource() string
@@ -163,11 +163,11 @@ func (e *Environment) Reset() error {
 }
 
 // Exec executes an executable within the environment
-func (e *Environment) Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error) {
+func (e *Environment) Exec(cmd environmenttypes.Command, envList []string) (stdout string, stderr string, exitcode int, err error) {
 	if !e.active {
 		return "", "", 0, ErrEnvironmentNotActive
 	}
-	return e.Env.Exec(cmd)
+	return e.Env.Exec(cmd, envList)
 }
 
 // Destroy destroys all artifacts specific to the environment
