@@ -21,6 +21,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/dchest/uniuri"
 	"github.com/konveyor/move2kube/common"
@@ -30,6 +31,14 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	envDelimiter              = "="
+	detectInputPathEnvKey     = "M2K_DETECT_INPUT_PATH"
+	detectOutputPathEnvKey    = "M2K_DETECT_OUTPUT_PATH"
+	transformInputPathEnvKey  = "M2K_TRANSFORM_INPUT_PATH"
+	transformOutputPathEnvKey = "M2K_TRANSFORM_OUTPUT_PATH"
 )
 
 // Executable implements transformer interface and is used to write simple external transformers
@@ -103,6 +112,7 @@ func (t *Executable) DirectoryDetect(dir string) (services map[string][]transfor
 	services, err = t.executeDetect(
 		t.ExecConfig.DirectoryDetectCMD,
 		filepath.Join(containerInputDir, detectInputFile),
+		filepath.Join(detectContainerOutputDir, detectOutputFile),
 	)
 	if err != nil {
 		return services, fmt.Errorf("failed to execute the detect script. Error: %w", err)
@@ -138,7 +148,16 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to upload the transform input into the environment at the path '%s' . Error: %w", transformInputFile, err)
 	}
-	stdout, stderr, exitcode, err := t.Env.Exec(append(t.ExecConfig.TransformCMD, filepath.Join(containerInputDir, transformInputFile)))
+	transformInputPath := filepath.Join(containerInputDir, transformInputFile)
+	transformOutputPath := filepath.Join(transformContainerOutputDir, transformOutputFile)
+	cmdToRun, envList := t.configIO(
+		t.ExecConfig.TransformCMD,
+		map[string]string{
+			transformInputPathEnvKey:  transformInputPath,
+			transformOutputPathEnvKey: transformOutputPath,
+		},
+	)
+	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun, envList)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run the transform.\nstdout: %s\nstderr: %s\nexit code: %d . Error: %w", stdout, stderr, exitcode, err)
 	}
@@ -161,21 +180,33 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	return pathMappings, createdArtifacts, nil
 }
 
-func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (services map[string][]transformertypes.Artifact, err error) {
-	stdout, stderr, exitcode, err := t.Env.Exec(append(cmd, dir))
+func (t *Executable) executeDetect(
+	cmd environmenttypes.Command,
+	inputPath string,
+	outputPath string,
+) (services map[string][]transformertypes.Artifact, err error) {
+	cmdToRun, envList := t.configIO(
+		t.ExecConfig.DirectoryDetectCMD,
+		map[string]string{
+			detectInputPathEnvKey:  inputPath,
+			detectOutputPathEnvKey: outputPath,
+		},
+	)
+	stdout, stderr, exitcode, err := t.Env.Exec(cmdToRun, envList)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute the command in the environment.\nstdout: %s\nstderr: %s\nexit code: %d\nError: %w", stdout, stderr, exitcode, err)
 	} else if exitcode != 0 {
 		return nil, fmt.Errorf("the detect command failed with a non-zero exit code.\nstdout: %s\nstderr: %s\nexit code: %d", stdout, stderr, exitcode)
 	}
-	logrus.Debugf("The detect command for transformer '%s' succeeded in the directory '%s'\nstdout: %s\nstderr: %s", t.Config.Name, dir, stdout, stderr)
-	outputPath, err := t.Env.Env.Download(detectContainerOutputDir)
+	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d",
+		t.Config.Name, inputPath, stdout, stderr, exitcode)
+	outputPathFromContainer, err := t.Env.Env.Download(detectContainerOutputDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to download the json output at path '%s' from the environment. Error: %w", outputPath, err)
+		return nil, fmt.Errorf("failed to download the json output at path '%s' from the environment. Error: %w", outputPathFromContainer, err)
 	}
-	logrus.Debugf("Output detect JSON path: %v", outputPath)
+	logrus.Debugf("Output detect JSON path: %v", outputPathFromContainer)
 	output := map[string][]transformertypes.Artifact{}
-	jsonOutputPath := filepath.Join(outputPath, detectOutputFile)
+	jsonOutputPath := filepath.Join(outputPathFromContainer, detectOutputFile)
 	if err := common.ReadJSON(jsonOutputPath, &output); err != nil {
 		logrus.Warnf("failed in unmarshal the detect output file at path '%s' as json. Trying with config type. Error: %q", jsonOutputPath, err)
 		config := map[string]interface{}{}
@@ -183,8 +214,10 @@ func (t *Executable) executeDetect(cmd environmenttypes.Command, dir string) (se
 			logrus.Warnf("failed in unmarshal the detect output file at path '%s' as config json. Error: %q", jsonOutputPath, err)
 		}
 		trans := transformertypes.Artifact{
-			Paths:   map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {dir}},
-			Configs: map[transformertypes.ConfigType]interface{}{TemplateConfigType: config},
+			Paths: map[transformertypes.PathType][]string{artifacts.ServiceDirPathType: {inputPath}},
+			Configs: map[transformertypes.ConfigType]interface{}{
+				TemplateConfigType: config,
+			},
 		}
 		return map[string][]transformertypes.Artifact{"": {trans}}, nil
 	}
@@ -203,4 +236,30 @@ func (t *Executable) uploadInput(data interface{}, inputFile string) (string, er
 		return "", fmt.Errorf("failed to copy input dir to new container image. Error: %w", err)
 	}
 	return containerInputDir, nil
+}
+
+func (t *Executable) configIO(
+	cmd environmenttypes.Command,
+	kvMap map[string]string) (
+	environmenttypes.Command,
+	[]string,
+) {
+	bracketRegex := regexp.MustCompile(`[{\(\)}]`)
+	cmdToRun := cmd
+	for envKey, value := range kvMap {
+		for index, token := range cmdToRun {
+			if bracketRegex.Match([]byte(token)) {
+				regexExp := regexp.MustCompile(`\${` + envKey + `}|\$\(` + envKey + `\)`)
+				cmdToRun[index] = regexExp.ReplaceAllString(token, value)
+			} else {
+				regexExp := regexp.MustCompile(`\$` + envKey)
+				cmdToRun[index] = regexExp.ReplaceAllString(token, value)
+			}
+		}
+	}
+	envList := []string{}
+	for envKey, value := range kvMap {
+		envList = append(envList, envKey+envDelimiter+value)
+	}
+	return cmdToRun, envList
 }

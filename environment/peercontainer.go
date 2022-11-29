@@ -137,7 +137,7 @@ func (e *PeerContainer) Stat(name string) (fs.FileInfo, error) {
 }
 
 // Exec executes a command in the container
-func (e *PeerContainer) Exec(cmd environmenttypes.Command) (stdout string, stderr string, exitcode int, err error) {
+func (e *PeerContainer) Exec(cmd environmenttypes.Command, envList []string) (stdout string, stderr string, exitcode int, err error) {
 	cengine, err := container.GetContainerEngine(false)
 	if err != nil {
 		return "", "", 0, fmt.Errorf("failed to get the container engine. Error: %w", err)
@@ -148,6 +148,7 @@ func (e *PeerContainer) Exec(cmd environmenttypes.Command) (stdout string, stder
 		port := cast.ToString(e.GRPCQAReceiver.(*net.TCPAddr).Port)
 		envs = append(envs, GRPCEnvName+"="+hostname+":"+port)
 	}
+	envs = append(envs, envList...)
 	return cengine.RunCmdInContainer(e.ContainerInfo.ID, cmd, e.ContainerInfo.WorkingDir, envs)
 }
 
