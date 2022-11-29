@@ -248,7 +248,7 @@ func (t *Executable) configIO(
 	cmdToRun := cmd
 	for envKey, value := range kvMap {
 		for index, token := range cmdToRun {
-			regexExp := regexp.MustCompile(`\$` + envKey)
+			regexExp := regexp.MustCompile(`\$({\()?` + envKey + `(}\))?`)
 			cmdToRun[index] = regexExp.ReplaceAllString(token, value)
 		}
 	}
