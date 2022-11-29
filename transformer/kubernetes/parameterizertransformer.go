@@ -61,36 +61,33 @@ type ParameterizerPathTemplateConfig struct {
 }
 
 // Init Initializes the transformer
-func (t *Parameterizer) Init(tc transformertypes.Transformer, e *environment.Environment) error {
-	t.Config = tc
-	t.Env = e
-	t.ParameterizerConfig = &ParameterizerYamlConfig{}
-	err := common.GetObjFromInterface(t.Config.Spec.Config, t.ParameterizerConfig)
-	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.ParameterizerConfig, err)
-		return err
+func (paramTransformer *Parameterizer) Init(tc transformertypes.Transformer, e *environment.Environment) error {
+	paramTransformer.Config = tc
+	paramTransformer.Env = e
+	paramTransformer.ParameterizerConfig = &ParameterizerYamlConfig{}
+	if err := common.GetObjFromInterface(paramTransformer.Config.Spec.Config, paramTransformer.ParameterizerConfig); err != nil {
+		return fmt.Errorf("failed to load the config %+v into the type %T . Error: %w", paramTransformer.Config.Spec.Config, paramTransformer.ParameterizerConfig, err)
 	}
-	if t.ParameterizerConfig.ProjectName == "" {
-		t.ParameterizerConfig.ProjectName = e.ProjectName
+	if paramTransformer.ParameterizerConfig.ProjectName == "" {
+		paramTransformer.ParameterizerConfig.ProjectName = e.ProjectName
 	}
-	psmap, err := parameterizer.CollectParamsFromPath(t.Env.Context)
+	psmap, err := parameterizer.CollectParamsFromPath(paramTransformer.Env.Context)
 	if err != nil {
-		logrus.Errorf("Error while parsing for params : %s", err)
-		return err
+		return fmt.Errorf("failed to collect parameterizers from the directory at path '%s' . Error: %w", paramTransformer.Env.Context, err)
 	}
 	for _, p := range psmap {
-		t.parameterizers = append(t.parameterizers, p...)
+		paramTransformer.parameterizers = append(paramTransformer.parameterizers, p...)
 	}
 	return nil
 }
 
 // GetConfig returns the transformer config
-func (t *Parameterizer) GetConfig() (transformertypes.Transformer, *environment.Environment) {
-	return t.Config, t.Env
+func (paramTransformer *Parameterizer) GetConfig() (transformertypes.Transformer, *environment.Environment) {
+	return paramTransformer.Config, paramTransformer.Env
 }
 
 // DirectoryDetect runs detect in each subdirectory
-func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.Artifact, err error) {
+func (paramTransformer *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.Artifact, err error) {
 	if len(k8sschema.GetKubernetesObjsInDir(dir)) != 0 {
 		na := transformertypes.Artifact{
 			Paths: map[transformertypes.PathType][]string{
@@ -104,11 +101,14 @@ func (t *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]
 }
 
 // Transform transforms artifacts
-func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
+func (paramTransformer *Parameterizer) Transform(
+	newArtifacts []transformertypes.Artifact,
+	alreadySeenArtifacts []transformertypes.Artifact,
+) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	pathMappings = []transformertypes.PathMapping{}
 	for _, a := range newArtifacts {
 		yamlsPath := a.Paths[artifacts.KubernetesYamlsPathType][0]
-		tempPath, err := os.MkdirTemp(t.Env.TempPath, "*")
+		tempPath, err := os.MkdirTemp(paramTransformer.Env.TempPath, "*")
 		if err != nil {
 			logrus.Errorf("Unable to create temp dir : %s", err)
 		}
@@ -119,8 +119,8 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 		if err != nil {
 			logrus.Debugf("Unable to load config for Transformer into %T : %s", sConfig, err)
 		}
-		projectName, err := common.GetStringFromTemplate(t.ParameterizerConfig.ProjectName,
-			map[string]string{common.ProjectNameTemplatizedStringKey: t.Env.ProjectName,
+		projectName, err := common.GetStringFromTemplate(paramTransformer.ParameterizerConfig.ProjectName,
+			map[string]string{common.ProjectNameTemplatizedStringKey: paramTransformer.Env.ProjectName,
 				common.ArtifactNameTemplatizedStringKey: a.Name,
 				common.ServiceNameTemplatizedStringKey:  sConfig.ServiceName,
 				common.ArtifactTypeTemplatizedStringKey: string(a.Type)})
@@ -135,19 +135,19 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 			ProjectName: projectName,
 			Envs:        []string{},
 		}
-		if len(t.ParameterizerConfig.Envs) > 0 {
-			pt.Envs = t.ParameterizerConfig.Envs
+		if len(paramTransformer.ParameterizerConfig.Envs) > 0 {
+			pt.Envs = paramTransformer.ParameterizerConfig.Envs
 		}
-		if len(t.ParameterizerConfig.HelmPath) == 0 {
+		if len(paramTransformer.ParameterizerConfig.HelmPath) == 0 {
 			pt.Helm = ""
 		}
-		if len(t.ParameterizerConfig.KustomizePath) == 0 {
+		if len(paramTransformer.ParameterizerConfig.KustomizePath) == 0 {
 			pt.Kustomize = ""
 		}
-		if len(t.ParameterizerConfig.OCTemplatePath) == 0 {
+		if len(paramTransformer.ParameterizerConfig.OCTemplatePath) == 0 {
 			pt.OCTemplates = ""
 		}
-		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, pt, t.parameterizers)
+		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, pt, paramTransformer.parameterizers)
 		if err != nil {
 			logrus.Errorf("failed to parameterize the YAML files in the source directory %s and write to output directory %s . Error: %q", yamlsPath, destPath, err)
 			continue
@@ -162,10 +162,10 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 		if serviceFsPaths, ok := a.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
 			serviceFsPath = serviceFsPaths[0]
 		}
-		if len(t.ParameterizerConfig.HelmPath) != 0 {
+		if len(paramTransformer.ParameterizerConfig.HelmPath) != 0 {
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:           transformertypes.PathTemplatePathMappingType,
-				SrcPath:        t.ParameterizerConfig.HelmPath,
+				SrcPath:        paramTransformer.ParameterizerConfig.HelmPath,
 				TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: helmKey, ServiceFsPath: serviceFsPath},
 			})
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
@@ -174,10 +174,10 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 				DestPath: fmt.Sprintf("{{ .%s }}", helmKey),
 			})
 		}
-		if len(t.ParameterizerConfig.KustomizePath) != 0 {
+		if len(paramTransformer.ParameterizerConfig.KustomizePath) != 0 {
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:           transformertypes.PathTemplatePathMappingType,
-				SrcPath:        t.ParameterizerConfig.KustomizePath,
+				SrcPath:        paramTransformer.ParameterizerConfig.KustomizePath,
 				TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: kustomizeKey, ServiceFsPath: serviceFsPath},
 			})
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
@@ -186,10 +186,10 @@ func (t *Parameterizer) Transform(newArtifacts []transformertypes.Artifact, alre
 				DestPath: fmt.Sprintf("{{ .%s }}", kustomizeKey),
 			})
 		}
-		if len(t.ParameterizerConfig.OCTemplatePath) != 0 {
+		if len(paramTransformer.ParameterizerConfig.OCTemplatePath) != 0 {
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:           transformertypes.PathTemplatePathMappingType,
-				SrcPath:        t.ParameterizerConfig.OCTemplatePath,
+				SrcPath:        paramTransformer.ParameterizerConfig.OCTemplatePath,
 				TemplateConfig: ParameterizerPathTemplateConfig{YamlsPath: yamlsPath, PathTemplateName: octKey, ServiceFsPath: serviceFsPath},
 			})
 			pathMappings = append(pathMappings, transformertypes.PathMapping{

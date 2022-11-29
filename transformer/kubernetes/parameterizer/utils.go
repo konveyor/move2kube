@@ -342,6 +342,8 @@ func writeResourceStripQuotesAndAppendToFile(k8sResource k8sschema.K8sResourceT,
 
 // CollectParamsFromPath returns parameterizers found in a directory
 func CollectParamsFromPath(parameterizersDir string) (map[string][]ParameterizerT, error) {
+	logrus.Trace("CollectParamsFromPath start")
+	defer logrus.Trace("CollectParamsFromPath end")
 	yamlPaths, err := common.GetFilesByExt(parameterizersDir, []string{".yaml", ".yml"})
 	if err != nil {
 		return nil, err
