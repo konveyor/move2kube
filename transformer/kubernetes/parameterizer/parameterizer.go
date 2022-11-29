@@ -49,6 +49,8 @@ var (
 
 // Parameterize does the parameterization based on a spec
 func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps []ParameterizerT) ([]string, error) {
+	logrus.Trace("Parameterize start")
+	defer logrus.Trace("Parameterize end")
 	filesWritten := []string{}
 	cleanSrcDir, err := filepath.Abs(srcDir)
 	if err != nil {
@@ -432,7 +434,15 @@ func fillCustomTemplate(templ, kind, apiVersion, metadataName string, matches ma
 // ------------------------------
 // Parameterization
 
-func parameterize(target ParamTargetT, envs []string, k k8sschema.K8sResourceT, ps []ParameterizerT, namedValues map[string]HelmValuesT, namedKustPatches map[string]map[string]PatchT, namedOCParams map[string]map[string]string) error {
+func parameterize(
+	target ParamTargetT,
+	envs []string,
+	k k8sschema.K8sResourceT,
+	ps []ParameterizerT,
+	namedValues map[string]HelmValuesT,
+	namedKustPatches map[string]map[string]PatchT,
+	namedOCParams map[string]map[string]string,
+) error {
 	for _, p := range ps {
 		ok, err := parameterizeFilter(envs, k, p)
 		if err != nil {
@@ -521,21 +531,27 @@ func parameterizeFilter(envs []string, k k8sschema.K8sResourceT, p Parameterizer
 	return false, nil
 }
 
-func parameterizeHelperHelm(envs []string, k k8sschema.K8sResourceT, p ParameterizerT, namedValues map[string]HelmValuesT, namedKustPatches map[string]map[string]PatchT, namedOCParams map[string]map[string]string) error {
-	logrus.Trace("start parameterizeHelperHelm")
-	defer logrus.Trace("end parameterizeHelperHelm")
-
+func parameterizeHelperHelm(
+	envs []string,
+	k k8sschema.K8sResourceT,
+	p ParameterizerT,
+	namedValues map[string]HelmValuesT,
+	namedKustPatches map[string]map[string]PatchT,
+	namedOCParams map[string]map[string]string,
+) error {
 	if len(p.Target) == 0 {
 		return fmt.Errorf("the target is empty")
 	}
+
 	kind, apiVersion, metadataName, err := k8sschema.GetInfoFromK8sResource(k)
 	if err != nil {
 		return fmt.Errorf("failed to get the kind, apiVersion, and name from the k8s resource: %+v\nError: %q", k, err)
 	}
 	resultKVs, err := GetAll(p.Target, k)
 	if err != nil {
-		return fmt.Errorf("the key %s does not exist on the k8s resource: %+v Error: %q", p.Target, k, err)
+		return fmt.Errorf("the key '%s' does not exist on the k8s resource: %+v Error: %w", p.Target, k, err)
 	}
+
 	for _, resultKV := range resultKVs {
 		t1 := []string{}
 		for _, k := range resultKV.Key {
@@ -546,12 +562,16 @@ func parameterizeHelperHelm(envs []string, k k8sschema.K8sResourceT, p Parameter
 		if templ == "" {
 			templ = fmt.Sprintf(`${"%s"."%s"."%s".%s}`, kind, apiVersion, metadataName, key)
 		}
+
 		parameters, err := getParameters(templ)
 		if err != nil {
-			return fmt.Errorf("failed to get the parameters from the template: %s\nError: %q", templ, err)
+			return fmt.Errorf("failed to get the parameters from the template: '%s' Error: %w", templ, err)
 		}
 		paramValue := p.Default
 		if paramValue == nil {
+			paramValue = resultKV.Value
+		}
+		if p.KeepOriginalValueIfPresent && resultKV.Value != nil {
 			paramValue = resultKV.Value
 		}
 		if p.Question != nil {
@@ -582,6 +602,7 @@ func parameterizeHelperHelm(envs []string, k k8sschema.K8sResourceT, p Parameter
 			}
 			p.Question.Desc = origQuesDesc
 		}
+
 		if len(parameters) == 1 {
 			parameter := parameters[0]
 			subKeys := GetSubKeys(parameter)
@@ -649,6 +670,7 @@ func parameterizeHelperHelm(envs []string, k k8sschema.K8sResourceT, p Parameter
 			}
 			return nil
 		}
+
 		// multiple parameters only make sense when the original value is a string
 		originalValueStr, ok := resultKV.Value.(string)
 		if !ok {
@@ -670,6 +692,7 @@ Actual value is %+v of type %T`,
 		if err != nil {
 			return fmt.Errorf("failed to parse the multi parameter template: %s\nError: %q", templ, err)
 		}
+
 		helmTemplates := []string{}
 		paramKeys := []string{}
 		for _, parameter := range parameters {
@@ -729,9 +752,11 @@ Actual value is %+v of type %T`,
 			fullHelmTemplate += currHelmTemplate
 			helmTemplateIdx++
 		}
+
 		if err := set(key, fullHelmTemplate, k); err != nil {
 			return fmt.Errorf("failed to set the key %s to the value %s in the k8s resource: %+v\nError: %q", key, fullHelmTemplate, k, err)
 		}
+
 		// set all the keys in the values.yaml
 		for i, parameter := range parameters {
 			paramKey := paramKeys[i]
@@ -791,6 +816,9 @@ func parameterizeHelperKustomize(envs []string, k k8sschema.K8sResourceT, p Para
 		JSONPointer := subKeysToJSONPointer6901(resultKV.Key)
 		paramValue := p.Default
 		if paramValue == nil {
+			paramValue = resultKV.Value
+		}
+		if p.KeepOriginalValueIfPresent && resultKV.Value != nil {
 			paramValue = resultKV.Value
 		}
 		if p.Question != nil {
@@ -879,6 +907,9 @@ func parameterizeHelperOCTemplates(envs []string, k k8sschema.K8sResourceT, p Pa
 		}
 		paramValue := p.Default
 		if paramValue == nil {
+			paramValue = resultKV.Value
+		}
+		if p.KeepOriginalValueIfPresent && resultKV.Value != nil {
 			paramValue = resultKV.Value
 		}
 		if p.Question != nil {

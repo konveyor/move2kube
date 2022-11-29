@@ -54,13 +54,14 @@ type ParameterizerSpecT struct {
 
 // ParameterizerT is a paramterizer
 type ParameterizerT struct {
-	Target     string            `yaml:"target" json:"target"`
-	Template   string            `yaml:"template,omitempty" json:"template,omitempty"`
-	Regex      string            `yaml:"regex,omitempty" json:"regex,omitempty"`
-	Default    interface{}       `yaml:"default,omitempty" json:"default,omitempty"`
-	Question   *qaengine.Problem `yaml:"question,omitempty" json:"question,omitempty"`
-	Filters    []FilterT         `yaml:"filters,omitempty" json:"filters,omitempty"`
-	Parameters []ParameterT      `yaml:"parameters,omitempty" json:"parameters,omitempty"`
+	Target                     string            `yaml:"target" json:"target"`
+	Template                   string            `yaml:"template,omitempty" json:"template,omitempty"`
+	Regex                      string            `yaml:"regex,omitempty" json:"regex,omitempty"`
+	KeepOriginalValueIfPresent bool              `yaml:"keepOriginalValueIfPresent,omitempty" json:"keepOriginalValueIfPresent,omitempty"`
+	Default                    interface{}       `yaml:"default,omitempty" json:"default,omitempty"`
+	Question                   *qaengine.Problem `yaml:"question,omitempty" json:"question,omitempty"`
+	Filters                    []FilterT         `yaml:"filters,omitempty" json:"filters,omitempty"`
+	Parameters                 []ParameterT      `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 
 // FilterT is used to choose the k8s resources that the parameterizer should be applied on

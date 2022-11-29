@@ -6,6 +6,7 @@ spec:
   parameterizers:
     - target: "spec.replicas"
       template: "${common.replicas}"
+      keepOriginalValueIfPresent: true
       default: 2
       filters:
         - kind: Deployment
