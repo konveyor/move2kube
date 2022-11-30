@@ -358,7 +358,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 				IncludeBuildStage:  selectedBuildOption == dotnetutils.BUILD_IN_EVERY_IMAGE,
 				IncludeRunStage:    true,
 				BuildContainerName: imageToCopyFrom,
-				CopyFrom:           copyFrom,
+				CopyFrom:           common.GetUnixPath(copyFrom),
 				RunStageImageTag:   t.getImageTagFromVersion(targetFrameworkVersion),
 			}
 
