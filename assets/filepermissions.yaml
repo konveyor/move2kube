@@ -89,7 +89,9 @@
 "built-in/transformers/kubernetes/operator/templates/subscription.yaml" : 0644
 "built-in/transformers/kubernetes/operator/transformer.yaml" : 0644
 "built-in/transformers/kubernetes/operatorsfromtca/Dockerfile" : 0644
+"built-in/transformers/kubernetes/operatorsfromtca/cfservices.yaml" : 0644
 "built-in/transformers/kubernetes/operatorsfromtca/detect.py" : 0644
+"built-in/transformers/kubernetes/operatorsfromtca/preprocess.py" : 0644
 "built-in/transformers/kubernetes/operatorsfromtca/transform.py" : 0644
 "built-in/transformers/kubernetes/operatorsfromtca/transformer.yaml" : 0644
 "built-in/transformers/kubernetes/parameterizer/parameterizers/replicas.yaml" : 0644
