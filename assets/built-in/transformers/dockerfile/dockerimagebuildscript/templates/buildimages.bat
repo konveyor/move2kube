@@ -27,10 +27,11 @@ if not %basename% == "scripts" (
 @echo off
 IF "%1"=="" GOTO DEFAULT_CONTAINER_RUNTIME
 SET CONTAINER_RUNTIME=%1%
-GOTO :MAIN
+GOTO MAIN
 
 :DEFAULT_CONTAINER_RUNTIME
     SET CONTAINER_RUNTIME=docker
+    GOTO MAIN
 
 :UNSUPPORTED_BUILD_SYSTEM
     echo 'Unsupported build system passed as an argument for pushing the images.'
