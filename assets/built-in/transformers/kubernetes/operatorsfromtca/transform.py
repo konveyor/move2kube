@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#   Copyright IBM Corporation 2021
+#   Copyright IBM Corporation 2022
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -13,94 +13,146 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 
-import sys
 import os
 import json
 import yaml
 import requests
+from preprocess import process_cf_services
+from pathlib import Path
+
+catalogue = {}
 
 
-def get_svc_name_and_desc(service):
-    del service["guid"]
-    del service["active"]
-    del service["bindable"]
-    del service["extra"]
-    del service["planupdateable"]
-    del service["updatedat"]
-    del service["createdat"]
-    del service["instancesretrievable"]
-    del service["bindingsretrievable"]
-    del service["servicebrokerguid"]
-    # print(service)
-    # svcstr = ""
-    # for k, v in service.items():
-    # svcstr += f"{k}: {v}, "
-    svcstr = json.dumps(service)
-    svcname = service["label"] if "label" in service else "string"
-    return svcname, svcstr
+def init_catalogue(cf_services_path="cfservices.yaml", catalogue_path="catalogue.yaml"):
+    global catalogue
+    if len(catalogue) != 0:
+        print("the catalogue has already been initialized")
+        return
+    process_cf_services(cf_services_path, catalogue_path)
+    with open(catalogue_path) as catalogue_file:
+        catalogue = yaml.safe_load(catalogue_file)
+    print("catalogue ------>", catalogue)
 
 
-# Performs the detection of pom file and extracts service name
-def transform(artifactsPath):
-    pathMappings = []
-    artifacts = []
-    with open(artifactsPath) as f:
-        artifactsData = json.load(f)
-        # print("artifactsData:", artifactsData)
-        newArtifacts = artifactsData["newArtifacts"]
-        print("Number of new artifacts: " + str(len(newArtifacts)))
-        for artifact in newArtifacts:
-            print("checking artifact", artifact, "to see if it is CollectOutput")
-            if artifact["type"] != "CollectOutput":
-                continue
-            collectOutputPaths = artifact["paths"]["CollectOutput"]
-            if len(collectOutputPaths) == 0:
-                print("the artifact has no collect output paths")
-                continue
-            collectOutputPath = collectOutputPaths[0]
+def find_cf_services(newArtifacts):
+    global catalogue
+    print("trying to find a cf services file among the collected artifacts")
+    for artifact in newArtifacts:
+        print("checking the artifact", artifact, "to see if it is CollectOutput")
+        if artifact["type"] != "CollectOutput":
+            continue
+        if "paths" not in artifact:
+            continue
+        if "CollectOutput" not in artifact["paths"]:
+            continue
+        for collectOutputPath in artifact["paths"]["CollectOutput"]:
             print(
                 "parsing the file",
                 collectOutputPath,
                 "as a Move2Kube collect output YAML file",
             )
-            with open(collectOutputPath) as collectOutputFile:
-                collectOutput = yaml.safe_load(collectOutputFile)
-                cloudFoundryServices = collectOutput["spec"]["services"]
-                for cfService in cloudFoundryServices:
-                    # print('cfService:', cfService)
-                    cfServiceName, cfServiceStr = get_svc_name_and_desc(cfService)
+            with open(collectOutputPath) as f:
+                collectOutput = yaml.safe_load(f)
+            if collectOutput["kind"] != "CfServices":
+                print(f"not a CfServices file. Actual kind is: {collectOutput['kind']}")
+                continue
+            print(
+                f'initializing the catalogue using the CfServices file at path "{collectOutputPath}"'
+            )
+            init_catalogue(cf_services_path=collectOutputPath)
+
+
+# Performs the detection of pom file and extracts service name
+def transform(newArtifacts):
+    global catalogue
+    pathMappings = []
+    artifacts = []
+
+    # print("artifactsData:", artifactsData)
+    print("Number of new artifacts: " + str(len(newArtifacts)))
+
+    find_cf_services(newArtifacts)
+    init_catalogue()
+
+    for artifact in newArtifacts:
+        print("checking the artifact", artifact, "to see if it is CollectOutput")
+        if artifact["type"] != "CollectOutput":
+            continue
+        if "paths" not in artifact:
+            continue
+        if "CollectOutput" not in artifact["paths"]:
+            continue
+        for collectOutputPath in artifact["paths"]["CollectOutput"]:
+            print(
+                "parsing the file",
+                collectOutputPath,
+                "as a Move2Kube collect output YAML file",
+            )
+            with open(collectOutputPath) as f:
+                collectOutput = yaml.safe_load(f)
+            if collectOutput["kind"] != "CfApps":
+                print(f"not a CfApps file. Actual kind is: {collectOutput['kind']}")
+                continue
+            print(f'found a CfApps file at path "{collectOutputPath}"')
+            if "spec" not in collectOutput:
+                continue
+            if "applications" not in collectOutput["spec"]:
+                continue
+            for cloudFoundryApp in collectOutput["spec"]["applications"]:
+                try:
+                    vcapServiceJSON = cloudFoundryApp["environment"]["systemenv"][
+                        "VCAP_SERVICES"
+                    ]
+                    vcapServices = json.loads(vcapServiceJSON)
+                except:
                     print(
-                        "cfServiceName:", cfServiceName, "cfServiceStr:", cfServiceStr
+                        'failed to find and parse "environment.systemenv.VCAP_SERVICES" in this app, skipping'
                     )
-                    print("standardize with TCA")
-                    t1 = requests.post(
-                        "http://localhost:8000/standardize",
-                        json=[
-                            {
-                                "application_name": cfServiceName,  # 'App1',
-                                "application_description": cfServiceStr,  # 'App1: rhel, db2, java, tomcat',
-                                "technology_summary": cfServiceStr,  # 'App1: rhel, db2, java, tomcat'
-                            }
-                        ],
-                    ).json()
-                    print(t1)
-                    print("containerize with TCA")
-                    t2 = requests.post(
-                        "http://localhost:8000/containerize",
-                        json=t1["standardized_apps"],
-                    ).json()
-                    print(t2)
-                    # artifactName = cfService['label'] if 'label' in cfService else '<unnamed-cf-service>'
+                    continue
+                for vcapServiceName in vcapServices:
+                    if vcapServiceName not in catalogue:
+                        print(
+                            f'failed to find the cf vcap service "{vcapServiceName}" in the catalogue'
+                        )
+                        continue
+                    vcapService = catalogue[vcapServiceName]
+                    vcapServiceStr = yaml.dump(vcapService)
+                    cfServiceName, cfServiceStr = vcapServiceName, vcapServiceStr
+                    print(
+                        "cfServiceName:",
+                        cfServiceName,
+                        "cfServiceStr:",
+                        cfServiceStr,
+                    )
                     try:
+                        print("standardize with TCA")
+                        t1 = requests.post(
+                            "http://localhost:8000/standardize",
+                            json=[
+                                {
+                                    "application_name": cfServiceName,  # 'App1',
+                                    "application_description": cfServiceStr,  # 'App1: rhel, db2, java, tomcat',
+                                    "technology_summary": cfServiceStr,  # 'App1: rhel, db2, java, tomcat'
+                                }
+                            ],
+                        ).json()
+                        print(t1)
+                        print("containerize with TCA")
+                        t2 = requests.post(
+                            "http://localhost:8000/containerize",
+                            json=t1["standardized_apps"],
+                        ).json()
+                        print(t2)
+                        # artifactName = cfService['label'] if 'label' in cfService else '<unnamed-cf-service>'
                         t3 = t2["containerization"][0]["Ref Dockers"]
+                        print(t3)
+                        print("-" * 50)
                     except Exception as e:
                         print(
-                            "failed to get the containerization from the response. Error:",
+                            "failed to standardize and containerize. Error:",
                             e,
                         )
                         continue
-                    print(t3)
-                    print("-" * 50)
                     operators = {}
                     for op in t3:
                         op_name = op["name"]
@@ -121,19 +173,22 @@ def transform(artifactsPath):
                             },
                         },
                     }
-                    print("new_art:", new_artifact)
+                    print("new artifact:", new_artifact)
                     artifacts.append(new_artifact)
-                # services[filePath] = [{"type": "CollectOutput", "paths": {"ServiceDirectories": [rootDir]} }]
     return {"pathMappings": pathMappings, "artifacts": artifacts}
 
 
 # Entry-point of transform script
 def main():
-    services = transform(sys.argv[1])
-    outDir = "/var/tmp/m2k_transform_output"
-    os.makedirs(outDir, exist_ok=True)
-    with open(os.path.join(outDir, "m2k_transform_output.json"), "w+") as f:
-        json.dump(services, f)
+    input_path = os.environ["M2K_TRANSFORM_INPUT_PATH"]
+    with open(input_path) as f:
+        artifactsData = json.load(f)
+    output = transform(artifactsData["newArtifacts"])
+    output_path = os.environ["M2K_TRANSFORM_OUTPUT_PATH"]
+    output_dir = Path(output_path).parent.absolute()
+    os.makedirs(output_dir, mode=0o777, exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(output, f)
 
 
 if __name__ == "__main__":
