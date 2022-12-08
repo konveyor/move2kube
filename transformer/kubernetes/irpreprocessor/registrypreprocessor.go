@@ -116,8 +116,6 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 
 	imagePullSecrets := map[string]string{} // registry url -> pull secret name
 	registryNamespace := commonqa.ImageRegistryNamespace()
-	useExistingPullSecret := false
-	createPullSecret := false
 	for _, registry := range usedRegistries {
 		if _, ok := imagePullSecrets[registry]; !ok {
 			imagePullSecrets[registry] = common.NormalizeForMetadataName(strings.ReplaceAll(registry, ".", "-") + imagePullSecretSuffix)
@@ -137,11 +135,12 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		desc := fmt.Sprintf("[%s] What type of container registry login do you want to use?", registry)
 		hints := []string{"Docker login from config mode, will use the default config from your local machine."}
 		auth := qaengine.FetchSelectAnswer(quesKey, desc, hints, string(defaultOption), authOptions, nil)
+		createPullSecret := false
 		switch registryLoginOption(auth) {
 		case noLogin:
 			regAuth.Auth = ""
+			delete(imagePullSecrets, registry)
 		case existingPullSecretLogin:
-			useExistingPullSecret = true
 			qaKey := fmt.Sprintf(common.ConfigImageRegistryPullSecretKey, `"`+registry+`"`)
 			ps := qaengine.FetchStringAnswer(qaKey, fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "", nil)
 			imagePullSecrets[registry] = ps
@@ -202,9 +201,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 				}
 			}
 			if !found {
-				if useExistingPullSecret || createPullSecret {
-					service.ImagePullSecrets = append(service.ImagePullSecrets, core.LocalObjectReference{Name: pullSecretName})
-				}
+				service.ImagePullSecrets = append(service.ImagePullSecrets, core.LocalObjectReference{Name: pullSecretName})
 			}
 		}
 		ir.Services[serviceName] = service
