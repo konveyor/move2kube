@@ -135,6 +135,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		desc := fmt.Sprintf("[%s] What type of container registry login do you want to use?", registry)
 		hints := []string{"Docker login from config mode, will use the default config from your local machine."}
 		auth := qaengine.FetchSelectAnswer(quesKey, desc, hints, string(defaultOption), authOptions, nil)
+		createPullSecret := false
 		switch registryLoginOption(auth) {
 		case noLogin:
 			regAuth.Auth = ""
@@ -143,14 +144,16 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 			ps := qaengine.FetchStringAnswer(qaKey, fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "", nil)
 			imagePullSecrets[registry] = ps
 		case usernamePasswordLogin:
+			createPullSecret = true
 			qaUsernameKey := fmt.Sprintf(common.ConfigImageRegistryUserNameKey, `"`+registry+`"`)
 			regAuth.Username = qaengine.FetchStringAnswer(qaUsernameKey, fmt.Sprintf("[%s] Enter the username to login into the registry : ", registry), nil, "iamapikey", nil)
 			qaPasswordKey := fmt.Sprintf(common.ConfigImageRegistryPasswordKey, `"`+registry+`"`)
 			regAuth.Password = qaengine.FetchPasswordAnswer(qaPasswordKey, fmt.Sprintf("[%s] Enter the password to login into the registry : ", registry), nil, nil)
 		case dockerConfigLogin:
+			createPullSecret = true
 			logrus.Debugf("using the credentials from the docker config.json file")
 		}
-		if regAuth != (dockerclitypes.AuthConfig{}) {
+		if createPullSecret {
 
 			// create a valid docker config.json file using the credentials
 
