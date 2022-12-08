@@ -116,6 +116,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 
 	imagePullSecrets := map[string]string{} // registry url -> pull secret name
 	registryNamespace := commonqa.ImageRegistryNamespace()
+	useExistingPullSecret := false
 	for _, registry := range usedRegistries {
 		if _, ok := imagePullSecrets[registry]; !ok {
 			imagePullSecrets[registry] = common.NormalizeForMetadataName(strings.ReplaceAll(registry, ".", "-") + imagePullSecretSuffix)
@@ -140,6 +141,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		case noLogin:
 			regAuth.Auth = ""
 		case existingPullSecretLogin:
+			useExistingPullSecret = true
 			qaKey := fmt.Sprintf(common.ConfigImageRegistryPullSecretKey, `"`+registry+`"`)
 			ps := qaengine.FetchStringAnswer(qaKey, fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "", nil)
 			imagePullSecrets[registry] = ps
@@ -200,7 +202,9 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 				}
 			}
 			if !found {
-				service.ImagePullSecrets = append(service.ImagePullSecrets, core.LocalObjectReference{Name: pullSecretName})
+				if useExistingPullSecret {
+					service.ImagePullSecrets = append(service.ImagePullSecrets, core.LocalObjectReference{Name: pullSecretName})
+				}
 			}
 		}
 		ir.Services[serviceName] = service
