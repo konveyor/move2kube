@@ -55,26 +55,31 @@ func checkSourcePath(srcpath string) {
 func checkOutputPath(outpath string, overwrite bool) {
 	fi, err := os.Stat(outpath)
 	if os.IsNotExist(err) {
-		logrus.Debugf("Transformed artifacts will be written to %s", outpath)
+		logrus.Debugf("Transformed artifacts will be written to a directory at path '%s'", outpath)
 		return
 	}
 	if err != nil {
-		logrus.Fatalf("Error while accessing output directory at path %s Error: %q . Exiting", outpath, err)
+		logrus.Fatalf("Error while accessing output directory at path '%s' Error: %q . Exiting", outpath, err)
 	}
 	if !overwrite {
-		logrus.Fatalf("Output directory %s exists. Exiting", outpath)
+		logrus.Fatalf(`The output directory '%s' already exists.
+Please either:
+- remove the output directory
+- specify the '--%s' flag to overwrite the output directory
+- use the '--%s' flag to specify a different output directory
+Exiting.`, outpath, overwriteFlag, outputFlag)
 	}
 	if !fi.IsDir() {
-		logrus.Fatalf("Output path %s is a file. Expected a directory. Exiting", outpath)
+		logrus.Fatalf("Output path '%s' is a file. Expected a directory. Exiting", outpath)
 	}
 	pwd, err := os.Getwd()
 	if err != nil {
 		logrus.Fatalf("Failed to get the current working directory. Error: %q", err)
 	}
 	if common.IsParent(pwd, outpath) {
-		logrus.Fatalf("The given output directory %s is a parent of the current working directory.", outpath)
+		logrus.Fatalf("The given output directory '%s' is a parent of the current working directory.", outpath)
 	}
-	logrus.Infof("Output directory %s exists. The contents might get overwritten.", outpath)
+	logrus.Infof("Output directory '%s' exists. The contents might get overwritten.", outpath)
 }
 
 func startQA(flags qaflags) {
