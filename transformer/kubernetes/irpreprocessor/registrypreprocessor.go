@@ -139,6 +139,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		switch registryLoginOption(auth) {
 		case noLogin:
 			regAuth.Auth = ""
+			delete(imagePullSecrets, registry)
 		case existingPullSecretLogin:
 			qaKey := fmt.Sprintf(common.ConfigImageRegistryPullSecretKey, `"`+registry+`"`)
 			ps := qaengine.FetchStringAnswer(qaKey, fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "", nil)
