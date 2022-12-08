@@ -17,6 +17,7 @@
 :: 1) buildimages.bat
 :: 2) buildimages.bat podman
 
+@echo off
 for /F "delims=" %%i in ("%cd%") do set basename="%%~ni"
 
 if not %basename% == "scripts" (
@@ -24,21 +25,27 @@ if not %basename% == "scripts" (
     exit 1
 )
 
-@echo off
 IF "%1"=="" GOTO DEFAULT_CONTAINER_RUNTIME
 SET CONTAINER_RUNTIME=%1%
-GOTO MAIN
+GOTO DOCKER_CONTAINER_RUNTIME
 
 :DEFAULT_CONTAINER_RUNTIME
     SET CONTAINER_RUNTIME=docker
-    GOTO MAIN
+	GOTO MAIN
+
+:DOCKER_CONTAINER_RUNTIME
+	IF NOT "%CONTAINER_RUNTIME%" == "docker" GOTO PODMAN_CONTAINER_RUNTIME
+	GOTO MAIN
+
+:PODMAN_CONTAINER_RUNTIME
+	IF NOT "%CONTAINER_RUNTIME%" == "podman" GOTO UNSUPPORTED_BUILD_SYSTEM
+	GOTO MAIN
 
 :UNSUPPORTED_BUILD_SYSTEM
     echo 'Unsupported build system passed as an argument for pushing the images.'
     GOTO SKIP
 
 :MAIN
-IF NOT %CONTAINER_RUNTIME% == "docker" IF NOT %CONTAINER_RUNTIME% == "podman" GOTO UNSUPPORTED_BUILD_SYSTEM
 REM go to the parent directory so that all the relative paths will be correct
 cd {{ .RelParentOfSourceDir }}
 
