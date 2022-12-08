@@ -18,6 +18,7 @@
 :: 2) buildandpush_multiarchimages.bat index.docker.io your_registry_namespace
 :: 3) buildandpush_multiarchimages.bat quay.io your_quay_username linux/amd64,linux/arm64,linux/s390x
 
+@echo off
 for /F "delims=" %%i in ("%cd%") do set basename="%%~ni"
 
 if not %basename% == "scripts" (
@@ -28,24 +29,25 @@ if not %basename% == "scripts" (
 REM go to the parent directory so that all the relative paths will be correct
 cd {{ .RelParentOfSourceDir }}
 
-@echo off
 IF "%3"=="" GOTO DEFAULT_PLATFORMS
 SET PLATFORMS=%3%
-GOTO :REGISTRY
+GOTO REGISTRY
 
 :DEFAULT_PLATFORMS
     SET PLATFORMS=linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+	GOTO REGISTRY
 
 :REGISTRY
     IF "%2"=="" GOTO DEFAULT_REGISTRY
     IF "%1"=="" GOTO DEFAULT_REGISTRY
     SET REGISTRY_URL=%1
     SET REGISTRY_NAMESPACE=%2
-    GOTO :MAIN
+    GOTO MAIN
 
 :DEFAULT_REGISTRY
     SET REGISTRY_URL={{ .RegistryURL }}
     SET REGISTRY_NAMESPACE={{ .RegistryNamespace }}
+	GOTO MAIN
 
 :MAIN
 :: Uncomment the below line if you want to enable login before pushing
