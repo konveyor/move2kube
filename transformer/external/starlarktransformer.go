@@ -101,70 +101,60 @@ func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Enviro
 	t.StarConfig = &StarYamlConfig{}
 	err = common.GetObjFromInterface(t.Config.Spec.Config, t.StarConfig)
 	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.StarConfig, err)
-		return err
+		return fmt.Errorf("failed to load config for Transformer %+v into %T . Error: %w", t.Config.Spec.Config, t.StarConfig, err)
 	}
 	t.StarThread = &starlark.Thread{Name: tc.Name}
 	t.setDefaultGlobals()
 	tcmapobj, err := common.GetMapInterfaceFromObj(tc)
 	if err != nil {
-		logrus.Errorf("Unable to convert transformer config to map[string]interface{}")
-		return err
+		return fmt.Errorf("failed to convert transformer config to map[string]interface{}. Error: %w", err)
 	}
 	t.StarGlobals[env.ProjectName], err = starutil.Marshal(env.ProjectName)
 	if err != nil {
-		logrus.Errorf("Unable to load transformer config : %s", err)
-		return err
+		return fmt.Errorf("failed to load transformer config. Error: %w", err)
 	}
 	t.StarGlobals[transformerConfigVarName], err = starutil.Marshal(tcmapobj)
 	if err != nil {
-		logrus.Errorf("Unable to load transformer config : %s", err)
-		return err
+		return fmt.Errorf("failed to load transformer config. Error: %w", err)
 	}
 	t.StarGlobals[contextDirVarName], err = starutil.Marshal(env.GetEnvironmentContext())
 	if err != nil {
-		logrus.Errorf("Unable to load context : %s", err)
-		return err
+		return fmt.Errorf("failed to load context. Error: %w", err)
 	}
 	t.StarGlobals[sourceDirVarName], err = starutil.Marshal(env.GetEnvironmentSource())
 	if err != nil {
-		logrus.Errorf("Unable to load source : %s", err)
-		return err
+		return fmt.Errorf("failed to load source. Error: %w", err)
 	}
 	t.StarGlobals[outputDirVarName], err = starutil.Marshal(env.GetEnvironmentOutput())
 	if err != nil {
-		logrus.Errorf("Unable to load output : %s", err)
-		return err
+		return fmt.Errorf("failed to load output. Error: %w", err)
 	}
 	t.StarGlobals[tempDirVarName], err = starutil.Marshal(env.TempPath)
 	if err != nil {
-		logrus.Errorf("Unable to load temp path : %s", err)
-		return err
+		return fmt.Errorf("failed to load temp path. Error: %w", err)
 	}
 	t.StarGlobals[templatesRelDirVarName], err = starutil.Marshal(env.RelTemplatesDir)
 	if err != nil {
-		logrus.Errorf("Unable to load source : %s", err)
-		return err
+		return fmt.Errorf("failed to load source. Error: %w", err)
 	}
 	t.StarGlobals[resourcesDirVarName], err = starutil.Marshal(filepath.Join(env.GetEnvironmentContext(), "resources"))
 	if err != nil {
-		logrus.Errorf("Unable to load source : %s", err)
-		return err
+		return fmt.Errorf("failed to load source. Error: %w", err)
 	}
-	t.StarGlobals, err = starlark.ExecFile(t.StarThread, filepath.Join(t.Env.GetEnvironmentContext(), t.StarConfig.StarFile), nil, t.StarGlobals)
+	starlarkFilePath := filepath.Join(t.Env.GetEnvironmentContext(), t.StarConfig.StarFile)
+	t.StarGlobals, err = starlark.ExecFile(t.StarThread, starlarkFilePath, nil, t.StarGlobals)
 	if err != nil {
 		if t.StarConfig.StarFile == "" {
-			logrus.Error("no starlark file specified")
+			err = fmt.Errorf("no starlark file specified. Error: %w", err)
 		} else {
-			logrus.Errorf("Unable to load starlark file %s : %s", filepath.Join(t.Env.GetEnvironmentContext(), t.StarConfig.StarFile), err)
+			err = fmt.Errorf("failed to load starlark file at the path '%s' . Error: %w", starlarkFilePath, err)
 		}
 		return err
 	}
-	err = t.loadFunctions()
-	if err != nil {
-		logrus.Errorf("Unable to load required functions : %s", err)
+	if err := t.loadFunctions(); err != nil {
+		return fmt.Errorf("failed to load the required functions. Error: %w", err)
 	}
-	return err
+	return nil
 }
 
 // GetConfig returns the transformer config
@@ -178,43 +168,39 @@ func (t *Starlark) DirectoryDetect(dir string) (services map[string][]transforme
 }
 
 // Transform transforms the artifacts
-func (t *Starlark) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
+func (t *Starlark) Transform(
+	newArtifacts []transformertypes.Artifact,
+	alreadySeenArtifacts []transformertypes.Artifact,
+) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	naObj, err := common.GetMapInterfaceFromObj(newArtifacts)
 	if err != nil {
-		logrus.Errorf("Unable to convert new artifacts to map[string]interface{}")
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to convert new artifacts to map[string]interface{} . Error: %w", err)
 	}
 	starNewArtifacts, err := starutil.Marshal(naObj)
 	if err != nil {
-		logrus.Errorf("Unable to convert %s to starlark value : %s", newArtifacts, err)
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to marshal the new artifacts %+v to starlark value. Error: %w", newArtifacts, err)
 	}
 	oaObj, err := common.GetMapInterfaceFromObj(alreadySeenArtifacts)
 	if err != nil {
-		logrus.Errorf("Unable to convert new artifacts to map[string]interface{}")
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to convert new artifacts to map[string]interface{} . Error: %w", err)
 	}
 	starOldArtifacts, err := starutil.Marshal(oaObj)
 	if err != nil {
-		logrus.Errorf("Unable to convert %s to starlark value : %s", alreadySeenArtifacts, err)
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to marshal already seen artifacts %+v to starlark value. Error: %w", alreadySeenArtifacts, err)
 	}
 	val, err := starlark.Call(t.StarThread, t.transformFn, starlark.Tuple{starNewArtifacts, starOldArtifacts}, nil)
 	if err != nil {
-		logrus.Errorf("failed to call the starlark function: %s Error: %q", t.transformFn.String(), err)
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to call the starlark function '%s' . Error: %w", t.transformFn.String(), err)
 	}
 	valI, err := starutil.Unmarshal(val)
 	if err != nil {
-		logrus.Errorf("Unable to unmarshal starlark function result : %s", err)
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to unmarshal the starlark value back to Golang value. Error: %w", err)
 	}
 	transformOutput := transformertypes.TransformOutput{}
-	err = common.GetObjFromInterface(valI, &transformOutput)
-	if err != nil {
-		logrus.Errorf("unable to load result for Transformer %+v into %T : %s", valI, transformOutput, err)
-		return nil, nil, err
+	if err := common.GetObjFromInterface(valI, &transformOutput); err != nil {
+		return nil, nil, fmt.Errorf("failed to convert the object of type %T and value %+v into the struct %T . Error: %w", valI, valI, transformOutput, err)
 	}
+
 	return transformOutput.PathMappings, transformOutput.CreatedArtifacts, nil
 }
 
@@ -258,10 +244,8 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 			return starlark.None, fmt.Errorf("failed to unmarshal the argument provided to '%s'. Expected a single dict argument. Error: %q", qaFnName, err)
 		}
 		prob := qatypes.Problem{}
-		err = common.GetObjFromInterface(argI, &prob)
-		if err != nil {
-			logrus.Errorf("Unable to convert interface %+v to problem %T : %s", argI, prob, err)
-			return starlark.None, err
+		if err := common.GetObjFromInterface(argI, &prob); err != nil {
+			return starlark.None, fmt.Errorf("failed to get the qa problem of type %T from the object of type %T and value %+v . Error: %w", prob, argI, argI, err)
 		}
 		// key
 		if prob.ID == "" {
@@ -413,16 +397,12 @@ func (t *Starlark) addModules(modName string) {
 	}
 }
 
-func (t *Starlark) loadFunctions() (err error) {
-	err = t.loadDetectFn()
-	if err != nil {
-		logrus.Errorf("Unable to load detect function : %s", err)
-		return err
+func (t *Starlark) loadFunctions() error {
+	if err := t.loadDetectFn(); err != nil {
+		return fmt.Errorf("failed to load detect function. Error: %w", err)
 	}
-	err = t.loadTransformFn()
-	if err != nil {
-		logrus.Errorf("Unable to load transform function : %s", err)
-		return err
+	if err := t.loadTransformFn(); err != nil {
+		return fmt.Errorf("failed to load transform function. Error: %w", err)
 	}
 	return nil
 }
@@ -434,14 +414,10 @@ func (t *Starlark) loadDetectFn() (err error) {
 	directoryDetectFn := t.StarGlobals[directoryDetectFnName]
 	fn, ok := directoryDetectFn.(*starlark.Function)
 	if !ok {
-		err = fmt.Errorf("%s is not a function", directoryDetectFn)
-		logrus.Errorf("%s", err)
-		return err
+		return fmt.Errorf("%s is not a function", directoryDetectFn)
 	}
 	if fn.NumParams() != 1 {
-		err = fmt.Errorf("%s does not have the required number of paramters. It has %d, expected %d", directoryDetectFn, fn.NumParams(), 1)
-		logrus.Errorf("%s", err)
-		return err
+		return fmt.Errorf("%s does not have the required number of paramters. It has %d, expected %d", directoryDetectFn, fn.NumParams(), 1)
 	}
 	t.detectFn = fn
 	return nil
@@ -449,21 +425,15 @@ func (t *Starlark) loadDetectFn() (err error) {
 
 func (t *Starlark) loadTransformFn() (err error) {
 	if !t.StarGlobals.Has(transformFnName) {
-		err = fmt.Errorf("no %s function found", transformFnName)
-		logrus.Errorf("%s", err)
-		return err
+		return fmt.Errorf("no %s function found", transformFnName)
 	}
 	transformFn := t.StarGlobals[transformFnName]
 	fn, ok := transformFn.(*starlark.Function)
 	if !ok {
-		err = fmt.Errorf("%s is not a function", transformFn)
-		logrus.Errorf("%s", err)
-		return err
+		return fmt.Errorf("%s is not a function", transformFn)
 	}
 	if fn.NumParams() != 2 {
-		err = fmt.Errorf("%s does not have the required number of paramters. It has %d, expected %d", transformFn, fn.NumParams(), 2)
-		logrus.Errorf("%s", err)
-		return err
+		return fmt.Errorf("%s does not have the required number of paramters. It has %d, expected %d", transformFn, fn.NumParams(), 2)
 	}
 	t.transformFn = fn
 	return nil
@@ -474,13 +444,13 @@ func (t *Starlark) getStarlarkFSGetYamlsWithTypeMeta() *starlark.Builtin {
 		var inputPath string
 		var kindFilter string
 		if err := starlark.UnpackArgs(fsGetYamIsWithTypeMetaFnName, args, kwargs, "inputpath", &inputPath, "kind", &kindFilter); err != nil {
-			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fsGetYamIsWithTypeMetaFnName, err)
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %w", fsGetYamIsWithTypeMetaFnName, err)
 		}
 		if kindFilter == "" {
 			return starlark.None, fmt.Errorf("kind is missing in find parameters")
 		}
 		if !t.Env.IsPathValid(inputPath) {
-			return starlark.None, fmt.Errorf("invalid path")
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", inputPath)
 		}
 		fileList, err := common.GetYamlsWithTypeMeta(inputPath, kindFilter)
 		if err != nil {
@@ -499,7 +469,7 @@ func (t *Starlark) getStarlarkFindXmlPath() *starlark.Builtin {
 		var inputXmlFilePath string
 		var xmlPathExpr string
 		if err := starlark.UnpackArgs(fsFindXmlPathFnName, args, kwargs, "inputXmlFilePath", &inputXmlFilePath, "xmlpathexpr", &xmlPathExpr); err != nil {
-			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fsFindXmlPathFnName, err)
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %w", fsFindXmlPathFnName, err)
 		}
 		if xmlPathExpr == "" {
 			return starlark.None, fmt.Errorf("XML path expression is missing in find parameters")
@@ -543,13 +513,13 @@ func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
 		var filePath, data string
 		var permissions = common.DefaultFilePermission
 		if err := starlark.UnpackArgs(fsWriteFnName, args, kwargs, "filepath", &filePath, "data", &data, "perm?", &permissions); err != nil {
-			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fsWriteFnName, err)
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %w", fsWriteFnName, err)
 		}
 		if filePath == "" {
 			return starlark.None, fmt.Errorf("FilePath is missing in write parameters")
 		}
 		if !t.Env.IsPathValid(filePath) {
-			return starlark.None, fmt.Errorf("invalid path")
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", filePath)
 		}
 		if len(data) == 0 {
 			return starlark.None, fmt.Errorf("data is missing in write parameters")
@@ -561,7 +531,7 @@ func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
 		}
 		retValue, err := starutil.Marshal(numBytesWritten)
 		if err != nil {
-			return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %q", numBytesWritten, numBytesWritten, err)
+			return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %w", numBytesWritten, numBytesWritten, err)
 		}
 		return retValue, err
 	})
@@ -571,18 +541,16 @@ func (t *Starlark) getStarlarkFSExists() *starlark.Builtin {
 	return starlark.NewBuiltin(fsExistsFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var path string
 		if err := starlark.UnpackPositionalArgs(fsExistsFnName, args, kwargs, 1, &path); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to unpack the positional arguments. Error: %w", err)
 		}
 		if !t.Env.IsPathValid(path) {
-			return starlark.None, fmt.Errorf("invalid path")
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
 		}
-		_, err := os.Stat(path)
-		if err != nil {
+		if _, err := os.Stat(path); err != nil {
 			if os.IsNotExist(err) {
 				return starlark.Bool(false), nil
 			}
-			logrus.Errorf("Unable to check if file exists : %s", err)
-			return starlark.Bool(false), err
+			return starlark.Bool(false), fmt.Errorf("failed to stat the file at path '%s' . Error: %w", path, err)
 		}
 		return starlark.Bool(true), nil
 	})
@@ -595,11 +563,11 @@ func (t *Starlark) getStarlarkFSIsDir() *starlark.Builtin {
 			return nil, err
 		}
 		if !t.Env.IsPathValid(path) {
-			return starlark.None, fmt.Errorf("invalid path")
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
 		}
 		fileInfo, err := os.Stat(path)
 		if err != nil {
-			return starlark.None, fmt.Errorf("unable to retrieve file information")
+			return starlark.None, fmt.Errorf("failed to stat the file at path '%s' . Error: %w", path, err)
 		}
 		return starlark.Bool(fileInfo.IsDir()), nil
 	})
@@ -612,15 +580,14 @@ func (t *Starlark) getStarlarkFSRead() *starlark.Builtin {
 			return nil, err
 		}
 		if !t.Env.IsPathValid(path) {
-			return starlark.None, fmt.Errorf("invalid path")
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
 		}
 		fileBytes, err := os.ReadFile(path)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
 				return starlark.None, nil
 			}
-
-			return nil, err
+			return nil, fmt.Errorf("failed to read the file at path '%s' . Error: %w", path, err)
 		}
 		return starlark.String(fileBytes), nil
 	})
@@ -633,7 +600,7 @@ func (t *Starlark) getStarlarkFSReadDir() *starlark.Builtin {
 			return nil, err
 		}
 		if !t.Env.IsPathValid(path) {
-			return starlark.None, fmt.Errorf("invalid path")
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
 		}
 		fileInfos, err := os.ReadDir(path)
 		if err != nil {
@@ -651,7 +618,7 @@ func (t *Starlark) getStarlarkFSGetFilesWithPattern() *starlark.Builtin {
 	return starlark.NewBuiltin(fsGetFilesWithPatternFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var filePath, extension string
 		if err := starlark.UnpackArgs(fsGetFilesWithPatternFnName, args, kwargs, "filepath", &filePath, "ext", &extension); err != nil {
-			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %q", fsGetFilesWithPatternFnName, err)
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %w", fsGetFilesWithPatternFnName, err)
 		}
 		if filePath == "" {
 			return starlark.None, fmt.Errorf("FilePath is missing in write parameters")
@@ -681,7 +648,7 @@ func (t *Starlark) getStarlarkFSPathJoin() *starlark.Builtin {
 		}
 		path := filepath.Join(pathelem1, pathelem2)
 		if !t.Env.IsPathValid(path) {
-			return starlark.None, fmt.Errorf("invalid path")
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
 		}
 		return starutil.Marshal(path)
 	})
@@ -694,7 +661,7 @@ func (t *Starlark) getStarlarkFSPathBase() *starlark.Builtin {
 			return nil, err
 		}
 		if !t.Env.IsPathValid(path) {
-			return starlark.None, fmt.Errorf("invalid path")
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
 		}
 		return starlark.String(filepath.Base(filepath.Clean(path))), nil
 	})
@@ -716,7 +683,7 @@ func (t *Starlark) getStarlarkFSPathRel() *starlark.Builtin {
 		}
 		path3, err := filepath.Rel(basePath, targetPath)
 		if err != nil {
-			return starlark.None, fmt.Errorf("failed to make the path '%s' to the base directory '%s' . Error: %q", targetPath, basePath, err)
+			return starlark.None, fmt.Errorf("failed to make the path '%s' to the base directory '%s' . Error: %w", targetPath, basePath, err)
 		}
 		return starlark.String(path3), nil
 	})
