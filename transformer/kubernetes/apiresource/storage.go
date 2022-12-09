@@ -102,6 +102,8 @@ func (s *Storage) createSecret(st irtypes.Storage) *core.Secret {
 }
 
 func (s *Storage) createPVC(st irtypes.Storage) *core.PersistentVolumeClaim {
+	logrus.Warnf("Storage.createPVC start")
+	defer logrus.Warnf("Storage.createPVC end")
 	pvc := &core.PersistentVolumeClaim{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(irtypes.PVCKind),
