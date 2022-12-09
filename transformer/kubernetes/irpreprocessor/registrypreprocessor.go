@@ -90,9 +90,10 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		defaultDockerConfigDir := dockercliconfig.Dir()
 		configFile, err := dockercliconfig.Load(defaultDockerConfigDir)
 		if err != nil {
-			logrus.Errorf("failed to load the docker config.json file in the directory %s . Error: %q", defaultDockerConfigDir, err)
+			logrus.Errorf("failed to load the docker config.json file in the directory '%s' . Error: %q", defaultDockerConfigDir, err)
 		} else {
 			for regurl, regauth := range configFile.AuthConfigs {
+				logrus.Debugf("found the registry url: '%s' in the docker config.json", regurl)
 				u, err := url.Parse(regurl)
 				if err != nil {
 					logrus.Errorf("failed to parse the string '%s' as a url. Error: %q", regurl, err)
@@ -106,6 +107,10 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 					if err != nil || u.Host == "" {
 						continue
 					}
+				}
+				if regauth.Auth == "" && regauth.Password == "" && regauth.IdentityToken == "" && regauth.RegistryToken == "" {
+					logrus.Debugf("found empty credentials for the registry url: '%s' . Skipping", regurl)
+					continue
 				}
 				registryAuthList[regurl] = regauth
 			}
