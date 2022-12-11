@@ -17,6 +17,7 @@
 package compose
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -69,8 +70,7 @@ func (t *ComposeAnalyser) GetConfig() (transformertypes.Transformer, *environmen
 func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
 	yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
 	if err != nil {
-		logrus.Errorf("Unable to fetch yaml files at path %s Error: %q", dir, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch yaml files at path '%s' . Error: %w", dir, err)
 	}
 	imageMetadataPaths := map[string]string{}
 	for _, path := range yamlpaths {
@@ -96,23 +96,23 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, newArtifact := range newArtifacts {
-		var config ComposeConfig
+		config := ComposeConfig{}
 		if err := newArtifact.GetConfig(ComposeServiceConfigType, &config); err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", config, err)
+			logrus.Errorf("failed to load config for Transformer into %T . Error: %q", config, err)
 			continue
 		}
-		var serviceConfig artifacts.ServiceConfig
+		serviceConfig := artifacts.ServiceConfig{}
 		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &serviceConfig); err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", serviceConfig, err)
+			logrus.Errorf("failed to load config for Transformer into %T . Error: %q", serviceConfig, err)
 			continue
 		}
 		imageName := artifacts.ImageName{}
 		if err := newArtifact.GetConfig(artifacts.ImageNameConfigType, &imageName); err != nil {
-			logrus.Debugf("unable to load config for Transformer into %T : %s", imageName, err)
+			logrus.Debugf("failed to load config for Transformer into %T . Error: %q", imageName, err)
 		}
 		ir := irtypes.NewIR()
 		for _, path := range newArtifact.Paths[composeFilePathType] {
-			logrus.Debugf("File %s being loaded from compose service : %s", path, config.ServiceName)
+			logrus.Debugf("file at path '%s' being loaded from the compose service name '%s'", path, config.ServiceName)
 			// Try v3 first and if it fails try v1v2
 			if cir, errV3 := new(v3Loader).ConvertToIR(path, config.ServiceName); errV3 == nil {
 				ir.Merge(cir)
@@ -121,13 +121,13 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 				ir.Merge(cir)
 				logrus.Debugf("compose v1v2 transformer returned %d services", len(ir.Services))
 			} else {
-				logrus.Errorf("Unable to parse the docker compose file at path %s Error V3: %q Error V1V2: %q", path, errV3, errV1V2)
+				logrus.Errorf("failed to parse the docker compose file at path '%s' . Error V3: %q Error V1V2: %q", path, errV3, errV1V2)
 			}
 		}
 		for _, path := range newArtifact.Paths[imageInfoPathType] {
 			imgMD := collecttypes.ImageInfo{}
 			if err := common.ReadMove2KubeYaml(path, &imgMD); err != nil {
-				logrus.Errorf("Failed to read image info yaml at path %s Error: %q", path, err)
+				logrus.Errorf("failed to read image info yaml at path '%s' . Error: %q", path, err)
 				continue
 			}
 			ir.AddContainer(imageName.ImageName, newContainerFromImageInfo(imgMD))

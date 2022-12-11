@@ -35,23 +35,24 @@ import (
 
 // TransformIRAndPersist transforms IR to yamls and writes to filesystem
 func TransformIRAndPersist(ir irtypes.EnhancedIR, outputPath string, apis []IAPIResource, targetCluster collecttypes.ClusterMetadata) (files []string, err error) {
+	logrus.Trace("TransformIRAndPersist start")
+	defer logrus.Trace("TransformIRAndPersist end")
 	targetObjs := []runtime.Object{}
 	for _, apiResource := range apis {
 		newObjs := (&APIResource{IAPIResource: apiResource}).convertIRToObjects(ir, targetCluster)
 		targetObjs = append(targetObjs, newObjs...)
 	}
 	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
-		logrus.Errorf("Unable to create deploy directory at path %s Error: %q", outputPath, err)
+		return nil, fmt.Errorf("failed to create the deploy directory at path '%s' . Error: %w", outputPath, err)
 	}
 	logrus.Debugf("Total %d services to be serialized.", len(targetObjs))
 	convertedObjs, err := convertVersion(targetObjs, targetCluster.Spec)
 	if err != nil {
-		logrus.Errorf("Failed to fix, convert and transform the objects. Error: %q", err)
+		return nil, fmt.Errorf("failed to fix, convert and transform the objects. Error: %w", err)
 	}
 	filesWritten, err := writeObjects(outputPath, convertedObjs)
 	if err != nil {
-		logrus.Errorf("Failed to write the transformed objects to the directory at path %s . Error: %q", outputPath, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to write the transformed objects to the directory at path '%s' . Error: %w", outputPath, err)
 	}
 	return filesWritten, nil
 }
@@ -68,7 +69,7 @@ func TransformObjsAndPersist(inputPath, outputPath string, apis []IAPIResource, 
 		targetObjs = append(targetObjs, pendingObjs...)
 	}
 	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
-		logrus.Errorf("Unable to create deploy directory at path %s Error: %q", outputPath, err)
+		logrus.Errorf("failed to create deploy directory at path '%s' . Error: %q", outputPath, err)
 	}
 	logrus.Debugf("Total %d services to be serialized.", len(targetObjs))
 	convertedObjs, err := convertVersion(targetObjs, targetCluster.Spec)
@@ -77,8 +78,7 @@ func TransformObjsAndPersist(inputPath, outputPath string, apis []IAPIResource, 
 	}
 	filesWritten, err := writeObjects(outputPath, convertedObjs)
 	if err != nil {
-		logrus.Errorf("Failed to write the transformed objects to the directory at path %s . Error: %q", outputPath, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to write the transformed objects to the directory at path '%s' . Error: %w", outputPath, err)
 	}
 	return filesWritten, nil
 }
@@ -86,18 +86,18 @@ func TransformObjsAndPersist(inputPath, outputPath string, apis []IAPIResource, 
 // writeObjects writes the runtime objects to yaml files
 func writeObjects(outputPath string, objs []runtime.Object) ([]string, error) {
 	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create the output directory at path '%s' . Error: %w", outputPath, err)
 	}
 	filesWritten := []string{}
 	for _, obj := range objs {
 		objYamlBytes, err := common.MarshalObjToYaml(obj)
 		if err != nil {
-			logrus.Errorf("failed to marshal the runtime.Object to yaml. Object:\n%+v\nError: %q", obj, err)
+			logrus.Errorf("failed to marshal the runtime. Object to yaml. Object: %+v Error: %q", obj, err)
 			continue
 		}
 		yamlPath := filepath.Join(outputPath, getFilename(obj))
 		if err := os.WriteFile(yamlPath, objYamlBytes, common.DefaultFilePermission); err != nil {
-			logrus.Errorf("failed to write the yaml to file at path %s . Error: %q", yamlPath, err)
+			logrus.Errorf("failed to write the yaml to file at path '%s' . Error: %q", yamlPath, err)
 			continue
 		}
 		filesWritten = append(filesWritten, yamlPath)
@@ -111,7 +111,7 @@ func convertVersion(objs []runtime.Object, clusterSpec collecttypes.ClusterMetad
 		fixedobj := fixer.Fix(obj)
 		newobj, err := k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec)
 		if err != nil {
-			logrus.Errorf("Unable to convert to supported version. Writing as is : %s", err)
+			logrus.Errorf("failed to convert to supported version. Writing as is. Error: %q", err)
 			newobj = obj
 		}
 		newobjs = append(newobjs, newobj)

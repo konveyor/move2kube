@@ -87,7 +87,8 @@ func (t *Kubernetes) DirectoryDetect(dir string) (services map[string][]transfor
 
 // Transform transforms artifacts
 func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
-	logrus.Debugf("Translating IR using Kubernetes transformer")
+	logrus.Trace("Kubernetes.Transform start")
+	defer logrus.Trace("Kubernetes.Transform end")
 	pathMappings = []transformertypes.PathMapping{}
 	createdArtifacts = []transformertypes.Artifact{}
 	for _, newArtifact := range newArtifacts {
@@ -96,12 +97,13 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 		}
 		var ir irtypes.IR
 		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
+			logrus.Errorf("failed to load config for Transformer into %T . Error: %q", ir, err)
 			continue
 		}
+
 		var clusterConfig collecttypes.ClusterMetadata
 		if err := newArtifact.GetConfig(ClusterMetadata, &clusterConfig); err != nil {
-			logrus.Errorf("unable to load config for Transformer into %T : %s", clusterConfig, err)
+			logrus.Errorf("failed to load config for Transformer into %T . Error: %q", clusterConfig, err)
 			continue
 		}
 		templatizedKeyMap := map[string]string{common.ProjectNameTemplatizedStringKey: t.Env.ProjectName,
@@ -114,7 +116,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 		}
 		ir.Name, err = common.GetStringFromTemplate(t.KubernetesConfig.IngressName, templatizedKeyMap)
 		if err != nil {
-			logrus.Errorf("Error while computing Ingress Name : %s", err)
+			logrus.Errorf("failed to compute the Ingress name. Error: %q", err)
 			ir.Name = newArtifact.Name
 		}
 		if ir.Name == "" {
@@ -123,18 +125,23 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 		}
 		preprocessedIR, err := irpreprocessor.Preprocess(ir)
 		if err != nil {
-			logrus.Errorf("Unable to pre-preocess IR : %s", err)
+			logrus.Errorf("failed to pre-preocess the IR. Error: %q", err)
 		} else {
 			ir = preprocessedIR
 		}
 		tempDest := filepath.Join(t.Env.TempPath, "k8s-yamls-"+common.GetRandomString())
 		logrus.Debugf("Starting Kubernetes transform")
-		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
-		apis := []apiresource.IAPIResource{new(apiresource.Deployment), new(apiresource.Storage), new(apiresource.Service), new(apiresource.ImageStream), new(apiresource.NetworkPolicy)}
+		logrus.Debugf("Total services to be transformed: %d", len(ir.Services))
+		apis := []apiresource.IAPIResource{
+			new(apiresource.Deployment),
+			new(apiresource.Storage),
+			new(apiresource.Service),
+			new(apiresource.ImageStream),
+			new(apiresource.NetworkPolicy),
+		}
 		files, err := apiresource.TransformIRAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, clusterConfig)
 		if err != nil {
-			logrus.Errorf("Unable to transform and persist IR : %s", err)
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to transform and persist the IR. Error: %w", err)
 		}
 		serviceFsPath := ""
 		if serviceFsPaths, ok := newArtifact.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {

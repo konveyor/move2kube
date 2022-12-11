@@ -557,6 +557,8 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 }
 
 func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, pt processType, depSel labels.Selector, graph *graphtypes.Graph, iteration int) (pathMappings []transformertypes.PathMapping, newArtifactsCreated, updatedArtifacts []transformertypes.Artifact) {
+	logrus.Trace("transform start")
+	defer logrus.Trace("transform end")
 	if pt == dependency && (depSel == nil || depSel.String() == "") {
 		return nil, nil, newArtifactsToProcess
 	}
@@ -589,7 +591,6 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 			logrus.Errorf("failed to run a single transformation using the transformer %+v on the artifacts %+v . Error: %q", tConfig, artifactsToConsume, err)
 			continue
 		}
-
 		pathMappings = append(pathMappings, producedNewPathMappings...)
 		artifactsToPassThrough := []transformertypes.Artifact{}
 		artifactsAlreadyPassedThrough := []transformertypes.Artifact{}
@@ -597,7 +598,8 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 			artifactsToPassThrough = append(dependencyCreatedNewArtifacts, producedNewArtifacts...)
 		} else if pt == passthrough || pt == dependency {
 			for _, a := range producedNewArtifacts {
-				if c, ok := tConfig.Spec.ConsumedArtifacts[a.Type]; ok && (c.Mode != transformertypes.MandatoryPassThrough && c.Mode != transformertypes.OnDemandPassThrough) {
+				if c, ok := tConfig.Spec.ConsumedArtifacts[a.Type]; ok &&
+					(c.Mode != transformertypes.MandatoryPassThrough && c.Mode != transformertypes.OnDemandPassThrough) {
 					artifactsToPassThrough = append(artifactsToPassThrough, a)
 				} else {
 					artifactsAlreadyPassedThrough = append(artifactsAlreadyPassedThrough, a)
@@ -629,10 +631,11 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 }
 
 func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Artifact, transformer Transformer, tconfig transformertypes.Transformer, env *environment.Environment, graph *graphtypes.Graph, iteration int) (newPathMappings []transformertypes.PathMapping, newArtifacts []transformertypes.Artifact, err error) {
+	logrus.Trace("runSingleTransform start")
+	defer logrus.Trace("runSingleTransform end")
 	if err := env.Reset(); err != nil {
 		return nil, nil, fmt.Errorf("failed to reset the environment: %+v Error: %q", env, err)
 	}
-
 	newPathMappings, newArtifacts, err = transformer.Transform(
 		*env.Encode(&artifactsToProcess).(*[]transformertypes.Artifact),
 		*env.Encode(&allArtifacts).(*[]transformertypes.Artifact),

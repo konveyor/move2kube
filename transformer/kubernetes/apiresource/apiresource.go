@@ -52,7 +52,9 @@ type APIResource struct {
 }
 
 // convertIRToObjects converts IR to a runtime objects
-func (o *APIResource) convertIRToObjects(ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) (newObjs []runtime.Object) {
+func (o *APIResource) convertIRToObjects(ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
+	logrus.Trace("APIResource.convertIRToObjects start")
+	defer logrus.Trace("APIResource.convertIRToObjects end")
 	objs := o.createNewResources(ir, o.getClusterSupportedKinds(targetCluster), targetCluster)
 	for _, obj := range objs {
 		if !o.loadResource(obj, objs, ir, targetCluster) {
