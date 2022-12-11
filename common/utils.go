@@ -51,6 +51,7 @@ import (
 	encodingunicode "golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -1245,12 +1246,30 @@ func getGitRemoteByName(remotes []*git.Remote, remoteName string) *git.Remote {
 	return nil
 }
 
+// StringToK8sQuantityHookFunc returns a DecodeHookFunc that converts strings to a Kubernetes resource limits quantity.
+func StringToK8sQuantityHookFunc() mapstructure.DecodeHookFunc {
+	return func(from reflect.Type, to reflect.Type, data interface{}) (interface{}, error) {
+		if from.Kind() != reflect.String {
+			return data, nil
+		}
+		if to != reflect.TypeOf(resource.Quantity{}) {
+			return data, nil
+		}
+		quantity, err := resource.ParseQuantity(data.(string))
+		if err != nil {
+			return data, fmt.Errorf("failed to parse the string '%s' as a K8s Quantity. Error: %w", data.(string), err)
+		}
+		return quantity, nil
+	}
+}
+
 // GetObjFromInterface loads from map[string]interface{} to struct
 func GetObjFromInterface(obj interface{}, loadinto interface{}) error {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:  &loadinto,
-		TagName: "yaml",
-		Squash:  true,
+		DecodeHook: StringToK8sQuantityHookFunc(),
+		Result:     &loadinto,
+		TagName:    "yaml",
+		Squash:     true,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get the mapstructure decoder for the type %T . Error: %w", loadinto, err)
