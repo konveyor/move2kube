@@ -31,6 +31,7 @@ import (
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
 const (
@@ -52,6 +53,7 @@ type Executable struct {
 type ExecutableYamlConfig struct {
 	EnableQA           bool                       `yaml:"enableQA"`
 	Platforms          []string                   `yaml:"platforms"`
+	EnvList            []core.EnvVar              `yaml:"env,omitempty"`
 	DirectoryDetectCMD environmenttypes.Command   `yaml:"directoryDetectCMD"`
 	TransformCMD       environmenttypes.Command   `yaml:"transformCMD"`
 	Container          environmenttypes.Container `yaml:"container,omitempty"`
@@ -114,10 +116,15 @@ func (t *Executable) DirectoryDetect(dir string) (services map[string][]transfor
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy the detect input path to container. Error: %w", err)
 	}
+	containerDetectInputPath := filepath.Join(containerInputDir, detectInputFile)
+	containerDetectOutputPath := filepath.Join(detectContainerOutputDir, detectOutputFile)
+	if env, exists := common.LookupEnv(detectOutputPathEnvKey, t.ExecConfig.EnvList); exists {
+		containerDetectOutputPath = env.Value
+	}
 	services, err = t.executeDetect(
 		t.ExecConfig.DirectoryDetectCMD,
-		filepath.Join(containerInputDir, detectInputFile),
-		filepath.Join(detectContainerOutputDir, detectOutputFile),
+		containerDetectInputPath,
+		containerDetectOutputPath,
 	)
 	if err != nil {
 		return services, fmt.Errorf("failed to execute the detect script. Error: %w", err)
@@ -153,8 +160,12 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to upload the transform input into the environment at the path '%s' . Error: %w", transformInputFile, err)
 	}
+
 	transformInputPath := filepath.Join(containerInputDir, transformInputFile)
 	transformOutputPath := filepath.Join(transformContainerOutputDir, transformOutputFile)
+	if env, exists := common.LookupEnv(transformOutputPathEnvKey, t.ExecConfig.EnvList); exists {
+		transformOutputPath = env.Value
+	}
 	cmdToRun, envList := t.configIO(
 		t.ExecConfig.TransformCMD,
 		map[string]string{
@@ -170,13 +181,13 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 		return nil, nil, fmt.Errorf("the transform script failed with non-zero exit code.\nstdout: %s\nstderr: %s\nexit code: %d", stdout, stderr, exitcode)
 	}
 	logrus.Debugf("the transform script '%s' succeeded.\nstdout: %s\nstderr: %s\nexit code: %d", t.Config.Name, stdout, stderr, exitcode)
-	outputPath, err := t.Env.Env.Download(transformContainerOutputDir)
+	outputPath, err := t.Env.Env.Download(filepath.Dir(transformOutputPath))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to download the json %s . Error: %q", outputPath, err)
 	}
 	logrus.Debugf("Output containerized transformer JSON path: %v", outputPath)
 	var output transformertypes.TransformOutput
-	jsonOutputPath := filepath.Join(outputPath, transformOutputFile)
+	jsonOutputPath := filepath.Join(outputPath, filepath.Base(transformOutputPath))
 	if err := common.ReadJSON(jsonOutputPath, &output); err != nil {
 		return nil, nil, fmt.Errorf("failed to parse the transformer output file at path '%s' as json. Error: %w", jsonOutputPath, err)
 	}
@@ -205,13 +216,13 @@ func (t *Executable) executeDetect(
 	}
 	logrus.Debugf("%s Detect succeeded in %s : %s, %s, %d",
 		t.Config.Name, inputPath, stdout, stderr, exitcode)
-	outputPathFromContainer, err := t.Env.Env.Download(detectContainerOutputDir)
+	outputPathFromContainer, err := t.Env.Env.Download(filepath.Dir(outputPath))
 	if err != nil {
 		return nil, fmt.Errorf("failed to download the json output at path '%s' from the environment. Error: %w", outputPathFromContainer, err)
 	}
 	logrus.Debugf("Output detect JSON path: %v", outputPathFromContainer)
 	output := map[string][]transformertypes.Artifact{}
-	jsonOutputPath := filepath.Join(outputPathFromContainer, detectOutputFile)
+	jsonOutputPath := filepath.Join(outputPathFromContainer, filepath.Base(outputPath))
 	if err := common.ReadJSON(jsonOutputPath, &output); err != nil {
 		logrus.Warnf("failed in unmarshal the detect output file at path '%s' as json. Trying with config type. Error: %q", jsonOutputPath, err)
 		config := map[string]interface{}{}
@@ -263,8 +274,13 @@ func (t *Executable) configIO(
 		}
 	}
 	envList := []string{}
+	for _, env := range t.ExecConfig.EnvList {
+		envList = append(envList, env.Name+envDelimiter+env.Value)
+	}
 	for envKey, value := range kvMap {
-		envList = append(envList, envKey+envDelimiter+value)
+		if _, present := common.LookupEnv(envKey, t.ExecConfig.EnvList); !present {
+			envList = append(envList, envKey+envDelimiter+value)
+		}
 	}
 	return cmdToRun, envList
 }
