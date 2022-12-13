@@ -57,13 +57,16 @@ type ExecutableYamlConfig struct {
 	Container          environmenttypes.Container `yaml:"container,omitempty"`
 }
 
-const (
+var (
 	detectContainerOutputDir    = "/var/tmp/m2k_detect_output"
-	detectInputFile             = "m2k_detect_input.json"
-	detectOutputFile            = "m2k_detect_output.json"
 	transformContainerOutputDir = "/var/tmp/m2k_transform_output"
-	transformInputFile          = "m2k_transform_input.json"
-	transformOutputFile         = "m2k_transform_output.json"
+)
+
+const (
+	detectInputFile     = "m2k_detect_input.json"
+	detectOutputFile    = "m2k_detect_output.json"
+	transformInputFile  = "m2k_transform_input.json"
+	transformOutputFile = "m2k_transform_output.json"
 	// TemplateConfigType represents the template config type
 	TemplateConfigType transformertypes.ConfigType = "TemplateConfig"
 )
@@ -84,6 +87,8 @@ func (t *Executable) Init(tc transformertypes.Transformer, env *environment.Envi
 			logrus.Infof("Starting transformer that requires QA without QA.")
 		}
 	}
+	detectContainerOutputDir = filepath.Join(detectContainerOutputDir, uniuri.NewLen(5))
+	transformContainerOutputDir = filepath.Join(transformContainerOutputDir, uniuri.NewLen(5))
 	env.EnvInfo.EnvPlatformConfig = environmenttypes.EnvPlatformConfig{
 		Container: t.ExecConfig.Container,
 		Platforms: t.ExecConfig.Platforms,

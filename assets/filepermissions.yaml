@@ -26,7 +26,7 @@
 "built-in/transformers/containerimagespushscript/transformer.yaml" : 0644
 "built-in/transformers/dockerfile/dockerfiledetector/transformer.yaml" : 0644
 "built-in/transformers/dockerfile/dockerfileparser/transformer.yaml" : 0644
-"built-in/transformers/dockerfile/dockerimagebuildscript/templates/buildandpushimages_multiarch.bat" : 0755
+"built-in/transformers/dockerfile/dockerimagebuildscript/templates/buildandpushimages_multiarch.bat" : 0644
 "built-in/transformers/dockerfile/dockerimagebuildscript/templates/buildandpushimages_multiarch.sh" : 0755
 "built-in/transformers/dockerfile/dockerimagebuildscript/templates/buildimages.bat" : 0755
 "built-in/transformers/dockerfile/dockerimagebuildscript/templates/buildimages.sh" : 0755
