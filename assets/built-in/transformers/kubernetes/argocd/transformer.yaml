@@ -17,3 +17,6 @@ spec:
   produces:
     KubernetesYamls:
       disabled: false
+  config:
+    outputPath: "deploy/cicd/argocd"
+    useDefaultValuesInYamls: false

@@ -17,3 +17,6 @@ spec:
   dependency:
     matchLabels:
       move2kube.konveyor.io/kubernetesclusterselector: "true"
+  config:
+    outputPath: "deploy/cicd/buildconfig"
+    useDefaultValuesInYamls: false

@@ -31,12 +31,12 @@ import (
 )
 
 // ConvertToSupportedVersion converts obj to a supported Version
-func ConvertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) (runtime.Object, error) {
-	newobj, err := convertToSupportedVersion(obj, clusterSpec)
+func ConvertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, useDefaultValsInYamls bool) (runtime.Object, error) {
+	newobj, err := convertToSupportedVersion(obj, clusterSpec, useDefaultValsInYamls)
 	if err != nil {
 		logrus.Debugf("Unable to transform object to a supported version : %s.", err)
 		if obj.GetObjectKind().GroupVersionKind().Version == core.SchemeGroupVersion.Version {
-			newobj, err = ConvertToPreferredVersion(obj, clusterSpec)
+			newobj, err = ConvertToPreferredVersion(obj, clusterSpec, useDefaultValsInYamls)
 			if err != nil {
 				logrus.Warnf("Unable to convert (%+v) to preferred version : %s", obj.GetObjectKind(), err)
 				newobj = obj
@@ -50,7 +50,7 @@ func ConvertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 }
 
 // ConvertToSupportedVersion converts obj to a supported Version
-func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) (newobj runtime.Object, err error) {
+func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, useDefaultValsInYamls bool) (newobj runtime.Object, err error) {
 	objgvk := obj.GetObjectKind().GroupVersionKind()
 	objgv := objgvk.GroupVersion()
 	kind := objgvk.Kind
@@ -77,15 +77,19 @@ func convertToSupportedVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 			logrus.Debugf("Unable to convert : %s", err)
 			continue
 		}
-		scheme.Default(newobj)
+		if useDefaultValsInYamls {
+			scheme.Default(newobj)
+		}
 		return newobj, err
 	}
-	scheme.Default(obj)
+	if useDefaultValsInYamls {
+		scheme.Default(obj)
+	}
 	return obj, fmt.Errorf("unable to convert to a supported version : %+v", obj.GetObjectKind())
 }
 
 // ConvertToPreferredVersion converts obj to a preferred Version
-func ConvertToPreferredVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) (newobj runtime.Object, err error) {
+func ConvertToPreferredVersion(obj runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, useDefaultValsInYamls bool) (newobj runtime.Object, err error) {
 	objgvk := obj.GetObjectKind().GroupVersionKind()
 	objgv := objgvk.GroupVersion()
 	kind := objgvk.Kind
@@ -112,11 +116,15 @@ func ConvertToPreferredVersion(obj runtime.Object, clusterSpec collecttypes.Clus
 				logrus.Debugf("Unable to convert : %s", err)
 				continue
 			}
-			scheme.Default(newobj)
+			if useDefaultValsInYamls {
+				scheme.Default(newobj)
+			}
 			return newobj, err
 		}
 	}
-	scheme.Default(obj)
+	if useDefaultValsInYamls {
+		scheme.Default(obj)
+	}
 	return obj, fmt.Errorf("unable to convert to a preferred version : %+v", obj.GetObjectKind())
 }
 

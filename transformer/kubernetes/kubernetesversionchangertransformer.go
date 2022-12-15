@@ -44,7 +44,8 @@ type KubernetesVersionChanger struct {
 
 // KubernetesVersionChangerYamlConfig stores the config
 type KubernetesVersionChangerYamlConfig struct {
-	OutputPath string `yaml:"outputPath"`
+	OutputPath              string `yaml:"outputPath"`
+	UseDefaultValuesInYamls bool   `yaml:"useDefaultValuesInYamls"`
 }
 
 // OutputPathParams stores the possible path params
@@ -65,6 +66,9 @@ func (t *KubernetesVersionChanger) Init(tc transformertypes.Transformer, e *envi
 	}
 	if t.KVCConfig.OutputPath == "" {
 		t.KVCConfig.OutputPath = defaultKVCOutputPath
+	}
+	if !t.KVCConfig.UseDefaultValuesInYamls {
+		t.KVCConfig.UseDefaultValuesInYamls = useDefaultValuesInK8sYamls
 	}
 	return nil
 }
@@ -123,7 +127,7 @@ func (t *KubernetesVersionChanger) Transform(newArtifacts []transformertypes.Art
 					return nil
 				}
 				if objs := k8sschema.GetKubernetesObjsInDir(path); len(objs) != 0 {
-					_, err := apiresource.TransformObjsAndPersist(path, filepath.Join(tempDest, relInputPath), apis, clusterConfig)
+					_, err := apiresource.TransformObjsAndPersist(path, filepath.Join(tempDest, relInputPath), apis, clusterConfig, t.KVCConfig.UseDefaultValuesInYamls)
 					if err != nil {
 						logrus.Errorf("Unable to transform objs at %s : %s", path, err)
 						return nil

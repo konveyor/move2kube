@@ -34,7 +34,7 @@ import (
 )
 
 // TransformIRAndPersist transforms IR to yamls and writes to filesystem
-func TransformIRAndPersist(ir irtypes.EnhancedIR, outputPath string, apis []IAPIResource, targetCluster collecttypes.ClusterMetadata) (files []string, err error) {
+func TransformIRAndPersist(ir irtypes.EnhancedIR, outputPath string, apis []IAPIResource, targetCluster collecttypes.ClusterMetadata, useDefaultValsInYamls bool) (files []string, err error) {
 	logrus.Trace("TransformIRAndPersist start")
 	defer logrus.Trace("TransformIRAndPersist end")
 	targetObjs := []runtime.Object{}
@@ -46,7 +46,7 @@ func TransformIRAndPersist(ir irtypes.EnhancedIR, outputPath string, apis []IAPI
 		return nil, fmt.Errorf("failed to create the deploy directory at path '%s' . Error: %w", outputPath, err)
 	}
 	logrus.Debugf("Total %d services to be serialized.", len(targetObjs))
-	convertedObjs, err := convertVersion(targetObjs, targetCluster.Spec)
+	convertedObjs, err := convertVersion(targetObjs, targetCluster.Spec, useDefaultValsInYamls)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fix, convert and transform the objects. Error: %w", err)
 	}
@@ -58,7 +58,7 @@ func TransformIRAndPersist(ir irtypes.EnhancedIR, outputPath string, apis []IAPI
 }
 
 // TransformObjsAndPersist transforms versions of yamls in current directory and writes to filesystem
-func TransformObjsAndPersist(inputPath, outputPath string, apis []IAPIResource, targetCluster collecttypes.ClusterMetadata) (files []string, err error) {
+func TransformObjsAndPersist(inputPath, outputPath string, apis []IAPIResource, targetCluster collecttypes.ClusterMetadata, useDefaultValsInYamls bool) (files []string, err error) {
 	targetObjs := []runtime.Object{}
 	if pendingObjs := k8sschema.GetKubernetesObjsInDir(inputPath); len(pendingObjs) != 0 {
 		for _, apiResource := range apis {
@@ -72,7 +72,7 @@ func TransformObjsAndPersist(inputPath, outputPath string, apis []IAPIResource, 
 		logrus.Errorf("failed to create deploy directory at path '%s' . Error: %q", outputPath, err)
 	}
 	logrus.Debugf("Total %d services to be serialized.", len(targetObjs))
-	convertedObjs, err := convertVersion(targetObjs, targetCluster.Spec)
+	convertedObjs, err := convertVersion(targetObjs, targetCluster.Spec, useDefaultValsInYamls)
 	if err != nil {
 		logrus.Errorf("Failed to fix, convert and transform the objects. Error: %q", err)
 	}
@@ -105,11 +105,11 @@ func writeObjects(outputPath string, objs []runtime.Object) ([]string, error) {
 	return filesWritten, nil
 }
 
-func convertVersion(objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec) ([]runtime.Object, error) {
+func convertVersion(objs []runtime.Object, clusterSpec collecttypes.ClusterMetadataSpec, useDefaultValsInYamls bool) ([]runtime.Object, error) {
 	newobjs := []runtime.Object{}
 	for _, obj := range objs {
 		fixedobj := fixer.Fix(obj)
-		newobj, err := k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec)
+		newobj, err := k8sschema.ConvertToSupportedVersion(fixedobj, clusterSpec, useDefaultValsInYamls)
 		if err != nil {
 			logrus.Errorf("failed to convert to supported version. Writing as is. Error: %q", err)
 			newobj = obj
