@@ -20,4 +20,4 @@ spec:
       move2kube.konveyor.io/kubernetesclusterselector: "true"
   config:
     outputPath: "{{ $rel := Rel .YamlsPath }}source/{{ $rel }}{{ if ne $rel \".\" }}/..{{end}}/{{ FilePathBase .YamlsPath }}-versionchanged/"
-    useDefaultValuesInYamls: false
+    setDefaultValuesInYamls: false

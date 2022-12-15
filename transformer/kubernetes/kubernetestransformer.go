@@ -33,9 +33,9 @@ import (
 )
 
 const (
-	outputPathTemplateName     = "OutputPath"
-	defaultK8sYamlsOutputPath  = common.DeployDir + string(os.PathSeparator) + "yamls"
-	useDefaultValuesInK8sYamls = false
+	outputPathTemplateName    = "OutputPath"
+	defaultK8sYamlsOutputPath = common.DeployDir + string(os.PathSeparator) + "yamls"
+	setDefaultValuesInYamls   = false
 )
 
 // Kubernetes implements Transformer interface
@@ -47,9 +47,9 @@ type Kubernetes struct {
 
 // KubernetesYamlConfig stores the k8s related information
 type KubernetesYamlConfig struct {
-	IngressName                string `yaml:"ingressName"`
-	OutputPath                 string `yaml:"outputPath"`
-	UseDefaultValuesInK8sYamls bool   `yaml:"useDefaultValuesInK8sYamls"`
+	IngressName             string `yaml:"ingressName"`
+	OutputPath              string `yaml:"outputPath"`
+	SetDefaultValuesInYamls bool   `yaml:"setDefaultValuesInYamls"`
 }
 
 // KubernetesPathTemplateConfig implements Kubernetes template config interface
@@ -74,8 +74,8 @@ func (t *Kubernetes) Init(tc transformertypes.Transformer, e *environment.Enviro
 	if t.KubernetesConfig.OutputPath == "" {
 		t.KubernetesConfig.OutputPath = defaultK8sYamlsOutputPath
 	}
-	if !t.KubernetesConfig.UseDefaultValuesInK8sYamls {
-		t.KubernetesConfig.UseDefaultValuesInK8sYamls = useDefaultValuesInK8sYamls
+	if !t.KubernetesConfig.SetDefaultValuesInYamls {
+		t.KubernetesConfig.SetDefaultValuesInYamls = setDefaultValuesInYamls
 	}
 	return nil
 }
@@ -144,7 +144,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 			new(apiresource.ImageStream),
 			new(apiresource.NetworkPolicy),
 		}
-		files, err := apiresource.TransformIRAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, clusterConfig, t.KubernetesConfig.UseDefaultValuesInK8sYamls)
+		files, err := apiresource.TransformIRAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, clusterConfig, t.KubernetesConfig.SetDefaultValuesInYamls)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to transform and persist the IR. Error: %w", err)
 		}

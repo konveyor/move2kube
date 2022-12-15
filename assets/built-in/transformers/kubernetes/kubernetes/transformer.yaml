@@ -20,4 +20,4 @@ spec:
   config:
     outputPath: "deploy/yamls"
     ingressName: "{{ .ProjectName }}"
-    useDefaultValuesInK8sYamls: false
+    setDefaultValuesInYamls: false

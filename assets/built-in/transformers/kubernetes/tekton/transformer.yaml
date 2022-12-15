@@ -19,4 +19,4 @@ spec:
       disabled: false
   config:
     outputPath: "deploy/cicd/tekton"
-    useDefaultValuesInYamls: false
+    setDefaultValuesInYamls: false

@@ -45,7 +45,7 @@ type Knative struct {
 // KnativeYamlConfig stores the knative related information
 type KnativeYamlConfig struct {
 	OutputPath              string `yaml:"outputPath"`
-	UseDefaultValuesInYamls bool   `yaml:"useDefaultValuesInYamls"`
+	SetDefaultValuesInYamls bool   `yaml:"setDefaultValuesInYamls"`
 }
 
 // Init Initializes the transformer
@@ -61,8 +61,8 @@ func (t *Knative) Init(tc transformertypes.Transformer, env *environment.Environ
 	if t.KnativeConfig.OutputPath == "" {
 		t.KnativeConfig.OutputPath = defaultKnativeYamlsOutputPath
 	}
-	if !t.KnativeConfig.UseDefaultValuesInYamls {
-		t.KnativeConfig.UseDefaultValuesInYamls = useDefaultValuesInK8sYamls
+	if !t.KnativeConfig.SetDefaultValuesInYamls {
+		t.KnativeConfig.SetDefaultValuesInYamls = setDefaultValuesInYamls
 	}
 	return nil
 }
@@ -109,7 +109,7 @@ func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 		logrus.Debugf("Starting Kubernetes transform")
 		logrus.Debugf("Total services to be transformed : %d", len(ir.Services))
 		apis := []apiresource.IAPIResource{&apiresource.KnativeService{}}
-		files, err := apiresource.TransformIRAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, clusterConfig, t.KnativeConfig.UseDefaultValuesInYamls)
+		files, err := apiresource.TransformIRAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, clusterConfig, t.KnativeConfig.SetDefaultValuesInYamls)
 		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err

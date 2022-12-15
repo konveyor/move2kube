@@ -19,4 +19,4 @@ spec:
       move2kube.konveyor.io/kubernetesclusterselector: "true"
   config:
     outputPath: "deploy/knative"
-    useDefaultValuesInYamls: false
+    setDefaultValuesInYamls: false
