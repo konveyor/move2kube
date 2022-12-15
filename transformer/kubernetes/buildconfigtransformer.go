@@ -46,7 +46,8 @@ type BuildConfig struct {
 
 // BuildConfigYamlConfig stores the BuildConfig related information
 type BuildConfigYamlConfig struct {
-	OutputPath string `yaml:"outputPath"`
+	OutputPath              string `yaml:"outputPath"`
+	SetDefaultValuesInYamls bool   `yaml:"setDefaultValuesInYamls"`
 }
 
 const (
@@ -71,6 +72,9 @@ func (t *BuildConfig) Init(tc transformertypes.Transformer, env *environment.Env
 	}
 	if t.BuildConfigConfig.OutputPath == "" {
 		t.BuildConfigConfig.OutputPath = defaultBuildConfigYamlsOutputPath
+	}
+	if !t.BuildConfigConfig.SetDefaultValuesInYamls {
+		t.BuildConfigConfig.SetDefaultValuesInYamls = setDefaultValuesInYamls
 	}
 	return nil
 }
@@ -120,7 +124,7 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alread
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Infof("Generating Buildconfig pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
-		files, err := apiresource.TransformIRAndPersist(enhancedIR, tempDest, apis, clusterConfig)
+		files, err := apiresource.TransformIRAndPersist(enhancedIR, tempDest, apis, clusterConfig, t.BuildConfigConfig.SetDefaultValuesInYamls)
 		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err

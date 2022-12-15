@@ -41,7 +41,8 @@ type ArgoCD struct {
 
 // ArgoCDYamlConfig stores the ArgoCD related information
 type ArgoCDYamlConfig struct {
-	OutputPath string `yaml:"outputPath"`
+	OutputPath              string `yaml:"outputPath"`
+	SetDefaultValuesInYamls bool   `yaml:"setDefaultValuesInYamls"`
 }
 
 const (
@@ -59,6 +60,9 @@ func (t *ArgoCD) Init(tc transformertypes.Transformer, env *environment.Environm
 	}
 	if t.ArgoCDConfig.OutputPath == "" {
 		t.ArgoCDConfig.OutputPath = defaultArgoCDYamlsOutputPath
+	}
+	if !t.ArgoCDConfig.SetDefaultValuesInYamls {
+		t.ArgoCDConfig.SetDefaultValuesInYamls = setDefaultValuesInYamls
 	}
 	return nil
 }
@@ -109,7 +113,7 @@ func (t *ArgoCD) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Debugf("Generating ArgoCD yamls for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
-		files, err := apiresource.TransformIRAndPersist(enhancedIR, tempDest, resources, clusterConfig)
+		files, err := apiresource.TransformIRAndPersist(enhancedIR, tempDest, resources, clusterConfig, t.ArgoCDConfig.SetDefaultValuesInYamls)
 		if err != nil {
 			logrus.Errorf("failed to transform and persist IR. Error: %q", err)
 			continue

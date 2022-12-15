@@ -20,3 +20,4 @@ spec:
   config:
     outputPath: "deploy/yamls"
     ingressName: "{{ .ProjectName }}"
+    setDefaultValuesInYamls: false

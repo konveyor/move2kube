@@ -35,6 +35,7 @@ import (
 const (
 	outputPathTemplateName    = "OutputPath"
 	defaultK8sYamlsOutputPath = common.DeployDir + string(os.PathSeparator) + "yamls"
+	setDefaultValuesInYamls   = false
 )
 
 // Kubernetes implements Transformer interface
@@ -46,8 +47,9 @@ type Kubernetes struct {
 
 // KubernetesYamlConfig stores the k8s related information
 type KubernetesYamlConfig struct {
-	IngressName string `yaml:"ingressName"`
-	OutputPath  string `yaml:"outputPath"`
+	IngressName             string `yaml:"ingressName"`
+	OutputPath              string `yaml:"outputPath"`
+	SetDefaultValuesInYamls bool   `yaml:"setDefaultValuesInYamls"`
 }
 
 // KubernetesPathTemplateConfig implements Kubernetes template config interface
@@ -71,6 +73,9 @@ func (t *Kubernetes) Init(tc transformertypes.Transformer, e *environment.Enviro
 	}
 	if t.KubernetesConfig.OutputPath == "" {
 		t.KubernetesConfig.OutputPath = defaultK8sYamlsOutputPath
+	}
+	if !t.KubernetesConfig.SetDefaultValuesInYamls {
+		t.KubernetesConfig.SetDefaultValuesInYamls = setDefaultValuesInYamls
 	}
 	return nil
 }
@@ -139,7 +144,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 			new(apiresource.ImageStream),
 			new(apiresource.NetworkPolicy),
 		}
-		files, err := apiresource.TransformIRAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, clusterConfig)
+		files, err := apiresource.TransformIRAndPersist(irtypes.NewEnhancedIRFromIR(ir), tempDest, apis, clusterConfig, t.KubernetesConfig.SetDefaultValuesInYamls)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to transform and persist the IR. Error: %w", err)
 		}

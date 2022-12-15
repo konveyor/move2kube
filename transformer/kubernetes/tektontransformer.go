@@ -69,7 +69,8 @@ type Tekton struct {
 
 // TektonYamlConfig stores the Tekton related information
 type TektonYamlConfig struct {
-	OutputPath string `yaml:"outputPath"`
+	OutputPath              string `yaml:"outputPath"`
+	SetDefaultValuesInYamls bool   `yaml:"setDefaultValuesInYamls"`
 }
 
 // Init Initializes the transformer
@@ -84,6 +85,9 @@ func (t *Tekton) Init(tc transformertypes.Transformer, env *environment.Environm
 	}
 	if t.TektonConfig.OutputPath == "" {
 		t.TektonConfig.OutputPath = defaultTektonYamlsOutputPath
+	}
+	if !t.TektonConfig.SetDefaultValuesInYamls {
+		t.TektonConfig.SetDefaultValuesInYamls = setDefaultValuesInYamls
 	}
 	return nil
 }
@@ -139,7 +143,7 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Debugf("Generating Tekton pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
-		files, err := apiresource.TransformIRAndPersist(enhancedIR, tempDest, resources, clusterConfig)
+		files, err := apiresource.TransformIRAndPersist(enhancedIR, tempDest, resources, clusterConfig, t.TektonConfig.SetDefaultValuesInYamls)
 		if err != nil {
 			logrus.Errorf("Unable to transform and persist IR : %s", err)
 			return nil, nil, err
