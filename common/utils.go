@@ -56,7 +56,18 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	core "k8s.io/kubernetes/pkg/apis/core"
 )
+
+// LookupEnv looks for a environment variable in a list of environment variables
+func LookupEnv(envNameToLookup string, envList []core.EnvVar) (core.EnvVar, bool) {
+	for _, env := range envList {
+		if env.Name == envNameToLookup {
+			return env, true
+		}
+	}
+	return core.EnvVar{}, false
+}
 
 // Map applies the given function over all the elements and returns a new slice with the results.
 func Map[T1 interface{}, T2 interface{}](vs []T1, f func(T1) T2) []T2 {
