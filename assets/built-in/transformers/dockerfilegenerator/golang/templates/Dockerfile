@@ -13,22 +13,14 @@
 #   limitations under the License.
 
 # Build App
-FROM registry.access.redhat.com/ubi8/ubi:latest AS builder
-WORKDIR /temp
-ENV GOPATH=/go
-ENV PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-RUN curl -o go.tar.gz https://dl.google.com/go/go{{ .GoVersion }}.linux-amd64.tar.gz
-RUN tar -xzf go.tar.gz && mv go /usr/local/
-RUN yum install git make -y 
-RUN mkdir -p $GOPATH/src $GOPATH/bin && chmod -R 777 $GOPATH
+FROM registry.access.redhat.com/ubi8/go-toolset:{{ .GolangImageTag }} AS builder
 WORKDIR /{{ .AppName }}
 COPY . .
-RUN go build -o {{ .AppName }}
-RUN cp ./{{ .AppName }} /bin/{{ .AppName }}
+RUN go build -o ./bin/{{ .AppName }}
 
 # Run App
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.3-201
-COPY --from=builder /bin/{{ .AppName }} /bin/{{ .AppName }}
+COPY --from=builder /{{ .AppName }}/bin/{{ .AppName }} /bin/{{ .AppName }}
 {{- range $port := .Ports }}
 EXPOSE {{ $port }}
 {{- end }}

@@ -19,3 +19,5 @@ spec:
       disabled: false
   config:
     defaultGoVersion: "1.18"
+  externalFiles:
+    "./mappings/golangversions.yaml" : mappings/golangversions.yaml
