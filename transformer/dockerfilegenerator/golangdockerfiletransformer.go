@@ -20,9 +20,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/types"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -30,26 +32,43 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/module"
+	"golang.org/x/mod/semver"
 )
 
 const (
-	defaultGoVersion = "1.18"
+	golangVersionMappingFilePath = "mappings/golangversions.yaml"
 	// GolangModFilePathType points to the go.mod file path
 	GolangModFilePathType transformertypes.PathType = "GoModFilePath"
+	// GolangVersionsMappingKind defines kind of GolangVersionMappingKind
+	GolangVersionsMappingKind types.Kind = "GolangVersionsMapping"
 )
+
+// GolangVersionsMapping stores the Go versions mapping
+type GolangVersionsMapping struct {
+	types.TypeMeta   `yaml:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty"`
+	Spec             GolangVersionsMappingSpec `yaml:"spec,omitempty"`
+}
+
+// GolangVersionsMappingSpec stores the Go version spec
+type GolangVersionsMappingSpec struct {
+	DisableSort    bool                `yaml:"disableSort"`
+	GolangVersions []map[string]string `yaml:"golangVersions"`
+}
 
 // GolangDockerfileGenerator implements the Transformer interface
 type GolangDockerfileGenerator struct {
 	Config       transformertypes.Transformer
 	Env          *environment.Environment
 	GolangConfig *GolangDockerfileYamlConfig
+	Spec         GolangVersionsMappingSpec
 }
 
 // GolangTemplateConfig implements Golang config interface
 type GolangTemplateConfig struct {
-	Ports     []int32
-	AppName   string
-	GoVersion string
+	Ports          []int32
+	AppName        string
+	GolangImageTag string
 }
 
 // GolangDockerfileYamlConfig represents the configuration of the Golang dockerfile
@@ -67,9 +86,21 @@ func (t *GolangDockerfileGenerator) Init(tc transformertypes.Transformer, env *e
 		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.GolangConfig, err)
 		return err
 	}
-	if t.GolangConfig.DefaultGoVersion == "" {
-		t.GolangConfig.DefaultGoVersion = defaultGoVersion
+	// load the version mapping file
+	mappingFilePath := filepath.Join(t.Env.GetEnvironmentContext(), golangVersionMappingFilePath)
+	spec, err := LoadGolangVersionMappingsFile(mappingFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to load the Golang version mappings file at path %s . Error: %q", golangVersionMappingFilePath, err)
 	}
+	t.Spec = spec
+	if t.GolangConfig.DefaultGoVersion == "" {
+		if len(t.Spec.GolangVersions) != 0 {
+			if _, ok := t.Spec.GolangVersions[0][versionKey]; ok {
+				t.GolangConfig.DefaultGoVersion = t.Spec.GolangVersions[0][versionKey]
+			}
+		}
+	}
+	logrus.Debugf("Extracted Golang versions from Go version mappings file - %+v", t.Spec)
 	return nil
 }
 
@@ -152,15 +183,31 @@ func (t *GolangDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			logrus.Debugf("Didn't find the Go version in the go.mod file at path %s, selecting Go version %s", a.Paths[GolangModFilePathType][0], t.GolangConfig.DefaultGoVersion)
 			modFile.Go.Version = t.GolangConfig.DefaultGoVersion
 		}
+		golangVersionToImageTagMapping := make(map[string]string)
+		for _, golangVersion := range t.Spec.GolangVersions {
+			if imageTag, ok := golangVersion[imageTagKey]; ok {
+				golangVersionToImageTagMapping[golangVersion[versionKey]] = imageTag
+			}
+		}
+		logrus.Debugf("Extracted Golang version-image tag mappings are %+v", golangVersionToImageTagMapping)
+		var golangImageTag string
+		imageTag, ok := golangVersionToImageTagMapping[modFile.Go.Version]
+		if ok {
+			golangImageTag = imageTag
+			logrus.Debugf("Selected Golang image tag is - %s", golangImageTag)
+		} else {
+			golangImageTag = golangVersionToImageTagMapping[t.GolangConfig.DefaultGoVersion]
+			logrus.Warnf("Could not find a matching Golang version in the mapping. Selecting image tag %s corresponding to the default Golang version %s", golangImageTag, t.GolangConfig.DefaultGoVersion)
+		}
 		detectedPorts := ir.GetAllServicePorts()
 		if len(detectedPorts) == 0 {
 			detectedPorts = append(detectedPorts, common.DefaultServicePort)
 		}
 		detectedPorts = commonqa.GetPortsForService(detectedPorts, `"`+a.Name+`"`)
 		golangConfig := GolangTemplateConfig{
-			AppName:   a.Name,
-			Ports:     detectedPorts,
-			GoVersion: modFile.Go.Version,
+			AppName:        a.Name,
+			Ports:          detectedPorts,
+			GolangImageTag: golangImageTag,
 		}
 
 		pathMappings = append(pathMappings, transformertypes.PathMapping{
@@ -198,4 +245,28 @@ func (t *GolangDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		artifactsCreated = append(artifactsCreated, p, dfs)
 	}
 	return pathMappings, artifactsCreated, nil
+}
+
+// LoadGolangVersionMappingsFile loads the Golang version mappings file
+func LoadGolangVersionMappingsFile(mappingFilePath string) (GolangVersionsMappingSpec, error) {
+	mappingFile := GolangVersionsMapping{}
+	if err := common.ReadMove2KubeYaml(mappingFilePath, &mappingFile); err != nil {
+		return mappingFile.Spec, fmt.Errorf("failed to load the Golang versions mapping file at path %s . Error: %q", mappingFilePath, err)
+	}
+	// validate the file
+	if len(mappingFile.Spec.GolangVersions) == 0 {
+		return mappingFile.Spec, fmt.Errorf("the Golang version mappings file at path %s is invalid. Atleast one Go version should be specified", mappingFilePath)
+	}
+	for i, v := range mappingFile.Spec.GolangVersions {
+		if _, ok := v[versionKey]; !ok {
+			return mappingFile.Spec, fmt.Errorf("the Golang version is missing from the object %#v at the %dth index in the array", mappingFile.Spec.GolangVersions[i], i)
+		}
+	}
+	// sort the list using semantic version comparison
+	if !mappingFile.Spec.DisableSort {
+		sort.SliceStable(mappingFile.Spec.GolangVersions, func(i, j int) bool {
+			return semver.Compare(mappingFile.Spec.GolangVersions[i][versionKey], mappingFile.Spec.GolangVersions[j][versionKey]) == 1
+		})
+	}
+	return mappingFile.Spec, nil
 }

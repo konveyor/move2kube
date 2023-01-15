@@ -34,6 +34,7 @@
 "built-in/transformers/dockerfilegenerator/common/Dockerfile.license" : 0644
 "built-in/transformers/dockerfilegenerator/dotnetcore/templates/Dockerfile" : 0644
 "built-in/transformers/dockerfilegenerator/dotnetcore/transformer.yaml" : 0644
+"built-in/transformers/dockerfilegenerator/golang/mappings/golangversions.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/golang/templates/Dockerfile" : 0644
 "built-in/transformers/dockerfilegenerator/golang/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/java/earanalyser/transformer.yaml" : 0644
