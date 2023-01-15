@@ -17,6 +17,8 @@
 package java
 
 import (
+	"strings"
+
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
 	irtypes "github.com/konveyor/move2kube/types/ir"
@@ -62,7 +64,7 @@ func (t *ZuulAnalyser) Init(tc transformertypes.Transformer, env *environment.En
 		}
 		for servicename, routepath := range z.ZuulSpec.RouteSpec {
 			// TODO: routepath (ant style) to regex
-			routepath = routepath[:len(routepath)-2]
+			routepath = strings.TrimSuffix(routepath, "**")
 			t.services[servicename] = routepath
 		}
 	}
