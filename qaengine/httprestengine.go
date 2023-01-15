@@ -193,5 +193,5 @@ func (h *HTTPRESTEngine) postSolutionHandler(w http.ResponseWriter, r *http.Requ
 	}
 	logrus.Debugf("QA Engine set the solution as the answer: %+v", h.currentProblem)
 	w.WriteHeader(http.StatusNoContent)
-	h.answerChan <- h.currentProblem
+	go func() { h.answerChan <- h.currentProblem }()
 }
