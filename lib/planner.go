@@ -27,52 +27,54 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CreatePlan creates the plan from all planners
+// CreatePlan creates the plan using all the tranformers.
 func CreatePlan(ctx context.Context, inputPath, outputPath string, customizationsPath, transformerSelector, prjName string) (plantypes.Plan, error) {
-	logrus.Debugf("Temp Dir : %s", common.TempPath)
-	p := plantypes.NewPlan()
-	p.Name = prjName
+	logrus.Trace("CreatePlan start")
+	defer logrus.Trace("CreatePlan end")
+	logrus.Debugf("common.TempPath: '%s' inputPath: '%s'", common.TempPath, inputPath)
+	plan := plantypes.NewPlan()
+	plan.Name = prjName
 	common.ProjectName = prjName
-	p.Spec.SourceDir = inputPath
-	p.Spec.CustomizationsDir = customizationsPath
+	plan.Spec.SourceDir = inputPath
+	plan.Spec.CustomizationsDir = customizationsPath
 	if customizationsPath != "" {
-		CheckAndCopyCustomizations(customizationsPath)
+		if err := CheckAndCopyCustomizations(customizationsPath); err != nil {
+			return plan, fmt.Errorf("failed to check and copy the customizations. Error: %w", err)
+		}
 	}
 	transformerSelectorObj, err := metav1.ParseToLabelSelector(transformerSelector)
 	if err != nil {
-		return p, fmt.Errorf("failed to parse the transformer selector string. Error: %q", err)
+		return plan, fmt.Errorf("failed to parse the string '%s' as a transformer selector. Error: %w", transformerSelector, err)
 	}
-	p.Spec.TransformerSelector = *transformerSelectorObj
+	plan.Spec.TransformerSelector = *transformerSelectorObj
 
 	lblSelector, err := metav1.LabelSelectorAsSelector(transformerSelectorObj)
 	if err != nil {
-		return p, fmt.Errorf("failed to convert label selector to selector. Error: %q", err)
+		return plan, fmt.Errorf("failed to convert the label selector to a selector. Error: %w", err)
 	}
-	deselectedTransformers, err := transformer.Init(common.AssetsPath, inputPath, lblSelector, outputPath, p.Name)
+	deselectedTransformers, err := transformer.Init(common.AssetsPath, inputPath, lblSelector, outputPath, plan.Name)
 	if err != nil {
-		return p, fmt.Errorf("failed to initialize the transformers. Error: %q", err)
+		return plan, fmt.Errorf("failed to initialize the transformers. Error: %w", err)
 	}
-	p.Spec.DisabledTransformers = deselectedTransformers
-	ts := transformer.GetInitializedTransformers()
-	for _, t := range ts {
-		config, _ := t.GetConfig()
-		p.Spec.Transformers[config.Name] = config.Spec.FilePath
-
-		// add default transformers to the plan file
+	plan.Spec.DisabledTransformers = deselectedTransformers
+	transformers := transformer.GetInitializedTransformers()
+	for _, transformer := range transformers {
+		config, _ := transformer.GetConfig()
+		plan.Spec.Transformers[config.Name] = config.Spec.TransformerYamlPath
 		if config.Spec.InvokedByDefault.Enabled {
-			p.Spec.InvokedByDefaultTransformers = append(p.Spec.InvokedByDefaultTransformers, config.Name)
+			logrus.Debugf("adding a default transformer to the plan file: %+v", config)
+			plan.Spec.InvokedByDefaultTransformers = append(plan.Spec.InvokedByDefaultTransformers, config.Name)
 		}
 	}
-	logrus.Infoln("Configuration loading done")
+	logrus.Info("Configuration loading done")
 
-	logrus.Infoln("Start planning")
+	logrus.Info("Start planning")
 	if inputPath != "" {
-		p.Spec.Services, err = transformer.GetServices(p.Name, inputPath)
+		plan.Spec.Services, err = transformer.GetServices(plan.Name, inputPath)
 		if err != nil {
-			logrus.Errorf("Unable to create plan : %s", err)
+			return plan, fmt.Errorf("failed to get services from the input directory '%s' . Error: %w", inputPath, err)
 		}
 	}
-	logrus.Infoln("Planning done")
-	logrus.Infof("No of services identified : %d", len(p.Spec.Services))
-	return p, nil
+	logrus.Infof("Planning done. Number of services identified: %d", len(plan.Spec.Services))
+	return plan, nil
 }

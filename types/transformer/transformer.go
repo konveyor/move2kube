@@ -33,20 +33,20 @@ type Transformer struct {
 
 // TransformerSpec stores the data
 type TransformerSpec struct {
-	FilePath           string                                 `yaml:"-" json:"-"`
-	Class              string                                 `yaml:"class" json:"class"`
-	Isolated           bool                                   `yaml:"isolated" json:"isolated"`
-	DirectoryDetect    DirectoryDetect                        `yaml:"directoryDetect" json:"directoryDetect"`
-	ExternalFiles      map[string]string                      `yaml:"externalFiles" json:"externalFiles"` // [source]destination
-	ConsumedArtifacts  map[ArtifactType]ArtifactProcessConfig `yaml:"consumes" json:"consumes"`
-	ProducedArtifacts  map[ArtifactType]ProducedArtifact      `yaml:"produces" json:"produces"`
-	Dependency         interface{}                            `yaml:"dependency" json:"dependency"` // metav1.LabelSelector
-	Override           interface{}                            `yaml:"override" json:"override"`     // metav1.LabelSelector
-	DependencySelector labels.Selector                        `yaml:"-" json:"-"`
-	OverrideSelector   labels.Selector                        `yaml:"-" json:"-"`
-	TemplatesDir       string                                 `yaml:"templates" json:"templates"` // Relative to yaml directory or working directory in image
-	Config             interface{}                            `yaml:"config" json:"config"`
-	InvokedByDefault   InvokedByDefault                       `yaml:"invokedByDefault" json:"invokedByDefault"`
+	TransformerYamlPath string                                 `yaml:"-" json:"-"`
+	Class               string                                 `yaml:"class" json:"class"`
+	Isolated            bool                                   `yaml:"isolated" json:"isolated"`
+	DirectoryDetect     DirectoryDetect                        `yaml:"directoryDetect" json:"directoryDetect"`
+	ExternalFiles       map[string]string                      `yaml:"externalFiles" json:"externalFiles"` // [source]destination
+	ConsumedArtifacts   map[ArtifactType]ArtifactProcessConfig `yaml:"consumes" json:"consumes"`
+	ProducedArtifacts   map[ArtifactType]ProducedArtifact      `yaml:"produces" json:"produces"`
+	Dependency          interface{}                            `yaml:"dependency" json:"dependency"` // metav1.LabelSelector
+	Override            interface{}                            `yaml:"override" json:"override"`     // metav1.LabelSelector
+	DependencySelector  labels.Selector                        `yaml:"-" json:"-"`
+	OverrideSelector    labels.Selector                        `yaml:"-" json:"-"`
+	TemplatesDir        string                                 `yaml:"templates" json:"templates"` // Relative to yaml directory or working directory in image
+	Config              interface{}                            `yaml:"config" json:"config"`
+	InvokedByDefault    InvokedByDefault                       `yaml:"invokedByDefault" json:"invokedByDefault"`
 }
 
 // InvokedByDefault stores config to toggle transformers invoke by default

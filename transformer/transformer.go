@@ -140,8 +140,8 @@ func RegisterTransformer(tf Transformer) error {
 	t := reflect.TypeOf(tval.Interface()).Elem()
 	tn := t.Name()
 	if ot, ok := transformerTypes[tn]; ok {
-		logrus.Errorf("Two transformer classes have the same name %s : %T, %T; Ignoring %T", tn, ot, t, t)
-		return fmt.Errorf("couldn't register transformer %s because a transformer with that name already exists", tn)
+		logrus.Errorf("Two transformer classes have the same name '%s' : %T , %T; Ignoring %T", tn, ot, t, t)
+		return fmt.Errorf("couldn't register transformer '%s' because a transformer with that name already exists", tn)
 	}
 	transformerTypes[tn] = t
 	return nil
@@ -149,32 +149,38 @@ func RegisterTransformer(tf Transformer) error {
 
 // Init initializes the transformers
 func Init(assetsPath, sourcePath string, selector labels.Selector, outputPath, projName string) (map[string]string, error) {
-	filePaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
+	yamlPaths, err := common.GetFilesByExt(assetsPath, []string{".yml", ".yaml"})
 	if err != nil {
-		return nil, fmt.Errorf("failed to look for yaml files in the directory %s . Error: %q", assetsPath, err)
+		return nil, fmt.Errorf("failed to look for yaml files in the directory '%s' . Error: %w", assetsPath, err)
 	}
-	transformerFiles := map[string]string{}
-	for _, filePath := range filePaths {
-		tc, err := getTransformerConfig(filePath)
+	transformerYamlPaths := map[string]string{}
+	for _, yamlPath := range yamlPaths {
+		tc, err := getTransformerConfig(yamlPath)
 		if err != nil {
-			logrus.Debugf("failed to load the transformer config file at path %s . Error: %q", filePath, err)
+			logrus.Debugf("failed to load the transformer config file at path '%s' . Error: %w", yamlPath, err)
 			continue
 		}
-		if otc, ok := transformerFiles[tc.Name]; ok {
-			logrus.Warnf("Duplicate transformer configs with same name %s found. Ignoring %s in favor of %s", tc.Name, otc, filePath)
+		if otc, ok := transformerYamlPaths[tc.Name]; ok {
+			logrus.Warnf("Duplicate transformer configs with same name '%s' found. Ignoring '%s' in favor of '%s'", tc.Name, otc, yamlPath)
 		}
-		transformerFiles[tc.Name] = filePath
+		transformerYamlPaths[tc.Name] = yamlPath
 	}
-	deselectedTransformers, err := InitTransformers(transformerFiles, selector, sourcePath, outputPath, projName, false, false)
+	deselectedTransformers, err := InitTransformers(transformerYamlPaths, selector, sourcePath, outputPath, projName, false, false)
 	if err != nil {
-		return deselectedTransformers, fmt.Errorf("failed to initialize the transformers. Error: %q", err)
+		return deselectedTransformers, fmt.Errorf(
+			"failed to initialize the transformers using the source path '%s' and the output path '%s' . Error: %w",
+			sourcePath, outputPath, err,
+		)
 	}
 	return deselectedTransformers, nil
 }
 
 // InitTransformers initializes a subset of transformers
-func InitTransformers(transformerToInit map[string]string, selector labels.Selector, sourcePath, outputPath, projName string, logError, preExistingPlan bool) (map[string]string, error) {
+func InitTransformers(transformerYamlPaths map[string]string, selector labels.Selector, sourcePath, outputPath, projName string, logError, preExistingPlan bool) (map[string]string, error) {
+	logrus.Trace("InitTransformers start")
+	defer logrus.Trace("InitTransformers end")
 	if initialized {
+		logrus.Debug("already initialized")
 		return nil, nil
 	}
 	transformerFilterString := qaengine.FetchStringAnswer(
@@ -192,26 +198,19 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 			selector = selector.Add(reqs...)
 		}
 	}
-	transformerConfigs := getFilteredTransformers(transformerToInit, selector, logError)
+	transformerConfigs := getFilteredTransformers(transformerYamlPaths, selector, logError)
 	deselectedTransformers := map[string]string{}
-	for t, tpath := range transformerToInit {
-		found := false
-		for k := range transformerConfigs {
-			if k == t {
-				found = true
-				break
-			}
-		}
-		if !found {
-			deselectedTransformers[t] = tpath
+	for transformerName, transformerPath := range transformerYamlPaths {
+		if _, ok := transformerConfigs[transformerName]; !ok {
+			deselectedTransformers[transformerName] = transformerPath
 		}
 	}
 	transformerNames := []string{}
-	defaultSelectedTransformerNames := []string{}
+	transformerNamesSelectedByDefault := []string{}
 	for transformerName, t := range transformerConfigs {
 		transformerNames = append(transformerNames, transformerName)
 		if v, ok := t.ObjectMeta.Labels[DEFAULT_SELECTED_LABEL]; !ok || cast.ToBool(v) {
-			defaultSelectedTransformerNames = append(defaultSelectedTransformerNames, transformerName)
+			transformerNamesSelectedByDefault = append(transformerNamesSelectedByDefault, transformerName)
 		}
 	}
 	sort.Strings(transformerNames)
@@ -219,13 +218,13 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		common.ConfigTransformerTypesKey,
 		"Select all transformer types that you are interested in:",
 		[]string{"Services that don't support any of the transformer types you are interested in will be ignored."},
-		defaultSelectedTransformerNames,
+		transformerNamesSelectedByDefault,
 		transformerNames,
 		nil,
 	)
-	for _, t := range transformerNames {
-		if !common.IsPresent(selectedTransformerNames, t) {
-			deselectedTransformers[t] = transformerToInit[t]
+	for _, transformerName := range transformerNames {
+		if !common.IsPresent(selectedTransformerNames, transformerName) {
+			deselectedTransformers[transformerName] = transformerYamlPaths[transformerName]
 		}
 	}
 	for _, selectedTransformerName := range selectedTransformerNames {
@@ -236,11 +235,11 @@ func InitTransformers(transformerToInit map[string]string, selector labels.Selec
 		}
 		transformerClass, ok := transformerTypes[transformerConfig.Spec.Class]
 		if !ok {
-			logrus.Errorf("failed to find the transformer class %s . Valid transformer classes are: %+v", transformerConfig.Spec.Class, transformerTypes)
+			logrus.Errorf("failed to find the transformer class '%s' . Valid transformer classes are: %+v", transformerConfig.Spec.Class, transformerTypes)
 			continue
 		}
 		transformer := reflect.New(transformerClass).Interface().(Transformer)
-		transformerContextPath := filepath.Dir(transformerConfig.Spec.FilePath)
+		transformerContextPath := filepath.Dir(transformerConfig.Spec.TransformerYamlPath)
 		envInfo := environment.EnvInfo{
 			Name:            transformerConfig.Name,
 			ProjectName:     projName,
