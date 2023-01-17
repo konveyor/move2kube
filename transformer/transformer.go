@@ -157,7 +157,7 @@ func Init(assetsPath, sourcePath string, selector labels.Selector, outputPath, p
 	for _, yamlPath := range yamlPaths {
 		tc, err := getTransformerConfig(yamlPath)
 		if err != nil {
-			logrus.Debugf("failed to load the transformer config file at path '%s' . Error: %w", yamlPath, err)
+			logrus.Debugf("failed to load the transformer config file at path '%s' . Error: %q", yamlPath, err)
 			continue
 		}
 		if otc, ok := transformerYamlPaths[tc.Name]; ok {

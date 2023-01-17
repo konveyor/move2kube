@@ -52,11 +52,11 @@ func getTransformerConfig(transformerYamlPath string) (transformertypes.Transfor
 	tc.Labels[transformertypes.LabelName] = tc.Name
 	var err error
 	if tc.Spec.OverrideSelector, err = getSelectorFromInterface(tc.Spec.Override); err != nil {
-		logrus.Errorf("failed to parse the override selector for the transformer '%s' , Ignoring selector: %+v . Error: %w", tc.Name, tc.Spec.Override, err)
+		logrus.Errorf("failed to parse the override selector for the transformer '%s' , Ignoring selector: %+v . Error: %q", tc.Name, tc.Spec.Override, err)
 		tc.Spec.OverrideSelector = nil
 	}
 	if tc.Spec.DependencySelector, err = getSelectorFromInterface(tc.Spec.Dependency); err != nil {
-		logrus.Errorf("failed to parse the dependency selector for the transformer '%s' , Ignoring selector: %+v . Error: %w", tc.Name, tc.Spec.Dependency, err)
+		logrus.Errorf("failed to parse the dependency selector for the transformer '%s' , Ignoring selector: %+v . Error: %q", tc.Name, tc.Spec.Dependency, err)
 		tc.Spec.DependencySelector = nil
 	}
 	// TODO: Add check for consistency between consumes and produces
