@@ -72,6 +72,8 @@ const (
 const (
 	// DEFAULT_SELECTED_LABEL is a label that can be used to remove a transformer from the list of transformers that are selected by default.
 	DEFAULT_SELECTED_LABEL = types.GroupName + "/default-selected"
+	// CONTAINER_BASED_LABEL is a label that indicates that the transformer needs to spawn containers to run.
+	CONTAINER_BASED_LABEL = types.GroupName + "/container-based"
 )
 
 var (
@@ -262,7 +264,7 @@ func InitTransformers(transformerYamlPaths map[string]string, selector labels.Se
 			}
 		}
 		if preExistingPlan {
-			if v, ok := transformerConfig.Labels["move2kube.konveyor.io/container-based"]; ok && cast.ToBool(v) {
+			if v, ok := transformerConfig.Labels[CONTAINER_BASED_LABEL]; ok && cast.ToBool(v) {
 				envInfo.SpawnContainers = true
 			}
 		}
