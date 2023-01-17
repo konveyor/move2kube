@@ -43,6 +43,8 @@ type Local struct {
 
 // NewLocal creates a new Local environment
 func NewLocal(envInfo EnvInfo, grpcQAReceiver net.Addr) (EnvironmentInstance, error) {
+	logrus.Trace("NewLocal start")
+	defer logrus.Trace("NewLocal end")
 	local := &Local{
 		EnvInfo:        envInfo,
 		GRPCQAReceiver: grpcQAReceiver,
@@ -72,10 +74,12 @@ func NewLocal(envInfo EnvInfo, grpcQAReceiver net.Addr) (EnvironmentInstance, er
 func (e *Local) Reset() error {
 	if e.Isolated {
 		if err := filesystem.Replicate(e.Context, e.WorkspaceContext); err != nil {
-			return fmt.Errorf("failed to copy contents to directory %s, %s . Error: %w", e.Context, e.WorkspaceContext, err)
+			return fmt.Errorf("failed to copy contents from '%s' to directory '%s' . Error: %w", e.Context, e.WorkspaceContext, err)
 		}
-		if err := filesystem.Replicate(e.Source, e.WorkspaceSource); err != nil {
-			return fmt.Errorf("failed to copy contents to directory %s, %s . Error: %w", e.Source, e.WorkspaceSource, err)
+		if e.Source != "" {
+			if err := filesystem.Replicate(e.Source, e.WorkspaceSource); err != nil {
+				return fmt.Errorf("failed to copy contents from '%s' to directory '%s' . Error: %w", e.Source, e.WorkspaceSource, err)
+			}
 		}
 	}
 	return nil
