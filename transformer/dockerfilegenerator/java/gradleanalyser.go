@@ -907,9 +907,11 @@ func getDeploymentFilePathFromGradle(gradleBuild *gradle.Gradle, buildScriptPath
 
 	if common.IsPresent(gradleBuild.GetPluginIDs(), gradleShadowJarPluginC) {
 		archiveClassifier = gradleShadowJarPluginDefaultClassifierC
-		if gb2, ok := gradleBuild.Blocks[gradleShadowJarPluginBlockC]; ok {
-			updateArchiveNameFromJarBlock(gb2)
-		}
+		if gradleBuild.Blocks != nil {
+			if gb2, ok := gradleBuild.Blocks[gradleShadowJarPluginBlockC]; ok {
+				updateArchiveNameFromJarBlock(gb2)
+			}
+		}	
 	}
 
 	rootGradlePropertiesPaths, err := common.GetFilesInCurrentDirectory(serviceDir, []string{"gradle.properties"}, nil)
@@ -934,9 +936,10 @@ func getDeploymentFilePathFromGradle(gradleBuild *gradle.Gradle, buildScriptPath
 	}
 
 	// third we look in the jar/war/ear block to override the archive name
-
-	if gb1, ok := gradleBuild.Blocks[string(packagingType)]; ok {
-		updateArchiveNameFromJarBlock(gb1)
+	if gradleBuild.Blocks != nil {
+		if gb1, ok := gradleBuild.Blocks[string(packagingType)]; ok {
+			updateArchiveNameFromJarBlock(gb1)
+		}
 	}
 	if archivePath != "" {
 		return filepath.Join(serviceDir, archivePath), nil
