@@ -609,12 +609,14 @@ func getDeploymentFilePathFromPom(pom *maven.Pom, pomFileDir string) (string, er
 		if pom.Build.FinalName != "" {
 			return filepath.Join(pomFileDir, MAVEN_DEFAULT_BUILD_DIR, pom.Build.FinalName+"."+packaging), nil
 		}
-		for _, plugin := range *pom.Build.Plugins {
-			if plugin.ArtifactID != MAVEN_COMPILER_PLUGIN {
-				continue
-			}
-			if plugin.Configuration.FinalName != "" {
-				return filepath.Join(pomFileDir, MAVEN_DEFAULT_BUILD_DIR, plugin.Configuration.FinalName+"."+packaging), nil
+		if pom.Build.Plugins != nil {
+			for _, plugin := range *pom.Build.Plugins {
+				if plugin.ArtifactID != MAVEN_COMPILER_PLUGIN {
+					continue
+				}
+				if plugin.Configuration.FinalName != "" {
+					return filepath.Join(pomFileDir, MAVEN_DEFAULT_BUILD_DIR, plugin.Configuration.FinalName+"."+packaging), nil
+				}
 			}
 		}
 	}
