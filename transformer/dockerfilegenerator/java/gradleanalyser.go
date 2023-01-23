@@ -750,7 +750,7 @@ func (t *GradleAnalyser) getJavaPackage(javaVersion string) (string, error) {
 
 // getJavaVersionFromGradle finds the java version from a gradle build script (build.gradle).
 func getJavaVersionFromGradle(buildGradleFile *gradle.Gradle) string {
-	if buildGradleFile == nil && buildGradleFile.Blocks == nil {
+	if buildGradleFile == nil || buildGradleFile.Blocks == nil {
 		return ""
 	}
 	// https://docs.gradle.org/current/userguide/java_plugin.html#sec:java-extension
