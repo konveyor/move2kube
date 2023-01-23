@@ -609,12 +609,14 @@ func getDeploymentFilePathFromPom(pom *maven.Pom, pomFileDir string) (string, er
 		if pom.Build.FinalName != "" {
 			return filepath.Join(pomFileDir, MAVEN_DEFAULT_BUILD_DIR, pom.Build.FinalName+"."+packaging), nil
 		}
-		for _, plugin := range *pom.Build.Plugins {
-			if plugin.ArtifactID != MAVEN_COMPILER_PLUGIN {
-				continue
-			}
-			if plugin.Configuration.FinalName != "" {
-				return filepath.Join(pomFileDir, MAVEN_DEFAULT_BUILD_DIR, plugin.Configuration.FinalName+"."+packaging), nil
+		if pom.Build.Plugins != nil {
+			for _, plugin := range *pom.Build.Plugins {
+				if plugin.ArtifactID != MAVEN_COMPILER_PLUGIN {
+					continue
+				}
+				if plugin.Configuration.FinalName != "" {
+					return filepath.Join(pomFileDir, MAVEN_DEFAULT_BUILD_DIR, plugin.Configuration.FinalName+"."+packaging), nil
+				}
 			}
 		}
 	}
@@ -629,7 +631,7 @@ func getJavaVersionFromPom(pom *maven.Pom) string {
 	if pom == nil {
 		return ""
 	}
-	if pom.Properties != nil {
+	if pom.Properties != nil && pom.Properties.Entries != nil {
 		jv, ok := pom.Properties.Entries["java.version"]
 		if ok && jv != "" {
 			return jv
@@ -643,7 +645,7 @@ func getJavaVersionFromPom(pom *maven.Pom) string {
 			return jv
 		}
 	}
-	if pom.Build.Plugins != nil {
+	if pom.Build != nil && pom.Build.Plugins != nil {
 		for _, plugin := range *pom.Build.Plugins {
 			if plugin.ArtifactID == MAVEN_COMPILER_PLUGIN {
 				if plugin.Configuration.Target != "" {

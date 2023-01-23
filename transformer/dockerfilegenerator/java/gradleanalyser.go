@@ -750,13 +750,13 @@ func (t *GradleAnalyser) getJavaPackage(javaVersion string) (string, error) {
 
 // getJavaVersionFromGradle finds the java version from a gradle build script (build.gradle).
 func getJavaVersionFromGradle(buildGradleFile *gradle.Gradle) string {
-	if buildGradleFile == nil {
+	if buildGradleFile == nil || buildGradleFile.Blocks == nil {
 		return ""
 	}
 	// https://docs.gradle.org/current/userguide/java_plugin.html#sec:java-extension
 	if gb, ok := buildGradleFile.Blocks["java"]; ok {
 		if gbb, ok := gb.Blocks["toolchain"]; ok {
-			if len(gbb.Metadata[languageVersionC]) > 0 {
+			if gbb.Metadata != nil && len(gbb.Metadata[languageVersionC]) > 0 {
 				ss := gradle.GetSingleArgumentFromFuntionCall(gbb.Metadata[languageVersionC][0], "JavaLanguageVersion.of")
 				gradleJavaVersion, err := cast.ToIntE(ss)
 				if err != nil {
@@ -768,7 +768,7 @@ func getJavaVersionFromGradle(buildGradleFile *gradle.Gradle) string {
 				}
 				return cast.ToString(gradleJavaVersion)
 			}
-		} else {
+		} else if gb.Metadata != nil {
 			sourceOrTargetVersions := gb.Metadata[targetCompatibilityC]
 			if len(sourceOrTargetVersions) == 0 {
 				sourceOrTargetVersions = gb.Metadata[sourceCompatibilityC]
@@ -812,6 +812,9 @@ func getDeploymentFilePathFromGradle(gradleBuild *gradle.Gradle, buildScriptPath
 	}
 
 	updateArchiveNameFromJarBlock := func(gb gradle.Gradle) {
+		if gb.Metadata == nil {
+			return
+		}
 		// https://docs.gradle.org/current/dsl/org.gradle.api.tasks.bundling.Jar.html#org.gradle.api.tasks.bundling.Jar:archiveFile
 		if len(gb.Metadata[archiveFileC]) > 0 {
 			archivePath = gb.Metadata[archiveFileC][0]
@@ -904,9 +907,11 @@ func getDeploymentFilePathFromGradle(gradleBuild *gradle.Gradle, buildScriptPath
 
 	if common.IsPresent(gradleBuild.GetPluginIDs(), gradleShadowJarPluginC) {
 		archiveClassifier = gradleShadowJarPluginDefaultClassifierC
-		if gb2, ok := gradleBuild.Blocks[gradleShadowJarPluginBlockC]; ok {
-			updateArchiveNameFromJarBlock(gb2)
-		}
+		if gradleBuild.Blocks != nil {
+			if gb2, ok := gradleBuild.Blocks[gradleShadowJarPluginBlockC]; ok {
+				updateArchiveNameFromJarBlock(gb2)
+			}
+		}	
 	}
 
 	rootGradlePropertiesPaths, err := common.GetFilesInCurrentDirectory(serviceDir, []string{"gradle.properties"}, nil)
@@ -931,9 +936,10 @@ func getDeploymentFilePathFromGradle(gradleBuild *gradle.Gradle, buildScriptPath
 	}
 
 	// third we look in the jar/war/ear block to override the archive name
-
-	if gb1, ok := gradleBuild.Blocks[string(packagingType)]; ok {
-		updateArchiveNameFromJarBlock(gb1)
+	if gradleBuild.Blocks != nil {
+		if gb1, ok := gradleBuild.Blocks[string(packagingType)]; ok {
+			updateArchiveNameFromJarBlock(gb1)
+		}
 	}
 	if archivePath != "" {
 		return filepath.Join(serviceDir, archivePath), nil
