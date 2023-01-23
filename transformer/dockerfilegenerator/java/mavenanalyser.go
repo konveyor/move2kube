@@ -631,7 +631,7 @@ func getJavaVersionFromPom(pom *maven.Pom) string {
 	if pom == nil {
 		return ""
 	}
-	if pom.Properties != nil {
+	if pom.Properties != nil && pom.Properties.Entries != nil {
 		jv, ok := pom.Properties.Entries["java.version"]
 		if ok && jv != "" {
 			return jv
