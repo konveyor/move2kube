@@ -756,7 +756,7 @@ func getJavaVersionFromGradle(buildGradleFile *gradle.Gradle) string {
 	// https://docs.gradle.org/current/userguide/java_plugin.html#sec:java-extension
 	if gb, ok := buildGradleFile.Blocks["java"]; ok {
 		if gbb, ok := gb.Blocks["toolchain"]; ok {
-			if len(gbb.Metadata[languageVersionC]) > 0 {
+			if gbb.Metadata != nil && len(gbb.Metadata[languageVersionC]) > 0 {
 				ss := gradle.GetSingleArgumentFromFuntionCall(gbb.Metadata[languageVersionC][0], "JavaLanguageVersion.of")
 				gradleJavaVersion, err := cast.ToIntE(ss)
 				if err != nil {
@@ -812,6 +812,9 @@ func getDeploymentFilePathFromGradle(gradleBuild *gradle.Gradle, buildScriptPath
 	}
 
 	updateArchiveNameFromJarBlock := func(gb gradle.Gradle) {
+		if gb.Metadata == nil {
+			return
+		}
 		// https://docs.gradle.org/current/dsl/org.gradle.api.tasks.bundling.Jar.html#org.gradle.api.tasks.bundling.Jar:archiveFile
 		if len(gb.Metadata[archiveFileC]) > 0 {
 			archivePath = gb.Metadata[archiveFileC][0]
