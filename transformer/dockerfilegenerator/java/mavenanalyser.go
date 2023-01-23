@@ -643,7 +643,7 @@ func getJavaVersionFromPom(pom *maven.Pom) string {
 			return jv
 		}
 	}
-	if pom.Build.Plugins != nil {
+	if pom.Build != nil && pom.Build.Plugins != nil {
 		for _, plugin := range *pom.Build.Plugins {
 			if plugin.ArtifactID == MAVEN_COMPILER_PLUGIN {
 				if plugin.Configuration.Target != "" {
