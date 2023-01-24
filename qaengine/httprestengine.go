@@ -173,25 +173,25 @@ func (h *HTTPRESTEngine) postSolutionHandler(w http.ResponseWriter, r *http.Requ
 	// Read out the solution
 	var prob qatypes.Problem
 	if err := json.NewDecoder(r.Body).Decode(&prob); err != nil {
-		errstr := fmt.Sprintf("failed to decode the request body as solution json. Error: %q", err)
-		http.Error(w, errstr, http.StatusBadRequest)
-		logrus.Errorf(errstr)
+		newErr := fmt.Errorf("failed to decode the request body as solution json. Error: %w", err)
+		http.Error(w, newErr.Error(), http.StatusBadRequest)
+		logrus.Error(newErr.Error())
 		return
 	}
 	logrus.Debugf("QA Engine received the solution: %+v", prob)
 	if h.currentProblem.ID != prob.ID {
-		errstr := fmt.Sprintf("the solution's problem ID doesn't match the current problem. Expected: '%s' Actual '%s'", h.currentProblem.ID, prob.ID)
-		http.Error(w, errstr, http.StatusNotAcceptable)
-		logrus.Errorf(errstr)
+		err := fmt.Errorf("the solution's problem ID doesn't match the current problem. Expected: '%s' Actual '%s'", h.currentProblem.ID, prob.ID)
+		http.Error(w, err.Error(), http.StatusNotAcceptable)
+		logrus.Error(err.Error())
 		return
 	}
 	if err := h.currentProblem.SetAnswer(prob.Answer, true); err != nil {
-		errstr := fmt.Sprintf("failed to set the solution as the answer. Error: %q", err)
-		http.Error(w, errstr, http.StatusNotAcceptable)
-		logrus.Errorf(errstr)
+		newErr := fmt.Errorf("failed to set the given solution as the answer. Error: %w", err)
+		http.Error(w, newErr.Error(), http.StatusNotAcceptable)
+		logrus.Error(newErr.Error())
 		return
 	}
-	logrus.Debugf("QA Engine set the solution as the answer: %+v", h.currentProblem)
+	logrus.Debugf("QA Engine set the given solution as the answer: %+v", h.currentProblem)
 	w.WriteHeader(http.StatusNoContent)
 	go func() { h.answerChan <- h.currentProblem }()
 }

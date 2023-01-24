@@ -111,23 +111,27 @@ func SetupConfigFile(writeConfigFile string, configStrings, configFiles, presets
 
 // FetchAnswer fetches the answer for the question
 func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
+	logrus.Trace("FetchAnswer start")
+	defer logrus.Trace("FetchAnswer end")
 	logrus.Debugf("Fetching answer for the problem: %#v", prob)
 	if prob.Answer != nil {
 		logrus.Debugf("Problem already solved.")
 		return prob, nil
 	}
 	var err error
-	for _, e := range engines {
-		if prob.Desc == "" && e.IsInteractiveEngine() {
+	logrus.Debug("looping through the engines to try and fetch the answer")
+	for _, engine := range engines {
+		logrus.Debugf("engine '%T'", engine)
+		if prob.Desc == "" && engine.IsInteractiveEngine() {
 			return defaultEngine.FetchAnswer(prob)
 		}
-		prob, err = e.FetchAnswer(prob)
+		prob, err = engine.FetchAnswer(prob)
 		if err != nil {
 			if _, ok := err.(*qatypes.ValidationError); ok {
-				logrus.Errorf("Error while fetching answer using engine %T Error: %q", e, err)
+				logrus.Errorf("failed to fetch the answer using the engine '%T' . Error: %q", engine, err)
 				continue
 			}
-			logrus.Debugf("Error while fetching answer using engine %T Error: %q", e, err)
+			logrus.Debugf("failed to fetch the answer using the engine '%T' . Error: %q", engine, err)
 			continue
 		}
 		if prob.Answer != nil {
@@ -136,18 +140,20 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 		}
 	}
 	if err != nil || prob.Answer == nil {
+		logrus.Debugf("the answer is nil: '%+v' or there was an error: %q , checking if the problem is valid", prob.Answer, err)
 		if err := ValidateProblem(prob); err != nil {
-			return prob, fmt.Errorf("the QA problem object is invalid: %+v\nError: %q", prob, err)
+			return prob, fmt.Errorf("the QA problem object is invalid: %+v . Error: %w", prob, err)
 		}
-		// loop using interactive engine until we get an answer
+		logrus.Debug("loop using interactive engine until we get an answer")
 		lastEngine := engines[len(engines)-1]
 		if !lastEngine.IsInteractiveEngine() {
-			return prob, fmt.Errorf("failed to fetch the answer for problem\n%+v\nError: %q", prob, err)
+			logrus.Debug("there is no interactive engine")
+			return prob, fmt.Errorf("failed to fetch the answer for problem: %+v . Error: %w", prob, err)
 		}
 		for err != nil || prob.Answer == nil {
 			prob, err = lastEngine.FetchAnswer(prob)
 			if err != nil {
-				logrus.Errorf("Unable to get answer to %s Error: %q", prob.Desc, err)
+				logrus.Errorf("failed to fetch the answer for the problem: '%s' , trying again. Error: %q", prob.Desc, err)
 				continue
 			}
 			if prob.Answer != nil {

@@ -17,6 +17,8 @@
 package qaengine
 
 import (
+	"fmt"
+
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 )
 
@@ -34,10 +36,12 @@ func (se *StoreEngine) StartEngine() error {
 func (se *StoreEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	problem, err := se.store.GetSolution(prob)
 	if err != nil {
-		return problem, err
+		return problem, fmt.Errorf("failed to get the solution. Error: %w", err)
 	}
-	err = problem.SetAnswer(problem.Answer, true)
-	return problem, err
+	if err := problem.SetAnswer(problem.Answer, true); err != nil {
+		return problem, fmt.Errorf("failed to set the given solution as the answer. Error: %w", err)
+	}
+	return problem, nil
 }
 
 // IsInteractiveEngine returns true if the engine interacts with the user

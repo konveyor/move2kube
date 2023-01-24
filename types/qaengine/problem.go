@@ -151,6 +151,8 @@ func ArrayToInterface(ans []string, problemType SolutionFormType) (ansI interfac
 
 // SetAnswer sets the answer
 func (p *Problem) SetAnswer(ansI interface{}, validate bool) error {
+	logrus.Trace("Problem.SetAnswer start")
+	defer logrus.Trace("Problem.SetAnswer end")
 	if ansI == nil {
 		return fmt.Errorf("the answer is nil")
 	}
@@ -166,8 +168,8 @@ func (p *Problem) SetAnswer(ansI interface{}, validate bool) error {
 			return fmt.Errorf("expected answer to be string. Actual value %+v is of type %T", ansI, ansI)
 		}
 		if p.Type == SelectSolutionFormType {
-			if !common.IsPresent(p.Options, ans) {
-				return fmt.Errorf("no matching value in options for %s", ans)
+			if !common.IsPresent(p.Options, ans) && !common.IsPresent(p.Options, OtherAnswer) {
+				return fmt.Errorf("the answer '%s' has no matching value in the options", ans)
 			}
 		}
 		p.Answer = ans
@@ -186,7 +188,7 @@ func (p *Problem) SetAnswer(ansI interface{}, validate bool) error {
 		filteredAns := []string{}
 		for _, a := range ans {
 			if !common.IsPresent(p.Options, a) {
-				logrus.Debugf("No matching value in options for %s. Ignoring.", a)
+				logrus.Debugf("the answer '%s' has no matching value in the options. Ignoring", a)
 				continue
 			}
 			filteredAns = append(filteredAns, a)

@@ -17,6 +17,8 @@
 package qaengine
 
 import (
+	"fmt"
+
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 )
 
@@ -40,7 +42,9 @@ func (*DefaultEngine) IsInteractiveEngine() bool {
 }
 
 // FetchAnswer fetches the default answers
-func (*DefaultEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
-	err := prob.SetAnswer(prob.Default, true)
-	return prob, err
+func (*DefaultEngine) FetchAnswer(problem qatypes.Problem) (qatypes.Problem, error) {
+	if err := problem.SetAnswer(problem.Default, true); err != nil {
+		return problem, fmt.Errorf("failed to set the given solution as the answer. Error: %w", err)
+	}
+	return problem, nil
 }
