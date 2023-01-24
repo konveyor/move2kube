@@ -36,7 +36,7 @@ func ImageRegistry() string {
 	defaultRegistryURL := "quay.io"
 	registryList := []string{qatypes.OtherAnswer}
 	registryAuthList := map[string]string{} //Registry url and auth
-	defreg := ""
+	defaultRegistry := ""
 	if !common.IgnoreEnvironment {
 		configFile, err := dockercliconfig.Load(dockercliconfig.Dir())
 		if err == nil {
@@ -52,17 +52,24 @@ func ImageRegistry() string {
 				}
 				registryList = common.AppendIfNotPresent(registryList, regurl)
 				if regauth.Auth != "" {
-					defreg = regurl
+					defaultRegistry = regurl
 					registryAuthList[regurl] = regauth.Auth
 				}
 			}
 		}
 	}
 	registryList = common.AppendIfNotPresent(registryList, defaultRegistryURL)
-	if defreg == "" {
-		defreg = defaultRegistryURL
+	if defaultRegistry == "" {
+		defaultRegistry = defaultRegistryURL
 	}
-	return qaengine.FetchSelectAnswer(common.ConfigImageRegistryURLKey, "Enter the URL of the image registry where the new images should be pushed : ", []string{"You can always change it later by changing the yamls."}, defreg, registryList, nil)
+	return qaengine.FetchSelectAnswer(
+		common.ConfigImageRegistryURLKey,
+		"Enter the URL of the image registry where the new images should be pushed : ",
+		[]string{"You can always change it later by changing the yamls."},
+		defaultRegistry,
+		registryList,
+		nil,
+	)
 }
 
 // ImageRegistryNamespace returns Image Registry Namespace
