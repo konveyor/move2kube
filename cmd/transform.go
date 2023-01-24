@@ -218,7 +218,7 @@ func GetTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringVar(&flags.qaCacheOut, qaCacheOutFlag, ".", "Specify cache file output location.")
 	transformCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations. By default we look for "+common.DefaultConfigFilePath)
 	transformCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use.")
-	transformCmd.Flags().BoolVar(&flags.persistPasswords, qaPersistPasswords, false, "Stores passwords too in the config.")
+	transformCmd.Flags().BoolVar(&flags.persistPasswords, qaPersistPasswords, false, "Store passwords in the config and cache. By default passwords are not persisted.")
 	transformCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs.")
 	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored. By default we look for "+common.DefaultCustomizationDir)
 	transformCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "t", "", "Specify the transformer selector.")

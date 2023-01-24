@@ -175,11 +175,27 @@ func (c *Config) specialGetSolution(p Problem) (Problem, error) {
 func (c *Config) GetSolution(p Problem) (Problem, error) {
 	if strings.Contains(p.ID, common.Special) {
 		if p.Type != MultiSelectSolutionFormType {
-			return p, fmt.Errorf("cannot use the %s selector with non multi select problems:%+v", common.Special, p)
+			return p, fmt.Errorf("cannot use the '%s' selector with non multi-select problems: %+v", common.Special, p)
 		}
-		return c.specialGetSolution(p)
+		p, err := c.specialGetSolution(p)
+		if err != nil {
+			return p, fmt.Errorf("failed to get the solution for the problem using special logic. Error: %w", err)
+		}
+		problem, err := Deserialize(p)
+		if err != nil {
+			return problem, fmt.Errorf("failed to deserialize the problem. Error: %w", err)
+		}
+		return problem, nil
 	}
-	return c.normalGetSolution(p)
+	p, err := c.normalGetSolution(p)
+	if err != nil {
+		return p, fmt.Errorf("failed to get the solution for the problem using normal logic. Error: %w", err)
+	}
+	problem, err := Deserialize(p)
+	if err != nil {
+		return problem, fmt.Errorf("failed to deserialize the problem. Error: %w", err)
+	}
+	return problem, nil
 }
 
 // Write writes the config to disk
@@ -189,24 +205,27 @@ func (c *Config) Write() error {
 }
 
 // AddSolution adds a problem to the config
-func (c *Config) AddSolution(p Problem) error {
-	logrus.Debugf("Config.AddSolution the problem is:\n%+v", p)
-	if p.Answer == nil {
-		err := fmt.Errorf("unresolved problem. Not going to be added to config")
-		logrus.Warn(err)
-		return err
+func (c *Config) AddSolution(problem Problem) error {
+	logrus.Trace("Config.AddSolution start")
+	defer logrus.Trace("Config.AddSolution end")
+	logrus.Debugf("Config.AddSolution the problem is: %+v", problem)
+	if problem.Answer == nil {
+		return fmt.Errorf("unresolved problem. Not going to be added to config")
+	}
+	p, err := Serialize(problem)
+	if err != nil {
+		return fmt.Errorf("failed to serialize the problem. Error: %w", err)
 	}
 	if p.Type != MultiSelectSolutionFormType {
 		set(p.ID, p.Answer, c.yamlMap)
-		if c.persistPasswords || p.Type != PasswordSolutionFormType {
+		if p.Type != PasswordSolutionFormType || c.persistPasswords {
 			set(p.ID, p.Answer, c.writeYamlMap)
-			err := c.Write()
-			if err != nil {
-				logrus.Errorf("Failed to write to the config file. Error: %q", err)
+			if err := c.Write(); err != nil {
+				return fmt.Errorf("failed to write to the config file. Error: %w", err)
 			}
-			return err
+			return nil
 		} else if p.Type == PasswordSolutionFormType {
-			logrus.Debug("passwords are not be added to the config")
+			logrus.Debug("passwords won't be added to the config")
 		}
 		return nil
 	}
@@ -244,11 +263,10 @@ func (c *Config) AddSolution(p Problem) error {
 		set(newKey, isOptionSelected, c.yamlMap)
 		set(newKey, isOptionSelected, c.writeYamlMap)
 	}
-	err := c.Write()
-	if err != nil {
-		logrus.Errorf("Failed to write to the config file. Error: %q", err)
+	if err := c.Write(); err != nil {
+		return fmt.Errorf("failed to write to the config file. Error: %w", err)
 	}
-	return err
+	return nil
 }
 
 // Get returns the value at the position given by the key in the config
@@ -282,7 +300,8 @@ func getPrinterAndEvaluator(buffer *bytes.Buffer) (yqlib.Printer, yqlib.StreamEv
 // GenerateYAMLFromExpression generates yaml string from yq syntax expression
 // Example: The expression .foo.bar="abc" gives:
 // foo:
-//   bar: abc
+//
+//	bar: abc
 func GenerateYAMLFromExpression(expr string) (string, error) {
 	logrus.Debugf("GenerateYAMLFromExpression parsing the string [%s]", expr)
 	logging.SetBackend(new(nullLogBackend))
