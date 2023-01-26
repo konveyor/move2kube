@@ -1,0 +1,18 @@
+move2kube:
+  transformers:
+    types:
+      - ComposeGenerator
+      - ComposeAnalyser
+      - Knative
+      - ContainerImagesPushScriptGenerator
+      - DockerfileParser
+      - DockerfileImageBuildScript
+      - Kubernetes
+      - ArgoCD
+      - Tekton
+      - Buildconfig
+      - ClusterSelector
+      - Parameterizer
+      - ReadMeGenerator
+      - DockerfileDetector
+  transformerselector: ""

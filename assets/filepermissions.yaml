@@ -14,9 +14,11 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-"built-in/presets/containerizeonly.yaml" : 0644
-"built-in/presets/enablecontainerizedtransformers.yaml" : 0644
-"built-in/presets/usepodmaninscripts.yaml" : 0644
+"built-in/presets/analyze-docker-compose-only.yaml" : 0644
+"built-in/presets/containerize-only.yaml" : 0644
+"built-in/presets/docker-file-only.yaml" : 0644
+"built-in/presets/enable-containerized-transformers.yaml" : 0644
+"built-in/presets/use-podman-in-scripts.yaml" : 0644
 "built-in/transformers/cloudfoundry/transformer.yaml" : 0644
 "built-in/transformers/cnb/transformer.yaml" : 0644
 "built-in/transformers/compose/composeanalyser/transformer.yaml" : 0644
