@@ -60,8 +60,7 @@ func NewCache(file string, persistPasswords bool) (cache *Cache) {
 func (cache *Cache) Load() error {
 	c := Cache{}
 	if err := common.ReadMove2KubeYaml(cache.Spec.file, &c); err != nil {
-		logrus.Errorf("Unable to load the cache file at path %s Error: %q", cache.Spec.file, err)
-		return err
+		return fmt.Errorf("failed to load the cache file at path '%s' . Error: %w", cache.Spec.file, err)
 	}
 	cache.merge(c)
 	return nil
@@ -69,24 +68,23 @@ func (cache *Cache) Load() error {
 
 // Write writes cache to disk
 func (cache *Cache) Write() error {
-	err := common.WriteYaml(cache.Spec.file, cache)
-	if err != nil {
-		logrus.Warnf("Unable to write cache : %s", err)
+	if err := common.WriteYaml(cache.Spec.file, cache); err != nil {
+		return fmt.Errorf("failed to write to the cache. Error: %w", err)
 	}
-	return err
+	return nil
 }
 
 // AddSolution adds a problem to solution cache
-func (cache *Cache) AddSolution(p Problem) error {
-	if !cache.Spec.persistPasswords && p.Type == PasswordSolutionFormType {
-		err := fmt.Errorf("passwords are not added to the cache")
-		logrus.Debug(err)
-		return err
+func (cache *Cache) AddSolution(problem Problem) error {
+	if problem.Type == PasswordSolutionFormType && !cache.Spec.persistPasswords {
+		return fmt.Errorf("passwords won't be added to the cache")
 	}
-	if p.Answer == nil {
-		err := fmt.Errorf("unresolved problem. Not going to be added to cache")
-		logrus.Warn(err)
-		return err
+	if problem.Answer == nil {
+		return fmt.Errorf("unresolved problem. Not going to be added to cache")
+	}
+	p, err := Serialize(problem)
+	if err != nil {
+		return fmt.Errorf("failed to serialize the problem. Error: %w", err)
 	}
 	added := false
 	for i, cp := range cache.Spec.Problems {
@@ -101,8 +99,7 @@ func (cache *Cache) AddSolution(p Problem) error {
 		cache.Spec.Problems = append(cache.Spec.Problems, p)
 	}
 	if err := cache.Write(); err != nil {
-		logrus.Errorf("Failed to write to the cache file. Error: %q", err)
-		return err
+		return fmt.Errorf("failed to write to the cache file. Error: %w", err)
 	}
 	return nil
 }
@@ -115,8 +112,11 @@ func (cache *Cache) GetSolution(p Problem) (Problem, error) {
 	}
 	for _, cp := range cache.Spec.Problems {
 		if (cp.ID == p.ID || cp.matches(p)) && cp.Answer != nil {
-			p.Answer = cp.Answer
-			return p, nil
+			problem, err := Deserialize(cp)
+			if err != nil {
+				return cp, fmt.Errorf("failed to deserialize the problem. Error: %w", err)
+			}
+			return problem, nil
 		}
 	}
 	return p, fmt.Errorf("the problem %+v was not found in the cache", p)
@@ -127,7 +127,7 @@ func (cache *Cache) merge(c Cache) {
 		found := false
 		for _, op := range cache.Spec.Problems {
 			if op.matches(p) {
-				logrus.Warnf("There are two or more answers for %s in cache. Ignoring latter ones.", p.Desc)
+				logrus.Warnf("There are two or more answers for '%s' in cache. Ignoring latter ones.", p.Desc)
 				found = true
 				break
 			}

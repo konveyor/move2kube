@@ -34,7 +34,7 @@ type Engine interface {
 
 var (
 	engines       []Engine
-	writeStores   []qatypes.Store
+	stores        []qatypes.Store
 	defaultEngine = NewDefaultEngine()
 )
 
@@ -87,7 +87,7 @@ func AddCaches(cacheFiles ...string) {
 func SetupWriteCacheFile(writeCachePath string, persistPasswords bool) {
 	cache := qatypes.NewCache(writeCachePath, persistPasswords)
 	cache.Write()
-	writeStores = append(writeStores, cache)
+	stores = append(stores, cache)
 	AddCaches(writeCachePath)
 }
 
@@ -101,7 +101,7 @@ func SetupConfigFile(writeConfigFile string, configStrings, configFiles, presets
 	configFiles = append(presetPaths, configFiles...)
 	writeConfig := qatypes.NewConfig(writeConfigFile, configStrings, configFiles, persistPasswords)
 	if writeConfigFile != "" {
-		writeStores = append(writeStores, writeConfig)
+		stores = append(stores, writeConfig)
 	}
 	e := &StoreEngine{store: writeConfig}
 	if err := AddEngineHighestPriority(e); err != nil {
@@ -161,8 +161,8 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 			}
 		}
 	}
-	for _, writeStore := range writeStores {
-		writeStore.AddSolution(prob)
+	for _, store := range stores {
+		store.AddSolution(prob)
 	}
 	return prob, err
 }
@@ -170,8 +170,8 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 // WriteStoresToDisk forces all the stores to write their contents out to disk
 func WriteStoresToDisk() error {
 	var err error
-	for _, writeStore := range writeStores {
-		cerr := writeStore.Write()
+	for _, store := range stores {
+		cerr := store.Write()
 		if cerr != nil {
 			if err == nil {
 				err = cerr
