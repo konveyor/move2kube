@@ -2,6 +2,7 @@ move2kube:
   transformers:
     types:
       - ComposeGenerator
+      - ComposeAnalyser
       - Knative
       - ContainerImagesPushScriptGenerator
       - DockerfileParser
