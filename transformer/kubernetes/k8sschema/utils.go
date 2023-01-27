@@ -111,12 +111,21 @@ func getNameFromMetadata(metadataI interface{}) (string, error) {
 // GetK8sResourcesWithPaths gets the k8s resources from a folder along
 // with the relaive paths where they were found.
 // Mutiple resources maybe specified in the same yaml file.
-func GetK8sResourcesWithPaths(k8sResourcesPath string) (map[string][]K8sResourceT, error) {
+func GetK8sResourcesWithPaths(k8sResourcesPath string, currDirOnly bool) (map[string][]K8sResourceT, error) {
 	logrus.Trace("start GetK8sResourcesWithPaths")
 	defer logrus.Trace("end GetK8sResourcesWithPaths")
-	yamlPaths, err := common.GetFilesByExt(k8sResourcesPath, []string{".yaml"})
-	if err != nil {
-		return nil, err
+	var yamlPaths []string
+	var err error
+	if currDirOnly {
+		yamlPaths, err = common.GetFilesByExtInCurrDir(k8sResourcesPath, []string{".yaml", ".yml"})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		yamlPaths, err = common.GetFilesByExt(k8sResourcesPath, []string{".yaml", ".yml"})
+		if err != nil {
+			return nil, err
+		}
 	}
 	k8sResources := map[string][]K8sResourceT{}
 	for _, yamlPath := range yamlPaths {
@@ -125,7 +134,7 @@ func GetK8sResourcesWithPaths(k8sResourcesPath string) (map[string][]K8sResource
 			logrus.Errorf("Failed to read the yaml file at path %s . Error: %q", yamlPath, err)
 			continue
 		}
-		currK8sResources, err := getK8sResourcesFromYaml(string(k8sYamlBytes))
+		currK8sResources, err := GetK8sResourcesFromYaml(string(k8sYamlBytes))
 		if err != nil {
 			logrus.Debugf("Failed to get k8s resources from the yaml file at path %s . Error: %q", yamlPath, err)
 			continue
@@ -140,8 +149,8 @@ func GetK8sResourcesWithPaths(k8sResourcesPath string) (map[string][]K8sResource
 	return k8sResources, nil
 }
 
-// getK8sResourcesFromYaml decodes k8s resources from yaml
-func getK8sResourcesFromYaml(k8sYaml string) ([]K8sResourceT, error) {
+// GetK8sResourcesFromYaml decodes k8s resources from yaml
+func GetK8sResourcesFromYaml(k8sYaml string) ([]K8sResourceT, error) {
 	// TODO: split yaml file into multiple resources
 
 	// NOTE: This roundabout method is required to avoid yaml.v3 unmarshalling timestamps into time.Time
