@@ -88,14 +88,24 @@ func (paramTransformer *Parameterizer) GetConfig() (transformertypes.Transformer
 
 // DirectoryDetect runs detect in each subdirectory
 func (paramTransformer *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.Artifact, err error) {
-	if len(k8sschema.GetKubernetesObjsInDir(dir)) != 0 {
-		na := transformertypes.Artifact{
-			Paths: map[transformertypes.PathType][]string{
-				artifacts.KubernetesYamlsPathType: {dir},
-				artifacts.ServiceDirPathType:      {dir},
-			},
+	k8sResMap, err := k8sschema.GetK8sResourcesWithPaths(dir, true)
+	if err == nil {
+		for _, kList := range k8sResMap {
+			for _, k := range kList {
+				_, _, _, err := k8sschema.GetInfoFromK8sResource(k)
+				if err == nil {
+					na := transformertypes.Artifact{
+						Paths: map[transformertypes.PathType][]string{
+							artifacts.KubernetesYamlsPathType: {dir},
+							artifacts.ServiceDirPathType:      {dir},
+						},
+					}
+					return map[string][]transformertypes.Artifact{"": {na}}, nil
+				}
+			}
 		}
-		return map[string][]transformertypes.Artifact{"": {na}}, nil
+	} else {
+		logrus.Debugf("GetK8sResourcesWithPaths() did not pick [%s] because [%v]", dir, err)
 	}
 	return nil, nil
 }
