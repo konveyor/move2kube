@@ -669,7 +669,7 @@ func packagingToArtifactType(packaging artifacts.JavaPackaging) (transformertype
 	case string(artifacts.EarPackaging):
 		return artifacts.EarArtifactType, nil
 	default:
-		return transformertypes.ArtifactType(packaging), fmt.Errorf("the packaging type '%s' does not have a corresponding artifcat type", packaging)
+		return transformertypes.ArtifactType(packaging), fmt.Errorf("the packaging type '%s' does not have a corresponding artifact type", packaging)
 	}
 }
 
