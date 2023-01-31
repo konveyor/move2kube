@@ -122,25 +122,6 @@ func GetYamlsWithTypeMeta(inputPath string, kindFilter string) ([]string, error)
 	return result, nil
 }
 
-// CheckIfYamlsHasTypeMeta returns files by yaml kind
-func CheckIfYamlsHasTypeMeta(inputPath string) ([]string, error) {
-	var result []string
-	fileList, err := GetFilesByExtInCurrDir(inputPath, []string{".yaml", ".yml"})
-	if err != nil {
-		return nil, err
-	}
-	for _, filePath := range fileList {
-		var preamble types.TypeMeta
-		if err := ReadYaml(filePath, &preamble); err == nil {
-			result = append(result, filePath)
-		}
-	}
-	if len(result) > 0 {
-		return result, nil
-	}
-	return nil, err
-}
-
 // GetFilesByExt returns files by extension
 func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 	var files []string
