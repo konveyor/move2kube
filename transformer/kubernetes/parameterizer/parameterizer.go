@@ -76,7 +76,7 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 		normEnvs = append(normEnvs, parameterizerDefaultEnvironment)
 	}
 	packSpecConfig.Envs = normEnvs
-	pathedKs, err := k8sschema.GetK8sResourcesWithPaths(cleanSrcDir)
+	pathedKs, err := k8sschema.GetK8sResourcesWithPaths(cleanSrcDir, false)
 	if err != nil {
 		return filesWritten, err
 	}
