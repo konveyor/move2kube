@@ -95,9 +95,11 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 	//TODO: Check if any variable is mandatory
 	someEnvFilePath := ".env"
 	if !common.IgnoreEnvironment {
-		absSomeEnvFilePath, err := filepath.Abs(someEnvFilePath)
+		composeFileDir := filepath.Dir(path)
+		absSomeEnvFilePath := filepath.Join(composeFileDir, someEnvFilePath)
+		_, err := os.Stat(absSomeEnvFilePath)
 		if err != nil {
-			logrus.Errorf("Failed to make the path %s absolute. Error: %q", someEnvFilePath, err)
+			logrus.Errorf("Failed to find the env path %s. Error: %q", someEnvFilePath, err)
 			return nil, err
 		}
 		someEnvFilePath = absSomeEnvFilePath
