@@ -119,9 +119,7 @@ func parseV3(path string) (*types.Config, error) {
 		logrus.Debug(err)
 		return nil, err
 	}
-	logrus.Warnf("Before env file validation")
 	parsedComposeFile = removeNonExistentEnvFilesV3(path, parsedComposeFile)
-	logrus.Warnf("After env file validation")
 	// Config details
 	configDetails := types.ConfigDetails{
 		WorkingDir:  filepath.Dir(path),
