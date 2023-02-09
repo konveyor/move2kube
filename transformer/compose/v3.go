@@ -95,7 +95,7 @@ func removeNonExistentEnvFilesV3(path string, parsedComposeFile map[string]inter
 						logrus.Debugf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
 					} else {
 						vals[envFile] = defaultEnvFile
-						logrus.Debugf("env config file %s referred in service %s in file %s. Adding  it.", envFilePath, serviceName, path)
+						logrus.Debugf("env file %s for service %s in file %s. Adding  it.", envFilePath, serviceName, path)
 					}
 				}
 			}
