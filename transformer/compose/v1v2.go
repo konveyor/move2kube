@@ -115,8 +115,9 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 		_, err := os.Stat(absSomeEnvFilePath)
 		if err != nil {
 			logrus.Debugf("Failed to find the env path %s. Error: %q", someEnvFilePath, err)
+		} else {
+			someEnvFilePath = absSomeEnvFilePath
 		}
-		someEnvFilePath = absSomeEnvFilePath
 	}
 	context.EnvironmentLookup = &lookup.ComposableEnvLookup{
 		Lookups: []config.EnvironmentLookup{
