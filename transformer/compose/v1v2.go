@@ -49,6 +49,7 @@ func removeNonExistentEnvFilesV2(path string) preprocessFunc {
 	return func(rawServiceMap config.RawServiceMap) (config.RawServiceMap, error) {
 		// Remove unresolvable env files, so that the parser does not throw error
 		for serviceName, vals := range rawServiceMap {
+			checkForDotEnv := false
 			if envfilesvals, ok := vals[envFile]; ok {
 				// env_file can be a string or list of strings
 				// https://docs.docker.com/compose/compose-file/compose-file-v2/#env_file
@@ -79,6 +80,20 @@ func removeNonExistentEnvFilesV2(path string) preprocessFunc {
 						}
 					}
 					vals[envFile] = envfiles
+				} else {
+					checkForDotEnv = true
+				}
+			} else {
+				checkForDotEnv = true
+			}
+			if checkForDotEnv {
+				envFilePath := filepath.Join(composeFileDir, defaultEnvFile)
+				finfo, err := os.Stat(envFilePath)
+				if os.IsNotExist(err) || finfo.IsDir() {
+					logrus.Debugf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+				} else {
+					vals[envFile] = defaultEnvFile
+					logrus.Debugf("env config file %s referred in service %s in file %s. Adding  it.", envFilePath, serviceName, path)
 				}
 			}
 		}
@@ -100,7 +115,6 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 		_, err := os.Stat(absSomeEnvFilePath)
 		if err != nil {
 			logrus.Debugf("Failed to find the env path %s. Error: %q", someEnvFilePath, err)
-			return nil, err
 		}
 		someEnvFilePath = absSomeEnvFilePath
 	}
