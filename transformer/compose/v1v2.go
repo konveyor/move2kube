@@ -90,7 +90,7 @@ func removeNonExistentEnvFilesV2(path string) preprocessFunc {
 				envFilePath := filepath.Join(composeFileDir, defaultEnvFile)
 				finfo, err := os.Stat(envFilePath)
 				if os.IsNotExist(err) || finfo.IsDir() {
-					logrus.Debugf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+					logrus.Debugf("Unable to find env file %s for service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
 				} else {
 					vals[envFile] = defaultEnvFile
 					logrus.Debugf("env config file %s referred in service %s in file %s. Adding  it.", envFilePath, serviceName, path)
