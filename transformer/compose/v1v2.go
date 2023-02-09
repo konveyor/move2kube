@@ -93,7 +93,7 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 	context.ComposeFiles = []string{path}
 	context.ResourceLookup = new(lookup.FileResourceLookup)
 	//TODO: Check if any variable is mandatory
-	someEnvFilePath := ".env"
+	someEnvFilePath := defaultEnvFile
 	if !common.IgnoreEnvironment {
 		composeFileDir := filepath.Dir(path)
 		absSomeEnvFilePath := filepath.Join(composeFileDir, someEnvFilePath)

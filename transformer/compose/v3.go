@@ -89,12 +89,12 @@ func removeNonExistentEnvFilesV3(path string, parsedComposeFile map[string]inter
 				}
 				if checkForDotEnv {
 					vals := val.(map[string]interface{})
-					envFilePath := filepath.Join(composeFileDir, ".env")
+					envFilePath := filepath.Join(composeFileDir, defaultEnvFile)
 					finfo, err := os.Stat(envFilePath)
 					if os.IsNotExist(err) || finfo.IsDir() {
 						logrus.Debugf("Unable to find env config file %s referred in service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
 					} else {
-						vals[envFile] = ".env"
+						vals[envFile] = defaultEnvFile
 						logrus.Debugf("env config file %s referred in service %s in file %s. Adding  it.", envFilePath, serviceName, path)
 					}
 				}
