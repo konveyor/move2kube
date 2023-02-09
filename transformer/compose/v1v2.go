@@ -99,7 +99,7 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 		absSomeEnvFilePath := filepath.Join(composeFileDir, someEnvFilePath)
 		_, err := os.Stat(absSomeEnvFilePath)
 		if err != nil {
-			logrus.Errorf("Failed to find the env path %s. Error: %q", someEnvFilePath, err)
+			logrus.Debugf("Failed to find the env path %s. Error: %q", someEnvFilePath, err)
 			return nil, err
 		}
 		someEnvFilePath = absSomeEnvFilePath
