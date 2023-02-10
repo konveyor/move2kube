@@ -49,6 +49,7 @@ func removeNonExistentEnvFilesV2(path string) preprocessFunc {
 	return func(rawServiceMap config.RawServiceMap) (config.RawServiceMap, error) {
 		// Remove unresolvable env files, so that the parser does not throw error
 		for serviceName, vals := range rawServiceMap {
+			checkForDotEnv := false
 			if envfilesvals, ok := vals[envFile]; ok {
 				// env_file can be a string or list of strings
 				// https://docs.docker.com/compose/compose-file/compose-file-v2/#env_file
@@ -79,6 +80,20 @@ func removeNonExistentEnvFilesV2(path string) preprocessFunc {
 						}
 					}
 					vals[envFile] = envfiles
+				} else {
+					checkForDotEnv = true
+				}
+			} else {
+				checkForDotEnv = true
+			}
+			if checkForDotEnv {
+				envFilePath := filepath.Join(composeFileDir, defaultEnvFile)
+				finfo, err := os.Stat(envFilePath)
+				if os.IsNotExist(err) || finfo.IsDir() {
+					logrus.Debugf("Unable to find env file %s for service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
+				} else {
+					vals[envFile] = defaultEnvFile
+					logrus.Debugf("env file %s found for service %s in file %s. Adding  it.", envFilePath, serviceName, path)
 				}
 			}
 		}
@@ -93,21 +108,19 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 	context.ComposeFiles = []string{path}
 	context.ResourceLookup = new(lookup.FileResourceLookup)
 	//TODO: Check if any variable is mandatory
-	someEnvFilePath := ".env"
+	var lookUps []config.EnvironmentLookup
+	composeFileDir := filepath.Dir(path)
+	someEnvFilePath := filepath.Join(composeFileDir, defaultEnvFile)
+	_, err := os.Stat(someEnvFilePath)
+	if err != nil {
+		logrus.Debugf("Failed to find the env path %s. Error: %q", someEnvFilePath, err)
+	} else {
+		lookUps = append(lookUps, &lookup.EnvfileLookup{Path: someEnvFilePath})
+	}
 	if !common.IgnoreEnvironment {
-		absSomeEnvFilePath, err := filepath.Abs(someEnvFilePath)
-		if err != nil {
-			logrus.Errorf("Failed to make the path %s absolute. Error: %q", someEnvFilePath, err)
-			return nil, err
-		}
-		someEnvFilePath = absSomeEnvFilePath
+		lookUps = append(lookUps, &lookup.OsEnvLookup{})
 	}
-	context.EnvironmentLookup = &lookup.ComposableEnvLookup{
-		Lookups: []config.EnvironmentLookup{
-			&lookup.EnvfileLookup{Path: someEnvFilePath},
-			&lookup.OsEnvLookup{},
-		},
-	}
+	context.EnvironmentLookup = &lookup.ComposableEnvLookup{Lookups: lookUps}
 	parseOptions := config.ParseOptions{
 		Interpolate: interpolate,
 		Validate:    true,
@@ -116,7 +129,7 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 	proj := project.NewProject(&context, nil, &parseOptions)
 	originalLevel := logrus.GetLevel()
 	logrus.SetLevel(logrus.FatalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
-	err := proj.Parse()
+	err = proj.Parse()
 	logrus.SetLevel(originalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
 	if err != nil {
 		err := fmt.Errorf("failed to load docker compose file at path %s Error: %q", path, err)

@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	defaultEnvFile        string = ".env"
 	modeReadOnly          string = "ro"
 	tmpFsPath             string = "tmpfs"
 	defaultSecretBasePath string = "/var/secrets"
