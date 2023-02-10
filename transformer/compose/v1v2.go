@@ -108,23 +108,19 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 	context.ComposeFiles = []string{path}
 	context.ResourceLookup = new(lookup.FileResourceLookup)
 	//TODO: Check if any variable is mandatory
-	someEnvFilePath := defaultEnvFile
+	var lookUps []config.EnvironmentLookup
+	composeFileDir := filepath.Dir(path)
+	someEnvFilePath := filepath.Join(composeFileDir, defaultEnvFile)
+	_, err := os.Stat(someEnvFilePath)
+	if err != nil {
+		logrus.Debugf("Failed to find the env path %s. Error: %q", someEnvFilePath, err)
+	} else {
+		lookUps = append(lookUps, &lookup.EnvfileLookup{Path: someEnvFilePath})
+	}
 	if !common.IgnoreEnvironment {
-		composeFileDir := filepath.Dir(path)
-		absSomeEnvFilePath := filepath.Join(composeFileDir, someEnvFilePath)
-		_, err := os.Stat(absSomeEnvFilePath)
-		if err != nil {
-			logrus.Debugf("Failed to find the env path %s. Error: %q", someEnvFilePath, err)
-		} else {
-			someEnvFilePath = absSomeEnvFilePath
-		}
+		lookUps = append(lookUps, &lookup.OsEnvLookup{})
 	}
-	context.EnvironmentLookup = &lookup.ComposableEnvLookup{
-		Lookups: []config.EnvironmentLookup{
-			&lookup.EnvfileLookup{Path: someEnvFilePath},
-			&lookup.OsEnvLookup{},
-		},
-	}
+	context.EnvironmentLookup = &lookup.ComposableEnvLookup{Lookups: lookUps}
 	parseOptions := config.ParseOptions{
 		Interpolate: interpolate,
 		Validate:    true,
@@ -133,7 +129,7 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 	proj := project.NewProject(&context, nil, &parseOptions)
 	originalLevel := logrus.GetLevel()
 	logrus.SetLevel(logrus.FatalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
-	err := proj.Parse()
+	err = proj.Parse()
 	logrus.SetLevel(originalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
 	if err != nil {
 		err := fmt.Errorf("failed to load docker compose file at path %s Error: %q", path, err)
