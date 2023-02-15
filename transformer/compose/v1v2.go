@@ -140,15 +140,15 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 }
 
 // ConvertToIR loads a compose file to IR
-func (c *v1v2Loader) ConvertToIR(composefilepath string, serviceName string) (ir irtypes.IR, err error) {
+func (c *v1v2Loader) ConvertToIR(composefilepath string, serviceName string, parseNetwork bool) (ir irtypes.IR, err error) {
 	proj, err := parseV2(composefilepath, true)
 	if err != nil {
 		return irtypes.IR{}, err
 	}
-	return c.convertToIR(filepath.Dir(composefilepath), proj, serviceName)
+	return c.convertToIR(filepath.Dir(composefilepath), proj, serviceName, parseNetwork)
 }
 
-func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project, serviceName string) (ir irtypes.IR, err error) {
+func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project, serviceName string, parseNetwork bool) (ir irtypes.IR, err error) {
 	ir = irtypes.IR{
 		Services: map[string]irtypes.Service{},
 	}
@@ -264,14 +264,15 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 			serviceConfig.RestartPolicy = core.RestartPolicyAlways
 		}
 
-		// TODO: Decide on docker-compose network translation. Until then this code is disabled.
-		// if composeServiceConfig.Networks != nil && len(composeServiceConfig.Networks.Networks) > 0 {
-		// 	for _, value := range composeServiceConfig.Networks.Networks {
-		// 		if value.Name != "default" {
-		// 			serviceConfig.Networks = append(serviceConfig.Networks, value.RealName)
-		// 		}
-		// 	}
-		// }
+		if parseNetwork {
+			if composeServiceConfig.Networks != nil && len(composeServiceConfig.Networks.Networks) > 0 {
+				for _, value := range composeServiceConfig.Networks.Networks {
+					if value.Name != "default" {
+						serviceConfig.Networks = append(serviceConfig.Networks, value.RealName)
+					}
+				}
+			}
+		}
 
 		vml, vl := makeVolumesFromTmpFS(name, composeServiceConfig.Tmpfs)
 		for _, v := range vl {

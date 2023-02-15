@@ -16,3 +16,5 @@ spec:
       disabled: false
     Dockerfile:
       disabled: false
+  config:
+    enableNetworkParsing: false
