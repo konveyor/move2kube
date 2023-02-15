@@ -44,7 +44,6 @@ type v3Loader struct {
 
 func removeNonExistentEnvFilesV3(path string, parsedComposeFile map[string]interface{}) map[string]interface{} {
 	// Remove unresolvable env files, so that the parser does not throw error
-	checkForDotEnv := false
 	composeFileDir := filepath.Dir(path)
 	if val, ok := parsedComposeFile["services"]; ok {
 		if services, ok := val.(map[string]interface{}); ok {
@@ -81,21 +80,6 @@ func removeNonExistentEnvFilesV3(path string, parsedComposeFile map[string]inter
 							}
 							vals[envFile] = envfiles
 						}
-					} else {
-						checkForDotEnv = true
-					}
-				} else {
-					checkForDotEnv = true
-				}
-				if checkForDotEnv {
-					vals := val.(map[string]interface{})
-					envFilePath := filepath.Join(composeFileDir, defaultEnvFile)
-					finfo, err := os.Stat(envFilePath)
-					if os.IsNotExist(err) || finfo.IsDir() {
-						logrus.Debugf("Unable to find env file %s for service %s in file %s. Ignoring it.", envFilePath, serviceName, path)
-					} else {
-						vals[envFile] = defaultEnvFile
-						logrus.Debugf("env file %s for service %s in file %s. Adding  it.", envFilePath, serviceName, path)
 					}
 				}
 			}
@@ -120,11 +104,23 @@ func parseV3(path string) (*types.Config, error) {
 		return nil, err
 	}
 	parsedComposeFile = removeNonExistentEnvFilesV3(path, parsedComposeFile)
+	// Adding .env file values if it exists
+	var envMap map[string]string
+	composeFileDir := filepath.Dir(path)
+	envFilePath := filepath.Join(composeFileDir, defaultEnvFile)
+	finfo, err := os.Stat(envFilePath)
+	if os.IsNotExist(err) || finfo.IsDir() {
+		envMap = getEnvironmentVariables("")
+		logrus.Debugf("Unable to find .env file %s. Ignoring it.", envFilePath)
+	} else {
+		envMap = getEnvironmentVariables(envFilePath)
+		logrus.Debugf("Adding .env file from path [%s] values to environment", envFilePath)
+	}
 	// Config details
 	configDetails := types.ConfigDetails{
 		WorkingDir:  filepath.Dir(path),
 		ConfigFiles: []types.ConfigFile{{Filename: path, Config: parsedComposeFile}},
-		Environment: getEnvironmentVariables(),
+		Environment: envMap,
 	}
 	config, err := loader.Load(configDetails)
 	if err != nil {

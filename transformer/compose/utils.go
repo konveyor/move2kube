@@ -22,6 +22,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/docker/cli/opts"
 	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -57,8 +58,23 @@ func IsV3(path string) (bool, error) {
 }
 */
 
-func getEnvironmentVariables() map[string]string {
+func getEnvironmentVariables(envFile string) map[string]string {
 	result := map[string]string{}
+	if len(envFile) > 0 {
+		envs, err := opts.ParseEnvFile(envFile)
+		if err != nil {
+			logrus.Debugf("Environment file %s could not be read: %v", envFile, err)
+		} else {
+			for _, s := range envs {
+				if !strings.Contains(s, "=") {
+					logrus.Debugf("unexpected environment %q", s)
+					continue
+				}
+				kv := strings.SplitN(s, "=", 2)
+				result[kv[0]] = strings.Trim(kv[1], "\"")
+			}
+		}
+	}
 	//TODO: Check if any variable is mandatory and fill it with dummy value
 	if common.IgnoreEnvironment {
 		return result
