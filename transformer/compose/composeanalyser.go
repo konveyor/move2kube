@@ -45,8 +45,14 @@ const (
 
 // ComposeAnalyser implements Transformer interface
 type ComposeAnalyser struct {
-	Config transformertypes.Transformer
-	Env    *environment.Environment
+	Config                transformertypes.Transformer
+	Env                   *environment.Environment
+	ComposeAnalyzerConfig *ComposeAnalyzerConfig
+}
+
+// ComposeAnalyzerConfig represents the configuration of the compose analyzer
+type ComposeAnalyzerConfig struct {
+	EnableNetworkParsing bool `yaml:"enableNetworkParsing"`
 }
 
 // ComposeConfig stores the config for compose service
@@ -58,6 +64,11 @@ type ComposeConfig struct {
 func (t *ComposeAnalyser) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
 	t.Env = env
+	// load the config
+	t.ComposeAnalyzerConfig = &ComposeAnalyzerConfig{}
+	if err := common.GetObjFromInterface(t.Config.Spec.Config, t.ComposeAnalyzerConfig); err != nil {
+		return fmt.Errorf("unable to load config for Transformer %+v into %T . Error: %q", t.Config.Spec.Config, t.ComposeAnalyzerConfig, err)
+	}
 	return nil
 }
 
@@ -114,10 +125,10 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 		for _, path := range newArtifact.Paths[composeFilePathType] {
 			logrus.Debugf("file at path '%s' being loaded from the compose service name '%s'", path, config.ServiceName)
 			// Try v3 first and if it fails try v1v2
-			if cir, errV3 := new(v3Loader).ConvertToIR(path, config.ServiceName); errV3 == nil {
+			if cir, errV3 := new(v3Loader).ConvertToIR(path, config.ServiceName, t.ComposeAnalyzerConfig.EnableNetworkParsing); errV3 == nil {
 				ir.Merge(cir)
 				logrus.Debugf("compose v3 transformer returned %d services", len(ir.Services))
-			} else if cir, errV1V2 := new(v1v2Loader).ConvertToIR(path, config.ServiceName); errV1V2 == nil {
+			} else if cir, errV1V2 := new(v1v2Loader).ConvertToIR(path, config.ServiceName, t.ComposeAnalyzerConfig.EnableNetworkParsing); errV1V2 == nil {
 				ir.Merge(cir)
 				logrus.Debugf("compose v1v2 transformer returned %d services", len(ir.Services))
 			} else {

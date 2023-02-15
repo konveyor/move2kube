@@ -136,7 +136,7 @@ func parseV3(path string) (*types.Config, error) {
 }
 
 // ConvertToIR loads an v3 compose file into IR
-func (c *v3Loader) ConvertToIR(composefilepath string, serviceName string) (irtypes.IR, error) {
+func (c *v3Loader) ConvertToIR(composefilepath string, serviceName string, parseNetwork bool) (irtypes.IR, error) {
 	logrus.Debugf("About to load configuration from docker compose file at path %s", composefilepath)
 	config, err := parseV3(composefilepath)
 	if err != nil {
@@ -144,10 +144,10 @@ func (c *v3Loader) ConvertToIR(composefilepath string, serviceName string) (irty
 		return irtypes.IR{}, err
 	}
 	logrus.Debugf("About to start loading docker compose to intermediate rep")
-	return c.convertToIR(filepath.Dir(composefilepath), *config, serviceName)
+	return c.convertToIR(filepath.Dir(composefilepath), *config, serviceName, parseNetwork)
 }
 
-func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, serviceName string) (irtypes.IR, error) {
+func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, serviceName string, parseNetwork bool) (irtypes.IR, error) {
 	ir := irtypes.IR{Services: map[string]irtypes.Service{}}
 
 	//Secret volumes transformed to IR
@@ -257,9 +257,9 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		if composeServiceConfig.Deploy.Mode == "global" {
 			serviceConfig.Daemon = true
 		}
-
-		serviceConfig.Networks = c.getNetworks(composeServiceConfig, composeObject)
-
+		if parseNetwork {
+			serviceConfig.Networks = c.getNetworks(composeServiceConfig, composeObject)
+		}
 		if (composeServiceConfig.Deploy.Resources != types.Resources{}) {
 			if composeServiceConfig.Deploy.Resources.Limits != nil {
 				resourceLimit := core.ResourceList{}
