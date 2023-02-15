@@ -74,18 +74,18 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 	tasks := []v1beta1.PipelineTask{}
 	firstTask := true
 	prevTaskName := ""
-	i := 0
+	containerIndex := 0
 	for imageName, container := range ir.ContainerImages {
 		if container.Build.ContainerBuildType == "" {
 			continue
 		}
-		i++
+		containerIndex++
 		if container.Build.ContainerBuildType == irtypes.DockerfileContainerBuildType {
 			_, repoDir, _, gitRepoURL, branchName, err := common.GatherGitInfo(container.Build.ContextPath)
 			if err != nil {
-				logrus.Debugf("Unable to identify git repo for %s : %s", container.Build.ContextPath, err)
+				logrus.Debugf("failed to identify the git repo in the directory '%s' . Error: %q", container.Build.ContextPath, err)
 			}
-			cloneTaskName := "clone-" + fmt.Sprint(i)
+			cloneTaskName := fmt.Sprintf("clone-%d", containerIndex)
 			if gitRepoURL == "" {
 				gitRepoURL = gitRepoURLPlaceholder
 			}
@@ -117,7 +117,10 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 				if len(container.Build.Artifacts) != 0 && len(container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue]) != 0 {
 					relDFPath, err := filepath.Rel(repoDir, container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue][0])
 					if err != nil {
-						logrus.Errorf("Failed to make the df path %q relative to the path %q Error %q", repoDir, container.Build.ContextPath, err)
+						logrus.Errorf(
+							"failed to make the Dockerfile path '%s' relative to the path '%s' . Error %q",
+							repoDir, container.Build.ContextPath, err,
+						)
 					} else {
 						dockerfilePath = relDFPath
 					}
@@ -134,7 +137,7 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 				}
 			}
 
-			buildPushTaskName := "build-push-" + fmt.Sprint(i)
+			buildPushTaskName := fmt.Sprintf("build-push-%d", containerIndex)
 			buildPushTask := v1beta1.PipelineTask{
 				RunAfter: []string{cloneTaskName},
 				Name:     buildPushTaskName,

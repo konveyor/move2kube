@@ -112,19 +112,19 @@ func getNameFromMetadata(metadataI interface{}) (string, error) {
 // with the relaive paths where they were found.
 // Mutiple resources maybe specified in the same yaml file.
 func GetK8sResourcesWithPaths(k8sResourcesPath string, currDirOnly bool) (map[string][]K8sResourceT, error) {
-	logrus.Trace("start GetK8sResourcesWithPaths")
-	defer logrus.Trace("end GetK8sResourcesWithPaths")
+	logrus.Trace("GetK8sResourcesWithPaths start")
+	defer logrus.Trace("GetK8sResourcesWithPaths end")
 	var yamlPaths []string
 	var err error
 	if currDirOnly {
 		yamlPaths, err = common.GetFilesByExtInCurrDir(k8sResourcesPath, []string{".yaml", ".yml"})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to list the files with the given extensions in the directory '%s'. Error: %w", k8sResourcesPath, err)
 		}
 	} else {
 		yamlPaths, err = common.GetFilesByExt(k8sResourcesPath, []string{".yaml", ".yml"})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to list the files with the given extensions in the directory '%s'. Error: %w", k8sResourcesPath, err)
 		}
 	}
 	k8sResources := map[string][]K8sResourceT{}

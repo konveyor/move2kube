@@ -34,18 +34,24 @@ import (
 )
 
 // TransformIRAndPersist transforms IR to yamls and writes to filesystem
-func TransformIRAndPersist(ir irtypes.EnhancedIR, outputPath string, apis []IAPIResource, targetCluster collecttypes.ClusterMetadata, setDefaultValuesInYamls bool) (files []string, err error) {
+func TransformIRAndPersist(
+	ir irtypes.EnhancedIR,
+	outputPath string,
+	apiResources []IAPIResource,
+	targetCluster collecttypes.ClusterMetadata,
+	setDefaultValuesInYamls bool,
+) (files []string, err error) {
 	logrus.Trace("TransformIRAndPersist start")
 	defer logrus.Trace("TransformIRAndPersist end")
 	targetObjs := []runtime.Object{}
-	for _, apiResource := range apis {
+	for _, apiResource := range apiResources {
 		newObjs := (&APIResource{IAPIResource: apiResource}).convertIRToObjects(ir, targetCluster)
 		targetObjs = append(targetObjs, newObjs...)
 	}
 	if err := os.MkdirAll(outputPath, common.DefaultDirectoryPermission); err != nil {
 		return nil, fmt.Errorf("failed to create the deploy directory at path '%s' . Error: %w", outputPath, err)
 	}
-	logrus.Debugf("Total %d services to be serialized.", len(targetObjs))
+	logrus.Debugf("number of services to be serialized %d", len(targetObjs))
 	convertedObjs, err := convertVersion(targetObjs, targetCluster.Spec, setDefaultValuesInYamls)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fix, convert and transform the objects. Error: %w", err)

@@ -89,23 +89,23 @@ func (paramTransformer *Parameterizer) GetConfig() (transformertypes.Transformer
 // DirectoryDetect runs detect in each subdirectory
 func (paramTransformer *Parameterizer) DirectoryDetect(dir string) (namedServices map[string][]transformertypes.Artifact, err error) {
 	k8sResMap, err := k8sschema.GetK8sResourcesWithPaths(dir, true)
-	if err == nil {
-		for _, kList := range k8sResMap {
-			for _, k := range kList {
-				_, _, _, err := k8sschema.GetInfoFromK8sResource(k)
-				if err == nil {
-					na := transformertypes.Artifact{
-						Paths: map[transformertypes.PathType][]string{
-							artifacts.KubernetesYamlsPathType: {dir},
-							artifacts.ServiceDirPathType:      {dir},
-						},
-					}
-					return map[string][]transformertypes.Artifact{"": {na}}, nil
+	if err != nil {
+		logrus.Debugf("failed to get K8s resources from the directory '%s' . Error: %q", dir, err)
+		return nil, nil
+	}
+	for _, kList := range k8sResMap {
+		for _, k := range kList {
+			_, _, _, err := k8sschema.GetInfoFromK8sResource(k)
+			if err == nil {
+				na := transformertypes.Artifact{
+					Paths: map[transformertypes.PathType][]string{
+						artifacts.KubernetesYamlsPathType: {dir},
+						artifacts.ServiceDirPathType:      {dir},
+					},
 				}
+				return map[string][]transformertypes.Artifact{"": {na}}, nil
 			}
 		}
-	} else {
-		logrus.Debugf("GetK8sResourcesWithPaths() did not pick [%s] because [%v]", dir, err)
 	}
 	return nil, nil
 }
@@ -116,26 +116,29 @@ func (paramTransformer *Parameterizer) Transform(
 	alreadySeenArtifacts []transformertypes.Artifact,
 ) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
 	pathMappings = []transformertypes.PathMapping{}
-	for _, a := range newArtifacts {
-		yamlsPath := a.Paths[artifacts.KubernetesYamlsPathType][0]
+	for _, newArtifact := range newArtifacts {
+		if len(newArtifact.Paths[artifacts.KubernetesYamlsPathType]) == 0 {
+			continue
+		}
+		yamlsPath := newArtifact.Paths[artifacts.KubernetesYamlsPathType][0]
 		tempPath, err := os.MkdirTemp(paramTransformer.Env.TempPath, "*")
 		if err != nil {
-			logrus.Errorf("Unable to create temp dir : %s", err)
+			logrus.Errorf("failed to create the temp directory '%s' . Error: %q", paramTransformer.Env.TempPath, err)
+			continue
 		}
 		baseDirName := filepath.Base(yamlsPath) + "-parameterized"
 		destPath := filepath.Join(tempPath, baseDirName)
 		var sConfig artifacts.ServiceConfig
-		err = a.GetConfig(artifacts.ServiceConfigType, &sConfig)
-		if err != nil {
-			logrus.Debugf("Unable to load config for Transformer into %T : %s", sConfig, err)
+		if err := newArtifact.GetConfig(artifacts.ServiceConfigType, &sConfig); err != nil {
+			logrus.Debugf("failed to load config of type '%s' into struct of type %T . Error: %q", artifacts.ServiceConfigType, sConfig, err)
 		}
 		projectName, err := common.GetStringFromTemplate(paramTransformer.ParameterizerConfig.ProjectName,
 			map[string]string{common.ProjectNameTemplatizedStringKey: paramTransformer.Env.ProjectName,
-				common.ArtifactNameTemplatizedStringKey: a.Name,
+				common.ArtifactNameTemplatizedStringKey: newArtifact.Name,
 				common.ServiceNameTemplatizedStringKey:  sConfig.ServiceName,
-				common.ArtifactTypeTemplatizedStringKey: string(a.Type)})
+				common.ArtifactTypeTemplatizedStringKey: string(newArtifact.Type)})
 		if err != nil {
-			logrus.Errorf("Unable to evaluate helm chart name : %s", err)
+			logrus.Errorf("failed to fill the Helm chart template. Error: %q", err)
 			continue
 		}
 		pt := parameterizer.ParameterizerConfigT{
@@ -159,7 +162,10 @@ func (paramTransformer *Parameterizer) Transform(
 		}
 		filesWritten, err := parameterizer.Parameterize(yamlsPath, destPath, pt, paramTransformer.parameterizers)
 		if err != nil {
-			logrus.Errorf("failed to parameterize the YAML files in the source directory %s and write to output directory %s . Error: %q", yamlsPath, destPath, err)
+			logrus.Errorf(
+				"failed to parameterize the YAML files in the source directory '%s' and write to the output directory '%s' . Error: %q",
+				yamlsPath, destPath, err,
+			)
 			continue
 		}
 		logrus.Debugf("Number of files written by parameterizer: %d", len(filesWritten))
@@ -169,7 +175,7 @@ func (paramTransformer *Parameterizer) Transform(
 		octKey := ocTemplatePathTemplateName + common.GetRandomString()
 
 		serviceFsPath := ""
-		if serviceFsPaths, ok := a.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
+		if serviceFsPaths, ok := newArtifact.Paths[artifacts.ServiceDirPathType]; ok && len(serviceFsPaths) > 0 {
 			serviceFsPath = serviceFsPaths[0]
 		}
 		if len(paramTransformer.ParameterizerConfig.HelmPath) != 0 {

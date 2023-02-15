@@ -91,7 +91,8 @@ func (t *BuildConfig) DirectoryDetect(dir string) (services map[string][]transfo
 
 // Transform transforms the artifacts
 func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) (pathMappings []transformertypes.PathMapping, createdArtifacts []transformertypes.Artifact, err error) {
-	logrus.Debugf("Translating IR using Buildconfig transformer")
+	logrus.Trace("Buildconfig.Transform start")
+	defer logrus.Trace("Buildconfig.Transform end")
 	pathMappings = []transformertypes.PathMapping{}
 	createdArtifacts = []transformertypes.Artifact{}
 	for _, newArtifact := range newArtifacts {
@@ -111,50 +112,61 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alread
 		ir.Name = newArtifact.Name
 		preprocessedIR, err := irpreprocessor.Preprocess(ir)
 		if err != nil {
-			logrus.Errorf("Unable to prepreocess IR : %s", err)
+			logrus.Errorf("failed to prepreocess the IR. Error: %q", err)
 		} else {
 			ir = preprocessedIR
 		}
-		if !(len(clusterConfig.Spec.GetSupportedVersions("BuildConfig")) > 0) {
+		if len(clusterConfig.Spec.GetSupportedVersions("BuildConfig")) == 0 {
 			logrus.Debugf("BuildConfig was not found on the target cluster.")
-			return nil, nil, nil
+			continue
 		}
-		apis := []apiresource.IAPIResource{new(apiresource.BuildConfig), new(apiresource.Storage)}
+		apiResources := []apiresource.IAPIResource{new(apiresource.BuildConfig), new(apiresource.Storage)}
 		deployCICDDir := t.BuildConfigConfig.OutputPath
 		tempDest := filepath.Join(t.Env.TempPath, deployCICDDir)
 		logrus.Infof("Generating Buildconfig pipeline for CI/CD")
 		enhancedIR := t.setupEnhancedIR(ir, t.Env.GetProjectName())
-		files, err := apiresource.TransformIRAndPersist(enhancedIR, tempDest, apis, clusterConfig, t.BuildConfigConfig.SetDefaultValuesInYamls)
+		filePaths, err := apiresource.TransformIRAndPersist(
+			enhancedIR,
+			tempDest,
+			apiResources,
+			clusterConfig,
+			t.BuildConfigConfig.SetDefaultValuesInYamls,
+		)
 		if err != nil {
-			logrus.Errorf("Unable to transform and persist IR : %s", err)
-			return nil, nil, err
+			logrus.Errorf("failed to transform and persist the IR. Error: %q", err)
+			continue
 		}
-		for _, f := range files {
-			if destPath, err := filepath.Rel(t.Env.TempPath, f); err != nil {
-				logrus.Errorf("Invalid yaml path : %s", destPath)
-			} else {
-				pathMappings = append(pathMappings, transformertypes.PathMapping{
-					Type:     transformertypes.DefaultPathMappingType,
-					SrcPath:  f,
-					DestPath: destPath,
-				})
+		for _, filePath := range filePaths {
+			destPath, err := filepath.Rel(t.Env.TempPath, filePath)
+			if err != nil {
+				logrus.Errorf("failed to make the path '%s' relative to the directory '%s' . Error: %q", destPath, t.Env.TempPath, err)
+				continue
 			}
+			pathMappings = append(pathMappings, transformertypes.PathMapping{
+				Type:     transformertypes.DefaultPathMappingType,
+				SrcPath:  filePath,
+				DestPath: destPath,
+			})
 		}
-		a := transformertypes.Artifact{
-			Name: t.Config.Name,
-			Type: artifacts.KubernetesYamlsArtifactType,
-			Paths: map[transformertypes.PathType][]string{
-				artifacts.KubernetesYamlsPathType: {deployCICDDir},
-			},
+		logrus.Debugf("number of transformed objects: %d", len(filePaths))
+		if len(filePaths) > 0 {
+			createdArtifact := transformertypes.Artifact{
+				Name: t.Config.Name,
+				Type: artifacts.KubernetesYamlsArtifactType,
+				Paths: map[transformertypes.PathType][]string{
+					artifacts.KubernetesYamlsPathType: {deployCICDDir},
+				},
+			}
+			createdArtifacts = append(createdArtifacts, createdArtifact)
 		}
-		createdArtifacts = append(createdArtifacts, a)
-		logrus.Debugf("Total transformed objects : %d", len(files))
 	}
 	return pathMappings, createdArtifacts, nil
 }
 
 // setupEnhancedIR return enhanced IR used by BuildConfig
 func (t *BuildConfig) setupEnhancedIR(oldir irtypes.IR, planName string) irtypes.EnhancedIR {
+	logrus.Trace("BuildConfig.setupEnhancedIR start")
+	defer logrus.Trace("BuildConfig.setupEnhancedIR end")
 	ir := irtypes.NewEnhancedIRFromIR(oldir)
 
 	// Prefix the project name and make the name a valid k8s name.
