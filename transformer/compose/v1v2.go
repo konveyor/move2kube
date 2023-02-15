@@ -264,13 +264,14 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 			serviceConfig.RestartPolicy = core.RestartPolicyAlways
 		}
 
-		if composeServiceConfig.Networks != nil && len(composeServiceConfig.Networks.Networks) > 0 {
-			for _, value := range composeServiceConfig.Networks.Networks {
-				if value.Name != "default" {
-					serviceConfig.Networks = append(serviceConfig.Networks, value.RealName)
-				}
-			}
-		}
+		// TODO: Decide on docker-compose network translation. Until then this code is disabled.
+		// if composeServiceConfig.Networks != nil && len(composeServiceConfig.Networks.Networks) > 0 {
+		// 	for _, value := range composeServiceConfig.Networks.Networks {
+		// 		if value.Name != "default" {
+		// 			serviceConfig.Networks = append(serviceConfig.Networks, value.RealName)
+		// 		}
+		// 	}
+		// }
 
 		vml, vl := makeVolumesFromTmpFS(name, composeServiceConfig.Tmpfs)
 		for _, v := range vl {

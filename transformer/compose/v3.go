@@ -258,7 +258,8 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 			serviceConfig.Daemon = true
 		}
 
-		serviceConfig.Networks = c.getNetworks(composeServiceConfig, composeObject)
+		// TODO: Decide on docker-compose network translation. Until then this code is disabled.
+		// serviceConfig.Networks = c.getNetworks(composeServiceConfig, composeObject)
 
 		if (composeServiceConfig.Deploy.Resources != types.Resources{}) {
 			if composeServiceConfig.Deploy.Resources.Limits != nil {
