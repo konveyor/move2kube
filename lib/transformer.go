@@ -47,7 +47,15 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 	requirements, _ := selectorsInPlan.Requirements()
 	transformerSelectorObj = transformerSelectorObj.Add(requirements...)
 
-	if _, err := transformer.InitTransformers(plan.Spec.Transformers, transformerSelectorObj, plan.Spec.SourceDir, outputPath, plan.Name, true, preExistingPlan); err != nil {
+	if _, err := transformer.InitTransformers(
+		plan.Spec.Transformers,
+		transformerSelectorObj,
+		plan.Spec.SourceDir,
+		outputPath,
+		plan.Name,
+		true,
+		preExistingPlan,
+	); err != nil {
 		return fmt.Errorf("failed to initialize the transformers. Error: %w", err)
 	}
 
@@ -57,7 +65,14 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 		serviceNames = append(serviceNames, serviceName)
 	}
 	sort.Strings(serviceNames)
-	selectedServiceNames := qaengine.FetchMultiSelectAnswer(common.ConfigServicesNamesKey, "Select all services that are needed:", []string{"The services unselected here will be ignored."}, serviceNames, serviceNames, nil)
+	selectedServiceNames := qaengine.FetchMultiSelectAnswer(
+		common.ConfigServicesNamesKey,
+		"Select all services that are needed:",
+		[]string{"The services unselected here will be ignored."},
+		serviceNames,
+		serviceNames,
+		nil,
+	)
 
 	// select the first valid transformation option for each selected service
 	selectedTransformationOptions := []plantypes.PlanArtifact{}

@@ -79,6 +79,8 @@ func (t *ComposeAnalyser) GetConfig() (transformertypes.Transformer, *environmen
 
 // DirectoryDetect detects docker compose files
 func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
+	logrus.Trace("ComposeAnalyser.DirectoryDetect start")
+	defer logrus.Trace("ComposeAnalyser.DirectoryDetect end")
 	yamlPaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch yaml files at path '%s' . Error: %w", dir, err)
