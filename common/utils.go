@@ -126,18 +126,17 @@ func GetYamlsWithTypeMeta(inputPath string, kindFilter string) ([]string, error)
 func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 	var files []string
 	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
-		logrus.Warnf("Error in walking through files due to : %q", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to stat the directory '%s' . Error: %w", inputPath, err)
 	} else if !info.IsDir() {
-		logrus.Warnf("The path %q is not a directory.", inputPath)
+		logrus.Warnf("The path '%s' is not a directory.", inputPath)
 	}
 	err := filepath.WalkDir(inputPath, func(path string, info os.DirEntry, err error) error {
-		if err != nil && path == inputPath { // if walk for root search path return gets error
-			// then stop walking and return this error
-			return err
-		}
 		if err != nil {
-			logrus.Warnf("Skipping path %q due to error: %q", path, err)
+			if path == inputPath {
+				// if the root directory returns an error then stop walking and return this error
+				return err
+			}
+			logrus.Warnf("Skipping the path '%s' due to error: %q", path, err)
 			return nil
 		}
 		// Skip directories
@@ -158,10 +157,9 @@ func GetFilesByExt(inputPath string, exts []string) ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		logrus.Warnf("Error in walking through files due to : %q", err)
-		return files, err
+		return files, fmt.Errorf("failed to walk through the files in the directory '%s' . Error: %w", inputPath, err)
 	}
-	logrus.Debugf("No of files with %s ext identified : %d", exts, len(files))
+	logrus.Debugf("found %d files with the extensions %+v", len(files), exts)
 	return files, nil
 }
 
@@ -170,10 +168,10 @@ func GetFilesByExtInCurrDir(dir string, exts []string) ([]string, error) {
 	var files []string
 	info, err := os.Stat(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to stat the directory %s . Error: %q", dir, err)
+		return nil, fmt.Errorf("failed to stat the directory '%s' . Error: %w", dir, err)
 	}
 	if !info.IsDir() {
-		logrus.Warnf("the provided path %s is not a directory", dir)
+		logrus.Warnf("the provided path '%s' is not a directory", dir)
 		fext := filepath.Ext(dir)
 		for _, ext := range exts {
 			if fext == ext {
@@ -184,7 +182,7 @@ func GetFilesByExtInCurrDir(dir string, exts []string) ([]string, error) {
 	}
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read the directory %s . Error: %q", dir, err)
+		return nil, fmt.Errorf("failed to read the directory '%s' . Error: %w", dir, err)
 	}
 	for _, de := range dirEntries {
 		if de.IsDir() {
@@ -205,26 +203,26 @@ func GetFilesByExtInCurrDir(dir string, exts []string) ([]string, error) {
 func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]string, error) {
 	var files []string
 	if info, err := os.Stat(inputPath); os.IsNotExist(err) {
-		return files, fmt.Errorf("the input path %s does not exist. Error: %q", inputPath, err)
+		return files, fmt.Errorf("failed to stat the directory '%s' . Error: %w", inputPath, err)
 	} else if !info.IsDir() {
-		logrus.Warnf("The path %q is not a directory.", inputPath)
+		logrus.Warnf("The path '%s' is not a directory.", inputPath)
 	}
 	compiledNameRegexes := []*regexp.Regexp{}
 	for _, nameRegex := range nameRegexes {
 		compiledNameRegex, err := regexp.Compile(nameRegex)
 		if err != nil {
-			logrus.Errorf("Could not compile regular expression (%s): %s. Ignoring regex during search", err, nameRegex)
+			logrus.Errorf("failed to compile the regular expression '%s' . Ignoring. Error: %q", nameRegex, err)
 			continue
 		}
 		compiledNameRegexes = append(compiledNameRegexes, compiledNameRegex)
 	}
 	err := filepath.WalkDir(inputPath, func(path string, info os.DirEntry, err error) error {
-		if err != nil && path == inputPath { // if walk for root search path return gets error
-			// then stop walking and return this error
-			return err
-		}
 		if err != nil {
-			logrus.Warnf("Skipping path %q due to error: %q", path, err)
+			if path == inputPath {
+				// if the root directory returns an error then stop walking and return this error
+				return err
+			}
+			logrus.Warnf("Skipping path '%s' due to error: %q", path, err)
 			return nil
 		}
 		// Skip directories
@@ -252,10 +250,9 @@ func GetFilesByName(inputPath string, names []string, nameRegexes []string) ([]s
 		return nil
 	})
 	if err != nil {
-		logrus.Warnf("Error in walking through files due to : %s", err)
-		return files, err
+		return files, fmt.Errorf("failed to walk through the files in the directory '%s' . Error: %w", inputPath, err)
 	}
-	logrus.Debugf("No of files with %s names identified : %d", names, len(files))
+	logrus.Debugf("found %d files with the names %+v", len(files), names)
 	return files, nil
 }
 

@@ -385,6 +385,8 @@ func (s *Storage) Merge(newst Storage) bool {
 
 // AddContainer adds a conatainer to IR
 func (ir *IR) AddContainer(imageName string, container ContainerImage) {
+	logrus.Trace("IR.AddContainer start")
+	defer logrus.Trace("IR.AddContainer end")
 	if im, ok := ir.ContainerImages[imageName]; ok {
 		im.Merge(container)
 		ir.ContainerImages[imageName] = im

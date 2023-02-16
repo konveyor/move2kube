@@ -79,23 +79,23 @@ func (t *ComposeAnalyser) GetConfig() (transformertypes.Transformer, *environmen
 
 // DirectoryDetect detects docker compose files
 func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]transformertypes.Artifact, err error) {
-	yamlpaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
+	yamlPaths, err := common.GetFilesByExt(dir, []string{".yaml", ".yml"})
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch yaml files at path '%s' . Error: %w", dir, err)
 	}
 	imageMetadataPaths := map[string]string{}
-	for _, path := range yamlpaths {
+	for _, yamlPath := range yamlPaths {
 		im := collecttypes.ImageInfo{}
-		if err := common.ReadMove2KubeYaml(path, &im); err != nil || im.Kind != string(collecttypes.ImageMetadataKind) {
+		if err := common.ReadMove2KubeYaml(yamlPath, &im); err != nil || im.Kind != string(collecttypes.ImageMetadataKind) {
 			continue
 		}
-		for _, imagetag := range im.Spec.Tags {
-			imageMetadataPaths[imagetag] = path
+		for _, imageTag := range im.Spec.Tags {
+			imageMetadataPaths[imageTag] = yamlPath
 		}
 	}
 	services = map[string][]transformertypes.Artifact{}
-	for _, path := range yamlpaths {
-		currServices := t.getServicesFromComposeFile(path, imageMetadataPaths)
+	for _, yamlPath := range yamlPaths {
+		currServices := t.getServicesFromComposeFile(yamlPath, imageMetadataPaths)
 		services = plantypes.MergeServicesT(services, currServices)
 	}
 	logrus.Debugf("Docker compose services : %+v", services)
@@ -104,6 +104,8 @@ func (t *ComposeAnalyser) DirectoryDetect(dir string) (services map[string][]tra
 
 // Transform transforms the artifacts
 func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
+	logrus.Trace("ComposeAnalyser.Transform start")
+	defer logrus.Trace("ComposeAnalyser.Transform end")
 	pathMappings := []transformertypes.PathMapping{}
 	createdArtifacts := []transformertypes.Artifact{}
 	for _, newArtifact := range newArtifacts {
@@ -152,7 +154,7 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 			}
 		} else {
 			if len(ir.ContainerImages) > 1 {
-				logrus.Errorf("Expected only one image in %s. Resetting only the first image name.", serviceConfig.ServiceName)
+				logrus.Errorf("Expected only one image for the service '%s' . Resetting only the first image name.", serviceConfig.ServiceName)
 			}
 			for name, ci := range ir.ContainerImages {
 				delete(ir.ContainerImages, name)
@@ -161,7 +163,7 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 			}
 			for sn, s := range ir.Services {
 				if len(s.Containers) > 1 {
-					logrus.Errorf("Expected only one container. Finding more than one contaienr for service %s.", sn)
+					logrus.Errorf("Expected only one container. Found more than one container for the service '%s' .", sn)
 				}
 				if len(s.Containers) != 0 {
 					s.Containers[0].Image = imageName.ImageName

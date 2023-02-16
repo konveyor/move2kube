@@ -47,6 +47,8 @@ func (*BuildConfig) getSupportedKinds() []string {
 
 // createNewResources creates the runtime objects from the intermediate representation.
 func (bc *BuildConfig) createNewResources(ir irtypes.EnhancedIR, _ []string, targetCluster collecttypes.ClusterMetadata) []runtime.Object {
+	logrus.Trace("BuildConfig.createNewResources start")
+	defer logrus.Trace("BuildConfig.createNewResources end")
 	objs := []runtime.Object{}
 	for _, irBuildConfig := range ir.BuildConfigs {
 		buildConfig := bc.createNewResource(irBuildConfig, ir, targetCluster)
