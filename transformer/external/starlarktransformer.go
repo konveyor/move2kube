@@ -190,6 +190,10 @@ func (t *Starlark) Transform(
 	}
 	val, err := starlark.Call(t.StarThread, t.transformFn, starlark.Tuple{starNewArtifacts, starOldArtifacts}, nil)
 	if err != nil {
+		switch err := err.(type) {
+		case *starlark.EvalError:
+			return nil, nil, fmt.Errorf("failed to call the starlark function '%s' . The call stack is:\n%s\nError: %w", t.transformFn.String(), err.Backtrace(), err)
+		}
 		return nil, nil, fmt.Errorf("failed to call the starlark function '%s' . Error: %w", t.transformFn.String(), err)
 	}
 	valI, err := starutil.Unmarshal(val)

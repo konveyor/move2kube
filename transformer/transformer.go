@@ -589,7 +589,8 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 
 		producedNewPathMappings, producedNewArtifacts, err := runSingleTransform(artifactsToConsume, allArtifacts, transformer, tConfig, env, graph, iteration)
 		if err != nil {
-			logrus.Errorf("failed to run a single transformation using the transformer %+v on the artifacts %+v . Error: %q", tConfig, artifactsToConsume, err)
+			logrus.Errorf("failed to run a single transformation using the transformer %+v on the artifacts: %+v", tConfig, artifactsToConsume)
+			logrus.Error(err.Error())
 			continue
 		}
 		pathMappings = append(pathMappings, producedNewPathMappings...)
@@ -686,7 +687,10 @@ func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Arti
 	// logging
 
 	if err != nil {
-		return newPathMappings, newArtifacts, fmt.Errorf("failed to transform artifacts using the transformer %s . Error: %q", tconfig.Name, err)
+		return newPathMappings, newArtifacts, fmt.Errorf(
+			"failed to transform artifacts using the transformer named '%s' . Error: %w",
+			tconfig.Name, err,
+		)
 	}
 
 	filteredArtifacts := []transformertypes.Artifact{}
