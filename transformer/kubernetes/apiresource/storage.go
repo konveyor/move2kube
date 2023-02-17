@@ -61,22 +61,30 @@ func (s *Storage) convertToClusterSupportedKinds(obj runtime.Object, supportedKi
 }
 
 func (s *Storage) createConfigMap(st irtypes.Storage) *core.ConfigMap {
-	data := map[string]string{}
-	for k, v := range st.Content {
-		data[k] = string(v)
+	if len(st.Content) > 0 {
+		return &core.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       string(irtypes.ConfigMapKind),
+				APIVersion: core.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: st.Name,
+			},
+			BinaryData: st.Content,
+		}
+	} else if len(st.StringContent) > 0 {
+		return &core.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       string(irtypes.ConfigMapKind),
+				APIVersion: core.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: st.Name,
+			},
+			Data: st.StringContent,
+		}
 	}
-
-	configMap := &core.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       string(irtypes.ConfigMapKind),
-			APIVersion: core.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: st.Name,
-		},
-		Data: data,
-	}
-	return configMap
+	return nil
 }
 
 func (s *Storage) createSecret(st irtypes.Storage) *core.Secret {

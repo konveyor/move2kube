@@ -146,7 +146,8 @@ type Storage struct {
 	core.PersistentVolumeClaimSpec                   //This promotion contains the volumeName which is used by configmap, secrets and pvc.
 	StorageType                    StorageKindType   //Type of storage cfgmap, secret, pvc
 	SecretType                     core.SecretType   // Optional field to store the type of secret data
-	Content                        map[string][]byte //Optional field meant to store content for cfgmap or secret
+	Content                        map[string][]byte //Optional field meant to store binary content for cfgmap or secret
+	StringContent                  map[string]string //Optional field meant to store string content for cfgmap. Either Content or StringContent have to be set. Not both.
 }
 
 const (
@@ -374,6 +375,9 @@ func (s *Storage) Merge(newst Storage) bool {
 	if strings.Compare(s.Name, newst.Name) == 0 {
 		if s.Content != nil && newst.Content != nil {
 			s.Content = newst.Content
+		}
+		if s.StringContent != nil && newst.StringContent != nil {
+			s.StringContent = newst.StringContent
 		}
 		s.StorageType = newst.StorageType
 		s.PersistentVolumeClaimSpec = newst.PersistentVolumeClaimSpec
