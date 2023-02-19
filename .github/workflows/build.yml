@@ -86,9 +86,9 @@ jobs:
         run: |
           BRANCH="${GITHUB_REF#refs/heads/}"
           if [ "$BRANCH" == 'main' ] ; then
-            echo "::set-output name=tag::latest"
+            echo "tag=latest" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=tag::$BRANCH"
+            echo "tag=$BRANCH" >> $GITHUB_OUTPUT
           fi
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
