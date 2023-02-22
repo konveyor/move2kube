@@ -72,8 +72,13 @@ func (s *Storage) createConfigMap(st irtypes.Storage) *core.ConfigMap {
 	}
 	if len(st.Content) > 0 {
 		configMap.BinaryData = st.Content
-	} else if len(st.StringContent) > 0 {
-		configMap.Data = st.StringContent
+	}
+	if len(st.StringContent) > 0 {
+		data := map[string][]byte{}
+		for k, v := range st.StringContent {
+			data[k] = []byte(v)
+		}
+		configMap.BinaryData = data
 	}
 	return configMap
 }
