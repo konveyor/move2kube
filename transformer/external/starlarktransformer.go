@@ -33,6 +33,7 @@ import (
 	"github.com/konveyor/move2kube/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/magiconair/properties"
 	"github.com/qri-io/starlib"
 	starutil "github.com/qri-io/starlib/util"
 	"github.com/sirupsen/logrus"
@@ -65,6 +66,7 @@ const (
 	fsFindXmlPathFnName          = "find_xml_path"
 	fsGetFilesWithPatternFnName  = "get_files_with_pattern"
 	fsPathJoinFnName             = "path_join"
+	fsReadPropertiesFnName       = "read_properties"
 	fsWriteFnName                = "write"
 	fsPathBaseFnName             = "path_base"
 	fsPathRelFnName              = "path_rel"
@@ -352,6 +354,7 @@ func (t *Starlark) addFSModules() {
 			fsIsDirFnName:                t.getStarlarkFSIsDir(),
 			fsGetFilesWithPatternFnName:  t.getStarlarkFSGetFilesWithPattern(),
 			fsPathJoinFnName:             t.getStarlarkFSPathJoin(),
+			fsReadPropertiesFnName:       t.getStarlarkFSReadProperties(),
 			fsWriteFnName:                t.getStarlarkFSWrite(),
 			fsGetYamIsWithTypeMetaFnName: t.getStarlarkFSGetYamlsWithTypeMeta(),
 			fsPathBaseFnName:             t.getStarlarkFSPathBase(),
@@ -736,5 +739,24 @@ func (t *Starlark) getStarlarkArchTarStr() *starlark.Builtin {
 			return starlark.None, fmt.Errorf("invalid path")
 		}
 		return starlark.String(common.CreateTarArchiveNoCompressionStringWrapper(srcDir)), nil
+	})
+}
+
+func (t *Starlark) getStarlarkFSReadProperties() *starlark.Builtin {
+	return starlark.NewBuiltin(fsReadPropertiesFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var propertiesFilePath string
+		if err := starlark.UnpackPositionalArgs(fsReadPropertiesFnName, args, kwargs, 1, &propertiesFilePath); err != nil {
+			return nil, err
+		}
+		properties, err := properties.LoadFile(propertiesFilePath, properties.UTF8)
+		if err != nil {
+			logrus.Errorf("failed to parse the properties at path %s . Error: %q", propertiesFilePath, err)
+		}
+		propertiesMap := properties.Map()
+		propertiesMap1 := make(map[string]interface{}, len(propertiesMap))
+		for k, v := range propertiesMap {
+			propertiesMap1[k] = v
+		}
+		return starutil.Marshal(propertiesMap1)
 	})
 }
