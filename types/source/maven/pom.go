@@ -68,11 +68,9 @@ type Pom struct {
 }
 
 // Load loads a pom xml file
-func (pom *Pom) Load(file string) error {
-	err := common.ReadXML(file, pom)
-	if err != nil {
-		logrus.Errorf("Unable to unmarshal pom file (%s) : %s", file, err)
-		return err
+func (pom *Pom) Load(pomPath string) error {
+	if err := common.ReadXML(pomPath, pom); err != nil {
+		return fmt.Errorf("failed to unmarshal the POM file at path '%s' as XML. Error: %w", pomPath, err)
 	}
 	return nil
 }

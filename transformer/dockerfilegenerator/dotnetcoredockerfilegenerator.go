@@ -199,7 +199,7 @@ func (t *DotNetCoreDockerfileGenerator) DirectoryDetect(dir string) (services ma
 		}
 		isAspNet, err := isAspNet(configuration)
 		if err != nil {
-			logrus.Errorf("failed to determine if the c sharp project file at the path %s is a asp net web project. Error: %q", csProjPath, err)
+			logrus.Errorf("failed to determine if the c sharp project file at the path '%s' is an ASP NET web project. Error: %q", csProjPath, err)
 			continue
 		}
 		if !isAspNet {
@@ -602,24 +602,25 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 
 // utility functions
 
-// isAspNet checks if the given app is an asp net web app
+// isAspNet checks if the given app is an ASP NET web app
 func isAspNet(configuration dotnet.CSProj) (bool, error) {
-	if configuration.ItemGroups == nil || len(configuration.ItemGroups) == 0 {
+	if len(configuration.ItemGroups) == 0 {
 		if strings.HasSuffix(configuration.Sdk, ".NET.Sdk.Web") {
 			return true, nil
 		}
-		return false, fmt.Errorf("no item groups in project file to parse")
+		logrus.Debugf("cannot determine if it's an ASP NET project, the .csproj file does not have any item groups")
+		return false, nil
 	}
-	for _, ig := range configuration.ItemGroups {
-		if len(ig.References) > 0 {
-			for _, r := range ig.References {
+	for _, itemGroup := range configuration.ItemGroups {
+		if len(itemGroup.References) > 0 {
+			for _, r := range itemGroup.References {
 				if dotnet.AspNetWebLib.MatchString(r.Include) {
 					return true, nil
 				}
 			}
 		}
-		if len(ig.PackageReferences) > 0 {
-			for _, r := range ig.PackageReferences {
+		if len(itemGroup.PackageReferences) > 0 {
+			for _, r := range itemGroup.PackageReferences {
 				if dotnet.AspNetWebLib.MatchString(r.Include) {
 					return true, nil
 				}
@@ -659,8 +660,11 @@ func getPublishProfile(profilePaths []string, subKey, baseDir string) (string, s
 // parsePublishProfileFile parses the publish profile to get the PublishUrl
 func parsePublishProfileFile(profilePath string) (string, error) {
 	publishProfile := PublishProfile{}
-	if err := common.ReadXML(profilePath, publishProfile); err != nil {
+	if err := common.ReadXML(profilePath, &publishProfile); err != nil {
 		return "", fmt.Errorf("failed to read publish profile file at path %s as xml. Error: %q", profilePath, err)
+	}
+	if publishProfile.PropertyGroup == nil {
+		return "", nil
 	}
 	if publishProfile.PropertyGroup.PublishUrl != "" {
 		return common.GetUnixPath(publishProfile.PropertyGroup.PublishUrl), nil
