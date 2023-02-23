@@ -84,6 +84,9 @@ func (e *dockerEngine) updateAvailableImages() error {
 }
 
 func (e *dockerEngine) pullImage(image string) error {
+	if e.availableImages == nil {
+		return fmt.Errorf("the Docker engine has not been initialized. The list of available images is nil")
+	}
 	if _, ok := e.availableImages[image]; ok {
 		return nil
 	}

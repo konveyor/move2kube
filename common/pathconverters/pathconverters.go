@@ -150,7 +150,17 @@ func process(value reflect.Value, ctx context) error {
 				return err
 			}
 		}
-	case reflect.Int, reflect.Int32, reflect.Bool:
+	case reflect.Int,
+		reflect.Int8,
+		reflect.Int16,
+		reflect.Int32,
+		reflect.Int64,
+		reflect.Uint,
+		reflect.Uint8,
+		reflect.Uint16,
+		reflect.Uint32,
+		reflect.Uint64,
+		reflect.Bool:
 		// Ignore
 	default:
 		logrus.Debugf("default. Actual kind: %s", value.Kind())

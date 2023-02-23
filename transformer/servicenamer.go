@@ -26,135 +26,134 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type service struct {
+type servicePathInfo struct {
 	path       string
 	pathsuffix string
 }
 
-func nameServices(projName string, services map[string][]plantypes.PlanArtifact) map[string][]plantypes.PlanArtifact {
-	sts := services[""]
-	delete(services, "")
-	// Collate services by service dir path or shared common base dir
-	knownServicePaths := map[string]string{} //[path]name
-	for sn, s := range services {
-		for _, st := range s {
-			if pps, ok := st.Paths[artifacts.ServiceDirPathType]; ok {
-				for _, pp := range pps {
-					knownServicePaths[pp] = sn
+func nameServices(projectName string, inputServicesMap map[string][]plantypes.PlanArtifact) map[string][]plantypes.PlanArtifact {
+	unnamedServices := inputServicesMap[""]
+	delete(inputServicesMap, "")
+	logrus.Debug("Collate named services by service dir path or shared common base dir")
+	serviceDirToServiceName := map[string]string{}
+	for serviceName, namedServices := range inputServicesMap {
+		for _, namedService := range namedServices {
+			if serviceDirs, ok := namedService.Paths[artifacts.ServiceDirPathType]; ok {
+				for _, serviceDir := range serviceDirs {
+					serviceDirToServiceName[serviceDir] = serviceName
 				}
 			}
 		}
 	}
-	// Collate services by service dir path or shared common base dir
-	servicePaths := map[string][]plantypes.PlanArtifact{}
-	for _, st := range sts {
-		pps, ok := st.Paths[artifacts.ServiceDirPathType]
-		bpp := common.CleanAndFindCommonDirectory(pps)
+	logrus.Debug("Collate unnamed services by service dir path or shared common base dir")
+	serviceDirToUnnamedServices := map[string][]plantypes.PlanArtifact{}
+	for _, unnamedService := range unnamedServices {
+		serviceDirs, ok := unnamedService.Paths[artifacts.ServiceDirPathType]
+		commonServiceDir := common.CleanAndFindCommonDirectory(serviceDirs)
 		if !ok {
-			paths := []string{}
-			for _, p := range st.Paths {
-				paths = append(paths, p...)
+			allPathsUsedByService := []string{}
+			for _, paths := range unnamedService.Paths {
+				allPathsUsedByService = append(allPathsUsedByService, paths...)
 			}
-			if len(paths) > 0 {
-				bpp = common.CleanAndFindCommonDirectory(paths)
-			} else {
-				logrus.Errorf("No paths in the transformer. Ignoring transformer : %+v", st)
+			if len(allPathsUsedByService) == 0 {
+				logrus.Errorf("failed to find any paths in the service. Ignoring the service: %+v", unnamedService)
 				continue
 			}
+			commonServiceDir = common.CleanAndFindCommonDirectory(allPathsUsedByService)
 		}
 		found := false
-		for kpp, sn := range knownServicePaths {
-			if common.IsParent(bpp, kpp) {
-				services[sn] = append(services[sn], st)
+		for serviceDir, serviceName := range serviceDirToServiceName {
+			if common.IsParent(commonServiceDir, serviceDir) {
+				inputServicesMap[serviceName] = append(inputServicesMap[serviceName], unnamedService)
 				found = true
 			}
 		}
 		if !found {
-			servicePaths[bpp] = append(servicePaths[bpp], st)
+			serviceDirToUnnamedServices[commonServiceDir] = append(serviceDirToUnnamedServices[commonServiceDir], unnamedService)
 		}
 	}
-	// Find if base dir is a git repo, and has only one service or many services
-	gitRepoNames := map[string][]string{} // [repoName][]basePath
-	basePathRepos := map[string]string{}
-	for sp := range servicePaths {
-		repoName, _, _, repoURL, _, err := common.GatherGitInfo(sp)
+	logrus.Debug("Find if base dir is a git repo, and has only one service or many services")
+	repoNameToDirs := map[string][]string{} // [repoName][]repoDir
+	repoDirToName := map[string]string{}
+	for serviceDir := range serviceDirToUnnamedServices {
+		repoName, _, _, repoURL, _, err := common.GatherGitInfo(serviceDir)
 		if err != nil {
-			logrus.Debugf("Unable to find any git repo for directory %s : %s", sp, err)
+			logrus.Debugf("failed to find any git repo for directory '%s' . Error: %q", serviceDir, err)
 			continue
 		}
 		if repoName == "" {
-			logrus.Debugf("No repo name found for repo at %s", repoURL)
+			logrus.Debugf("no repo name found for the git repo at '%s' . Skipping", repoURL)
 			continue
 		}
-		if bps, ok := gitRepoNames[repoName]; ok {
-			gitRepoNames[repoName] = append(bps, sp)
+		if repoDirs, ok := repoNameToDirs[repoName]; ok {
+			repoNameToDirs[repoName] = append(repoDirs, serviceDir)
 		} else {
-			gitRepoNames[repoName] = []string{sp}
+			repoNameToDirs[repoName] = []string{serviceDir}
 		}
-		basePathRepos[sp] = repoName
+		repoDirToName[serviceDir] = repoName
 	}
-	for repoName, basePaths := range gitRepoNames {
-		if len(basePaths) == 1 {
-			// Only one service in repo
+	for repoName, repoDirs := range repoNameToDirs {
+		if len(repoDirs) == 1 {
+			repoDir := repoDirs[0]
+			logrus.Debugf("Only one service directory '%s' has the repo name '%s'", repoDir, repoName)
 			repoName = common.NormalizeForMetadataName(repoName)
-			services[repoName] = servicePaths[basePaths[0]]
-			delete(servicePaths, basePaths[0])
+			inputServicesMap[repoName] = serviceDirToUnnamedServices[repoDir]
+			delete(serviceDirToUnnamedServices, repoDir)
 		}
 	}
-	// Only one set of unnamed services, use service name
-	if len(services) == 0 && len(servicePaths) == 1 {
-		for _, ts := range servicePaths {
-			projName = common.NormalizeForMetadataName(projName)
-			services[projName] = ts
+	if len(inputServicesMap) == 0 && len(serviceDirToUnnamedServices) == 1 {
+		logrus.Debug("All remaining unnamed services use the same service directory")
+		for _, unnamedServices := range serviceDirToUnnamedServices {
+			normalizedProjectName := common.NormalizeForMetadataName(projectName)
+			inputServicesMap[normalizedProjectName] = unnamedServices
 		}
-		return services
+		return inputServicesMap
 	}
 
-	repoServices := map[string][]service{}
-	for sp := range servicePaths {
-		repo, ok := basePathRepos[sp]
+	repoNameToServicePathInfos := map[string][]servicePathInfo{}
+	for serviceDir := range serviceDirToUnnamedServices {
+		repoName, ok := repoDirToName[serviceDir]
 		if !ok {
-			repo = projName
+			repoName = projectName
 		}
-		p := service{sp, sp}
-		if ps, ok := repoServices[repo]; !ok {
-			repoServices[repo] = []service{p}
-		} else {
-			repoServices[repo] = append(ps, p)
+		pathInfo := servicePathInfo{
+			path:       serviceDir,
+			pathsuffix: serviceDir,
 		}
+		repoNameToServicePathInfos[repoName] = append(repoNameToServicePathInfos[repoName], pathInfo)
 	}
-	sServices := map[string][]service{}
-	for repo, services := range repoServices {
-		if len(services) == 1 {
-			sServices[repo] = []service{services[0]}
+	newNameToServicePathInfos := map[string][]servicePathInfo{}
+	for repoName, pathInfos := range repoNameToServicePathInfos {
+		if len(pathInfos) == 1 {
+			newNameToServicePathInfos[repoName] = []servicePathInfo{pathInfos[0]}
 			continue
 		}
-		for k, v := range bucketServices(services) {
+		for bucketedName, bucketedPathInfos := range bucketServices(pathInfos) {
 			separator := "-"
-			if repo == "" || k == "" {
+			if repoName == "" || bucketedName == "" {
 				separator = ""
 			}
-			nk := repo + separator + k
-			if v1, ok := sServices[nk]; ok {
-				sServices[nk] = append(v, v1...)
+			newName := repoName + separator + bucketedName
+			if v1, ok := newNameToServicePathInfos[newName]; ok {
+				newNameToServicePathInfos[newName] = append(bucketedPathInfos, v1...)
 			} else {
-				sServices[nk] = v
+				newNameToServicePathInfos[newName] = bucketedPathInfos
 			}
 		}
 	}
-	//TODO: Consider whether we should take into consideration pre-existing serviceNames
-	svcs := map[string][]plantypes.PlanArtifact{}
-	for sn, ps := range sServices {
-		sn = common.NormalizeForMetadataName(sn)
-		for _, p := range ps {
-			svcs[sn] = servicePaths[p.path]
+	//TODO: Decide whether we should take into consideration pre-existing service names
+	outputServicesMap := map[string][]plantypes.PlanArtifact{}
+	for newName, pathInfos := range newNameToServicePathInfos {
+		normalizedNewName := common.NormalizeForMetadataName(newName)
+		for _, pathInfo := range pathInfos {
+			outputServicesMap[normalizedNewName] = serviceDirToUnnamedServices[pathInfo.path]
 		}
 	}
-	return plantypes.MergeServices(services, svcs)
+	return plantypes.MergeServices(inputServicesMap, outputServicesMap)
 }
 
-func bucketServices(services []service) map[string][]service {
-	nServices := map[string][]service{}
+func bucketServices(services []servicePathInfo) map[string][]servicePathInfo {
+	nServices := map[string][]servicePathInfo{}
 	commonPath := findCommonPrefix(services)
 	if commonPath != "." {
 		services = trimPrefix(services, commonPath)
@@ -168,21 +167,21 @@ func bucketServices(services []service) map[string][]service {
 			prefix = parts[0]
 		}
 		if pdfs, ok := nServices[prefix]; !ok {
-			nServices[prefix] = []service{df}
+			nServices[prefix] = []servicePathInfo{df}
 		} else {
 			nServices[prefix] = append(pdfs, df)
 		}
 	}
-	sServicess := map[string][]service{}
+	sServicess := map[string][]servicePathInfo{}
 	for p, paths := range nServices {
 		if len(paths) == 1 {
-			sServicess[p] = []service{paths[0]}
+			sServicess[p] = []servicePathInfo{paths[0]}
 		} else if p == "" {
 			for _, v := range paths {
 				if v1, ok := sServicess[p]; ok {
 					sServicess[p] = append(v1, v)
 				} else {
-					sServicess[p] = []service{v}
+					sServicess[p] = []servicePathInfo{v}
 				}
 			}
 		} else {
@@ -203,7 +202,7 @@ func bucketServices(services []service) map[string][]service {
 	return sServicess
 }
 
-func findCommonPrefix(files []service) string {
+func findCommonPrefix(files []servicePathInfo) string {
 	paths := make([]string, len(files))
 	for i, file := range files {
 		paths[i] = file.pathsuffix
@@ -211,7 +210,7 @@ func findCommonPrefix(files []service) string {
 	return common.CleanAndFindCommonDirectory(paths)
 }
 
-func trimPrefix(files []service, prefix string) []service {
+func trimPrefix(files []servicePathInfo, prefix string) []servicePathInfo {
 	for i, f := range files {
 		files[i].pathsuffix = strings.TrimPrefix(f.pathsuffix, prefix+string(filepath.Separator))
 	}

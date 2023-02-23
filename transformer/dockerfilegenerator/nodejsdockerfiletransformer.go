@@ -323,27 +323,3 @@ func LoadNodeVersionMappingsFile(mappingFilePath string) (NodeVersionsMappingSpe
 	}
 	return mappingFile.Spec, nil
 }
-
-// getNodeImageTag returns the image tag to be used with the node base image in the Dockerfile
-func getNodeImageTag(nodeVersions []map[string]string, selectedNodeVersion string) string {
-	var nodeImageTag string
-	nodeVersionToImageTagMapping := make(map[string]string)
-	for _, nodeVersion := range nodeVersions {
-		if imageTag, ok := nodeVersion[imageTagKey]; ok {
-			nodeVersionToImageTagMapping[nodeVersion[versionKey]] = imageTag
-		}
-	}
-	logrus.Debugf("Extracted node version-image tag mappings are %+v", nodeVersionToImageTagMapping)
-	if imageTag, ok := nodeVersionToImageTagMapping[selectedNodeVersion]; ok {
-		nodeImageTag = imageTag
-		logrus.Debugf("Selected nodeImageTag is - %s", nodeImageTag)
-	}
-	if nodeImageTag == "" {
-		if len(nodeVersions) != 0 {
-			if _, ok := nodeVersions[0][imageTagKey]; ok {
-				nodeImageTag = nodeVersions[0][imageTagKey]
-			}
-		}
-	}
-	return nodeImageTag
-}
