@@ -62,11 +62,13 @@ const (
 	fsReadFnName                 = "read"
 	fsReadDirFnName              = "read_dir"
 	fsIsDirFnName                = "is_dir"
+	fsGetDirFnName               = "get_dir"
 	fsGetYamIsWithTypeMetaFnName = "get_yamls_with_type_meta"
 	fsFindXmlPathFnName          = "find_xml_path"
 	fsGetFilesWithPatternFnName  = "get_files_with_pattern"
 	fsPathJoinFnName             = "path_join"
 	fsReadPropertiesFnName       = "read_properties"
+	fsWritePropertiesFnName      = "write_properties"
 	fsWriteFnName                = "write"
 	fsPathBaseFnName             = "path_base"
 	fsPathRelFnName              = "path_rel"
@@ -355,9 +357,11 @@ func (t *Starlark) addFSModules() {
 			fsGetFilesWithPatternFnName:  t.getStarlarkFSGetFilesWithPattern(),
 			fsPathJoinFnName:             t.getStarlarkFSPathJoin(),
 			fsReadPropertiesFnName:       t.getStarlarkFSReadProperties(),
+			fsWritePropertiesFnName:      t.getStarlarkFSWriteProperties(),
 			fsWriteFnName:                t.getStarlarkFSWrite(),
 			fsGetYamIsWithTypeMetaFnName: t.getStarlarkFSGetYamlsWithTypeMeta(),
 			fsPathBaseFnName:             t.getStarlarkFSPathBase(),
+			fsGetDirFnName:               t.getStarlarkFSGetDir(),
 			fsPathRelFnName:              t.getStarlarkFSPathRel(),
 			fsFindXmlPathFnName:          t.getStarlarkFindXmlPath(),
 		},
@@ -674,6 +678,19 @@ func (t *Starlark) getStarlarkFSPathBase() *starlark.Builtin {
 	})
 }
 
+func (t *Starlark) getStarlarkFSGetDir() *starlark.Builtin {
+	return starlark.NewBuiltin(fsGetDirFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var filePath string
+		if err := starlark.UnpackPositionalArgs(fsGetDirFnName, args, kwargs, 1, &filePath); err != nil {
+			return nil, err
+		}
+		if !t.Env.IsPathValid(filePath) {
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", filePath)
+		}
+		return starlark.String(filepath.Dir(filePath)), nil
+	})
+}
+
 func (t *Starlark) getStarlarkFSPathRel() *starlark.Builtin {
 	return starlark.NewBuiltin(fsPathRelFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var basePath, targetPath string
@@ -748,15 +765,53 @@ func (t *Starlark) getStarlarkFSReadProperties() *starlark.Builtin {
 		if err := starlark.UnpackPositionalArgs(fsReadPropertiesFnName, args, kwargs, 1, &propertiesFilePath); err != nil {
 			return nil, err
 		}
-		properties, err := properties.LoadFile(propertiesFilePath, properties.UTF8)
+		props, err := properties.LoadFile(propertiesFilePath, properties.UTF8)
 		if err != nil {
 			logrus.Errorf("failed to parse the properties at path %s . Error: %q", propertiesFilePath, err)
 		}
-		propertiesMap := properties.Map()
-		propertiesMap1 := make(map[string]interface{}, len(propertiesMap))
-		for k, v := range propertiesMap {
-			propertiesMap1[k] = v
+		propsMap := props.Map()
+		propertiesMap := make(map[string]interface{}, len(propsMap))
+		for k, v := range propsMap {
+			propertiesMap[k] = v
 		}
-		return starutil.Marshal(propertiesMap1)
+		return starutil.Marshal(propertiesMap)
 	})
+}
+
+func (t *Starlark) getStarlarkFSWriteProperties() *starlark.Builtin {
+	return starlark.NewBuiltin(fsWritePropertiesFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var propertiesFilePath string
+		var permissions = common.DefaultFilePermission
+		propertiesDict := &starlark.Dict{}
+		if err := starlark.UnpackPositionalArgs(fsWritePropertiesFnName, args, kwargs, 2, &propertiesFilePath, &propertiesDict); err != nil {
+			return starlark.None, err
+		}
+		propsDict, err := starutil.Unmarshal(propertiesDict)
+		if err != nil {
+			return starlark.None, fmt.Errorf("unable to unmarshal starlark function result : %s", err)
+		}
+		propertiesString := getPropertiesString(propsDict.(map[string]interface{}))
+		if !t.Env.IsPathValid(propertiesFilePath) {
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", propertiesFilePath)
+		}
+		numBytesWritten := len(propertiesString)
+		err = os.WriteFile(propertiesFilePath, []byte(propertiesString), fs.FileMode(permissions))
+		if err != nil {
+			return starlark.None, fmt.Errorf("could not write to file %s", propertiesFilePath)
+		}
+		retValue, err := starutil.Marshal(numBytesWritten)
+		if err != nil {
+			return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %w", numBytesWritten, numBytesWritten, err)
+		}
+		return retValue, err
+	})
+}
+
+// getPropertiesString returns a string of all expanded 'key=value' pairs.
+func getPropertiesString(props map[string]interface{}) string {
+	var s string
+	for key, value := range props {
+		s = fmt.Sprintf("%s%s=%s\n", s, key, value.(string))
+	}
+	return s
 }
