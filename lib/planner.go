@@ -70,7 +70,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 
 	logrus.Info("Start planning")
 	if inputPath != "" {
-		plan.Spec.Services, err = transformer.GetServices(plan.Name, inputPath)
+		plan.Spec.Services, err = transformer.GetServices(plan.Name, inputPath, nil)
 		if err != nil {
 			return plan, fmt.Errorf("failed to get services from the input directory '%s' . Error: %w", inputPath, err)
 		}

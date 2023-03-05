@@ -146,6 +146,9 @@ func (t *GolangDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 	pathMappings := []transformertypes.PathMapping{}
 	artifactsCreated := []transformertypes.Artifact{}
 	for _, a := range newArtifacts {
+		if len(a.Paths[artifacts.ServiceDirPathType]) == 0 {
+			continue
+		}
 		relSrcPath, err := filepath.Rel(t.Env.GetEnvironmentSource(), a.Paths[artifacts.ServiceDirPathType][0])
 		if err != nil {
 			logrus.Errorf("Unable to convert source path %s to be relative : %s", a.Paths[artifacts.ServiceDirPathType][0], err)
