@@ -98,7 +98,7 @@ jobs:
           ref: ${{ github.event.inputs.commit_ref }}
       - id: get_sha
         run: |
-          echo "::set-output name=sha::$(git rev-parse HEAD)"
+          echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
       - uses: actions/github-script@v3
         with:
           github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
