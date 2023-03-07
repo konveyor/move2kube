@@ -175,12 +175,12 @@ func mergeConfigs(configs1 map[transformertypes.ConfigType]interface{}, configs2
 		if ct, ok := artifacts.ConfigTypes[string(cn2)]; ok {
 			c1 := reflect.New(ct).Interface().(transformertypes.Config)
 			if err := common.GetObjFromInterface(configs1[cn2], c1); err != nil {
-				logrus.Errorf("Unable to load config : %s", err)
+				logrus.Errorf("failed to load config. Error: %q", err)
 				break
 			}
 			c2 := reflect.New(ct).Interface().(transformertypes.Config)
 			if err := common.GetObjFromInterface(configs2[cn2], c2); err != nil {
-				logrus.Errorf("Unable to load config : %s", err)
+				logrus.Errorf("failed to load config. Error: %q", err)
 				break
 			}
 			if merged = c1.Merge(c2); !merged {

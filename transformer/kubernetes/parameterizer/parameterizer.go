@@ -514,6 +514,7 @@ func parameterizeFilter(envs []string, k k8sschema.K8sResourceT, p Parameterizer
 				continue
 			}
 		}
+		// empty envs matches all environments
 		if filter.Envs != nil {
 			found := false
 			for _, env := range envs {
