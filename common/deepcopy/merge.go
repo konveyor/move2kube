@@ -62,31 +62,37 @@ func mergeRecursively(xV reflect.Value, yV reflect.Value) reflect.Value {
 	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64, reflect.Complex64, reflect.Complex128, reflect.String:
 		return yV
 	case reflect.Array, reflect.Slice:
-		nV := reflect.MakeSlice(xT, xV.Len()+yV.Len(), xV.Cap()+yV.Cap())
-		itemsYetToBeMerged := map[int]bool{}
-		for i := 0; i < yV.Len(); i++ {
-			itemsYetToBeMerged[i] = true
-		}
-		for i := 0; i < xV.Len(); i++ {
-			merged := false
-			for j := 0; j < yV.Len(); j++ {
-				if compare(xV.Index(i), yV.Index(j)) {
-					nV.Index(i).Set(mergeRecursively(xV.Index(i), yV.Index(j)))
+		{
+			// make a copy of xV
+			mergedSlice := copyRecursively(xV)
+			// mergedSlice := reflect.MakeSlice(xT, xV.Len(), xV.Cap())
+			// for xIdx := 0; xIdx < xV.Len(); xIdx++ {
+			// 	mergedSlice.Index(xIdx).Set(copyRecursively(xV.Index(xIdx)))
+			// }
+
+			// for each element in yV
+			for yIdx := 0; yIdx < yV.Len(); yIdx++ {
+				merged := false
+				yVElem := yV.Index(yIdx)
+				// try to merge with an existing element in the merged slice
+				for mergedIdx := 0; mergedIdx < mergedSlice.Len(); mergedIdx++ {
+					existingElem := mergedSlice.Index(mergedIdx)
+					if !compare(existingElem, yVElem) {
+						// can't merge
+						continue
+					}
+					mergedElem := mergeRecursively(existingElem, yVElem)
+					mergedSlice.Index(mergedIdx).Set(mergedElem)
 					merged = true
-					itemsYetToBeMerged[j] = false
 					break
 				}
+				if !merged {
+					// append if we can't merge
+					mergedSlice = reflect.Append(mergedSlice, copyRecursively(yVElem))
+				}
 			}
-			if !merged {
-				nV.Index(i).Set(copyRecursively(xV.Index(i)))
-			}
+			return mergedSlice
 		}
-		for i := 0; i < yV.Len(); i++ {
-			if itemsYetToBeMerged[i] {
-				nV.Index(xV.Len() + i).Set(copyRecursively(yV.Index(i)))
-			}
-		}
-		return nV
 	case reflect.Interface:
 		return mergeRecursively(xV.Elem(), yV.Elem())
 	case reflect.Map:
