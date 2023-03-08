@@ -603,7 +603,6 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 		}
 
 		logrus.Debugf("Transformer '%s' will be processing %d artifacts in %d mode", tConfig.Name, len(artifactsToProcess), pt)
-
 		// Dependency processing
 		dependencyCreatedNewPathMappings, dependencyCreatedNewArtifacts, dependencyUpdatedArtifacts := transform(artifactsToProcess, allArtifacts, dependency, tConfig.Spec.DependencySelector, graph, iteration)
 		pathMappings = append(pathMappings, dependencyCreatedNewPathMappings...)
@@ -615,7 +614,6 @@ func transform(newArtifactsToProcess, allArtifacts []transformertypes.Artifact, 
 		}
 
 		logrus.Infof("Transformer '%s' processing %d artifacts", tConfig.Name, len(artifactsToConsume))
-
 		producedNewPathMappings, producedNewArtifacts, err := runSingleTransform(artifactsToConsume, allArtifacts, transformer, tConfig, env, graph, iteration)
 		if err != nil {
 			logrus.Errorf("failed to run a single transformation using the transformer %+v on the artifacts: %+v", tConfig, artifactsToConsume)
@@ -801,10 +799,9 @@ func getArtifactsToProcess(
 		logrus.Debug("transformer was selected")
 		if processSpec.Merge {
 			artifactsToProcess = mergeArtifacts(append(artifactsToProcess, updatedArtifacts(allArtifacts, newArtifact)...))
+		} else {
+			artifactsToProcess = append(artifactsToProcess, newArtifact)
 		}
-		artifactsToProcess = append(artifactsToProcess, newArtifact)
-
 	}
-
 	return artifactsToProcess, artifactsToNotProcess
 }

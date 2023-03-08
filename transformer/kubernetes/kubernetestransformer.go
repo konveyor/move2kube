@@ -25,6 +25,7 @@ import (
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/transformer/kubernetes/apiresource"
 	"github.com/konveyor/move2kube/transformer/kubernetes/irpreprocessor"
+	"github.com/konveyor/move2kube/transformer/kubernetes/parameterizer"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
@@ -170,6 +171,14 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 			Paths: map[transformertypes.PathType][]string{
 				artifacts.KubernetesYamlsPathType: {outputPath},
 			},
+		}
+		{
+			moreParams := []parameterizer.ParameterizerT{}
+			if err := newArtifact.GetConfig(ExtraParameterizersConfigType, &moreParams); err != nil {
+				logrus.Debugf("failed to load config of type '%s' into struct of type %T . Error: %q", ExtraParameterizersConfigType, moreParams, err)
+			} else {
+				createdArtifact.Configs[ExtraParameterizersConfigType] = moreParams
+			}
 		}
 		// Append the project path only if there is one-one mapping between services and artifacts
 		if len(ir.Services) == 1 {
