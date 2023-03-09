@@ -24,7 +24,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/antchfx/xmlquery"
 	"github.com/antchfx/xpath"
@@ -39,7 +38,6 @@ import (
 	starutil "github.com/qri-io/starlib/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
-	startime "go.starlark.net/lib/time"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
 )
@@ -600,197 +598,6 @@ func (t *Starlark) getStarlarkFSIsDir() *starlark.Builtin {
 	})
 }
 
-// MarshalGoTypesToStarlark converts go types to starlark
-func (t *Starlark) MarshalGoTypesToStarlark(golangTypedData interface{}) (starlarkTypedData starlark.Value, err error) {
-	switch typedData := golangTypedData.(type) {
-	case nil:
-		starlarkTypedData = starlark.None
-	case bool:
-		starlarkTypedData = starlark.Bool(typedData)
-	case string:
-		starlarkTypedData = starlark.String(typedData)
-	case int:
-		starlarkTypedData = starlark.MakeInt(typedData)
-	case int8:
-		starlarkTypedData = starlark.MakeInt(int(typedData))
-	case int16:
-		starlarkTypedData = starlark.MakeInt(int(typedData))
-	case int32:
-		starlarkTypedData = starlark.MakeInt(int(typedData))
-	case int64:
-		starlarkTypedData = starlark.MakeInt64(typedData)
-	case uint:
-		starlarkTypedData = starlark.MakeUint(typedData)
-	case uint8:
-		starlarkTypedData = starlark.MakeUint(uint(typedData))
-	case uint16:
-		starlarkTypedData = starlark.MakeUint(uint(typedData))
-	case uint32:
-		starlarkTypedData = starlark.MakeUint(uint(typedData))
-	case uint64:
-		starlarkTypedData = starlark.MakeUint64(typedData)
-	case float32:
-		starlarkTypedData = starlark.Float(float64(typedData))
-	case float64:
-		starlarkTypedData = starlark.Float(typedData)
-	case time.Time:
-		starlarkTypedData = startime.Time(typedData)
-	case []interface{}:
-		var itemList = make([]starlark.Value, len(typedData))
-		for index, itemValue := range typedData {
-			itemList[index], err = t.MarshalGoTypesToStarlark(itemValue)
-			if err != nil {
-				return
-			}
-		}
-		starlarkTypedData = starlark.NewList(itemList)
-	case map[interface{}]interface{}:
-		starDict := &starlark.Dict{}
-		var marshalledItem starlark.Value
-		var marshalledKey starlark.Value
-		for itemKey, itemValue := range typedData {
-			marshalledKey, err = t.MarshalGoTypesToStarlark(itemKey)
-			if err != nil {
-				return
-			}
-			marshalledItem, err = t.MarshalGoTypesToStarlark(itemValue)
-			if err != nil {
-				return
-			}
-			if err = starDict.SetKey(marshalledKey, marshalledItem); err != nil {
-				return
-			}
-		}
-		starlarkTypedData = starDict
-	case map[string]interface{}:
-		starDict := &starlark.Dict{}
-		var marshalledItem starlark.Value
-		for itemKey, itemValue := range typedData {
-			marshalledItem, err = t.MarshalGoTypesToStarlark(itemValue)
-			if err != nil {
-				return
-			}
-			if err = starDict.SetKey(starlark.String(itemKey), marshalledItem); err != nil {
-				return
-			}
-		}
-		starlarkTypedData = starDict
-	case StarlarkMarshaler:
-		starlarkTypedData, err = typedData.MarshalStarlark()
-	default:
-		return starlark.None, fmt.Errorf("Starlark marshaller could not unrecognize input data type: %#v", typedData)
-	}
-	return
-}
-
-// UnMarshalGoTypesToStarlark decodes a starlark.Value into golang interface type
-func (t *Starlark) UnMarshalGoTypesToStarlark(starlarkInput starlark.Value) (goOutput interface{}, err error) {
-	switch inType := starlarkInput.(type) {
-	case starlark.NoneType:
-		goOutput = nil
-	case starlark.Bool:
-		goOutput = inType.Truth() == starlark.True
-	case starlark.Int:
-		var outputVal int
-		err = starlark.AsInt(starlarkInput, &outputVal)
-		goOutput = outputVal
-	case starlark.Float:
-		if outputVal, ok := starlark.AsFloat(starlarkInput); !ok {
-			err = fmt.Errorf("float type could not be parsed from the input")
-		} else {
-			goOutput = outputVal
-		}
-	case starlark.String:
-		goOutput = inType.GoString()
-	case startime.Time:
-		goOutput = time.Time(inType)
-	case *starlark.Dict:
-		var itemVal starlark.Value
-		var unmarshalledData interface{}
-		var keyAsInterface []interface{}
-		var valueAsInterface []interface{}
-		var isKeyInterface bool
-		for _, itemKey := range inType.Keys() {
-			itemVal, _, err = inType.Get(itemKey)
-			if err != nil {
-				return
-			}
-			unmarshalledData, err = t.UnMarshalGoTypesToStarlark(itemVal)
-			if err != nil {
-				err = fmt.Errorf("could not unmarshal starlark value in dictionary: %w", err)
-				return
-			}
-			valueAsInterface = append(valueAsInterface, unmarshalledData)
-			unmarshalledData, err = t.UnMarshalGoTypesToStarlark(itemKey)
-			if err != nil {
-				err = fmt.Errorf("could not unmarshal starlark key in dictionary: %w", err)
-				return
-			}
-			keyAsInterface = append(keyAsInterface, unmarshalledData)
-			if _, ok := unmarshalledData.(string); !ok {
-				isKeyInterface = true
-			}
-		}
-		if isKeyInterface {
-			mapWithInterfaceKeys := map[interface{}]interface{}{}
-			for index, itemKey := range keyAsInterface {
-				mapWithInterfaceKeys[itemKey] = valueAsInterface[index]
-			}
-			goOutput = mapWithInterfaceKeys
-		} else {
-			mapWithStringKeys := map[interface{}]interface{}{}
-			for index, itemKey := range keyAsInterface {
-				mapWithStringKeys[itemKey.(string)] = valueAsInterface[index]
-			}
-			goOutput = mapWithStringKeys
-		}
-	case *starlark.List:
-		var index int
-		var starlarkList starlark.Value
-		var iter = inType.Iterate()
-		var goList = make([]interface{}, inType.Len())
-		defer iter.Done()
-		for iter.Next(&starlarkList) {
-			goList[index], err = t.UnMarshalGoTypesToStarlark(starlarkList)
-			if err != nil {
-				return
-			}
-			index++
-		}
-		goOutput = goList
-	case starlark.Tuple:
-		var index int
-		var starlarkTuple starlark.Value
-		var iter = inType.Iterate()
-		var goList = make([]interface{}, inType.Len())
-		defer iter.Done()
-		for iter.Next(&starlarkTuple) {
-			goList[index], err = t.UnMarshalGoTypesToStarlark(starlarkTuple)
-			if err != nil {
-				return
-			}
-			index++
-		}
-		goOutput = goList
-	case *starlark.Set:
-		err = fmt.Errorf("Starlark sets not supported by the unmarshalling operation")
-	case *starlarkstruct.Struct:
-		if unMarshallerObj, ok := inType.Constructor().(StarlarkUnMarshaler); ok {
-			err = unMarshallerObj.UnmarshalStarlark(starlarkInput)
-			if err != nil {
-				err = fmt.Errorf("could not marshal %q to starlark", inType.Constructor().Type())
-				return
-			}
-			goOutput = unMarshallerObj
-		} else {
-			err = fmt.Errorf("unsupported constructor from *starlarkstruct.Struct: %s", inType.Constructor().Type())
-		}
-	default:
-		err = fmt.Errorf("unmarshaller could not recognize this starlark type: %s", starlarkInput.Type())
-	}
-	return
-}
-
 func (t *Starlark) getStarlarkFSReadAsBinary() *starlark.Builtin {
 	return starlark.NewBuiltin(fsReadAsBinaryFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var path string
@@ -811,7 +618,7 @@ func (t *Starlark) getStarlarkFSReadAsBinary() *starlark.Builtin {
 		for _, b := range fileBytes {
 			ifaceList = append(ifaceList, b)
 		}
-		return t.MarshalGoTypesToStarlark(ifaceList)
+		return starutil.Marshal(ifaceList)
 	})
 }
 
