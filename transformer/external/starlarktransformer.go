@@ -765,6 +765,9 @@ func (t *Starlark) getStarlarkFSReadProperties() *starlark.Builtin {
 		if err := starlark.UnpackPositionalArgs(fsReadPropertiesFnName, args, kwargs, 1, &propertiesFilePath); err != nil {
 			return nil, err
 		}
+		if !t.Env.IsPathValid(propertiesFilePath) {
+			return starlark.None, fmt.Errorf("the properties file path '%s' is invalid", propertiesFilePath)
+		}
 		props, err := properties.LoadFile(propertiesFilePath, properties.UTF8)
 		if err != nil {
 			logrus.Errorf("failed to parse the properties at path %s . Error: %q", propertiesFilePath, err)
@@ -785,6 +788,9 @@ func (t *Starlark) getStarlarkFSWriteProperties() *starlark.Builtin {
 		propertiesDict := &starlark.Dict{}
 		if err := starlark.UnpackPositionalArgs(fsWritePropertiesFnName, args, kwargs, 2, &propertiesFilePath, &propertiesDict); err != nil {
 			return starlark.None, err
+		}
+		if !t.Env.IsPathValid(propertiesFilePath) {
+			return starlark.None, fmt.Errorf("the properties file path '%s' is invalid", propertiesFilePath)
 		}
 		propsDict, err := starutil.Unmarshal(propertiesDict)
 		if err != nil {
