@@ -99,18 +99,6 @@ type StarYamlConfig struct {
 	StarFile string `yaml:"starFile"`
 }
 
-// StarlarkMarshaler interface for marshaling starlark custom types.
-type StarlarkMarshaler interface {
-	// MarshalStarlark marshals custom golang types to starlark objects
-	MarshalStarlark() (starlark.Value, error)
-}
-
-// StarlarkUnMarshaler interface for unmarshaling starlark custom types.
-type StarlarkUnMarshaler interface {
-	// UnmarshalStarlark unmarshals starlark types to custom golang types.
-	UnmarshalStarlark(starlark.Value) error
-}
-
 // Init Initializes the transformer
 func (t *Starlark) Init(tc transformertypes.Transformer, env *environment.Environment) (err error) {
 	t.Config = tc
