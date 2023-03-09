@@ -59,7 +59,8 @@ const (
 	qaFnName = "query"
 	// fs package
 	fsExistsFnName               = "exists"
-	fsReadFnName                 = "read"
+	fsReadAsStringFnName         = "read_as_string"
+	fsReadAsBinaryFnName         = "read_as_binary"
 	fsReadDirFnName              = "read_dir"
 	fsIsDirFnName                = "is_dir"
 	fsGetDirFnName               = "get_dir"
@@ -351,7 +352,8 @@ func (t *Starlark) addFSModules() {
 		Name: "fs",
 		Members: starlark.StringDict{
 			fsExistsFnName:               t.getStarlarkFSExists(),
-			fsReadFnName:                 t.getStarlarkFSRead(),
+			fsReadAsStringFnName:         t.getStarlarkFSReadAsString(),
+			fsReadAsBinaryFnName:         t.getStarlarkFSReadAsBinary(),
 			fsReadDirFnName:              t.getStarlarkFSReadDir(),
 			fsIsDirFnName:                t.getStarlarkFSIsDir(),
 			fsGetFilesWithPatternFnName:  t.getStarlarkFSGetFilesWithPattern(),
@@ -584,10 +586,34 @@ func (t *Starlark) getStarlarkFSIsDir() *starlark.Builtin {
 	})
 }
 
-func (t *Starlark) getStarlarkFSRead() *starlark.Builtin {
-	return starlark.NewBuiltin(fsReadFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (t *Starlark) getStarlarkFSReadAsBinary() *starlark.Builtin {
+	return starlark.NewBuiltin(fsReadAsBinaryFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var path string
-		if err := starlark.UnpackPositionalArgs(fsReadFnName, args, kwargs, 1, &path); err != nil {
+		if err := starlark.UnpackPositionalArgs(fsReadAsBinaryFnName, args, kwargs, 1, &path); err != nil {
+			return nil, err
+		}
+		if !t.Env.IsPathValid(path) {
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
+		}
+		fileBytes, err := os.ReadFile(path)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return starlark.None, nil
+			}
+			return nil, fmt.Errorf("failed to read the file at path '%s' . Error: %w", path, err)
+		}
+		var ifaceList []interface{}
+		for _, b := range fileBytes {
+			ifaceList = append(ifaceList, b)
+		}
+		return starutil.Marshal(ifaceList)
+	})
+}
+
+func (t *Starlark) getStarlarkFSReadAsString() *starlark.Builtin {
+	return starlark.NewBuiltin(fsReadAsStringFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var path string
+		if err := starlark.UnpackPositionalArgs(fsReadAsStringFnName, args, kwargs, 1, &path); err != nil {
 			return nil, err
 		}
 		if !t.Env.IsPathValid(path) {
