@@ -327,6 +327,8 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		for _, secret := range composeServiceConfig.Secrets {
 			target := filepath.Join(defaultSecretBasePath, secret.Source)
 			src := secret.Source
+			secretName := common.MakeStringK8sServiceNameCompliant(secret.Source)
+			logrus.Debugf("Detected secret [%s]...changing name to [%s]", secret.Source, secretName)
 			if secret.Target != "" {
 				tokens := strings.Split(secret.Source, "/")
 				var prefix string
@@ -343,9 +345,9 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 
 			vSrc := core.VolumeSource{
 				Secret: &core.SecretVolumeSource{
-					SecretName: secret.Source,
+					SecretName: secretName,
 					Items: []core.KeyToPath{{
-						Key:  secret.Source,
+						Key:  secretName,
 						Path: src,
 					}},
 				},
@@ -357,12 +359,12 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 			}
 
 			serviceConfig.AddVolume(core.Volume{
-				Name:         secret.Source,
+				Name:         secretName,
 				VolumeSource: vSrc,
 			})
 
 			serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
-				Name:      secret.Source,
+				Name:      secretName,
 				MountPath: target,
 			})
 		}
@@ -461,6 +463,8 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 func (c *v3Loader) getSecretStorages(secrets map[string]types.SecretConfig) []irtypes.Storage {
 	storages := make([]irtypes.Storage, len(secrets))
 	for secretName, secretObj := range secrets {
+		secretName := common.MakeStringK8sServiceNameCompliant(secretName)
+		logrus.Debugf("Secret name [%s] is made compliant", secretName)
 		storage := irtypes.Storage{
 			Name:        secretName,
 			StorageType: irtypes.SecretKind,
@@ -485,6 +489,7 @@ func (c *v3Loader) getConfigStorages(configs map[string]types.ConfigObjConfig) [
 	Storages := make([]irtypes.Storage, len(configs))
 
 	for cfgName, cfgObj := range configs {
+		cfgName := common.MakeStringK8sServiceNameCompliant(cfgName)
 		storage := irtypes.Storage{
 			Name:        cfgName,
 			StorageType: irtypes.ConfigMapKind,
