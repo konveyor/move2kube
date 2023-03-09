@@ -29,6 +29,7 @@ import (
 	"github.com/antchfx/xpath"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
@@ -64,6 +65,9 @@ const (
 	fsReadDirFnName              = "read_dir"
 	fsIsDirFnName                = "is_dir"
 	fsGetDirFnName               = "get_dir"
+	fsCreateDirFnName            = "create_dir"
+	fsCopyDirFnName              = "copy_dir"
+	fsRemoveAllFnName            = "remove"
 	fsGetYamIsWithTypeMetaFnName = "get_yamls_with_type_meta"
 	fsFindXmlPathFnName          = "find_xml_path"
 	fsGetFilesWithPatternFnName  = "get_files_with_pattern"
@@ -364,6 +368,9 @@ func (t *Starlark) addFSModules() {
 			fsGetYamIsWithTypeMetaFnName: t.getStarlarkFSGetYamlsWithTypeMeta(),
 			fsPathBaseFnName:             t.getStarlarkFSPathBase(),
 			fsGetDirFnName:               t.getStarlarkFSGetDir(),
+			fsCreateDirFnName:            t.getStarlarkFSCreateDir(),
+			fsCopyDirFnName:              t.getStarlarkFSCopyDir(),
+			fsRemoveAllFnName:            t.getStarlarkFSRemoveAll(),
 			fsPathRelFnName:              t.getStarlarkFSPathRel(),
 			fsFindXmlPathFnName:          t.getStarlarkFindXmlPath(),
 		},
@@ -714,6 +721,67 @@ func (t *Starlark) getStarlarkFSGetDir() *starlark.Builtin {
 			return starlark.None, fmt.Errorf("the path '%s' is invalid", filePath)
 		}
 		return starlark.String(filepath.Dir(filePath)), nil
+	})
+}
+
+func (t *Starlark) getStarlarkFSCreateDir() *starlark.Builtin {
+	return starlark.NewBuiltin(fsCreateDirFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var path string
+		var permissions = common.DefaultDirectoryPermission
+		if err := starlark.UnpackArgs(fsCreateDirFnName, args, kwargs, "path", &path, "perm?", &permissions); err != nil {
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %w", fsWriteFnName, err)
+		}
+		if path == "" {
+			return starlark.None, fmt.Errorf("the path is missing in the parameters")
+		}
+		if !t.Env.IsPathValid(path) {
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
+		}
+		if err := os.MkdirAll(path, permissions); err != nil {
+			return starlark.None, err
+		}
+		return starlark.None, nil
+	})
+}
+
+func (t *Starlark) getStarlarkFSRemoveAll() *starlark.Builtin {
+	return starlark.NewBuiltin(fsRemoveAllFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var path string
+		if err := starlark.UnpackArgs(fsRemoveAllFnName, args, kwargs, "path", &path); err != nil {
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %w", fsWriteFnName, err)
+		}
+		if path == "" {
+			return starlark.None, fmt.Errorf("the path is missing in the parameters")
+		}
+		if !t.Env.IsPathValid(path) {
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
+		}
+		if err := os.RemoveAll(path); err != nil {
+			return starlark.None, err
+		}
+		return starlark.None, nil
+	})
+}
+
+func (t *Starlark) getStarlarkFSCopyDir() *starlark.Builtin {
+	return starlark.NewBuiltin(fsCopyDirFnName, func(_ *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		var srcPath, destPath string
+		if err := starlark.UnpackArgs(fsCopyDirFnName, args, kwargs, "srcPath", &srcPath, "destPath", &destPath); err != nil {
+			return starlark.None, fmt.Errorf("invalid args provided to '%s'. Error: %w", fsWriteFnName, err)
+		}
+		if srcPath == "" || destPath == "" {
+			return starlark.None, fmt.Errorf("the source or destination path is missing in the parameters")
+		}
+		if !t.Env.IsPathValid(srcPath) {
+			return starlark.None, fmt.Errorf("the source path '%s' is invalid", srcPath)
+		}
+		if !t.Env.IsPathValid(destPath) {
+			return starlark.None, fmt.Errorf("the destination path '%s' is invalid", destPath)
+		}
+		if err := filesystem.Replicate(srcPath, destPath); err != nil {
+			return starlark.None, err
+		}
+		return starlark.None, nil
 	})
 }
 
