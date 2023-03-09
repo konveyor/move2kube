@@ -61,11 +61,6 @@ func (s *Storage) convertToClusterSupportedKinds(obj runtime.Object, supportedKi
 }
 
 func (s *Storage) createConfigMap(st irtypes.Storage) *core.ConfigMap {
-	data := map[string]string{}
-	for k, v := range st.Content {
-		data[k] = string(v)
-	}
-
 	configMap := &core.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(irtypes.ConfigMapKind),
@@ -74,7 +69,7 @@ func (s *Storage) createConfigMap(st irtypes.Storage) *core.ConfigMap {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: st.Name,
 		},
-		Data: data,
+		BinaryData: st.Content,
 	}
 	return configMap
 }
