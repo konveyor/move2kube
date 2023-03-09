@@ -59,7 +59,7 @@ const (
 	qaFnName = "query"
 	// fs package
 	fsExistsFnName               = "exists"
-	fsReadAsTextFnName           = "read_as_text"
+	fsReadAsStringFnName         = "read_as_string"
 	fsReadAsBinaryFnName         = "read_as_binary"
 	fsReadDirFnName              = "read_dir"
 	fsIsDirFnName                = "is_dir"
@@ -352,7 +352,7 @@ func (t *Starlark) addFSModules() {
 		Name: "fs",
 		Members: starlark.StringDict{
 			fsExistsFnName:               t.getStarlarkFSExists(),
-			fsReadAsTextFnName:           t.getStarlarkFSReadAsText(),
+			fsReadAsStringFnName:         t.getStarlarkFSReadAsString(),
 			fsReadAsBinaryFnName:         t.getStarlarkFSReadAsBinary(),
 			fsReadDirFnName:              t.getStarlarkFSReadDir(),
 			fsIsDirFnName:                t.getStarlarkFSIsDir(),
@@ -610,10 +610,10 @@ func (t *Starlark) getStarlarkFSReadAsBinary() *starlark.Builtin {
 	})
 }
 
-func (t *Starlark) getStarlarkFSReadAsText() *starlark.Builtin {
-	return starlark.NewBuiltin(fsReadAsTextFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func (t *Starlark) getStarlarkFSReadAsString() *starlark.Builtin {
+	return starlark.NewBuiltin(fsReadAsStringFnName, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 		var path string
-		if err := starlark.UnpackPositionalArgs(fsReadAsTextFnName, args, kwargs, 1, &path); err != nil {
+		if err := starlark.UnpackPositionalArgs(fsReadAsStringFnName, args, kwargs, 1, &path); err != nil {
 			return nil, err
 		}
 		if !t.Env.IsPathValid(path) {
