@@ -29,12 +29,12 @@ import (
 	"github.com/antchfx/xpath"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/filesystem"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/types"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/magiconair/properties"
-	cp "github.com/otiai10/copy"
 	"github.com/qri-io/starlib"
 	starutil "github.com/qri-io/starlib/util"
 	"github.com/sirupsen/logrus"
@@ -708,6 +708,9 @@ func (t *Starlark) getStarlarkFSCreateDir() *starlark.Builtin {
 		if path == "" {
 			return starlark.None, fmt.Errorf("the path is missing in the parameters")
 		}
+		if !t.Env.IsPathValid(path) {
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
+		}
 		if err := os.MkdirAll(path, permissions); err != nil {
 			return starlark.None, err
 		}
@@ -723,6 +726,9 @@ func (t *Starlark) getStarlarkFSRemoveAll() *starlark.Builtin {
 		}
 		if path == "" {
 			return starlark.None, fmt.Errorf("the path is missing in the parameters")
+		}
+		if !t.Env.IsPathValid(path) {
+			return starlark.None, fmt.Errorf("the path '%s' is invalid", path)
 		}
 		if err := os.RemoveAll(path); err != nil {
 			return starlark.None, err
@@ -740,7 +746,13 @@ func (t *Starlark) getStarlarkFSCopyDir() *starlark.Builtin {
 		if srcPath == "" || destPath == "" {
 			return starlark.None, fmt.Errorf("the source or destination path is missing in the parameters")
 		}
-		if err := cp.Copy(srcPath, destPath); err != nil {
+		if !t.Env.IsPathValid(srcPath) {
+			return starlark.None, fmt.Errorf("the source path '%s' is invalid", srcPath)
+		}
+		if !t.Env.IsPathValid(destPath) {
+			return starlark.None, fmt.Errorf("the destination path '%s' is invalid", destPath)
+		}
+		if err := filesystem.Replicate(srcPath, destPath); err != nil {
 			return starlark.None, err
 		}
 		return starlark.None, nil
