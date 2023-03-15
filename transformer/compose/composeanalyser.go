@@ -34,13 +34,15 @@ import (
 const (
 	// ComposeServiceConfigType represents the Compose service config type
 	ComposeServiceConfigType transformertypes.ConfigType = "ComposeService"
+	// ComposeFileConfigType represents the docker-compose file config type
+	ComposeFileConfigType transformertypes.ConfigType = "DockerCompose"
 )
 
 const (
-	// composeFilePathType defines the source artifact type of Docker compose
-	composeFilePathType transformertypes.PathType = "DockerCompose"
 	// imageInfoPathType defines the source artifact type of image info
 	imageInfoPathType transformertypes.PathType = "ImageInfo"
+	// dockerComposeContextPathType defines the docker-compose directory context type
+	dockerComposeContextPathType transformertypes.PathType = "DockerComposeContextPathType"
 )
 
 // ComposeAnalyser implements Transformer interface
@@ -126,17 +128,19 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 			logrus.Debugf("failed to load config for Transformer into %T . Error: %q", imageName, err)
 		}
 		ir := irtypes.NewIR()
-		for _, path := range newArtifact.Paths[composeFilePathType] {
-			logrus.Debugf("file at path '%s' being loaded from the compose service name '%s'", path, config.ServiceName)
+		composeFiles := newArtifact.Configs[ComposeFileConfigType].([]string)
+		for _, composeFileName := range composeFiles {
+			composeFilePath := filepath.Join(newArtifact.Paths[dockerComposeContextPathType][0], composeFileName)
+			logrus.Debugf("file at path '%s' being loaded from the compose service name '%s'", composeFilePath, config.ServiceName)
 			// Try v3 first and if it fails try v1v2
-			if cir, errV3 := new(v3Loader).ConvertToIR(path, config.ServiceName, t.ComposeAnalyzerConfig.EnableNetworkParsing); errV3 == nil {
+			if cir, errV3 := new(v3Loader).ConvertToIR(composeFilePath, config.ServiceName, t.ComposeAnalyzerConfig.EnableNetworkParsing); errV3 == nil {
 				ir.Merge(cir)
 				logrus.Debugf("compose v3 transformer returned %d services", len(ir.Services))
-			} else if cir, errV1V2 := new(v1v2Loader).ConvertToIR(path, config.ServiceName, t.ComposeAnalyzerConfig.EnableNetworkParsing); errV1V2 == nil {
+			} else if cir, errV1V2 := new(v1v2Loader).ConvertToIR(composeFilePath, config.ServiceName, t.ComposeAnalyzerConfig.EnableNetworkParsing); errV1V2 == nil {
 				ir.Merge(cir)
 				logrus.Debugf("compose v1v2 transformer returned %d services", len(ir.Services))
 			} else {
-				logrus.Errorf("failed to parse the docker compose file at path '%s' . Error V3: %q Error V1V2: %q", path, errV3, errV1V2)
+				logrus.Errorf("failed to parse the docker compose file at path '%s' . Error V3: %q Error V1V2: %q", composeFilePath, errV3, errV1V2)
 			}
 		}
 		for _, path := range newArtifact.Paths[imageInfoPathType] {
@@ -181,6 +185,7 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 		if len(ir.ContainerImages) > 0 {
 			pathMappings = append(pathMappings, transformertypes.PathMapping{
 				Type:     transformertypes.SourcePathMappingType,
+				SrcPath:  newArtifact.Paths[dockerComposeContextPathType][0],
 				DestPath: common.DefaultSourceDir,
 			})
 		}
@@ -218,8 +223,8 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 
 func (t *ComposeAnalyser) getService(composeFilePath string, serviceName string, serviceImage string, relContextPath string, relDockerfilePath string, imageMetadataPaths map[string]string) transformertypes.Artifact {
 	ct := transformertypes.Artifact{
-		Configs: map[transformertypes.ConfigType]interface{}{ComposeServiceConfigType: ComposeConfig{ServiceName: serviceName}},
-		Paths:   map[transformertypes.PathType][]string{composeFilePathType: {composeFilePath}},
+		Configs: map[transformertypes.ConfigType]interface{}{ComposeServiceConfigType: ComposeConfig{ServiceName: serviceName}, ComposeFileConfigType: []string{filepath.Base(composeFilePath)}},
+		Paths:   map[transformertypes.PathType][]string{dockerComposeContextPathType: {filepath.Dir(composeFilePath)}},
 	}
 	if imagepath, ok := imageMetadataPaths[serviceImage]; ok {
 		ct.Paths[imageInfoPathType] = common.AppendIfNotPresent(ct.Paths[imageInfoPathType], imagepath)
