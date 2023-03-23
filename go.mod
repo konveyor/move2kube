@@ -11,7 +11,7 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/antchfx/xmlquery v1.3.12
 	github.com/antchfx/xpath v1.2.1
-	github.com/argoproj/argo-cd/v2 v2.3.5
+	github.com/argoproj/argo-cd/v2 v2.4.28
 	github.com/cloudfoundry-community/go-cfclient v0.0.0-20220509215243-5e4f7e9cf503
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
@@ -40,11 +40,11 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
 	go.starlark.net v0.0.0-20211203141949-70c0e40ae128
-	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
-	golang.org/x/mod v0.5.1
-	golang.org/x/text v0.3.7
-	google.golang.org/grpc v1.44.0
-	google.golang.org/protobuf v1.27.1
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
+	golang.org/x/text v0.7.0
+	google.golang.org/grpc v1.45.0
+	google.golang.org/protobuf v1.28.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.23.5
@@ -73,7 +73,7 @@ require (
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr v0.0.0-20211106181442-e4c1a74c66bd // indirect
-	github.com/argoproj/gitops-engine v0.6.2 // indirect
+	github.com/argoproj/gitops-engine v0.7.3 // indirect
 	github.com/argoproj/pkg v0.11.1-0.20211203175135-36c59d8fafe0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
@@ -114,7 +114,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-kit/log v0.1.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
-	github.com/go-logr/logr v1.2.2 // indirect
+	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
 	github.com/go-openapi/swag v0.19.15 // indirect
@@ -193,7 +193,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
-	github.com/stretchr/testify v1.7.0 // indirect
+	github.com/stretchr/testify v1.7.1 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/timtadh/data-structures v0.5.3 // indirect
 	github.com/timtadh/lexmachine v0.2.2 // indirect
@@ -210,11 +210,11 @@ require (
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.20.0 // indirect
 	golang.org/x/exp v0.0.0-20210901193431-a062eea981d2 // indirect
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
+	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb // indirect
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
+	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/term v0.5.0 // indirect
 	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
