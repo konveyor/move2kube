@@ -60,6 +60,10 @@ const (
 	ShExt = ".sh"
 	// BatExt is the extension of bat file
 	BatExt = ".bat"
+	// Home directory
+	HomeDirectory = "~"
+	// Folder holding remote source folders
+	RemoteSourcesFolder = "./m2ksources"
 )
 
 const (

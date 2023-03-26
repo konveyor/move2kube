@@ -23,7 +23,9 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/githelper"
 	"github.com/konveyor/move2kube/lib"
+	"github.com/konveyor/move2kube/types"
 	"github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -69,6 +71,28 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	var err error
 	if flags.planfile, err = filepath.Abs(flags.planfile); err != nil {
 		logrus.Fatalf("Failed to make the plan file path %q absolute. Error: %q", flags.planfile, err)
+	}
+	if githelper.IsGitRemotePath(flags.srcpath) {
+		logrus.Debugf("%v is a valid git remote path", flags.srcpath)
+		gitRemotePathStruct, err := githelper.GetGitRemotePathStruct(flags.srcpath)
+		if err != nil {
+			logrus.Fatalf("Failed to get git remote path struct. Error : %q", err)
+		}
+		logrus.Debugf("git remote path struct is %+v", gitRemotePathStruct)
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			logrus.Errorf("Error while getting current user's home directory: %s", err)
+		}
+		remoteSourcesFolderAbs, err := filepath.Abs(filepath.Join(homeDir, types.AppName, common.RemoteSourcesFolder))
+		logrus.Infof("Folder containing git remote sources is located at %+v", remoteSourcesFolderAbs)
+		if err != nil {
+			logrus.Fatalf("Failed to get absolute path for %s. Error : %q", common.RemoteSourcesFolder, err)
+		}
+		flags.srcpath, err = gitRemotePathStruct.GitClone(1, remoteSourcesFolderAbs)
+		logrus.Infof("Git Source folder is cloned at %+v", flags.srcpath)
+		if err != nil {
+			logrus.Fatalf("Failed to clone git repository from the given git remote path : %s. Error : %q", flags.srcpath, err)
+		}
 	}
 	if flags.srcpath != "" {
 		if flags.srcpath, err = filepath.Abs(flags.srcpath); err != nil {
