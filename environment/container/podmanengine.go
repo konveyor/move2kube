@@ -38,20 +38,20 @@ func newPodmanEngine() *podmanEngine {
 }
 
 // InspectImage returns inspect output for an image using Podman
-func (e *podmanEngine) InspectImage(image string) (t types.ImageInspect, err error) {
+func (e *podmanEngine) InspectImage(image string) (types.ImageInspect, error) {
 	inspectcmd := exec.Command("podman", "inspect", image)
 	logrus.Debugf("Inspecting image %s", image)
 	output, err := inspectcmd.CombinedOutput()
 	if err != nil {
 		logrus.Debugf("Unable to inspect image %s : %s, %s", image, err, output)
-		return t, err
+		return types.ImageInspect{}, err
 	}
-	t = types.ImageInspect{}
+	var t []types.ImageInspect
 	err = json.Unmarshal(output, &t)
 	if err != nil {
 		logrus.Debugf("Error in unmarshalling json %s: %s.", output, err)
 	}
-	return t, err
+	return t[0], err
 }
 
 func (e *podmanEngine) pullImage(image string) bool {
