@@ -51,6 +51,10 @@ func (e *podmanEngine) InspectImage(image string) (types.ImageInspect, error) {
 	if err != nil {
 		logrus.Debugf("Error in unmarshalling json %s: %s.", output, err)
 	}
+	if len(t) == 0 {
+		logrus.Debugf("Unable to inspect, returned output array has no elements %+v.", output)
+		return types.ImageInspect{}, err
+	}
 	return t[0], err
 }
 
