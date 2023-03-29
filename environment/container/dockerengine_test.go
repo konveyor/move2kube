@@ -105,7 +105,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("check for creating a container ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine"
+		image := "docker.io/alpine:latest"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -127,7 +127,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 		testStderr := ""
 		testExitCode := 0
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine"
+		image := "docker.io/alpine:latest"
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
 		}
@@ -153,23 +153,30 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("Check for InspectImage functionality ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine"
-		imageName := "alpine"
+		image := "docker.io/alpine:latest"
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
 		}
-		outputInspect, err := provider.InspectImage(imageName)
+		outputInspect, err := provider.InspectImage(image)
 		if err != nil {
 			t.Fatalf("failed to create container with base image '%s' . Error: %q", image, err)
 		}
-		if outputInspect.RepoTags[0] != "alpine:latest" {
-			t.Fatalf("Ispect Repo Tag Mismatch Should be - alpine:latest got - %v", outputInspect.RepoTags[0])
+
+		found := false
+		for _, i := range outputInspect.RepoTags {
+			if strings.HasSuffix(i, "alpine:latest") {
+				found = true
+			}
 		}
+		if !found {
+			t.Fatalf("Ispect Repo Tag Mismatch Should be - alpine:latest got - %v", outputInspect.RepoTags)
+		}
+
 	})
 
 	t.Run("check for stopping and removing a container ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine"
+		image := "docker.io/alpine:latest"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -199,7 +206,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("check for coping directories to an image ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine"
+		image := "docker.io/alpine:latest"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -265,7 +272,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	})
 	t.Run("check for coping directories to a container ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine"
+		image := "docker.io/alpine:latest"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -333,7 +340,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("check for coping directories from a container ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine"
+		image := "docker.io/alpine:latest"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -420,7 +427,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("check for Stat of a file ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine"
+		image := "docker.io/alpine:latest"
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
 		}
