@@ -34,6 +34,7 @@ const (
 	tmpFsPath             string = "tmpfs"
 	defaultSecretBasePath string = "/var/secrets"
 	envFile               string = "env_file"
+	maxConfigMapSizeLimit int    = 1024 * 1024
 )
 
 /*

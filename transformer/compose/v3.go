@@ -146,11 +146,20 @@ func (c *v3Loader) ConvertToIR(composefilepath string, serviceName string, parse
 func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, serviceName string, parseNetwork bool) (irtypes.IR, error) {
 	ir := irtypes.IR{Services: map[string]irtypes.Service{}}
 
+	storageMap := map[string]bool{}
+
 	//Secret volumes transformed to IR
 	ir.Storages = c.getSecretStorages(composeObject.Secrets)
+	for _, s := range ir.Storages {
+		storageMap[s.Name] = true
+	}
 
 	//ConfigMap volumes transformed to IR
-	ir.Storages = append(ir.Storages, c.getConfigStorages(composeObject.Configs)...)
+	cfgMapsList := c.getConfigStorages(composeObject.Configs)
+	ir.Storages = append(ir.Storages, cfgMapsList...)
+	for _, s := range cfgMapsList {
+		storageMap[s.Name] = true
+	}
 
 	for _, composeServiceConfig := range composeObject.Services {
 		if composeServiceConfig.Name != serviceName {
@@ -406,26 +415,59 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 		for _, vol := range composeServiceConfig.Volumes {
 			if isPath(vol.Source) {
 				hPath := vol.Source
-				if !filepath.IsAbs(vol.Source) {
+				if filepath.IsAbs(hPath) {
+					relPath, err := filepath.Rel(filedir, hPath)
+					if err != nil {
+						logrus.Debugf("Could not extract relative path for [%s]", hPath)
+					}
+					vol.Source = relPath
+				} else {
 					hPath, err := filepath.Abs(vol.Source)
 					if err != nil {
 						logrus.Debugf("Could not create an absolute path for [%s]", hPath)
 					}
 				}
+				cfgName := common.MakeStringK8sServiceNameCompliant(vol.Source)
+				createCfgMap := false
+				if _, ok := storageMap[cfgName]; !ok {
+					st, err := c.loadDataAsConfigMap(hPath, cfgName)
+					if err != nil {
+						logrus.Warnf("Could not create a config map for absolute path [%s] because %s", hPath, err)
+					} else {
+						ir.Storages = append(ir.Storages, st)
+						createCfgMap = true
+					}
+				} else {
+					createCfgMap = true
+				}
 				// Generate a hash Id for the given source file path to be mounted.
 				hashID := getHash([]byte(hPath))
 				volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
-				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
-					Name:      volumeName,
-					MountPath: vol.Target,
-				})
+				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts,
+					core.VolumeMount{
+						Name:      volumeName,
+						MountPath: vol.Target,
+					})
 
-				serviceConfig.AddVolume(core.Volume{
-					Name: volumeName,
-					VolumeSource: core.VolumeSource{
-						HostPath: &core.HostPathVolumeSource{Path: vol.Source},
-					},
-				})
+				if createCfgMap {
+					logrus.Infof("Creating config map [%s] for path [%s]", cfgName, hPath)
+					cfgMapVolSrc := core.ConfigMapVolumeSource{}
+					cfgMapVolSrc.Name = cfgName
+					serviceConfig.AddVolume(core.Volume{
+						Name: volumeName,
+						VolumeSource: core.VolumeSource{
+							ConfigMap: &cfgMapVolSrc,
+						},
+					})
+				} else {
+					logrus.Warnf("Could not create configmap. Instead, creating hostpath volume for path [%s]", hPath)
+					serviceConfig.AddVolume(core.Volume{
+						Name: volumeName,
+						VolumeSource: core.VolumeSource{
+							HostPath: &core.HostPathVolumeSource{Path: vol.Source},
+						},
+					})
+				}
 			} else {
 				// Generate a hash Id for the given source file path to be mounted.
 				hPath := vol.Source
@@ -521,6 +563,47 @@ func (c *v3Loader) getConfigStorages(configs map[string]types.ConfigObjConfig) [
 	}
 
 	return Storages
+}
+
+func (c *v3Loader) loadDataAsConfigMap(filePath string, cfgName string) (irtypes.Storage, error) {
+	// cfgName := common.MakeStringK8sServiceNameCompliant(cfgName)
+	storage := irtypes.Storage{
+		Name:        cfgName,
+		StorageType: irtypes.ConfigMapKind,
+	}
+
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		logrus.Warnf("Could not identify the type of config map artifact [%s]. Encountered [%s]", filePath, err)
+	} else {
+		if !fileInfo.IsDir() {
+			content, err := os.ReadFile(filePath)
+			if err != nil {
+				logrus.Warnf("Could not read the secret file [%s]. Encountered [%s]", filePath, err)
+			} else {
+				if len(content) > maxConfigMapSizeLimit {
+					return irtypes.Storage{}, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
+				}
+				storage.Content = map[string][]byte{cfgName: content}
+			}
+		} else {
+			dataMap, err := c.getAllDirContentAsMap(filePath)
+			if err != nil {
+				logrus.Warnf("Could not read the config map directory [%s]. Encountered [%s]", filePath, err)
+			} else {
+				size := 0
+				for _, data := range dataMap {
+					size += len(data)
+				}
+				if size > maxConfigMapSizeLimit {
+					return irtypes.Storage{}, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
+				}
+				storage.Content = dataMap
+			}
+		}
+	}
+
+	return storage, nil
 }
 
 func (*v3Loader) getPorts(ports []types.ServicePortConfig, expose []string) []core.ContainerPort {
