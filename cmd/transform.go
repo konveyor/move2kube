@@ -46,6 +46,8 @@ type transformFlags struct {
 	name string
 	// overwrite lets you overwrite the output directory if it exists
 	overwrite bool
+	// maxIterations is the maximum number of iterations to allow before aborting with an error
+	maxIterations int
 	// CustomizationsPaths contains the path to the customizations directory
 	customizationsPath  string
 	transformerSelector string
@@ -184,7 +186,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 	}
-	if err := lib.Transform(ctx, transformationPlan, preExistingPlan, flags.outpath, flags.transformerSelector); err != nil {
+	if err := lib.Transform(ctx, transformationPlan, preExistingPlan, flags.outpath, flags.transformerSelector, flags.maxIterations); err != nil {
 		logrus.Fatalf("failed to transform. Error: %q", err)
 	}
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
@@ -227,6 +229,7 @@ func GetTransformCommand() *cobra.Command {
 	// Advanced options
 	transformCmd.Flags().BoolVar(&flags.ignoreEnv, ignoreEnvFlag, false, "Ignore data from local machine.")
 	transformCmd.Flags().BoolVar(&flags.disableLocalExecution, common.DisableLocalExecutionFlag, false, "Allow files to be executed locally.")
+	transformCmd.Flags().IntVar(&flags.maxIterations, maxIterationsFlag, -1, "The maximum number of iterations to allow. Negative value means infinite. Default is -1.")
 
 	// Hidden options
 	transformCmd.Flags().BoolVar(&flags.qadisablecli, qadisablecliFlag, false, "Enable/disable the QA Cli sub-system. Without this system, you will have to use the REST API to interact.")
