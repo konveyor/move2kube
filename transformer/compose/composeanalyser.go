@@ -128,7 +128,11 @@ func (t *ComposeAnalyser) Transform(newArtifacts []transformertypes.Artifact, al
 			logrus.Debugf("failed to load config for Transformer into %T . Error: %q", imageName, err)
 		}
 		ir := irtypes.NewIR()
-		composeFiles := newArtifact.Configs[ComposeFileConfigType].([]string)
+		composeFiles := []string{}
+		if err := newArtifact.GetConfig(ComposeFileConfigType, &composeFiles); err != nil {
+			logrus.Errorf("failed to get the compose files from the artifact. Error: %+q", err)
+			continue
+		}
 		for _, composeFileName := range composeFiles {
 			composeFilePath := filepath.Join(newArtifact.Paths[dockerComposeContextPathType][0], composeFileName)
 			logrus.Debugf("file at path '%s' being loaded from the compose service name '%s'", composeFilePath, config.ServiceName)

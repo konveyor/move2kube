@@ -19,6 +19,7 @@ package lib
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 
 	"github.com/konveyor/move2kube/common"
@@ -30,7 +31,7 @@ import (
 )
 
 // Transform transforms the artifacts and writes output
-func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, outputPath string, transformerSelector string) error {
+func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, outputPath string, transformerSelector string, maxIterations int) error {
 	logrus.Infof("Starting transformation")
 
 	common.ProjectName = plan.Name
@@ -99,7 +100,7 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 	}
 
 	// transform the selected services using the selected transformation options
-	if err := transformer.Transform(selectedTransformationOptions, plan.Spec.SourceDir, outputPath); err != nil {
+	if err := transformer.Transform(selectedTransformationOptions, plan.Spec.SourceDir, outputPath, maxIterations); err != nil {
 		return fmt.Errorf("failed to transform using the plan. Error: %w", err)
 	}
 
@@ -111,4 +112,8 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 func Destroy() {
 	logrus.Debugf("Cleaning up!")
 	transformer.Destroy()
+	err := os.RemoveAll(common.TempPath)
+	if err != nil {
+		logrus.Debug("failed to delete temp directory. Error : ", err)
+	}
 }

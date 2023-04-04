@@ -43,6 +43,8 @@ const (
 	preSetFlag = "preset"
 	// overwriteFlag is the name of the flag that lets you overwrite the output directory if it exists
 	overwriteFlag = "overwrite"
+	// maxIterationsFlag is the name of the flag that lets you set the maximum number of iterations to allow
+	maxIterationsFlag = "max-iterations"
 	// customizationsFlag is the path to customizations directory
 	customizationsFlag      = "customizations"
 	qadisablecliFlag        = "qa-disable-cli"
@@ -52,8 +54,10 @@ const (
 )
 
 type qaflags struct {
+	// qadisablecli disables the CLI engine. To be used with HTTP REST engine
 	qadisablecli bool
-	qaport       int
+	// qaport contains the port where the Question Answer HTTP REST engine server is started
+	qaport int
 	// configOut contains the location to output the config
 	configOut string
 	// qaCacheOut contains the location to output the cache

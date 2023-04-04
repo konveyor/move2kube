@@ -18,7 +18,9 @@ package graph
 
 import (
 	"fmt"
+	"sort"
 
+	"github.com/konveyor/move2kube/common"
 	graphtypes "github.com/konveyor/move2kube/types/graph"
 	"github.com/sirupsen/logrus"
 )
@@ -60,78 +62,65 @@ func GetNodesAndEdges(graph graphtypes.Graph) ([]graphtypes.Node, []graphtypes.E
 	return nodes, edges
 }
 
-// DfsUpdatePositions updates the positions of the nodes using a layered layout algorithm that utilizes Depth First Search.
-func DfsUpdatePositions(nodes []graphtypes.Node, edges []graphtypes.EdgeT) {
-	visited := map[string]bool{}
-	adjMat := map[string]map[string]bool{}
-	xsPerIteration := map[int]int{}
+// BfsUpdatePositions updates the positions of the nodes using a layered layout algorithm that utilizes Breadth First Search.
+func BfsUpdatePositions(nodes []graphtypes.Node, edges []graphtypes.EdgeT) {
+	adjMat := map[string]map[string]struct{}{}
 	for _, edge := range edges {
 		if adjMat[edge.Source] == nil {
-			adjMat[edge.Source] = map[string]bool{}
+			adjMat[edge.Source] = map[string]struct{}{}
 		}
-		adjMat[edge.Source][edge.Target] = true
+		adjMat[edge.Source][edge.Target] = struct{}{}
 	}
-	dfsHelper(nodes, edges, visited, adjMat, "v-0", xsPerIteration, 0, 0, 0)
+
+	// the bread first search algorithm
+	queue := []string{"v-0"}
+	visited := map[string]struct{}{"v-0": {}}
+	xsPerIteration := map[int]int{}
+	for len(queue) > 0 {
+		// pop a vertex from the queue
+		current := queue[0]
+		queue = queue[1:]
+		// add its neighbours to the queue for processing later
+		neighbours := adjMat[current]
+		sortedNotVisitedNeighbours := []string{}
+		for neighbour := range neighbours {
+			if _, ok := visited[neighbour]; !ok {
+				sortedNotVisitedNeighbours = append(sortedNotVisitedNeighbours, neighbour)
+				visited[neighbour] = struct{}{}
+			}
+		}
+		sort.StringSlice(sortedNotVisitedNeighbours).Sort()
+		queue = append(queue, sortedNotVisitedNeighbours...)
+		// calculate the new position for the current node
+		idx := common.FindIndex(nodes, func(n graphtypes.Node) bool { return n.Id == current })
+		if idx < 0 {
+			logrus.Errorf("failed to find a node for the vertex with id '%s'", current)
+			continue
+		}
+		node := nodes[idx]
+		iteration := node.Position.Y
+		newX := xsPerIteration[iteration]
+		xsPerIteration[iteration] = newX + 200
+		newY := iteration * 200
+		node.Position.X = newX
+		node.Position.Y = newY
+		nodes[idx] = node
+	}
 
 	// handle islands
-
 	for i, node := range nodes {
-		if visited[node.Id] {
+		if _, ok := visited[node.Id]; ok {
 			continue
 		}
 		logrus.Errorf("found an unvisited node: %+v", node)
-
+		visited[node.Id] = struct{}{}
+		// calculate the new position for the current node
 		iteration := node.Position.Y
-
-		newX := 0
-		if oldX, ok := xsPerIteration[iteration]; ok {
-			newX = oldX + 200
-		}
-		xsPerIteration[iteration] = newX
-		node.Position.X = newX
-
+		newX := xsPerIteration[iteration]
+		xsPerIteration[iteration] = newX + 200
 		newY := iteration * 200
-		node.Position.Y = newY
-
-		nodes[i] = node
-	}
-}
-
-func dfsHelper(nodes []graphtypes.Node, edges []graphtypes.EdgeT, visited map[string]bool, adjMat map[string]map[string]bool, currVertId string, xsPerIteration map[int]int, parentIteration, parentX, parentY int) {
-	visited[currVertId] = true
-	newX := 0
-	newY := 0
-	iteration := 0
-	for i, node := range nodes {
-		if node.Id != currVertId {
-			continue
-		}
-
-		iteration = node.Position.Y
-
-		if iteration == parentIteration {
-			// mandatory/on-demand passthrough
-			newX = parentX
-			newY = parentY + 100
-		} else {
-			newX = 0
-			if oldX, ok := xsPerIteration[iteration]; ok {
-				newX = oldX + 200
-			}
-			xsPerIteration[iteration] = newX
-			newY = iteration * 200
-		}
-
 		node.Position.X = newX
 		node.Position.Y = newY
 		nodes[i] = node
-		break
-	}
-	for neighbourVertId, ok := range adjMat[currVertId] {
-		if !ok || visited[neighbourVertId] {
-			// no edge from the current vertex to this neighbour vertex OR this neighbour has already been visited
-			continue
-		}
-		dfsHelper(nodes, edges, visited, adjMat, neighbourVertId, xsPerIteration, iteration, newX, newY)
 	}
 }
