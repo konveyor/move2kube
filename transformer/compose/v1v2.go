@@ -305,7 +305,7 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 						})
 
 					if createCfgMap {
-						logrus.Debug("Creating config map [%s] for path [%s]", cfgName, hPath)
+						logrus.Debugf("Creating config map [%s] for path [%s]", cfgName, hPath)
 						cfgMapVolSrc := core.ConfigMapVolumeSource{}
 						cfgMapVolSrc.Name = cfgName
 						serviceConfig.AddVolume(core.Volume{

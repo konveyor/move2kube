@@ -447,7 +447,7 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 					})
 
 				if createCfgMap {
-					logrus.Debug("Creating config map [%s] for path [%s]", cfgName, hPath)
+					logrus.Debugf("Creating config map [%s] for path [%s]", cfgName, hPath)
 					cfgMapVolSrc := core.ConfigMapVolumeSource{}
 					cfgMapVolSrc.Name = cfgName
 					serviceConfig.AddVolume(core.Volume{
