@@ -70,6 +70,13 @@ func createConfigMapName(sourcePath string) string {
 	return cfgName
 }
 
+func createVolumeName(sourcePath string, serviceName string) string {
+	hashID := getHash([]byte(sourcePath))
+	volumeName := fmt.Sprintf("%s-%s-%d", common.VolumePrefix, serviceName, hashID)
+	volumeName = common.MakeStringK8sServiceNameCompliant(volumeName)
+	return volumeName
+}
+
 func loadDataAsConfigMap(filePath string, cfgName string) (irtypes.Storage, error) {
 	storage := irtypes.Storage{
 		Name:        cfgName,
