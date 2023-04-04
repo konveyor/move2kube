@@ -20,10 +20,12 @@ import (
 	"fmt"
 	"hash/fnv"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/docker/cli/opts"
 	"github.com/konveyor/move2kube/common"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -35,6 +37,8 @@ const (
 	defaultSecretBasePath string = "/var/secrets"
 	envFile               string = "env_file"
 	maxConfigMapSizeLimit int    = 1024 * 1024
+	// cfgMapPrefix defines the prefix to be used for config maps
+	cfgMapPrefix = "cfgmap"
 )
 
 /*
@@ -58,6 +62,78 @@ func IsV3(path string) (bool, error) {
 	}
 }
 */
+
+func createConfigMapName(sourcePath string) string {
+	cfgMapHashID := getHash([]byte(sourcePath))
+	cfgName := fmt.Sprintf("%s-%d", cfgMapPrefix, cfgMapHashID)
+	cfgName = common.MakeStringK8sServiceNameCompliant(cfgName)
+	return cfgName
+}
+
+func loadDataAsConfigMap(filePath string, cfgName string) (irtypes.Storage, error) {
+	storage := irtypes.Storage{
+		Name:        cfgName,
+		StorageType: irtypes.ConfigMapKind,
+	}
+
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		logrus.Warnf("Could not identify the type of config map artifact [%s]. Encountered [%s]", filePath, err)
+	} else {
+		if !fileInfo.IsDir() {
+			content, err := os.ReadFile(filePath)
+			if err != nil {
+				logrus.Warnf("Could not read the secret file [%s]. Encountered [%s]", filePath, err)
+			} else {
+				if len(content) > maxConfigMapSizeLimit {
+					return irtypes.Storage{}, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
+				}
+				storage.Content = map[string][]byte{cfgName: content}
+			}
+		} else {
+			dataMap, err := getAllDirContentAsMap(filePath)
+			if err != nil {
+				logrus.Warnf("Could not read the config map directory [%s]. Encountered [%s]", filePath, err)
+			} else {
+				size := 0
+				for _, data := range dataMap {
+					size += len(data)
+				}
+				if size > maxConfigMapSizeLimit {
+					return irtypes.Storage{}, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
+				}
+				storage.Content = dataMap
+			}
+		}
+	}
+
+	return storage, nil
+}
+
+func getAllDirContentAsMap(directoryPath string) (map[string][]byte, error) {
+	fileList, err := os.ReadDir(directoryPath)
+	if err != nil {
+		return nil, err
+	}
+	dataMap := map[string][]byte{}
+	count := 0
+	for _, file := range fileList {
+		if file.IsDir() {
+			continue
+		}
+		fileName := file.Name()
+		logrus.Debugf("Reading file into the data map: [%s]", fileName)
+		data, err := os.ReadFile(filepath.Join(directoryPath, fileName))
+		if err != nil {
+			logrus.Debugf("Unable to read file data : %s", fileName)
+			continue
+		}
+		dataMap[fileName] = data
+		count = count + 1
+	}
+	logrus.Debugf("Read %d files into the data map", count)
+	return dataMap, nil
+}
 
 func getEnvironmentVariables(envFile string) map[string]string {
 	result := map[string]string{}

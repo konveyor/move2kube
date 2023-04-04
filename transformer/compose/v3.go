@@ -422,15 +422,12 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 					}
 					vol.Source = relPath
 				} else {
-					hPath, err := filepath.Abs(vol.Source)
-					if err != nil {
-						logrus.Debugf("Could not create an absolute path for [%s]", hPath)
-					}
+					hPath = filepath.Join(filedir, vol.Source)
 				}
-				cfgName := common.MakeStringK8sServiceNameCompliant(vol.Source)
+				cfgName := createConfigMapName(vol.Source)
 				createCfgMap := false
 				if _, ok := storageMap[cfgName]; !ok {
-					st, err := c.loadDataAsConfigMap(hPath, cfgName)
+					st, err := loadDataAsConfigMap(hPath, cfgName)
 					if err != nil {
 						logrus.Warnf("Could not create a config map for absolute path [%s] because %s", hPath, err)
 					} else {
@@ -450,7 +447,7 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 					})
 
 				if createCfgMap {
-					logrus.Infof("Creating config map [%s] for path [%s]", cfgName, hPath)
+					logrus.Debug("Creating config map [%s] for path [%s]", cfgName, hPath)
 					cfgMapVolSrc := core.ConfigMapVolumeSource{}
 					cfgMapVolSrc.Name = cfgName
 					serviceConfig.AddVolume(core.Volume{
@@ -494,6 +491,8 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 				ir.AddStorage(storageObj)
 			}
 		}
+
+		logrus.Debugf("Number of volumes for service [%s] is [%d]", serviceConfig.Name, len(serviceConfig.Volumes))
 
 		serviceConfig.Containers = []core.Container{serviceContainer}
 		ir.Services[name] = serviceConfig
@@ -550,7 +549,7 @@ func (c *v3Loader) getConfigStorages(configs map[string]types.ConfigObjConfig) [
 						storage.Content = map[string][]byte{cfgName: content}
 					}
 				} else {
-					dataMap, err := c.getAllDirContentAsMap(cfgObj.File)
+					dataMap, err := getAllDirContentAsMap(cfgObj.File)
 					if err != nil {
 						logrus.Warnf("Could not read the secret directory [%s]. Encountered [%s]", cfgObj.File, err)
 					} else {
@@ -563,47 +562,6 @@ func (c *v3Loader) getConfigStorages(configs map[string]types.ConfigObjConfig) [
 	}
 
 	return Storages
-}
-
-func (c *v3Loader) loadDataAsConfigMap(filePath string, cfgName string) (irtypes.Storage, error) {
-	// cfgName := common.MakeStringK8sServiceNameCompliant(cfgName)
-	storage := irtypes.Storage{
-		Name:        cfgName,
-		StorageType: irtypes.ConfigMapKind,
-	}
-
-	fileInfo, err := os.Stat(filePath)
-	if err != nil {
-		logrus.Warnf("Could not identify the type of config map artifact [%s]. Encountered [%s]", filePath, err)
-	} else {
-		if !fileInfo.IsDir() {
-			content, err := os.ReadFile(filePath)
-			if err != nil {
-				logrus.Warnf("Could not read the secret file [%s]. Encountered [%s]", filePath, err)
-			} else {
-				if len(content) > maxConfigMapSizeLimit {
-					return irtypes.Storage{}, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
-				}
-				storage.Content = map[string][]byte{cfgName: content}
-			}
-		} else {
-			dataMap, err := c.getAllDirContentAsMap(filePath)
-			if err != nil {
-				logrus.Warnf("Could not read the config map directory [%s]. Encountered [%s]", filePath, err)
-			} else {
-				size := 0
-				for _, data := range dataMap {
-					size += len(data)
-				}
-				if size > maxConfigMapSizeLimit {
-					return irtypes.Storage{}, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
-				}
-				storage.Content = dataMap
-			}
-		}
-	}
-
-	return storage, nil
 }
 
 func (*v3Loader) getPorts(ports []types.ServicePortConfig, expose []string) []core.ContainerPort {
@@ -740,29 +698,4 @@ func (c *v3Loader) getEnvs(composeServiceConfig types.ServiceConfig) (envs []cor
 		envs = append(envs, env)
 	}
 	return envs
-}
-
-func (c *v3Loader) getAllDirContentAsMap(directoryPath string) (map[string][]byte, error) {
-	fileList, err := os.ReadDir(directoryPath)
-	if err != nil {
-		return nil, err
-	}
-	dataMap := map[string][]byte{}
-	count := 0
-	for _, file := range fileList {
-		if file.IsDir() {
-			continue
-		}
-		fileName := file.Name()
-		logrus.Debugf("Reading file into the data map: [%s]", fileName)
-		data, err := os.ReadFile(filepath.Join(directoryPath, fileName))
-		if err != nil {
-			logrus.Debugf("Unable to read file data : %s", fileName)
-			continue
-		}
-		dataMap[fileName] = data
-		count = count + 1
-	}
-	logrus.Debugf("Read %d files into the data map", count)
-	return dataMap, nil
 }

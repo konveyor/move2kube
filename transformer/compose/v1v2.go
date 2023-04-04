@@ -137,7 +137,7 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 	ir = irtypes.IR{
 		Services: map[string]irtypes.Service{},
 	}
-
+	storageMap := map[string]bool{}
 	for name, composeServiceConfig := range composeObject.ServiceConfigs.All() {
 		if name != serviceName {
 			continue
@@ -271,27 +271,80 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 			for _, vol := range composeServiceConfig.Volumes.Volumes {
 				if isPath(vol.Source) {
 					hPath := vol.Source
-					if !filepath.IsAbs(vol.Source) {
-						hPath, err := filepath.Abs(vol.Source)
+					if filepath.IsAbs(hPath) {
+						relPath, err := filepath.Rel(filedir, hPath)
 						if err != nil {
-							logrus.Debugf("Could not create an absolute path for [%s]", hPath)
+							logrus.Debugf("Could not extract relative path for [%s]", hPath)
 						}
+						vol.Source = relPath
+						logrus.Debugf("Already is an absolute path [%s]", hPath)
+					} else {
+						hPath = filepath.Join(filedir, vol.Source)
+						logrus.Debugf("Converted to absolute path [%s]", hPath)
+					}
+					cfgName := createConfigMapName(vol.Source)
+					createCfgMap := false
+					if _, ok := storageMap[cfgName]; !ok {
+						st, err := loadDataAsConfigMap(hPath, cfgName)
+						if err != nil {
+							logrus.Warnf("Could not create a config map for absolute path [%s] because %s", hPath, err)
+						} else {
+							ir.Storages = append(ir.Storages, st)
+							createCfgMap = true
+						}
+					} else {
+						createCfgMap = true
 					}
 					// Generate a hash Id for the given source file path to be mounted.
 					hashID := getHash([]byte(hPath))
 					volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
-					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
-						Name:      volumeName,
-						ReadOnly:  vol.AccessMode == modeReadOnly,
-						MountPath: vol.Destination,
-					})
+					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts,
+						core.VolumeMount{
+							Name:      volumeName,
+							MountPath: vol.Destination,
+						})
 
-					serviceConfig.AddVolume(core.Volume{
-						Name: volumeName,
-						VolumeSource: core.VolumeSource{
-							HostPath: &core.HostPathVolumeSource{Path: vol.Source},
-						},
-					})
+					if createCfgMap {
+						logrus.Debug("Creating config map [%s] for path [%s]", cfgName, hPath)
+						cfgMapVolSrc := core.ConfigMapVolumeSource{}
+						cfgMapVolSrc.Name = cfgName
+						serviceConfig.AddVolume(core.Volume{
+							Name: volumeName,
+							VolumeSource: core.VolumeSource{
+								ConfigMap: &cfgMapVolSrc,
+							},
+						})
+					} else {
+						logrus.Warnf("Could not create configmap. Instead, creating hostpath volume for path [%s]", hPath)
+						serviceConfig.AddVolume(core.Volume{
+							Name: volumeName,
+							VolumeSource: core.VolumeSource{
+								HostPath: &core.HostPathVolumeSource{Path: vol.Source},
+							},
+						})
+					}
+					// hPath := vol.Source
+					// if !filepath.IsAbs(vol.Source) {
+					// 	hPath, err := filepath.Abs(vol.Source)
+					// 	if err != nil {
+					// 		logrus.Debugf("Could not create an absolute path for [%s]", hPath)
+					// 	}
+					// }
+					// // Generate a hash Id for the given source file path to be mounted.
+					// hashID := getHash([]byte(hPath))
+					// volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
+					// serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
+					// 	Name:      volumeName,
+					// 	ReadOnly:  vol.AccessMode == modeReadOnly,
+					// 	MountPath: vol.Destination,
+					// })
+
+					// serviceConfig.AddVolume(core.Volume{
+					// 	Name: volumeName,
+					// 	VolumeSource: core.VolumeSource{
+					// 		HostPath: &core.HostPathVolumeSource{Path: vol.Source},
+					// 	},
+					// })
 				} else {
 					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
 						Name:      vol.Source,
