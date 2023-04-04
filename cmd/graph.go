@@ -48,7 +48,7 @@ func graphHandler(flags graphFlags) {
 		logrus.Fatalf("failed to decode the json file at path %s . Error: %q", graphFilePath, err)
 	}
 	nodes, edges := graphutils.GetNodesAndEdges(graph)
-	graphutils.DfsUpdatePositions(nodes, edges)
+	graphutils.BfsUpdatePositions(nodes, edges)
 	webGraph := graphtypes.GraphT{Nodes: nodes, Edges: edges}
 	if flags.outputPath != "" {
 		webBytes, err := json.Marshal(webGraph)
