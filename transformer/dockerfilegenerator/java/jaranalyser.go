@@ -178,9 +178,6 @@ func (t *JarAnalyser) Transform(newArtifacts []transformertypes.Artifact, alread
 			javaPackage = defaultJavaPackage
 		}
 		buildContainerName := jarArtifactConfig.BuildContainerName
-		if buildContainerName == "" {
-			buildContainerName = common.DefaultBuildContainerName
-		}
 		pathMappingTemplateConfig := JarDockerfileTemplate{
 			Port:               jarArtifactConfig.Port,
 			JavaPackageName:    javaPackage,

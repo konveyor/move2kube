@@ -177,6 +177,9 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 			if err := newArtifact.GetConfig(ExtraParameterizersConfigType, &moreParams); err != nil {
 				logrus.Debugf("failed to load config of type '%s' into struct of type %T . Error: %q", ExtraParameterizersConfigType, moreParams, err)
 			} else {
+				if createdArtifact.Configs == nil {
+					createdArtifact.Configs = map[string]interface{}{}
+				}
 				createdArtifact.Configs[ExtraParameterizersConfigType] = moreParams
 			}
 		}

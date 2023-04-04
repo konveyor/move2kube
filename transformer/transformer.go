@@ -509,7 +509,7 @@ func preprocessArtifact(planArtifact plantypes.PlanArtifact) plantypes.PlanArtif
 }
 
 // Transform transforms as per the plan
-func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath string) error {
+func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath string, maxIterations int) error {
 	logrus.Trace("transformer.Transform start")
 	defer logrus.Trace("transformer.Transform end")
 	var allArtifacts []transformertypes.Artifact
@@ -545,6 +545,10 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 
 	for {
 		iteration++
+		if maxIterations >= 0 && iteration > maxIterations {
+			logrus.Errorf("exceeded the max number of iterations: %d . stopping.", maxIterations)
+			break
+		}
 		logrus.Infof("Iteration %d - %d artifacts to process", iteration, len(newArtifactsToProcess))
 		newPathMappings, newArtifacts, _ := transform(newArtifactsToProcess, allArtifacts, consume, nil, graph, iteration)
 		pathMappings = append(pathMappings, newPathMappings...)
