@@ -56,8 +56,6 @@ const (
 	DefaultServicePort int32 = 8080
 	// TODOAnnotation is used to annotate with TODO tasks
 	TODOAnnotation = types.GroupName + "/todo."
-	// DefaultBuildContainerName stores default build container name
-	DefaultBuildContainerName = "builder"
 	// ShExt is the extension of sh file
 	ShExt = ".sh"
 	// BatExt is the extension of bat file
