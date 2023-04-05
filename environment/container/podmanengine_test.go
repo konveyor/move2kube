@@ -28,7 +28,7 @@ func TestPodman(t *testing.T) {
 
 	t.Run("normal use case", func(t *testing.T) {
 		provider := newPodmanEngine()
-		image := "quay.io/konveyor/move2kube-api"
+		image := "quay.io/konveyor/hello-world:latest"
 
 		if err := provider.pullImage(image); !err {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %v", image, err)
@@ -37,7 +37,7 @@ func TestPodman(t *testing.T) {
 
 	t.Run("normal use case where we get result from cache", func(t *testing.T) {
 		provider := newPodmanEngine()
-		image := "quay.io/konveyor/move2kube-api"
+		image := "quay.io/konveyor/hello-world:latest"
 
 		if err := provider.pullImage(image); !err {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %v", image, err)
@@ -60,7 +60,7 @@ func TestPodman(t *testing.T) {
 
 	t.Run("check for a running a container", func(t *testing.T) {
 		provider := newPodmanEngine()
-		image := "docker.io/alpine:latest"
+		image := "quay.io/konveyor/hello-world:latest"
 		if err := provider.pullImage(image); !err {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %v", image, err)
 		}
@@ -73,7 +73,7 @@ func TestPodman(t *testing.T) {
 
 	t.Run("Check for InspectImage functionality ", func(t *testing.T) {
 		provider := newPodmanEngine()
-		image := "docker.io/alpine:latest"
+		image := "quay.io/konveyor/hello-world:latest"
 		if err := provider.pullImage(image); !err {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %v", image, err)
 		}
@@ -83,12 +83,12 @@ func TestPodman(t *testing.T) {
 		}
 		found := false
 		for _, i := range outputInspect.RepoTags {
-			if strings.HasSuffix(i, "alpine:latest") {
+			if strings.HasSuffix(i, "hello-world:latest") {
 				found = true
 			}
 		}
 		if !found {
-			t.Fatalf("Ispect Repo Tag Mismatch Should be - alpine:latest got - %+v", outputInspect)
+			t.Fatalf("Ispect Repo Tag Mismatch Should be - hello-world:latest got - %+v", outputInspect)
 		}
 	})
 }

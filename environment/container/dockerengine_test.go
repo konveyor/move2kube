@@ -73,7 +73,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("normal use case", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "quay.io/konveyor/move2kube-api"
+		image := "quay.io/konveyor/hello-world:latest"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -82,7 +82,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("normal use case where we get result from cache", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "quay.io/konveyor/move2kube-api"
+		image := "quay.io/konveyor/hello-world:latest"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -105,7 +105,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("check for creating a container ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine:latest"
+		image := "quay.io/konveyor/hello-world:latest"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -127,7 +127,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 		testStderr := ""
 		testExitCode := 0
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine:latest"
+		image := "registry.access.redhat.com/ubi8-minimal:8.7-1107"
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
 		}
@@ -153,7 +153,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("Check for InspectImage functionality ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine:latest"
+		image := "registry.access.redhat.com/ubi8-minimal:8.7-1107"
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
 		}
@@ -164,19 +164,19 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 		found := false
 		for _, i := range outputInspect.RepoTags {
-			if strings.HasSuffix(i, "alpine:latest") {
+			if strings.HasSuffix(i, "ubi8-minimal:8.7-1107") {
 				found = true
 			}
 		}
 		if !found {
-			t.Fatalf("Ispect Repo Tag Mismatch Should be - alpine:latest got - %v", outputInspect.RepoTags)
+			t.Fatalf("Ispect Repo Tag Mismatch Should be - ubi8-minimal:8.7-1107 got - %v", outputInspect.RepoTags)
 		}
 
 	})
 
 	t.Run("check for stopping and removing a container ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine:latest"
+		image := "quay.io/konveyor/hello-world:latest"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -204,16 +204,16 @@ func TestIsBuilderAvailable(t *testing.T) {
 		}
 	})
 
-	t.Run("check for coping directories to an image ", func(t *testing.T) {
+	t.Run("check for copying directories to an image ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine:latest"
+		image := "registry.access.redhat.com/ubi8-minimal:8.7-1107"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
 		}
 
-		image = "alpine:latest"
-		newimage := "alpine:with_dirs"
+		image = "registry.access.redhat.com/ubi8-minimal:8.7-1107"
+		newimage := "registry.access.redhat.com/ubi8-minimal:with_dirs"
 		paths := make(map[string]string)
 		absDir1, err := filepath.Abs("./testdata/dirstocopy/dir1")
 		if err == nil {
@@ -270,9 +270,9 @@ func TestIsBuilderAvailable(t *testing.T) {
 		}
 
 	})
-	t.Run("check for coping directories to a container ", func(t *testing.T) {
+	t.Run("check for copying directories to a container ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine:latest"
+		image := "registry.access.redhat.com/ubi8-minimal:8.7-1107"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -338,9 +338,9 @@ func TestIsBuilderAvailable(t *testing.T) {
 		}
 	})
 
-	t.Run("check for coping directories from a container ", func(t *testing.T) {
+	t.Run("check for copying directories from a container ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine:latest"
+		image := "registry.access.redhat.com/ubi8-minimal:8.7-1107"
 
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
@@ -427,7 +427,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 
 	t.Run("check for Stat of a file ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
-		image := "docker.io/alpine:latest"
+		image := "registry.access.redhat.com/ubi8-minimal:8.7-1107"
 		if err := provider.pullImage(image); err != nil {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %q", image, err)
 		}
