@@ -12,14 +12,14 @@ require (
 	github.com/antchfx/xmlquery v1.3.12
 	github.com/antchfx/xpath v1.2.1
 	github.com/argoproj/argo-cd/v2 v2.3.5
-	github.com/cloudfoundry-community/go-cfclient v0.0.0-20220509215243-5e4f7e9cf503
+	github.com/cloudfoundry-community/go-cfclient/v2 v2.0.0
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/docker/cli v20.10.12+incompatible
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/docker/libcompose v0.4.1-0.20171025083809-57bd716502dc
 	github.com/go-git/go-git/v5 v5.4.2
-	github.com/google/go-cmp v0.5.7
+	github.com/google/go-cmp v0.5.8
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-version v1.6.0
 	github.com/joho/godotenv v1.4.0
@@ -41,10 +41,10 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
 	go.starlark.net v0.0.0-20211203141949-70c0e40ae128
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
-	golang.org/x/mod v0.5.1
-	golang.org/x/text v0.3.7
+	golang.org/x/mod v0.8.0
+	golang.org/x/text v0.8.0
 	google.golang.org/grpc v1.44.0
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.30.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.23.5
@@ -56,7 +56,6 @@ require (
 
 require (
 	code.cloudfoundry.org/bytefmt v0.0.0-20211005130812-5bb3c17173e5 // indirect
-	code.cloudfoundry.org/gofileutils v0.0.0-20170111115228-4d0c80011a0f // indirect
 	contrib.go.opencensus.io/exporter/ocagent v0.7.1-0.20200907061046-05415f1de66d // indirect
 	contrib.go.opencensus.io/exporter/prometheus v0.4.0 // indirect
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1 // indirect
@@ -125,7 +124,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.3.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/cel-go v0.9.0 // indirect
 	github.com/google/go-containerregistry v0.8.1-0.20220414143355-892d7a808387 // indirect
@@ -210,11 +209,11 @@ require (
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.20.0 // indirect
 	golang.org/x/exp v0.0.0-20210901193431-a062eea981d2 // indirect
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
+	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/oauth2 v0.6.0 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
+	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/term v0.6.0 // indirect
 	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
