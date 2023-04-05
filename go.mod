@@ -40,7 +40,7 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
 	go.starlark.net v0.0.0-20211203141949-70c0e40ae128
-	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
+	golang.org/x/crypto v0.1.0
 	golang.org/x/mod v0.8.0
 	golang.org/x/text v0.8.0
 	google.golang.org/grpc v1.44.0
