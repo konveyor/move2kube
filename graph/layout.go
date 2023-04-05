@@ -62,28 +62,28 @@ func GetNodesAndEdges(graph graphtypes.Graph) ([]graphtypes.Node, []graphtypes.E
 	return nodes, edges
 }
 
-type IterAndSubIter struct {
+type graphIterAndSubIter struct {
 	Iter int
 	Sub  int
 }
 
-type SortIters struct {
-	Items []IterAndSubIter
+type graphSortIters struct {
+	Items []graphIterAndSubIter
 }
 
 // Len is the number of elements in the collection.
-func (x *SortIters) Len() int {
+func (x *graphSortIters) Len() int {
 	return len(x.Items)
 }
 
 // Less reports whether the element with index i
 // must sort before the element with index j.
-func (x *SortIters) Less(i, j int) bool {
+func (x *graphSortIters) Less(i, j int) bool {
 	return x.Items[i].Iter < x.Items[j].Iter || (x.Items[i].Iter == x.Items[j].Iter && x.Items[i].Sub < x.Items[j].Sub)
 }
 
 // Swap swaps the elements with indexes i and j.
-func (x *SortIters) Swap(i, j int) {
+func (x *graphSortIters) Swap(i, j int) {
 	x.Items[i], x.Items[j] = x.Items[j], x.Items[i]
 }
 
@@ -97,13 +97,13 @@ func BfsUpdatePositions(nodes []graphtypes.Node, edges []graphtypes.EdgeT) {
 		adjMat[edge.Source][edge.Target] = struct{}{}
 	}
 
-	iterSubIterToY := map[IterAndSubIter]int{}
+	iterSubIterToY := map[graphIterAndSubIter]int{}
 	{
 		// depth first search to calculate sub-iterations
-		subIters := map[IterAndSubIter]struct{}{}
+		subIters := map[graphIterAndSubIter]struct{}{}
 		visited := map[string]struct{}{"v-0": {}}
 		dfsRecursive(nodes, subIters, visited, adjMat, "v-0", -1)
-		sortIters := SortIters{}
+		sortIters := graphSortIters{}
 		for subIter := range subIters {
 			sortIters.Items = append(sortIters.Items, subIter)
 		}
@@ -114,7 +114,7 @@ func BfsUpdatePositions(nodes []graphtypes.Node, edges []graphtypes.EdgeT) {
 	}
 
 	visited := map[string]struct{}{"v-0": {}}
-	iterSubIterToX := map[IterAndSubIter]int{}
+	iterSubIterToX := map[graphIterAndSubIter]int{}
 	{
 		// the bread first search algorithm
 		queue := []string{"v-0"}
@@ -140,7 +140,7 @@ func BfsUpdatePositions(nodes []graphtypes.Node, edges []graphtypes.EdgeT) {
 				continue
 			}
 			node := nodes[idx]
-			ii := IterAndSubIter{Iter: node.Position.Y, Sub: node.Position.X}
+			ii := graphIterAndSubIter{Iter: node.Position.Y, Sub: node.Position.X}
 			newX := iterSubIterToX[ii]
 			iterSubIterToX[ii] = newX + 200
 			node.Position.X = newX
@@ -157,7 +157,7 @@ func BfsUpdatePositions(nodes []graphtypes.Node, edges []graphtypes.EdgeT) {
 		logrus.Errorf("found an unvisited node: %+v", node)
 		visited[node.Id] = struct{}{}
 		// calculate the new position for the current node
-		ii := IterAndSubIter{Iter: node.Position.Y, Sub: node.Position.X}
+		ii := graphIterAndSubIter{Iter: node.Position.Y, Sub: node.Position.X}
 		newX := iterSubIterToX[ii]
 		iterSubIterToX[ii] = newX + 200
 		node.Position.X = newX
@@ -168,7 +168,7 @@ func BfsUpdatePositions(nodes []graphtypes.Node, edges []graphtypes.EdgeT) {
 
 func dfsRecursive(
 	nodes []graphtypes.Node,
-	subIters map[IterAndSubIter]struct{},
+	subIters map[graphIterAndSubIter]struct{},
 	visited map[string]struct{},
 	adjMat map[string]map[string]struct{},
 	current string,
@@ -192,7 +192,7 @@ func dfsRecursive(
 			nodes[currentIdx] = currentNode
 		}
 	}
-	subIters[IterAndSubIter{Iter: currentNode.Position.Y, Sub: currentNode.Position.X}] = struct{}{}
+	subIters[graphIterAndSubIter{Iter: currentNode.Position.Y, Sub: currentNode.Position.X}] = struct{}{}
 	neighbours := adjMat[current]
 	for neighbour := range neighbours {
 		if _, ok := visited[neighbour]; !ok {
