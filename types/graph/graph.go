@@ -28,10 +28,11 @@ type Graph struct {
 
 // Vertex is a single transformer.
 type Vertex struct {
-	Id        int                    `json:"id"`
-	Iteration int                    `json:"iteration"`
-	Name      string                 `json:"name"`
-	Data      map[string]interface{} `json:"data,omitempty"`
+	Id           int                    `json:"id"`
+	Iteration    int                    `json:"iteration"`
+	SubIteration int                    `json:"subiteration"`
+	Name         string                 `json:"name"`
+	Data         map[string]interface{} `json:"data,omitempty"`
 }
 
 // Edge is an artifact.
