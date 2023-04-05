@@ -19,7 +19,7 @@ package collection
 import (
 	"github.com/konveyor/move2kube/types"
 
-	cfclient "github.com/cloudfoundry-community/go-cfclient"
+	cfclient "github.com/cloudfoundry-community/go-cfclient/v2"
 )
 
 // CfServicesMetadataKind defines kind of cf services file
