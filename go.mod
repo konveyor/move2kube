@@ -16,7 +16,7 @@ require (
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/docker/cli v20.10.12+incompatible
-	github.com/docker/docker v20.10.12+incompatible
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/docker/libcompose v0.4.1-0.20171025083809-57bd716502dc
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/google/go-cmp v0.5.8
