@@ -14,6 +14,13 @@
 
 FROM registry.access.redhat.com/ubi8/nodejs-{{ .NodeMajorVersion }}
 COPY . .
+{{- if eq .PackageManager "npm" }}
+USER root
+RUN mkdir -p /opt/app-root/src/.npm
+RUN chown -R 1001:0 /opt/app-root/src/
+RUN chmod -R 775 /opt/app-root/src/
+USER 1001
+{{- end }}
 {{- if eq .PackageManager "yarn" }}
 RUN npm install --global yarn
 {{- end }}
@@ -21,12 +28,5 @@ RUN {{ .PackageManager }} install
 {{- if .Build }}
 RUN {{ .PackageManager }} run build
 {{- end}}
-{{- if eq .PackageManager "npm" }}
-USER root
-RUN mkdir -p /opt/app-root/src/.npm
-RUN chown -R 1001:0 /opt/app-root/src/.npm
-RUN chmod -R 775 /opt/app-root/src/.npm
-USER 1001
-{{- end }}
 EXPOSE {{ .Port }}
 CMD {{ .PackageManager }} run start
