@@ -49,9 +49,9 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 	if err != nil {
 		logrus.Errorf("Unable to get info of cf instance : %s", err)
 	}
-	q := url.Values{}
-	q.Set("inline-relations-depth", "0")
-	apps, err := client.ListAppsByQuery(q)
+	query := url.Values{}
+	query.Set("inline-relations-depth", "0")
+	apps, err := client.ListAppsByQuery(query)
 	if err != nil {
 		logrus.Errorf("Unable to get list of cf apps : %s", err)
 	}
