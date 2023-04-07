@@ -17,6 +17,7 @@
 package collector
 
 import (
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,7 +49,9 @@ func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 	if err != nil {
 		logrus.Errorf("Unable to get info of cf instance : %s", err)
 	}
-	apps, err := client.ListApps()
+	q := url.Values{}
+	q.Set("inline-relations-depth", "0")
+	apps, err := client.ListAppsByQuery(q)
 	if err != nil {
 		logrus.Errorf("Unable to get list of cf apps : %s", err)
 	}
