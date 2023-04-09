@@ -1517,9 +1517,3 @@ func writeToTar(w *io.PipeWriter, srcPath, basePath string, compressionType Comp
 	})
 
 }
-
-// Input stores file system path and equivalent remote path if exists
-type Input struct {
-	FSInputPath     string
-	RemoteInputPath string
-}
