@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/transformer"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
@@ -31,12 +32,17 @@ import (
 func CreatePlan(ctx context.Context, inputPath, outputPath string, customizationsPath, transformerSelector, prjName string) (plantypes.Plan, error) {
 	logrus.Trace("CreatePlan start")
 	defer logrus.Trace("CreatePlan end")
-	logrus.Debugf("common.TempPath: '%s' inputPath: '%s'", common.TempPath, inputPath)
+	remoteInputFSPath := vcs.GetInputClonedPath(inputPath, common.RemoteSourcesFolder, true)
+	logrus.Debugf("common.TempPath: '%s' inputPath: '%s' remoteInputFSPath '%s'", common.TempPath, inputPath, remoteInputFSPath)
 	plan := plantypes.NewPlan()
 	plan.Name = prjName
 	common.ProjectName = prjName
 	plan.Spec.SourceDir = inputPath
 	plan.Spec.CustomizationsDir = customizationsPath
+	inputFSPath := inputPath
+	if remoteInputFSPath != "" {
+		inputFSPath = remoteInputFSPath
+	}
 	if customizationsPath != "" {
 		if err := CheckAndCopyCustomizations(customizationsPath); err != nil {
 			return plan, fmt.Errorf("failed to check and copy the customizations. Error: %w", err)
@@ -52,7 +58,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	if err != nil {
 		return plan, fmt.Errorf("failed to convert the label selector to a selector. Error: %w", err)
 	}
-	deselectedTransformers, err := transformer.Init(common.AssetsPath, inputPath, lblSelector, outputPath, plan.Name)
+	deselectedTransformers, err := transformer.Init(common.AssetsPath, inputFSPath, lblSelector, outputPath, plan.Name)
 	if err != nil {
 		return plan, fmt.Errorf("failed to initialize the transformers. Error: %w", err)
 	}
@@ -69,10 +75,10 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	logrus.Info("Configuration loading done")
 
 	logrus.Info("Start planning")
-	if inputPath != "" {
-		plan.Spec.Services, err = transformer.GetServices(plan.Name, inputPath, nil)
+	if inputFSPath != "" {
+		plan.Spec.Services, err = transformer.GetServices(plan.Name, inputFSPath, nil)
 		if err != nil {
-			return plan, fmt.Errorf("failed to get services from the input directory '%s' . Error: %w", inputPath, err)
+			return plan, fmt.Errorf("failed to get services from the input directory '%s' . Error: %w", inputFSPath, err)
 		}
 	}
 	logrus.Infof("Planning done. Number of services identified: %d", len(plan.Spec.Services))

@@ -53,4 +53,6 @@ var (
 	TempPath = TempDirPrefix + "temp"
 	// AssetsPath defines where all assets get stored during execution
 	AssetsPath = filepath.Join(TempPath, AssetsDir)
+	// RemoteTempPath defines where all remote sources data get stored during execution
+	RemoteTempPath = TempDirPrefix + "remote-temp"
 )

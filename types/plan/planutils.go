@@ -23,6 +23,7 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/deepcopy"
 	"github.com/konveyor/move2kube/common/pathconverters"
+	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/sirupsen/logrus"
 )
 
@@ -39,11 +40,15 @@ func ReadPlan(path string, sourceDir string) (Plan, error) {
 		plan.Spec.SourceDir = sourceDir
 	}
 	if plan.Spec.SourceDir != "" {
+		remoteSrcPath := vcs.GetInputClonedPath(plan.Spec.SourceDir, common.RemoteSourcesFolder, false)
+		if remoteSrcPath != "" {
+			plan.Spec.SourceDir = remoteSrcPath
+		}
 		absSourceDir, err = filepath.Abs(plan.Spec.SourceDir)
-	}
-	if err != nil {
-		logrus.Errorf("Unable to convert sourceDir to full path : %s", err)
-		return plan, err
+		if err != nil {
+			logrus.Errorf("Unable to convert sourceDir to full path : %s", err)
+			return plan, err
+		}
 	}
 	if err = pathconverters.MakePlanPathsAbsolute(&plan, absSourceDir, common.TempPath); err != nil {
 		return plan, err
@@ -54,8 +59,13 @@ func ReadPlan(path string, sourceDir string) (Plan, error) {
 
 // WritePlan encodes the plan to yaml converting absolute paths to relative.
 func WritePlan(path string, plan Plan) error {
+	inputFSPath := plan.Spec.SourceDir
+	remoteSrcPath := vcs.GetInputClonedPath(plan.Spec.SourceDir, common.RemoteSourcesFolder, false)
+	if remoteSrcPath != "" {
+		inputFSPath = remoteSrcPath
+	}
 	newPlan := deepcopy.DeepCopy(plan).(Plan)
-	if err := pathconverters.ChangePaths(&newPlan, map[string]string{plan.Spec.SourceDir: "", common.TempPath: ""}); err != nil {
+	if err := pathconverters.ChangePaths(&newPlan, map[string]string{inputFSPath: "", common.TempPath: ""}); err != nil {
 		logrus.Errorf("Unable to convert plan to use relative paths : %s", err)
 		return err
 	}
@@ -64,7 +74,7 @@ func WritePlan(path string, plan Plan) error {
 		logrus.Errorf("Unable to get current working dir : %s", err)
 		return err
 	}
-	if plan.Spec.SourceDir != "" {
+	if remoteSrcPath == "" && plan.Spec.SourceDir != "" {
 		if newPlan.Spec.SourceDir, err = filepath.Rel(wd, plan.Spec.SourceDir); err != nil {
 			return err
 		}

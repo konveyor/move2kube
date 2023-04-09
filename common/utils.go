@@ -895,17 +895,22 @@ func FindCommonDirectory(paths []string) string {
 }
 
 // CreateAssetsData creates an assets directory and dumps the assets data into it
-func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath string, tempPath string, err error) {
+func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath string, tempPath string, remoteTempPath string, err error) {
 	// Return the absolute version of existing asset paths.
 	tempPath, err = filepath.Abs(TempPath)
 	if err != nil {
 		logrus.Errorf("Unable to make the temporary directory path %q absolute. Error: %q", tempPath, err)
-		return "", "", err
+		return "", "", "", err
+	}
+	remoteTempPath, err = filepath.Abs(RemoteTempPath)
+	if err != nil {
+		logrus.Errorf("Unable to make the temporary directory path %q absolute. Error: %q", tempPath, err)
+		return "", "", "", err
 	}
 	assetsPath, err = filepath.Abs(AssetsPath)
 	if err != nil {
 		logrus.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
-		return "", "", err
+		return "", "", "", err
 	}
 
 	// Try to create a new temporary directory for the assets.
@@ -916,16 +921,23 @@ func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath
 		assetsPath = filepath.Join(newTempPath, AssetsDir)
 	}
 
+	// Try to create a new temporary directory for the remote source folders.
+	if newTempPath, err := os.MkdirTemp("", types.AppName+"*"); err != nil {
+		logrus.Errorf("Unable to create temp dir. Defaulting to local path.")
+	} else {
+		remoteTempPath = newTempPath
+	}
+
 	// Either way create the subdirectory and untar the assets into it.
 	if err := os.MkdirAll(assetsPath, DefaultDirectoryPermission); err != nil {
 		logrus.Errorf("Unable to create the assets directory at path %q Error: %q", assetsPath, err)
-		return "", "", err
+		return "", "", "", err
 	}
 	if err := CopyEmbedFSToDir(assetsFS, ".", assetsPath, permissions); err != nil {
 		logrus.Errorf("Unable to untar the assets into the assets directory at path %q Error: %q", assetsPath, err)
-		return "", "", err
+		return "", "", "", err
 	}
-	return assetsPath, tempPath, nil
+	return assetsPath, tempPath, remoteTempPath, nil
 }
 
 // CopyEmbedFSToDir converts a string into a directory
@@ -1504,4 +1516,10 @@ func writeToTar(w *io.PipeWriter, srcPath, basePath string, compressionType Comp
 		return nil
 	})
 
+}
+
+// Input stores file system path and equivalent remote path if exists
+type Input struct {
+	FSInputPath     string
+	RemoteInputPath string
 }
