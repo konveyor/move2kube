@@ -88,27 +88,30 @@ func loadDataAsConfigMap(filePath string, cfgName string) (irtypes.Storage, erro
 		logrus.Warnf("Could not identify the type of config map artifact [%s]. Encountered [%s]", filePath, err)
 	} else {
 		if !fileInfo.IsDir() {
+			if fileInfo.Size() > int64(maxConfigMapSizeLimit) {
+				return irtypes.Storage{}, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
+			}
 			content, err := os.ReadFile(filePath)
 			if err != nil {
 				logrus.Warnf("Could not read the secret file [%s]. Encountered [%s]", filePath, err)
 			} else {
-				if len(content) > maxConfigMapSizeLimit {
-					return irtypes.Storage{}, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
-				}
 				storage.Content = map[string][]byte{cfgName: content}
 			}
 		} else {
+			var totalSize int64 = 0
+			filepath.Walk(filePath, func(dir string, fileHandle os.FileInfo, err error) error {
+				if !fileHandle.IsDir() {
+					totalSize += fileHandle.Size()
+				}
+				return nil
+			})
+			if totalSize > int64(maxConfigMapSizeLimit) {
+				return irtypes.Storage{}, fmt.Errorf("config map could not be created from directory. Size limit of 1M exceeded")
+			}
 			dataMap, err := getAllDirContentAsMap(filePath)
 			if err != nil {
 				logrus.Warnf("Could not read the config map directory [%s]. Encountered [%s]", filePath, err)
 			} else {
-				size := 0
-				for _, data := range dataMap {
-					size += len(data)
-				}
-				if size > maxConfigMapSizeLimit {
-					return irtypes.Storage{}, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
-				}
 				storage.Content = dataMap
 			}
 		}
