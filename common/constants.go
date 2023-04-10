@@ -60,6 +60,8 @@ const (
 	ShExt = ".sh"
 	// BatExt is the extension of bat file
 	BatExt = ".bat"
+	// RemoteSourcesFolder stores remote sources
+	RemoteSourcesFolder = "m2ksources"
 )
 
 const (
