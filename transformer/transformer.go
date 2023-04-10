@@ -555,7 +555,7 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 		if err := os.RemoveAll(outputPath); err != nil {
 			return fmt.Errorf("failed to remove the output directory '%s' . Error: %w", outputPath, err)
 		}
-		if err := processPathMappings(pathMappings, sourceDir, outputPath); err != nil {
+		if err := processPathMappings(pathMappings, sourceDir, outputPath, false); err != nil {
 			return fmt.Errorf("failed to process the path mappings: %+v . Error: %w", pathMappings, err)
 		}
 		if len(newArtifacts) == 0 {
@@ -737,7 +737,7 @@ func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Arti
 	newArtifacts = filteredArtifacts
 	newPathMappings = env.ProcessPathMappings(newPathMappings)
 	newPathMappings = *env.DownloadAndDecode(&newPathMappings, true).(*[]transformertypes.PathMapping)
-	if err := processPathMappings(newPathMappings, env.Source, env.Output); err != nil {
+	if err := processPathMappings(newPathMappings, env.Source, env.Output, false); err != nil {
 		return newPathMappings, newArtifacts, fmt.Errorf("failed to process the path mappings: %+v . Error: %q", newPathMappings, err)
 	}
 	newArtifacts = *env.DownloadAndDecode(&newArtifacts, false).(*[]transformertypes.Artifact)
