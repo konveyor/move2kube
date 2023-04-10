@@ -60,8 +60,8 @@ type ExecutableYamlConfig struct {
 }
 
 var (
-	detectContainerOutputDir    = "/var/tmp/m2k_detect_output"
-	transformContainerOutputDir = "/var/tmp/m2k_transform_output"
+	DetectContainerOutputDir    = "/var/tmp/m2k_detect_output"
+	TransformContainerOutputDir = "/var/tmp/m2k_transform_output"
 )
 
 const (
@@ -89,8 +89,8 @@ func (t *Executable) Init(tc transformertypes.Transformer, env *environment.Envi
 			logrus.Infof("Starting transformer that requires QA without QA.")
 		}
 	}
-	detectContainerOutputDir = filepath.Join(detectContainerOutputDir, uniuri.NewLen(5))
-	transformContainerOutputDir = filepath.Join(transformContainerOutputDir, uniuri.NewLen(5))
+	DetectContainerOutputDir = filepath.Join(DetectContainerOutputDir, uniuri.NewLen(5))
+	TransformContainerOutputDir = filepath.Join(TransformContainerOutputDir, uniuri.NewLen(5))
 	env.EnvInfo.EnvPlatformConfig = environmenttypes.EnvPlatformConfig{
 		Container: t.ExecConfig.Container,
 		Platforms: t.ExecConfig.Platforms,
@@ -117,7 +117,7 @@ func (t *Executable) DirectoryDetect(dir string) (services map[string][]transfor
 		return nil, fmt.Errorf("failed to copy the detect input path to container. Error: %w", err)
 	}
 	containerDetectInputPath := filepath.Join(containerInputDir, detectInputFile)
-	containerDetectOutputPath := filepath.Join(detectContainerOutputDir, detectOutputFile)
+	containerDetectOutputPath := filepath.Join(DetectContainerOutputDir, detectOutputFile)
 	if env, exists := common.LookupEnv(detectOutputPathEnvKey, t.ExecConfig.EnvList); exists {
 		containerDetectOutputPath = env.Value
 	}
@@ -162,7 +162,7 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 	}
 
 	transformInputPath := filepath.Join(containerInputDir, transformInputFile)
-	transformOutputPath := filepath.Join(transformContainerOutputDir, transformOutputFile)
+	transformOutputPath := filepath.Join(TransformContainerOutputDir, transformOutputFile)
 	if env, exists := common.LookupEnv(transformOutputPathEnvKey, t.ExecConfig.EnvList); exists {
 		transformOutputPath = env.Value
 	}

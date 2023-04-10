@@ -25,6 +25,7 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/transformer"
+	"github.com/konveyor/move2kube/transformer/external"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,4 +117,15 @@ func Destroy() {
 	if err != nil {
 		logrus.Debug("failed to delete temp directory. Error : ", err)
 	}
+
+	err = os.RemoveAll(external.DetectContainerOutputDir)
+	if err != nil {
+		logrus.Debug("failed to delete temp directory. Error : ", err)
+	}
+
+	err = os.RemoveAll(external.TransformContainerOutputDir)
+	if err != nil {
+		logrus.Debug("failed to delete temp directory. Error : ", err)
+	}
+
 }
