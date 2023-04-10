@@ -24,7 +24,7 @@ import (
 	"github.com/konveyor/move2kube/types"
 	"github.com/sirupsen/logrus"
 
-	cfclient "github.com/cloudfoundry-community/go-cfclient"
+	cfclient "github.com/cloudfoundry-community/go-cfclient/v2"
 )
 
 // CfAppsMetadataKind defines kind of cf runtime instance apps file

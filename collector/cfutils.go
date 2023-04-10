@@ -20,7 +20,7 @@ import (
 	"os"
 	"path/filepath"
 
-	cfclient "github.com/cloudfoundry-community/go-cfclient"
+	cfclient "github.com/cloudfoundry-community/go-cfclient/v2"
 	"github.com/sirupsen/logrus"
 )
 

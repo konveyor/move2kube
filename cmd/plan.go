@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/lib"
 	"github.com/konveyor/move2kube/qaengine"
 	plantypes "github.com/konveyor/move2kube/types/plan"
@@ -67,7 +68,7 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	planfile := flags.planfile
 	srcpath := flags.srcpath
 	name := flags.name
-
+	isRemotePath := vcs.IsRemotePath(srcpath)
 	// Check if the default customization folder exists in the working directory.
 	// If not, skip the customization option
 	if !cmd.Flags().Changed(customizationsFlag) {
@@ -105,7 +106,7 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 		logrus.Fatalf("Failed to make the plan file path %q absolute. Error: %q", planfile, err)
 	}
 	var fi fs.FileInfo
-	if srcpath != "" {
+	if srcpath != "" && !isRemotePath {
 		srcpath, err = filepath.Abs(srcpath)
 		if err != nil {
 			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", srcpath, err)

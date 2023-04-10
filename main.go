@@ -33,13 +33,15 @@ func main() {
 	if err != nil {
 		logrus.Fatalf("unable to convert permissions. Error: %q", err)
 	}
-	assetsPath, tempPath, err := common.CreateAssetsData(assets.AssetsDir, assetsFilePermissions)
+	assetsPath, tempPath, remoteTempPath, err := common.CreateAssetsData(assets.AssetsDir, assetsFilePermissions)
 	if err != nil {
 		logrus.Fatalf("unable to create the assets directory. Error: %q", err)
 	}
 	common.TempPath = tempPath
 	common.AssetsPath = assetsPath
+	common.RemoteTempPath = remoteTempPath
 	defer os.RemoveAll(tempPath)
+	defer os.RemoveAll(remoteTempPath)
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatalf("Error: %q", err)
 	}

@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/lib"
 	"github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
@@ -70,7 +71,8 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	if flags.planfile, err = filepath.Abs(flags.planfile); err != nil {
 		logrus.Fatalf("Failed to make the plan file path %q absolute. Error: %q", flags.planfile, err)
 	}
-	if flags.srcpath != "" {
+	isRemotePath := vcs.IsRemotePath(flags.srcpath)
+	if flags.srcpath != "" && !isRemotePath {
 		if flags.srcpath, err = filepath.Abs(flags.srcpath); err != nil {
 			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.srcpath, err)
 		}
@@ -127,7 +129,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		// Global settings
 		flags.outpath = filepath.Join(flags.outpath, flags.name)
 		checkOutputPath(flags.outpath, flags.overwrite)
-		if flags.srcpath != "" {
+		if flags.srcpath != "" && !isRemotePath {
 			checkSourcePath(flags.srcpath)
 			if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
 				logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
