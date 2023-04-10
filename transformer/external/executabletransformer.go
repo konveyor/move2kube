@@ -60,7 +60,9 @@ type ExecutableYamlConfig struct {
 }
 
 var (
-	DetectContainerOutputDir    = "/var/tmp/m2k_detect_output"
+	// DetectContainerOutputDir is the directory where external transformer detect output is stored
+	DetectContainerOutputDir = "/var/tmp/m2k_detect_output"
+	// TransformContainerOutputDir is the directory where external transformer transform output is stored
 	TransformContainerOutputDir = "/var/tmp/m2k_transform_output"
 )
 
