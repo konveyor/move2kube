@@ -25,6 +25,7 @@ import (
 
 	"github.com/docker/cli/opts"
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/qaengine"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -33,12 +34,20 @@ import (
 const (
 	defaultEnvFile        string = ".env"
 	modeReadOnly          string = "ro"
+	modeReadWrite         string = "rw"
 	tmpFsPath             string = "tmpfs"
 	defaultSecretBasePath string = "/var/secrets"
 	envFile               string = "env_file"
 	maxConfigMapSizeLimit int    = 1024 * 1024
 	// cfgMapPrefix defines the prefix to be used for config maps
-	cfgMapPrefix = "cfgmap"
+	cfgMapPrefix = "configmap"
+	secretPrefix = "secret"
+	volQaKey     = "move2kube.storage.type.option"
+	ignoreOpt    = "Ignore"
+	configMapOpt = "ConfigMap"
+	secretOpt    = "Secret"
+	hostPathOpt  = "HostPath"
+	pvcOpt       = "PVC"
 )
 
 /*
@@ -66,6 +75,13 @@ func IsV3(path string) (bool, error) {
 func createConfigMapName(sourcePath string) string {
 	cfgMapHashID := getHash([]byte(sourcePath))
 	cfgName := fmt.Sprintf("%s-%d", cfgMapPrefix, cfgMapHashID)
+	cfgName = common.MakeStringK8sServiceNameCompliant(cfgName)
+	return cfgName
+}
+
+func createSecretName(sourcePath string) string {
+	cfgMapHashID := getHash([]byte(sourcePath))
+	cfgName := fmt.Sprintf("%s-%d", secretPrefix, cfgMapHashID)
 	cfgName = common.MakeStringK8sServiceNameCompliant(cfgName)
 	return cfgName
 }
@@ -103,15 +119,164 @@ func withinSizeLimit(filePath string) (bool, error) {
 	return true, nil
 }
 
-func loadDataAsConfigMap(filePath string, cfgName string) (irtypes.Storage, error) {
-	storage := irtypes.Storage{
-		Name:        cfgName,
-		StorageType: irtypes.ConfigMapKind,
+func applyVolumePolicy(filedir string, serviceName string, volSource string, volTarget string, volAccessMode string, storageMap map[string]bool) (*core.VolumeMount, *core.Volume, *irtypes.Storage, error) {
+	volume := core.Volume{}
+	volumeMount := core.VolumeMount{}
+	storage := irtypes.Storage{}
+	storageOpt := ""
+	volumeName := ""
+	hPath := ""
+	if isPath(volSource) {
+		hPath := volSource
+		if filepath.IsAbs(hPath) {
+			relPath, err := filepath.Rel(filedir, hPath)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("Could not extract relative path for [%s] due to <%s>", hPath, err)
+			}
+			volSource = relPath
+		} else {
+			hPath = filepath.Join(filedir, volSource)
+		}
+		opt, err := getUserInputsOnStorageType(hPath)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		storageOpt = opt
+		// Generate a hash Id for the given source file path to be mounted.
+		volumeName = createVolumeName(volSource, serviceName)
+	} else {
+		// Generate a hash Id for the given source file path to be mounted.
+		hPath := volSource
+		opt, err := getUserInputsOnStorageType(hPath)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		storageOpt = opt
+		if hPath == "" {
+			hPath = volTarget
+		}
+		hashID := getHash([]byte(hPath))
+		volumeName = fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
 	}
+	switch storageOpt {
+	case secretOpt:
+		secretName := createSecretName(volSource)
+		if _, ok := storageMap[secretName]; !ok {
+			st, err := createStorage(hPath, secretName, irtypes.SecretKind)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			storage = st
+		}
+		secretVolSrc := core.SecretVolumeSource{}
+		secretVolSrc.SecretName = secretName
+		volume = core.Volume{
+			Name: volumeName,
+			VolumeSource: core.VolumeSource{
+				Secret: &secretVolSrc,
+			},
+		}
+	case configMapOpt:
+		configMapName := createConfigMapName(volSource)
+		if _, ok := storageMap[configMapName]; !ok {
+			st, err := createStorage(hPath, configMapName, irtypes.ConfigMapKind)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			storage = st
+		}
+		cfgMapVolSrc := core.ConfigMapVolumeSource{}
+		cfgMapVolSrc.Name = configMapName
+		volume = core.Volume{
+			Name: volumeName,
+			VolumeSource: core.VolumeSource{
+				ConfigMap: &cfgMapVolSrc,
+			},
+		}
+	case hostPathOpt:
+		volume = core.Volume{
+			Name: volumeName,
+			VolumeSource: core.VolumeSource{
+				HostPath: &core.HostPathVolumeSource{Path: volSource},
+			},
+		}
+	case pvcOpt:
+		accessMode := core.ReadWriteMany
+		if volAccessMode == modeReadOnly {
+			accessMode = core.ReadOnlyMany
+		}
+		storage = irtypes.Storage{StorageType: irtypes.PVCKind, Name: volumeName, Content: nil}
+		storage.PersistentVolumeClaimSpec = core.PersistentVolumeClaimSpec{
+			AccessModes: []core.PersistentVolumeAccessMode{accessMode},
+		}
+		volume = core.Volume{
+			Name: volumeName,
+			VolumeSource: core.VolumeSource{
+				PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+					ClaimName: volumeName,
+					ReadOnly:  volAccessMode == modeReadOnly,
+				},
+			},
+		}
+	case ignoreOpt:
+		return nil, nil, nil, nil
+	}
+	volumeMount = core.VolumeMount{
+		Name:      volumeName,
+		ReadOnly:  volAccessMode == modeReadOnly,
+		MountPath: volTarget,
+	}
+	return &volumeMount, &volume, &storage, nil
+}
 
+func getUserInputsOnStorageType(filePath string) (string, error) {
+	selectedOption := ignoreOpt
+	if isPath(filePath) {
+		isWithinLimits, err := withinSizeLimit(filePath)
+		if err != nil {
+			return "", fmt.Errorf("data source [%s] could be fetched to check size limit", filePath)
+		}
+		if isWithinLimits {
+			defAnswer := secretOpt
+			ignoreDataAnswer := "Ignore the data source"
+			options := []string{secretOpt, configMapOpt, hostPathOpt, ignoreDataAnswer, defAnswer}
+			desc := "Select the storage type to create"
+			hints := []string{fmt.Sprintf("By default, %s will be created", defAnswer)}
+			selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
+			if selectedOption == ignoreDataAnswer {
+				logrus.Debugf("User has ignored data in path [%s]. No storage type created", filePath)
+			}
+		} else {
+			defAnswer := "Ignore the data source"
+			options := []string{hostPathOpt, defAnswer}
+			desc := "Select the storage type to create"
+			hints := []string{"By default, no storage type will be created. Data source will be ignored"}
+			selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
+			if selectedOption == defAnswer {
+				logrus.Debugf("User has ignored data in path [%s]. No storage type created", filePath)
+			}
+		}
+	} else {
+		defAnswer := "Ignore the data source"
+		options := []string{pvcOpt, defAnswer}
+		desc := "Select the storage type to create"
+		hints := []string{"By default, no storage type will be created. Data source will be ignored"}
+		selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
+		if selectedOption == defAnswer {
+			logrus.Debugf("User has ignored data in path [%s]. No storage type created", filePath)
+		}
+	}
+	return selectedOption, nil
+}
+
+func createStorage(filePath string, storageName string, storageType irtypes.StorageKindType) (irtypes.Storage, error) {
+	storage := irtypes.Storage{
+		Name:        storageName,
+		StorageType: storageType,
+	}
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
-		logrus.Warnf("Could not identify the type of config map artifact [%s]. Encountered [%s]", filePath, err)
+		return irtypes.Storage{}, fmt.Errorf("Could not identify the type of config map artifact [%s]. Encountered [%s]", filePath, err)
 	} else {
 		if !fileInfo.IsDir() {
 			if fileInfo.Size() > int64(maxConfigMapSizeLimit) {
@@ -119,9 +284,9 @@ func loadDataAsConfigMap(filePath string, cfgName string) (irtypes.Storage, erro
 			}
 			content, err := os.ReadFile(filePath)
 			if err != nil {
-				logrus.Warnf("Could not read the secret file [%s]. Encountered [%s]", filePath, err)
+				return irtypes.Storage{}, fmt.Errorf("Could not read the file [%s]. Encountered [%s]", filePath, err)
 			} else {
-				storage.Content = map[string][]byte{cfgName: content}
+				storage.Content = map[string][]byte{storageName: content}
 			}
 		} else {
 			var totalSize int64 = 0
@@ -136,7 +301,7 @@ func loadDataAsConfigMap(filePath string, cfgName string) (irtypes.Storage, erro
 			}
 			dataMap, err := getAllDirContentAsMap(filePath)
 			if err != nil {
-				logrus.Warnf("Could not read the config map directory [%s]. Encountered [%s]", filePath, err)
+				return irtypes.Storage{}, fmt.Errorf("Could not read the config map directory [%s]. Encountered [%s]", filePath, err)
 			} else {
 				storage.Content = dataMap
 			}

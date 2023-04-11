@@ -411,88 +411,27 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 					SubPath:   filepath.Base(target),
 				})
 		}
-
 		for _, vol := range composeServiceConfig.Volumes {
-			if isPath(vol.Source) {
-				hPath := vol.Source
-				if filepath.IsAbs(hPath) {
-					relPath, err := filepath.Rel(filedir, hPath)
-					if err != nil {
-						logrus.Debugf("Could not extract relative path for [%s]", hPath)
-					}
-					vol.Source = relPath
-				} else {
-					hPath = filepath.Join(filedir, vol.Source)
-				}
-				cfgName := createConfigMapName(vol.Source)
-				createCfgMap := false
-				if _, ok := storageMap[cfgName]; !ok {
-					st, err := loadDataAsConfigMap(hPath, cfgName)
-					if err != nil {
-						logrus.Warnf("Could not create a config map for absolute path [%s] because %s", hPath, err)
-					} else {
-						ir.Storages = append(ir.Storages, st)
-						createCfgMap = true
-					}
-				} else {
-					createCfgMap = true
-				}
-				// Generate a hash Id for the given source file path to be mounted.
-				volumeName := createVolumeName(vol.Source, serviceName)
-				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts,
-					core.VolumeMount{
-						Name:      volumeName,
-						MountPath: vol.Target,
-					})
-
-				if createCfgMap {
-					logrus.Debugf("Creating config map [%s] for path [%s]", cfgName, hPath)
-					cfgMapVolSrc := core.ConfigMapVolumeSource{}
-					cfgMapVolSrc.Name = cfgName
-					serviceConfig.AddVolume(core.Volume{
-						Name: volumeName,
-						VolumeSource: core.VolumeSource{
-							ConfigMap: &cfgMapVolSrc,
-						},
-					})
-				} else {
-					logrus.Warnf("Could not create configmap. Instead, creating hostpath volume for path [%s]", hPath)
-					serviceConfig.AddVolume(core.Volume{
-						Name: volumeName,
-						VolumeSource: core.VolumeSource{
-							HostPath: &core.HostPathVolumeSource{Path: vol.Source},
-						},
-					})
-				}
-			} else {
-				// Generate a hash Id for the given source file path to be mounted.
-				hPath := vol.Source
-				if hPath == "" {
-					hPath = vol.Target
-				}
-				hashID := getHash([]byte(hPath))
-				volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
-
-				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
-					Name:      volumeName,
-					MountPath: vol.Target,
-				})
-
-				serviceConfig.AddVolume(core.Volume{
-					Name: volumeName,
-					VolumeSource: core.VolumeSource{
-						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-							ClaimName: volumeName,
-						},
-					},
-				})
-				storageObj := irtypes.Storage{StorageType: irtypes.PVCKind, Name: volumeName, Content: nil}
-				ir.AddStorage(storageObj)
+			volMode := modeReadOnly
+			if !vol.ReadOnly {
+				volMode = modeReadWrite
+			}
+			volumeMount, volume, storage, err := applyVolumePolicy(filedir, serviceName, vol.Source, vol.Target, volMode, storageMap)
+			if err != nil {
+				logrus.Debugf("Could not create storage: [%s]", err)
+				continue
+			}
+			if volumeMount != nil {
+				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, *volumeMount)
+			}
+			if volume != nil {
+				serviceConfig.AddVolume(*volume)
+			}
+			if storage != nil {
+				ir.AddStorage(*storage)
+				storageMap[storage.Name] = true
 			}
 		}
-
-		logrus.Debugf("Number of volumes for service [%s] is [%d]", serviceConfig.Name, len(serviceConfig.Volumes))
-
 		serviceConfig.Containers = []core.Container{serviceContainer}
 		ir.Services[name] = serviceConfig
 	}
