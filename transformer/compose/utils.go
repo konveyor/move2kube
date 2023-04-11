@@ -40,14 +40,14 @@ const (
 	envFile               string = "env_file"
 	maxConfigMapSizeLimit int    = 1024 * 1024
 	// cfgMapPrefix defines the prefix to be used for config maps
-	cfgMapPrefix = "configmap"
-	secretPrefix = "secret"
-	volQaKey     = "move2kube.storage.type.option"
-	ignoreOpt    = "Ignore"
-	configMapOpt = "ConfigMap"
-	secretOpt    = "Secret"
-	hostPathOpt  = "HostPath"
-	pvcOpt       = "PVC"
+	cfgMapPrefix   = "configmap"
+	secretPrefix   = "secret"
+	volQaPrefixKey = "move2kube.storage.type"
+	ignoreOpt      = "Ignore"
+	configMapOpt   = "ConfigMap"
+	secretOpt      = "Secret"
+	hostPathOpt    = "HostPath"
+	pvcOpt         = "PVC"
 )
 
 /*
@@ -127,17 +127,17 @@ func applyVolumePolicy(filedir string, serviceName string, volSource string, vol
 	volumeName := ""
 	hPath := ""
 	if isPath(volSource) {
-		hPath := volSource
+		hPath = volSource
 		if filepath.IsAbs(hPath) {
 			relPath, err := filepath.Rel(filedir, hPath)
 			if err != nil {
-				return nil, nil, nil, fmt.Errorf("Could not extract relative path for [%s] due to <%s>", hPath, err)
+				return nil, nil, nil, fmt.Errorf("could not extract relative path for [%s] due to <%s>", hPath, err)
 			}
 			volSource = relPath
 		} else {
 			hPath = filepath.Join(filedir, volSource)
 		}
-		opt, err := getUserInputsOnStorageType(hPath)
+		opt, err := getUserInputsOnStorageType(hPath, serviceName)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -146,8 +146,8 @@ func applyVolumePolicy(filedir string, serviceName string, volSource string, vol
 		volumeName = createVolumeName(volSource, serviceName)
 	} else {
 		// Generate a hash Id for the given source file path to be mounted.
-		hPath := volSource
-		opt, err := getUserInputsOnStorageType(hPath)
+		hPath = volSource
+		opt, err := getUserInputsOnStorageType(hPath, serviceName)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -229,8 +229,9 @@ func applyVolumePolicy(filedir string, serviceName string, volSource string, vol
 	return &volumeMount, &volume, &storage, nil
 }
 
-func getUserInputsOnStorageType(filePath string) (string, error) {
+func getUserInputsOnStorageType(filePath string, serviceName string) (string, error) {
 	selectedOption := ignoreOpt
+	volQaKey := common.JoinQASubKeys(volQaPrefixKey, `"`+serviceName+`"`, ".options")
 	if isPath(filePath) {
 		isWithinLimits, err := withinSizeLimit(filePath)
 		if err != nil {
@@ -239,12 +240,13 @@ func getUserInputsOnStorageType(filePath string) (string, error) {
 		if isWithinLimits {
 			defAnswer := secretOpt
 			ignoreDataAnswer := "Ignore the data source"
-			options := []string{secretOpt, configMapOpt, hostPathOpt, ignoreDataAnswer, defAnswer}
+			options := []string{configMapOpt, hostPathOpt, ignoreDataAnswer, defAnswer}
 			desc := "Select the storage type to create"
 			hints := []string{fmt.Sprintf("By default, %s will be created", defAnswer)}
 			selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
 			if selectedOption == ignoreDataAnswer {
-				logrus.Debugf("User has ignored data in path [%s]. No storage type created", filePath)
+				selectedOption = ignoreOpt
+				logrus.Warnf("User has ignored data in path [%s]. No storage type created", filePath)
 			}
 		} else {
 			defAnswer := "Ignore the data source"
@@ -253,7 +255,8 @@ func getUserInputsOnStorageType(filePath string) (string, error) {
 			hints := []string{"By default, no storage type will be created. Data source will be ignored"}
 			selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
 			if selectedOption == defAnswer {
-				logrus.Debugf("User has ignored data in path [%s]. No storage type created", filePath)
+				selectedOption = ignoreOpt
+				logrus.Warnf("User has ignored data in path [%s]. No storage type created", filePath)
 			}
 		}
 	} else {
@@ -263,7 +266,8 @@ func getUserInputsOnStorageType(filePath string) (string, error) {
 		hints := []string{"By default, no storage type will be created. Data source will be ignored"}
 		selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
 		if selectedOption == defAnswer {
-			logrus.Debugf("User has ignored data in path [%s]. No storage type created", filePath)
+			selectedOption = ignoreOpt
+			logrus.Warnf("User has ignored data in path [%s]. No storage type created", filePath)
 		}
 	}
 	return selectedOption, nil
@@ -274,40 +278,27 @@ func createStorage(filePath string, storageName string, storageType irtypes.Stor
 		Name:        storageName,
 		StorageType: storageType,
 	}
+	logrus.Infof("===> [createStorage] Volume source path: %s", filePath)
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
-		return irtypes.Storage{}, fmt.Errorf("Could not identify the type of config map artifact [%s]. Encountered [%s]", filePath, err)
+		return irtypes.Storage{}, fmt.Errorf("could not identify the volume source path (%s) because <%s>", filePath, err)
 	} else {
 		if !fileInfo.IsDir() {
-			if fileInfo.Size() > int64(maxConfigMapSizeLimit) {
-				return irtypes.Storage{}, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
-			}
 			content, err := os.ReadFile(filePath)
 			if err != nil {
-				return irtypes.Storage{}, fmt.Errorf("Could not read the file [%s]. Encountered [%s]", filePath, err)
+				return irtypes.Storage{}, fmt.Errorf("could not read the file [%s]. Encountered [%s]", filePath, err)
 			} else {
 				storage.Content = map[string][]byte{storageName: content}
 			}
 		} else {
-			var totalSize int64 = 0
-			filepath.Walk(filePath, func(dir string, fileHandle os.FileInfo, err error) error {
-				if !fileHandle.IsDir() {
-					totalSize += fileHandle.Size()
-				}
-				return nil
-			})
-			if totalSize > int64(maxConfigMapSizeLimit) {
-				return irtypes.Storage{}, fmt.Errorf("config map could not be created from directory. Size limit of 1M exceeded")
-			}
 			dataMap, err := getAllDirContentAsMap(filePath)
 			if err != nil {
-				return irtypes.Storage{}, fmt.Errorf("Could not read the config map directory [%s]. Encountered [%s]", filePath, err)
+				return irtypes.Storage{}, fmt.Errorf("could not read the volume source directory [%s]. Encountered [%s]", filePath, err)
 			} else {
 				storage.Content = dataMap
 			}
 		}
 	}
-
 	return storage, nil
 }
 

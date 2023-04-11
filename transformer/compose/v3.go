@@ -418,7 +418,7 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 			}
 			volumeMount, volume, storage, err := applyVolumePolicy(filedir, serviceName, vol.Source, vol.Target, volMode, storageMap)
 			if err != nil {
-				logrus.Debugf("Could not create storage: [%s]", err)
+				logrus.Errorf("Could not create storage: [%s]", err)
 				continue
 			}
 			if volumeMount != nil {

@@ -270,7 +270,7 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 			for _, vol := range composeServiceConfig.Volumes.Volumes {
 				volumeMount, volume, storage, err := applyVolumePolicy(filedir, serviceName, vol.Source, vol.Destination, vol.AccessMode, storageMap)
 				if err != nil {
-					logrus.Debugf("Could not create storage: [%s]", err)
+					logrus.Warnf("Could not create storage: [%s]", err)
 					continue
 				}
 				if volumeMount != nil {
