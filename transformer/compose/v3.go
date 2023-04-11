@@ -438,7 +438,7 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 					createCfgMap = true
 				}
 				// Generate a hash Id for the given source file path to be mounted.
-				volumeName := createVolumeName(hPath, serviceName)
+				volumeName := createVolumeName(vol.Source, serviceName)
 				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts,
 					core.VolumeMount{
 						Name:      volumeName,

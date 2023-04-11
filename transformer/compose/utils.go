@@ -77,6 +77,32 @@ func createVolumeName(sourcePath string, serviceName string) string {
 	return volumeName
 }
 
+func withinSizeLimit(filePath string) (bool, error) {
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return false, err
+	}
+
+	if !fileInfo.IsDir() {
+		if fileInfo.Size() > int64(maxConfigMapSizeLimit) {
+			return false, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
+		}
+	} else {
+		var totalSize int64 = 0
+		filepath.Walk(filePath, func(dir string, fileHandle os.FileInfo, err error) error {
+			if !fileHandle.IsDir() {
+				totalSize += fileHandle.Size()
+			}
+			return nil
+		})
+		if totalSize > int64(maxConfigMapSizeLimit) {
+			return false, fmt.Errorf("config map could not be created from directory. Size limit of 1M exceeded")
+		}
+	}
+
+	return true, nil
+}
+
 func loadDataAsConfigMap(filePath string, cfgName string) (irtypes.Storage, error) {
 	storage := irtypes.Storage{
 		Name:        cfgName,
