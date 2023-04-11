@@ -281,20 +281,19 @@ func createStorage(filePath string, storageName string, storageType irtypes.Stor
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		return irtypes.Storage{}, fmt.Errorf("could not identify the volume source path (%s) because <%s>", filePath, err)
-	} else {
-		if !fileInfo.IsDir() {
-			content, err := os.ReadFile(filePath)
-			if err != nil {
-				return irtypes.Storage{}, fmt.Errorf("could not read the file [%s]. Encountered [%s]", filePath, err)
-			}
-			storage.Content = map[string][]byte{storageName: content}
-		} else {
-			dataMap, err := getAllDirContentAsMap(filePath)
-			if err != nil {
-				return irtypes.Storage{}, fmt.Errorf("could not read the volume source directory [%s]. Encountered [%s]", filePath, err)
-			}
-			storage.Content = dataMap
+	}
+	if !fileInfo.IsDir() {
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return irtypes.Storage{}, fmt.Errorf("could not read the file [%s]. Encountered [%s]", filePath, err)
 		}
+		storage.Content = map[string][]byte{storageName: content}
+	} else {
+		dataMap, err := getAllDirContentAsMap(filePath)
+		if err != nil {
+			return irtypes.Storage{}, fmt.Errorf("could not read the volume source directory [%s]. Encountered [%s]", filePath, err)
+		}
+		storage.Content = dataMap
 	}
 	return storage, nil
 }
