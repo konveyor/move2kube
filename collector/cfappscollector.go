@@ -110,6 +110,7 @@ func collectSelectiveCfApps(inputPath string, client *cfclient.Client, depth str
 	return collectApps
 }
 
+// collectAllCfApps collects all the cf apps
 func collectAllCfApps(client *cfclient.Client, depth string) []cfclient.App {
 	var collectApps []cfclient.App
 	query := url.Values{}
