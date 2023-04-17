@@ -101,6 +101,7 @@ func GetVCSRepo(vcsurl string) (VCS, error) {
 	return nil, &NoCompatibleVCSFound{URLInput: vcsurl}
 }
 
+// PushVCSRepo commits and pushes the changes in the provide vcs remote path
 func PushVCSRepo(remotePath, folderName string) error {
 	return pushGitVCS(remotePath, folderName)
 }
