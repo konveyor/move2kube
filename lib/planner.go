@@ -33,6 +33,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	logrus.Trace("CreatePlan start")
 	defer logrus.Trace("CreatePlan end")
 	remoteInputFSPath := vcs.GetClonedPath(inputPath, common.RemoteSourcesFolder, true)
+	remoteOutputFSPath := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
 	logrus.Debugf("common.TempPath: '%s' inputPath: '%s' remoteInputFSPath '%s'", common.TempPath, inputPath, remoteInputFSPath)
 	plan := plantypes.NewPlan()
 	plan.Name = prjName
@@ -40,8 +41,12 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	plan.Spec.SourceDir = inputPath
 	plan.Spec.CustomizationsDir = customizationsPath
 	inputFSPath := inputPath
+	outputFSPath := outputPath
 	if remoteInputFSPath != "" {
 		inputFSPath = remoteInputFSPath
+	}
+	if remoteOutputFSPath != "" {
+		outputFSPath = remoteOutputFSPath
 	}
 	if customizationsPath != "" {
 		if err := CheckAndCopyCustomizations(customizationsPath); err != nil {
@@ -58,7 +63,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	if err != nil {
 		return plan, fmt.Errorf("failed to convert the label selector to a selector. Error: %w", err)
 	}
-	deselectedTransformers, err := transformer.Init(common.AssetsPath, inputFSPath, lblSelector, outputPath, plan.Name)
+	deselectedTransformers, err := transformer.Init(common.AssetsPath, inputFSPath, lblSelector, outputFSPath, plan.Name)
 	if err != nil {
 		return plan, fmt.Errorf("failed to initialize the transformers. Error: %w", err)
 	}

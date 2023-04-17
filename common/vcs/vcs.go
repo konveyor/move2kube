@@ -41,6 +41,12 @@ type NoCompatibleVCSFound struct {
 	URLInput string
 }
 
+// FailedVCSPush is the error when push is failed
+type FailedVCSPush struct {
+	VCSPath string
+	Err     error
+}
+
 // GetClonedPath takes input and folder name performs clone with the appropriate VCS and then return the file system and remote paths
 func GetClonedPath(input, folderName string, overwrite bool) string {
 	vcsRepo, err := GetVCSRepo(input)
@@ -74,8 +80,13 @@ func IsRemotePath(input string) bool {
 }
 
 // Error returns the error message for no valid vcs is found
-func (n *NoCompatibleVCSFound) Error() string {
-	return fmt.Sprintf("no valid vcs is match for the given input %s", n.URLInput)
+func (e *NoCompatibleVCSFound) Error() string {
+	return fmt.Sprintf("no valid vcs is match for the given input %s", e.URLInput)
+}
+
+// Error returns the error message for failed push
+func (e *FailedVCSPush) Error() string {
+	return fmt.Sprintf("failed to commit and push for the given VCS path %s. Error : %+v", e.VCSPath, e.Err)
 }
 
 // GetVCSRepo extracts information from the given vcsurl and returns a relevant vcs repo struct
@@ -88,4 +99,8 @@ func GetVCSRepo(vcsurl string) (VCS, error) {
 		return vcsRepo, nil
 	}
 	return nil, &NoCompatibleVCSFound{URLInput: vcsurl}
+}
+
+func PushVCSRepo(remotePath, folderName string) error {
+	return pushGitVCS(remotePath, folderName)
 }

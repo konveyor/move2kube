@@ -22,9 +22,16 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/qaengine"
 	"github.com/sirupsen/logrus"
 )
 
@@ -73,6 +80,13 @@ func getGitRepoStruct(vcsurl string) (*GitVCSRepo, error) {
 		gitUrl = strings.Join([]string{partsSplitByColon[0], partsSplitByColon[1]}, ":")
 	}
 	if strings.HasPrefix(gitUrl, "git+https") {
+		hostNameRegex := regexp.MustCompile(`git\+https:\/\/(.*?)\/`)
+		matches := hostNameRegex.FindAllStringSubmatch(gitUrl, -1)
+		if len(matches) == 0 {
+			return nil, fmt.Errorf("failed to extract host name from the given vcs url %v", vcsurl)
+		}
+		hostName := matches[0][1]
+		gitRepoStruct.GitRepoPath = strings.TrimPrefix(gitUrl, "git+https://"+hostName+"/")
 		gitRepoStruct.URL = strings.TrimPrefix(gitUrl, "git+")
 	} else if strings.HasPrefix(gitUrl, "git+ssh") {
 		hostNameRegex := regexp.MustCompile(`git\+ssh:\/\/(.*?)\/`)
@@ -115,6 +129,82 @@ func isGitVCS(vcsurl string) bool {
 		logrus.Fatalf("failed to match the given vcsurl %v with the git vcs regex expression %v. Error : %v", vcsurl, gitVCSRegex, err)
 	}
 	return matched
+}
+
+func pushGitVCS(remotePath, folderName string) error {
+	remotePathSplit := strings.Split(remotePath, ":")
+	isSSH := strings.HasPrefix(remotePath, "git+ssh")
+	isHTTPS := strings.HasPrefix(remotePath, "git+https")
+	gitFSPath := GetInputClonedPath(remotePath, folderName, false)
+	if (isHTTPS && len(remotePathSplit) > 2) || (isSSH && len(remotePathSplit) > 1) {
+		gitFSPath = strings.TrimSuffix(GetInputClonedPath(remotePath, folderName, false), remotePathSplit[len(remotePathSplit)-1])
+	}
+	logrus.Info(gitFSPath)
+	repo, err := git.PlainOpen(gitFSPath)
+	if err != nil {
+		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to open the repository. %+c", err)}
+	}
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to fetch a worktree. %+c", err)}
+	}
+	_, err = worktree.Add(".")
+	if err != nil {
+		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to add files to staging. %+c", err)}
+	}
+
+	authorName := qaengine.FetchStringAnswer(common.JoinQASubKeys(common.GitKey, "name"), "Enter git author name : ", []string{}, "", nil)
+	authorEmail := qaengine.FetchStringAnswer(common.JoinQASubKeys(common.GitKey, "email"), "Enter git author email : ", []string{}, "", nil)
+	commit, err := worktree.Commit("add move2kube generated output artifacts", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  authorName,
+			Email: authorEmail,
+			When:  time.Now(),
+		},
+	})
+	logrus.Debugf("changes committed with commit hash : %+v", commit)
+	if err != nil {
+		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to commit. %+c", err)}
+	}
+	ref, err := repo.Head()
+	if err != nil {
+		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to get head. %+c", err)}
+	}
+	if isHTTPS {
+		username := qaengine.FetchStringAnswer(common.JoinQASubKeys(common.GitKey, "username"), "Enter git username : ", []string{}, "", nil)
+		password := qaengine.FetchPasswordAnswer(common.JoinQASubKeys(common.GitKey, "pass"), "Enter git password : ", []string{}, nil)
+		err = repo.Push(&git.PushOptions{
+			RemoteName: "origin",
+			RefSpecs: []config.RefSpec{
+				config.RefSpec(fmt.Sprintf("+%s:%s", ref.Name(), ref.Name())),
+			},
+			Auth: &http.BasicAuth{
+				Username: username,
+				Password: password,
+			},
+		})
+		if err != nil {
+			return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to push. %+c", err)}
+		}
+	}
+
+	if isSSH {
+		authMethod, err := ssh.DefaultAuthBuilder("git")
+		if err != nil {
+			return fmt.Errorf("failed to get default auth builder. Error : %v", authMethod)
+		}
+		err = repo.Push(&git.PushOptions{
+			RemoteName: "origin",
+			RefSpecs: []config.RefSpec{
+				config.RefSpec(fmt.Sprintf("+%s:%s", ref.Name(), ref.Name())),
+			},
+			Auth: authMethod,
+		})
+		if err != nil {
+			return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to push. %+c", err)}
+		}
+	}
+	return nil
 }
 
 // Clone Clones a git repository with the given commit depth and path where to be cloned and returns final path
