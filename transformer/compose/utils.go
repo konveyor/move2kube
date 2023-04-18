@@ -19,6 +19,7 @@ package compose
 import (
 	"fmt"
 	"hash/fnv"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -93,7 +94,7 @@ func createVolumeName(sourcePath string, serviceName string) string {
 	return volumeName
 }
 
-func withinSizeLimit(filePath string) (bool, error) {
+func withinK8sMapSizeLimits(filePath string) (bool, error) {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		return false, err
@@ -105,12 +106,15 @@ func withinSizeLimit(filePath string) (bool, error) {
 		}
 	} else {
 		var totalSize int64 = 0
-		filepath.Walk(filePath, func(dir string, fileHandle os.FileInfo, err error) error {
+		filepath.Walk(filePath, filepath.WalkFunc(func(dir string, fileHandle os.FileInfo, err error) error {
 			if !fileHandle.IsDir() {
 				totalSize += fileHandle.Size()
+				if totalSize > int64(maxConfigMapSizeLimit) {
+					return io.EOF
+				}
 			}
 			return nil
-		})
+		}))
 		if totalSize > int64(maxConfigMapSizeLimit) {
 			return false, fmt.Errorf("config map could not be created from directory. Size limit of 1M exceeded")
 		}
@@ -231,44 +235,29 @@ func applyVolumePolicy(filedir string, serviceName string, volSource string, vol
 
 func getUserInputsOnStorageType(filePath string, serviceName string) (string, error) {
 	selectedOption := ignoreOpt
+	ignoreDataAnswer := "Ignore the data source"
+	desc := "Select the storage type to create"
+	hints := []string{"By default, no storage type will be created. Data source will be ignored"}
+	defAnswer := ignoreDataAnswer
+	options := []string{pvcOpt, defAnswer}
 	volQaKey := common.JoinQASubKeys(volQaPrefixKey, `"`+serviceName+`"`, ".options")
 	if isPath(filePath) {
-		isWithinLimits, err := withinSizeLimit(filePath)
+		isWithinLimits, err := withinK8sMapSizeLimits(filePath)
 		if err != nil {
 			return "", fmt.Errorf("data source [%s] could be fetched to check size limit", filePath)
 		}
 		if isWithinLimits {
-			defAnswer := secretOpt
-			ignoreDataAnswer := "Ignore the data source"
-			options := []string{configMapOpt, hostPathOpt, ignoreDataAnswer, defAnswer}
-			desc := "Select the storage type to create"
-			hints := []string{fmt.Sprintf("By default, %s will be created", defAnswer)}
-			selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
-			if selectedOption == ignoreDataAnswer {
-				selectedOption = ignoreOpt
-				logrus.Warnf("User has ignored data in path [%s]. No storage type created", filePath)
-			}
+			defAnswer = secretOpt
+			options = []string{configMapOpt, hostPathOpt, ignoreDataAnswer, defAnswer}
+			hints = []string{fmt.Sprintf("By default, %s will be created", defAnswer)}
 		} else {
-			defAnswer := "Ignore the data source"
-			options := []string{hostPathOpt, defAnswer}
-			desc := "Select the storage type to create"
-			hints := []string{"By default, no storage type will be created. Data source will be ignored"}
-			selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
-			if selectedOption == defAnswer {
-				selectedOption = ignoreOpt
-				logrus.Warnf("User has ignored data in path [%s]. No storage type created", filePath)
-			}
+			options = []string{hostPathOpt, defAnswer}
 		}
-	} else {
-		defAnswer := "Ignore the data source"
-		options := []string{pvcOpt, defAnswer}
-		desc := "Select the storage type to create"
-		hints := []string{"By default, no storage type will be created. Data source will be ignored"}
-		selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
-		if selectedOption == defAnswer {
-			selectedOption = ignoreOpt
-			logrus.Warnf("User has ignored data in path [%s]. No storage type created", filePath)
-		}
+	}
+	selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
+	if selectedOption == defAnswer {
+		selectedOption = ignoreOpt
+		logrus.Warnf("User has ignored data in path [%s]. No storage type created", filePath)
 	}
 	return selectedOption, nil
 }
