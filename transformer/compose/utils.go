@@ -19,11 +19,15 @@ package compose
 import (
 	"fmt"
 	"hash/fnv"
+	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/docker/cli/opts"
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/qaengine"
+	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -31,9 +35,19 @@ import (
 const (
 	defaultEnvFile        string = ".env"
 	modeReadOnly          string = "ro"
+	modeReadWrite         string = "rw"
 	tmpFsPath             string = "tmpfs"
 	defaultSecretBasePath string = "/var/secrets"
 	envFile               string = "env_file"
+	maxConfigMapSizeLimit int    = 1024 * 1024
+	// cfgMapPrefix defines the prefix to be used for config maps
+	cfgMapPrefix = "configmap"
+	secretPrefix = "secret"
+	ignoreOpt    = "Ignore"
+	configMapOpt = "ConfigMap"
+	secretOpt    = "Secret"
+	hostPathOpt  = "HostPath"
+	pvcOpt       = "PVC"
 )
 
 /*
@@ -57,6 +71,246 @@ func IsV3(path string) (bool, error) {
 	}
 }
 */
+
+func createConfigMapName(sourcePath string) string {
+	cfgMapHashID := getHash([]byte(sourcePath))
+	cfgName := fmt.Sprintf("%s-%d", cfgMapPrefix, cfgMapHashID)
+	cfgName = common.MakeStringK8sServiceNameCompliant(cfgName)
+	return cfgName
+}
+
+func createSecretName(sourcePath string) string {
+	cfgMapHashID := getHash([]byte(sourcePath))
+	cfgName := fmt.Sprintf("%s-%d", secretPrefix, cfgMapHashID)
+	cfgName = common.MakeStringK8sServiceNameCompliant(cfgName)
+	return cfgName
+}
+
+func createVolumeName(sourcePath string, serviceName string) string {
+	hashID := getHash([]byte(sourcePath))
+	volumeName := fmt.Sprintf("%s-%s-%d", common.VolumePrefix, serviceName, hashID)
+	volumeName = common.MakeStringK8sServiceNameCompliant(volumeName)
+	return volumeName
+}
+
+func withinK8sConfigSizeLimit(filePath string) (bool, error) {
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return false, err
+	}
+
+	if !fileInfo.IsDir() {
+		if fileInfo.Size() > int64(maxConfigMapSizeLimit) {
+			return false, fmt.Errorf("config map could not be created from file. Size limit of 1M exceeded")
+		}
+	} else {
+		var totalSize int64 = 0
+		filepath.Walk(filePath, filepath.WalkFunc(func(dir string, fileHandle os.FileInfo, err error) error {
+			if !fileHandle.IsDir() {
+				totalSize += fileHandle.Size()
+				if totalSize > int64(maxConfigMapSizeLimit) {
+					return io.EOF
+				}
+			}
+			return nil
+		}))
+		if totalSize > int64(maxConfigMapSizeLimit) {
+			return false, fmt.Errorf("config map could not be created from directory. Size limit of 1M exceeded")
+		}
+	}
+
+	return true, nil
+}
+
+func applyVolumePolicy(filedir string, serviceName string, volSource string, volTarget string, volAccessMode string, storageMap map[string]bool) (*core.VolumeMount, *core.Volume, *irtypes.Storage, error) {
+	volume := core.Volume{}
+	volumeMount := core.VolumeMount{}
+	storage := irtypes.Storage{}
+	storageOpt := ""
+	volumeName := ""
+	hPath := ""
+	if isPath(volSource) {
+		hPath = volSource
+		if filepath.IsAbs(hPath) {
+			relPath, err := filepath.Rel(filedir, hPath)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("could not extract relative path for [%s] due to <%s>", hPath, err)
+			}
+			volSource = relPath
+		} else {
+			hPath = filepath.Join(filedir, volSource)
+		}
+		opt, err := getUserInputsOnStorageType(hPath, serviceName)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		storageOpt = opt
+		// Generate a hash Id for the given source file path to be mounted.
+		volumeName = createVolumeName(volSource, serviceName)
+	} else {
+		// Generate a hash Id for the given source file path to be mounted.
+		hPath = volSource
+		opt, err := getUserInputsOnStorageType(hPath, serviceName)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		storageOpt = opt
+		if hPath == "" {
+			hPath = volTarget
+		}
+		hashID := getHash([]byte(hPath))
+		volumeName = fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
+	}
+	switch storageOpt {
+	case secretOpt:
+		secretName := createSecretName(volSource)
+		if _, ok := storageMap[secretName]; !ok {
+			st, err := createStorage(hPath, secretName, irtypes.SecretKind)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			storage = st
+		}
+		secretVolSrc := core.SecretVolumeSource{}
+		secretVolSrc.SecretName = secretName
+		volume = core.Volume{
+			Name: volumeName,
+			VolumeSource: core.VolumeSource{
+				Secret: &secretVolSrc,
+			},
+		}
+	case configMapOpt:
+		configMapName := createConfigMapName(volSource)
+		if _, ok := storageMap[configMapName]; !ok {
+			st, err := createStorage(hPath, configMapName, irtypes.ConfigMapKind)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			storage = st
+		}
+		cfgMapVolSrc := core.ConfigMapVolumeSource{}
+		cfgMapVolSrc.Name = configMapName
+		volume = core.Volume{
+			Name: volumeName,
+			VolumeSource: core.VolumeSource{
+				ConfigMap: &cfgMapVolSrc,
+			},
+		}
+	case hostPathOpt:
+		volume = core.Volume{
+			Name: volumeName,
+			VolumeSource: core.VolumeSource{
+				HostPath: &core.HostPathVolumeSource{Path: volSource},
+			},
+		}
+	case pvcOpt:
+		accessMode := core.ReadWriteMany
+		if volAccessMode == modeReadOnly {
+			accessMode = core.ReadOnlyMany
+		}
+		storage = irtypes.Storage{StorageType: irtypes.PVCKind, Name: volumeName, Content: nil}
+		storage.PersistentVolumeClaimSpec = core.PersistentVolumeClaimSpec{
+			AccessModes: []core.PersistentVolumeAccessMode{accessMode},
+		}
+		volume = core.Volume{
+			Name: volumeName,
+			VolumeSource: core.VolumeSource{
+				PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
+					ClaimName: volumeName,
+					ReadOnly:  volAccessMode == modeReadOnly,
+				},
+			},
+		}
+	case ignoreOpt:
+		return nil, nil, nil, nil
+	}
+	volumeMount = core.VolumeMount{
+		Name:      volumeName,
+		ReadOnly:  volAccessMode == modeReadOnly,
+		MountPath: volTarget,
+	}
+	return &volumeMount, &volume, &storage, nil
+}
+
+func getUserInputsOnStorageType(filePath string, serviceName string) (string, error) {
+	selectedOption := ignoreOpt
+	ignoreDataAnswer := "Ignore the data source"
+	defAnswer := ignoreDataAnswer
+	desc := "Select the storage type to create"
+	hints := []string{"By default, no storage type will be created. Data source will be ignored"}
+	volQaKey := common.JoinQASubKeys(common.VolQaPrefixKey, `"`+serviceName+`"`, ".options")
+	options := []string{pvcOpt, ignoreDataAnswer}
+	if isPath(filePath) {
+		isWithinLimits, err := withinK8sConfigSizeLimit(filePath)
+		if err != nil {
+			options = []string{pvcOpt, hostPathOpt, ignoreDataAnswer}
+		} else {
+			if isWithinLimits {
+				defAnswer = secretOpt
+				options = []string{configMapOpt, hostPathOpt, pvcOpt, ignoreDataAnswer, defAnswer}
+				hints = []string{fmt.Sprintf("By default, %s will be created", defAnswer)}
+			} else {
+				options = []string{hostPathOpt, pvcOpt, defAnswer}
+			}
+		}
+	}
+	selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
+	if selectedOption == ignoreDataAnswer {
+		selectedOption = ignoreOpt
+		logrus.Warnf("User has ignored data in path [%s]. No storage type created", filePath)
+	}
+	return selectedOption, nil
+}
+
+func createStorage(filePath string, storageName string, storageType irtypes.StorageKindType) (irtypes.Storage, error) {
+	storage := irtypes.Storage{
+		Name:        storageName,
+		StorageType: storageType,
+	}
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return irtypes.Storage{}, fmt.Errorf("could not identify the volume source path (%s) because <%s>", filePath, err)
+	}
+	if !fileInfo.IsDir() {
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return irtypes.Storage{}, fmt.Errorf("could not read the file [%s]. Encountered [%s]", filePath, err)
+		}
+		storage.Content = map[string][]byte{storageName: content}
+	} else {
+		dataMap, err := getAllDirContentAsMap(filePath)
+		if err != nil {
+			return irtypes.Storage{}, fmt.Errorf("could not read the volume source directory [%s]. Encountered [%s]", filePath, err)
+		}
+		storage.Content = dataMap
+	}
+	return storage, nil
+}
+
+func getAllDirContentAsMap(directoryPath string) (map[string][]byte, error) {
+	fileList, err := os.ReadDir(directoryPath)
+	if err != nil {
+		return nil, err
+	}
+	dataMap := map[string][]byte{}
+	count := 0
+	for _, file := range fileList {
+		if file.IsDir() {
+			continue
+		}
+		fileName := file.Name()
+		logrus.Debugf("Reading file into the data map: [%s]", fileName)
+		data, err := os.ReadFile(filepath.Join(directoryPath, fileName))
+		if err != nil {
+			logrus.Debugf("Unable to read file data : %s", fileName)
+			continue
+		}
+		dataMap[fileName] = data
+		count = count + 1
+	}
+	logrus.Debugf("Read %d files into the data map", count)
+	return dataMap, nil
+}
 
 func getEnvironmentVariables(envFile string) map[string]string {
 	result := map[string]string{}

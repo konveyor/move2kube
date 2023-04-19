@@ -146,11 +146,20 @@ func (c *v3Loader) ConvertToIR(composefilepath string, serviceName string, parse
 func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, serviceName string, parseNetwork bool) (irtypes.IR, error) {
 	ir := irtypes.IR{Services: map[string]irtypes.Service{}}
 
+	storageMap := map[string]bool{}
+
 	//Secret volumes transformed to IR
 	ir.Storages = c.getSecretStorages(composeObject.Secrets)
+	for _, s := range ir.Storages {
+		storageMap[s.Name] = true
+	}
 
 	//ConfigMap volumes transformed to IR
-	ir.Storages = append(ir.Storages, c.getConfigStorages(composeObject.Configs)...)
+	cfgMapsList := c.getConfigStorages(composeObject.Configs)
+	ir.Storages = append(ir.Storages, cfgMapsList...)
+	for _, s := range cfgMapsList {
+		storageMap[s.Name] = true
+	}
 
 	for _, composeServiceConfig := range composeObject.Services {
 		if composeServiceConfig.Name != serviceName {
@@ -402,57 +411,27 @@ func (c *v3Loader) convertToIR(filedir string, composeObject types.Config, servi
 					SubPath:   filepath.Base(target),
 				})
 		}
-
 		for _, vol := range composeServiceConfig.Volumes {
-			if isPath(vol.Source) {
-				hPath := vol.Source
-				if !filepath.IsAbs(vol.Source) {
-					hPath, err := filepath.Abs(vol.Source)
-					if err != nil {
-						logrus.Debugf("Could not create an absolute path for [%s]", hPath)
-					}
-				}
-				// Generate a hash Id for the given source file path to be mounted.
-				hashID := getHash([]byte(hPath))
-				volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
-				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
-					Name:      volumeName,
-					MountPath: vol.Target,
-				})
-
-				serviceConfig.AddVolume(core.Volume{
-					Name: volumeName,
-					VolumeSource: core.VolumeSource{
-						HostPath: &core.HostPathVolumeSource{Path: vol.Source},
-					},
-				})
-			} else {
-				// Generate a hash Id for the given source file path to be mounted.
-				hPath := vol.Source
-				if hPath == "" {
-					hPath = vol.Target
-				}
-				hashID := getHash([]byte(hPath))
-				volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
-
-				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
-					Name:      volumeName,
-					MountPath: vol.Target,
-				})
-
-				serviceConfig.AddVolume(core.Volume{
-					Name: volumeName,
-					VolumeSource: core.VolumeSource{
-						PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-							ClaimName: volumeName,
-						},
-					},
-				})
-				storageObj := irtypes.Storage{StorageType: irtypes.PVCKind, Name: volumeName, Content: nil}
-				ir.AddStorage(storageObj)
+			volMode := modeReadOnly
+			if !vol.ReadOnly {
+				volMode = modeReadWrite
+			}
+			volumeMount, volume, storage, err := applyVolumePolicy(filedir, serviceName, vol.Source, vol.Target, volMode, storageMap)
+			if err != nil {
+				logrus.Errorf("Could not create storage: [%s]", err)
+				continue
+			}
+			if volumeMount != nil {
+				serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, *volumeMount)
+			}
+			if volume != nil {
+				serviceConfig.AddVolume(*volume)
+			}
+			if storage != nil {
+				ir.AddStorage(*storage)
+				storageMap[storage.Name] = true
 			}
 		}
-
 		serviceConfig.Containers = []core.Container{serviceContainer}
 		ir.Services[name] = serviceConfig
 	}
@@ -508,7 +487,7 @@ func (c *v3Loader) getConfigStorages(configs map[string]types.ConfigObjConfig) [
 						storage.Content = map[string][]byte{cfgName: content}
 					}
 				} else {
-					dataMap, err := c.getAllDirContentAsMap(cfgObj.File)
+					dataMap, err := getAllDirContentAsMap(cfgObj.File)
 					if err != nil {
 						logrus.Warnf("Could not read the secret directory [%s]. Encountered [%s]", cfgObj.File, err)
 					} else {
@@ -657,29 +636,4 @@ func (c *v3Loader) getEnvs(composeServiceConfig types.ServiceConfig) (envs []cor
 		envs = append(envs, env)
 	}
 	return envs
-}
-
-func (c *v3Loader) getAllDirContentAsMap(directoryPath string) (map[string][]byte, error) {
-	fileList, err := os.ReadDir(directoryPath)
-	if err != nil {
-		return nil, err
-	}
-	dataMap := map[string][]byte{}
-	count := 0
-	for _, file := range fileList {
-		if file.IsDir() {
-			continue
-		}
-		fileName := file.Name()
-		logrus.Debugf("Reading file into the data map: [%s]", fileName)
-		data, err := os.ReadFile(filepath.Join(directoryPath, fileName))
-		if err != nil {
-			logrus.Debugf("Unable to read file data : %s", fileName)
-			continue
-		}
-		dataMap[fileName] = data
-		count = count + 1
-	}
-	logrus.Debugf("Read %d files into the data map", count)
-	return dataMap, nil
 }
