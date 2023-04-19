@@ -161,7 +161,6 @@ func applyVolumePolicy(filedir string, serviceName string, volSource string, vol
 		hashID := getHash([]byte(hPath))
 		volumeName = fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
 	}
-	logrus.Warnf("====> Storage option selected: [%s]", storageOpt)
 	switch storageOpt {
 	case secretOpt:
 		secretName := createSecretName(volSource)
