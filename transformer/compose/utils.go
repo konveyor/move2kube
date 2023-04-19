@@ -94,7 +94,7 @@ func createVolumeName(sourcePath string, serviceName string) string {
 	return volumeName
 }
 
-func withinK8sMapSizeLimits(filePath string) (bool, error) {
+func withinK8sConfigSizeLimit(filePath string) (bool, error) {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		return false, err
@@ -162,6 +162,7 @@ func applyVolumePolicy(filedir string, serviceName string, volSource string, vol
 		hashID := getHash([]byte(hPath))
 		volumeName = fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
 	}
+	logrus.Warnf("====> Storage option selected: [%s]", storageOpt)
 	switch storageOpt {
 	case secretOpt:
 		secretName := createSecretName(volSource)
@@ -236,29 +237,36 @@ func applyVolumePolicy(filedir string, serviceName string, volSource string, vol
 func getUserInputsOnStorageType(filePath string, serviceName string) (string, error) {
 	selectedOption := ignoreOpt
 	ignoreDataAnswer := "Ignore the data source"
+	defAnswer := ignoreDataAnswer
 	desc := "Select the storage type to create"
 	hints := []string{"By default, no storage type will be created. Data source will be ignored"}
-	defAnswer := ignoreDataAnswer
-	options := []string{pvcOpt, defAnswer}
 	volQaKey := common.JoinQASubKeys(volQaPrefixKey, `"`+serviceName+`"`, ".options")
+	options := []string{pvcOpt, ignoreDataAnswer}
 	if isPath(filePath) {
-		isWithinLimits, err := withinK8sMapSizeLimits(filePath)
+		isWithinLimits, err := withinK8sConfigSizeLimit(filePath)
 		if err != nil {
-			return "", fmt.Errorf("data source [%s] could be fetched to check size limit", filePath)
-		}
-		if isWithinLimits {
-			defAnswer = secretOpt
-			options = []string{configMapOpt, hostPathOpt, ignoreDataAnswer, defAnswer}
-			hints = []string{fmt.Sprintf("By default, %s will be created", defAnswer)}
+			options = []string{pvcOpt, hostPathOpt, ignoreDataAnswer}
+			logrus.Warnf("(getUserInputsOnStorageType) filePath could not be read: %s", filePath)
 		} else {
-			options = []string{hostPathOpt, defAnswer}
+			if isWithinLimits {
+				defAnswer = secretOpt
+				options = []string{configMapOpt, hostPathOpt, pvcOpt, ignoreDataAnswer, defAnswer}
+				hints = []string{fmt.Sprintf("By default, %s will be created", defAnswer)}
+				logrus.Warnf("(getUserInputsOnStorageType) artifacts within path within limits")
+			} else {
+				options = []string{hostPathOpt, pvcOpt, defAnswer}
+				logrus.Warnf("(getUserInputsOnStorageType) artifacts outside path within limits")
+			}
 		}
+	} else {
+		logrus.Warnf("(getUserInputsOnStorageType) [%s] is not a path", filePath)
 	}
 	selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
-	if selectedOption == defAnswer {
+	if selectedOption == ignoreDataAnswer {
 		selectedOption = ignoreOpt
 		logrus.Warnf("User has ignored data in path [%s]. No storage type created", filePath)
 	}
+
 	return selectedOption, nil
 }
 
