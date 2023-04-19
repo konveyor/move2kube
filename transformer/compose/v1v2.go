@@ -137,7 +137,7 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 	ir = irtypes.IR{
 		Services: map[string]irtypes.Service{},
 	}
-
+	storageMap := map[string]bool{}
 	for name, composeServiceConfig := range composeObject.ServiceConfigs.All() {
 		if name != serviceName {
 			continue
@@ -266,65 +266,29 @@ func (c *v1v2Loader) convertToIR(filedir string, composeObject *project.Project,
 		if composeServiceConfig.VolumesFrom != nil {
 			logrus.Warnf("Ignoring VolumeFrom in compose for service %s : %s", serviceName, composeServiceConfig.VolumesFrom)
 		}
-
 		if composeServiceConfig.Volumes != nil {
 			for _, vol := range composeServiceConfig.Volumes.Volumes {
-				if isPath(vol.Source) {
-					hPath := vol.Source
-					if !filepath.IsAbs(vol.Source) {
-						hPath, err := filepath.Abs(vol.Source)
-						if err != nil {
-							logrus.Debugf("Could not create an absolute path for [%s]", hPath)
-						}
-					}
-					// Generate a hash Id for the given source file path to be mounted.
-					hashID := getHash([]byte(hPath))
-					volumeName := fmt.Sprintf("%s%d", common.VolumePrefix, hashID)
-					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
-						Name:      volumeName,
-						ReadOnly:  vol.AccessMode == modeReadOnly,
-						MountPath: vol.Destination,
-					})
-
-					serviceConfig.AddVolume(core.Volume{
-						Name: volumeName,
-						VolumeSource: core.VolumeSource{
-							HostPath: &core.HostPathVolumeSource{Path: vol.Source},
-						},
-					})
-				} else {
-					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, core.VolumeMount{
-						Name:      vol.Source,
-						ReadOnly:  vol.AccessMode == modeReadOnly,
-						MountPath: vol.Destination,
-					})
-
-					serviceConfig.AddVolume(core.Volume{
-						Name: vol.Source,
-						VolumeSource: core.VolumeSource{
-							PersistentVolumeClaim: &core.PersistentVolumeClaimVolumeSource{
-								ClaimName: vol.Source,
-								ReadOnly:  vol.AccessMode == modeReadOnly,
-							},
-						},
-					})
-					accessMode := core.ReadWriteMany
-					if vol.AccessMode == modeReadOnly {
-						accessMode = core.ReadOnlyMany
-					}
-					storageObj := irtypes.Storage{StorageType: irtypes.PVCKind, Name: vol.Source, Content: nil}
-					storageObj.PersistentVolumeClaimSpec = core.PersistentVolumeClaimSpec{
-						AccessModes: []core.PersistentVolumeAccessMode{accessMode},
-					}
-					ir.AddStorage(storageObj)
+				volumeMount, volume, storage, err := applyVolumePolicy(filedir, serviceName, vol.Source, vol.Destination, vol.AccessMode, storageMap)
+				if err != nil {
+					logrus.Warnf("Could not create storage: [%s]", err)
+					continue
+				}
+				if volumeMount != nil {
+					serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, *volumeMount)
+				}
+				if volume != nil {
+					serviceConfig.AddVolume(*volume)
+				}
+				if storage != nil {
+					ir.AddStorage(*storage)
+					ir.Storages = append(ir.Storages, *storage)
+					storageMap[storage.Name] = true
 				}
 			}
 		}
-
 		serviceConfig.Containers = []core.Container{serviceContainer}
 		ir.Services[name] = serviceConfig
 	}
-
 	return ir, nil
 }
 

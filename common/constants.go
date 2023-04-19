@@ -127,6 +127,8 @@ const (
 	ConfigRepoKeyPathsKey = ConfigRepoKeysKey + d + "paths"
 	//ConfigTransformerTypesKey represents Transformers type Key
 	ConfigTransformerTypesKey = ConfigTransformersKey + d + "types"
+	//VolQaPrefixKey represents the storage QA
+	VolQaPrefixKey = BaseKey + d + "storage.type"
 	//IngressKey represents ingress keyword
 	IngressKey = "ingress"
 	// ConfigIngressClassNameKeySuffix represents the ingress class name
