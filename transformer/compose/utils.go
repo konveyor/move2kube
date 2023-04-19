@@ -41,14 +41,13 @@ const (
 	envFile               string = "env_file"
 	maxConfigMapSizeLimit int    = 1024 * 1024
 	// cfgMapPrefix defines the prefix to be used for config maps
-	cfgMapPrefix   = "configmap"
-	secretPrefix   = "secret"
-	volQaPrefixKey = "move2kube.storage.type"
-	ignoreOpt      = "Ignore"
-	configMapOpt   = "ConfigMap"
-	secretOpt      = "Secret"
-	hostPathOpt    = "HostPath"
-	pvcOpt         = "PVC"
+	cfgMapPrefix = "configmap"
+	secretPrefix = "secret"
+	ignoreOpt    = "Ignore"
+	configMapOpt = "ConfigMap"
+	secretOpt    = "Secret"
+	hostPathOpt  = "HostPath"
+	pvcOpt       = "PVC"
 )
 
 /*
@@ -240,33 +239,27 @@ func getUserInputsOnStorageType(filePath string, serviceName string) (string, er
 	defAnswer := ignoreDataAnswer
 	desc := "Select the storage type to create"
 	hints := []string{"By default, no storage type will be created. Data source will be ignored"}
-	volQaKey := common.JoinQASubKeys(volQaPrefixKey, `"`+serviceName+`"`, ".options")
+	volQaKey := common.JoinQASubKeys(common.VolQaPrefixKey, `"`+serviceName+`"`, ".options")
 	options := []string{pvcOpt, ignoreDataAnswer}
 	if isPath(filePath) {
 		isWithinLimits, err := withinK8sConfigSizeLimit(filePath)
 		if err != nil {
 			options = []string{pvcOpt, hostPathOpt, ignoreDataAnswer}
-			logrus.Warnf("(getUserInputsOnStorageType) filePath could not be read: %s", filePath)
 		} else {
 			if isWithinLimits {
 				defAnswer = secretOpt
 				options = []string{configMapOpt, hostPathOpt, pvcOpt, ignoreDataAnswer, defAnswer}
 				hints = []string{fmt.Sprintf("By default, %s will be created", defAnswer)}
-				logrus.Warnf("(getUserInputsOnStorageType) artifacts within path within limits")
 			} else {
 				options = []string{hostPathOpt, pvcOpt, defAnswer}
-				logrus.Warnf("(getUserInputsOnStorageType) artifacts outside path within limits")
 			}
 		}
-	} else {
-		logrus.Warnf("(getUserInputsOnStorageType) [%s] is not a path", filePath)
 	}
 	selectedOption = qaengine.FetchSelectAnswer(volQaKey, desc, hints, defAnswer, options, nil)
 	if selectedOption == ignoreDataAnswer {
 		selectedOption = ignoreOpt
 		logrus.Warnf("User has ignored data in path [%s]. No storage type created", filePath)
 	}
-
 	return selectedOption, nil
 }
 
