@@ -40,7 +40,7 @@ func ReadPlan(path string, sourceDir string) (Plan, error) {
 		plan.Spec.SourceDir = sourceDir
 	}
 	if plan.Spec.SourceDir != "" {
-		remoteSrcPath := vcs.GetInputClonedPath(plan.Spec.SourceDir, common.RemoteSourcesFolder, false)
+		remoteSrcPath := vcs.GetClonedPath(plan.Spec.SourceDir, common.RemoteSourcesFolder, false)
 		if remoteSrcPath != "" {
 			plan.Spec.SourceDir = remoteSrcPath
 		}
@@ -60,7 +60,7 @@ func ReadPlan(path string, sourceDir string) (Plan, error) {
 // WritePlan encodes the plan to yaml converting absolute paths to relative.
 func WritePlan(path string, plan Plan) error {
 	inputFSPath := plan.Spec.SourceDir
-	remoteSrcPath := vcs.GetInputClonedPath(plan.Spec.SourceDir, common.RemoteSourcesFolder, false)
+	remoteSrcPath := vcs.GetClonedPath(plan.Spec.SourceDir, common.RemoteSourcesFolder, false)
 	if remoteSrcPath != "" {
 		inputFSPath = remoteSrcPath
 	}

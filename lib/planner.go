@@ -32,7 +32,7 @@ import (
 func CreatePlan(ctx context.Context, inputPath, outputPath string, customizationsPath, transformerSelector, prjName string) (plantypes.Plan, error) {
 	logrus.Trace("CreatePlan start")
 	defer logrus.Trace("CreatePlan end")
-	remoteInputFSPath := vcs.GetInputClonedPath(inputPath, common.RemoteSourcesFolder, true)
+	remoteInputFSPath := vcs.GetClonedPath(inputPath, common.RemoteSourcesFolder, true)
 	logrus.Debugf("common.TempPath: '%s' inputPath: '%s' remoteInputFSPath '%s'", common.TempPath, inputPath, remoteInputFSPath)
 	plan := plantypes.NewPlan()
 	plan.Name = prjName

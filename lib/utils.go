@@ -22,37 +22,43 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/filesystem"
 )
 
 // CheckAndCopyCustomizations checks if the customizations path is an existing directory and copies to assets
 func CheckAndCopyCustomizations(customizationsPath string) error {
-	if customizationsPath == "" {
+	remoteCustomizationsPath := vcs.GetClonedPath(customizationsPath, common.RemoteCustomizationsFolder, true)
+	customizationsFSPath := customizationsPath
+	if remoteCustomizationsPath != "" {
+		customizationsFSPath = remoteCustomizationsPath
+	}
+	if customizationsFSPath == "" {
 		return nil
 	}
-	customizationsPath, err := filepath.Abs(customizationsPath)
+	customizationsFSPath, err := filepath.Abs(customizationsFSPath)
 	if err != nil {
-		return fmt.Errorf("failed to make the customizations directory path '%s' absolute. Error: %w", customizationsPath, err)
+		return fmt.Errorf("failed to make the customizations directory path '%s' absolute. Error: %w", customizationsFSPath, err)
 	}
-	fi, err := os.Stat(customizationsPath)
+	fi, err := os.Stat(customizationsFSPath)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("the given customizations directory '%s' does not exist. Error: %w", customizationsPath, err)
+		return fmt.Errorf("the given customizations directory '%s' does not exist. Error: %w", customizationsFSPath, err)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to stat the given customizations directory '%s' Error: %w", customizationsPath, err)
+		return fmt.Errorf("failed to stat the given customizations directory '%s' Error: %w", customizationsFSPath, err)
 	}
 	if !fi.IsDir() {
-		return fmt.Errorf("the given customizations path '%s' is a file. Expected a directory", customizationsPath)
+		return fmt.Errorf("the given customizations path '%s' is a file. Expected a directory", customizationsFSPath)
 	}
 	pwd, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get the current working directory. Error: %w", err)
 	}
-	if common.IsParent(pwd, customizationsPath) {
-		return fmt.Errorf("the given customizations directory '%s' is a parent of the current working directory", customizationsPath)
+	if common.IsParent(pwd, customizationsFSPath) {
+		return fmt.Errorf("the given customizations directory '%s' is a parent of the current working directory", customizationsFSPath)
 	}
-	if err = CopyCustomizationsAssetsData(customizationsPath); err != nil {
-		return fmt.Errorf("failed to copy the customizations data from the directory '%s' . Error: %w", customizationsPath, err)
+	if err = CopyCustomizationsAssetsData(customizationsFSPath); err != nil {
+		return fmt.Errorf("failed to copy the customizations data from the directory '%s' . Error: %w", customizationsFSPath, err)
 	}
 	return nil
 }
