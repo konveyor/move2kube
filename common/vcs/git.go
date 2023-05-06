@@ -135,9 +135,9 @@ func pushGitVCS(remotePath, folderName string) error {
 	remotePathSplit := strings.Split(remotePath, ":")
 	isSSH := strings.HasPrefix(remotePath, "git+ssh")
 	isHTTPS := strings.HasPrefix(remotePath, "git+https")
-	gitFSPath := GetInputClonedPath(remotePath, folderName, false)
+	gitFSPath := GetClonedPath(remotePath, folderName, false)
 	if (isHTTPS && len(remotePathSplit) > 2) || (isSSH && len(remotePathSplit) > 1) {
-		gitFSPath = strings.TrimSuffix(GetInputClonedPath(remotePath, folderName, false), remotePathSplit[len(remotePathSplit)-1])
+		gitFSPath = strings.TrimSuffix(GetClonedPath(remotePath, folderName, false), remotePathSplit[len(remotePathSplit)-1])
 	}
 	logrus.Info(gitFSPath)
 	repo, err := git.PlainOpen(gitFSPath)

@@ -50,7 +50,7 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 	requirements, _ := selectorsInPlan.Requirements()
 	transformerSelectorObj = transformerSelectorObj.Add(requirements...)
 
-	remoteOutputFSPath := vcs.GetInputClonedPath(outputPath, common.RemoteOutputsFolder, true)
+	remoteOutputFSPath := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
 	outputFSPath := outputPath
 	if remoteOutputFSPath != "" {
 		outputFSPath = remoteOutputFSPath
