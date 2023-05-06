@@ -41,8 +41,8 @@ type NoCompatibleVCSFound struct {
 	URLInput string
 }
 
-// GetInputClonedPath takes input and folder name performs clone with the appropriate VCS and then return the file system and remote paths
-func GetInputClonedPath(input, folderName string, overwrite bool) string {
+// GetClonedPath takes input and folder name performs clone with the appropriate VCS and then return the file system and remote paths
+func GetClonedPath(input, folderName string, overwrite bool) string {
 	vcsRepo, err := GetVCSRepo(input)
 	var vcsSrcPath string
 	if err != nil {

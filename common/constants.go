@@ -62,6 +62,8 @@ const (
 	BatExt = ".bat"
 	// RemoteSourcesFolder stores remote sources
 	RemoteSourcesFolder = "m2ksources"
+	// RemoteCustomizationsFolder stores remote customizations
+	RemoteCustomizationsFolder = "m2kcustomizations"
 )
 
 const (
