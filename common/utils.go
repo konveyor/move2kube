@@ -899,23 +899,20 @@ func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath
 	// Return the absolute version of existing asset paths.
 	tempPath, err = filepath.Abs(TempPath)
 	if err != nil {
-		logrus.Errorf("Unable to make the temporary directory path %q absolute. Error: %q", tempPath, err)
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("failed to make the temporary directory path '%s' absolute. Error: %w", TempPath, err)
 	}
 	remoteTempPath, err = filepath.Abs(RemoteTempPath)
 	if err != nil {
-		logrus.Errorf("Unable to make the temporary directory path %q absolute. Error: %q", tempPath, err)
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("failed to make the remote temporary directory path '%s' absolute. Error: %w", RemoteTempPath, err)
 	}
 	assetsPath, err = filepath.Abs(AssetsPath)
 	if err != nil {
-		logrus.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("failed to make the assets path '%s' absolute. Error: %w", AssetsPath, err)
 	}
 
 	// Try to create a new temporary directory for the assets.
 	if newTempPath, err := os.MkdirTemp("", types.AppName+"*"); err != nil {
-		logrus.Errorf("Unable to create temp dir. Defaulting to local path.")
+		logrus.Errorf("failed to create a temporary directory for the assets. Defaulting to the local path '%s' . Error: %q", tempPath, err)
 	} else {
 		tempPath = newTempPath
 		assetsPath = filepath.Join(newTempPath, AssetsDir)
@@ -923,50 +920,45 @@ func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath
 
 	// Try to create a new temporary directory for the remote source folders.
 	if newTempPath, err := os.MkdirTemp("", types.AppName+"*"); err != nil {
-		logrus.Errorf("Unable to create temp dir. Defaulting to local path.")
+		logrus.Errorf("failed to create a temporary directory for the remote sources. Defaulting to the local path '%s' . Error: %q", remoteTempPath, err)
 	} else {
 		remoteTempPath = newTempPath
 	}
 
 	// Either way create the subdirectory and untar the assets into it.
 	if err := os.MkdirAll(assetsPath, DefaultDirectoryPermission); err != nil {
-		logrus.Errorf("Unable to create the assets directory at path %q Error: %q", assetsPath, err)
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("failed to create the assets directory at path '%s' . Error: %w", assetsPath, err)
 	}
 	if err := CopyEmbedFSToDir(assetsFS, ".", assetsPath, permissions); err != nil {
-		logrus.Errorf("Unable to untar the assets into the assets directory at path %q Error: %q", assetsPath, err)
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("failed to untar the assets into the assets directory at path '%s' . Error: %w", assetsPath, err)
 	}
 	return assetsPath, tempPath, remoteTempPath, nil
 }
 
 // CopyEmbedFSToDir converts a string into a directory
 func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[string]int) (err error) {
-	f, err := embedFS.Open(GetUnixPath(source))
+	sourceUnixPath := GetUnixPath(source)
+	f, err := embedFS.Open(sourceUnixPath)
 	if err != nil {
-		logrus.Errorf("Error while reading embedded file : %s", err)
-		return err
+		return fmt.Errorf("failed to open the embedded source file '%s' . Error: %w", sourceUnixPath, err)
 	}
 	finfo, err := f.Stat()
 	if err != nil {
-		logrus.Errorf("Error while reading stat of embedded file : %s", err)
-		return err
+		return fmt.Errorf("failed to stat the embedded source file '%s' . Error: %w", sourceUnixPath, err)
 	}
 	if finfo != nil && !finfo.Mode().IsDir() {
-		permission, ok := permissions[GetUnixPath(source)]
+		permission, ok := permissions[sourceUnixPath]
 		if !ok {
-			logrus.Errorf("Permission missing for file %s. Do `make generate` to update permissions file.", dest)
+			logrus.Errorf("permissions missing for the file '%s' . Do `make generate` to update permissions file.", dest)
 		}
 		df, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.FileMode(permission))
 		if err != nil {
-			logrus.Errorf("Error while opening temp dest assets file : %s", err)
-			return err
+			return fmt.Errorf("failed to open the temporary dest assets file '%s' . Error: %w", dest, err)
 		}
 		defer df.Close()
 		size, err := io.Copy(df, f)
 		if err != nil {
-			logrus.Errorf("Error while copying embedded file : %s", err)
-			return err
+			return fmt.Errorf("failed to copy the embedded file. Error: %w", err)
 		}
 		if size != finfo.Size() {
 			return fmt.Errorf("size mismatch: Wrote %d, Expected %d", size, finfo.Size())
@@ -974,14 +966,18 @@ func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[str
 		return nil
 	}
 	if err := os.MkdirAll(dest, DefaultDirectoryPermission); err != nil {
-		return err
+		return fmt.Errorf("failed to create the destination directory at '%s' . Error: %w", dest, err)
 	}
-	dirEntries, err := embedFS.ReadDir(GetUnixPath(source))
+	dirEntries, err := embedFS.ReadDir(sourceUnixPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read the destination directory at '%s' . Error: %w", dest, err)
 	}
 	for _, de := range dirEntries {
-		CopyEmbedFSToDir(embedFS, filepath.Join(source, de.Name()), filepath.Join(dest, removeDollarPrefixFromHiddenDir(de.Name())), permissions)
+		t1Src := filepath.Join(source, de.Name())
+		t1Dest := filepath.Join(dest, removeDollarPrefixFromHiddenDir(de.Name()))
+		if err := CopyEmbedFSToDir(embedFS, t1Src, t1Dest, permissions); err != nil {
+			logrus.Errorf("failed to copy the embedded directory from '%s' to '%s' . Skipping. Error: %q", t1Src, t1Dest, err)
+		}
 	}
 	return nil
 }
