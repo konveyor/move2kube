@@ -31,11 +31,11 @@ func main() {
 	assetsFilePermissions := map[string]int{}
 	err := yaml.Unmarshal([]byte(assets.AssetFilePermissions), &assetsFilePermissions)
 	if err != nil {
-		logrus.Fatalf("unable to convert permissions. Error: %q", err)
+		logrus.Fatalf("failed to unmarshal the assets permissions file as YAML. Error: %q", err)
 	}
 	assetsPath, tempPath, remoteTempPath, err := common.CreateAssetsData(assets.AssetsDir, assetsFilePermissions)
 	if err != nil {
-		logrus.Fatalf("unable to create the assets directory. Error: %q", err)
+		logrus.Fatalf("failed to create the assets directory. Error: %q", err)
 	}
 	common.TempPath = tempPath
 	common.AssetsPath = assetsPath
