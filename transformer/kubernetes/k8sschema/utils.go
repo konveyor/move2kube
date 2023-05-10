@@ -156,17 +156,17 @@ func GetK8sResourcesFromYaml(k8sYaml string) ([]K8sResourceT, error) {
 	// NOTE: This roundabout method is required to avoid yaml.v3 unmarshalling timestamps into time.Time
 	var resourceI interface{}
 	if err := yaml.Unmarshal([]byte(k8sYaml), &resourceI); err != nil {
-		logrus.Errorf("Failed to unmarshal k8s yaml. Error: %q", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal the string '%s' as YAML. Error: %w", k8sYaml, err)
 	}
 	resourceJSONBytes, err := json.Marshal(resourceI)
 	if err != nil {
-		logrus.Errorf("Failed to marshal the k8s resource into json. K8s resource:\n+%v\nError: %q", resourceI, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal the K8s resource as JSON. K8s resource: %+v Error: %w", resourceI, err)
 	}
 	var k8sResource K8sResourceT
-	err = json.Unmarshal(resourceJSONBytes, &k8sResource)
-	return []K8sResourceT{k8sResource}, err
+	if err := json.Unmarshal(resourceJSONBytes, &k8sResource); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal the string '%s' as a K8s resource JSON. Error: %w", resourceJSONBytes, err)
+	}
+	return []K8sResourceT{k8sResource}, nil
 }
 
 // GetKubernetesObjsInDir returns returns all kubernetes objects in a dir
