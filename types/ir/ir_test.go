@@ -17,10 +17,14 @@
 package ir
 
 import (
+	"fmt"
+	"io/ioutil"
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/common"
+	"gopkg.in/yaml.v2"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
 )
@@ -241,45 +245,213 @@ func TestIR(t *testing.T) {
 	})
 
 	t.Run("test for merging IRs", func(t *testing.T) {
-		oldIR := NewIR()
-		newIR := NewIR()
-		oldIR.Name = "sampleIR"
-		newIR.Name = "sampleIR"
-		newIR.AddService(NewServiceWithName("sampleSerivce"))
-		oldIR.Merge(newIR)
-		if !reflect.DeepEqual(oldIR, newIR) {
-			t.Errorf("failed to merge new IR into old IR. Old IR : %+v, New IR: %+v", oldIR, newIR)
+
+		ir_yaml, err := ioutil.ReadFile("./testdata/ir.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
 		}
+
+		// Unmarshal YAML into struct
+		var ir IR
+		err = yaml.Unmarshal(ir_yaml, &ir)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+
+		newir_yaml, err := ioutil.ReadFile("./testdata/newir.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
+		}
+
+		// Unmarshal YAML into struct
+		var newir IR
+		err = yaml.Unmarshal(newir_yaml, &newir)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+
+		mergedir_yaml, err := ioutil.ReadFile("./testdata/mergedir.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
+		}
+
+		// Unmarshal YAML into struct
+		var mergedir IR
+		err = yaml.Unmarshal(mergedir_yaml, &mergedir)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+
+		ir.Merge(newir)
+
+		v, ok := mergedir.Services[""]
+		if ok {
+			// Modifying the desired field in the struct value
+			v.SecurityContext = &core.PodSecurityContext{}
+
+			// Assigning the modified struct value back to the map
+			mergedir.Services[""] = v
+		}
+
+		if diff := cmp.Diff(mergedir, ir); diff != "" {
+			t.Errorf("MakeGatewayInfo() mismatch (-want +got):\n%s", diff)
+			t.Logf("\nMergedIr= %+v", mergedir.Services[""])
+		}
+
 	})
 
-	t.Run("test for merging containers", func(t *testing.T) {
-		oldContainer := NewContainer()
-		newContainer := NewContainer()
-		newContainer.AddExposedPort(8080)
-		oldContainer.Merge(newContainer)
-		if !reflect.DeepEqual(oldContainer, newContainer) {
-			t.Errorf("failed to merge new Container into old Container. Old Container : %+v, New Container: %+v", oldContainer, newContainer)
+	t.Run("test for merging containers images", func(t *testing.T) {
+		conimage_yaml, err := ioutil.ReadFile("./testdata/conimage.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
 		}
+
+		// Unmarshal YAML into struct
+		var conimage ContainerImage
+		err = yaml.Unmarshal(conimage_yaml, &conimage)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+
+		newconimage_yaml, err := ioutil.ReadFile("./testdata/newconimage.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
+		}
+
+		// Unmarshal YAML into struct
+		var newconimage ContainerImage
+		err = yaml.Unmarshal(newconimage_yaml, &newconimage)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+
+		conimage.Merge(newconimage)
+
+		mergedconimage_yaml, err := ioutil.ReadFile("./testdata/mergedconimage.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
+		}
+
+		// Unmarshal YAML into struct
+		var mergedconimage ContainerImage
+		err = yaml.Unmarshal(mergedconimage_yaml, &mergedconimage)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+
+		if diff := cmp.Diff(mergedconimage, conimage); diff != "" {
+			t.Errorf("MakeGatewayInfo() mismatch (-want +got):\n%s", diff)
+		}
+
 	})
 
 	t.Run("test for merging containerbuilds", func(t *testing.T) {
-		oldContainer := ContainerBuild{ContainerBuildType: DockerfileContainerBuildType}
-		newContainer := ContainerBuild{ContainerBuildType: DockerfileContainerBuildType, ContextPath: "samplecontextpath"}
-		oldContainer.Merge(newContainer)
-		if !reflect.DeepEqual(oldContainer, newContainer) {
-			t.Errorf("failed to merge new Container build into old Container build. Old Container build : %+v, New Container build: %+v", oldContainer, newContainer)
+		conbuild_yaml, err := ioutil.ReadFile("./testdata/conbuild.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
 		}
+
+		// Unmarshal YAML into struct
+		var conbuild ContainerBuild
+		err = yaml.Unmarshal(conbuild_yaml, &conbuild)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+
+		newconbuild_yaml, err := ioutil.ReadFile("./testdata/newconbuild.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
+		}
+
+		// Unmarshal YAML into struct
+		var newconbuild ContainerBuild
+		err = yaml.Unmarshal(newconbuild_yaml, &newconbuild)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+
+		conbuild.Merge(newconbuild)
+
+		mergedconbuild_yaml, err := ioutil.ReadFile("./testdata/mergedconbuild.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
+		}
+
+		// Unmarshal YAML into struct
+		var mergedconbuild ContainerBuild
+		err = yaml.Unmarshal(mergedconbuild_yaml, &mergedconbuild)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+
+		if diff := cmp.Diff(mergedconbuild, conbuild); diff != "" {
+			t.Errorf("MakeGatewayInfo() mismatch (-want +got):\n%s", diff)
+		}
+
 	})
 
 	t.Run("test for merging services", func(t *testing.T) {
-		oldService := NewServiceWithName("sampleService")
-		newService := NewServiceWithName("sampleService")
-		oldService.BackendServiceName = "sampleServiceName"
-		newService.BackendServiceName = "sampleServiceName"
-		newService.Annotations = map[string]string{common.WindowsAnnotation: common.AnnotationLabelValue}
-		oldService.merge(newService)
-		if !reflect.DeepEqual(oldService.Annotations, newService.Annotations) {
-			t.Errorf("failed to merge new service into old service. Old service : %+v, New service: %+v", oldService, newService)
+		service_yaml, err := ioutil.ReadFile("./testdata/service.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
+		}
+
+		var service Service
+		err = yaml.Unmarshal(service_yaml, &service)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+
+		newservice_yaml, err := ioutil.ReadFile("./testdata/nservice.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
+		}
+
+		var newservice Service
+		err = yaml.Unmarshal(newservice_yaml, &newservice)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+		service.merge(newservice)
+
+		mergedservice_yaml, err := ioutil.ReadFile("./testdata/merged_service.yaml")
+		if err != nil {
+			fmt.Println("Failed to read YAML file:", err)
+			return
+		}
+
+		var mergedservice Service
+		err = yaml.Unmarshal(mergedservice_yaml, &mergedservice)
+		if err != nil {
+			fmt.Println("Failed to unmarshal YAML:", err)
+			return
+		}
+		mergedservice.SecurityContext = &core.PodSecurityContext{}
+
+		if diff := cmp.Diff(mergedservice, service); diff != "" {
+			t.Errorf("MakeGatewayInfo() mismatch (-want +got):\n%s", diff)
 		}
 
 	})
