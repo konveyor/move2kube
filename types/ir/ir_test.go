@@ -246,7 +246,7 @@ func TestIR(t *testing.T) {
 
 	t.Run("test for merging IRs", func(t *testing.T) {
 
-		ir_yaml, err := ioutil.ReadFile("./testdata/ir.yaml")
+		iryaml, err := ioutil.ReadFile("./testdata/ir.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -254,13 +254,13 @@ func TestIR(t *testing.T) {
 
 		// Unmarshal YAML into struct
 		var ir IR
-		err = yaml.Unmarshal(ir_yaml, &ir)
+		err = yaml.Unmarshal(iryaml, &ir)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
 		}
 
-		newir_yaml, err := ioutil.ReadFile("./testdata/newir.yaml")
+		newiryaml, err := ioutil.ReadFile("./testdata/newir.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -268,13 +268,13 @@ func TestIR(t *testing.T) {
 
 		// Unmarshal YAML into struct
 		var newir IR
-		err = yaml.Unmarshal(newir_yaml, &newir)
+		err = yaml.Unmarshal(newiryaml, &newir)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
 		}
 
-		mergedir_yaml, err := ioutil.ReadFile("./testdata/mergedir.yaml")
+		mergediryaml, err := ioutil.ReadFile("./testdata/mergedir.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -282,7 +282,7 @@ func TestIR(t *testing.T) {
 
 		// Unmarshal YAML into struct
 		var mergedir IR
-		err = yaml.Unmarshal(mergedir_yaml, &mergedir)
+		err = yaml.Unmarshal(mergediryaml, &mergedir)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
@@ -307,7 +307,7 @@ func TestIR(t *testing.T) {
 	})
 
 	t.Run("test for merging containers images", func(t *testing.T) {
-		conimage_yaml, err := ioutil.ReadFile("./testdata/conimage.yaml")
+		conimageyaml, err := ioutil.ReadFile("./testdata/conimage.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -315,13 +315,13 @@ func TestIR(t *testing.T) {
 
 		// Unmarshal YAML into struct
 		var conimage ContainerImage
-		err = yaml.Unmarshal(conimage_yaml, &conimage)
+		err = yaml.Unmarshal(conimageyaml, &conimage)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
 		}
 
-		newconimage_yaml, err := ioutil.ReadFile("./testdata/newconimage.yaml")
+		newconimageyaml, err := ioutil.ReadFile("./testdata/newconimage.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -329,7 +329,7 @@ func TestIR(t *testing.T) {
 
 		// Unmarshal YAML into struct
 		var newconimage ContainerImage
-		err = yaml.Unmarshal(newconimage_yaml, &newconimage)
+		err = yaml.Unmarshal(newconimageyaml, &newconimage)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
@@ -337,7 +337,7 @@ func TestIR(t *testing.T) {
 
 		conimage.Merge(newconimage)
 
-		mergedconimage_yaml, err := ioutil.ReadFile("./testdata/mergedconimage.yaml")
+		mergedconimageyaml, err := ioutil.ReadFile("./testdata/mergedconimage.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -345,7 +345,7 @@ func TestIR(t *testing.T) {
 
 		// Unmarshal YAML into struct
 		var mergedconimage ContainerImage
-		err = yaml.Unmarshal(mergedconimage_yaml, &mergedconimage)
+		err = yaml.Unmarshal(mergedconimageyaml, &mergedconimage)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
@@ -358,7 +358,7 @@ func TestIR(t *testing.T) {
 	})
 
 	t.Run("test for merging containerbuilds", func(t *testing.T) {
-		conbuild_yaml, err := ioutil.ReadFile("./testdata/conbuild.yaml")
+		conbuildyaml, err := ioutil.ReadFile("./testdata/conbuild.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -366,13 +366,13 @@ func TestIR(t *testing.T) {
 
 		// Unmarshal YAML into struct
 		var conbuild ContainerBuild
-		err = yaml.Unmarshal(conbuild_yaml, &conbuild)
+		err = yaml.Unmarshal(conbuildyaml, &conbuild)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
 		}
 
-		newconbuild_yaml, err := ioutil.ReadFile("./testdata/newconbuild.yaml")
+		newconbuildyaml, err := ioutil.ReadFile("./testdata/newconbuild.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -380,7 +380,7 @@ func TestIR(t *testing.T) {
 
 		// Unmarshal YAML into struct
 		var newconbuild ContainerBuild
-		err = yaml.Unmarshal(newconbuild_yaml, &newconbuild)
+		err = yaml.Unmarshal(newconbuildyaml, &newconbuild)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
@@ -388,7 +388,7 @@ func TestIR(t *testing.T) {
 
 		conbuild.Merge(newconbuild)
 
-		mergedconbuild_yaml, err := ioutil.ReadFile("./testdata/mergedconbuild.yaml")
+		mergedconbuildyaml, err := ioutil.ReadFile("./testdata/mergedconbuild.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -396,7 +396,7 @@ func TestIR(t *testing.T) {
 
 		// Unmarshal YAML into struct
 		var mergedconbuild ContainerBuild
-		err = yaml.Unmarshal(mergedconbuild_yaml, &mergedconbuild)
+		err = yaml.Unmarshal(mergedconbuildyaml, &mergedconbuild)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
@@ -409,41 +409,41 @@ func TestIR(t *testing.T) {
 	})
 
 	t.Run("test for merging services", func(t *testing.T) {
-		service_yaml, err := ioutil.ReadFile("./testdata/service.yaml")
+		serviceyaml, err := ioutil.ReadFile("./testdata/service.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
 		}
 
 		var service Service
-		err = yaml.Unmarshal(service_yaml, &service)
+		err = yaml.Unmarshal(serviceyaml, &service)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
 		}
 
-		newservice_yaml, err := ioutil.ReadFile("./testdata/nservice.yaml")
+		newserviceyaml, err := ioutil.ReadFile("./testdata/nservice.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
 		}
 
 		var newservice Service
-		err = yaml.Unmarshal(newservice_yaml, &newservice)
+		err = yaml.Unmarshal(newserviceyaml, &newservice)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
 		}
 		service.merge(newservice)
 
-		mergedservice_yaml, err := ioutil.ReadFile("./testdata/merged_service.yaml")
+		mergedserviceyaml, err := ioutil.ReadFile("./testdata/merged_service.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
 		}
 
 		var mergedservice Service
-		err = yaml.Unmarshal(mergedservice_yaml, &mergedservice)
+		err = yaml.Unmarshal(mergedserviceyaml, &mergedservice)
 		if err != nil {
 			fmt.Println("Failed to unmarshal YAML:", err)
 			return
