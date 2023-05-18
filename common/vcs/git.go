@@ -1,5 +1,5 @@
 /*
- *  Copyright IBM Corporation 2021
+ *  Copyright IBM Corporation 2023
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -64,9 +64,7 @@ func isGitTag(tag string) bool {
 
 // getGitRepoStruct extracts information from the given git path and returns a struct
 func getGitRepoStruct(vcsurl string) (*GitVCSRepo, error) {
-	// follows format from https://pip.pypa.io/en/stable/topics/vcs-support/
-	// git+[ssh|https]://<URL>@[tag|commit hash|branch]:/path/in/the/repo
-
+	// for format visit https://move2kube.konveyor.io/concepts/git-support
 	partsSplitByAt := strings.Split(vcsurl, "@")
 	if len(partsSplitByAt) > 2 {
 		return nil, fmt.Errorf("invalid git remote path provided. Should follow the format git+[ssh|https]://<URL>@[tag|commit hash|branch]:/path/in/the/repo but received : %s", vcsurl)
@@ -102,20 +100,14 @@ func getGitRepoStruct(vcsurl string) (*GitVCSRepo, error) {
 	}
 
 	if len(partsSplitByAt) == 2 {
-		ReferenceAndPathInTheRepo := strings.Split(partsSplitByAt[1], ":")
-		logrus.Debugf("ReferenceAndPathInTheRepo %v", ReferenceAndPathInTheRepo)
-		if len(ReferenceAndPathInTheRepo) > 1 {
-			gitRepoStruct.PathWithinRepo = ReferenceAndPathInTheRepo[1]
-		}
-		if isGitBranch(ReferenceAndPathInTheRepo[0]) {
-			gitRepoStruct.Branch = ReferenceAndPathInTheRepo[0]
-		} else if isGitCommitHash(ReferenceAndPathInTheRepo[0]) {
-			gitRepoStruct.CommitHash = ReferenceAndPathInTheRepo[0]
-		} else if isGitTag(ReferenceAndPathInTheRepo[0]) {
-			gitRepoStruct.Tag = ReferenceAndPathInTheRepo[0]
+		if isGitBranch(partsSplitByAt[1]) {
+			gitRepoStruct.Branch = partsSplitByAt[1]
+		} else if isGitCommitHash(partsSplitByAt[1]) {
+			gitRepoStruct.CommitHash = partsSplitByAt[1]
+		} else if isGitTag(partsSplitByAt[1]) {
+			gitRepoStruct.Tag = partsSplitByAt[1]
 		}
 	}
-
 	return &gitRepoStruct, nil
 
 }
@@ -132,25 +124,28 @@ func isGitVCS(vcsurl string) bool {
 }
 
 func pushGitVCS(remotePath, folderName string) error {
-	remotePathSplit := strings.Split(remotePath, ":")
+	if !common.IgnoreEnvironment {
+		logrus.Warnf("push to remote git repositories using credentials from the environment is not yet supported.")
+	}
+	remotePathSplitByAt := strings.Split(remotePath, "@")
+	remotePathSplitByColon := strings.Split(remotePathSplitByAt[0], ":")
 	isSSH := strings.HasPrefix(remotePath, "git+ssh")
 	isHTTPS := strings.HasPrefix(remotePath, "git+https")
 	gitFSPath := GetClonedPath(remotePath, folderName, false)
-	if (isHTTPS && len(remotePathSplit) > 2) || (isSSH && len(remotePathSplit) > 1) {
-		gitFSPath = strings.TrimSuffix(GetClonedPath(remotePath, folderName, false), remotePathSplit[len(remotePathSplit)-1])
+	if (isHTTPS && len(remotePathSplitByColon) > 2) || (isSSH && len(remotePathSplitByColon) > 2) {
+		gitFSPath = strings.TrimSuffix(gitFSPath, remotePathSplitByColon[len(remotePathSplitByColon)-1])
 	}
-	logrus.Info(gitFSPath)
 	repo, err := git.PlainOpen(gitFSPath)
 	if err != nil {
-		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to open the repository. %+c", err)}
+		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to open the repository. Error %+v", err)}
 	}
 	worktree, err := repo.Worktree()
 	if err != nil {
-		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to fetch a worktree. %+c", err)}
+		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to fetch a worktree. Error %+v", err)}
 	}
 	_, err = worktree.Add(".")
 	if err != nil {
-		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to add files to staging. %+c", err)}
+		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to add files to staging. Error %+v", err)}
 	}
 
 	authorName := qaengine.FetchStringAnswer(common.JoinQASubKeys(common.GitKey, "name"), "Enter git author name : ", []string{}, "", nil)
@@ -164,11 +159,11 @@ func pushGitVCS(remotePath, folderName string) error {
 	})
 	logrus.Debugf("changes committed with commit hash : %+v", commit)
 	if err != nil {
-		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to commit. %+c", err)}
+		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to commit. Error : %+v", err)}
 	}
 	ref, err := repo.Head()
 	if err != nil {
-		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to get head. %+c", err)}
+		return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to get head. Error : %+v", err)}
 	}
 	if isHTTPS {
 		username := qaengine.FetchStringAnswer(common.JoinQASubKeys(common.GitKey, "username"), "Enter git username : ", []string{}, "", nil)
@@ -184,7 +179,7 @@ func pushGitVCS(remotePath, folderName string) error {
 			},
 		})
 		if err != nil {
-			return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to push. %+c", err)}
+			return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to push. Error : %+v", err)}
 		}
 	}
 
@@ -201,7 +196,7 @@ func pushGitVCS(remotePath, folderName string) error {
 			Auth: authMethod,
 		})
 		if err != nil {
-			return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to push. %+c", err)}
+			return &FailedVCSPush{VCSPath: gitFSPath, Err: fmt.Errorf("failed to push. Error : %+v", err)}
 		}
 	}
 	return nil
@@ -240,7 +235,30 @@ func (gvcsrepo *GitVCSRepo) Clone(gitCloneOptions VCSCloneOptions) (string, erro
 		}
 		gvcsrepo.GitRepository, err = git.PlainClone(repoPath, false, &cloneOpts)
 		if err != nil {
-			return "", fmt.Errorf("failed to perform clone operation using git with options - %+v", cloneOpts)
+			logrus.Debugf("provided branch %+v does not exist in the remote, therefore creating one.", gvcsrepo.Branch)
+			cloneOpts := git.CloneOptions{
+				URL:   gvcsrepo.URL,
+				Depth: commitDepth,
+			}
+			gvcsrepo.GitRepository, err = git.PlainClone(repoPath, false, &cloneOpts)
+			if err != nil {
+				return "", fmt.Errorf("failed to perform clone operation using git with options. Error : %+v", err)
+			}
+			branch := fmt.Sprintf("refs/heads/%s", gvcsrepo.Branch)
+			b := plumbing.ReferenceName(branch)
+			w, err := gvcsrepo.GitRepository.Worktree()
+			if err != nil {
+				return "", fmt.Errorf("failed return a worktree for the repostiory. Error : %+v", err)
+			}
+
+			err = w.Checkout(&git.CheckoutOptions{Create: false, Force: false, Branch: b})
+
+			if err != nil {
+				err := w.Checkout(&git.CheckoutOptions{Create: true, Force: false, Branch: b})
+				if err != nil {
+					return "", fmt.Errorf("failed checkout a new branch. Error : %+v", err)
+				}
+			}
 		}
 	} else if gvcsrepo.CommitHash != "" {
 		commitHash := plumbing.NewHash(gvcsrepo.CommitHash)
@@ -249,22 +267,22 @@ func (gvcsrepo *GitVCSRepo) Clone(gitCloneOptions VCSCloneOptions) (string, erro
 		}
 		gvcsrepo.GitRepository, err = git.PlainClone(repoPath, false, &cloneOpts)
 		if err != nil {
-			return "", fmt.Errorf("failed to perform clone operation using git with options - %+v", cloneOpts)
+			return "", fmt.Errorf("failed to perform clone operation using git with options %+v. Error : %+v", cloneOpts, err)
 		}
 		r, err := git.PlainOpen(repoPath)
 		if err != nil {
-			return "", fmt.Errorf("failed to open the git repository at the given path %v", repoPath)
+			return "", fmt.Errorf("failed to open the git repository at the given path %+v. Error : %+v", repoPath, err)
 		}
 		w, err := r.Worktree()
 		if err != nil {
-			return "", fmt.Errorf("failed return a worktree for the repostiory %+v", r)
+			return "", fmt.Errorf("failed return a worktree for the repostiory %+v. Error : %+v", r, err)
 		}
 		checkoutOpts := git.CheckoutOptions{
 			Hash: commitHash,
 		}
 		err = w.Checkout(&checkoutOpts)
 		if err != nil {
-			return "", fmt.Errorf("failed to checkout commit hash : %s on work tree : %+v", commitHash, w)
+			return "", fmt.Errorf("failed to checkout commit hash : %s on work tree. Error : %+v", commitHash, w)
 		}
 	} else if gvcsrepo.Tag != "" {
 		cloneOpts := git.CloneOptions{
@@ -273,7 +291,7 @@ func (gvcsrepo *GitVCSRepo) Clone(gitCloneOptions VCSCloneOptions) (string, erro
 		}
 		gvcsrepo.GitRepository, err = git.PlainClone(repoPath, false, &cloneOpts)
 		if err != nil {
-			return "", fmt.Errorf("failed to perform clone operation using git with options - %+v", cloneOpts)
+			return "", fmt.Errorf("failed to perform clone operation using git with options %+v. Error : %+v", cloneOpts, err)
 		}
 	} else {
 		commitDepth := 1
@@ -285,10 +303,9 @@ func (gvcsrepo *GitVCSRepo) Clone(gitCloneOptions VCSCloneOptions) (string, erro
 		}
 		gvcsrepo.GitRepository, err = git.PlainClone(repoPath, false, &cloneOpts)
 		if err != nil {
-			return "", fmt.Errorf("failed to perform clone operation using git with options - %+v", cloneOpts)
+			return "", fmt.Errorf("failed to perform clone operation using git with options %+v. Error : %+v", cloneOpts, err)
 		}
 	}
-
 	return filepath.Join(repoPath, gvcsrepo.PathWithinRepo), nil
 
 }
