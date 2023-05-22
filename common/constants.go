@@ -64,6 +64,8 @@ const (
 	RemoteSourcesFolder = "m2ksources"
 	// RemoteCustomizationsFolder stores remote customizations
 	RemoteCustomizationsFolder = "m2kcustomizations"
+	// RemoteOutputsFolder stores remote outputs
+	RemoteOutputsFolder = "m2koutputs"
 )
 
 const (
@@ -177,6 +179,10 @@ const (
 	ConfigServicesDotNetChildProjectsNamesKey = ConfigServicesKey + d + "%s" + d + "childProjects" + d + Special + d + "enable"
 	// ConfigServicesChildModulesSpringProfilesKey is the list of spring profiles for this child module. 1st arg is service name and 2nd is child module name.
 	ConfigServicesChildModulesSpringProfilesKey = ConfigServicesKey + d + "%s" + d + "childModules" + d + "%s" + d + "springBootProfiles"
+	//VCSKey represents version control system key
+	VCSKey = BaseKey + d + "vcs"
+	//GitKey represents git qa key
+	GitKey = VCSKey + d + "git"
 )
 
 const (

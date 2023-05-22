@@ -77,8 +77,11 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.srcpath, err)
 		}
 	}
-	if flags.outpath, err = filepath.Abs(flags.outpath); err != nil {
-		logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.outpath, err)
+	isRemoteOutPath := vcs.IsRemotePath(flags.outpath)
+	if !isRemoteOutPath {
+		if flags.outpath, err = filepath.Abs(flags.outpath); err != nil {
+			logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.outpath, err)
+		}
 	}
 	// Check if the default customization folder exists in the working directory.
 	// If not, skip the customization option
@@ -127,16 +130,18 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 
 		// Global settings
-		flags.outpath = filepath.Join(flags.outpath, flags.name)
-		checkOutputPath(flags.outpath, flags.overwrite)
-		if flags.srcpath != "" && !isRemotePath {
-			checkSourcePath(flags.srcpath)
-			if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
-				logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
+		if !isRemoteOutPath {
+			flags.outpath = filepath.Join(flags.outpath, flags.name)
+			checkOutputPath(flags.outpath, flags.overwrite)
+			if flags.srcpath != "" && !isRemotePath {
+				checkSourcePath(flags.srcpath)
+				if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
+					logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
+				}
 			}
-		}
-		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
-			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
+			if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
+				logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
+			}
 		}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
@@ -178,13 +183,15 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 			checkSourcePath(transformationPlan.Spec.SourceDir)
 		}
 		lib.CheckAndCopyCustomizations(transformationPlan.Spec.CustomizationsDir)
-		flags.outpath = filepath.Join(flags.outpath, transformationPlan.Name)
-		checkOutputPath(flags.outpath, flags.overwrite)
-		if transformationPlan.Spec.SourceDir != "" && (transformationPlan.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, transformationPlan.Spec.SourceDir) || common.IsParent(transformationPlan.Spec.SourceDir, flags.outpath)) {
-			logrus.Fatalf("The source path %s and output path %s overlap.", transformationPlan.Spec.SourceDir, flags.outpath)
-		}
-		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
-			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
+		if !isRemoteOutPath {
+			flags.outpath = filepath.Join(flags.outpath, transformationPlan.Name)
+			checkOutputPath(flags.outpath, flags.overwrite)
+			if transformationPlan.Spec.SourceDir != "" && (transformationPlan.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, transformationPlan.Spec.SourceDir) || common.IsParent(transformationPlan.Spec.SourceDir, flags.outpath)) {
+				logrus.Fatalf("The source path %s and output path %s overlap.", transformationPlan.Spec.SourceDir, flags.outpath)
+			}
+			if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
+				logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
+			}
 		}
 		startQA(flags.qaflags)
 	}
@@ -216,7 +223,7 @@ func GetTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	transformCmd.Flags().BoolVar(&flags.overwrite, overwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
 	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory or a git url (see https://move2kube.konveyor.io/concepts/git-support) to transform. If you already have a m2k.plan then this will override the sourceDir value specified in that plan.")
-	transformCmd.Flags().StringVarP(&flags.outpath, outputFlag, "o", ".", "Path for output. Default will be directory with the project name.")
+	transformCmd.Flags().StringVarP(&flags.outpath, outputFlag, "o", ".", "Path for output or a git url (see https://move2kube.konveyor.io/concepts/git-support). Default will be directory with the project name.")
 	transformCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
 	transformCmd.Flags().StringVar(&flags.configOut, configOutFlag, ".", "Specify config file output location.")
 	transformCmd.Flags().StringVar(&flags.qaCacheOut, qaCacheOutFlag, ".", "Specify cache file output location.")
