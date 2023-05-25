@@ -54,6 +54,7 @@ type CfCollectAppsSpec struct {
 	CfCollectApps []CfCollectApp   `yaml:"applications,omitempty"`
 }
 
+// CfCollectFilters stores the spaceguid and querydepth to be used to filter while collecting metadata
 type CfCollectFilters struct {
 	SpaceGuid  string `yaml:"spaceguid,omitempty"`
 	QueryDepth string `yaml:"query_depth,omitempty"`
