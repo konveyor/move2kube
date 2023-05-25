@@ -14,18 +14,19 @@
  *  limitations under the License.
  */
 
-package collection_test
+package collector_test
 
 import (
 	"testing"
 
+	collector "github.com/konveyor/move2kube/collector"
+
 	"github.com/konveyor/move2kube/types"
-	"github.com/konveyor/move2kube/types/collection"
 )
 
 func TestNewCfApps(t *testing.T) {
-	cfapps := collection.NewCfApps()
-	if cfapps.Kind != string(collection.CfAppsMetadataKind) || cfapps.APIVersion != types.SchemeGroupVersion.String() {
+	cfapps := collector.NewCfApps()
+	if cfapps.Kind != string(collector.CfAppsMetadataKind) || cfapps.APIVersion != types.SchemeGroupVersion.String() {
 		t.Fatal("Failed to initialize CfApps properly.")
 	}
 }
