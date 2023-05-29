@@ -53,7 +53,7 @@ func isGitCommitHash(commithash string) bool {
 }
 
 func isGitBranch(branch string) bool {
-	gitBranchRegex := regexp.MustCompile(`^(main|development|master|(features|tests|(bug|hot)fix)((\/|-)[a-zA-Z0-9]+([-_][a-zA-Z0-9]+)*){1,2}|release(\/|-)[0-9]+(\.[0-9]+)*(-(alpha|beta|rc)[0-9]*)?)$`)
+	gitBranchRegex := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9\.\-_\/]*$`)
 	return gitBranchRegex.MatchString(branch)
 }
 
