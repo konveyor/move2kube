@@ -1513,3 +1513,27 @@ func writeToTar(w *io.PipeWriter, srcPath, basePath string, compressionType Comp
 	})
 
 }
+
+// JsonifyMapValues converts the map values to json
+func JsonifyMapValues(inputMap map[string]interface{}) map[string]interface{} {
+	for key, value := range inputMap {
+		if value == nil {
+			inputMap[key] = ""
+			continue
+		}
+		if val, ok := value.(string); ok {
+			inputMap[key] = val
+			continue
+		}
+		var b bytes.Buffer
+		encoder := json.NewEncoder(&b)
+		if err := encoder.Encode(value); err != nil {
+			logrus.Error("Unable to unmarshal data to json while converting map interfaces to string")
+			continue
+		}
+		strValue := b.String()
+		strValue = strings.TrimSpace(strValue)
+		inputMap[key] = strValue
+	}
+	return inputMap
+}
