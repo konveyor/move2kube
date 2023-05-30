@@ -149,10 +149,10 @@ func getAppByGuid(client *cfclient.Client, guid string, queryDepth string) (App,
 	return mergeAppResource(client, appResource), nil
 }
 
-func getAppsByNameOrGuid(client *cfclient.Client, path string, query url.Values, collectApps []App, appName string, appGuid string) []App {
+func getAppsByName(client *cfclient.Client, path string, query url.Values, collectApps []App, appName string) []App {
 	apps, err := listApps(client, path, query, -1)
 	if err != nil {
-		logrus.Errorf("Unable to collect the selected cf app %s %s : %s", appName, appGuid, err)
+		logrus.Errorf("Unable to collect the selected cf app %s : %s", appName, err)
 		return collectApps
 	}
 	if len(apps) != 0 {
@@ -160,11 +160,7 @@ func getAppsByNameOrGuid(client *cfclient.Client, path string, query url.Values,
 		return collectApps
 	}
 	cfErr := cfclient.NewAppNotFoundError()
-	if appGuid != "" {
-		logrus.Errorf(fmt.Sprintf(cfErr.Description, appGuid))
-	} else {
-		logrus.Errorf(fmt.Sprintf(cfErr.Description, appName))
-	}
+	logrus.Errorf(fmt.Sprintf(cfErr.Description, appName))
 	return collectApps
 }
 
@@ -187,7 +183,7 @@ func listAppsByNameOrGuid(client *cfclient.Client, path string, cfCollectApps []
 		if appSpec.Name != "" {
 			query := setQueryDepth(queryDepth)
 			query.Add("q", fmt.Sprintf("name:%s", appSpec.Name)) // /v2/apps/ and /v2/spaces/:spaceGuid/apps/ support querying a particular app by AppName
-			collectApps = getAppsByNameOrGuid(client, path, query, collectApps, appSpec.Name, appSpec.Guid)
+			collectApps = getAppsByName(client, path, query, collectApps, appSpec.Name)
 		}
 	}
 	return collectApps
