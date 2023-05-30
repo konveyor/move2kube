@@ -98,13 +98,11 @@ func (c *CfAppsCollector) GetAnnotations() []string {
 // setQueryDepth sets the depth to be used in
 func setQueryDepth(queryDepth string) url.Values {
 	query := url.Values{}
-	if queryDepth != "" {
-		query.Set(inlineDepthRelations, queryDepth)
-		logrus.Debugf("CF collect query depth = %s", queryDepth)
-	} else {
-		query.Set(inlineDepthRelations, depth)
-		logrus.Debugf("CF collect query depth = %s", depth)
+	if queryDepth == "" {
+		queryDepth = depth
 	}
+	query.Set(inlineDepthRelations, queryDepth)
+	logrus.Debugf("CF collect query depth = %s", queryDepth)
 	return query
 }
 
@@ -112,16 +110,17 @@ func setQueryDepth(queryDepth string) url.Values {
 func listAppsBySpaceGuid(client *cfclient.Client, spaceGuid string, queryDepth string, collectApps []App, numCfCollectApps int) (string, []App) {
 	query := setQueryDepth(queryDepth)
 	path := ""
-	if spaceGuid != "" {
-		logrus.Debugf("Detected CF Space guid: %s", spaceGuid)
-		path = fmt.Sprintf("/v2/spaces/%s/apps", spaceGuid)
-		if numCfCollectApps == 0 {
-			apps, err := listApps(client, path, query, -1) // If no CF app is specified in yaml, collect all apps in the provided spaceguid
-			if err != nil {
-				logrus.Errorf("Unable to collect the cf apps from the Space guid %s : %s", spaceGuid, err)
-			} else {
-				collectApps = append(collectApps, apps...)
-			}
+	if spaceGuid == "" {
+		return path, collectApps
+	}
+	logrus.Debugf("Detected CF Space guid: %s", spaceGuid)
+	path = fmt.Sprintf("/v2/spaces/%s/apps", spaceGuid)
+	if numCfCollectApps == 0 {
+		apps, err := listApps(client, path, query, -1) // If no CF app is specified in yaml, collect all apps in the provided spaceguid
+		if err != nil {
+			logrus.Errorf("Unable to collect the cf apps from the Space guid %s : %s", spaceGuid, err)
+		} else {
+			collectApps = append(collectApps, apps...)
 		}
 	}
 	return path, collectApps
@@ -130,7 +129,7 @@ func listAppsBySpaceGuid(client *cfclient.Client, spaceGuid string, queryDepth s
 func getAppByGuid(client *cfclient.Client, guid string, queryDepth string) (App, error) {
 	var appResource AppResource
 	query := setQueryDepth(queryDepth)
-	requestUrl := getRequestUrl("/v2/apps/"+guid, query) // /v2/apps/:appGuid fetches the app with given guid
+	requestUrl := getRequestUrl(listAppsPath+"/"+guid, query) // /v2/apps/:appGuid fetches the app with given guid
 	logrus.Debugf("CF collect queryDepth val = %v", queryDepth)
 	logrus.Debugf("CF collect request URL = %v", requestUrl)
 	r := client.NewRequest("GET", requestUrl)
@@ -154,17 +153,17 @@ func getAppsByNameOrGuid(client *cfclient.Client, path string, query url.Values,
 	apps, err := listApps(client, path, query, -1)
 	if err != nil {
 		logrus.Errorf("Unable to collect the selected cf app %s %s : %s", appName, appGuid, err)
+		return collectApps
+	}
+	if len(apps) != 0 {
+		collectApps = append(collectApps, apps...)
+		return collectApps
+	}
+	cfErr := cfclient.NewAppNotFoundError()
+	if appGuid != "" {
+		logrus.Errorf(fmt.Sprintf(cfErr.Description, appGuid))
 	} else {
-		if len(apps) == 0 {
-			cfErr := cfclient.NewAppNotFoundError()
-			if appGuid != "" {
-				logrus.Errorf(fmt.Sprintf(cfErr.Description, appGuid))
-			} else {
-				logrus.Errorf(fmt.Sprintf(cfErr.Description, appName))
-			}
-		} else {
-			collectApps = append(collectApps, apps...)
-		}
+		logrus.Errorf(fmt.Sprintf(cfErr.Description, appName))
 	}
 	return collectApps
 }
@@ -237,9 +236,9 @@ func collectAllCfApps(client *cfclient.Client, depth string) []App {
 	apps, err := listApps(client, listAppsPath, query, -1)
 	if err != nil {
 		logrus.Errorf("Unable to get list of cf apps : %s", err)
-	} else {
-		collectApps = append(collectApps, apps...)
+		return collectApps
 	}
+	collectApps = append(collectApps, apps...)
 	return collectApps
 }
 
