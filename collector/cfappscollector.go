@@ -181,8 +181,10 @@ func listAppsByNameOrGuid(client *cfclient.Client, path string, cfCollectApps []
 				logrus.Errorf("Unable to collect the app with guid %s %q", appSpec.Guid, err)
 			} else {
 				collectApps = append(collectApps, app)
+				continue
 			}
-		} else if appSpec.Name != "" {
+		}
+		if appSpec.Name != "" {
 			query := setQueryDepth(queryDepth)
 			query.Add("q", fmt.Sprintf("name:%s", appSpec.Name)) // /v2/apps/ and /v2/spaces/:spaceGuid/apps/ support querying a particular app by AppName
 			collectApps = getAppsByNameOrGuid(client, path, query, collectApps, appSpec.Name, appSpec.Guid)
