@@ -26,10 +26,10 @@ import (
 
 	"code.cloudfoundry.org/cli/util/manifest"
 	"github.com/cloudfoundry/bosh-cli/director/template"
+	collector "github.com/konveyor/move2kube/collector"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
 	"github.com/konveyor/move2kube/qaengine"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
@@ -74,15 +74,15 @@ func (t *CloudFoundry) DirectoryDetect(dir string) (map[string][]transformertype
 	}
 	services := map[string][]transformertypes.Artifact{}
 	// Load instance apps, if available
-	cfInstanceApps := map[string][]collecttypes.CfApp{} //path
+	cfInstanceApps := map[string][]collector.CfApp{} //path
 	for _, filePath := range filePaths {
-		fileCfInstanceApps := collecttypes.CfApps{}
+		fileCfInstanceApps := collector.CfApps{}
 		if err := common.ReadMove2KubeYaml(filePath, &fileCfInstanceApps); err != nil {
 			logrus.Debugf("Failed to read the yaml file at path %q Error: %q", filePath, err)
 			continue
 		}
-		if fileCfInstanceApps.Kind != string(collecttypes.CfAppsMetadataKind) {
-			logrus.Debugf("%q is not a valid apps file. Expected kind: %s Actual Kind: %s", filePath, string(collecttypes.CfAppsMetadataKind), fileCfInstanceApps.Kind)
+		if fileCfInstanceApps.Kind != string(collector.CfAppsMetadataKind) {
+			logrus.Debugf("%q is not a valid apps file. Expected kind: %s Actual Kind: %s", filePath, string(collector.CfAppsMetadataKind), fileCfInstanceApps.Kind)
 			continue
 		}
 		cfInstanceApps[filePath] = append(cfInstanceApps[filePath], fileCfInstanceApps.Spec.CfApps...)
@@ -168,7 +168,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 			logrus.Debugf("Unable to get containerization config : %s", err)
 		}
 		ir := irtypes.NewIR()
-		cfinstanceapp := collecttypes.CfApp{}
+		cfinstanceapp := collector.CfApp{}
 		logrus.Debugf("Transforming %s", cfConfig.ServiceName)
 		if runninginstancefile, ok := a.Paths[artifacts.CfRunningManifestPathType]; ok {
 			cfinstanceapp, err = getCfAppInstance(runninginstancefile[0], cfConfig.ServiceName)
@@ -264,7 +264,7 @@ func (t *CloudFoundry) Transform(newArtifacts []transformertypes.Artifact, alrea
 }
 
 // prioritizeAndAddEnvironmentVariables adds relevant environment variables relevant to the application deployment
-func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collecttypes.CfApp,
+func (t *CloudFoundry) prioritizeAndAddEnvironmentVariables(cfApp collector.CfApp,
 	manifestEnvMap map[string]string, secretName string, serviceName string) ([]core.EnvVar, map[string][]byte) {
 	vcapEnvMap := map[string][]byte{}
 	envOrderMap := map[string]core.EnvVar{}
@@ -428,7 +428,7 @@ func getMissingVariables(path string) ([]string, error) {
 	return trimmedvariables, nil
 }
 
-func getCfInstanceApp(fileApps map[string][]collecttypes.CfApp, name string) (string, collecttypes.CfApp) {
+func getCfInstanceApp(fileApps map[string][]collector.CfApp, name string) (string, collector.CfApp) {
 	for path, apps := range fileApps {
 		for _, app := range apps {
 			if app.Application.Name == name {
@@ -436,18 +436,18 @@ func getCfInstanceApp(fileApps map[string][]collecttypes.CfApp, name string) (st
 			}
 		}
 	}
-	return "", collecttypes.CfApp{}
+	return "", collector.CfApp{}
 }
 
-func getCfAppInstance(path string, appname string) (collecttypes.CfApp, error) {
-	cfinstanceappsfile := collecttypes.CfApps{}
+func getCfAppInstance(path string, appname string) (collector.CfApp, error) {
+	cfinstanceappsfile := collector.CfApps{}
 	if err := common.ReadMove2KubeYaml(path, &cfinstanceappsfile); err != nil {
-		return collecttypes.CfApp{}, err
+		return collector.CfApp{}, err
 	}
 	for _, app := range cfinstanceappsfile.Spec.CfApps {
 		if app.Application.Name == appname {
 			return app, nil
 		}
 	}
-	return collecttypes.CfApp{}, fmt.Errorf("failed to find the app %s in the cf apps file at path %s", appname, path)
+	return collector.CfApp{}, fmt.Errorf("failed to find the app %s in the cf apps file at path %s", appname, path)
 }
