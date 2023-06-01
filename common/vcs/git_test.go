@@ -165,3 +165,44 @@ func TestClone(t *testing.T) {
 	}
 
 }
+
+func TestIsGitBranch(t *testing.T) {
+	testCases := []struct {
+		branchName  string
+		expected    bool
+		explanation string
+	}{
+		{
+			branchName: "main",
+			expected:   true,
+		},
+		{
+			branchName: "123branchName",
+			expected:   false,
+		},
+		{
+			branchName: "feature/branchName#1",
+			expected:   false,
+		},
+		{
+			branchName: "feature/branchName_1",
+			expected:   true,
+		},
+		{
+			branchName: "",
+			expected:   false,
+		},
+		{
+			branchName: "$develop",
+			expected:   false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		isValidBranchName := isGitBranch(testCase.branchName)
+		if isValidBranchName != testCase.expected {
+			t.Errorf("failed branch %s isValid = %t, but got = %t\n", testCase.branchName, testCase.expected, isValidBranchName)
+		}
+	}
+
+}
