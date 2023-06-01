@@ -168,9 +168,8 @@ func TestClone(t *testing.T) {
 
 func TestIsGitBranch(t *testing.T) {
 	testCases := []struct {
-		branchName  string
-		expected    bool
-		explanation string
+		branchName string
+		expected   bool
 	}{
 		{
 			branchName: "main",
