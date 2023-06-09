@@ -83,7 +83,7 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 		if container.Build.ContainerBuildType == irtypes.DockerfileContainerBuildType {
 			_, repoDir, _, gitRepoURL, branchName, err := common.GatherGitInfo(container.Build.ContextPath)
 			if err != nil {
-				logrus.Debugf("failed to identify the git repo in the directory '%s' . Error: %q", container.Build.ContextPath, err)
+				logrus.Debugf("failed to find a git repo at the path '%s' . Error: %q", container.Build.ContextPath, err)
 			}
 			cloneTaskName := fmt.Sprintf("clone-%d", containerIndex)
 			if gitRepoURL == "" {

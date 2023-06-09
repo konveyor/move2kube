@@ -269,6 +269,7 @@ func (t *Tekton) setupEnhancedIR(oldir irtypes.IR, name string) irtypes.Enhanced
 		}
 		_, _, gitRepoHostName, gitRepoURL, _, err := common.GatherGitInfo(container.Build.ContextPath)
 		if err != nil {
+			logrus.Debugf("failed to gather git info. Error: %q", err)
 			if gitRepoURL != "" {
 				logrus.Warnf("Failed to parse git repo url %q Error: %q", gitRepoURL, err)
 			}

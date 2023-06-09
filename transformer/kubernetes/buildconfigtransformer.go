@@ -188,7 +188,10 @@ func (t *BuildConfig) setupEnhancedIR(oldir irtypes.IR, planName string) irtypes
 			continue
 		}
 		imageStreamName, imageStreamTag := new(apiresource.ImageStream).GetImageStreamNameAndTag(imageName)
-		_, _, gitHostName, gitURL, _, _ := common.GatherGitInfo(irContainer.Build.ContextPath)
+		_, _, gitHostName, gitURL, _, err := common.GatherGitInfo(irContainer.Build.ContextPath)
+		if err != nil {
+			logrus.Debugf("failed to gather git info. Error: %q", err)
+		}
 		if gitURL == "" {
 			// No git repo. Create build config and secrets anyway with placeholders.
 			gitDomain := "generic"
