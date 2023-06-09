@@ -18,13 +18,13 @@ package ir
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/common"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
 )
@@ -246,7 +246,7 @@ func TestIR(t *testing.T) {
 
 	t.Run("test for merging IRs", func(t *testing.T) {
 
-		iryaml, err := ioutil.ReadFile("./testdata/ir.yaml")
+		iryaml, err := os.ReadFile("./testdata/ir.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -260,7 +260,7 @@ func TestIR(t *testing.T) {
 			return
 		}
 
-		newiryaml, err := ioutil.ReadFile("./testdata/newir.yaml")
+		newiryaml, err := os.ReadFile("./testdata/newir.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -274,7 +274,7 @@ func TestIR(t *testing.T) {
 			return
 		}
 
-		mergediryaml, err := ioutil.ReadFile("./testdata/mergedir.yaml")
+		mergediryaml, err := os.ReadFile("./testdata/mergedir.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -307,7 +307,7 @@ func TestIR(t *testing.T) {
 	})
 
 	t.Run("test for merging containers images", func(t *testing.T) {
-		conimageyaml, err := ioutil.ReadFile("./testdata/conimage.yaml")
+		conimageyaml, err := os.ReadFile("./testdata/conimage.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -321,7 +321,7 @@ func TestIR(t *testing.T) {
 			return
 		}
 
-		newconimageyaml, err := ioutil.ReadFile("./testdata/newconimage.yaml")
+		newconimageyaml, err := os.ReadFile("./testdata/newconimage.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -337,7 +337,7 @@ func TestIR(t *testing.T) {
 
 		conimage.Merge(newconimage)
 
-		mergedconimageyaml, err := ioutil.ReadFile("./testdata/mergedconimage.yaml")
+		mergedconimageyaml, err := os.ReadFile("./testdata/mergedconimage.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -358,7 +358,7 @@ func TestIR(t *testing.T) {
 	})
 
 	t.Run("test for merging containerbuilds", func(t *testing.T) {
-		conbuildyaml, err := ioutil.ReadFile("./testdata/conbuild.yaml")
+		conbuildyaml, err := os.ReadFile("./testdata/conbuild.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -372,7 +372,7 @@ func TestIR(t *testing.T) {
 			return
 		}
 
-		newconbuildyaml, err := ioutil.ReadFile("./testdata/newconbuild.yaml")
+		newconbuildyaml, err := os.ReadFile("./testdata/newconbuild.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -388,7 +388,7 @@ func TestIR(t *testing.T) {
 
 		conbuild.Merge(newconbuild)
 
-		mergedconbuildyaml, err := ioutil.ReadFile("./testdata/mergedconbuild.yaml")
+		mergedconbuildyaml, err := os.ReadFile("./testdata/mergedconbuild.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -409,7 +409,7 @@ func TestIR(t *testing.T) {
 	})
 
 	t.Run("test for merging services", func(t *testing.T) {
-		serviceyaml, err := ioutil.ReadFile("./testdata/service.yaml")
+		serviceyaml, err := os.ReadFile("./testdata/service.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -422,7 +422,7 @@ func TestIR(t *testing.T) {
 			return
 		}
 
-		newserviceyaml, err := ioutil.ReadFile("./testdata/nservice.yaml")
+		newserviceyaml, err := os.ReadFile("./testdata/nservice.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
@@ -436,7 +436,7 @@ func TestIR(t *testing.T) {
 		}
 		service.merge(newservice)
 
-		mergedserviceyaml, err := ioutil.ReadFile("./testdata/merged_service.yaml")
+		mergedserviceyaml, err := os.ReadFile("./testdata/merged_service.yaml")
 		if err != nil {
 			fmt.Println("Failed to read YAML file:", err)
 			return
