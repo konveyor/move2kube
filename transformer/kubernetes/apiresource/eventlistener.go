@@ -20,7 +20,7 @@ import (
 	"github.com/konveyor/move2kube/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
+	triggersv1beta1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -51,21 +51,21 @@ func (el *EventListener) createNewResources(ir irtypes.EnhancedIR, supportedKind
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
-func (el *EventListener) createNewResource(ireventlistener irtypes.EventListener, targetCluster collecttypes.ClusterMetadata) *triggersv1alpha1.EventListener {
-	eventListener := new(triggersv1alpha1.EventListener)
+func (el *EventListener) createNewResource(ireventlistener irtypes.EventListener, targetCluster collecttypes.ClusterMetadata) *triggersv1beta1.EventListener {
+	eventListener := new(triggersv1beta1.EventListener)
 	eventListener.TypeMeta = metav1.TypeMeta{
 		Kind:       eventListenerKind,
-		APIVersion: triggersv1alpha1.SchemeGroupVersion.String(),
+		APIVersion: triggersv1beta1.SchemeGroupVersion.String(),
 	}
 	eventListener.ObjectMeta = metav1.ObjectMeta{Name: ireventlistener.Name}
-	eventListener.Spec = triggersv1alpha1.EventListenerSpec{
+	eventListener.Spec = triggersv1beta1.EventListenerSpec{
 		ServiceAccountName: ireventlistener.ServiceAccountName,
-		Triggers: []triggersv1alpha1.EventListenerTrigger{
+		Triggers: []triggersv1beta1.EventListenerTrigger{
 			{
-				Bindings: []*triggersv1alpha1.EventListenerBinding{
+				Bindings: []*triggersv1beta1.EventListenerBinding{
 					{Ref: ireventlistener.TriggerBindingName},
 				},
-				Template: &triggersv1alpha1.EventListenerTemplate{
+				Template: &triggersv1beta1.EventListenerTemplate{
 					Ref: &ireventlistener.TriggerTemplateName,
 				},
 			},
