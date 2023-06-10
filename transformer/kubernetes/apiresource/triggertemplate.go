@@ -22,7 +22,7 @@ import (
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
+	triggersv1beta1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +56,7 @@ func (tt *TriggerTemplate) createNewResources(ir irtypes.EnhancedIR, supportedKi
 	return objs
 }
 
-func (*TriggerTemplate) createNewResource(tt irtypes.TriggerTemplate, ir irtypes.EnhancedIR) *triggersv1alpha1.TriggerTemplate {
+func (*TriggerTemplate) createNewResource(tt irtypes.TriggerTemplate, ir irtypes.EnhancedIR) *triggersv1beta1.TriggerTemplate {
 	registryURL := commonqa.ImageRegistry()
 	registryNamespace := commonqa.ImageRegistryNamespace()
 
@@ -89,15 +89,15 @@ func (*TriggerTemplate) createNewResource(tt irtypes.TriggerTemplate, ir irtypes
 	}
 
 	// trigger template
-	triggerTemplate := new(triggersv1alpha1.TriggerTemplate)
+	triggerTemplate := new(triggersv1beta1.TriggerTemplate)
 	triggerTemplate.TypeMeta = metav1.TypeMeta{
 		Kind:       triggerTemplateKind,
-		APIVersion: triggersv1alpha1.SchemeGroupVersion.String(),
+		APIVersion: triggersv1beta1.SchemeGroupVersion.String(),
 	}
 	triggerTemplate.ObjectMeta = metav1.ObjectMeta{Name: tt.Name}
 
-	triggerTemplate.Spec = triggersv1alpha1.TriggerTemplateSpec{
-		ResourceTemplates: []triggersv1alpha1.TriggerResourceTemplate{
+	triggerTemplate.Spec = triggersv1beta1.TriggerTemplateSpec{
+		ResourceTemplates: []triggersv1beta1.TriggerResourceTemplate{
 			{
 				RawExtension: runtime.RawExtension{Object: pipelineRun},
 			},
