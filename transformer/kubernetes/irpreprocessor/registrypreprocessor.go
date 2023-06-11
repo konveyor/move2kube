@@ -138,8 +138,7 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 		}
 		quesKey := fmt.Sprintf(common.ConfigImageRegistryLoginTypeKey, `"`+registry+`"`)
 		desc := fmt.Sprintf("[%s] What type of container registry login do you want to use?", registry)
-		hints := []string{"Docker login from config mode, will use the default config from your local machine."}
-		auth := qaengine.FetchSelectAnswer(quesKey, desc, hints, string(defaultOption), authOptions, nil)
+		auth := qaengine.FetchSelectAnswer(quesKey, desc, nil, string(defaultOption), authOptions, nil)
 		createPullSecret := false
 		switch registryLoginOption(auth) {
 		case noLogin:
@@ -147,7 +146,16 @@ func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 			delete(imagePullSecrets, registry)
 		case existingPullSecretLogin:
 			qaKey := fmt.Sprintf(common.ConfigImageRegistryPullSecretKey, `"`+registry+`"`)
-			ps := qaengine.FetchStringAnswer(qaKey, fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry), []string{"The pull secret should exist in the namespace where you will be deploying the application."}, "", nil)
+			ps := qaengine.FetchStringAnswer(
+				qaKey,
+				fmt.Sprintf("[%s] Enter the name of the pull secret : ", registry),
+				[]string{"The pull secret should exist in the namespace where you will be deploying the application."},
+				"",
+				nil,
+			)
+			if ps == "" {
+				logrus.Errorf("the given pull secret name is empty. You will need to fix this in the YAMLs")
+			}
 			imagePullSecrets[registry] = ps
 		case usernamePasswordLogin:
 			createPullSecret = true
