@@ -145,6 +145,16 @@ const (
 	ConfigTargetClusterTypeKey = ConfigTargetKey + d + "clustertype"
 	//ConfigImageRegistryKey represents image registry Key
 	ConfigImageRegistryKey = ConfigTargetKey + d + "imageregistry"
+	// ConfigCICDKey is for CICD related questions
+	ConfigCICDKey = ConfigTargetKey + d + "cicd"
+	// ConfigCICDTektonKey is for CICD Tekton pipelines
+	ConfigCICDTektonKey = ConfigCICDKey + d + "tekton"
+	// ConfigCICDTektonGitRepoSSHSecretNameKey is for Tekton git-clone ssh
+	ConfigCICDTektonGitRepoSSHSecretNameKey = ConfigCICDTektonKey + d + "gitreposshsecret"
+	// ConfigCICDTektonGitRepoBasicAuthSecretNameKey is for Tekton git-clone basic auth
+	ConfigCICDTektonGitRepoBasicAuthSecretNameKey = ConfigCICDTektonKey + d + "gitrepobasicauthsecret"
+	// ConfigCICDTektonRegistryPushSecretNameKey is for Tekton push image to registry credentials
+	ConfigCICDTektonRegistryPushSecretNameKey = ConfigCICDTektonKey + d + "registrypushsecret"
 	//ConfigTargetExistingVersionUpdate represents key which how to update versions
 	ConfigTargetExistingVersionUpdate = ConfigTargetKey + d + "existingversionupdate"
 	//ConfigImageRegistryURLKey represents image registry url Key

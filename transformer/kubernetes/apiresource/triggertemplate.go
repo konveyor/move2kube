@@ -18,6 +18,7 @@ package apiresource
 
 import (
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/qaengine"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
@@ -87,7 +88,51 @@ func (*TriggerTemplate) createNewResource(tt irtypes.TriggerTemplate, ir irtypes
 			{Name: "image-registry-url", Value: v1beta1.ArrayOrString{Type: "string", StringVal: registryURL + "/" + registryNamespace}},
 		},
 	}
-
+	gitRepoSSHSecretName := qaengine.FetchStringAnswer(
+		common.ConfigCICDTektonGitRepoSSHSecretNameKey,
+		"Enter the name of an existing K8s secret that has ssh credentials for cloning the git repo",
+		[]string{"If this is not relevant to you then give an empty string to remove it from the YAML."},
+		"",
+		nil,
+	)
+	if gitRepoSSHSecretName != "" {
+		pipelineRun.Spec.Workspaces = append(pipelineRun.Spec.Workspaces, v1beta1.WorkspaceBinding{
+			Name: gitRepoSSHCredsWorkspace,
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: gitRepoSSHSecretName,
+			},
+		})
+	}
+	gitRepoBasicAuthSecretName := qaengine.FetchStringAnswer(
+		common.ConfigCICDTektonGitRepoBasicAuthSecretNameKey,
+		"Enter the name of an existing K8s secret that has username and password for cloning the git repo",
+		[]string{"If this is not relevant to you then give an empty string to remove it from the YAML."},
+		"",
+		nil,
+	)
+	if gitRepoBasicAuthSecretName != "" {
+		pipelineRun.Spec.Workspaces = append(pipelineRun.Spec.Workspaces, v1beta1.WorkspaceBinding{
+			Name: gitRepoBasicAuthCredsWorkspace,
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: gitRepoBasicAuthSecretName,
+			},
+		})
+	}
+	imageRegistryAuthSecretName := qaengine.FetchStringAnswer(
+		common.ConfigCICDTektonRegistryPushSecretNameKey,
+		"Enter the name of an existing K8s secret that has Docker config.json for pushing images to the registry",
+		[]string{"If this is not relevant to you then give an empty string to remove it from the YAML."},
+		"",
+		nil,
+	)
+	if imageRegistryAuthSecretName != "" {
+		pipelineRun.Spec.Workspaces = append(pipelineRun.Spec.Workspaces, v1beta1.WorkspaceBinding{
+			Name: registryCredsWorkspace,
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: imageRegistryAuthSecretName,
+			},
+		})
+	}
 	// trigger template
 	triggerTemplate := new(triggersv1beta1.TriggerTemplate)
 	triggerTemplate.TypeMeta = metav1.TypeMeta{

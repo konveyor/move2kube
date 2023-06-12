@@ -19,6 +19,7 @@ package apiresource
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/konveyor/move2kube/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -30,11 +31,15 @@ import (
 )
 
 const (
-	pipelineKind              = "Pipeline"
-	defaultGitRepoBranch      = "main"
-	gitRepoURLPlaceholder     = "<TODO: insert git repo url>"
-	contextPathPlaceholder    = "<TODO: insert path to the directory containing Dockerfile>"
-	dockerfilePathPlaceholder = "<TODO: insert path to the Dockerfile>"
+	pipelineKind                   = "Pipeline"
+	defaultGitRepoBranch           = "main"
+	gitRepoURLPlaceholder          = "<TODO: insert git repo url>"
+	contextPathPlaceholder         = "<TODO: insert path to the directory containing Dockerfile>"
+	dockerfilePathPlaceholder      = "<TODO: insert path to the Dockerfile>"
+	dirInsideGitRepoPlaceholder    = "<TODO: fill this prefix starting from the root of the git repo>"
+	gitRepoSSHCredsWorkspace       = "git-ssh-credentials"
+	gitRepoBasicAuthCredsWorkspace = "git-basic-auth-credentials"
+	registryCredsWorkspace         = "registry-credentials"
 )
 
 // Pipeline handles all objects like a Tekton pipeline.
@@ -69,12 +74,21 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 		{Name: "image-registry-url", Description: "registry-domain/namespace where the output image should be pushed.", Type: v1beta1.ParamTypeString},
 	}
 	pipeline.Spec.Workspaces = []v1beta1.PipelineWorkspaceDeclaration{
-		{Name: irpipeline.WorkspaceName, Description: "This workspace will receive the cloned git repo and be passed to the kaniko task for building the image."},
+		{
+			Name:        irpipeline.WorkspaceName,
+			Description: "This workspace will receive the cloned git repo and be passed to the kaniko task for building the image.",
+		},
+		{
+			Name:        registryCredsWorkspace,
+			Description: "This workspace provides the credentials (Docker config.json) for pushing images to the registry. See https://hub.tekton.dev/tekton/task/kaniko",
+		},
 	}
 	tasks := []v1beta1.PipelineTask{}
 	firstTask := true
 	prevTaskName := ""
 	containerIndex := 0
+	gitNeedsSSHCreds := false
+	gitNeedsBasicAuthCreds := false
 	for imageName, container := range ir.ContainerImages {
 		if container.Build.ContainerBuildType == "" {
 			continue
@@ -105,6 +119,19 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 					{Name: "deleteExisting", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: "true"}},
 				},
 			}
+			if gitRepoURL == gitRepoURLPlaceholder || strings.HasPrefix(gitRepoURL, "git@") {
+				gitNeedsSSHCreds = true
+				cloneTask.Workspaces = append(
+					cloneTask.Workspaces,
+					v1beta1.WorkspacePipelineTaskBinding{Name: "ssh-directory", Workspace: gitRepoSSHCredsWorkspace},
+				)
+			} else if strings.HasPrefix(gitRepoURL, "https://") {
+				gitNeedsBasicAuthCreds = true
+				cloneTask.Workspaces = append(
+					cloneTask.Workspaces,
+					v1beta1.WorkspacePipelineTaskBinding{Name: "basic-auth", Workspace: gitRepoBasicAuthCredsWorkspace},
+				)
+			}
 			if !firstTask {
 				cloneTask.RunAfter = []string{prevTaskName}
 			}
@@ -113,21 +140,54 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 			dockerfilePath := dockerfilePathPlaceholder
 			contextPath := contextPathPlaceholder
 			// If there is a git repo, set the correct context and dockerfile paths.
-			if repoDir != "" {
+			if repoDir == "" {
+				logrus.Debugf("no git repo found for directory '%s'", container.Build.ContextPath)
 				if len(container.Build.Artifacts) != 0 && len(container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue]) != 0 {
-					relDFPath, err := filepath.Rel(repoDir, container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue][0])
-					if err != nil {
-						logrus.Errorf(
-							"failed to make the Dockerfile path '%s' relative to the path '%s' . Error %q",
-							repoDir, container.Build.ContextPath, err,
+					t1DockerfilePath := container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue][0]
+					if len(container.Build.Artifacts[irtypes.RelDockerfileContainerBuildArtifactTypeValue]) != 0 {
+						t1RelDockerfilePath := container.Build.Artifacts[irtypes.RelDockerfileContainerBuildArtifactTypeValue][0]
+						logrus.Debugf(
+							"found some Dockerfile paths: t1DockerfilePath: '%s' t1RelDockerfilePath: '%s'", t1DockerfilePath, t1RelDockerfilePath,
 						)
+						{
+							// remove "source/" from "source/<service name>/Dockerfile"
+							ps := strings.Split(t1RelDockerfilePath, "/")
+							if len(ps) >= 2 && ps[0] == common.DefaultSourceDir {
+								t1RelDockerfilePath = strings.Join(ps[1:], "/")
+							}
+						}
+						dockerfilePath = dirInsideGitRepoPlaceholder + "/" + t1RelDockerfilePath
+					}
+					if len(container.Build.Artifacts[irtypes.RelDockerfileContextContainerBuildArtifactTypeValue]) != 0 {
+						t1RelDockerfileContextPath := container.Build.Artifacts[irtypes.RelDockerfileContextContainerBuildArtifactTypeValue][0]
+						logrus.Debugf(
+							"found some Dockerfile context paths: container.Build.ContextPath: '%s' t1RelDockerfileContextPath: '%s'",
+							container.Build.ContextPath, t1RelDockerfileContextPath,
+						)
+						{
+							// remove "source/" from "source/<service name>"
+							ps := strings.Split(t1RelDockerfileContextPath, "/")
+							if len(ps) >= 2 && ps[0] == common.DefaultSourceDir {
+								t1RelDockerfileContextPath = strings.Join(ps[1:], "/")
+							}
+						}
+						contextPath = dirInsideGitRepoPlaceholder + "/" + t1RelDockerfileContextPath
+					}
+				}
+			} else {
+				if len(container.Build.Artifacts) != 0 && len(container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue]) != 0 {
+					logrus.Debugf("found a repo directory: '%s'", repoDir)
+					t1DockerfilePath := container.Build.Artifacts[irtypes.DockerfileContainerBuildArtifactTypeValue][0]
+					relDFPath, err := filepath.Rel(repoDir, t1DockerfilePath)
+					if err != nil {
+						logrus.Errorf("failed to make the Dockerfile path '%s' relative to the repo directory '%s' . Error %q", t1DockerfilePath, repoDir, err)
 					} else {
 						dockerfilePath = relDFPath
 					}
 				}
 				relContextPath, err := filepath.Rel(repoDir, container.Build.ContextPath)
 				if err != nil {
-					logrus.Errorf("Failed to make the path %q relative to the path %q Error %q", repoDir, container.Build.ContextPath, err)
+					logrus.Errorf("failed to make the path '%s' relative to the repo directory '%s' Error %q", container.Build.ContextPath, repoDir, err)
 				} else {
 					if dockerfilePath == dockerfilePathPlaceholder {
 						dockerfilePath = filepath.Join(relContextPath, common.DefaultDockerfileName)
@@ -141,9 +201,10 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 			buildPushTask := v1beta1.PipelineTask{
 				RunAfter: []string{cloneTaskName},
 				Name:     buildPushTaskName,
-				TaskRef:  &v1beta1.TaskRef{Name: "kaniko"},
+				TaskRef:  &v1beta1.TaskRef{Name: "kaniko"}, // https://hub.tekton.dev/tekton/task/kaniko
 				Workspaces: []v1beta1.WorkspacePipelineTaskBinding{
 					{Name: "source", Workspace: irpipeline.WorkspaceName},
+					{Name: "dockerconfig", Workspace: registryCredsWorkspace},
 				},
 				Params: []v1beta1.Param{
 					{Name: "IMAGE", Value: v1beta1.ArrayOrString{Type: v1beta1.ParamTypeString, StringVal: "$(params.image-registry-url)/" + imageName}},
@@ -163,6 +224,22 @@ func (*Pipeline) createNewResource(irpipeline irtypes.Pipeline, ir irtypes.Enhan
 		} else {
 			logrus.Errorf("Unknown containerization method: %v", container.Build.ContainerBuildType)
 		}
+	}
+	if gitNeedsSSHCreds {
+		pipeline.Spec.Workspaces = append(pipeline.Spec.Workspaces,
+			v1beta1.PipelineWorkspaceDeclaration{
+				Name:        gitRepoSSHCredsWorkspace,
+				Description: "This workspace provides the credentials (ssh private key) for cloning the git repo. See https://hub.tekton.dev/tekton/task/git-clone",
+			},
+		)
+	}
+	if gitNeedsBasicAuthCreds {
+		pipeline.Spec.Workspaces = append(pipeline.Spec.Workspaces,
+			v1beta1.PipelineWorkspaceDeclaration{
+				Name:        gitRepoBasicAuthCredsWorkspace,
+				Description: "This workspace provides the credentials (username and password) for cloning the git repo. See https://hub.tekton.dev/tekton/task/git-clone",
+			},
+		)
 	}
 	pipeline.Spec.Tasks = tasks
 	return pipeline

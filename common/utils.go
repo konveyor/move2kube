@@ -1266,7 +1266,7 @@ func GatherGitInfo(path string) (repoName, repoDir, repoHostName, repoURL, repoB
 	if err != nil {
 		return "", "", "", "", "", fmt.Errorf("failed to parse the remote host url '%s' . Error: %w", u, err)
 	}
-	logrus.Errorf("parsed normal case - giturl: %#v", giturl)
+	logrus.Debugf("parsed normal case - giturl: %#v", giturl)
 	repoHostName = giturl.Host
 	repoName = filepath.Base(giturl.Path)
 	repoName = strings.TrimSuffix(repoName, filepath.Ext(repoName))
