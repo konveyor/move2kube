@@ -796,11 +796,11 @@ func getArtifactsToProcess(
 			}
 		}
 		if !selected {
-			logrus.Debug("transformer was not selected")
+			logrus.Debugf("the transformer labels %#v was not selected by the 'ProcessWith' field of the artifact: %#v", tConfig.Labels, newArtifact.ProcessWith)
 			artifactsToNotProcess = append(artifactsToNotProcess, newArtifact)
 			continue
 		}
-		logrus.Debug("transformer was selected")
+		logrus.Debug("the transformer matches the 'ProcessWith' field of the artifact")
 		if processSpec.Merge {
 			artifactsToProcess = mergeArtifacts(append(artifactsToProcess, updatedArtifacts(allArtifacts, newArtifact)...))
 		} else {
