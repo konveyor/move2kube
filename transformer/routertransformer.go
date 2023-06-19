@@ -56,8 +56,7 @@ func (t *Router) Init(tc transformertypes.Transformer, env *environment.Environm
 	t.RouterConfig = &RouterYamlConfig{}
 	err = common.GetObjFromInterface(t.Config.Spec.Config, &t.RouterConfig)
 	if err != nil {
-		logrus.Errorf("unable to load config for Transformer %+v into %T : %s", t.Config.Spec.Config, t.RouterConfig, err)
-		return err
+		return fmt.Errorf("failed to load config for Transformer %+v into %T . Error: %w", t.Config.Spec.Config, t.RouterConfig, err)
 	}
 	return nil
 }
@@ -77,7 +76,7 @@ func (t *Router) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 	artifactsCreated := []transformertypes.Artifact{}
 	filters, err := metav1.LabelSelectorAsSelector(&t.RouterConfig.TransformerSelector)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get transformer selector. Error: %q", err)
+		return nil, nil, fmt.Errorf("failed to get transformer selector. Error: %w", err)
 	}
 	transformers := GetInitializedTransformersF(filters)
 	transformerNames := []string{}
@@ -86,35 +85,35 @@ func (t *Router) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 		transformerNames = append(transformerNames, c.Name)
 	}
 	if len(transformerNames) == 0 {
-		return nil, nil, fmt.Errorf("no transformers to choose for router %s", t.Config.Name)
+		return nil, nil, fmt.Errorf("no transformers to choose for router '%s'", t.Config.Name)
 	}
 	for _, newArtifact := range newArtifacts {
 		filledID, err := t.GetStringFromTemplate(t.RouterConfig.RouterQuestion.ID, newArtifact)
 		if err != nil {
-			logrus.Errorf("failed to get full string for ID %s . Error: %q", t.RouterConfig.RouterQuestion.ID, err)
+			logrus.Errorf("failed to get full string for ID '%s' . Error: %q", t.RouterConfig.RouterQuestion.ID, err)
 			continue
 		}
 		filledDesc, err := t.GetStringFromTemplate(t.RouterConfig.RouterQuestion.Desc, newArtifact)
 		if err != nil {
-			logrus.Errorf("failed to get full string for Desc %s . Error: %q", t.RouterConfig.RouterQuestion.Desc, err)
+			logrus.Errorf("failed to get full string for Desc '%s' . Error: %q", t.RouterConfig.RouterQuestion.Desc, err)
 			continue
 		}
 		filledHints := []string{}
 		for _, hint := range t.RouterConfig.RouterQuestion.Hints {
 			filledHint, err := t.GetStringFromTemplate(hint, newArtifact)
 			if err != nil {
-				logrus.Errorf("Unable to get full string for Hint %s . Error: %q", hint, err)
+				logrus.Errorf("failed to get full string for Hint '%s' . Error: %q", hint, err)
 				continue
 			}
 			filledHints = append(filledHints, filledHint)
 		}
-		logrus.Debugf("Using %s router to route %s artifact between %+v", t.Config.Name, newArtifact.Type, transformerNames)
+		logrus.Debugf("using the '%s' router to route the '%s' artifact between the following transformers: %+v", t.Config.Name, newArtifact.Type, transformerNames)
 		transformerName := qaengine.FetchSelectAnswer(filledID, filledDesc, filledHints, transformerNames[0], transformerNames, nil)
-		newArtifact.ProcessWith.MatchExpressions = []metav1.LabelSelectorRequirement{{
-			Key:      transformertypes.LabelName,
-			Operator: metav1.LabelSelectorOpIn,
-			Values:   []string{transformerName},
-		}}
+		logrus.Debugf("routing to the transformer named '%s'", transformerName)
+		if newArtifact.ProcessWith.MatchLabels == nil {
+			newArtifact.ProcessWith.MatchLabels = map[string]string{}
+		}
+		newArtifact.ProcessWith.MatchLabels[transformertypes.LabelName] = transformerName
 		artifactsCreated = append(artifactsCreated, newArtifact)
 	}
 	return nil, artifactsCreated, nil
@@ -125,13 +124,11 @@ func (t *Router) GetStringFromTemplate(templateString string, artifact transform
 	// To ensure we use the artifact json struct tags instead of artifact property names
 	objJSONBytes, err := json.Marshal(artifact)
 	if err != nil {
-		logrus.Errorf("Error while marshalling object %+v to json. Error: %q", artifact, err)
-		return templateString, err
+		return templateString, fmt.Errorf("failed to marshal the object %+v to json. Error: %w", artifact, err)
 	}
 	var jsonObj interface{}
 	if err := yaml.Unmarshal(objJSONBytes, &jsonObj); err != nil {
-		logrus.Errorf("Unable to unmarshal the json as yaml:\n%s\nError: %q", objJSONBytes, err)
-		return templateString, err
+		return templateString, fmt.Errorf("failed to unmarshal the json as yaml. Error: %w Actual: %s", err, objJSONBytes)
 	}
 	return common.GetStringFromTemplate(templateString, jsonObj)
 }
