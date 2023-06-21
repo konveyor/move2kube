@@ -641,12 +641,10 @@ func GetStringFromTemplate(tpl string, config interface{}) (string, error) {
 	var tplbuffer bytes.Buffer
 	packageTemplate, err := template.New("").Funcs(sprig.TxtFuncMap()).Parse(tpl)
 	if err != nil {
-		logrus.Errorf("Unable to parse template : %s", err)
-		return "", err
+		return "", fmt.Errorf("failed to parse the template. Error: %w", err)
 	}
-	err = packageTemplate.Execute(&tplbuffer, config)
-	if err != nil {
-		return "", fmt.Errorf("unable to transform template to string using the data. Error: %q . Data: %+v Template: %q", err, config, tpl)
+	if err := packageTemplate.Execute(&tplbuffer, config); err != nil {
+		return "", fmt.Errorf("failed to transform the template to string using the data. Error: %w . Data: %+v Template: '%s'", err, config, tpl)
 	}
 	return tplbuffer.String(), nil
 }
