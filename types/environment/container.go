@@ -34,6 +34,7 @@ type Container struct {
 
 // ImageBuild stores container build information
 type ImageBuild struct {
-	Dockerfile string `yaml:"dockerfile"` // Default : Look for Dockerfile in the same folder
-	Context    string `yaml:"context"`    // Default : Same folder as the yaml
+	ForceRebuild bool   `yaml:"forceRebuild"` // Force rebuild the image even if it exists
+	Dockerfile   string `yaml:"dockerfile"`   // Default : Look for Dockerfile in the same folder
+	Context      string `yaml:"context"`      // Default : Same folder as the yaml
 }

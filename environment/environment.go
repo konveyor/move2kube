@@ -91,7 +91,7 @@ func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr) (env *Environment,
 	if !common.IsPresent(envInfo.EnvPlatformConfig.Platforms, runtime.GOOS) && envInfo.EnvPlatformConfig.Container.Image == "" {
 		return nil, fmt.Errorf("platform '%s' is not supported", runtime.GOOS)
 	}
-	c := envInfo.EnvPlatformConfig.Container
+	containerInfo := envInfo.EnvPlatformConfig.Container
 	tempPath, err := os.MkdirTemp(common.TempPath, "environment-"+envInfo.Name+"-*")
 	if err != nil {
 		return env, fmt.Errorf("failed to create the temporary directory. Error: %w", err)
@@ -103,14 +103,14 @@ func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr) (env *Environment,
 		TempPathsMap: map[string]string{},
 		active:       true,
 	}
-	if c.Image == "" {
+	if containerInfo.Image == "" {
 		env.Env, err = NewLocal(envInfo, grpcQAReceiver)
 		if err != nil {
 			return env, fmt.Errorf("failed to create the local environment. Error: %w", err)
 		}
 		return env, nil
 	}
-	envVariableName := common.MakeStringEnvNameCompliant(c.Image)
+	envVariableName := common.MakeStringEnvNameCompliant(containerInfo.Image)
 	// TODO: replace below signalling mechanism with `prefersLocalExecutuion: true` in the transformer.yaml
 	// Check if image is part of the current environment.
 	// It will be set as environment variable with root as base path of move2kube
@@ -139,7 +139,7 @@ func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr) (env *Environment,
 		}
 	}
 	if env.Env == nil {
-		env.Env, err = NewPeerContainer(envInfo, grpcQAReceiver, c, envInfo.SpawnContainers)
+		env.Env, err = NewPeerContainer(envInfo, grpcQAReceiver, containerInfo, envInfo.SpawnContainers)
 		if err != nil {
 			return env, fmt.Errorf("failed to create the peer container environment. Error: %w", err)
 		}
