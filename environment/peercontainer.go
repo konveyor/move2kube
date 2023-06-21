@@ -57,17 +57,34 @@ func NewPeerContainer(envInfo EnvInfo, grpcQAReceiver net.Addr, containerInfo en
 		return nil, fmt.Errorf("failed to get the container engine. Error: %w", err)
 	}
 	if containerInfo.WorkingDir == "" {
-		containerInfo.WorkingDir = filepath.Join(string(filepath.Separator), types.AppNameShort)
+		containerInfo.WorkingDir = "/" + types.AppNameShort
 	}
 	peerContainer := &PeerContainer{
-		EnvInfo:        envInfo,
-		OriginalImage:  containerInfo.Image,
-		ContainerInfo:  containerInfo,
-		GRPCQAReceiver: grpcQAReceiver,
+		EnvInfo:         envInfo,
+		OriginalImage:   containerInfo.Image,
+		ContainerInfo:   containerInfo,
+		GRPCQAReceiver:  grpcQAReceiver,
+		WorkspaceSource: "/" + DefaultWorkspaceDir,
 	}
-	peerContainer.WorkspaceSource = filepath.Join(string(filepath.Separator), DefaultWorkspaceDir)
+	if containerInfo.ImageBuild.ForceRebuild {
+		logrus.Debugf("force rebuilding the image. containerInfo: %#v", containerInfo)
+		imageBuildContext := filepath.Join(envInfo.Context, peerContainer.ContainerInfo.ImageBuild.Context)
+		if err := cengine.BuildImage(
+			peerContainer.OriginalImage,
+			imageBuildContext,
+			peerContainer.ContainerInfo.ImageBuild.Dockerfile,
+		); err != nil {
+			return nil, fmt.Errorf(
+				"failed to build the container image '%s' using the context directory '%s' and the Dockerfile at path '%s' . Error: %w",
+				peerContainer.OriginalImage,
+				imageBuildContext,
+				peerContainer.ContainerInfo.ImageBuild.Dockerfile,
+				err,
+			)
+		}
+	}
 	peerContainer.ContainerInfo.Image = peerContainer.ContainerInfo.Image + strings.ToLower(envInfo.Name+uniuri.NewLen(5))
-	logrus.Debug("trying to create a new image with the input data")
+	logrus.Debugf("trying to create a new image '%s' with the input data", peerContainer.ContainerInfo.Image)
 	if err := cengine.CopyDirsIntoImage(
 		peerContainer.OriginalImage,
 		peerContainer.ContainerInfo.Image,
