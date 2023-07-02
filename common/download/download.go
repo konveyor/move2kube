@@ -33,7 +33,7 @@ type Downloader interface {
 	Download(DownloadOptions) (string, error)
 }
 
-// GetDownloadedPath checks if the provided string is a valid remote path or not
+// IsRemotePath checks if the provided string is a valid remote path or not
 func IsRemotePath(str string) bool {
 	return common.IsHTTPURL(str)
 }
