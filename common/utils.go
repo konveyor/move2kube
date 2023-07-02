@@ -1556,3 +1556,12 @@ func JsonifyMapValues(inputMap map[string]interface{}) map[string]interface{} {
 	}
 	return inputMap
 }
+
+// IsHTTPURL checks if a string represents an HTTP or HTTPS URL using regular expressions.
+func IsHTTPURL(str string) bool {
+	pattern := `^(http|https)://`
+
+	regex := regexp.MustCompile(pattern)
+
+	return regex.MatchString(str)
+}

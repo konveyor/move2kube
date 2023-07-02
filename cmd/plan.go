@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/download"
 	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/lib"
 	"github.com/konveyor/move2kube/qaengine"
@@ -90,10 +91,12 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	}
 	// make all path(s) absolute
 	for i, c := range flags.configs {
-		if c, err := filepath.Abs(c); err != nil {
-			logrus.Fatalf("failed to make the config file path %s absolute. Error: %q", c, err)
+		if !download.IsRemotePath(c) {
+			if c, err := filepath.Abs(c); err != nil {
+				logrus.Fatalf("failed to make the config file path %s absolute. Error: %q", c, err)
+			}
+			flags.configs[i] = c
 		}
-		flags.configs[i] = c
 	}
 
 	customizationsPath := flags.customizationsPath
