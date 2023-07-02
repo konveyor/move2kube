@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/download"
 	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/lib"
 	"github.com/konveyor/move2kube/types/plan"
@@ -104,10 +105,12 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	}
 	// make all path(s) absolute
 	for i, c := range flags.configs {
-		if c, err := filepath.Abs(c); err != nil {
-			logrus.Fatalf("failed to make the config file path %s absolute. Error: %q", c, err)
+		if !download.IsRemotePath(c) {
+			if c, err := filepath.Abs(c); err != nil {
+				logrus.Fatalf("failed to make the config file path %s absolute. Error: %q", c, err)
+			}
+			flags.configs[i] = c
 		}
-		flags.configs[i] = c
 	}
 
 	// Global settings

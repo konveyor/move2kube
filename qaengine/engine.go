@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/download"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/sirupsen/logrus"
 )
@@ -97,6 +98,14 @@ func SetupConfigFile(writeConfigFile string, configStrings, configFiles, presets
 	for _, preset := range presets {
 		presetPath := filepath.Join(common.AssetsPath, "built-in", "presets", preset+".yaml")
 		presetPaths = append(presetPaths, presetPath)
+	}
+	for i, configFile := range configFiles {
+		if download.IsRemotePath(configFile) {
+			downloadedPath := download.GetDownloadedPath(configFile, common.RemoteCustomizationsFolder, true)
+			if downloadedPath != "" {
+				configFiles[i] = downloadedPath
+			}
+		}
 	}
 	configFiles = append(presetPaths, configFiles...)
 	writeConfig := qatypes.NewConfig(writeConfigFile, configStrings, configFiles, persistPasswords)
