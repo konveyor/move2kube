@@ -143,8 +143,11 @@ func getAllImageNames() ([]string, error) {
 		logrus.Warnf("Error while running docker image list : %s", err)
 		return nil, err
 	}
-	images := strings.Split(strings.TrimSpace(string(outputStr)), "\n")
+	if len(outputStr) == 0 {
+		return []string{}, err
+	}
 	cleanimages := []string{}
+	images := strings.Split(strings.TrimSpace(string(outputStr)), "\n")
 	for _, image := range images {
 		if strings.HasPrefix(image, "<none>") || strings.HasSuffix(image, "<none>") {
 			logrus.Debugf("Ignore image with <none> : %s", image)
