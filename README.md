@@ -63,7 +63,7 @@ More detailed instructions can be found in the [Move2Kube UI repo](https://githu
 
 `move2kube transform -s src`, where `src` is the folder containing the source artifacts.
 
-Checkout the [Tutorials](https://move2kube.konveyor.io/tutorials) and [Documentation](https://move2kube.konveyor.io/documentation) for more information.
+Checkout the [Tutorials](https://move2kube.konveyor.io/tutorials) and [Documentation](https://move2kube.konveyor.io/commands) for more information.
 
 ## Development environment setup
 
