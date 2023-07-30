@@ -27,8 +27,7 @@ import (
 	 t.Run("test for source file does not exist, should return an error", func(t *testing.T) {
 		 sourceFilePath := "test_data/replicator_test/non_existent_file.txt"
 		 destinationFilePath := "test_data/replicator_test/destination.txt"
-		 config := struct{}{}
-		 err := replicateProcessFileCallBack(sourceFilePath, destinationFilePath, config)
+		 err := replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
 		 if err == nil {
 			 t.Errorf("Expected error for non-existent source file, got nil")
 		 }
@@ -37,18 +36,18 @@ import (
 	 t.Run("test for destination file doesn't exist, should copy the source file", func(t *testing.T) {
 		 sourceFilePath := "test_data/replicator_test/emptyfile.txt"
 		 destinationFilePath := "test_data/replicator_test/destination_file.txt"
-		 config := struct{}{}
  
-		 err := replicateProcessFileCallBack(sourceFilePath, destinationFilePath, config)
+		 err := replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
 		 if err != nil {
 			 t.Errorf("Expected nil error, got: %s", err)
 		 }
+
+		 os.Remove(destinationFilePath)
 	 })
  
 	 t.Run("test for destination file exists but is different, should copy the source file", func(t *testing.T) {
 		 sourceFilePath := "test_data/replicator_test/source_file.txt"
 		 destinationFilePath := "test_data/replicator_test/destination_file.txt"
-		 config := struct{}{}
  
 		 sourceFile, err := os.Create(sourceFilePath)
 		 if err != nil {
@@ -78,7 +77,7 @@ import (
 			 t.Fatal(err)
 		 }
  
-		 err = replicateProcessFileCallBack(sourceFilePath, destinationFilePath, config)
+		 err = replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
 		 if err != nil {
 			 t.Errorf("Expected nil error, got: %s", err)
 		 }
@@ -100,42 +99,41 @@ import (
 	 })
  
 	 t.Run("test for destination file exists and is the same, should return nil without copying", func(t *testing.T) {
-		 sourceFilePath := "test_data/replicator_test/source_file.txt"
-		 destinationFilePath := "test_data/replicator_test/destination_file.txt"
-		 config := struct{}{}
+		 sourceFilePath := "test_data/replicator_test/source_same.txt"
+		 destinationFilePath := "test_data/replicator_test/destination_same.txt"
 		 
-		 sourceFile, err := os.Create(sourceFilePath)
-		 if err != nil {
-			 t.Fatal(err)
-		 }
-		 defer func() {
-			 sourceFile.Close()
-			 os.Remove(sourceFilePath)
-		 }()
- 
-		 _, err = sourceFile.WriteString("hello, world!")
-		 if err != nil {
-			 t.Fatal(err)
-		 }
- 
-		 destinationFile, err := os.Create(destinationFilePath)
-		 if err != nil {
-			 t.Fatal(err)
-		 }
-		 defer func() {
-			 destinationFile.Close()
-			 os.Remove(destinationFilePath)
-		 }()
- 
-		 _, err = destinationFile.WriteString("hello, world!")
-		 if err != nil {
-			 t.Fatal(err)
-		 }
- 
-		 err = replicateProcessFileCallBack(sourceFilePath, destinationFilePath, config)
+		 // Store the destination file's modification time before calling replicateProcessFileCallBack
+		info, err := os.Stat(destinationFilePath)
+		if err != nil {
+			t.Errorf("Destination file should exist, but got an error: %s", err)
+		}
+		 originalModTime := info.ModTime()
+		 err = replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
 		 if err != nil {
 			 t.Errorf("Expected nil error, got: %s", err)
 		 }
+
+		 // Check if the destination file still exists after calling replicateProcessFileCallBack
+		info, err = os.Stat(destinationFilePath)
+		if err != nil {
+			t.Errorf("Destination file should exist, but got an error: %s", err)
+		}
+
+		// Check if the destination file's modification time hasn't changed
+		updatedModTime := info.ModTime()
+		if !updatedModTime.Equal(originalModTime) {
+			t.Errorf("Destination file's modification time has changed, expected: %v, got: %v", originalModTime, updatedModTime)
+		}
+
+		// Check if the destination file content remains unchanged
+		destinationContent, err := ioutil.ReadFile(destinationFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if !bytes.Equal(destinationContent, []byte("hello, world!")) {
+			t.Errorf("Expected destination content to remain unchanged, but got different content.")
+		}
 	 })
  }
  
