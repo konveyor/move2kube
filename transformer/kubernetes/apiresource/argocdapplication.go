@@ -19,8 +19,12 @@ package apiresource
 import (
 	"github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/transformer/kubernetes/parameterizer"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
+	qatypes "github.com/konveyor/move2kube/types/qaengine"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -70,6 +74,18 @@ func (*ArgoCDApplication) createNewResource(irApplication irtypes.Application, t
 		clusterServer = deployToSameCluster
 	}
 	appGVK := v1alpha1.ApplicationSchemaGroupVersionKind
+	prob := qatypes.Problem{}
+	prob.ID = common.JoinQASubKeys(parameterizer.ParamQuesIDPrefix, `"`+appGVK.GroupVersion().String()+`"`, `"`+appGVK.Kind+`"`, "destNamespace")
+	prob.Type = qatypes.InputSolutionFormType
+	prob.Desc = "Enter destination namespace for argo cd pipeline"
+	ques, err := qaengine.FetchAnswer(prob)
+	if err != nil {
+		logrus.Errorf("failed to ask a question to the user in order to parameterize a k8s resource: %+v\nError: %q", prob, err)
+	}
+	destNamespace, ok := ques.Answer.(string)
+	if !ok {
+		logrus.Errorf("failed to ask a question to the user in order to parameterize a k8s resource: %+v\nError: the answer was not a string", prob)
+	}
 	return &v1alpha1.Application{
 		TypeMeta:   metav1.TypeMeta{APIVersion: appGVK.GroupVersion().String(), Kind: appGVK.Kind},
 		ObjectMeta: metav1.ObjectMeta{Name: irApplication.Name, Namespace: argoCDNameSpace},
@@ -81,7 +97,7 @@ func (*ArgoCDApplication) createNewResource(irApplication irtypes.Application, t
 			},
 			Destination: v1alpha1.ApplicationDestination{
 				Server:    clusterServer,
-				Namespace: irApplication.DestNamespace,
+				Namespace: destNamespace,
 			},
 		},
 	}
