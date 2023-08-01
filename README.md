@@ -67,7 +67,7 @@ Checkout the [Tutorials](https://move2kube.konveyor.io/tutorials) and [Documenta
 
 ## Development environment setup
 
-To browse code  [![Open in VSCode](https://badgen.net/badge/icon/visualstudio?icon=visualstudio&label)](https://open.vscode.dev/konveyor/move2kube)
+To browse code  [![Open in VSCode](https://badgen.net/badge/icon/Visual%20Studio%20Code?icon=visualstudio&label)](https://open.vscode.dev/konveyor/move2kube)
 
 1. Obtain a recent version of `golang`. Known to work with `1.18`.
 1. Ensure `$GOPATH` is set. If it's not set:
