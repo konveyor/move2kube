@@ -23,6 +23,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/transformer/kubernetes/apiresource"
 	"github.com/konveyor/move2kube/transformer/kubernetes/irpreprocessor"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -152,8 +153,18 @@ func (t *ArgoCD) setupEnhancedIR(oldir irtypes.IR, projectName string) irtypes.E
 		return common.MakeStringDNSSubdomainNameCompliant(fmt.Sprintf("%s-%s", projectName, baseName))
 	}
 	appName := p(baseAppName)
+	destNamespace := qaengine.FetchStringAnswer(
+		common.ConfigTransformersKubernetesArgocdNamespaceKey,
+		"Enter the namespace where argocd pipeline to be deployed",
+		[]string{"If this is not relevant to you then give an empty string to use the default value for it."},
+		"",
+		nil,
+	)
 	ir.ArgoCDResources = irtypes.ArgoCDResources{
-		Applications: []irtypes.Application{{Name: appName}},
+		Applications: []irtypes.Application{{
+			Name:          appName,
+			DestNamespace: destNamespace,
+		}},
 	}
 	return ir
 }
