@@ -25,8 +25,8 @@ import (
  
  func TestReplicateProcessFileCallBack(t *testing.T) {
 	 t.Run("test for source file does not exist, should return an error", func(t *testing.T) {
-		 sourceFilePath := "test_data/replicator_test/non_existent_file.txt"
-		 destinationFilePath := "test_data/replicator_test/destination.txt"
+		 sourceFilePath := "testdata/replicator_test/non_existent_file.txt"
+		 destinationFilePath := "testdata/replicator_test/destination.txt"
 		 err := replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
 		 if err == nil {
 			 t.Errorf("Expected error for non-existent source file, got nil")
@@ -34,8 +34,8 @@ import (
 	 })
  
 	 t.Run("test for destination file doesn't exist, should copy the source file", func(t *testing.T) {
-		 sourceFilePath := "test_data/replicator_test/emptyfile.txt"
-		 destinationFilePath := "test_data/replicator_test/destination_file.txt"
+		 sourceFilePath := "testdata/replicator_test/emptyfile.txt"
+		 destinationFilePath := "testdata/replicator_test/destination_file.txt"
  
 		 err := replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
 		 if err != nil {
@@ -46,8 +46,8 @@ import (
 	 })
  
 	 t.Run("test for destination file exists but is different, should copy the source file", func(t *testing.T) {
-		 sourceFilePath := "test_data/replicator_test/source_file.txt"
-		 destinationFilePath := "test_data/replicator_test/destination_file.txt"
+		 sourceFilePath := "testdata/replicator_test/source_file.txt"
+		 destinationFilePath := "testdata/replicator_test/destination_file.txt"
  
 		 sourceFile, err := os.Create(sourceFilePath)
 		 if err != nil {
@@ -99,8 +99,8 @@ import (
 	 })
  
 	 t.Run("test for destination file exists and is the same, should return nil without copying", func(t *testing.T) {
-		 sourceFilePath := "test_data/replicator_test/source_same.txt"
-		 destinationFilePath := "test_data/replicator_test/destination_same.txt"
+		 sourceFilePath := "testdata/replicator_test/source_same.txt"
+		 destinationFilePath := "testdata/replicator_test/destination_same.txt"
 		 
 		 // Store the destination file's modification time before calling replicateProcessFileCallBack
 		info, err := os.Stat(destinationFilePath)

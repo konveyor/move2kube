@@ -36,7 +36,7 @@ func TestTemplateCopy(t *testing.T) {
 		testfilledFile := "test_filled.yaml"
 		testDataFile := "test.yaml"
 		templateDir := "template"
-		testDir := "test_data"
+		testDir := "testdata"
 		sourceFilePath := filepath.Join(testDir, templateDir, testDataFile)
 		src, err := os.ReadFile(sourceFilePath)
 		if err != nil {
@@ -84,7 +84,7 @@ func TestTemplateCopy(t *testing.T) {
 		addOnConfig := AddOnConfig{Config: TestTPLValues{TplVariable: "world"}}
 		testDataFile := "test.yaml"
 		sourceTestDir := "template"
-		testDataDir := "test_data"
+		testDataDir := "testdata"
 		sourceFilePath := filepath.Join(testDataDir, sourceTestDir, testDataFile)
 		destTempDir, err := ioutil.TempDir("", "destTempDir")
 		if err != nil {
@@ -105,7 +105,7 @@ func TestTemplateCopy(t *testing.T) {
 		addOnConfig := AddOnConfig{Config: TestTPLValues{TplVariable: "World"}}
 		testDataFile := "test.yaml"
 		sourceTestDir := "template"
-		testDataDir := "test_data"
+		testDataDir := "testdata"
 		sourceFilePath := filepath.Join(testDataDir, sourceTestDir, testDataFile)
 		destTempDir, err := ioutil.TempDir("", "destTempDir")
 		if err != nil {
