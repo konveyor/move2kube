@@ -133,5 +133,34 @@ func TestReplicateProcessFileCallBack(t *testing.T) {
 		if !bytes.Equal(destinationContent, []byte("hello, world!")) {
 			t.Errorf("Expected destination content to remain unchanged, but got different content.")
 		}
+	 })
+ }
+ func TestReplicateAdditionCallBack(t *testing.T) {
+	t.Run("test for destination dir is removed", func(t *testing.T) {
+		sourceDir := "test_data/replicator_test/source"
+		destinationDir := "test_data/replicator_test/destination"
+		destinationFilePath := destinationDir + "/existing-file.txt"
+		// Prepare the destination directory with an existing file
+		err := os.MkdirAll(destinationDir, 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = os.Create(destinationFilePath)
+		 if err != nil {
+			 t.Fatal(err)
+		 }
+
+		// Call the addition callback
+		err = replicateAdditionCallBack(sourceDir, destinationDir, nil)
+		if err != nil {
+			t.Fatalf("Expected no error, got %s", err)
+		}
+
+		// Check if the destination directory is removed
+		_, err = os.Stat(destinationDir)
+		if err == nil {
+			t.Error("Expected destination directory to be removed, but it still exists")
+		}
 	})
 }
+ 
