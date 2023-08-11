@@ -18,102 +18,101 @@ package filesystem
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"testing"
 )
- 
- func TestReplicateProcessFileCallBack(t *testing.T) {
-	 t.Run("test for source file does not exist, should return an error", func(t *testing.T) {
-		 sourceFilePath := "testdata/replicator_test/non_existent_file.txt"
-		 destinationFilePath := "testdata/replicator_test/destination.txt"
-		 err := replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
-		 if err == nil {
-			 t.Errorf("Expected error for non-existent source file, got nil")
-		 }
-	 })
- 
-	 t.Run("test for destination file doesn't exist, should copy the source file", func(t *testing.T) {
-		 sourceFilePath := "testdata/replicator_test/emptyfile.txt"
-		 destinationFilePath := "testdata/replicator_test/destination_file.txt"
- 
-		 err := replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
-		 if err != nil {
-			 t.Errorf("Expected nil error, got: %s", err)
-		 }
 
-		 os.Remove(destinationFilePath)
-	 })
- 
-	 t.Run("test for destination file exists but is different, should copy the source file", func(t *testing.T) {
-		 sourceFilePath := "testdata/replicator_test/source_file.txt"
-		 destinationFilePath := "testdata/replicator_test/destination_file.txt"
- 
-		 sourceFile, err := os.Create(sourceFilePath)
-		 if err != nil {
-			 t.Fatal(err)
-		 }
-		 defer func() {
-			 sourceFile.Close()
-			 os.Remove(sourceFilePath)
-		 }()
- 
-		 _, err = sourceFile.WriteString("hello, world!")
-		 if err != nil {
-			 t.Fatal(err)
-		 }
- 
-		 destinationFile, err := os.Create(destinationFilePath)
-		 if err != nil {
-			 t.Fatal(err)
-		 }
-		 defer func() {
-			 destinationFile.Close()
-			 os.Remove(destinationFilePath)
-		 }()
- 
-		 _, err = destinationFile.WriteString("hello, go!")
-		 if err != nil {
-			 t.Fatal(err)
-		 }
- 
-		 err = replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
-		 if err != nil {
-			 t.Errorf("Expected nil error, got: %s", err)
-		 }
- 
-		 // Check if the source file content matches the destination file content after copying
-		 sourceContent, err := ioutil.ReadFile(sourceFilePath)
-		 if err != nil {
-			 t.Fatal(err)
-		 }
- 
-		 destinationContent, err := ioutil.ReadFile(destinationFilePath)
-		 if err != nil {
-			 t.Fatal(err)
-		 }
- 
-		 if !bytes.Equal(sourceContent, destinationContent) {
-			 t.Errorf("Expected destination content to be equal to source content, but they are different.")
-		 }
-	 })
- 
-	 t.Run("test for destination file exists and is the same, should return nil without copying", func(t *testing.T) {
-		 sourceFilePath := "testdata/replicator_test/source_same.txt"
-		 destinationFilePath := "testdata/replicator_test/destination_same.txt"
-		 
-		 // Store the destination file's modification time before calling replicateProcessFileCallBack
+func TestReplicateProcessFileCallBack(t *testing.T) {
+	t.Run("test for source file does not exist, should return an error", func(t *testing.T) {
+		sourceFilePath := "testdata/replicator_test/non_existent_file.txt"
+		destinationFilePath := "testdata/replicator_test/destination.txt"
+		err := replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
+		if err == nil {
+			t.Errorf("Expected error for non-existent source file, got nil")
+		}
+	})
+
+	t.Run("test for destination file doesn't exist, should copy the source file", func(t *testing.T) {
+		sourceFilePath := "testdata/replicator_test/emptyfile.txt"
+		destinationFilePath := "testdata/replicator_test/destination_file.txt"
+
+		err := replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
+		if err != nil {
+			t.Errorf("Expected nil error, got: %s", err)
+		}
+
+		os.Remove(destinationFilePath)
+	})
+
+	t.Run("test for destination file exists but is different, should copy the source file", func(t *testing.T) {
+		sourceFilePath := "testdata/replicator_test/source_file.txt"
+		destinationFilePath := "testdata/replicator_test/destination_file.txt"
+
+		sourceFile, err := os.Create(sourceFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() {
+			sourceFile.Close()
+			os.Remove(sourceFilePath)
+		}()
+
+		_, err = sourceFile.WriteString("hello, world!")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		destinationFile, err := os.Create(destinationFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() {
+			destinationFile.Close()
+			os.Remove(destinationFilePath)
+		}()
+
+		_, err = destinationFile.WriteString("hello, go!")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
+		if err != nil {
+			t.Errorf("Expected nil error, got: %s", err)
+		}
+
+		// Check if the source file content matches the destination file content after copying
+		sourceContent, err := os.ReadFile(sourceFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		destinationContent, err := os.ReadFile(destinationFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if !bytes.Equal(sourceContent, destinationContent) {
+			t.Errorf("Expected destination content to be equal to source content, but they are different.")
+		}
+	})
+
+	t.Run("test for destination file exists and is the same, should return nil without copying", func(t *testing.T) {
+		sourceFilePath := "testdata/replicator_test/source_same.txt"
+		destinationFilePath := "testdata/replicator_test/destination_same.txt"
+
+		// Store the destination file's modification time before calling replicateProcessFileCallBack
 		info, err := os.Stat(destinationFilePath)
 		if err != nil {
 			t.Errorf("Destination file should exist, but got an error: %s", err)
 		}
-		 originalModTime := info.ModTime()
-		 err = replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
-		 if err != nil {
-			 t.Errorf("Expected nil error, got: %s", err)
-		 }
+		originalModTime := info.ModTime()
+		err = replicateProcessFileCallBack(sourceFilePath, destinationFilePath, nil)
+		if err != nil {
+			t.Errorf("Expected nil error, got: %s", err)
+		}
 
-		 // Check if the destination file still exists after calling replicateProcessFileCallBack
+		// Check if the destination file still exists after calling replicateProcessFileCallBack
 		info, err = os.Stat(destinationFilePath)
 		if err != nil {
 			t.Errorf("Destination file should exist, but got an error: %s", err)
@@ -126,7 +125,7 @@ import (
 		}
 
 		// Check if the destination file content remains unchanged
-		destinationContent, err := ioutil.ReadFile(destinationFilePath)
+		destinationContent, err := os.ReadFile(destinationFilePath)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -134,6 +133,5 @@ import (
 		if !bytes.Equal(destinationContent, []byte("hello, world!")) {
 			t.Errorf("Expected destination content to remain unchanged, but got different content.")
 		}
-	 })
- }
- 
+	})
+}
