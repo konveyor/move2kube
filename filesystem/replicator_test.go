@@ -137,8 +137,8 @@ func TestReplicateProcessFileCallBack(t *testing.T) {
  }
  func TestReplicateAdditionCallBack(t *testing.T) {
 	t.Run("test for destination dir is removed", func(t *testing.T) {
-		sourceDir := "test_data/replicator_test/source"
-		destinationDir := "test_data/replicator_test/destination"
+		sourceDir := "test_data/source"
+		destinationDir := "test_data/destination"
 		destinationFilePath := destinationDir + "/existing-file.txt"
 		// Prepare the destination directory with an existing file
 		err := os.MkdirAll(destinationDir, 0755)
