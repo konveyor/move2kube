@@ -133,5 +133,47 @@ func TestReplicateProcessFileCallBack(t *testing.T) {
 		if !bytes.Equal(destinationContent, []byte("hello, world!")) {
 			t.Errorf("Expected destination content to remain unchanged, but got different content.")
 		}
-	})
-}
+	 })
+ }
+ func TestReplicateDeletionCallBack(t *testing.T) {
+		t.Run("test for destination folder gets created", func(t *testing.T) {
+			sourceDir := "testdata/src"
+			destDir := "testdata/dest"
+
+			err := replicateDeletionCallBack(sourceDir, destDir, nil)
+			if err != nil {
+				t.Errorf("Expected no error, but got: %v", err)
+			}
+			defer os.RemoveAll(destDir)
+			// Check if the destination directory exist
+			_, err = os.Stat(destDir)
+			if err != nil {
+				t.Errorf("Destination directory not created: %v", err)
+			}
+		})
+
+		t.Run("test for permission preservation", func(t *testing.T) {
+			sourceDir := "testdata/src"
+			destDir := "testdata/dest"
+	
+			err := replicateDeletionCallBack(sourceDir, destDir, nil)
+			if err != nil {
+				t.Errorf("Expected no error, but got: %v", err)
+			}
+			defer os.RemoveAll(destDir)
+	
+			// Check if the destination directory has the same permissions
+			sourceInfo, err := os.Stat(sourceDir)
+			if err != nil {
+				t.Fatalf("Error while stat-ing source directory: %v", err)
+			}
+			destInfo, err := os.Stat(destDir)
+			if err != nil {
+				t.Fatalf("Error while stat-ing destination directory: %v", err)
+			}
+			if destInfo.Mode() != sourceInfo.Mode() {
+				t.Errorf("Expected destination permissions %v, but got %v", sourceInfo.Mode(), destInfo.Mode())
+			}
+		})
+ }
+ 
