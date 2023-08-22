@@ -164,8 +164,10 @@ installDependencies() {
     JQ='jq'
     if [ "$HAS_JQ" = 'false' ]; then
         JQ="$(mktemp -d)/jq"
-        if [ "${OS}-${ARCH}" = 'darwin-amd64' ] || [ "${OS}-${ARCH}" = 'darwin-arm64' ]; then
+        if [ "${OS}-${ARCH}" = 'darwin-amd64' ]; then
             download 'https://github.com/stedolan/jq/releases/download/jq-1.6/jq-osx-amd64' "$JQ"
+        elif [ "${OS}-${ARCH}" = 'darwin-arm64' ]; then
+            download 'https://github.com/jqlang/jq/releases/download/jq-1.7rc1/jq-macos-arm64' "$JQ"
         else
             download 'https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64' "$JQ"
         fi
