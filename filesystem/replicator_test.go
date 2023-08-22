@@ -136,23 +136,7 @@ func TestReplicateProcessFileCallBack(t *testing.T) {
 	 })
  }
  func TestReplicateDeletionCallBack(t *testing.T) {
-		t.Run("test for destination folder gets created", func(t *testing.T) {
-			sourceDir := "testdata/src"
-			destDir := "testdata/dest"
-
-			err := replicateDeletionCallBack(sourceDir, destDir, nil)
-			if err != nil {
-				t.Errorf("Expected no error, but got: %v", err)
-			}
-			defer os.RemoveAll(destDir)
-			// Check if the destination directory exist
-			_, err = os.Stat(destDir)
-			if err != nil {
-				t.Errorf("Destination directory not created: %v", err)
-			}
-		})
-
-		t.Run("test for permission preservation", func(t *testing.T) {
+		t.Run("test for destination folder gets created and permissions are preserved", func(t *testing.T) {
 			sourceDir := "testdata/src"
 			destDir := "testdata/dest"
 	
