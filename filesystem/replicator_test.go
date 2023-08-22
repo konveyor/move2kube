@@ -158,7 +158,11 @@ func TestReplicateProcessFileCallBack(t *testing.T) {
 
 		// Check if the destination directory is removed
 		_, err = os.Stat(destinationDir)
-		if err == nil {
+		if err != nil {
+			if os.IsExist(err) {
+				t.Errorf("Expected destination directory to be removed, but it still exists, got error: %s", err)
+			} 
+		} else {
 			t.Error("Expected destination directory to be removed, but it still exists")
 		}
 	})
