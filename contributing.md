@@ -2,7 +2,7 @@
 
 Please read our code of conduct before contributing and make sure to follow it in all interactions with the project.
 
-If your proposed feature requires extensive changes/additions please raise a Github issue and discuss the changes to align with project goals.
+If your proposed feature requires extensive changes/additions please raise a GitHub issue and discuss the changes to align with project goals.
 
 In order to contribute please follow this process:
 

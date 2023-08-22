@@ -35,7 +35,7 @@ func TestFileSystemUtils(t *testing.T) {
 			t.Fatal("Error creating temp directory:", err)
 		}
 		defer os.RemoveAll(destTempDir)
-		testDataDir := "test_data"
+		testDataDir := "testdata"
 		sourceTempDir := "copyfile"
 
 		destFilePath := filepath.Join(destTempDir, testDataFile)
