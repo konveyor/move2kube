@@ -157,6 +157,7 @@ func loadKeysFromDirectory(directory string) {
 		return
 	}
 
+	// Save the filenames for now. We will decrypt them if and when we need them.
 	privateKeysToConsider = selectedFilenames
 }
 
