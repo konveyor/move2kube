@@ -101,37 +101,63 @@ func loadSSHKeysOfCurrentUser() {
 	privateKeyDir = filepath.Join(home, ".ssh")
 	logrus.Debugf("Looking in ssh directory at path %q for keys.", privateKeyDir)
 
-	// Ask if we should look at the private keys
+	// Ask whether to load private keys or provide own key
+	options := []string{
+		"Load private ssh keys from " + privateKeyDir,
+		"Provide your own key",
+		"No, I will add them later if necessary.",
+	}
 	message := `The CI/CD pipeline needs access to the git repos in order to clone, build and push.
 If any of the repos require ssh keys you will need to provide them.
-Do you want to load the private ssh keys from [%s]?:`
-	ans := qaengine.FetchBoolAnswer(common.ConfigRepoLoadPrivKey, fmt.Sprintf(message, privateKeyDir), []string{"No, I will add them later if necessary."}, false, nil)
-	if !ans {
+Select an option:`
+	selectedOption := qaengine.FetchSelectAnswer(common.ConfigRepoLoadPrivKey, message, nil, "", options, nil)
+
+	switch selectedOption {
+	case options[0]:
+		loadKeysFromDirectory(privateKeyDir)
+
+	case options[1]:
+		privateKeysToConsider = []string{"user_provided_key"}
+
+	default:
 		logrus.Debug("Don't read private keys. They will be added later if necessary.")
 		return
 	}
 
-	// Ask which keys we should consider
-	finfos, err := os.ReadDir(privateKeyDir)
+}
+
+func loadKeysFromDirectory(directory string) {
+	finfos, err := os.ReadDir(directory)
 	if err != nil {
-		logrus.Errorf("Failed to read the ssh directory at path %q Error: %q", privateKeyDir, err)
+		logrus.Errorf("Failed to read the SSH directory at path %q. Error: %v", directory, err)
 		return
 	}
+
 	if len(finfos) == 0 {
-		logrus.Warn("No key files where found in", privateKeyDir)
+		logrus.Warn("No key files were found in", directory)
 		return
 	}
+
 	filenames := []string{}
 	for _, finfo := range finfos {
 		filenames = append(filenames, finfo.Name())
 	}
-	filenames = qaengine.FetchMultiSelectAnswer(common.ConfigRepoKeyPathsKey, fmt.Sprintf("These are the files we found in %q . Which keys should we consider?", privateKeyDir), []string{"Select all the keys that give access to git repos."}, filenames, filenames, nil)
-	if len(filenames) == 0 {
+
+	selectedFilenames := qaengine.FetchMultiSelectAnswer(
+		common.ConfigRepoKeyPathsKey,
+		fmt.Sprintf("These are the files found in %q. Select the keys to consider:", directory),
+		[]string{"Select all the keys that give access to git repos."},
+		filenames,
+		filenames,
+		nil,
+	)
+
+	if len(selectedFilenames) == 0 {
 		logrus.Info("All key files ignored.")
 		return
 	}
-	// Save the filenames for now. We will decrypt them if and when we need them.
-	privateKeysToConsider = filenames
+
+	privateKeysToConsider = selectedFilenames
 }
 
 func marshalRSAIntoPEM(key *rsa.PrivateKey) string {
@@ -194,6 +220,14 @@ func GetSSHKey(domain string) (string, bool) {
 	loadSSHKeysOfCurrentUser()
 	if len(privateKeysToConsider) == 0 {
 		return "", false
+	}
+	if privateKeysToConsider[0] == "user_provided_key" {
+		key := qaengine.FetchStringAnswer(common.ConfigRepoPrivKey, "Provide your own PEM-formatted private key:", []string{"Should not be empty"}, "", nil)
+		if key == "" {
+			logrus.Error("User-provided private key is empty.")
+			return "", false
+		}
+		return key, true
 	}
 
 	filenames := privateKeysToConsider
