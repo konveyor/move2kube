@@ -33,10 +33,10 @@ def detect(input_dir):
             with open(fullFilePath) as f:
                 collectFile = yaml.safe_load(f)
             # print("collectFile:", collectFile)
-            if (
-                "apiVersion" not in collectFile
-                or collectFile["apiVersion"] != "move2kube.konveyor.io/v1alpha1"
-            ):
+            if "apiVersion" not in collectFile:
+                print(f"apiVersion key missing in the file:{fullFilePath}")
+                continue
+            if collectFile["apiVersion"] != "move2kube.konveyor.io/v1alpha1":
                 print(
                     f"apiVersion does not match. Expected: 'move2kube.konveyor.io/v1alpha1' Actual: {collectFile['apiVersion']}"
                 )
