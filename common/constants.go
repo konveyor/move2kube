@@ -155,6 +155,8 @@ const (
 	ConfigCICDTektonGitRepoBasicAuthSecretNameKey = ConfigCICDTektonKey + d + "gitrepobasicauthsecret"
 	// ConfigCICDTektonRegistryPushSecretNameKey is for Tekton push image to registry credentials
 	ConfigCICDTektonRegistryPushSecretNameKey = ConfigCICDTektonKey + d + "registrypushsecret"
+	//ConfigCICDArgoDestinationNameSpace gives the user input namespace destination
+	ConfigCICDArgoDestinationNameSpace = "destnamespace"
 	//ConfigTargetExistingVersionUpdate represents key which how to update versions
 	ConfigTargetExistingVersionUpdate = ConfigTargetKey + d + "existingversionupdate"
 	//ConfigImageRegistryURLKey represents image registry url Key

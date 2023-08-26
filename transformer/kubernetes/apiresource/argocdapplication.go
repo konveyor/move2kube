@@ -19,6 +19,7 @@ package apiresource
 import (
 	"github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/qaengine"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,6 +71,16 @@ func (*ArgoCDApplication) createNewResource(irApplication irtypes.Application, t
 		clusterServer = deployToSameCluster
 	}
 	appGVK := v1alpha1.ApplicationSchemaGroupVersionKind
+	destNamespace := qaengine.FetchStringAnswer(
+		common.ConfigCICDArgoDestinationNameSpace,
+		"Enter the destination namespace for argo cd pipeline",
+		[]string{},
+		"",
+		nil,
+	)
+	if destNamespace == "" {
+		destNamespace = irApplication.DestNamespace
+	}
 	return &v1alpha1.Application{
 		TypeMeta:   metav1.TypeMeta{APIVersion: appGVK.GroupVersion().String(), Kind: appGVK.Kind},
 		ObjectMeta: metav1.ObjectMeta{Name: irApplication.Name, Namespace: argoCDNameSpace},
@@ -81,7 +92,7 @@ func (*ArgoCDApplication) createNewResource(irApplication irtypes.Application, t
 			},
 			Destination: v1alpha1.ApplicationDestination{
 				Server:    clusterServer,
-				Namespace: irApplication.DestNamespace,
+				Namespace: destNamespace,
 			},
 		},
 	}
