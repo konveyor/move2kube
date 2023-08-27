@@ -30,4 +30,10 @@ jobs:
               ref: 'main',
               inputs: {tag},
             });
-
+            await github.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: 'move2kube-operator',
+              workflow_id: 'raise-pr.yml',
+              ref: 'main',
+              inputs: {tag, 'commit_ref': 'main'},
+            });
