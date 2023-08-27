@@ -33,6 +33,10 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+const (
+	userProvidedKey = "user_provided_key"
+)
+
 var (
 	// DomainToPublicKeys maps domains to public keys gathered with known-hosts/get-public-keys.sh
 	DomainToPublicKeys = map[string][]string{
@@ -114,10 +118,13 @@ Select an option:`
 
 	switch selectedOption {
 	case options[0]:
-		loadKeysFromDirectory(privateKeyDir)
+		if err := loadKeysFromDirectory(privateKeyDir); err != nil {
+			logrus.Warn("Can't load keys from directory. Error:", err)
+			return
+		}
 
 	case options[1]:
-		privateKeysToConsider = []string{"user_provided_key"}
+		privateKeysToConsider = []string{userProvidedKey}
 
 	default:
 		logrus.Debug("Don't read private keys. They will be added later if necessary.")
@@ -126,16 +133,15 @@ Select an option:`
 
 }
 
-func loadKeysFromDirectory(directory string) {
+func loadKeysFromDirectory(directory string) error {
 	finfos, err := os.ReadDir(directory)
 	if err != nil {
-		logrus.Errorf("Failed to read the SSH directory at path %q. Error: %v", directory, err)
-		return
+		return fmt.Errorf("failed to read the SSH directory at path %q: %w", directory, err)
 	}
 
 	if len(finfos) == 0 {
 		logrus.Warn("No key files were found in", directory)
-		return
+		return nil
 	}
 
 	filenames := []string{}
@@ -154,11 +160,12 @@ func loadKeysFromDirectory(directory string) {
 
 	if len(selectedFilenames) == 0 {
 		logrus.Info("All key files ignored.")
-		return
+		return nil
 	}
 
 	// Save the filenames for now. We will decrypt them if and when we need them.
 	privateKeysToConsider = selectedFilenames
+	return nil
 }
 
 func marshalRSAIntoPEM(key *rsa.PrivateKey) string {
@@ -222,10 +229,14 @@ func GetSSHKey(domain string) (string, bool) {
 	if len(privateKeysToConsider) == 0 {
 		return "", false
 	}
-	if privateKeysToConsider[0] == "user_provided_key" {
+	if privateKeysToConsider[0] == userProvidedKey {
 		key := qaengine.FetchStringAnswer(common.ConfigRepoPrivKey, "Provide your own PEM-formatted private key:", []string{"Should not be empty"}, "", nil)
 		if key == "" {
 			logrus.Error("User-provided private key is empty.")
+			return "", false
+		}
+		if err := validatePEMPrivateKey(key); err != nil {
+			logrus.Error("Can't validate the PEM-formatted private key. Error:", err)
 			return "", false
 		}
 		return key, true
@@ -250,4 +261,18 @@ func GetSSHKey(domain string) (string, bool) {
 		return "", false
 	}
 	return key, true
+}
+
+func validatePEMPrivateKey(key string) error {
+	block, _ := pem.Decode([]byte(key))
+	if block == nil || block.Type != "RSA PRIVATE KEY" {
+		return fmt.Errorf("invalid PEM private key format")
+	}
+
+	_, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
