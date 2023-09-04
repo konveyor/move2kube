@@ -71,14 +71,13 @@ func (*ArgoCDApplication) createNewResource(irApplication irtypes.Application, t
 		clusterServer = deployToSameCluster
 	}
 	appGVK := v1alpha1.ApplicationSchemaGroupVersionKind
-	ques := qaengine.FetchStringAnswer(
+	destNamespace := qaengine.FetchStringAnswer(
 		common.ConfigTransformersKubernetesArgoCDNamespaceKey,
-		"Enter destination namespace for argo cd pipeline",
+		"Enter the destination namespace for the Argo CD pipeline",
 		[]string{"If this is not relevant to you then give an empty string to remove it from the YAML."},
 		"",
 		nil,
 	)
-	destNamespace := ques
 	return &v1alpha1.Application{
 		TypeMeta:   metav1.TypeMeta{APIVersion: appGVK.GroupVersion().String(), Kind: appGVK.Kind},
 		ObjectMeta: metav1.ObjectMeta{Name: irApplication.Name, Namespace: argoCDNameSpace},
