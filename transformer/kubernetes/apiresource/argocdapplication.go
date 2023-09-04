@@ -24,7 +24,6 @@ import (
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
-	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -78,14 +77,14 @@ func (*ArgoCDApplication) createNewResource(irApplication irtypes.Application, t
 	prob.ID = common.JoinQASubKeys(parameterizer.ParamQuesIDPrefix, `"`+appGVK.GroupVersion().String()+`"`, `"`+appGVK.Kind+`"`, "destNamespace")
 	prob.Type = qatypes.InputSolutionFormType
 	prob.Desc = "Enter destination namespace for argo cd pipeline"
-	ques, err := qaengine.FetchAnswer(prob)
-	if err != nil {
-		logrus.Errorf("failed to ask a question to the user in order to parameterize a k8s resource: %+v\nError: %q", prob, err)
-	}
-	destNamespace, ok := ques.Answer.(string)
-	if !ok {
-		logrus.Errorf("failed to ask a question to the user in order to parameterize a k8s resource: %+v\nError: the answer was not a string", prob)
-	}
+	ques := qaengine.FetchStringAnswer(
+		prob.ID,
+		prob.Desc,
+		[]string{"If this is not relevant to you then give an empty string to remove it from the YAML."},
+		"",
+		nil,
+	)
+	destNamespace := ques
 	return &v1alpha1.Application{
 		TypeMeta:   metav1.TypeMeta{APIVersion: appGVK.GroupVersion().String(), Kind: appGVK.Kind},
 		ObjectMeta: metav1.ObjectMeta{Name: irApplication.Name, Namespace: argoCDNameSpace},
