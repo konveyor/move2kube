@@ -20,10 +20,8 @@ import (
 	"github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
-	"github.com/konveyor/move2kube/transformer/kubernetes/parameterizer"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -73,13 +71,9 @@ func (*ArgoCDApplication) createNewResource(irApplication irtypes.Application, t
 		clusterServer = deployToSameCluster
 	}
 	appGVK := v1alpha1.ApplicationSchemaGroupVersionKind
-	prob := qatypes.Problem{}
-	prob.ID = common.JoinQASubKeys(parameterizer.ParamQuesIDPrefix, `"`+appGVK.GroupVersion().String()+`"`, `"`+appGVK.Kind+`"`, "destNamespace")
-	prob.Type = qatypes.InputSolutionFormType
-	prob.Desc = "Enter destination namespace for argo cd pipeline"
 	ques := qaengine.FetchStringAnswer(
-		prob.ID,
-		prob.Desc,
+		common.ConfigTransformersKubernetesArgocdNamespaceKey,
+		"Enter destination namespace for argo cd pipeline",
 		[]string{"If this is not relevant to you then give an empty string to remove it from the YAML."},
 		"",
 		nil,
