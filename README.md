@@ -63,11 +63,11 @@ More detailed instructions can be found in the [Move2Kube UI repo](https://githu
 
 `move2kube transform -s src`, where `src` is the folder containing the source artifacts.
 
-Checkout the [Tutorials](https://move2kube.konveyor.io/tutorials) and [Documentation](https://move2kube.konveyor.io/documentation) for more information.
+Checkout the [Tutorials](https://move2kube.konveyor.io/tutorials) and [Documentation](https://move2kube.konveyor.io/commands) for more information.
 
 ## Development environment setup
 
-To browse code [![Open in VSCode](https://open.vscode.dev/badges/open-in-vscode.svg)](https://open.vscode.dev/konveyor/move2kube)
+To browse code  [![Open in VSCode](https://badgen.net/badge/icon/Visual%20Studio%20Code?icon=visualstudio&label)](https://open.vscode.dev/konveyor/move2kube)
 
 1. Obtain a recent version of `golang`. Known to work with `1.18`.
 1. Ensure `$GOPATH` is set. If it's not set:

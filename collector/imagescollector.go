@@ -74,7 +74,9 @@ func (c *ImagesCollector) Collect(inputDirectory string, outputPath string) erro
 			}
 			imagefile := filepath.Join(outputPath, common.NormalizeForFilename(shortesttag)+".yaml")
 			err := common.WriteYaml(imagefile, imageInfo)
-			logrus.Errorf("Unable to write file %s : %s", imagefile, err)
+			if err != nil {
+				logrus.Errorf("Unable to write file %s : %s", imagefile, err)
+			}
 		}
 	}
 
@@ -141,14 +143,20 @@ func getAllImageNames() ([]string, error) {
 		logrus.Warnf("Error while running docker image list : %s", err)
 		return nil, err
 	}
-	images := strings.Split(string(outputStr), "\n")
+	if len(outputStr) == 0 {
+		return []string{}, err
+	}
 	cleanimages := []string{}
+	images := strings.Split(strings.TrimSpace(string(outputStr)), "\n")
 	for _, image := range images {
 		if strings.HasPrefix(image, "<none>") || strings.HasSuffix(image, "<none>") {
 			logrus.Debugf("Ignore image with <none> : %s", image)
 			continue
+		} else {
+			cleanimages = append(cleanimages, image)
 		}
 	}
+	logrus.Debugf("clean images : %s", cleanimages)
 	return cleanimages, err
 }
 

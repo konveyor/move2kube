@@ -59,6 +59,7 @@ const (
 	// Function names
 	qaFnName = "query"
 	// fs package
+	evalTemplate                 = "eval_template"
 	fsExistsFnName               = "exists"
 	fsReadAsStringFnName         = "read_as_string"
 	fsReadAsBinaryFnName         = "read_as_binary"
@@ -330,6 +331,7 @@ func (t *Starlark) setDefaultGlobals() {
 	t.StarGlobals = starlark.StringDict{}
 	t.addStarlibModules()
 	t.addFSModules()
+	t.addTemplateModules()
 	t.addAppModules()
 	t.addCryptoModules()
 	t.addArchiveModules()
@@ -373,6 +375,15 @@ func (t *Starlark) addFSModules() {
 			fsRemoveAllFnName:            t.getStarlarkFSRemoveAll(),
 			fsPathRelFnName:              t.getStarlarkFSPathRel(),
 			fsFindXmlPathFnName:          t.getStarlarkFindXmlPath(),
+		},
+	}
+}
+
+func (t *Starlark) addTemplateModules() {
+	t.StarGlobals["template"] = &starlarkstruct.Module{
+		Name: "template",
+		Members: starlark.StringDict{
+			evalTemplate: t.getStarlarkEvalTemplate(),
 		},
 	}
 }
@@ -554,6 +565,43 @@ func (t *Starlark) getStarlarkFSWrite() *starlark.Builtin {
 			return starlark.None, fmt.Errorf("failed to marshal the answer %+v of type %T into a starlark value. Error: %w", numBytesWritten, numBytesWritten, err)
 		}
 		return retValue, err
+	})
+}
+
+func (t *Starlark) getStarlarkEvalTemplate() *starlark.Builtin {
+	return starlark.NewBuiltin(evalTemplate, func(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		templateContents := ""
+		data := starlark.NewDict(16)
+		if err := starlark.UnpackPositionalArgs(fsExistsFnName, args, kwargs, 2, &templateContents, &data); err != nil {
+			return nil, fmt.Errorf("failed to unpack the positional arguments. Error: %w", err)
+		}
+		logrus.Debugf("templateContents:\n%s\n---------------\n", templateContents)
+		dataMap := map[string]interface{}{}
+		for _, x := range data.Items() {
+			k, err := starutil.Unmarshal(x[0])
+			if err != nil {
+				logrus.Errorf("failed to unmarshal the Starlark value %#v as a Golang interface{} . Error: %q", x[0], err)
+				continue
+			}
+			v, err := starutil.Unmarshal(x[1])
+			if err != nil {
+				logrus.Errorf("failed to unmarshal the Starlark value %#v as a Golang interface{} . Error: %q", x[1], err)
+				continue
+			}
+			kStr, ok := k.(string)
+			if !ok {
+				logrus.Errorf("expected the key to be a string. actual type is %T and value is %#v", k, k)
+				continue
+			}
+			dataMap[kStr] = v
+		}
+		logrus.Debugf("dataMap:\n%#v\n---------------\n", dataMap)
+		filledTemplate, err := common.GetStringFromTemplate(templateContents, dataMap)
+		if err != nil {
+			return starlark.String(""), fmt.Errorf("failed to fill the template '%s' using the data %#v . Error: %w", templateContents, data, err)
+		}
+		logrus.Debugf("filledTemplate:\n%s\n---------------\n", filledTemplate)
+		return starlark.String(filledTemplate), nil
 	})
 }
 

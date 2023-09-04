@@ -26,18 +26,14 @@ import (
 	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	networking "k8s.io/kubernetes/pkg/apis/networking"
-
-	corev1 "k8s.io/api/core/v1"
 )
 
-// IRArtifactType represents artifact type of IR
-const IRArtifactType transformertypes.ArtifactType = "IR"
-
-// IRConfigType represents config type of IR
-const IRConfigType transformertypes.ConfigType = "IR"
+// ContainerBuildTypeValue stores the container build type
+type ContainerBuildTypeValue string
 
 const (
 	// DockerfileContainerBuildType represents dockerfile container build type
@@ -48,10 +44,23 @@ const (
 	CNBContainerBuildTypeValue ContainerBuildTypeValue = "CNB"
 )
 
+// ContainerBuildArtifactTypeValue stores the container build artifact type
+type ContainerBuildArtifactTypeValue string
+
 const (
 	// DockerfileContainerBuildArtifactTypeValue represents dockerfile container build type artifact
 	DockerfileContainerBuildArtifactTypeValue ContainerBuildArtifactTypeValue = "Dockerfile"
+	// RelDockerfileContainerBuildArtifactTypeValue represents dockerfile container build type artifact
+	RelDockerfileContainerBuildArtifactTypeValue ContainerBuildArtifactTypeValue = "RelDockerfilePath"
+	// RelDockerfileContextContainerBuildArtifactTypeValue represents dockerfile container build type artifact
+	RelDockerfileContextContainerBuildArtifactTypeValue ContainerBuildArtifactTypeValue = "RelDockerfileContextPath"
 )
+
+// IRArtifactType represents artifact type of IR
+const IRArtifactType transformertypes.ArtifactType = "IR"
+
+// IRConfigType represents config type of IR
+const IRConfigType transformertypes.ConfigType = "IR"
 
 // IR is the intermediate representation filled by source transformers
 type IR struct {
@@ -114,12 +123,6 @@ type ServiceToPodPortForwarding struct {
 	ServiceRelPath string
 	ServiceType    core.ServiceType
 }
-
-// ContainerBuildTypeValue stores the container build type
-type ContainerBuildTypeValue string
-
-// ContainerBuildArtifactTypeValue stores the container build artifact type
-type ContainerBuildArtifactTypeValue string
 
 // ContainerImage defines images that need to be built or reused.
 type ContainerImage struct {

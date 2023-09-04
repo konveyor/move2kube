@@ -23,8 +23,10 @@ import (
 	"sort"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/transformer"
+	"github.com/konveyor/move2kube/transformer/external"
 	plantypes "github.com/konveyor/move2kube/types/plan"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,11 +50,17 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 	requirements, _ := selectorsInPlan.Requirements()
 	transformerSelectorObj = transformerSelectorObj.Add(requirements...)
 
+	remoteOutputFSPath := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
+	outputFSPath := outputPath
+	if remoteOutputFSPath != "" {
+		outputFSPath = remoteOutputFSPath
+	}
+
 	if _, err := transformer.InitTransformers(
 		plan.Spec.Transformers,
 		transformerSelectorObj,
 		plan.Spec.SourceDir,
-		outputPath,
+		outputFSPath,
 		plan.Name,
 		true,
 		preExistingPlan,
@@ -100,11 +108,19 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 	}
 
 	// transform the selected services using the selected transformation options
-	if err := transformer.Transform(selectedTransformationOptions, plan.Spec.SourceDir, outputPath, maxIterations); err != nil {
+	if err := transformer.Transform(selectedTransformationOptions, plan.Spec.SourceDir, outputFSPath, maxIterations); err != nil {
 		return fmt.Errorf("failed to transform using the plan. Error: %w", err)
 	}
 
 	logrus.Infof("Transformation done")
+
+	if vcs.IsRemotePath(outputPath) {
+		err := vcs.PushVCSRepo(outputPath, common.RemoteOutputsFolder)
+		if err != nil {
+			logrus.Fatalf("failed to commit and push the output artifacts for the given remote path %s. Errro : %+v", outputPath, err)
+		}
+		logrus.Infof("move2kube generated artifcats are commited and pushed")
+	}
 	return nil
 }
 
@@ -116,4 +132,15 @@ func Destroy() {
 	if err != nil {
 		logrus.Debug("failed to delete temp directory. Error : ", err)
 	}
+
+	err = os.RemoveAll(external.DetectContainerOutputDir)
+	if err != nil {
+		logrus.Debug("failed to delete temp directory. Error : ", err)
+	}
+
+	err = os.RemoveAll(external.TransformContainerOutputDir)
+	if err != nil {
+		logrus.Debug("failed to delete temp directory. Error : ", err)
+	}
+
 }

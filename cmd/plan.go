@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/common/download"
 	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/lib"
 	"github.com/konveyor/move2kube/qaengine"
@@ -90,10 +91,12 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 	}
 	// make all path(s) absolute
 	for i, c := range flags.configs {
-		if c, err := filepath.Abs(c); err != nil {
-			logrus.Fatalf("failed to make the config file path %s absolute. Error: %q", c, err)
+		if !download.IsRemotePath(c) {
+			if c, err := filepath.Abs(c); err != nil {
+				logrus.Fatalf("failed to make the config file path %s absolute. Error: %q", c, err)
+			}
+			flags.configs[i] = c
 		}
-		flags.configs[i] = c
 	}
 
 	customizationsPath := flags.customizationsPath
@@ -170,10 +173,10 @@ func GetPlanCommand() *cobra.Command {
 		Run:   func(cmd *cobra.Command, _ []string) { planHandler(cmd, flags) },
 	}
 
-	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory.")
+	planCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory or a git url (see https://move2kube.konveyor.io/concepts/git-support).")
 	planCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a file path to save plan to.")
 	planCmd.Flags().StringVarP(&flags.name, nameFlag, "n", common.DefaultProjectName, "Specify the project name.")
-	planCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory where customizations are stored. By default we look for "+common.DefaultCustomizationDir)
+	planCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory or a git url (see https://move2kube.konveyor.io/concepts/git-support) where customizations are stored. By default we look for "+common.DefaultCustomizationDir)
 	planCmd.Flags().StringSliceVarP(&flags.configs, configFlag, "f", []string{}, "Specify config file locations. By default we look for "+common.DefaultConfigFilePath)
 	planCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "t", "", "Specify the transformer selector.")
 	planCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use.")

@@ -106,7 +106,7 @@ func (*BuildConfig) getBuildSource(irBuildConfig irtypes.BuildConfig, ir irtypes
 	if contextPath != "" {
 		_, repoDir, _, repoURL, repoBranchName, err = common.GatherGitInfo(irBuildConfig.ContainerBuild.ContextPath)
 		if err != nil {
-			logrus.Debugf("Unable to identify git repo for %s : %s", irBuildConfig.ContainerBuild.ContextPath, err)
+			logrus.Debugf("failed to find a git repo at the path '%s' . Error: %q", irBuildConfig.ContainerBuild.ContextPath, err)
 		}
 	}
 	if repoDir != "" {

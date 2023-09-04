@@ -57,17 +57,34 @@ func NewPeerContainer(envInfo EnvInfo, grpcQAReceiver net.Addr, containerInfo en
 		return nil, fmt.Errorf("failed to get the container engine. Error: %w", err)
 	}
 	if containerInfo.WorkingDir == "" {
-		containerInfo.WorkingDir = filepath.Join(string(filepath.Separator), types.AppNameShort)
+		containerInfo.WorkingDir = "/" + types.AppNameShort
 	}
 	peerContainer := &PeerContainer{
-		EnvInfo:        envInfo,
-		OriginalImage:  containerInfo.Image,
-		ContainerInfo:  containerInfo,
-		GRPCQAReceiver: grpcQAReceiver,
+		EnvInfo:         envInfo,
+		OriginalImage:   containerInfo.Image,
+		ContainerInfo:   containerInfo,
+		GRPCQAReceiver:  grpcQAReceiver,
+		WorkspaceSource: "/" + DefaultWorkspaceDir,
 	}
-	peerContainer.WorkspaceSource = filepath.Join(string(filepath.Separator), DefaultWorkspaceDir)
+	if containerInfo.ImageBuild.ForceRebuild {
+		logrus.Debugf("force rebuilding the image. containerInfo: %#v", containerInfo)
+		imageBuildContext := filepath.Join(envInfo.Context, peerContainer.ContainerInfo.ImageBuild.Context)
+		if err := cengine.BuildImage(
+			peerContainer.OriginalImage,
+			imageBuildContext,
+			peerContainer.ContainerInfo.ImageBuild.Dockerfile,
+		); err != nil {
+			return nil, fmt.Errorf(
+				"failed to build the container image '%s' using the context directory '%s' and the Dockerfile at path '%s' . Error: %w",
+				peerContainer.OriginalImage,
+				imageBuildContext,
+				peerContainer.ContainerInfo.ImageBuild.Dockerfile,
+				err,
+			)
+		}
+	}
 	peerContainer.ContainerInfo.Image = peerContainer.ContainerInfo.Image + strings.ToLower(envInfo.Name+uniuri.NewLen(5))
-	logrus.Debug("trying to create a new image with the input data")
+	logrus.Debugf("trying to create a new image '%s' with the input data", peerContainer.ContainerInfo.Image)
 	if err := cengine.CopyDirsIntoImage(
 		peerContainer.OriginalImage,
 		peerContainer.ContainerInfo.Image,
@@ -169,6 +186,13 @@ func (e *PeerContainer) Destroy() error {
 
 // Download downloads the path to outside the environment
 func (e *PeerContainer) Download(path string) (string, error) {
+	fileInfo, err := e.Stat(path)
+	if err != nil {
+		return path, fmt.Errorf("failed to stat the given path : %s. Error: %v", path, err)
+	}
+	if !fileInfo.IsDir() {
+		return path, fmt.Errorf("download only supports directory paths. The path provided is %s. Error: %v", path, err)
+	}
 	output, err := os.MkdirTemp(e.TempPath, "*")
 	if err != nil {
 		return path, fmt.Errorf("failed to create temp dir. Error: %w", err)
@@ -186,6 +210,13 @@ func (e *PeerContainer) Download(path string) (string, error) {
 // Upload uploads the path from outside the environment into it
 func (e *PeerContainer) Upload(outpath string) (string, error) {
 	envpath := "/var/tmp/" + uniuri.NewLen(5) + "/" + filepath.Base(outpath)
+	fileInfo, err := os.Stat(outpath)
+	if err != nil {
+		return envpath, fmt.Errorf("failed to stat the given path : %s. Error: %v", outpath, err)
+	}
+	if !fileInfo.IsDir() {
+		return envpath, fmt.Errorf("upload only supports directory paths. The path provided is %s. Error: %v", outpath, err)
+	}
 	cengine, err := container.GetContainerEngine(false)
 	if err != nil {
 		return envpath, fmt.Errorf("failed to get the container engine. Error: %w", err)

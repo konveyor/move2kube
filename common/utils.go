@@ -641,12 +641,10 @@ func GetStringFromTemplate(tpl string, config interface{}) (string, error) {
 	var tplbuffer bytes.Buffer
 	packageTemplate, err := template.New("").Funcs(sprig.TxtFuncMap()).Parse(tpl)
 	if err != nil {
-		logrus.Errorf("Unable to parse template : %s", err)
-		return "", err
+		return "", fmt.Errorf("failed to parse the template. Error: %w", err)
 	}
-	err = packageTemplate.Execute(&tplbuffer, config)
-	if err != nil {
-		return "", fmt.Errorf("unable to transform template to string using the data. Error: %q . Data: %+v Template: %q", err, config, tpl)
+	if err := packageTemplate.Execute(&tplbuffer, config); err != nil {
+		return "", fmt.Errorf("failed to transform the template to string using the data. Error: %w . Data: %+v Template: '%s'", err, config, tpl)
 	}
 	return tplbuffer.String(), nil
 }
@@ -899,23 +897,20 @@ func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath
 	// Return the absolute version of existing asset paths.
 	tempPath, err = filepath.Abs(TempPath)
 	if err != nil {
-		logrus.Errorf("Unable to make the temporary directory path %q absolute. Error: %q", tempPath, err)
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("failed to make the temporary directory path '%s' absolute. Error: %w", TempPath, err)
 	}
 	remoteTempPath, err = filepath.Abs(RemoteTempPath)
 	if err != nil {
-		logrus.Errorf("Unable to make the temporary directory path %q absolute. Error: %q", tempPath, err)
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("failed to make the remote temporary directory path '%s' absolute. Error: %w", RemoteTempPath, err)
 	}
 	assetsPath, err = filepath.Abs(AssetsPath)
 	if err != nil {
-		logrus.Errorf("Unable to make the assets path %q absolute. Error: %q", assetsPath, err)
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("failed to make the assets path '%s' absolute. Error: %w", AssetsPath, err)
 	}
 
 	// Try to create a new temporary directory for the assets.
 	if newTempPath, err := os.MkdirTemp("", types.AppName+"*"); err != nil {
-		logrus.Errorf("Unable to create temp dir. Defaulting to local path.")
+		logrus.Errorf("failed to create a temporary directory for the assets. Defaulting to the local path '%s' . Error: %q", tempPath, err)
 	} else {
 		tempPath = newTempPath
 		assetsPath = filepath.Join(newTempPath, AssetsDir)
@@ -923,50 +918,45 @@ func CreateAssetsData(assetsFS embed.FS, permissions map[string]int) (assetsPath
 
 	// Try to create a new temporary directory for the remote source folders.
 	if newTempPath, err := os.MkdirTemp("", types.AppName+"*"); err != nil {
-		logrus.Errorf("Unable to create temp dir. Defaulting to local path.")
+		logrus.Errorf("failed to create a temporary directory for the remote sources. Defaulting to the local path '%s' . Error: %q", remoteTempPath, err)
 	} else {
 		remoteTempPath = newTempPath
 	}
 
 	// Either way create the subdirectory and untar the assets into it.
 	if err := os.MkdirAll(assetsPath, DefaultDirectoryPermission); err != nil {
-		logrus.Errorf("Unable to create the assets directory at path %q Error: %q", assetsPath, err)
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("failed to create the assets directory at path '%s' . Error: %w", assetsPath, err)
 	}
 	if err := CopyEmbedFSToDir(assetsFS, ".", assetsPath, permissions); err != nil {
-		logrus.Errorf("Unable to untar the assets into the assets directory at path %q Error: %q", assetsPath, err)
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("failed to untar the assets into the assets directory at path '%s' . Error: %w", assetsPath, err)
 	}
 	return assetsPath, tempPath, remoteTempPath, nil
 }
 
 // CopyEmbedFSToDir converts a string into a directory
 func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[string]int) (err error) {
-	f, err := embedFS.Open(GetUnixPath(source))
+	sourceUnixPath := GetUnixPath(source)
+	f, err := embedFS.Open(sourceUnixPath)
 	if err != nil {
-		logrus.Errorf("Error while reading embedded file : %s", err)
-		return err
+		return fmt.Errorf("failed to open the embedded source file '%s' . Error: %w", sourceUnixPath, err)
 	}
 	finfo, err := f.Stat()
 	if err != nil {
-		logrus.Errorf("Error while reading stat of embedded file : %s", err)
-		return err
+		return fmt.Errorf("failed to stat the embedded source file '%s' . Error: %w", sourceUnixPath, err)
 	}
 	if finfo != nil && !finfo.Mode().IsDir() {
-		permission, ok := permissions[GetUnixPath(source)]
+		permission, ok := permissions[sourceUnixPath]
 		if !ok {
-			logrus.Errorf("Permission missing for file %s. Do `make generate` to update permissions file.", dest)
+			logrus.Errorf("permissions missing for the file '%s' . Do `make generate` to update permissions file.", dest)
 		}
 		df, err := os.OpenFile(dest, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.FileMode(permission))
 		if err != nil {
-			logrus.Errorf("Error while opening temp dest assets file : %s", err)
-			return err
+			return fmt.Errorf("failed to open the temporary dest assets file '%s' . Error: %w", dest, err)
 		}
 		defer df.Close()
 		size, err := io.Copy(df, f)
 		if err != nil {
-			logrus.Errorf("Error while copying embedded file : %s", err)
-			return err
+			return fmt.Errorf("failed to copy the embedded file. Error: %w", err)
 		}
 		if size != finfo.Size() {
 			return fmt.Errorf("size mismatch: Wrote %d, Expected %d", size, finfo.Size())
@@ -974,14 +964,18 @@ func CopyEmbedFSToDir(embedFS embed.FS, source, dest string, permissions map[str
 		return nil
 	}
 	if err := os.MkdirAll(dest, DefaultDirectoryPermission); err != nil {
-		return err
+		return fmt.Errorf("failed to create the destination directory at '%s' . Error: %w", dest, err)
 	}
-	dirEntries, err := embedFS.ReadDir(GetUnixPath(source))
+	dirEntries, err := embedFS.ReadDir(sourceUnixPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read the destination directory at '%s' . Error: %w", dest, err)
 	}
 	for _, de := range dirEntries {
-		CopyEmbedFSToDir(embedFS, filepath.Join(source, de.Name()), filepath.Join(dest, removeDollarPrefixFromHiddenDir(de.Name())), permissions)
+		t1Src := filepath.Join(source, de.Name())
+		t1Dest := filepath.Join(dest, removeDollarPrefixFromHiddenDir(de.Name()))
+		if err := CopyEmbedFSToDir(embedFS, t1Src, t1Dest, permissions); err != nil {
+			logrus.Errorf("failed to copy the embedded directory from '%s' to '%s' . Skipping. Error: %q", t1Src, t1Dest, err)
+		}
 	}
 	return nil
 }
@@ -1204,21 +1198,32 @@ func ConvertInterfaceToSliceOfStrings(xI interface{}) ([]string, error) {
 // GatherGitInfo tries to find the git repo for the path if one exists.
 func GatherGitInfo(path string) (repoName, repoDir, repoHostName, repoURL, repoBranch string, err error) {
 	if finfo, err := os.Stat(path); err != nil {
-		logrus.Errorf("Failed to stat the path %q Error %q", path, err)
-		return "", "", "", "", "", err
+		return "", "", "", "", "", fmt.Errorf("failed to stat the path '%s' . Error %w", path, err)
 	} else if !finfo.IsDir() {
 		pathDir := filepath.Dir(path)
-		logrus.Debugf("The path %q is not a directory. Using %q instead.", path, pathDir)
+		logrus.Debugf("The path '%s' is not a directory. Using the path '%s' instead.", path, pathDir)
 		path = pathDir
 	}
 	repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
 	if err != nil {
-		logrus.Debugf("Unable to open the path %q as a git repo. Error: %q", path, err)
-		return "", "", "", "", "", err
+		return "", "", "", "", "", fmt.Errorf("failed to open the path '%s' as a git repo. Error: %w", path, err)
 	}
+	workTree, err := repo.Worktree()
+	if err != nil {
+		return "", "", "", "", "", fmt.Errorf("failed to get the repo working tree/directory. Error: %w", err)
+	}
+	repoDir = workTree.Filesystem.Root()
+	ref, err := repo.Head()
+	if err != nil {
+		return "", "", "", "", "", fmt.Errorf("failed to get the current branch. Error: %w", err)
+	}
+	logrus.Debugf("current branch/tag: %#v", ref)
+	repoBranch = filepath.Base(string(ref.Name()))
 	remotes, err := repo.Remotes()
 	if err != nil || len(remotes) == 0 {
-		logrus.Debugf("No remotes found at path %q Error: %q", path, err)
+		logrus.Debugf("failed to find any remote repo urls for the repo at path '%s' . Error: %q", path, err)
+		logrus.Debugf("git no remotes case - repoName '%s', repoDir '%s', repoHostName '%s', repoURL '%s', repoBranch '%s'", repoName, repoDir, repoHostName, repoURL, repoBranch)
+		return repoName, repoDir, repoHostName, repoURL, repoBranch, nil
 	}
 	var preferredRemote *git.Remote
 	if preferredRemote = getGitRemoteByName(remotes, "upstream"); preferredRemote == nil {
@@ -1226,35 +1231,45 @@ func GatherGitInfo(path string) (repoName, repoDir, repoHostName, repoURL, repoB
 			preferredRemote = remotes[0]
 		}
 	}
-	if workTree, err := repo.Worktree(); err == nil {
-		repoDir = workTree.Filesystem.Root()
-	} else {
-		logrus.Debugf("Unable to get the repo directory. Error: %q", err)
-	}
-	if ref, err := repo.Head(); err == nil {
-		repoBranch = filepath.Base(string(ref.Name()))
-	} else {
-		logrus.Debugf("Unable to get the current branch. Error: %q", err)
-	}
 	if len(preferredRemote.Config().URLs) == 0 {
 		err = fmt.Errorf("unable to get origins")
 		logrus.Debugf("%s", err)
 	}
 	u := preferredRemote.Config().URLs[0]
-	if strings.HasPrefix(u, "git") {
-		parts := strings.Split(u, ":")
-		if len(parts) == 2 {
-			u = parts[1]
+	repoURL = u
+	if strings.HasPrefix(u, "git@") {
+		// Example: git@github.com:konveyor/move2kube.git
+		withoutGitAt := strings.TrimPrefix(u, "git@")
+		idx := strings.Index(withoutGitAt, ":")
+		if idx < 0 {
+			return "", "", "", "", "", fmt.Errorf("failed to parse the remote host url '%s' as a git ssh url. Error: %w", u, err)
 		}
+		domain := withoutGitAt[:idx]
+		rest := withoutGitAt[idx+1:]
+		newUrl := "https://" + domain + "/" + rest
+		logrus.Debugf("final parsed git ssh url to normal url: '%s'", newUrl)
+		giturl, err := url.Parse(newUrl)
+		if err != nil {
+			return "", "", "", "", "", fmt.Errorf("failed to parse the remote host url '%s' . Error: %w", newUrl, err)
+		}
+		logrus.Debugf("parsed ssh case - giturl: %#v", giturl)
+		repoHostName = giturl.Host
+		repoName = filepath.Base(giturl.Path)
+		repoName = strings.TrimSuffix(repoName, filepath.Ext(repoName))
+		logrus.Debugf("git ssh case - repoName '%s', repoDir '%s', repoHostName '%s', repoURL '%s', repoBranch '%s'", repoName, repoDir, repoHostName, repoURL, repoBranch)
+		return repoName, repoDir, repoHostName, repoURL, repoBranch, nil
 	}
+
 	giturl, err := url.Parse(u)
 	if err != nil {
-		logrus.Debugf("Unable to get origin remote host : %s", err)
+		return "", "", "", "", "", fmt.Errorf("failed to parse the remote host url '%s' . Error: %w", u, err)
 	}
+	logrus.Debugf("parsed normal case - giturl: %#v", giturl)
+	repoHostName = giturl.Host
 	repoName = filepath.Base(giturl.Path)
 	repoName = strings.TrimSuffix(repoName, filepath.Ext(repoName))
-	err = nil
-	return
+	logrus.Debugf("git normal case - repoName '%s', repoDir '%s', repoHostName '%s', repoURL '%s', repoBranch '%s'", repoName, repoDir, repoHostName, repoURL, repoBranch)
+	return repoName, repoDir, repoHostName, repoURL, repoBranch, nil
 }
 
 func getGitRemoteByName(remotes []*git.Remote, remoteName string) *git.Remote {
@@ -1516,4 +1531,37 @@ func writeToTar(w *io.PipeWriter, srcPath, basePath string, compressionType Comp
 		return nil
 	})
 
+}
+
+// JsonifyMapValues converts the map values to json
+func JsonifyMapValues(inputMap map[string]interface{}) map[string]interface{} {
+	for key, value := range inputMap {
+		if value == nil {
+			inputMap[key] = ""
+			continue
+		}
+		if val, ok := value.(string); ok {
+			inputMap[key] = val
+			continue
+		}
+		var b bytes.Buffer
+		encoder := json.NewEncoder(&b)
+		if err := encoder.Encode(value); err != nil {
+			logrus.Error("Unable to unmarshal data to json while converting map interfaces to string")
+			continue
+		}
+		strValue := b.String()
+		strValue = strings.TrimSpace(strValue)
+		inputMap[key] = strValue
+	}
+	return inputMap
+}
+
+// IsHTTPURL checks if a string represents an HTTP or HTTPS URL using regular expressions.
+func IsHTTPURL(str string) bool {
+	pattern := `^(http|https)://`
+
+	regex := regexp.MustCompile(pattern)
+
+	return regex.MatchString(str)
 }

@@ -35,7 +35,7 @@ import (
 	"github.com/konveyor/move2kube/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
+	triggersv1beta1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1beta1"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/networking"
 )
@@ -244,7 +244,7 @@ func (t *Tekton) setupEnhancedIR(oldir irtypes.IR, name string) irtypes.Enhanced
 	ir.Roles = append(ir.Roles, irtypes.Role{
 		Name: tektonTriggersAdminRoleName,
 		PolicyRules: []irtypes.PolicyRule{
-			{APIGroups: []string{triggersv1alpha1.SchemeGroupVersion.Group}, Resources: []string{"eventlisteners", "triggerbindings", "triggertemplates"}, Verbs: []string{"get"}},
+			{APIGroups: []string{triggersv1beta1.SchemeGroupVersion.Group}, Resources: []string{"eventlisteners", "triggerbindings", "triggertemplates"}, Verbs: []string{"get"}},
 			{APIGroups: []string{v1beta1.SchemeGroupVersion.Group}, Resources: []string{"pipelineruns"}, Verbs: []string{"create"}},
 			{APIGroups: []string{""}, Resources: []string{"configmaps"}, Verbs: []string{"get", "list", "watch"}},
 		},
@@ -269,6 +269,7 @@ func (t *Tekton) setupEnhancedIR(oldir irtypes.IR, name string) irtypes.Enhanced
 		}
 		_, _, gitRepoHostName, gitRepoURL, _, err := common.GatherGitInfo(container.Build.ContextPath)
 		if err != nil {
+			logrus.Debugf("failed to gather git info. Error: %q", err)
 			if gitRepoURL != "" {
 				logrus.Warnf("Failed to parse git repo url %q Error: %q", gitRepoURL, err)
 			}

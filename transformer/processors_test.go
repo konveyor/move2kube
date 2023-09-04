@@ -134,7 +134,60 @@ func TestProcessPathMappings(t *testing.T) {
 			}
 		}
 	})
-
+	t.Run("single-template-pathmapping", func(t *testing.T) {
+		sourcePath := "./testdata"
+		pms := []transformertypes.PathMapping{{
+			Type:     transformertypes.TemplatePathMappingType,
+			SrcPath:  filepath.Join(sourcePath, "templates"),
+			DestPath: "yamls",
+			TemplateConfig: map[string]interface{}{
+				"RegistryURL":       "quay.io",
+				"RegistryNamespace": "myaccount",
+				"ImageName":         "nginx",
+				"ImageTag":          "1.14.2",
+			},
+		}}
+		outputPath := t.TempDir()
+		if err := processPathMappings(pms, sourcePath, outputPath, true); err != nil {
+			t.Fatalf("failed to process the path mappings. Error: %q", err)
+		}
+		{
+			fs, err := os.ReadDir(outputPath)
+			if err != nil {
+				t.Fatalf("Error: %q", err)
+			}
+			for _, f := range fs {
+				if f.Name() != "yamls" {
+					t.Fatalf("wrong folder name. f %+v f.Name %s", f, f.Name())
+				}
+			}
+		}
+		expectedFilenames := []string{"deployment.yaml"}
+		{
+			fs, err := os.ReadDir(filepath.Join(outputPath, "yamls"))
+			if err != nil {
+				t.Fatalf("Error: %q", err)
+			}
+			for i, f := range fs {
+				if f.Name() != expectedFilenames[i] {
+					t.Fatalf("wrong file name. expected: '%s' actual: '%s' f %+v", expectedFilenames[i], f.Name(), f)
+				}
+			}
+		}
+		for _, expectedFilename := range expectedFilenames {
+			expectedContents, err := os.ReadFile(filepath.Join(sourcePath, "k8s-yamls", expectedFilename))
+			if err != nil {
+				t.Fatalf("Error: %q", err)
+			}
+			actualContents, err := os.ReadFile(filepath.Join(outputPath, "yamls", expectedFilename))
+			if err != nil {
+				t.Fatalf("Error: %q", err)
+			}
+			if diff := cmp.Diff(string(actualContents), string(expectedContents)); diff != "" {
+				t.Fatalf("wrong file contents for filename '%s' . Differences: %s", expectedFilename, diff)
+			}
+		}
+	})
 	t.Run("single-delete-pathmapping", func(t *testing.T) {
 		sourcePath := "./testdata/src"
 		sourceIndexJSPath := filepath.Join(sourcePath, "index.js")

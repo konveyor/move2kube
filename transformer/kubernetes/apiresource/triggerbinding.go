@@ -20,7 +20,7 @@ import (
 	"github.com/konveyor/move2kube/common"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
-	triggersv1alpha1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1alpha1"
+	triggersv1beta1 "github.com/tektoncd/triggers/pkg/apis/triggers/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -31,7 +31,7 @@ type TriggerBinding struct {
 
 // getSupportedKinds returns the kinds that this type supports.
 func (*TriggerBinding) getSupportedKinds() []string {
-	return []string{string(triggersv1alpha1.NamespacedTriggerBindingKind)}
+	return []string{string(triggersv1beta1.NamespacedTriggerBindingKind)}
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
@@ -47,11 +47,11 @@ func (tb *TriggerBinding) createNewResources(ir irtypes.EnhancedIR, supportedKin
 }
 
 // createNewResources creates the runtime objects from the intermediate representation.
-func (*TriggerBinding) createNewResource(irtriggerbinding irtypes.TriggerBinding) *triggersv1alpha1.TriggerBinding {
-	triggerBinding := new(triggersv1alpha1.TriggerBinding)
+func (*TriggerBinding) createNewResource(irtriggerbinding irtypes.TriggerBinding) *triggersv1beta1.TriggerBinding {
+	triggerBinding := new(triggersv1beta1.TriggerBinding)
 	triggerBinding.TypeMeta = metav1.TypeMeta{
-		Kind:       string(triggersv1alpha1.NamespacedTriggerBindingKind),
-		APIVersion: triggersv1alpha1.SchemeGroupVersion.String(),
+		Kind:       string(triggersv1beta1.NamespacedTriggerBindingKind),
+		APIVersion: triggersv1beta1.SchemeGroupVersion.String(),
 	}
 	triggerBinding.ObjectMeta = metav1.ObjectMeta{Name: irtriggerbinding.Name}
 	return triggerBinding

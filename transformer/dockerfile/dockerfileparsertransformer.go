@@ -129,9 +129,24 @@ func (t *DockerfileParser) getIRFromDockerfile(dockerfilepath, contextPath, imag
 	}
 	container.Build.ContainerBuildType = irtypes.DockerfileContainerBuildType
 	container.Build.ContextPath = contextPath
-	container.Build.Artifacts = map[irtypes.ContainerBuildArtifactTypeValue][]string{
+
+	t111 := map[irtypes.ContainerBuildArtifactTypeValue][]string{
 		irtypes.DockerfileContainerBuildArtifactTypeValue: {dockerfilepath},
 	}
+	currEnvOutputDir := t.Env.GetEnvironmentOutput()
+	logrus.Debugf("making Dockerfile paths relative to env output dir: '%s'", currEnvOutputDir)
+	if relDockerfilePath, err := filepath.Rel(currEnvOutputDir, dockerfilepath); err == nil {
+		t111[irtypes.RelDockerfileContainerBuildArtifactTypeValue] = []string{relDockerfilePath}
+	} else {
+		logrus.Errorf("failed to make the Dockerfile path '%s' relative to the env output dir '%s' . Error: %q", dockerfilepath, currEnvOutputDir, err)
+	}
+	if relDockerfileContextPath, err := filepath.Rel(currEnvOutputDir, contextPath); err == nil {
+		t111[irtypes.RelDockerfileContextContainerBuildArtifactTypeValue] = []string{relDockerfileContextPath}
+	} else {
+		logrus.Errorf("failed to make the Dockerfile context path '%s' relative to the env output dir '%s' . Error: %q", contextPath, currEnvOutputDir, err)
+	}
+	container.Build.Artifacts = t111
+
 	if len(container.ExposedPorts) == 0 {
 		logrus.Warnf("Unable to find ports in Dockerfile : %s. Using default port %d", dockerfilepath, common.DefaultServicePort)
 		container.AddExposedPort(common.DefaultServicePort)

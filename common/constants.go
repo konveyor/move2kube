@@ -62,6 +62,10 @@ const (
 	BatExt = ".bat"
 	// RemoteSourcesFolder stores remote sources
 	RemoteSourcesFolder = "m2ksources"
+	// RemoteCustomizationsFolder stores remote customizations
+	RemoteCustomizationsFolder = "m2kcustomizations"
+	// RemoteOutputsFolder stores remote outputs
+	RemoteOutputsFolder = "m2koutputs"
 )
 
 const (
@@ -127,6 +131,8 @@ const (
 	ConfigRepoKeyPathsKey = ConfigRepoKeysKey + d + "paths"
 	//ConfigTransformerTypesKey represents Transformers type Key
 	ConfigTransformerTypesKey = ConfigTransformersKey + d + "types"
+	//VolQaPrefixKey represents the storage QA
+	VolQaPrefixKey = BaseKey + d + "storage.type"
 	//IngressKey represents ingress keyword
 	IngressKey = "ingress"
 	// ConfigIngressClassNameKeySuffix represents the ingress class name
@@ -139,6 +145,16 @@ const (
 	ConfigTargetClusterTypeKey = ConfigTargetKey + d + "clustertype"
 	//ConfigImageRegistryKey represents image registry Key
 	ConfigImageRegistryKey = ConfigTargetKey + d + "imageregistry"
+	// ConfigCICDKey is for CICD related questions
+	ConfigCICDKey = ConfigTargetKey + d + "cicd"
+	// ConfigCICDTektonKey is for CICD Tekton pipelines
+	ConfigCICDTektonKey = ConfigCICDKey + d + "tekton"
+	// ConfigCICDTektonGitRepoSSHSecretNameKey is for Tekton git-clone ssh
+	ConfigCICDTektonGitRepoSSHSecretNameKey = ConfigCICDTektonKey + d + "gitreposshsecret"
+	// ConfigCICDTektonGitRepoBasicAuthSecretNameKey is for Tekton git-clone basic auth
+	ConfigCICDTektonGitRepoBasicAuthSecretNameKey = ConfigCICDTektonKey + d + "gitrepobasicauthsecret"
+	// ConfigCICDTektonRegistryPushSecretNameKey is for Tekton push image to registry credentials
+	ConfigCICDTektonRegistryPushSecretNameKey = ConfigCICDTektonKey + d + "registrypushsecret"
 	//ConfigTargetExistingVersionUpdate represents key which how to update versions
 	ConfigTargetExistingVersionUpdate = ConfigTargetKey + d + "existingversionupdate"
 	//ConfigImageRegistryURLKey represents image registry url Key
@@ -173,6 +189,10 @@ const (
 	ConfigServicesDotNetChildProjectsNamesKey = ConfigServicesKey + d + "%s" + d + "childProjects" + d + Special + d + "enable"
 	// ConfigServicesChildModulesSpringProfilesKey is the list of spring profiles for this child module. 1st arg is service name and 2nd is child module name.
 	ConfigServicesChildModulesSpringProfilesKey = ConfigServicesKey + d + "%s" + d + "childModules" + d + "%s" + d + "springBootProfiles"
+	//VCSKey represents version control system key
+	VCSKey = BaseKey + d + "vcs"
+	//GitKey represents git qa key
+	GitKey = VCSKey + d + "git"
 )
 
 const (

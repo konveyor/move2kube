@@ -189,6 +189,17 @@ func MakePlanPathsAbsolute(obj interface{}, sourcePath, assetsPath string) (err 
 
 // ChangePaths changes paths which are based out of one root to another root
 func ChangePaths(obj interface{}, mapping map[string]string) error {
+	for parent := range mapping {
+		for child := range mapping {
+			if parent != child {
+				if common.IsParent(child, parent) {
+					err := fmt.Errorf("the provided source paths %s is child of %s.", child, parent)
+					logrus.Errorf("%s", err)
+					return err
+				}
+			}
+		}
+	}
 	function := func(path string) (string, error) {
 		if path == "" {
 			return path, nil
