@@ -74,7 +74,7 @@ func (*ArgoCDApplication) createNewResource(irApplication irtypes.Application, t
 	destNamespace := qaengine.FetchStringAnswer(
 		common.ConfigTransformersKubernetesArgoCDNamespaceKey,
 		"Enter the destination namespace for the Argo CD pipeline",
-		[]string{"If this is not relevant to you then give an empty string to remove it from the YAML."},
+		[]string{"If Argo CD pipeline is not relevant to you, then leave empty to use the default value for it."},
 		"",
 		nil,
 	)
