@@ -173,10 +173,12 @@ func (d *Service) ingressToRoute(ingress networking.Ingress) []runtime.Object {
 
 func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.EnhancedIR, targetClusterSpec collecttypes.ClusterMetadataSpec) []runtime.Object {
 	targetPort := networking.ServiceBackendPort{}
-	if route.Spec.Port.TargetPort.Type == intstr.String {
-		targetPort.Name = route.Spec.Port.TargetPort.StrVal
-	} else {
-		targetPort.Number = route.Spec.Port.TargetPort.IntVal
+	if route.Spec.Port != nil {
+		if route.Spec.Port.TargetPort.Type == intstr.String {
+			targetPort.Name = route.Spec.Port.TargetPort.StrVal
+		} else {
+			targetPort.Number = route.Spec.Port.TargetPort.IntVal
+		}
 	}
 
 	ingress := networking.Ingress{
@@ -281,9 +283,9 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR, t
 	return routes
 }
 
-//TODO: Remove these two sections after helm v3 issue is fixed
-//[https://github.com/openshift/origin/issues/24060]
-//[https://bugzilla.redhat.com/show_bug.cgi?id=1773682]
+// TODO: Remove these two sections after helm v3 issue is fixed
+// [https://github.com/openshift/origin/issues/24060]
+// [https://bugzilla.redhat.com/show_bug.cgi?id=1773682]
 // Can't use https because of this https://github.com/openshift/origin/issues/2162
 // When service has multiple ports,the route needs a port name. Port number doesn't seem to work.
 func (d *Service) createRoute(irName string, service irtypes.Service, port core.ServicePort, hostprefix, path string, ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) *okdroutev1.Route {
