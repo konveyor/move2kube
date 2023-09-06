@@ -179,6 +179,29 @@ func (d *Service) routeToIngress(route okdroutev1.Route, ir irtypes.EnhancedIR, 
 		} else {
 			targetPort.Number = route.Spec.Port.TargetPort.IntVal
 		}
+	} else {
+		targetName := route.Spec.To.Name
+		s, ok := ir.Services[targetName]
+		if !ok {
+			for _, s1 := range ir.Services {
+				if s1.BackendServiceName == targetName {
+					s = s1
+					ok = true
+					break
+				}
+			}
+		}
+		if !ok || len(s.ServiceToPodPortForwardings) == 0 {
+			logrus.Errorf("failed to find the service the route is pointing to. Exposing a default port (8080) in the Ingress")
+			targetPort.Number = 8080
+		} else {
+			portForwarding := s.ServiceToPodPortForwardings[0]
+			if portForwarding.ServicePort.Name != "" {
+				targetPort.Name = portForwarding.ServicePort.Name
+			} else {
+				targetPort.Number = portForwarding.ServicePort.Number
+			}
+		}
 	}
 
 	ingress := networking.Ingress{
