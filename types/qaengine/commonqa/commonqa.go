@@ -151,3 +151,7 @@ func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
 	}
 	return int32(selectedPort)
 }
+
+func Stateful() bool {
+	return qaengine.FetchBoolAnswer(common.ConfigStatefulSetKey, "Should Move2Kube generate a StatefulSet as the deployment resource?", []string{"Yes", "No"}, false, nil)
+}
