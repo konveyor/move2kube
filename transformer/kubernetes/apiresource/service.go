@@ -542,8 +542,7 @@ func (d *Service) getHostName(irName string) string {
 
 func (d *Service) getTlsConfig(tlsTerminationKind okdroutev1.TLSTerminationType) *okdroutev1.TLSConfig {
 	switch tlsTerminationKind {
-	case okdroutev1.TLSTerminationPassthrough:
-	case okdroutev1.TLSTerminationReencrypt:
+	case okdroutev1.TLSTerminationPassthrough, okdroutev1.TLSTerminationReencrypt:
 		return &okdroutev1.TLSConfig{
 			Termination: tlsTerminationKind,
 		}
