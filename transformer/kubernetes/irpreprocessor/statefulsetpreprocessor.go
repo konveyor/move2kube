@@ -24,7 +24,7 @@ type statefulsetPreprocessor struct {
 
 func (sp statefulsetPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
 	for k, scObj := range ir.Services {
-		isStateful := commonqa.Stateful()
+		isStateful := commonqa.Stateful(scObj.Name)
 		scObj.StatefulSet = isStateful
 		ir.Services[k] = scObj
 	}
