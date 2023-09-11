@@ -141,6 +141,16 @@ const (
 	ConfigIngressHostKeySuffix = IngressKey + d + "host"
 	//ConfigIngressTLSKeySuffix represents ingress tls Key
 	ConfigIngressTLSKeySuffix = IngressKey + d + "tls"
+	//RouteKey represents route keyword
+	RouteKey = "route"
+	//TLSKey represents TLS keyword
+	TLSKey = "tls"
+	//ConfigRouteTLSTerminationPolicy represents the Route's TLS Termination Policy
+	ConfigRouteTLSTerminationPolicy = RouteKey + d + TLSKey + d + "terminationpolicy"
+	//ConfigRouteTLSKeyKey represents the Route's TLS Key
+	ConfigRouteTLSKeyKey = RouteKey + d + TLSKey + d + "key"
+	//ConfigRouteTLSCertificateKey represents the Route's TLS Certificate
+	ConfigRouteTLSCertificateKey = RouteKey + d + TLSKey + d + "certificate"
 	//ConfigTargetClusterTypeKey represents target cluster type key
 	ConfigTargetClusterTypeKey = ConfigTargetKey + d + "clustertype"
 	//ConfigImageRegistryKey represents image registry Key
