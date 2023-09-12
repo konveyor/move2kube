@@ -54,7 +54,7 @@ type Deployment struct {
 
 // getSupportedKinds returns kinds supported by the deployment
 func (d *Deployment) getSupportedKinds() []string {
-	return []string{podKind, jobKind, common.DeploymentKind, deploymentConfigKind, replicationControllerKind}
+	return []string{podKind, jobKind, common.DeploymentKind, deploymentConfigKind, replicationControllerKind, daemonSetKind}
 }
 
 // createNewResources converts ir to runtime object
