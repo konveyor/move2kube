@@ -32,8 +32,8 @@ jobs:
             });
             await github.actions.createWorkflowDispatch({
               owner: context.repo.owner,
-              repo: 'move2kube-operator',
-              workflow_id: 'raise-pr.yml',
+              repo: 'move2kube-ui',
+              workflow_id: 'raise-operator-pr.yml',
               ref: 'main',
               inputs: {tag, 'commit_ref': 'main'},
             });
