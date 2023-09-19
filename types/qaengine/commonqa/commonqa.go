@@ -155,6 +155,5 @@ func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
 // Stateful returns whether the Service should generate a StatefulSet
 func Stateful(serviceName string) bool {
 	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigStatefulSetKey)
-	fmt.Printf("QuesKey = %s\n", quesKey)
-	return qaengine.FetchBoolAnswer(quesKey, "Should Move2Kube generate a StatefulSet as the deployment resource?", []string{"Yes", "No"}, false, nil)
+	return qaengine.FetchBoolAnswer(quesKey, fmt.Sprintf("For the service '%s', should we generate a StatefulSet instead of a Deployment?", serviceName), nil, false, nil)
 }

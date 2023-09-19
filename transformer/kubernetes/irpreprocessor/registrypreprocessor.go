@@ -27,6 +27,7 @@ import (
 	dockerclitypes "github.com/docker/cli/cli/config/types"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/sirupsen/logrus"
@@ -51,7 +52,7 @@ const (
 	imagePullSecretSuffix = "-imagepullsecret"
 )
 
-func (p registryPreProcessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
+func (p registryPreProcessor) preprocess(ir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error) {
 	// find all the new images that we are going to create
 
 	newImageNames := []string{}

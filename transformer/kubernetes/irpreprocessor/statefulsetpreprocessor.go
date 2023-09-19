@@ -15,14 +15,23 @@
  */package irpreprocessor
 
 import (
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
+	"github.com/sirupsen/logrus"
 )
+
+const statefulSetKind = "StatefulSet"
 
 type statefulsetPreprocessor struct {
 }
 
-func (sp statefulsetPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
+func (sp statefulsetPreprocessor) preprocess(ir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error) {
+	if targetCluster.Spec.GetSupportedVersions(statefulSetKind) == nil {
+		logrus.Debug("StatefulSets not supported by target cluster.\n")
+		return ir, nil
+	}
+
 	for k, scObj := range ir.Services {
 		isStateful := commonqa.Stateful(scObj.Name)
 		scObj.StatefulSet = isStateful

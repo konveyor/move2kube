@@ -17,6 +17,7 @@
 package irpreprocessor
 
 import (
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/sirupsen/logrus"
@@ -31,7 +32,7 @@ const (
 	minReplicas int = 2
 )
 
-func (ep replicaPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
+func (ep replicaPreprocessor) preprocess(ir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error) {
 	replicaCountStr := commonqa.MinimumReplicaCount(cast.ToString(minReplicas))
 	replicaCount, err := cast.ToIntE(replicaCountStr)
 	if err != nil {

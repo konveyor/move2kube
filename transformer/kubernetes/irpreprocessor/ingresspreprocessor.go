@@ -22,6 +22,7 @@ import (
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/spf13/cast"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -31,7 +32,7 @@ import (
 type ingressPreprocessor struct {
 }
 
-func (opt *ingressPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
+func (opt *ingressPreprocessor) preprocess(ir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error) {
 	for serviceName, service := range ir.Services {
 		tempService := ir.Services[serviceName]
 		for portForwardingIdx, portForwarding := range service.ServiceToPodPortForwardings {
