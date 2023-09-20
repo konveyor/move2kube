@@ -90,7 +90,7 @@ const (
 	//ConfigMinReplicasKey represents Ingress host Key
 	ConfigMinReplicasKey = BaseKey + d + "minreplicas"
 	//ConfigStatefulSetKey represents whether the IR should generate a StatefulSet
-	ConfigStatefulSetKey = BaseKey + d + "statefulset"
+	ConfigStatefulSetKey = "statefulset"
 	//ConfigPortsForServiceKeySegment represents the ports used for service
 	ConfigPortsForServiceKeySegment = "ports"
 	//ConfigPortForServiceKeySegment represents the port used for service
