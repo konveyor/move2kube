@@ -470,7 +470,7 @@ func (d *Service) createService(service irtypes.Service) *core.Service {
 			Ports:    ports,
 		},
 	}
-	if len(ports) == 0 {
+	if len(ports) == 0 || service.StatefulSet {
 		svc.Spec.ClusterIP = "None"
 	}
 	return svc

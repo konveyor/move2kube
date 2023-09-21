@@ -110,7 +110,7 @@ func (t *BuildConfig) Transform(newArtifacts []transformertypes.Artifact, alread
 			continue
 		}
 		ir.Name = newArtifact.Name
-		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		preprocessedIR, err := irpreprocessor.Preprocess(ir, clusterConfig)
 		if err != nil {
 			logrus.Errorf("failed to prepreocess the IR. Error: %q", err)
 		} else {

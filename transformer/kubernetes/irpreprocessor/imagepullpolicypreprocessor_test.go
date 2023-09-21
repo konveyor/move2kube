@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -27,6 +28,8 @@ import (
 
 func TestImagePullPolicyOptimizer(t *testing.T) {
 	logrus.SetLevel(logrus.DebugLevel)
+	var clusterConfig collection.ClusterMetadata
+
 
 	t.Run("IR with no services", func(t *testing.T) {
 		// Setup
@@ -35,7 +38,7 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 		want := getIRWithoutServices()
 
 		// Test
-		actual, err := imagePullPolicyPreprocessor.preprocess(ir)
+		actual, err := imagePullPolicyPreprocessor.preprocess(ir, clusterConfig)
 		if err != nil {
 			t.Fatal("Failed to get the expected. Error:", err)
 		}
@@ -51,7 +54,7 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 		want := getIRWithServicesAndWithoutContainers()
 
 		// Test
-		actual, err := imagePullPolicyPreprocessor.preprocess(ir)
+		actual, err := imagePullPolicyPreprocessor.preprocess(ir, clusterConfig)
 		if err != nil {
 			t.Fatal("Failed to get the expected. Error:", err)
 		}
@@ -83,7 +86,7 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 		want := getIRWithImagePullPolicySetAsAlways()
 
 		// Test
-		actual, err := imagePullPolicyPreprocessor.preprocess(ir)
+		actual, err := imagePullPolicyPreprocessor.preprocess(ir, clusterConfig)
 		if err != nil {
 			t.Fatal("Failed to get the expected. Error:", err)
 		}
@@ -99,7 +102,7 @@ func TestImagePullPolicyOptimizer(t *testing.T) {
 		want := getIRWithImagePullPolicySetAsAlways()
 
 		// Test
-		actual, err := imagePullPolicyPreprocessor.preprocess(ir)
+		actual, err := imagePullPolicyPreprocessor.preprocess(ir, clusterConfig)
 		if err != nil {
 			t.Fatal("Failed to get the expected. Error:", err)
 		}

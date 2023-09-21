@@ -12,37 +12,29 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- */
-
-package irpreprocessor
+ */package irpreprocessor
 
 import (
 	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/konveyor/move2kube/types/qaengine/commonqa"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
 )
 
-// replicaOptimizer sets the minimum number of replicas
-type replicaPreprocessor struct {
+const statefulSetKind = "StatefulSet"
+
+type statefulsetPreprocessor struct {
 }
 
-const (
-	minReplicas int = 2
-)
-
-func (ep replicaPreprocessor) preprocess(ir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error) {
-	replicaCountStr := commonqa.MinimumReplicaCount(cast.ToString(minReplicas))
-	replicaCount, err := cast.ToIntE(replicaCountStr)
-	if err != nil {
-		logrus.Errorf("Replica count %s is not a number. Reverting to default %d.", replicaCountStr, minReplicas)
-		replicaCount = minReplicas
+func (sp statefulsetPreprocessor) preprocess(ir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error) {
+	if targetCluster.Spec.GetSupportedVersions(statefulSetKind) == nil {
+		logrus.Debug("StatefulSets not supported by target cluster.\n")
+		return ir, nil
 	}
+
 	for k, scObj := range ir.Services {
-		if scObj.Replicas < replicaCount {
-			scObj.Replicas = replicaCount
-		}
+		isStateful := commonqa.IsStateful(scObj.Name)
+		scObj.StatefulSet = isStateful
 		ir.Services[k] = scObj
 	}
 

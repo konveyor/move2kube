@@ -46,6 +46,8 @@ const (
 	replicationControllerKind string = "ReplicationController"
 	// daemonSetKind defines DaemonSet Kind
 	daemonSetKind string = "DaemonSet"
+	// statefulSetKind defines StatefulSet Kind
+	statefulSetKind string = "StatefulSet"
 )
 
 // Deployment handles all objects like a Deployment
@@ -54,7 +56,7 @@ type Deployment struct {
 
 // getSupportedKinds returns kinds supported by the deployment
 func (d *Deployment) getSupportedKinds() []string {
-	return []string{podKind, jobKind, common.DeploymentKind, deploymentConfigKind, replicationControllerKind, daemonSetKind}
+	return []string{podKind, jobKind, common.DeploymentKind, deploymentConfigKind, replicationControllerKind, daemonSetKind, statefulSetKind}
 }
 
 // createNewResources converts ir to runtime object
@@ -67,6 +69,11 @@ func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []
 				logrus.Errorf("Creating Daemonset even though not supported by target cluster.")
 			}
 			obj = d.createDaemonSet(service, targetCluster.Spec)
+		} else if service.StatefulSet {
+			if !common.IsPresent(supportedKinds, statefulSetKind) {
+				logrus.Errorf("Creating Statefulset even though not supported by target cluster.")
+			}
+			obj = d.createStatefulSet(service, targetCluster.Spec)
 		} else if service.RestartPolicy == core.RestartPolicyNever || service.RestartPolicy == core.RestartPolicyOnFailure {
 			if common.IsPresent(supportedKinds, jobKind) {
 				obj = d.createJob(service, targetCluster.Spec)
@@ -264,6 +271,36 @@ func (d *Deployment) createJob(service irtypes.Service, cluster collecttypes.Clu
 		},
 	}
 	return &pod
+}
+
+func (d *Deployment) createStatefulSet(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) *apps.StatefulSet {
+	podSpec := service.PodSpec
+	podSpec = irtypes.PodSpec(d.convertVolumesKindsByPolicy(core.PodSpec(podSpec), cluster))
+	podSpec.RestartPolicy = core.RestartPolicyAlways
+	meta := metav1.ObjectMeta{
+		Name:        service.Name,
+		Labels:      getPodLabels(service.Name, service.Networks),
+		Annotations: getAnnotations(service),
+	}
+	statefulset := apps.StatefulSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       statefulSetKind,
+			APIVersion: metav1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: meta,
+		Spec: apps.StatefulSetSpec{
+			Replicas: int32(service.Replicas),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: getServiceLabels(meta.Name),
+			},
+			Template: core.PodTemplateSpec{
+				ObjectMeta: meta,
+				Spec:       core.PodSpec(podSpec),
+			},
+			ServiceName: service.Name,
+		},
+	}
+	return &statefulset
 }
 
 // Conversions section

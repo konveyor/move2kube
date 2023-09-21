@@ -17,6 +17,7 @@
 package irpreprocessor
 
 import (
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/networking"
@@ -27,7 +28,7 @@ type mergePreprocessor struct {
 }
 
 // Preprocesses the port forwardings
-func (opt *mergePreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
+func (opt *mergePreprocessor) preprocess(ir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error) {
 	for serviceName, service := range ir.Services {
 		service.Containers = opt.mergeContainers(service.Containers)
 		pfs := service.ServiceToPodPortForwardings
