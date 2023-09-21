@@ -45,8 +45,6 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR, targetCluster collecti
 			// Create Headless Services for services that are to be converted into StatefulSets
 			if service.StatefulSet {
 				portForwarding.ServiceType = core.ServiceTypeClusterIP
-				tempService.ServiceToPodPortForwardings[portForwardingIdx] = portForwarding
-				continue
 			}
 			noneServiceType := "Don't create service"
 			portKeyPart := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, `"`+cast.ToString(portForwarding.ServicePort.Number)+`"`)
