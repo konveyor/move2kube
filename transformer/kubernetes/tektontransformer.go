@@ -122,7 +122,7 @@ func (t *Tekton) Transform(newArtifacts []transformertypes.Artifact, alreadySeen
 			continue
 		}
 		ir.Name = newArtifact.Name
-		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		preprocessedIR, err := irpreprocessor.Preprocess(ir, clusterConfig)
 		if err != nil {
 			logrus.Errorf("Unable to prepreocess IR : %s", err)
 		} else {

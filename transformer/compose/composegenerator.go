@@ -23,7 +23,9 @@ import (
 	composetypes "github.com/docker/cli/cli/compose/types"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
+	"github.com/konveyor/move2kube/transformer/kubernetes"
 	"github.com/konveyor/move2kube/transformer/kubernetes/irpreprocessor"
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
 	"github.com/sirupsen/logrus"
@@ -93,8 +95,14 @@ func (t *ComposeGenerator) Transform(newArtifacts []transformertypes.Artifact, a
 			logrus.Errorf("unable to load config for Transformer into %T : %s", ir, err)
 			continue
 		}
+
+		var clusterConfig collection.ClusterMetadata
+		if err := a.GetConfig(kubernetes.ClusterMetadata, &clusterConfig); err != nil {
+			logrus.Debugf("failed to load config for Transformer into %T . Error: %q", clusterConfig, err)
+		}
+
 		ir.Name = a.Name
-		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		preprocessedIR, err := irpreprocessor.Preprocess(ir, clusterConfig)
 		if err != nil {
 			logrus.Errorf("Unable to prepreocess IR : %s", err)
 		} else {

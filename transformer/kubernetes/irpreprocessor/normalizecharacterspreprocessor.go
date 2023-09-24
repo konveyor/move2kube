@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -28,7 +29,7 @@ import (
 type normalizeCharacterPreprocessor struct {
 }
 
-func (po normalizeCharacterPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
+func (po normalizeCharacterPreprocessor) preprocess(ir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error) {
 	//TODO: Make this generic to ensure all fields have valid names
 	for i := range ir.Services {
 		for j := range ir.Services[i].Containers {

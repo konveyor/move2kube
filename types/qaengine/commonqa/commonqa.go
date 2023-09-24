@@ -151,3 +151,9 @@ func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
 	}
 	return int32(selectedPort)
 }
+
+// IsStateful returns whether the Service should generate a StatefulSet
+func IsStateful(serviceName string) bool {
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigStatefulSetKey)
+	return qaengine.FetchBoolAnswer(quesKey, fmt.Sprintf("For the service '%s', do you require a StatefulSet instead of a Deployment?", serviceName), nil, false, nil)
+}
