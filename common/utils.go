@@ -1159,6 +1159,7 @@ func MarshalObjToYaml(obj runtime.Object) ([]byte, error) {
 		logrus.Errorf("Error while marshalling object %+v to json. Error: %q", obj, err)
 		return nil, err
 	}
+	fmt.Printf("json: %s\n", string(objJSONBytes))
 	var jsonObj interface{}
 	if err := yaml.Unmarshal(objJSONBytes, &jsonObj); err != nil {
 		logrus.Errorf("Unable to unmarshal the json as yaml:\n%s\nError: %q", objJSONBytes, err)

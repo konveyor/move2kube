@@ -89,8 +89,8 @@ const (
 	ConfigStoragesKey = BaseKey + d + "storages"
 	//ConfigMinReplicasKey represents Ingress host Key
 	ConfigMinReplicasKey = BaseKey + d + "minreplicas"
-	//ConfigStatefulSetKey represents whether the IR should generate a StatefulSet
-	ConfigStatefulSetKey = "statefulset"
+	//ConfigDeploymentTypeKey represents which type of Deployment should be generated
+	ConfigDeploymentTypeKey = "deployment"
 	//ConfigPortsForServiceKeySegment represents the ports used for service
 	ConfigPortsForServiceKeySegment = "ports"
 	//ConfigPortForServiceKeySegment represents the port used for service

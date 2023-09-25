@@ -33,8 +33,8 @@ func (sp statefulsetPreprocessor) preprocess(ir irtypes.IR, targetCluster collec
 	}
 
 	for k, scObj := range ir.Services {
-		isStateful := commonqa.IsStateful(scObj.Name)
-		scObj.StatefulSet = isStateful
+		isStateful := commonqa.GetDeploymentType(scObj.Name)
+		scObj.DeploymentType = isStateful
 		ir.Services[k] = scObj
 	}
 

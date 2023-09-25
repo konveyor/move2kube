@@ -19,6 +19,7 @@ package apiresource
 import (
 	"strings"
 
+	argorollouts "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
@@ -31,6 +32,7 @@ import (
 	apps "k8s.io/kubernetes/pkg/apis/apps"
 	batch "k8s.io/kubernetes/pkg/apis/batch"
 	core "k8s.io/kubernetes/pkg/apis/core"
+	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 )
 
 //TODO: Add support for replicaset, cronjob and statefulset
@@ -48,6 +50,7 @@ const (
 	daemonSetKind string = "DaemonSet"
 	// statefulSetKind defines StatefulSet Kind
 	statefulSetKind string = "StatefulSet"
+	rolloutKind     string = "Rollout"
 )
 
 // Deployment handles all objects like a Deployment
@@ -56,7 +59,7 @@ type Deployment struct {
 
 // getSupportedKinds returns kinds supported by the deployment
 func (d *Deployment) getSupportedKinds() []string {
-	return []string{podKind, jobKind, common.DeploymentKind, deploymentConfigKind, replicationControllerKind, daemonSetKind, statefulSetKind}
+	return []string{podKind, jobKind, common.DeploymentKind, deploymentConfigKind, replicationControllerKind, daemonSetKind, statefulSetKind, rolloutKind}
 }
 
 // createNewResources converts ir to runtime object
@@ -69,11 +72,17 @@ func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []
 				logrus.Errorf("Creating Daemonset even though not supported by target cluster.")
 			}
 			obj = d.createDaemonSet(service, targetCluster.Spec)
-		} else if service.StatefulSet {
+		} else if service.DeploymentType == irtypes.StatefulSet {
 			if !common.IsPresent(supportedKinds, statefulSetKind) {
 				logrus.Errorf("Creating Statefulset even though not supported by target cluster.")
 			}
 			obj = d.createStatefulSet(service, targetCluster.Spec)
+		} else if service.DeploymentType == irtypes.ArgoRollout {
+			var err error
+			obj, err = d.createArgorollout(service, targetCluster.Spec)
+			if err != nil {
+				logrus.Errorf("Error creating Argo Rollout: %v", err)
+			}
 		} else if service.RestartPolicy == core.RestartPolicyNever || service.RestartPolicy == core.RestartPolicyOnFailure {
 			if common.IsPresent(supportedKinds, jobKind) {
 				obj = d.createJob(service, targetCluster.Spec)
@@ -303,6 +312,44 @@ func (d *Deployment) createStatefulSet(service irtypes.Service, cluster collectt
 	return &statefulset
 }
 
+func (d *Deployment) createArgorollout(service irtypes.Service, cluster collecttypes.ClusterMetadataSpec) (*argorollouts.Rollout, error) {
+	podSpec := service.PodSpec
+	podSpec = irtypes.PodSpec(d.convertVolumesKindsByPolicy(core.PodSpec(podSpec), cluster))
+
+	meta := metav1.ObjectMeta{
+		Name:        service.Name,
+		Labels:      getPodLabels(service.Name, service.Networks),
+		Annotations: getAnnotations(service),
+	}
+	replicas := int32(service.Replicas)
+	var v1spec corev1.PodSpec
+	var corespec core.PodSpec = core.PodSpec(podSpec)
+	err := corev1conversions.Convert_core_PodSpec_To_v1_PodSpec(&corespec, &v1spec, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	rollout := argorollouts.Rollout{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       rolloutKind,
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: meta,
+		Spec: argorollouts.RolloutSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: getServiceLabels(meta.Name),
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: meta,
+				Spec:       v1spec,
+			},
+		},
+	}
+
+	return &rollout, nil
+}
+
 // Conversions section
 
 func (d *Deployment) toDeploymentConfig(meta metav1.ObjectMeta, podspec core.PodSpec, replicas int32, cluster collecttypes.ClusterMetadataSpec) *okdappsv1.DeploymentConfig {
@@ -421,9 +468,9 @@ func (d *Deployment) toPod(meta metav1.ObjectMeta, podspec core.PodSpec, restart
 	return &pod
 }
 
-//Volumes and volume mounts of all containers are transformed as follows:
-//1. Each container's volume mount list and corresponding volumes are transformed
-//2. Unreferenced volumes are discarded
+// Volumes and volume mounts of all containers are transformed as follows:
+// 1. Each container's volume mount list and corresponding volumes are transformed
+// 2. Unreferenced volumes are discarded
 func (d *Deployment) convertVolumesKindsByPolicy(podspec core.PodSpec, cluster collecttypes.ClusterMetadataSpec) core.PodSpec {
 	if podspec.Volumes == nil || len(podspec.Volumes) == 0 {
 		return podspec

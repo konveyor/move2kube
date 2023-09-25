@@ -56,6 +56,14 @@ const (
 	RelDockerfileContextContainerBuildArtifactTypeValue ContainerBuildArtifactTypeValue = "RelDockerfileContextPath"
 )
 
+type DeploymentType string
+
+const (
+	Deployment  DeploymentType = "Deployment"
+	StatefulSet DeploymentType = "StatefulSet"
+	ArgoRollout DeploymentType = "ArgoRollout"
+)
+
 // IRArtifactType represents artifact type of IR
 const IRArtifactType transformertypes.ArtifactType = "IR"
 
@@ -113,8 +121,8 @@ type Service struct {
 	Replicas                    int
 	Networks                    []string
 	OnlyIngress                 bool
-	Daemon                      bool //Gets converted to DaemonSet
-	StatefulSet                 bool // Whether the service gets converted to a StatefulSet
+	Daemon                      bool           //Gets converted to DaemonSet
+	DeploymentType              DeploymentType // Whether the service gets converted to a StatefulSet
 }
 
 // ServiceToPodPortForwarding forwards a k8s service port to a k8s pod port
