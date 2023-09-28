@@ -117,13 +117,13 @@ Select an option:`
 	selectedOption := qaengine.FetchSelectAnswer(common.ConfigRepoLoadPrivKey, message, nil, "", options, nil)
 	switch selectedOption {
 	case options[0]:
-		if selectedKeyFilenames, err := loadKeysFromDirectory(privateKeyDir); err != nil {
+		selectedKeyFilenames, err := loadKeysFromDirectory(privateKeyDir)
+		if err != nil {
 			logrus.Warnf("Failed to load the keys from the SSH directory '%s'. Error: %q", privateKeyDir, err)
 			return
-		} else {
-			// Save the filenames for now. We will decrypt them if and when we need them.
-			privateKeysToConsider = selectedKeyFilenames
 		}
+		// Save the filenames for now. We will decrypt them if and when we need them.
+		privateKeysToConsider = selectedKeyFilenames
 	case options[1]:
 		privateKeysToConsider = []string{shoudlAskUserForSSHKey}
 	default:
