@@ -25,6 +25,8 @@ const (
 	nameFlag = "name"
 	// planFlag is the name of the flag that contains the path to the plan file
 	planFlag = "plan"
+	// profileFlag is the name of the flag that contains the path where the CPU profile file should be generated
+	profileFlag = "profile"
 	// ignoreEnvFlag is the name of the flag that tells us whether to use data collected from the local machine
 	ignoreEnvFlag = "ignore-env"
 	// qaSkipFlag is the name of the flag that lets you skip all the question answers
