@@ -235,7 +235,7 @@ func GetSSHKey(domain string) (string, bool) {
 				if ans == "" {
 					return nil
 				}
-				t1, err := loadSSHPrivateKeyFromBytes([]byte(ans), "")
+				t1, err := loadSSHPrivateKeyFromBytes([]byte(ans), domain)
 				if err == nil {
 					validatedKey = t1
 				}
