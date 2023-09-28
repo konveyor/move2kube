@@ -98,7 +98,7 @@ func (t *Knative) Transform(newArtifacts []transformertypes.Artifact, alreadySee
 			continue
 		}
 		ir.Name = a.Name
-		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		preprocessedIR, err := irpreprocessor.Preprocess(ir, clusterConfig)
 		if err != nil {
 			logrus.Errorf("Unable to prepreocess IR : %s", err)
 		} else {

@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/pprof"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/download"
@@ -40,6 +41,8 @@ type transformFlags struct {
 	disableLocalExecution bool
 	// planfile is contains the path to the plan file
 	planfile string
+	// profilepath contains the path to the CPU profile file
+	profilepath string
 	// outpath contains the path to the output folder
 	outpath string
 	// SourceFlag contains path to the source folder
@@ -56,6 +59,15 @@ type transformFlags struct {
 }
 
 func transformHandler(cmd *cobra.Command, flags transformFlags) {
+	if flags.profilepath != "" {
+		if f, err := os.Create(flags.profilepath); err != nil {
+			panic(err)
+		} else if err := pprof.StartCPUProfile(f); err != nil {
+			panic(err)
+		}
+		defer pprof.StopCPUProfile()
+	}
+
 	ctx, cancel := context.WithCancel(cmd.Context())
 	logrus.AddHook(common.NewCleanupHook(cancel))
 	logrus.AddHook(common.NewCleanupHook(lib.Destroy))
@@ -223,6 +235,7 @@ func GetTransformCommand() *cobra.Command {
 	}
 
 	// Basic options
+	transformCmd.Flags().StringVar(&flags.profilepath, profileFlag, "", "Path where the CPU profile file should be generated. By default we don't profile.")
 	transformCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	transformCmd.Flags().BoolVar(&flags.overwrite, overwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
 	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory or a git url (see https://move2kube.konveyor.io/concepts/git-support) to transform. If you already have a m2k.plan then this will override the sourceDir value specified in that plan.")

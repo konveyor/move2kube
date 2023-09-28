@@ -17,6 +17,7 @@
 package irpreprocessor
 
 import (
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -25,7 +26,7 @@ import (
 type imagePullPolicyPreprocessor struct {
 }
 
-func (ep imagePullPolicyPreprocessor) preprocess(ir irtypes.IR) (irtypes.IR, error) {
+func (ep imagePullPolicyPreprocessor) preprocess(ir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error) {
 	for k, scObj := range ir.Services {
 		for i := range scObj.Containers {
 			scObj.Containers[i].ImagePullPolicy = core.PullAlways

@@ -129,7 +129,7 @@ func (t *Kubernetes) Transform(newArtifacts []transformertypes.Artifact, already
 			logrus.Errorf("Evaluating IngressName in Kubernetes transformer resulting in empty string. Defaulting to Artifact Name.")
 			ir.Name = newArtifact.Name
 		}
-		preprocessedIR, err := irpreprocessor.Preprocess(ir)
+		preprocessedIR, err := irpreprocessor.Preprocess(ir, clusterConfig)
 		if err != nil {
 			logrus.Errorf("failed to pre-preocess the IR. Error: %q", err)
 		} else {

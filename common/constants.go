@@ -89,6 +89,8 @@ const (
 	ConfigStoragesKey = BaseKey + d + "storages"
 	//ConfigMinReplicasKey represents Ingress host Key
 	ConfigMinReplicasKey = BaseKey + d + "minreplicas"
+	//ConfigStatefulSetKey represents whether the IR should generate a StatefulSet
+	ConfigStatefulSetKey = "statefulset"
 	//ConfigPortsForServiceKeySegment represents the ports used for service
 	ConfigPortsForServiceKeySegment = "ports"
 	//ConfigPortForServiceKeySegment represents the port used for service
@@ -189,6 +191,8 @@ const (
 	ConfigServicesDotNetChildProjectsNamesKey = ConfigServicesKey + d + "%s" + d + "childProjects" + d + Special + d + "enable"
 	// ConfigServicesChildModulesSpringProfilesKey is the list of spring profiles for this child module. 1st arg is service name and 2nd is child module name.
 	ConfigServicesChildModulesSpringProfilesKey = ConfigServicesKey + d + "%s" + d + "childModules" + d + "%s" + d + "springBootProfiles"
+	// ConfigTransformersKubernetesArgoCDNamespaceKey represents namespace key for argocd transformer
+	ConfigTransformersKubernetesArgoCDNamespaceKey = ConfigTransformersKey + d + "kubernetes" + d + "argocd" + d + "namespace"
 	//VCSKey represents version control system key
 	VCSKey = BaseKey + d + "vcs"
 	//GitKey represents git qa key

@@ -114,6 +114,7 @@ type Service struct {
 	Networks                    []string
 	OnlyIngress                 bool
 	Daemon                      bool //Gets converted to DaemonSet
+	StatefulSet                 bool // Whether the service gets converted to a StatefulSet
 }
 
 // ServiceToPodPortForwarding forwards a k8s service port to a k8s pod port
@@ -122,6 +123,7 @@ type ServiceToPodPortForwarding struct {
 	PodPort        networking.ServiceBackendPort
 	ServiceRelPath string
 	ServiceType    core.ServiceType
+	Headless       bool // Whether this port forwarding is for a headless service
 }
 
 // ContainerImage defines images that need to be built or reused.

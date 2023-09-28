@@ -17,29 +17,31 @@
 package irpreprocessor
 
 import (
+	"github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
 	"github.com/sirupsen/logrus"
 )
 
 // irpreprocessor optimizes the configuration
 type irpreprocessor interface {
-	preprocess(sourceir irtypes.IR) (irtypes.IR, error)
+	preprocess(sourceir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error)
 }
 
 // getIRPreprocessors returns optimizers
 func getIRPreprocessors() []irpreprocessor {
-	var l = []irpreprocessor{new(mergePreprocessor), new(normalizeCharacterPreprocessor), new(ingressPreprocessor), new(replicaPreprocessor), new(imagePullPolicyPreprocessor), new(registryPreProcessor)}
+	var l = []irpreprocessor{new(mergePreprocessor), new(normalizeCharacterPreprocessor), new(statefulsetPreprocessor), new(ingressPreprocessor), new(replicaPreprocessor), 
+		new(imagePullPolicyPreprocessor), new(registryPreProcessor)}
 	return l
 }
 
 // Preprocess preprocesses IR before application artifacts are generated
-func Preprocess(ir irtypes.IR) (irtypes.IR, error) {
+func Preprocess(ir irtypes.IR, targetCluster collection.ClusterMetadata) (irtypes.IR, error) {
 	optimizers := getIRPreprocessors()
 	logrus.Debug("Begin Optimization")
 	for _, o := range optimizers {
 		logrus.Debugf("[%T] Begin Optimization", o)
 		var err error
-		ir, err = o.preprocess(ir)
+		ir, err = o.preprocess(ir, targetCluster)
 		if err != nil {
 			logrus.Warnf("[%T] Failed : %s", o, err.Error())
 		} else {
