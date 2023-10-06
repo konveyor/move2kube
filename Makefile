@@ -15,6 +15,7 @@
 GO_VERSION  ?= $(shell go run ./scripts/detectgoversion/detect.go 2>/dev/null || printf '1.18')
 BINNAME     ?= move2kube
 IN_CICD     ?= false
+CGO_ENABLED ?= 0
 BINDIR      := $(CURDIR)/bin
 DISTDIR		:= $(CURDIR)/_dist
 TARGETS     := darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 linux/s390x linux/ppc64le windows/amd64
@@ -102,7 +103,7 @@ build: get $(BINDIR)/$(BINNAME) ## Build go code
 	@printf "\033[32m-------------------------------------\n BUILD SUCCESS\n-------------------------------------\033[0m\n"
 
 $(BINDIR)/$(BINNAME): $(SRC) $(ASSETS) $(WEB_ASSETS)
-	CGO_ENABLED=0 go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) .
+	CGO_ENABLED=$(CGO_ENABLED) go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) .
 	mkdir -p $(GOPATH)/bin/
 	cp $(BINDIR)/$(BINNAME) $(GOPATH)/bin/
 
