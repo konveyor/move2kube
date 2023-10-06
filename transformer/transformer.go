@@ -90,6 +90,7 @@ var (
 
 func init() {
 	transformerObjs := []Transformer{
+		new(external.WASM),
 		new(external.Starlark),
 		new(external.Executable),
 

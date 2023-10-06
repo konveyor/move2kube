@@ -35,6 +35,7 @@ require (
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
 	github.com/qri-io/starlib v0.5.0
+	github.com/second-state/WasmEdge-go v0.13.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/cobra v1.7.0
