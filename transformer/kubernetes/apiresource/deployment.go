@@ -21,6 +21,7 @@ import (
 
 	argorollouts "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/qaengine"
 	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
 	collecttypes "github.com/konveyor/move2kube/types/collection"
 	irtypes "github.com/konveyor/move2kube/types/ir"
@@ -29,10 +30,18 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	apps "k8s.io/kubernetes/pkg/apis/apps"
 	batch "k8s.io/kubernetes/pkg/apis/batch"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
+)
+
+type RolloutType string
+
+const (
+	BlueGreenRollout RolloutType = "BlueGreen"
+	CanaryRollout    RolloutType = "Canary"
 )
 
 //TODO: Add support for replicaset, cronjob and statefulset
@@ -329,6 +338,32 @@ func (d *Deployment) createArgorollout(service irtypes.Service, cluster collectt
 		return nil, err
 	}
 
+	// prompt type of rollout
+	qaKey := common.JoinQASubKeys(common.ConfigServicesKey, common.ConfigDeploymentTypeKey, common.ConfigArgoRolloutTypeKey)
+	desc := "Which type of Argo rollout should be generated?"
+	def := string(BlueGreenRollout)
+	options := []string{string(BlueGreenRollout), string(CanaryRollout)}
+	rolloutType := qaengine.FetchSelectAnswer(qaKey, desc, nil, def, options, nil)
+
+	var rolloutStrategy argorollouts.RolloutStrategy
+	if rolloutType == string(BlueGreenRollout) {
+		rolloutStrategy = argorollouts.RolloutStrategy{
+			BlueGreen: &argorollouts.BlueGreenStrategy{
+				ActiveService:        service.Name,
+				PreviewService:       service.Name + "-preview",
+				AutoPromotionEnabled: func(b bool) *bool { return &b }(false),
+			},
+		}
+	} else {
+		rolloutStrategy = argorollouts.RolloutStrategy{
+			Canary: &argorollouts.CanaryStrategy{
+				StableService: service.Name,
+				CanaryService: service.Name + "-preview",
+				MaxSurge:      &intstr.IntOrString{StrVal: "25%"},
+			},
+		}
+	}
+
 	rollout := argorollouts.Rollout{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       rolloutKind,
@@ -344,6 +379,7 @@ func (d *Deployment) createArgorollout(service irtypes.Service, cluster collectt
 				ObjectMeta: meta,
 				Spec:       v1spec,
 			},
+			Strategy: rolloutStrategy,
 		},
 	}
 
