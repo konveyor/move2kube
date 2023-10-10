@@ -37,11 +37,11 @@ import (
 	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 )
 
-type RolloutType string
+type rolloutType string
 
 const (
-	BlueGreenRollout RolloutType = "BlueGreen"
-	CanaryRollout    RolloutType = "Canary"
+	blueGreenRollout rolloutType = "BlueGreen"
+	canaryRollout    rolloutType = "Canary"
 )
 
 //TODO: Add support for replicaset, cronjob and statefulset
@@ -81,12 +81,12 @@ func (d *Deployment) createNewResources(ir irtypes.EnhancedIR, supportedKinds []
 				logrus.Errorf("Creating Daemonset even though not supported by target cluster.")
 			}
 			obj = d.createDaemonSet(service, targetCluster.Spec)
-		} else if service.DeploymentType == irtypes.StatefulSet {
+		} else if service.DeploymentType == irtypes.DeploymentTypeStatefulSet {
 			if !common.IsPresent(supportedKinds, statefulSetKind) {
 				logrus.Errorf("Creating Statefulset even though not supported by target cluster.")
 			}
 			obj = d.createStatefulSet(service, targetCluster.Spec)
-		} else if service.DeploymentType == irtypes.ArgoRollout {
+		} else if service.DeploymentType == irtypes.DeploymentTypeArgoRollout {
 			var err error
 			obj, err = d.createArgorollout(service, targetCluster.Spec)
 			if err != nil {
@@ -341,12 +341,12 @@ func (d *Deployment) createArgorollout(service irtypes.Service, cluster collectt
 	// prompt type of rollout
 	qaKey := common.JoinQASubKeys(common.ConfigServicesKey, common.ConfigDeploymentTypeKey, common.ConfigArgoRolloutTypeKey)
 	desc := "Which type of Argo rollout should be generated?"
-	def := string(BlueGreenRollout)
-	options := []string{string(BlueGreenRollout), string(CanaryRollout)}
+	def := string(blueGreenRollout)
+	options := []string{string(blueGreenRollout), string(canaryRollout)}
 	rolloutType := qaengine.FetchSelectAnswer(qaKey, desc, nil, def, options, nil)
 
 	var rolloutStrategy argorollouts.RolloutStrategy
-	if rolloutType == string(BlueGreenRollout) {
+	if rolloutType == string(blueGreenRollout) {
 		rolloutStrategy = argorollouts.RolloutStrategy{
 			BlueGreen: &argorollouts.BlueGreenStrategy{
 				ActiveService:        service.Name,

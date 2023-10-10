@@ -157,16 +157,16 @@ func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
 func GetDeploymentType(serviceName string) ir.DeploymentType {
 	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigDeploymentTypeKey)
 	desc := fmt.Sprintf("For the service %s, which type of deployment is required?", serviceName)
-	def := string(ir.Deployment)
-	options := []string{string(ir.Deployment), string(ir.StatefulSet), string(ir.ArgoRollout)}
+	def := string(ir.DeploymentTypeDeployment)
+	options := []string{string(ir.DeploymentTypeDeployment), string(ir.DeploymentTypeStatefulSet), string(ir.DeploymentTypeArgoRollout)}
 	deplType := qaengine.FetchSelectAnswer(quesKey, desc, nil, def, options, nil)
 
 	switch deplType {
-	case string(ir.Deployment):
-		return ir.Deployment
-	case string(ir.StatefulSet):
-		return ir.StatefulSet
+	case string(ir.DeploymentTypeDeployment):
+		return ir.DeploymentTypeDeployment
+	case string(ir.DeploymentTypeStatefulSet):
+		return ir.DeploymentTypeStatefulSet
 	default:
-		return ir.ArgoRollout
+		return ir.DeploymentTypeArgoRollout
 	}
 }
