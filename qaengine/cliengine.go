@@ -51,6 +51,16 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 		logrus.Errorf("the QA problem object is invalid. Error: %q", err)
 		return prob, err
 	}
+	// return default if the category is skipped
+	probCategories := qatypes.GetProblemCategories(prob.ID)
+	logrus.Infof("Categories found: %d", len(probCategories))
+	for _, category := range probCategories {
+		if common.IsStringPresent(common.DisabledCategories, category) && prob.Default != nil {
+			prob.Answer = prob.Default
+			return prob, nil
+		}
+	}
+
 	switch prob.Type {
 	case qatypes.SelectSolutionFormType:
 		return c.fetchSelectAnswer(prob)

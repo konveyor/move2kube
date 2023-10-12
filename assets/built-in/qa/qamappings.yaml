@@ -1,0 +1,19 @@
+categories:
+  - name: imageregistry
+    # or use the flags --enable imageregistry/--disable imageregistry
+    enabled: true
+    questions:
+      - move2kube.target.imageregistry.url
+      - move2kube.target.imageregistry.namespace
+      - move2kube\.target\.imageregistry\.\"(.+)\"\.logintype
+  - name: default
+    enabled: true
+    questions: []
+  - name: sshkeys
+    enabled: true
+    questions:
+      - move2kube\.repo\.keys\.\"(.+)\"\.key
+  - name: storage
+    enabled: true
+    questions:
+      - move2kube\.storage\.type\.\"(.+)\"\.options
