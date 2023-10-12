@@ -21,20 +21,20 @@ type QACategory struct {
 }
 
 // GetProblemCategories returns the list of categories a particular question belongs to
-func GetProblemCategories(probId string) []string {
+func GetProblemCategories(targetProbId string) []string {
 	var categories []string
 	for category, probIds := range common.QACategoryMap {
-		for _, probId_ := range probIds {
+		for _, probId := range probIds {
 			// if the problem ID contains a capture group (\), it's a regular expression
-			if strings.ContainsAny(probId_, "(\\)") {
-				re, err := regexp.Compile(probId_)
+			if strings.ContainsAny(probId, "(\\)") {
+				re, err := regexp.Compile(probId)
 				if err != nil {
-					logrus.Errorf("invalid problem ID regexp: %s\n", probId)
+					logrus.Errorf("invalid problem ID regexp: %s\n", targetProbId)
 				}
-				if re.Match([]byte(probId)) {
+				if re.Match([]byte(targetProbId)) {
 					categories = append(categories, category)
 				}
-			} else if probId == probId_ {
+			} else if targetProbId == probId {
 				categories = append(categories, category)
 			}
 		}
