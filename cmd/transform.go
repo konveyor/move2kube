@@ -160,7 +160,6 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		for k := range common.QACategoryMap {
 			if !common.IsStringPresent(flags.qaEnabledCategories, k) {
 				common.DisabledCategories = append(common.DisabledCategories, k)
-				logrus.Infof("added %s to disabled\n", k)
 			}
 		}
 	} else {
