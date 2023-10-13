@@ -1,9 +1,9 @@
 package qaengine
 
 import (
-	"regexp"
 	"strings"
 
+	"github.com/gobwas/glob"
 	"github.com/konveyor/move2kube/common"
 	"github.com/sirupsen/logrus"
 )
@@ -25,13 +25,14 @@ func GetProblemCategories(targetProbId string) []string {
 	var categories []string
 	for category, probIds := range common.QACategoryMap {
 		for _, probId := range probIds {
-			// if the problem ID contains a capture group (\), it's a regular expression
-			if strings.ContainsAny(probId, "(\\)") {
-				re, err := regexp.Compile(probId)
+			// if the problem ID contains a *, interpret it as a glob
+			if strings.Contains(probId, "*") {
+				g, err := glob.Compile(probId)
 				if err != nil {
-					logrus.Errorf("invalid problem ID regexp: %s\n", targetProbId)
+					logrus.Errorf("invalid problem ID glob: %s\n", probId)
+					continue
 				}
-				if re.Match([]byte(targetProbId)) {
+				if g.Match(targetProbId) {
 					categories = append(categories, category)
 				}
 			} else if targetProbId == probId {

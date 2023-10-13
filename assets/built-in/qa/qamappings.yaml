@@ -5,15 +5,69 @@ categories:
     questions:
       - move2kube.target.imageregistry.url
       - move2kube.target.imageregistry.namespace
-      - move2kube\.target\.imageregistry\.\"(.+)\"\.logintype
+      - move2kube.target.imageregistry.*.logintype
+      - move2kube.target.imageregistry.*.password
   - name: default
     enabled: true
     questions: []
   - name: sshkeys
     enabled: true
     questions:
-      - move2kube\.repo\.keys\.\"(.+)\"\.key
+      - move2kube.repo.keys.*.key
+      - move2kube.repo.keys.pub.domain.*.pubkey
+      - move2kube.repo.keys.pub.load
+      - move2kube.repo.keys.load
+      - move2kube.repo.keys.paths
+      - move2kube.repo.keys.priv.*.password
   - name: storage
     enabled: true
     questions:
-      - move2kube\.storage\.type\.\"(.+)\"\.options
+      - move2kube.storage.type.*.options
+  - name: sourceanalyzer
+    enabled: true
+    questions:
+      - move2kube.services.*.enable
+      - move2kube.services.*.containerizationoption
+      - move2kube.services.*.childProjects.*.publishprofile
+      - move2kube.services.*.apacheconfig
+      - move2kube.services.*.pythonmainfile
+      - move2kube.services.*.pythonstartingfile
+      - move2kube.services.*.dockerfileType
+      - move2kube.services.*.childModules.*.enable
+      - move2kube.services.*.childProjects.*.enable
+      - move2kube.services.*.childModules.*.springBootProfiles
+      - move2kube.services.*.mavenProfiles
+  - name: cluster
+    enabled: true
+    questions:
+      - move2kube.target.*.clustertype
+      - move2kube.minreplicas
+  - name: network
+    enabled: true
+    questions:
+      - move2kube.services.*.*.servicetype
+      - move2kube.services.*.*.urlpath
+      - move2kube.services.*.ports
+      - move2kube.target.*.ingress.ingressclassname
+      - move2kube.target.*.ingress.host
+      - move2kube.target.*.ingress.tls
+  - name: git
+    enabled: true
+    questions:
+      - move2kube.vcs.git.name
+      - move2kube.vcs.git.username
+      - move2kube.vcs.git.email
+      - move2kube.vcs.git.pass
+  - name: cicd
+    enabled: true
+    questions:
+      - move2kube.target.cicd.tekton.gitreposshsecret
+      - move2kube.target.cicd.tekton.gitrepobasicauthsecret
+      - move2kube.target.cicd.tekton.registrypushsecret
+      - move2kube.transformers.kubernetes.argocd.namespace
+  - name: transformers
+    enabled: true
+    questions:
+      - move2kube.transformerselector
+      - move2kube.spawncontainers
+      - move2kube.transformers.types

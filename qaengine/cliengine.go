@@ -53,7 +53,6 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	}
 	// return default if the category is skipped
 	probCategories := qatypes.GetProblemCategories(prob.ID)
-	logrus.Infof("Categories found: %d", len(probCategories))
 	for _, category := range probCategories {
 		if common.IsStringPresent(common.DisabledCategories, category) && prob.Default != nil {
 			prob.Answer = prob.Default
