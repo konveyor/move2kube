@@ -7,9 +7,6 @@ categories:
       - move2kube.target.imageregistry.namespace
       - move2kube.target.imageregistry.*.logintype
       - move2kube.target.imageregistry.*.password
-  - name: default
-    enabled: true
-    questions: []
   - name: sshkeys
     enabled: true
     questions:

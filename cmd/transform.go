@@ -150,6 +150,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	for _, mapping := range qaMapping.Categories {
 		common.QACategoryMap[mapping.Name] = mapping.Questions
 	}
+	common.QACategoryMap["default"] = []string{}
 
 	// Global settings
 	common.IgnoreEnvironment = flags.ignoreEnv
