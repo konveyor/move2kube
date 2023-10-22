@@ -17,6 +17,7 @@
 package qaengine
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -54,8 +55,14 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	// return default if the category is skipped
 	probCategories := qatypes.GetProblemCategories(prob.ID)
 	for _, category := range probCategories {
-		if common.IsStringPresent(common.DisabledCategories, category) && prob.Default != nil {
-			prob.Answer = prob.Default
+		if common.IsStringPresent(common.DisabledCategories, category) {
+			if prob.Default == nil {
+				// todo: warn instead of returning error
+				return prob, errors.New("category is skipped but default doesn't exist") // TODO:
+			}
+			if err := prob.SetAnswer(prob.Default, true); err != nil {
+				return prob, fmt.Errorf("failed to set the given solution as the answer. Error: %w", err)
+			}
 			return prob, nil
 		}
 	}
@@ -233,5 +240,8 @@ func getQAMessage(prob qatypes.Problem) string {
 	if len(prob.Hints) == 0 {
 		return fmt.Sprintf("%s\nID: %s\n", prob.Desc, prob.ID)
 	}
-	return fmt.Sprintf("%s\nID: %s\nHints:\n- %s\n\n", prob.Desc, prob.ID, strings.Join(prob.Hints, "\n- "))
+	categoryList := qatypes.GetProblemCategories(prob.ID)
+	// We add the category list on the same line as the ID, but aligned to the right
+	idAndCategoryLine := AddRightAlignedString(fmt.Sprintf("ID: %s", prob.ID), fmt.Sprintf("Categories: (%s)", strings.Join(categoryList, ", ")))
+	return fmt.Sprintf("%s\n%s\nHints:\n- %s", prob.Desc, idAndCategoryLine, strings.Join(prob.Hints, "\n- "))
 }
