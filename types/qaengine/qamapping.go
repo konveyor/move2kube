@@ -37,8 +37,9 @@ type QACategory struct {
 }
 
 // GetProblemCategories returns the list of categories a particular question belongs to
-func GetProblemCategories(targetProbId string) []string {
-	var categories []string
+func GetProblemCategories(targetProbId string, additionalCategories []string) []string {
+	categories := additionalCategories
+
 	for category, probIds := range common.QACategoryMap {
 		for _, probId := range probIds {
 			// if the problem ID contains a *, interpret it as a glob

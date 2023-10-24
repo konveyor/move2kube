@@ -24,6 +24,7 @@ categories:
     enabled: true
     questions:
       - move2kube.services.*.enable
+      - move2kube.services.*.statefulset
       - move2kube.services.*.containerizationoption
       - move2kube.services.*.childProjects.*.publishprofile
       - move2kube.services.*.apacheconfig

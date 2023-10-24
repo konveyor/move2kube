@@ -53,14 +53,15 @@ const (
 
 // Problem defines the QA problem
 type Problem struct {
-	ID        string                  `yaml:"id" json:"id"`
-	Type      SolutionFormType        `yaml:"type,omitempty" json:"type,omitempty"`
-	Desc      string                  `yaml:"description,omitempty" json:"description,omitempty"`
-	Hints     []string                `yaml:"hints,omitempty" json:"hints,omitempty"`
-	Options   []string                `yaml:"options,omitempty" json:"options,omitempty"`
-	Default   interface{}             `yaml:"default,omitempty" json:"default,omitempty"`
-	Answer    interface{}             `yaml:"answer,omitempty" json:"answer,omitempty"`
-	Validator func(interface{}) error `yaml:"-" json:"-"`
+	ID         string                  `yaml:"id" json:"id"`
+	Type       SolutionFormType        `yaml:"type,omitempty" json:"type,omitempty"`
+	Desc       string                  `yaml:"description,omitempty" json:"description,omitempty"`
+	Hints      []string                `yaml:"hints,omitempty" json:"hints,omitempty"`
+	Options    []string                `yaml:"options,omitempty" json:"options,omitempty"`
+	Default    interface{}             `yaml:"default,omitempty" json:"default,omitempty"`
+	Answer     interface{}             `yaml:"answer,omitempty" json:"answer,omitempty"`
+	Validator  func(interface{}) error `yaml:"-" json:"-"`
+	Categories []string                `yaml:"categories,omitempty" json:"categories,omitempty"`
 }
 
 // NewProblem creates a new problem object from a GRPC problem
