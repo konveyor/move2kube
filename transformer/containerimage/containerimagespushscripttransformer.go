@@ -46,6 +46,7 @@ type DockerfileImagePushScriptConfig struct {
 
 // ImagePushTemplateConfig represents template config used by ImagePush script
 type ImagePushTemplateConfig struct {
+	ContainerRuntime  string
 	RegistryURL       string
 	RegistryNamespace string
 	Images            []string
@@ -79,7 +80,9 @@ func (t *ContainerImagesPushScript) DirectoryDetect(dir string) (services map[st
 // Transform transforms the artifacts
 func (t *ContainerImagesPushScript) Transform(newArtifacts []transformertypes.Artifact, alreadySeenArtifacts []transformertypes.Artifact) ([]transformertypes.PathMapping, []transformertypes.Artifact, error) {
 	pathMappings := []transformertypes.PathMapping{}
-	ipt := ImagePushTemplateConfig{}
+	ipt := ImagePushTemplateConfig{
+		ContainerRuntime: common.GetDefaultContainerRuntime(),
+	}
 	for _, a := range newArtifacts {
 		if a.Type != artifacts.NewImagesArtifactType {
 			continue
