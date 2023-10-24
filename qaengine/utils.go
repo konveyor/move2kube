@@ -22,7 +22,7 @@ import (
 	tsize "github.com/kopoli/go-terminal-size"
 )
 
-// Adds a new string to the right of the original, with max width the size of the current
+// AddRightAlignedString adds a new string to the right of the original, with max width the size of the current
 // terminal window
 func AddRightAlignedString(original, addition string) string {
 	termSize, err := tsize.GetSize()
