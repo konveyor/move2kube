@@ -18,12 +18,14 @@ package lib
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/filesystem"
+	"github.com/sirupsen/logrus"
 )
 
 // CheckAndCopyCustomizations checks if the customizations path is an existing directory and copies to assets
@@ -57,6 +59,11 @@ func CheckAndCopyCustomizations(customizationsPath string) error {
 	if common.IsParent(pwd, customizationsFSPath) {
 		return fmt.Errorf("the given customizations directory '%s' is a parent of the current working directory", customizationsFSPath)
 	}
+	// check if the customization path has files other than YAMLs
+	fileExts := getAllFileExts(customizationsFSPath)
+	if !fileExts[".yaml"] && !fileExts[".yml"] {
+		logrus.Warnf("no manifests for external transformers found in %s, the transformers won't be loaded.", customizationsFSPath)
+	}
 	if err = CopyCustomizationsAssetsData(customizationsFSPath); err != nil {
 		return fmt.Errorf("failed to copy the customizations data from the directory '%s' . Error: %w", customizationsFSPath, err)
 	}
@@ -82,4 +89,21 @@ func CopyCustomizationsAssetsData(customizationsPath string) (err error) {
 		return fmt.Errorf("failed to copy the customizations from '%s' to the directory '%s' . Error: %w", customizationsPath, customizationsAssetsPath, err)
 	}
 	return nil
+}
+
+// getAllFileExts recursively finds all extensions of files in the specified directory
+func getAllFileExts(filePath string) map[string]bool {
+	fileExts := map[string]bool{}
+	filepath.WalkDir(filePath, func(s string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			fileExt := filepath.Ext(s)
+			fileExts[fileExt] = true
+		}
+		return nil
+	})
+
+	return fileExts
 }
