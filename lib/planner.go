@@ -1,5 +1,5 @@
 /*
- *  Copyright IBM Corporation 2020, 2021
+ *  Copyright IBM Corporation 2022
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,22 +19,25 @@ package lib
 import (
 	"context"
 	"fmt"
-
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/common/vcs"
-	"github.com/konveyor/move2kube/transformer"
-	plantypes "github.com/konveyor/move2kube/types/plan"
-	"github.com/sirupsen/logrus"
+	"github.com/konveyor/move2kube-wasm/transformer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	// "fmt"
+
+	"github.com/konveyor/move2kube-wasm/common"
+	// "github.com/konveyor/move2kube/common/vcs"
+	plantypes "github.com/konveyor/move2kube-wasm/types/plan"
+	"github.com/sirupsen/logrus"
+	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CreatePlan creates the plan using all the tranformers.
 func CreatePlan(ctx context.Context, inputPath, outputPath string, customizationsPath, transformerSelector, prjName string) (plantypes.Plan, error) {
 	logrus.Trace("CreatePlan start")
 	defer logrus.Trace("CreatePlan end")
-	remoteInputFSPath := vcs.GetClonedPath(inputPath, common.RemoteSourcesFolder, true)
-	remoteOutputFSPath := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
-	logrus.Debugf("common.TempPath: '%s' inputPath: '%s' remoteInputFSPath '%s'", common.TempPath, inputPath, remoteInputFSPath)
+	// remoteInputFSPath := vcs.GetClonedPath(inputPath, common.RemoteSourcesFolder, true)
+	// remoteOutputFSPath := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
+	// logrus.Debugf("common.TempPath: '%s' inputPath: '%s' remoteInputFSPath '%s'", common.TempPath, inputPath, remoteInputFSPath)
 	plan := plantypes.NewPlan()
 	plan.Name = prjName
 	common.ProjectName = prjName
@@ -42,12 +45,12 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	plan.Spec.CustomizationsDir = customizationsPath
 	inputFSPath := inputPath
 	outputFSPath := outputPath
-	if remoteInputFSPath != "" {
-		inputFSPath = remoteInputFSPath
-	}
-	if remoteOutputFSPath != "" {
-		outputFSPath = remoteOutputFSPath
-	}
+	// if remoteInputFSPath != "" {
+	// 	inputFSPath = remoteInputFSPath
+	// }
+	// if remoteOutputFSPath != "" {
+	// 	outputFSPath = remoteOutputFSPath
+	// }
 	if customizationsPath != "" {
 		if err := CheckAndCopyCustomizations(customizationsPath); err != nil {
 			return plan, fmt.Errorf("failed to check and copy the customizations. Error: %w", err)
@@ -81,6 +84,7 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 
 	logrus.Info("Start planning")
 	if inputFSPath != "" {
+		var err error
 		plan.Spec.Services, err = transformer.GetServices(plan.Name, inputFSPath, nil)
 		if err != nil {
 			return plan, fmt.Errorf("failed to get services from the input directory '%s' . Error: %w", inputFSPath, err)

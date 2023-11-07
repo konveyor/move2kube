@@ -21,18 +21,17 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/common/vcs"
-	"github.com/konveyor/move2kube/filesystem"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/filesystem"
 )
 
 // CheckAndCopyCustomizations checks if the customizations path is an existing directory and copies to assets
 func CheckAndCopyCustomizations(customizationsPath string) error {
-	remoteCustomizationsPath := vcs.GetClonedPath(customizationsPath, common.RemoteCustomizationsFolder, true)
+	//remoteCustomizationsPath := vcs.GetClonedPath(customizationsPath, common.RemoteCustomizationsFolder, true)
 	customizationsFSPath := customizationsPath
-	if remoteCustomizationsPath != "" {
-		customizationsFSPath = remoteCustomizationsPath
-	}
+	//if remoteCustomizationsPath != "" {
+	//	customizationsFSPath = remoteCustomizationsPath
+	//}
 	if customizationsFSPath == "" {
 		return nil
 	}

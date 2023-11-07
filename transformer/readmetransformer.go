@@ -20,9 +20,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/types/info"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube-wasm/environment"
+	"github.com/konveyor/move2kube-wasm/types/info"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )

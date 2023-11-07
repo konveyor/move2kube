@@ -1,5 +1,5 @@
 /*
- *  Copyright IBM Corporation 2020, 2021
+ *  Copyright IBM Corporation 2022
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube-wasm/common"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

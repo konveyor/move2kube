@@ -19,7 +19,7 @@ package transformer
 import (
 	"fmt"
 
-	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube-wasm/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

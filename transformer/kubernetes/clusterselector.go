@@ -19,11 +19,11 @@ package kubernetes
 import (
 	"fmt"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/qaengine"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/environment"
+	"github.com/konveyor/move2kube-wasm/qaengine"
+	collecttypes "github.com/konveyor/move2kube-wasm/types/collection"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 
 	"github.com/sirupsen/logrus"
 )

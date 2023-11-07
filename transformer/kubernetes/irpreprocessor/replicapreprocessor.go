@@ -17,9 +17,9 @@
 package irpreprocessor
 
 import (
-	"github.com/konveyor/move2kube/types/collection"
-	irtypes "github.com/konveyor/move2kube/types/ir"
-	"github.com/konveyor/move2kube/types/qaengine/commonqa"
+	"github.com/konveyor/move2kube-wasm/types/collection"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
+	"github.com/konveyor/move2kube-wasm/types/qaengine/commonqa"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )

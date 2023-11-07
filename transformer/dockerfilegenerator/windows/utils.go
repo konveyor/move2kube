@@ -19,7 +19,7 @@ package windows
 import (
 	"fmt"
 
-	"github.com/konveyor/move2kube/types/source/dotnet"
+	"github.com/konveyor/move2kube-wasm/types/source/dotnet"
 )
 
 // isSilverlight checks if the app is silverlight by looking for silverlight regex patterns

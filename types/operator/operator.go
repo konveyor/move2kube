@@ -17,7 +17,7 @@
 package operator
 
 import (
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 )
 
 // OperatorsToInitializeArtifactType is the type for an artifact that containing the output of TCA (operator names and URLs).

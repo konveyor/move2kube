@@ -19,7 +19,7 @@ package fixer
 import (
 	"fmt"
 
-	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube-wasm/common"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	networking "k8s.io/kubernetes/pkg/apis/networking"

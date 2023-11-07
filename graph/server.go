@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	graphtypes "github.com/konveyor/move2kube/types/graph"
+	graphtypes "github.com/konveyor/move2kube-wasm/types/graph"
 	"github.com/sirupsen/logrus"
 )
 

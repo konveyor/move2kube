@@ -20,10 +20,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/qaengine"
-	"github.com/konveyor/move2kube/types/collection"
-	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/qaengine"
+	"github.com/konveyor/move2kube-wasm/types/collection"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
 	"github.com/spf13/cast"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )

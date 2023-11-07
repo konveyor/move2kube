@@ -18,6 +18,7 @@ package collector
 
 import (
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/transformer/kubernetes/k8sschema"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,9 +28,9 @@ import (
 	"strings"
 
 	semver "github.com/Masterminds/semver/v3"
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
+	"github.com/konveyor/move2kube-wasm/common"
+	//"github.com/konveyor/move2kube-wasm/transformer/kubernetes/k8sschema"
+	collecttypes "github.com/konveyor/move2kube-wasm/types/collection"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,7 +40,7 @@ import (
 	cgclientcmd "k8s.io/client-go/tools/clientcmd"
 )
 
-//ClusterCollector Implements Collector interface
+// ClusterCollector Implements Collector interface
 type ClusterCollector struct {
 	clusterCmd string
 }
@@ -49,7 +50,7 @@ func (c ClusterCollector) GetAnnotations() []string {
 	return []string{"k8s"}
 }
 
-//Collect gets the cluster metadata by querying the cluster. Assumes that the authentication with cluster is already done.
+// Collect gets the cluster metadata by querying the cluster. Assumes that the authentication with cluster is already done.
 func (c *ClusterCollector) Collect(inputPath string, outputPath string) error {
 	//Creating the output sub-directory if it does not exist
 	outputPath = filepath.Join(outputPath, "clusters")
@@ -636,7 +637,7 @@ func (c *ClusterCollector) getGVKUsingNameCLI(name string) (string, string, erro
 	return gvk.Kind, gvk.GroupVersion().String(), nil
 }
 
-//GVExists looks up group version from list
+// GVExists looks up group version from list
 func gvExists(gvList []schema.GroupVersion, gvKey schema.GroupVersion) bool {
 	for _, gv := range gvList {
 		if gv.String() == gvKey.String() {

@@ -18,12 +18,11 @@ package qaengine
 
 import (
 	"fmt"
-	"path/filepath"
-
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/common/download"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/common/download"
+	qatypes "github.com/konveyor/move2kube-wasm/types/qaengine"
 	"github.com/sirupsen/logrus"
+	"path/filepath"
 )
 
 // Engine defines interface for qa engines
@@ -44,11 +43,13 @@ func StartEngine(qaskip bool, qaport int, qadisablecli bool) {
 	var e Engine
 	if qaskip {
 		e = NewDefaultEngine()
-	} else if !qadisablecli {
-		e = NewCliEngine()
-	} else {
-		e = NewHTTPRESTEngine(qaport)
 	}
+	//TODO: WASI
+	// else if !qadisablecli {
+	//	e = NewCliEngine()
+	//} else {
+	//	e = NewHTTPRESTEngine(qaport)
+	//}
 	AddEngine(e)
 }
 

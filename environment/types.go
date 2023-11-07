@@ -17,7 +17,7 @@
 package environment
 
 import (
-	environmenttypes "github.com/konveyor/move2kube/types/environment"
+	environmenttypes "github.com/konveyor/move2kube-wasm/types/environment"
 )
 
 // EnvInfo stores the envionment generic info

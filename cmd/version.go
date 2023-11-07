@@ -1,5 +1,5 @@
 /*
- *  Copyright IBM Corporation 2021
+ *  Copyright IBM Corporation 2022
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package cmd
 import (
 	"fmt"
 
-	api "github.com/konveyor/move2kube/lib"
+	api "github.com/konveyor/move2kube-wasm/lib"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

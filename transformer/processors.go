@@ -22,8 +22,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/konveyor/move2kube/filesystem"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube-wasm/filesystem"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 	"github.com/sirupsen/logrus"
 )
 

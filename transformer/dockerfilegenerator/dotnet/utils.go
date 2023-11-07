@@ -19,14 +19,14 @@ package dotnet
 import (
 	"encoding/xml"
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/qaengine"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/qaengine"
-	"github.com/konveyor/move2kube/types/source/dotnet"
+	"github.com/konveyor/move2kube-wasm/types/source/dotnet"
 )
 
 type buildOption string

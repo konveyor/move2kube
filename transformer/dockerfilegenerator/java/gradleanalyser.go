@@ -19,18 +19,20 @@ package java
 import (
 	"bufio"
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/qaengine"
+	"github.com/konveyor/move2kube-wasm/types/qaengine/commonqa"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/qaengine"
-	"github.com/konveyor/move2kube/transformer/dockerfilegenerator/java/gradle"
-	"github.com/konveyor/move2kube/types/qaengine/commonqa"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/environment"
+	//"github.com/konveyor/move2kube-wasm/qaengine"
+	"github.com/konveyor/move2kube-wasm/transformer/dockerfilegenerator/java/gradle"
+	//"github.com/konveyor/move2kube-wasm/types/qaengine/commonqa"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
+	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
 	"github.com/magiconair/properties"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -640,15 +642,15 @@ func (t *GradleAnalyser) TransformArtifact(newArtifact transformertypes.Artifact
 	return pathMappings, createdArtifacts, nil
 }
 
-// func getInfoFromSettingsGradle(gradleSettingsPtr *gradle.Gradle, gradleSettingsFilePath string, gradleConfig artifacts.GradleConfig) (gradleInfoT, error) {
-// 	info := gradleInfoT{
-// 		Name:             gradleConfig.RootProjectName,
-// 		IsParentBuild:    len(gradleConfig.ChildModules) > 0,
-// 		IsGradlewPresent: gradleConfig.IsGradlewPresent,
-// 		ChildModules:     gradleConfig.ChildModules,
-// 	}
-// 	return info, nil
-// }
+func getInfoFromSettingsGradle(gradleSettingsPtr *gradle.Gradle, gradleSettingsFilePath string, gradleConfig artifacts.GradleConfig) (gradleInfoT, error) {
+	info := gradleInfoT{
+		Name:             gradleConfig.RootProjectName,
+		IsParentBuild:    len(gradleConfig.ChildModules) > 0,
+		IsGradlewPresent: gradleConfig.IsGradlewPresent,
+		ChildModules:     gradleConfig.ChildModules,
+	}
+	return info, nil
+}
 
 func getInfoFromBuildGradle(gradleBuildPtr *gradle.Gradle, gradleBuildFilePath string, gradleConfig artifacts.GradleConfig, childModule artifacts.GradleChildModule) (gradleInfoT, error) {
 	info := gradleInfoT{
@@ -911,7 +913,7 @@ func getDeploymentFilePathFromGradle(gradleBuild *gradle.Gradle, buildScriptPath
 			if gb2, ok := gradleBuild.Blocks[gradleShadowJarPluginBlockC]; ok {
 				updateArchiveNameFromJarBlock(gb2)
 			}
-		}	
+		}
 	}
 
 	rootGradlePropertiesPaths, err := common.GetFilesInCurrentDirectory(serviceDir, []string{"gradle.properties"}, nil)

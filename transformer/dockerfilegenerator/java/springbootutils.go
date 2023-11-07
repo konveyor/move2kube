@@ -1,17 +1,17 @@
 /*
- *  Copyright IBM Corporation 2021
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+*  Copyright IBM Corporation 2021
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*        http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
  */
 
 package java
@@ -21,19 +21,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"strings"
-
-	"github.com/konveyor/move2kube/common"
-	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube-wasm/common"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
 	"github.com/magiconair/properties"
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
+	"io"
 	"k8s.io/kubernetes/pkg/apis/core"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 const (
@@ -131,6 +130,7 @@ func injectProperties(ir irtypes.IR, serviceName string) irtypes.IR {
 }
 
 // interfaceSliceToDelimitedString converts an interface slice to string slice
+
 func interfaceSliceToDelimitedString(intSlice []interface{}) string {
 	var stringSlice []string
 	for _, value := range intSlice {
@@ -140,6 +140,7 @@ func interfaceSliceToDelimitedString(intSlice []interface{}) string {
 }
 
 // flattenPropertyKey flattens a given variable defined by <name, unflattenedValue>
+
 func flattenPropertyKey(prefix string, unflattenedValueI interface{}) []FlattenedProperty {
 	var flattenedList []FlattenedProperty
 	switch unflattenedValue := unflattenedValueI.(type) {
@@ -170,6 +171,7 @@ func flattenPropertyKey(prefix string, unflattenedValueI interface{}) []Flattene
 }
 
 // flattenToVcapServicesProperties flattens the variables specified in VCAP_SERVICES
+
 func flattenToVcapServicesProperties(env core.EnvVar) []FlattenedProperty {
 	serviceInstanceIsMap := map[string][]interface{}{}
 	if err := json.Unmarshal([]byte(env.Value), &serviceInstanceIsMap); err != nil {
@@ -196,6 +198,7 @@ func flattenToVcapServicesProperties(env core.EnvVar) []FlattenedProperty {
 }
 
 // flattenToVcapApplicationProperties flattens the variables specified in VCAP_APPLICATION
+
 func flattenToVcapApplicationProperties(env core.EnvVar) []FlattenedProperty {
 	var serviceInstanceMap map[string]interface{}
 	err := json.Unmarshal([]byte(env.Value), &serviceInstanceMap)
@@ -205,7 +208,6 @@ func flattenToVcapApplicationProperties(env core.EnvVar) []FlattenedProperty {
 	}
 	return flattenPropertyKey("vcap.application", serviceInstanceMap)
 }
-
 func getSpringBootAppNameProfilesAndPortsFromDir(dir string) (string, []string, map[string][]int32) {
 	return getSpringBootAppNameProfilesAndPorts(getSpringBootMetadataFiles(dir))
 }

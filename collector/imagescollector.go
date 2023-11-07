@@ -24,14 +24,14 @@ import (
 	"regexp"
 	"strings"
 
-	sourcetypes "github.com/konveyor/move2kube/collector/sourcetypes"
-	"github.com/konveyor/move2kube/common"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
+	sourcetypes "github.com/konveyor/move2kube-wasm/collector/sourcetypes"
+	"github.com/konveyor/move2kube-wasm/common"
+	collecttypes "github.com/konveyor/move2kube-wasm/types/collection"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
 
-//ImagesCollector collects the docker images
+// ImagesCollector collects the docker images
 type ImagesCollector struct {
 }
 
@@ -41,7 +41,7 @@ func (c ImagesCollector) GetAnnotations() []string {
 	return annotations
 }
 
-//Collect gets the image metadata using docker inspect
+// Collect gets the image metadata using docker inspect
 func (c *ImagesCollector) Collect(inputDirectory string, outputPath string) error {
 	//Creating the output sub-directory if it does not exist
 	outputPath = filepath.Join(outputPath, "images")

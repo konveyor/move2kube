@@ -19,7 +19,7 @@ package gradle
 import (
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube-wasm/common"
 )
 
 const (

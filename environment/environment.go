@@ -28,12 +28,12 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/common/deepcopy"
-	"github.com/konveyor/move2kube/common/pathconverters"
-	"github.com/konveyor/move2kube/types"
-	environmenttypes "github.com/konveyor/move2kube/types/environment"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/common/deepcopy"
+	"github.com/konveyor/move2kube-wasm/common/pathconverters"
+	"github.com/konveyor/move2kube-wasm/types"
+	environmenttypes "github.com/konveyor/move2kube-wasm/types/environment"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
@@ -138,12 +138,13 @@ func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr) (env *Environment,
 			logrus.Errorf("failed to create the local environment. Falling back to peer container environment. Error: %q", err)
 		}
 	}
-	if env.Env == nil {
-		env.Env, err = NewPeerContainer(envInfo, grpcQAReceiver, containerInfo, envInfo.SpawnContainers)
-		if err != nil {
-			return env, fmt.Errorf("failed to create the peer container environment. Error: %w", err)
-		}
-	}
+	// TODO: Disabled for WASI
+	//if env.Env == nil {
+	//	env.Env, err = NewPeerContainer(envInfo, grpcQAReceiver, containerInfo, envInfo.SpawnContainers)
+	//	if err != nil {
+	//		return env, fmt.Errorf("failed to create the peer container environment. Error: %w", err)
+	//	}
+	//}
 	return env, nil
 }
 

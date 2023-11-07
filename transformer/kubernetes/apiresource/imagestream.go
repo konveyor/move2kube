@@ -19,9 +19,9 @@ package apiresource
 import (
 	"fmt"
 
-	"github.com/konveyor/move2kube/common"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
-	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube-wasm/common"
+	collecttypes "github.com/konveyor/move2kube-wasm/types/collection"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
 	okdimagev1 "github.com/openshift/api/image/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"

@@ -24,7 +24,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube-wasm/common"
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"

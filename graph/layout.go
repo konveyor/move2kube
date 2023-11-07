@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/konveyor/move2kube/common"
-	graphtypes "github.com/konveyor/move2kube/types/graph"
+	"github.com/konveyor/move2kube-wasm/common"
+	graphtypes "github.com/konveyor/move2kube-wasm/types/graph"
 	"github.com/sirupsen/logrus"
 )
 

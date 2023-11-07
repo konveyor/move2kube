@@ -25,8 +25,8 @@ import (
 	core "k8s.io/kubernetes/pkg/apis/core"
 	knativev1 "knative.dev/serving/pkg/apis/serving/v1"
 
-	"github.com/konveyor/move2kube/common"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
+	"github.com/konveyor/move2kube-wasm/common"
+	collecttypes "github.com/konveyor/move2kube-wasm/types/collection"
 	"github.com/sirupsen/logrus"
 )
 

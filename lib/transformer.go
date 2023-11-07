@@ -19,17 +19,15 @@ package lib
 import (
 	"context"
 	"fmt"
-	"os"
-	"sort"
-
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/common/vcs"
-	"github.com/konveyor/move2kube/qaengine"
-	"github.com/konveyor/move2kube/transformer"
-	"github.com/konveyor/move2kube/transformer/external"
-	plantypes "github.com/konveyor/move2kube/types/plan"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/qaengine"
+	"github.com/konveyor/move2kube-wasm/transformer"
+	"github.com/konveyor/move2kube-wasm/transformer/external"
+	plantypes "github.com/konveyor/move2kube-wasm/types/plan"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
+	"sort"
 )
 
 // Transform transforms the artifacts and writes output
@@ -50,11 +48,12 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 	requirements, _ := selectorsInPlan.Requirements()
 	transformerSelectorObj = transformerSelectorObj.Add(requirements...)
 
-	remoteOutputFSPath := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
+	//TODO: WASI
+	//remoteOutputFSPath := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
 	outputFSPath := outputPath
-	if remoteOutputFSPath != "" {
-		outputFSPath = remoteOutputFSPath
-	}
+	//if remoteOutputFSPath != "" {
+	//	outputFSPath = remoteOutputFSPath
+	//}
 
 	if _, err := transformer.InitTransformers(
 		plan.Spec.Transformers,
@@ -82,7 +81,6 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 		serviceNames,
 		nil,
 	)
-
 	// select the first valid transformation option for each selected service
 	selectedTransformationOptions := []plantypes.PlanArtifact{}
 	for _, selectedServiceName := range selectedServiceNames {
@@ -114,13 +112,13 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 
 	logrus.Infof("Transformation done")
 
-	if vcs.IsRemotePath(outputPath) {
-		err := vcs.PushVCSRepo(outputPath, common.RemoteOutputsFolder)
-		if err != nil {
-			logrus.Fatalf("failed to commit and push the output artifacts for the given remote path %s. Errro : %+v", outputPath, err)
-		}
-		logrus.Infof("move2kube generated artifcats are commited and pushed")
-	}
+	//if vcs.IsRemotePath(outputPath) {
+	//	err := vcs.PushVCSRepo(outputPath, common.RemoteOutputsFolder)
+	//	if err != nil {
+	//		logrus.Fatalf("failed to commit and push the output artifacts for the given remote path %s. Errro : %+v", outputPath, err)
+	//	}
+	//	logrus.Infof("move2kube generated artifcats are commited and pushed")
+	//}
 	return nil
 }
 
@@ -142,5 +140,4 @@ func Destroy() {
 	if err != nil {
 		logrus.Debug("failed to delete temp directory. Error : ", err)
 	}
-
 }

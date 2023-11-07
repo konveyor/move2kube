@@ -17,7 +17,7 @@
 package artifacts
 
 import (
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 )
 
 // DockerfileForServiceArtifactType represents the Dockerfile artifact type with service information for populating IR

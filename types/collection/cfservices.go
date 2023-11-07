@@ -17,7 +17,7 @@
 package collection
 
 import (
-	"github.com/konveyor/move2kube/types"
+	"github.com/konveyor/move2kube-wasm/types"
 
 	cfclient "github.com/cloudfoundry-community/go-cfclient/v2"
 )

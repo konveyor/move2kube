@@ -23,11 +23,12 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/common/download"
-	"github.com/konveyor/move2kube/common/vcs"
-	"github.com/konveyor/move2kube/lib"
-	"github.com/konveyor/move2kube/types/plan"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/common/download"
+	//"github.com/konveyor/move2kube-wasm/common/vcs"
+	"github.com/konveyor/move2kube-wasm/lib"
+	"github.com/konveyor/move2kube-wasm/types/plan"
+	"github.com/mholt/archiver/v3"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -84,18 +85,20 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	if flags.planfile, err = filepath.Abs(flags.planfile); err != nil {
 		logrus.Fatalf("Failed to make the plan file path %q absolute. Error: %q", flags.planfile, err)
 	}
-	isRemotePath := vcs.IsRemotePath(flags.srcpath)
-	if flags.srcpath != "" && !isRemotePath {
+	//TODO: WASI
+	//isRemotePath := vcs.IsRemotePath(flags.srcpath)
+	//if flags.srcpath != "" && !isRemotePath {
+	if flags.srcpath != "" {
 		if flags.srcpath, err = filepath.Abs(flags.srcpath); err != nil {
 			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.srcpath, err)
 		}
 	}
-	isRemoteOutPath := vcs.IsRemotePath(flags.outpath)
-	if !isRemoteOutPath {
-		if flags.outpath, err = filepath.Abs(flags.outpath); err != nil {
-			logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.outpath, err)
-		}
+	//isRemoteOutPath := vcs.IsRemotePath(flags.outpath)
+	//if !isRemoteOutPath {
+	if flags.outpath, err = filepath.Abs(flags.outpath); err != nil {
+		logrus.Fatalf("Failed to make the output directory path %q absolute. Error: %q", flags.outpath, err)
 	}
+	//}
 	// Check if the default customization folder exists in the working directory.
 	// If not, skip the customization option
 	if !cmd.Flags().Changed(customizationsFlag) {
@@ -145,19 +148,21 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 
 		// Global settings
-		if !isRemoteOutPath {
-			flags.outpath = filepath.Join(flags.outpath, flags.name)
-			checkOutputPath(flags.outpath, flags.overwrite)
-			if flags.srcpath != "" && !isRemotePath {
-				checkSourcePath(flags.srcpath)
-				if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
-					logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
-				}
-			}
-			if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
-				logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
+		//TODO: WASI
+		//if !isRemoteOutPath {
+		flags.outpath = filepath.Join(flags.outpath, flags.name)
+		checkOutputPath(flags.outpath, flags.overwrite)
+		//if flags.srcpath != "" && !isRemotePath {
+		if flags.srcpath != "" {
+			checkSourcePath(flags.srcpath)
+			if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
+				logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
 			}
 		}
+		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
+			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
+		}
+		//}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
 		transformationPlan, err = lib.CreatePlan(ctx, flags.srcpath, flags.outpath, flags.customizationsPath, flags.transformerSelector, flags.name)
@@ -194,26 +199,43 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 
 		// Global settings
-		if transformationPlan.Spec.SourceDir != "" {
-			checkSourcePath(transformationPlan.Spec.SourceDir)
-		}
+		//if transformationPlan.Spec.SourceDir != "" {
+		//	checkSourcePath(transformationPlan.Spec.SourceDir)
+		//}
 		lib.CheckAndCopyCustomizations(transformationPlan.Spec.CustomizationsDir)
-		if !isRemoteOutPath {
-			flags.outpath = filepath.Join(flags.outpath, transformationPlan.Name)
-			checkOutputPath(flags.outpath, flags.overwrite)
-			if transformationPlan.Spec.SourceDir != "" && (transformationPlan.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, transformationPlan.Spec.SourceDir) || common.IsParent(transformationPlan.Spec.SourceDir, flags.outpath)) {
-				logrus.Fatalf("The source path %s and output path %s overlap.", transformationPlan.Spec.SourceDir, flags.outpath)
-			}
-			if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
-				logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
-			}
+
+		//TODO: WASI
+		//if !isRemoteOutPath {
+		flags.outpath = filepath.Join(flags.outpath, transformationPlan.Name)
+		checkOutputPath(flags.outpath, flags.overwrite)
+		if transformationPlan.Spec.SourceDir != "" && (transformationPlan.Spec.SourceDir == flags.outpath || common.IsParent(flags.outpath, transformationPlan.Spec.SourceDir) || common.IsParent(transformationPlan.Spec.SourceDir, flags.outpath)) {
+			logrus.Fatalf("The source path %s and output path %s overlap.", transformationPlan.Spec.SourceDir, flags.outpath)
 		}
+		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
+			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
+		}
+		//}
 		startQA(flags.qaflags)
 	}
 	if err := lib.Transform(ctx, transformationPlan, preExistingPlan, flags.outpath, flags.transformerSelector, flags.maxIterations); err != nil {
 		logrus.Fatalf("failed to transform. Error: %q", err)
 	}
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
+	{
+		if err := archiver.Archive([]string{"myproject"}, "myproject.zip"); err != nil {
+			logrus.Fatalf("Cannot archive myproject dir. Error: %q", err)
+		}
+	}
+	{
+		logrus.Infof("DEBUG after planning, list files")
+		fs, err := os.ReadDir("myproject/source/language-platforms/")
+		if err != nil {
+			panic(err)
+		}
+		for i, f := range fs {
+			logrus.Infof("DEBUG file[%d] %+v", i, f)
+		}
+	}
 }
 
 // GetTransformCommand returns a command to do the transformation

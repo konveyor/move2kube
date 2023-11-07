@@ -12,35 +12,30 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-.vscode
-demo_tmp
-sample_tmp
-work_dir
-m2k
-m2k_bin
-colleted_md
-.DS_Store
-_dist
-bin
-.m2k
-coverage.txt
-.jekyll-cache/
-_site/
-node_modules
-target/
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 
-# brew bottling creates .brew_home directory
-# add this to avoid git tree start becoming dirty
-.brew_home/
+# Test binary, built with `go test -c`
+*.test
 
-__pycache__/
-*.pyc
-.bundle/
-vendor/
-.ruby-version
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
 
-# Samples
-samples/**/*.project
-samples/**/*.classpath
-samples/**/*.gradle
-samples/**/*.settings
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# Goland workspace file
+.idea
+
+# Build output directory
+/bin/

@@ -1,5 +1,5 @@
 /*
- *  Copyright IBM Corporation 2020, 2021
+ *  Copyright IBM Corporation 2022
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -17,9 +17,8 @@
 package lib
 
 import (
+	"github.com/konveyor/move2kube-wasm/types/info"
 	"gopkg.in/yaml.v3"
-
-	"github.com/konveyor/move2kube/types/info"
 )
 
 // GetVersion returns the version

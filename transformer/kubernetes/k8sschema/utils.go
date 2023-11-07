@@ -23,8 +23,8 @@ import (
 	"path/filepath"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/types"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/types"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime"

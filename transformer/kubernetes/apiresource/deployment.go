@@ -19,10 +19,10 @@ package apiresource
 import (
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
-	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/transformer/kubernetes/k8sschema"
+	collecttypes "github.com/konveyor/move2kube-wasm/types/collection"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
 	okdappsv1 "github.com/openshift/api/apps/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -421,9 +421,9 @@ func (d *Deployment) toPod(meta metav1.ObjectMeta, podspec core.PodSpec, restart
 	return &pod
 }
 
-//Volumes and volume mounts of all containers are transformed as follows:
-//1. Each container's volume mount list and corresponding volumes are transformed
-//2. Unreferenced volumes are discarded
+// Volumes and volume mounts of all containers are transformed as follows:
+// 1. Each container's volume mount list and corresponding volumes are transformed
+// 2. Unreferenced volumes are discarded
 func (d *Deployment) convertVolumesKindsByPolicy(podspec core.PodSpec, cluster collecttypes.ClusterMetadataSpec) core.PodSpec {
 	if podspec.Volumes == nil || len(podspec.Volumes) == 0 {
 		return podspec
