@@ -26,8 +26,8 @@ import (
 	"strings"
 
 	cfclient "github.com/cloudfoundry-community/go-cfclient/v2"
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/types"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/types"
 	"github.com/pkg/errors"
 
 	"github.com/sirupsen/logrus"
@@ -106,7 +106,7 @@ func setQueryDepth(queryDepth string) url.Values {
 	return query
 }
 
-//listAppsBySpaceGuid collects all CF apps data for given spaceGuid, if no appName/appGuid is present. If appName/appGuid is present, then it updates the path to be used in the listAppsByNameOrGuid func
+// listAppsBySpaceGuid collects all CF apps data for given spaceGuid, if no appName/appGuid is present. If appName/appGuid is present, then it updates the path to be used in the listAppsByNameOrGuid func
 func listAppsBySpaceGuid(client *cfclient.Client, spaceGuid string, queryDepth string, collectApps []App, numCfCollectApps int) (string, []App) {
 	query := setQueryDepth(queryDepth)
 	path := ""
@@ -240,7 +240,7 @@ func collectAllCfApps(client *cfclient.Client, depth string) []App {
 	return collectApps
 }
 
-//Collect gets the cf app metadata by querying the cf app. Assumes that the authentication with cluster is already done.
+// Collect gets the cf app metadata by querying the cf app. Assumes that the authentication with cluster is already done.
 func (c *CfAppsCollector) Collect(inputPath string, outputPath string) error {
 	client, err := getCfClient()
 	if err != nil {

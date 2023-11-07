@@ -18,13 +18,12 @@ package pathconverters
 
 import (
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
-
-	"github.com/konveyor/move2kube/common"
-	"github.com/sirupsen/logrus"
 )
 
 type context struct {

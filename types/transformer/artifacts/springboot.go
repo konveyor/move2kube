@@ -17,8 +17,8 @@
 package artifacts
 
 import (
-	"github.com/konveyor/move2kube/common"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube-wasm/common"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 	"github.com/sirupsen/logrus"
 )
 

@@ -17,9 +17,9 @@
 package apiresource
 
 import (
-	"github.com/konveyor/move2kube/common"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
-	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube-wasm/common"
+	collecttypes "github.com/konveyor/move2kube-wasm/types/collection"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

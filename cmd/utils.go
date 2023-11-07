@@ -18,14 +18,14 @@ package cmd
 
 import (
 	"encoding/json"
+	"github.com/konveyor/move2kube-wasm/qaengine"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube-wasm/common"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )

@@ -20,36 +20,35 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/environment"
+	containertypes "github.com/konveyor/move2kube-wasm/environment/container"
+	"github.com/konveyor/move2kube-wasm/filesystem"
+	"github.com/konveyor/move2kube-wasm/qaengine"
+	"github.com/konveyor/move2kube-wasm/transformer/containerimage"
+	"github.com/konveyor/move2kube-wasm/transformer/dockerfile"
+	"github.com/konveyor/move2kube-wasm/transformer/dockerfilegenerator"
+	"github.com/konveyor/move2kube-wasm/transformer/dockerfilegenerator/java"
+	"github.com/konveyor/move2kube-wasm/transformer/dockerfilegenerator/windows"
+	"github.com/konveyor/move2kube-wasm/transformer/kubernetes"
+	"github.com/konveyor/move2kube-wasm/types"
+	environmenttypes "github.com/konveyor/move2kube-wasm/types/environment"
+	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
+	"github.com/spf13/cast"
+	"k8s.io/apimachinery/pkg/labels"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"sort"
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/environment"
-	containertypes "github.com/konveyor/move2kube/environment/container"
-	"github.com/konveyor/move2kube/filesystem"
-	"github.com/konveyor/move2kube/qaengine"
-	"github.com/konveyor/move2kube/transformer/compose"
-	"github.com/konveyor/move2kube/transformer/containerimage"
-	"github.com/konveyor/move2kube/transformer/dockerfile"
-	"github.com/konveyor/move2kube/transformer/dockerfilegenerator"
-	"github.com/konveyor/move2kube/transformer/dockerfilegenerator/java"
-	"github.com/konveyor/move2kube/transformer/dockerfilegenerator/windows"
-	"github.com/konveyor/move2kube/transformer/external"
-	"github.com/konveyor/move2kube/transformer/kubernetes"
-	"github.com/konveyor/move2kube/types"
-	environmenttypes "github.com/konveyor/move2kube/types/environment"
-	graphtypes "github.com/konveyor/move2kube/types/graph"
-	plantypes "github.com/konveyor/move2kube/types/plan"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	graphtypes "github.com/konveyor/move2kube-wasm/types/graph"
+	plantypes "github.com/konveyor/move2kube-wasm/types/plan"
+	"reflect"
+
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
@@ -88,13 +87,13 @@ var (
 
 func init() {
 	transformerObjs := []Transformer{
-		new(external.Starlark),
-		new(external.Executable),
-
-		new(Router),
-
-		new(dockerfile.DockerfileDetector),
-		new(dockerfile.DockerfileParser),
+		//new(external.Starlark),
+		//new(external.Executable),
+		//
+		//new(Router),
+		//
+		//new(dockerfile.DockerfileDetector),
+		//new(dockerfile.DockerfileParser),
 		new(dockerfile.DockerfileImageBuildScript),
 		new(dockerfilegenerator.NodejsDockerfileGenerator),
 		new(dockerfilegenerator.GolangDockerfileGenerator),
@@ -115,26 +114,26 @@ func init() {
 		new(windows.WinConsoleAppDockerfileGenerator),
 		new(windows.WinSilverLightWebAppDockerfileGenerator),
 		new(windows.WinWebAppDockerfileGenerator),
-		new(CNBContainerizer),
-		new(compose.ComposeAnalyser),
-		new(compose.ComposeGenerator),
-
-		new(CloudFoundry),
+		//new(CNBContainerizer),
+		//new(compose.ComposeAnalyser),
+		//new(compose.ComposeGenerator),
+		//
+		//new(CloudFoundry),
 
 		new(containerimage.ContainerImagesPushScript),
 
 		new(kubernetes.ClusterSelectorTransformer),
 		new(kubernetes.Kubernetes),
-		new(kubernetes.Knative),
-		new(kubernetes.Tekton),
-		new(kubernetes.ArgoCD),
-		new(kubernetes.BuildConfig),
+		//new(kubernetes.Knative),
+		//new(kubernetes.Tekton),
+		// new(kubernetes.ArgoCD),
+		//new(kubernetes.BuildConfig),
 		new(kubernetes.Parameterizer),
-		new(kubernetes.KubernetesVersionChanger),
-		new(kubernetes.OperatorTransformer),
+		//new(kubernetes.KubernetesVersionChanger),
+		//new(kubernetes.OperatorTransformer),
 
 		new(ReadMeGenerator),
-		new(InvokeDetect),
+		//new(InvokeDetect),
 	}
 	transformerTypes = common.GetTypesMap(transformerObjs)
 }
@@ -552,9 +551,9 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 		logrus.Infof("Iteration %d - %d artifacts to process", iteration, len(newArtifactsToProcess))
 		newPathMappings, newArtifacts, _ := transform(newArtifactsToProcess, allArtifacts, consume, nil, graph, iteration)
 		pathMappings = append(pathMappings, newPathMappings...)
-		if err := os.RemoveAll(outputPath); err != nil {
-			return fmt.Errorf("failed to remove the output directory '%s' . Error: %w", outputPath, err)
-		}
+		//if err := os.RemoveAll(outputPath); err != nil {
+		//	return fmt.Errorf("failed to remove the output directory '%s' . Error: %w", outputPath, err)
+		//}
 		if err := processPathMappings(pathMappings, sourceDir, outputPath, false); err != nil {
 			return fmt.Errorf("failed to process the path mappings: %+v . Error: %w", pathMappings, err)
 		}

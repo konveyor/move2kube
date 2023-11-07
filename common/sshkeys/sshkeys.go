@@ -22,13 +22,13 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/qaengine"
 	"os"
 	"os/user"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/common"
-	commonknownhosts "github.com/konveyor/move2kube/common/knownhosts"
-	"github.com/konveyor/move2kube/qaengine"
+	commonknownhosts "github.com/konveyor/move2kube-wasm/common/knownhosts"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 )
@@ -68,9 +68,9 @@ func LoadKnownHostsOfCurrentUser() {
 
 	// Ask if we should look at ~/.ssh/known_hosts
 	message := `The CI/CD pipeline needs access to the git repos in order to clone, build and push.
-Move2Kube has public keys for github.com, gitlab.com, and bitbucket.org by default.
-If any of the repos use ssh authentication we will need public keys in order to verify.
-Do you want to load the public keys from your [%s]?:`
+	Move2Kube has public keys for github.com, gitlab.com, and bitbucket.org by default.
+	If any of the repos use ssh authentication we will need public keys in order to verify.
+	Do you want to load the public keys from your [%s]?:`
 	ans := qaengine.FetchBoolAnswer(common.ConfigRepoLoadPubKey, fmt.Sprintf(message, knownHostsPath), []string{"No, I will add them later if necessary."}, false, nil)
 	if !ans {
 		logrus.Debug("Don't read public keys from known_hosts. They will be added later if necessary.")
@@ -112,8 +112,8 @@ func loadSSHKeysOfCurrentUser() {
 		"No, I will add them later if necessary.",
 	}
 	message := `The CI/CD pipeline needs access to the git repos in order to clone, build and push.
-If any of the repos require ssh keys you will need to provide them.
-Select an option:`
+	If any of the repos require ssh keys you will need to provide them.
+	Select an option:`
 	selectedOption := qaengine.FetchSelectAnswer(common.ConfigRepoLoadPrivKey, message, nil, "", options, nil)
 	switch selectedOption {
 	case options[0]:

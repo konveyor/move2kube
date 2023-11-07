@@ -20,12 +20,12 @@ import (
 	"os"
 	"strings"
 
-	collector "github.com/konveyor/move2kube/collector"
-	"github.com/konveyor/move2kube/common"
+	collector "github.com/konveyor/move2kube-wasm/collector"
+	"github.com/konveyor/move2kube-wasm/common"
 	"github.com/sirupsen/logrus"
 )
 
-//Collect gets the metadata from multiple sources, filters it and dumps it into files within source directory
+// Collect gets the metadata from multiple sources, filters it and dumps it into files within source directory
 func Collect(inputPath string, outputPath string, annotations []string) {
 	collectors, err := collector.GetCollectors()
 	if err != nil {

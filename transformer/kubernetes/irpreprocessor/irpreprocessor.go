@@ -17,8 +17,8 @@
 package irpreprocessor
 
 import (
-	"github.com/konveyor/move2kube/types/collection"
-	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube-wasm/types/collection"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ type irpreprocessor interface {
 
 // getIRPreprocessors returns optimizers
 func getIRPreprocessors() []irpreprocessor {
-	var l = []irpreprocessor{new(mergePreprocessor), new(normalizeCharacterPreprocessor), new(statefulsetPreprocessor), new(ingressPreprocessor), new(replicaPreprocessor), 
+	var l = []irpreprocessor{new(mergePreprocessor), new(normalizeCharacterPreprocessor), new(statefulsetPreprocessor), new(ingressPreprocessor), new(replicaPreprocessor),
 		new(imagePullPolicyPreprocessor), new(registryPreProcessor)}
 	return l
 }

@@ -23,9 +23,9 @@ import (
 	"strings"
 
 	dockercliconfig "github.com/docker/cli/cli/config"
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/qaengine"
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/qaengine"
+	qatypes "github.com/konveyor/move2kube-wasm/types/qaengine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )

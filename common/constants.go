@@ -1,27 +1,11 @@
-/*
- *  Copyright IBM Corporation 2021
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
-
 package common
 
 import (
 	"os"
 	"regexp"
 
-	"github.com/konveyor/move2kube/types"
-	"k8s.io/apimachinery/pkg/api/resource"
+	"github.com/konveyor/move2kube-wasm/types"
+	//"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
@@ -225,7 +209,7 @@ const (
 
 var (
 	// DefaultPVCSize stores the default PVC size
-	DefaultPVCSize, _ = resource.ParseQuantity("100Mi")
+	// DefaultPVCSize, _ = resource.ParseQuantity("100Mi")
 	// IgnoreEnvironment indicates whether to ignore the current environment or not
 	IgnoreEnvironment = false
 	// DisableLocalExecution indicates whether to allow execution of local executables

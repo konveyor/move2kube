@@ -19,13 +19,13 @@ package container
 import (
 	"errors"
 	"fmt"
-	"io/fs"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/qaengine"
 
-	dockertypes "github.com/docker/docker/api/types"
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/qaengine"
-	environmenttypes "github.com/konveyor/move2kube/types/environment"
+	//dockertypes "github.com/docker/docker/api/types"
+	environmenttypes "github.com/konveyor/move2kube-wasm/types/environment"
 	"github.com/sirupsen/logrus"
+	"io/fs"
 )
 
 var (
@@ -41,7 +41,9 @@ type ContainerEngine interface {
 	// RunCmdInContainer runs a container
 	RunCmdInContainer(image string, cmd environmenttypes.Command, workingdir string, env []string) (stdout, stderr string, exitcode int, err error)
 	// InspectImage gets Inspect output for a container
-	InspectImage(image string) (dockertypes.ImageInspect, error)
+	//TODO: WASI
+
+	//InspectImage(image string) (dockertypes.ImageInspect, error)
 	// TODO: Change paths from map to array
 	CopyDirsIntoImage(image, newImageName string, paths map[string]string) (err error)
 	CopyDirsIntoContainer(containerID string, paths map[string]string) (err error)
@@ -58,7 +60,7 @@ type ContainerEngine interface {
 func initContainerEngine() (err error) {
 	logrus.Trace("initContainerEngine start")
 	defer logrus.Trace("initContainerEngine end")
-	workingEngine, err = newDockerEngine()
+	//workingEngine, err = newDockerEngine()
 	if err != nil {
 		return fmt.Errorf("failed to use docker as the container engine. Error: %w", err)
 	}

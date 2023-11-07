@@ -17,8 +17,8 @@
 package irpreprocessor
 
 import (
-	"github.com/konveyor/move2kube/types/collection"
-	irtypes "github.com/konveyor/move2kube/types/ir"
+	"github.com/konveyor/move2kube-wasm/types/collection"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
 	core "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/networking"
 )

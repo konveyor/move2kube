@@ -21,8 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
+	"github.com/konveyor/move2kube-wasm/common"
+	collecttypes "github.com/konveyor/move2kube-wasm/types/collection"
 
 	"github.com/sirupsen/logrus"
 )
@@ -37,7 +37,7 @@ func (c *CfServicesCollector) GetAnnotations() []string {
 	return annotations
 }
 
-//Collect gets the cf service metadata by querying the cf app. Assumes that the authentication with cluster is already done.
+// Collect gets the cf service metadata by querying the cf app. Assumes that the authentication with cluster is already done.
 func (c *CfServicesCollector) Collect(inputPath string, outputPath string) error {
 	client, err := getCfClient()
 	if err != nil {

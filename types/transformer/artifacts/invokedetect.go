@@ -17,7 +17,7 @@
 package artifacts
 
 import (
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

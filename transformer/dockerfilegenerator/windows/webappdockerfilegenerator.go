@@ -18,17 +18,19 @@ package windows
 
 import (
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/qaengine"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
+	"github.com/konveyor/move2kube-wasm/types/qaengine/commonqa"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/qaengine"
-	dotnetutils "github.com/konveyor/move2kube/transformer/dockerfilegenerator/dotnet"
-	irtypes "github.com/konveyor/move2kube/types/ir"
-	"github.com/konveyor/move2kube/types/qaengine/commonqa"
-	"github.com/konveyor/move2kube/types/source/dotnet"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/environment"
+	dotnetutils "github.com/konveyor/move2kube-wasm/transformer/dockerfilegenerator/dotnet"
+	//irtypes "github.com/konveyor/move2kube-wasm/types/ir"
+	//"github.com/konveyor/move2kube-wasm/types/qaengine/commonqa"
+	"github.com/konveyor/move2kube-wasm/types/source/dotnet"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
+	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/semver"
 )
@@ -276,7 +278,6 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			logrus.Errorf("failed to make the service directory path %s relative to the source directory %s . Error: %q", serviceDir, t.Env.GetEnvironmentSource(), err)
 			continue
 		}
-
 		ir := irtypes.IR{}
 		irPresent := true
 		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
@@ -324,9 +325,7 @@ func (t *WinWebAppDockerfileGenerator) Transform(newArtifacts []transformertypes
 			}
 
 			// have the user select the ports to use for the child project
-
 			selectedPorts := commonqa.GetPortsForService(detectedPorts, common.JoinQASubKeys(`"`+newArtifact.Name+`"`, "childProjects", `"`+childProject.Name+`"`))
-
 			// data to fill the Dockerfile template
 
 			relCSProjDir := filepath.Dir(childProject.RelCSProjPath)

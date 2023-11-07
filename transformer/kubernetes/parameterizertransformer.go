@@ -21,12 +21,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
-	"github.com/konveyor/move2kube/transformer/kubernetes/parameterizer"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/environment"
+	"github.com/konveyor/move2kube-wasm/transformer/kubernetes/k8sschema"
+	"github.com/konveyor/move2kube-wasm/transformer/kubernetes/parameterizer"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
+	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 

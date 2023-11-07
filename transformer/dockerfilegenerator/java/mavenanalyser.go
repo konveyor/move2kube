@@ -18,20 +18,22 @@ package java
 
 import (
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/qaengine"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
+	"github.com/konveyor/move2kube-wasm/types/qaengine/commonqa"
+	"github.com/spf13/cast"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/qaengine"
-	irtypes "github.com/konveyor/move2kube/types/ir"
-	"github.com/konveyor/move2kube/types/qaengine/commonqa"
-	"github.com/konveyor/move2kube/types/source/maven"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/environment"
+	//irtypes "github.com/konveyor/move2kube-wasm/types/ir"
+	"github.com/konveyor/move2kube-wasm/types/source/maven"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
+	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
+	//"github.com/spf13/cast"
 )
 
 const (
@@ -323,7 +325,6 @@ func (t *MavenAnalyser) TransformArtifact(newArtifact transformertypes.Artifact,
 		}
 
 		// have the user select which spring boot profiles to use and find a suitable list of ports
-
 		desc := fmt.Sprintf("Select the spring boot profiles for the service '%s' :", childModule.Name)
 		hints := []string{"select all the profiles that are applicable"}
 		detectedPorts := []int32{}

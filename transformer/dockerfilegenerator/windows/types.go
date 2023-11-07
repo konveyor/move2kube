@@ -17,7 +17,7 @@
 package windows
 
 import (
-	"github.com/konveyor/move2kube/types"
+	"github.com/konveyor/move2kube-wasm/types"
 )
 
 const (

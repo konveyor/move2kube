@@ -19,17 +19,19 @@ package dockerfilegenerator
 import (
 	"bufio"
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/qaengine"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
+	"github.com/konveyor/move2kube-wasm/types/qaengine/commonqa"
 	"os"
 	"path/filepath"
 	"regexp"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/qaengine"
-	irtypes "github.com/konveyor/move2kube/types/ir"
-	"github.com/konveyor/move2kube/types/qaengine/commonqa"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/environment"
+	//irtypes "github.com/konveyor/move2kube/types/ir"
+	//"github.com/konveyor/move2kube/types/qaengine/commonqa"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
+	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 )
 
@@ -127,6 +129,7 @@ func getMainPythonFileForService(mainPythonFilesPath []string, baseDir string, s
 			mainPythonFilesRelPath = append(mainPythonFilesRelPath, mainPythonFileRelPath)
 		}
 	}
+
 	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, common.ConfigMainPythonFileForServiceKeySegment)
 	desc := fmt.Sprintf("Select the main file to be used for the service %s :", serviceName)
 	hints := []string{fmt.Sprintf("Selected main file will be used for the service %s", serviceName)}
@@ -141,6 +144,7 @@ func getStartingPythonFileForService(pythonFilesPath []string, baseDir string, s
 			pythonFilesRelPath = append(pythonFilesRelPath, pythonFileRelPath)
 		}
 	}
+
 	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, `"`+serviceName+`"`, common.ConfigStartingPythonFileForServiceKeySegment)
 	desc := fmt.Sprintf("Select the python file to be used for the service %s :", serviceName)
 	hints := []string{fmt.Sprintf("Selected python file will be used for starting the service %s", serviceName)}
@@ -213,6 +217,7 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 		if imageName.ImageName == "" {
 			imageName.ImageName = common.MakeStringContainerImageNameCompliant(serviceConfig.ServiceName)
 		}
+
 		ir := irtypes.IR{}
 		irPresent := true
 		if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {
@@ -232,6 +237,7 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 			logrus.Debugf("unable to load config for Transformer into %T : %s", imageName, err)
 		}
 		pythonTemplateConfig.IsDjango = pythonConfig.IsDjango
+
 		ports := ir.GetAllServicePorts()
 		if len(ports) == 0 {
 			ports = []int32{common.DefaultServicePort}
@@ -275,6 +281,7 @@ func (t *PythonDockerfileGenerator) Transform(newArtifacts []transformertypes.Ar
 				artifacts.ImageNameConfigType: imageName,
 			},
 		}
+
 		if irPresent {
 			dfs.Configs[irtypes.IRConfigType] = ir
 		}

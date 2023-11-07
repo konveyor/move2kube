@@ -19,7 +19,7 @@ package qaengine
 import (
 	"fmt"
 
-	qatypes "github.com/konveyor/move2kube/types/qaengine"
+	qatypes "github.com/konveyor/move2kube-wasm/types/qaengine"
 )
 
 // StoreEngine handles cache

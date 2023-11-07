@@ -23,8 +23,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/transformer/kubernetes/k8sschema"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/transformer/kubernetes/k8sschema"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"

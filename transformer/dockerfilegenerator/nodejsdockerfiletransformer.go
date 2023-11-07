@@ -18,21 +18,26 @@ package dockerfilegenerator
 
 import (
 	"fmt"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
+	"github.com/konveyor/move2kube-wasm/types/qaengine/commonqa"
+	"github.com/spf13/cast"
 	"os"
+
+	//"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/types"
-	irtypes "github.com/konveyor/move2kube/types/ir"
-	"github.com/konveyor/move2kube/types/qaengine/commonqa"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/environment"
+	"github.com/konveyor/move2kube-wasm/types"
+	//irtypes "github.com/konveyor/move2kube-wasm/types/ir"
+	//"github.com/konveyor/move2kube-wasm/types/qaengine/commonqa"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
+	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cast"
+	//"github.com/spf13/cast"
 	"golang.org/x/mod/semver"
 )
 

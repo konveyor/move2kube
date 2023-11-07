@@ -17,12 +17,12 @@
 package artifacts
 
 import (
+	"github.com/konveyor/move2kube-wasm/types/ir"
 	"reflect"
 
-	"github.com/konveyor/move2kube/common"
-	collecttypes "github.com/konveyor/move2kube/types/collection"
-	"github.com/konveyor/move2kube/types/ir"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	"github.com/konveyor/move2kube-wasm/common"
+	collecttypes "github.com/konveyor/move2kube-wasm/types/collection"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 )
 
 var (

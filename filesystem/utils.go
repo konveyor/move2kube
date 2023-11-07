@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube-wasm/common"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,10 +37,11 @@ func copyFile(df, sf string, modTime time.Time) error {
 		logrus.Errorf("Unable to copy file %s to %s : %s", sf, df, err)
 		return err
 	}
-	err = os.Chtimes(df, modTime, modTime)
-	if err != nil {
-		logrus.Errorf("Unable to change timestamp for file %s : %s", df, err)
-		return err
-	}
+	//TODO: WASI
+	//err = os.Chtimes(df, modTime, modTime)
+	//if err != nil {
+	//	logrus.Errorf("Unable to change timestamp for file %s : %s", df, err)
+	//	return err
+	//}
 	return nil
 }

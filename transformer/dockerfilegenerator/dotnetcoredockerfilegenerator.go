@@ -19,20 +19,21 @@ package dockerfilegenerator
 import (
 	"encoding/xml"
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/qaengine"
+	irtypes "github.com/konveyor/move2kube-wasm/types/ir"
+	"github.com/konveyor/move2kube-wasm/types/qaengine/commonqa"
 	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/environment"
-	"github.com/konveyor/move2kube/qaengine"
-	dotnetutils "github.com/konveyor/move2kube/transformer/dockerfilegenerator/dotnet"
-	irtypes "github.com/konveyor/move2kube/types/ir"
-	"github.com/konveyor/move2kube/types/qaengine/commonqa"
-	"github.com/konveyor/move2kube/types/source/dotnet"
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/environment"
+	dotnetutils "github.com/konveyor/move2kube-wasm/transformer/dockerfilegenerator/dotnet"
+	//irtypes "github.com/konveyor/move2kube-wasm/types/ir"
+	"github.com/konveyor/move2kube-wasm/types/source/dotnet"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
+	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
@@ -297,7 +298,6 @@ func (t *DotNetCoreDockerfileGenerator) TransformArtifact(newArtifact transforme
 	if err != nil {
 		return pathMappings, artifactsCreated, fmt.Errorf("failed to make the service directory path %s relative to the source directory %s . Error: %q", serviceDir, t.Env.GetEnvironmentSource(), err)
 	}
-
 	ir := irtypes.IR{}
 	irPresent := true
 	if err := newArtifact.GetConfig(irtypes.IRConfigType, &ir); err != nil {

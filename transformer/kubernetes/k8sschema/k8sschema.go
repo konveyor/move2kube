@@ -58,8 +58,6 @@ import (
 	schedulinginstall "k8s.io/kubernetes/pkg/apis/scheduling/install"
 	storageinstall "k8s.io/kubernetes/pkg/apis/storage/install"
 
-	okdapi "github.com/openshift/api"
-	tektonscheme "github.com/tektoncd/pipeline/pkg/client/clientset/versioned/scheme"
 	k8sapischeme "k8s.io/client-go/kubernetes/scheme"
 )
 
@@ -72,11 +70,12 @@ var (
 )
 
 func init() {
-	must(okdapi.Install(scheme))
-	must(okdapi.InstallKube(scheme))
+	//TODO: WASI
+	//must(okdapi.Install(scheme))
+	//must(okdapi.InstallKube(scheme))
 
 	must(k8sapischeme.AddToScheme(scheme))
-	must(tektonscheme.AddToScheme(scheme))
+	//must(tektonscheme.AddToScheme(scheme))
 
 	appsinstall.Install(scheme)
 	admissionregistrationinstall.Install(scheme)

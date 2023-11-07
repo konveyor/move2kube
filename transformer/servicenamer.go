@@ -17,13 +17,12 @@
 package transformer
 
 import (
+	"github.com/konveyor/move2kube-wasm/common"
+	plantypes "github.com/konveyor/move2kube-wasm/types/plan"
+	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
+	"github.com/sirupsen/logrus"
 	"path/filepath"
 	"strings"
-
-	"github.com/konveyor/move2kube/common"
-	plantypes "github.com/konveyor/move2kube/types/plan"
-	"github.com/konveyor/move2kube/types/transformer/artifacts"
-	"github.com/sirupsen/logrus"
 )
 
 type servicePathInfo struct {
@@ -75,23 +74,24 @@ func nameServices(projectName string, inputServicesMap map[string][]plantypes.Pl
 	logrus.Debug("Find if base dir is a git repo, and has only one service or many services")
 	repoNameToDirs := map[string][]string{} // [repoName][]repoDir
 	repoDirToName := map[string]string{}
-	for serviceDir := range serviceDirToUnnamedServices {
-		repoName, _, _, repoURL, _, err := common.GatherGitInfo(serviceDir)
-		if err != nil {
-			logrus.Debugf("failed to find any git repo for directory '%s' . Error: %q", serviceDir, err)
-			continue
-		}
-		if repoName == "" {
-			logrus.Debugf("no repo name found for the git repo at '%s' . Skipping", repoURL)
-			continue
-		}
-		if repoDirs, ok := repoNameToDirs[repoName]; ok {
-			repoNameToDirs[repoName] = append(repoDirs, serviceDir)
-		} else {
-			repoNameToDirs[repoName] = []string{serviceDir}
-		}
-		repoDirToName[serviceDir] = repoName
-	}
+	//TODO: WASI
+	//for serviceDir := range serviceDirToUnnamedServices {
+	//	repoName, _, _, repoURL, _, err := common.GatherGitInfo(serviceDir)
+	//	if err != nil {
+	//		logrus.Debugf("failed to find any git repo for directory '%s' . Error: %q", serviceDir, err)
+	//		continue
+	//	}
+	//	if repoName == "" {
+	//		logrus.Debugf("no repo name found for the git repo at '%s' . Skipping", repoURL)
+	//		continue
+	//	}
+	//	if repoDirs, ok := repoNameToDirs[repoName]; ok {
+	//		repoNameToDirs[repoName] = append(repoDirs, serviceDir)
+	//	} else {
+	//		repoNameToDirs[repoName] = []string{serviceDir}
+	//	}
+	//	repoDirToName[serviceDir] = repoName
+	//}
 	for repoName, repoDirs := range repoNameToDirs {
 		if len(repoDirs) == 1 {
 			repoDir := repoDirs[0]

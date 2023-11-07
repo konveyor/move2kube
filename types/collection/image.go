@@ -17,7 +17,7 @@
 package collection
 
 import (
-	"github.com/konveyor/move2kube/types"
+	"github.com/konveyor/move2kube-wasm/types"
 )
 
 // ImageMetadataKind defines kind for imagemetadata file

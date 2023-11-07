@@ -26,10 +26,10 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/filesystem"
-	"github.com/konveyor/move2kube/types"
-	environmenttypes "github.com/konveyor/move2kube/types/environment"
+	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/filesystem"
+	"github.com/konveyor/move2kube-wasm/types"
+	environmenttypes "github.com/konveyor/move2kube-wasm/types/environment"
 	"github.com/sirupsen/logrus"
 )
 

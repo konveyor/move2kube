@@ -1,33 +1,21 @@
-/*
- *  Copyright IBM Corporation 2020, 2021
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *        http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
-
 package main
 
 import (
-	"os"
-
-	"github.com/konveyor/move2kube/assets"
-	"github.com/konveyor/move2kube/cmd"
-	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube-wasm/assets"
+	"github.com/konveyor/move2kube-wasm/cmd"
+	"github.com/konveyor/move2kube-wasm/common"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
+	"os"
 )
 
 func main() {
-	rootCmd := cmd.GetRootCmd()
+	logrus.Infof("start")
+	planCmd := cmd.GetPlanCommand()
+	transformCmd := cmd.GetTransformCommand()
+	transformCmd.SetArgs([]string{
+		"--qa-skip",
+	})
 	assetsFilePermissions := map[string]int{}
 	err := yaml.Unmarshal([]byte(assets.AssetFilePermissions), &assetsFilePermissions)
 	if err != nil {
@@ -42,7 +30,11 @@ func main() {
 	common.RemoteTempPath = remoteTempPath
 	defer os.RemoveAll(tempPath)
 	defer os.RemoveAll(remoteTempPath)
-	if err := rootCmd.Execute(); err != nil {
+	if err := planCmd.Execute(); err != nil {
 		logrus.Fatalf("Error: %q", err)
 	}
+	if err := transformCmd.Execute(); err != nil {
+		logrus.Fatalf("Error: %q", err)
+	}
+	logrus.Infof("end")
 }

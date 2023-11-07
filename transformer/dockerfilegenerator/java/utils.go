@@ -18,9 +18,10 @@ package java
 
 import (
 	"fmt"
+	"github.com/konveyor/move2kube-wasm/qaengine"
 
-	"github.com/konveyor/move2kube/common"
-	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube-wasm/common"
+	//"github.com/konveyor/move2kube-wasm/qaengine"
 	"github.com/sirupsen/logrus"
 )
 

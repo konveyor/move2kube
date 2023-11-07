@@ -1,107 +1,48 @@
-[![Build](https://github.com/konveyor/move2kube/workflows/Build/badge.svg "Github Actions")](https://github.com/konveyor/move2kube/actions?query=workflow%3ABuild)
-[![Container Repository on Quay](https://quay.io/repository/konveyor/move2kube/status "Container Repository on Quay")](https://quay.io/repository/konveyor/move2kube)
-[![License](https://img.shields.io/:license-apache-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
-[![Go Report Card](https://goreportcard.com/badge/github.com/konveyor/move2kube)](https://goreportcard.com/report/github.com/konveyor/move2kube)
-[<img src="https://img.shields.io/badge/slack-konveyor/move2kube-green.svg?logo=slack">](https://kubernetes.slack.com/archives/CR85S82A2)
+# Move2Kube in WASM/WASI
 
-# Move2Kube
+A version of Move2Kube that can run in WASM/WASI.
+Goal is to run in the browser using a virtual file system.
+Similar to https://github.com/HarikrishnanBalagopal/test-wasi-fs-browser/tree/main
 
-Move2Kube is a command-line tool that accelerates the process of re-platforming to Kubernetes/Openshift. It does so by analyzing the environment and source artifacts, and asking guidance from the user when required. It allows customizations to enable generating the directory structure and artifacts in the format required for your project.
+## Prerequisites
 
-![Usage](./imgs/overview.png)
-
-## Installation
-
-### Using install script
-
-To install the latest stable version:
-
-```shell
-bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
-```
-
-To install a specific version (for example version `v0.3.0-alpha.3`):
-
-```shell
-MOVE2KUBE_TAG='v0.3.0-alpha.3' bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
-```
-
-To install the bleeding edge version:
-
-```shell
-BLEEDING_EDGE='true' bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
-```
-
-### Using Homebrew
-
-```shell
-brew tap konveyor/move2kube
-brew install move2kube
-```
-
-## UI
-
-To bring up UI version:
-
-Using `docker`:
-
-```shell
-docker run --rm -it -p 8080:8080 quay.io/konveyor/move2kube-ui:latest
-```
-
-Using `podman`:
-
-```shell
-podman run --rm -it -p 8080:8080 quay.io/konveyor/move2kube-ui:latest
-```
-
-Then go to http://localhost:8080 in a browser
-
-More detailed instructions can be found in the [Move2Kube UI repo](https://github.com/konveyor/move2kube-ui#starting-the-ui)
+- Go v1.21 or higher to use WASI support
+- NodeJS v16.9.0 or higher to use Corepack https://nodejs.org/api/corepack.html . Run `corepack enable` to allow NodeJS to install package managers like `pnpm` . You can multiple NodeJS versions using NVM https://github.com/nvm-sh/nvm
+- Python3 HTTP server
+- Optional: Custom fork of TinyGo with stubs added for required system calls https://github.com/Prakhar-Agarwal-byte/tinygo/tree/stub
 
 ## Usage
 
-`move2kube transform -s src`, where `src` is the folder containing the source artifacts.
+### Install dependencies
 
-Checkout the [Tutorials](https://move2kube.konveyor.io/tutorials) and [Documentation](https://move2kube.konveyor.io/commands) for more information.
+This should only be run once (or whenever the Javascript) dep
 
-## Development environment setup
+```shell
+$ cd m2k-web-ui/ && pnpm install
+```
 
-To browse code  [![Open in VSCode](https://badgen.net/badge/icon/Visual%20Studio%20Code?icon=visualstudio&label)](https://open.vscode.dev/konveyor/move2kube)
+### Build and run the Server
 
-1. Obtain a recent version of `golang`. Known to work with `1.18`.
-1. Ensure `$GOPATH` is set. If it's not set:
-   1. `mkdir ~/go`
-   1. `export GOPATH=~/go`
-1. Obtain this repo:
-   1. `mkdir -p $GOPATH/src/`
-   1. Clone this repo into the above directory.
-   1. `cd $GOPATH/src/move2kube`
-1. Build: `make build`
-1. Run unit tests: `make test`
+From the root directory run the following command:
 
-## Artifacts Required
+```shell
+$ make all
+```
 
-| Source | Artifact available | Features supported |
-|:-------|:-------------------|:-------------------|
-| Cloud Foundry | Manifest files, Source code | Containerization options based on source code, Deployment artifacts |
-| Cloud Foundry | Manifest files, Source code, Access to running instance | Containerization options based on source code, Deployment artifacts, Metadata from runtime |
-| Dockerfile | Dockerfile | Deployment artifacts, CI/CD pipeline artifacts |
-| Docker Compose/Swarm | Docker compose files | Deployment artifacts |
-| Docker Compose/Swarm | Docker compose files, Docker images | Deployment artifacts, CI/CD pipeline artifacts |
-| Source Directories | Source code with no source metadata |  Containerization options based on source code, Deployment artifacts, CI/CD artifacts |
-| Kubernetes Yamls | Kubernetes Yamls | Change versions, parameterize and create Helm chart, Kustomize yamls and Openshift templates. |
+This will:
+- build the WASM module
+- build the Javascript Webpack bundle
+- start a Python HTTP server to serve the webpage
 
-## Output
+You can go to http://localhost:8080/ to access the UI
 
-* Deployment artifacts
-  * Dockerfile
-  * Kubernetes/Openshift Yamls
-  * Helm charts
-  * Kustomize
-  * OpenShift Templates
-  * Docker compose
+## Publish
 
-## Discussion
+To publish to Github pages run:
 
-* For any questions reach out to us on any of the communication channels given on our website https://move2kube.konveyor.io/
+```
+$ make all
+$ make copy-web
+```
+
+This copies the built `m2k-web-ui/dist` directory into `docs` directory.

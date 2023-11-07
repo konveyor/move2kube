@@ -17,7 +17,7 @@
 package artifacts
 
 import (
-	transformertypes "github.com/konveyor/move2kube/types/transformer"
+	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
 )
 
 // OriginalNameConfig stores the original name of the app
