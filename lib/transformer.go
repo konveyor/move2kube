@@ -1,5 +1,3 @@
-// cannot import this file yet, because too many dependencies
-
 /*
  *  Copyright IBM Corporation 2020, 2021
  *
