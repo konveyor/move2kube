@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/konveyor/move2kube-wasm/common"
-	"github.com/konveyor/move2kube-wasm/types/qaengine/qagrpc"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
@@ -64,38 +63,38 @@ type Problem struct {
 }
 
 // NewProblem creates a new problem object from a GRPC problem
-func NewProblem(p *qagrpc.Problem) (prob Problem, err error) {
-	defaults, err := ArrayToInterface(p.Default, SolutionFormType(p.Type))
-	if err != nil {
-		logrus.Errorf("Unable to convert defaults : %s", err)
-		return prob, err
-	}
-	pp := Problem{
-		ID:      p.Id,
-		Type:    SolutionFormType(p.Type),
-		Desc:    p.Description,
-		Hints:   p.Hints,
-		Options: p.Options,
-		Default: defaults,
-	}
-	if p.Pattern != "" {
-		reg, err := regexp.Compile(p.Pattern)
-		if err != nil {
-			return pp, fmt.Errorf("not a valid regex pattern : Error : %s", err)
-		}
-		pp.Validator = func(ans interface{}) error {
-			a, ok := ans.(string)
-			if !ok {
-				return fmt.Errorf("expected input to be type String, got %T. Value : %+v", ans, ans)
-			}
-			if !reg.MatchString(a) {
-				return fmt.Errorf("pattern does not match : %s", a)
-			}
-			return nil
-		}
-	}
-	return pp, nil
-}
+//func NewProblem(p *qagrpc.Problem) (prob Problem, err error) {
+//	defaults, err := ArrayToInterface(p.Default, SolutionFormType(p.Type))
+//	if err != nil {
+//		logrus.Errorf("Unable to convert defaults : %s", err)
+//		return prob, err
+//	}
+//	pp := Problem{
+//		ID:      p.Id,
+//		Type:    SolutionFormType(p.Type),
+//		Desc:    p.Description,
+//		Hints:   p.Hints,
+//		Options: p.Options,
+//		Default: defaults,
+//	}
+//	if p.Pattern != "" {
+//		reg, err := regexp.Compile(p.Pattern)
+//		if err != nil {
+//			return pp, fmt.Errorf("not a valid regex pattern : Error : %s", err)
+//		}
+//		pp.Validator = func(ans interface{}) error {
+//			a, ok := ans.(string)
+//			if !ok {
+//				return fmt.Errorf("expected input to be type String, got %T. Value : %+v", ans, ans)
+//			}
+//			if !reg.MatchString(a) {
+//				return fmt.Errorf("pattern does not match : %s", a)
+//			}
+//			return nil
+//		}
+//	}
+//	return pp, nil
+//}
 
 // InterfaceToArray converts the answer interface to array
 func InterfaceToArray(ansI interface{}, problemType SolutionFormType) (ans []string, err error) {
