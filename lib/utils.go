@@ -24,7 +24,11 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/filesystem"
+	"github.com/sirupsen/logrus"
 )
+
+// TransformerTypeMeta is the type of a transformer manifest file
+const TransformerTypeMeta = "Transformer"
 
 // CheckAndCopyCustomizations checks if the customizations path is an existing directory and copies to assets
 func CheckAndCopyCustomizations(customizationsPath string) error {
@@ -56,6 +60,11 @@ func CheckAndCopyCustomizations(customizationsPath string) error {
 	}
 	if common.IsParent(pwd, customizationsFSPath) {
 		return fmt.Errorf("the given customizations directory '%s' is a parent of the current working directory", customizationsFSPath)
+	}
+	// check if the customization path has files other than YAMLs
+	yamls, err := common.GetYamlsWithTypeMeta(customizationsFSPath, TransformerTypeMeta)
+	if err == nil && len(yamls) == 0 {
+		logrus.Warnf("no manifests for external transformers found in %s, the transformers won't be loaded.", customizationsFSPath)
 	}
 	if err = CopyCustomizationsAssetsData(customizationsFSPath); err != nil {
 		return fmt.Errorf("failed to copy the customizations data from the directory '%s' . Error: %w", customizationsFSPath, err)
