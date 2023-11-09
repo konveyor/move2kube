@@ -21,6 +21,7 @@ require (
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/mikefarah/yq/v4 v4.16.2
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/moby/buildkit v0.9.3
 	github.com/openshift/api v0.0.0-20220112145620-704957ce4980
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cast v1.5.1
@@ -46,6 +47,7 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
+	github.com/containerd/typeurl v1.0.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/distribution v2.8.0+incompatible // indirect
@@ -111,7 +113,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gotest.tools v2.2.0+incompatible // indirect
 	gotest.tools/v3 v3.5.1 // indirect
 	k8s.io/apiserver v0.23.1 // indirect
 	k8s.io/component-base v0.23.1 // indirect
