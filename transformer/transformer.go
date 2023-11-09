@@ -89,11 +89,11 @@ func init() {
 	transformerObjs := []Transformer{
 		//new(external.Starlark),
 		//new(external.Executable),
-		//
-		//new(Router),
-		//
-		//new(dockerfile.DockerfileDetector),
-		//new(dockerfile.DockerfileParser),
+
+		new(Router),
+
+		new(dockerfile.DockerfileDetector),
+		new(dockerfile.DockerfileParser),
 		new(dockerfile.DockerfileImageBuildScript),
 		new(dockerfilegenerator.NodejsDockerfileGenerator),
 		new(dockerfilegenerator.GolangDockerfileGenerator),
@@ -114,7 +114,7 @@ func init() {
 		new(windows.WinConsoleAppDockerfileGenerator),
 		new(windows.WinSilverLightWebAppDockerfileGenerator),
 		new(windows.WinWebAppDockerfileGenerator),
-		//new(CNBContainerizer),
+		new(CNBContainerizer),
 		//new(compose.ComposeAnalyser),
 		//new(compose.ComposeGenerator),
 		//
@@ -124,16 +124,16 @@ func init() {
 
 		new(kubernetes.ClusterSelectorTransformer),
 		new(kubernetes.Kubernetes),
-		//new(kubernetes.Knative),
+		new(kubernetes.Knative),
 		//new(kubernetes.Tekton),
 		// new(kubernetes.ArgoCD),
-		//new(kubernetes.BuildConfig),
+		new(kubernetes.BuildConfig),
 		new(kubernetes.Parameterizer),
-		//new(kubernetes.KubernetesVersionChanger),
-		//new(kubernetes.OperatorTransformer),
+		new(kubernetes.KubernetesVersionChanger),
+		new(kubernetes.OperatorTransformer),
 
 		new(ReadMeGenerator),
-		//new(InvokeDetect),
+		new(InvokeDetect),
 	}
 	transformerTypes = common.GetTypesMap(transformerObjs)
 }

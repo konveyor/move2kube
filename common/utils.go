@@ -1268,3 +1268,81 @@ func ReadMove2KubeYamlStrict(path string, out interface{}, kind string) error {
 	}
 	return nil
 }
+
+// GatherGitInfo tries to find the git repo for the path if one exists.
+func GatherGitInfo(path string) (repoName, repoDir, repoHostName, repoURL, repoBranch string, err error) {
+	//if finfo, err := os.Stat(path); err != nil {
+	//	return "", "", "", "", "", fmt.Errorf("failed to stat the path '%s' . Error %w", path, err)
+	//} else if !finfo.IsDir() {
+	//	pathDir := filepath.Dir(path)
+	//	logrus.Debugf("The path '%s' is not a directory. Using the path '%s' instead.", path, pathDir)
+	//	path = pathDir
+	//}
+	//repo, err := git.PlainOpenWithOptions(path, &git.PlainOpenOptions{DetectDotGit: true})
+	//if err != nil {
+	//	return "", "", "", "", "", fmt.Errorf("failed to open the path '%s' as a git repo. Error: %w", path, err)
+	//}
+	//workTree, err := repo.Worktree()
+	//if err != nil {
+	//	return "", "", "", "", "", fmt.Errorf("failed to get the repo working tree/directory. Error: %w", err)
+	//}
+	//repoDir = workTree.Filesystem.Root()
+	//ref, err := repo.Head()
+	//if err != nil {
+	//	return "", "", "", "", "", fmt.Errorf("failed to get the current branch. Error: %w", err)
+	//}
+	//logrus.Debugf("current branch/tag: %#v", ref)
+	//repoBranch = filepath.Base(string(ref.Name()))
+	//remotes, err := repo.Remotes()
+	//if err != nil || len(remotes) == 0 {
+	//	logrus.Debugf("failed to find any remote repo urls for the repo at path '%s' . Error: %q", path, err)
+	//	logrus.Debugf("git no remotes case - repoName '%s', repoDir '%s', repoHostName '%s', repoURL '%s', repoBranch '%s'", repoName, repoDir, repoHostName, repoURL, repoBranch)
+	//	return repoName, repoDir, repoHostName, repoURL, repoBranch, nil
+	//}
+	//var preferredRemote *git.Remote
+	//if preferredRemote = getGitRemoteByName(remotes, "upstream"); preferredRemote == nil {
+	//	if preferredRemote = getGitRemoteByName(remotes, "origin"); preferredRemote == nil {
+	//		preferredRemote = remotes[0]
+	//	}
+	//}
+	//if len(preferredRemote.Config().URLs) == 0 {
+	//	err = fmt.Errorf("unable to get origins")
+	//	logrus.Debugf("%s", err)
+	//}
+	//u := preferredRemote.Config().URLs[0]
+	//repoURL = u
+	//if strings.HasPrefix(u, "git@") {
+	//	// Example: git@github.com:konveyor/move2kube.git
+	//	withoutGitAt := strings.TrimPrefix(u, "git@")
+	//	idx := strings.Index(withoutGitAt, ":")
+	//	if idx < 0 {
+	//		return "", "", "", "", "", fmt.Errorf("failed to parse the remote host url '%s' as a git ssh url. Error: %w", u, err)
+	//	}
+	//	domain := withoutGitAt[:idx]
+	//	rest := withoutGitAt[idx+1:]
+	//	newUrl := "https://" + domain + "/" + rest
+	//	logrus.Debugf("final parsed git ssh url to normal url: '%s'", newUrl)
+	//	giturl, err := url.Parse(newUrl)
+	//	if err != nil {
+	//		return "", "", "", "", "", fmt.Errorf("failed to parse the remote host url '%s' . Error: %w", newUrl, err)
+	//	}
+	//	logrus.Debugf("parsed ssh case - giturl: %#v", giturl)
+	//	repoHostName = giturl.Host
+	//	repoName = filepath.Base(giturl.Path)
+	//	repoName = strings.TrimSuffix(repoName, filepath.Ext(repoName))
+	//	logrus.Debugf("git ssh case - repoName '%s', repoDir '%s', repoHostName '%s', repoURL '%s', repoBranch '%s'", repoName, repoDir, repoHostName, repoURL, repoBranch)
+	//	return repoName, repoDir, repoHostName, repoURL, repoBranch, nil
+	//}
+	//
+	//giturl, err := url.Parse(u)
+	//if err != nil {
+	//	return "", "", "", "", "", fmt.Errorf("failed to parse the remote host url '%s' . Error: %w", u, err)
+	//}
+	//logrus.Debugf("parsed normal case - giturl: %#v", giturl)
+	//repoHostName = giturl.Host
+	//repoName = filepath.Base(giturl.Path)
+	//repoName = strings.TrimSuffix(repoName, filepath.Ext(repoName))
+	//logrus.Debugf("git normal case - repoName '%s', repoDir '%s', repoHostName '%s', repoURL '%s', repoBranch '%s'", repoName, repoDir, repoHostName, repoURL, repoBranch)
+	//return repoName, repoDir, repoHostName, repoURL, repoBranch, nil
+	return "", "", "", "", "", errors.New("WASI: Tried to call GatherGitInfo")
+}
