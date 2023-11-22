@@ -272,6 +272,10 @@ func (t *Starlark) getStarlarkQuery() *starlark.Builtin {
 		if prob.Type == "" {
 			prob.Type = qatypes.InputSolutionFormType
 		}
+		// QA categories
+		if len(prob.Categories) == 0 {
+			prob.Categories = append(prob.Categories, "external")
+		}
 		if validation != "" {
 			validationFn, ok := t.StarGlobals[validation]
 			if !ok {

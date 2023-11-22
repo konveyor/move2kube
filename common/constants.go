@@ -232,6 +232,10 @@ var (
 	DisableLocalExecution = false
 	// DefaultIgnoreDirRegexps specifies directory name regexes that would be ignored
 	DefaultIgnoreDirRegexps = []*regexp.Regexp{regexp.MustCompile("^[.].*")}
+	// DisabledCategories is a list of QA categories that are disabled
+	DisabledCategories = []string{}
+	// QACategoryMap maps category names to problem IDs
+	QACategoryMap = map[string][]string{}
 	// disallowedDNSCharactersRegex provides pattern for characters not allowed in a DNS Name
 	disallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
 	// disallowedEnvironmentCharactersRegex provides pattern for characters not allowed in a DNS Name
