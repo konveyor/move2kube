@@ -551,9 +551,9 @@ func Transform(planArtifacts []plantypes.PlanArtifact, sourceDir, outputPath str
 		logrus.Infof("Iteration %d - %d artifacts to process", iteration, len(newArtifactsToProcess))
 		newPathMappings, newArtifacts, _ := transform(newArtifactsToProcess, allArtifacts, consume, nil, graph, iteration)
 		pathMappings = append(pathMappings, newPathMappings...)
-		//if err := os.RemoveAll(outputPath); err != nil {
-		//	return fmt.Errorf("failed to remove the output directory '%s' . Error: %w", outputPath, err)
-		//}
+		if err := os.RemoveAll(outputPath); err != nil {
+			return fmt.Errorf("failed to remove the output directory '%s' . Error: %w", outputPath, err)
+		}
 		if err := processPathMappings(pathMappings, sourceDir, outputPath, false); err != nil {
 			return fmt.Errorf("failed to process the path mappings: %+v . Error: %w", pathMappings, err)
 		}
