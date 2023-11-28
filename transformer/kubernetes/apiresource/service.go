@@ -303,7 +303,6 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR, t
 		desc := "Select a TLS termination policy for the route. (default: passthrough)"
 		options := []string{string(okdroutev1.TLSTerminationEdge), string(okdroutev1.TLSTerminationPassthrough), string(okdroutev1.TLSTerminationReencrypt)}
 		terminationPolicy := qaengine.FetchSelectAnswer(common.ConfigRouteTLSTerminationPolicy, desc, nil, string(okdroutev1.TLSTerminationPassthrough), options, nil)
-		// TODO: prompt for TLS config for Edge termination
 		route := d.createRoute(ir.Name, service, servicePort, hostPrefixes[i], relPaths[i], ir, targetCluster, okdroutev1.TLSTerminationType(terminationPolicy))
 		routes = append(routes, route)
 	}
@@ -344,7 +343,7 @@ func (d *Service) createRoute(irName string, service irtypes.Service, port core.
 				Name:   service.Name,
 				Weight: &weight,
 			},
-			TLS: d.getTlsConfig(tlsTerminationKind),
+			TLS:  d.getTlsConfig(tlsTerminationKind),
 			Port: &okdroutev1.RoutePort{TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: port.Name}},
 		},
 		Status: okdroutev1.RouteStatus{
@@ -551,10 +550,10 @@ func (d *Service) getTlsConfig(tlsTerminationKind okdroutev1.TLSTerminationType)
 		key := qaengine.FetchMultilineInputAnswer(common.ConfigRouteTLSKeyKey, keyDesc, nil, "", nil)
 		certDesc := "Enter the contents of the TLS Certificate. (PEM Format)"
 		cert := qaengine.FetchMultilineInputAnswer(common.ConfigRouteTLSCertificateKey, certDesc, nil, "", nil)
-	
+
 		return &okdroutev1.TLSConfig{
 			Termination: tlsTerminationKind,
-			Key: key,
+			Key:         key,
 			Certificate: cert,
 		}
 	}
