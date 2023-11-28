@@ -51,6 +51,21 @@ func (c *CliEngine) FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 		logrus.Errorf("the QA problem object is invalid. Error: %q", err)
 		return prob, err
 	}
+	// return default if the category is skipped
+	probCategories := qatypes.GetProblemCategories(prob.ID, prob.Categories)
+	for _, category := range probCategories {
+		if common.IsStringPresent(common.DisabledCategories, category) {
+			// if prob.Default == nil {
+			// 	// todo: warn instead of returning error
+			// 	return prob, errors.New(fmt.Sprintf("category %s is skipped but default doesn't exist", category)) // TODO:
+			// }
+			if err := prob.SetAnswer(prob.Default, true); err != nil {
+				return prob, fmt.Errorf("failed to set the given solution as the answer. Error: %w", err)
+			}
+			return prob, nil
+		}
+	}
+
 	switch prob.Type {
 	case qatypes.SelectSolutionFormType:
 		return c.fetchSelectAnswer(prob)
@@ -221,8 +236,11 @@ func getQAMessage(prob qatypes.Problem) string {
 	if prob.Desc == "" {
 		prob.Desc = "Default description for question with id: " + prob.ID
 	}
+	categoryList := qatypes.GetProblemCategories(prob.ID, prob.Categories)
+	// We add the category list on the same line as the ID, but aligned to the right
+	idAndCategoryLine := AddRightAlignedString(fmt.Sprintf("ID: %s", prob.ID), fmt.Sprintf("Categories: (%s)", strings.Join(categoryList, ", ")))
 	if len(prob.Hints) == 0 {
-		return fmt.Sprintf("%s\nID: %s\n", prob.Desc, prob.ID)
+		return fmt.Sprintf("%s\n%s\n", prob.Desc, idAndCategoryLine)
 	}
-	return fmt.Sprintf("%s\nID: %s\nHints:\n- %s\n\n", prob.Desc, prob.ID, strings.Join(prob.Hints, "\n- "))
+	return fmt.Sprintf("%s\n%s\nHints:\n- %s", prob.Desc, idAndCategoryLine, strings.Join(prob.Hints, "\n- "))
 }

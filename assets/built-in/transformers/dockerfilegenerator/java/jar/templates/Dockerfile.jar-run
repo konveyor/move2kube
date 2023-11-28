@@ -4,6 +4,6 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 ENV {{$k}} {{$v}}
 {{- end }}
 RUN microdnf update && microdnf install --nodocs {{ .JavaPackageName }} && microdnf clean all
-COPY {{ if .BuildContainerName }}--from= {{ .BuildContainerName }}{{ end }}{{ .DeploymentFilePath }} .
+COPY {{ if .BuildContainerName }}--from={{ .BuildContainerName }} {{ end }}{{ .DeploymentFilePath }} .
 EXPOSE {{ .Port }}
 CMD ["java", "-jar", "{{ .DeploymentFilename }}"]
