@@ -153,7 +153,7 @@ func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
 	return int32(selectedPort)
 }
 
-// GetDeploymentType returns whether the Service should generate a StatefulSet
+// GetDeploymentType returns the type of Deployment the service should generate
 func GetDeploymentType(serviceName string) ir.DeploymentType {
 	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigDeploymentTypeKey)
 	desc := fmt.Sprintf("For the service %s, which type of deployment is required?", serviceName)

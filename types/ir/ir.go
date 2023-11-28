@@ -126,7 +126,7 @@ type Service struct {
 	Networks                    []string
 	OnlyIngress                 bool
 	Daemon                      bool           //Gets converted to DaemonSet
-	DeploymentType              DeploymentType // Whether the service gets converted to a StatefulSet
+	DeploymentType              DeploymentType // The type of Deployment this service gets converted to (Rollout/StatefulSet/Deployment)
 }
 
 // ServiceToPodPortForwarding forwards a k8s service port to a k8s pod port
