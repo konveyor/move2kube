@@ -114,7 +114,7 @@ func init() {
 		new(windows.WinConsoleAppDockerfileGenerator),
 		new(windows.WinSilverLightWebAppDockerfileGenerator),
 		new(windows.WinWebAppDockerfileGenerator),
-		new(CNBContainerizer),
+		//new(CNBContainerizer),
 		//new(compose.ComposeAnalyser),
 		//new(compose.ComposeGenerator),
 		//
