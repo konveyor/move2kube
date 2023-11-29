@@ -23,14 +23,17 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 
+	"github.com/konveyor/move2kube/assets"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/download"
 	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/lib"
 	"github.com/konveyor/move2kube/types/plan"
+	"github.com/konveyor/move2kube/types/qaengine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 type transformFlags struct {
@@ -54,8 +57,10 @@ type transformFlags struct {
 	// maxIterations is the maximum number of iterations to allow before aborting with an error
 	maxIterations int
 	// CustomizationsPaths contains the path to the customizations directory
-	customizationsPath  string
-	transformerSelector string
+	customizationsPath   string
+	transformerSelector  string
+	qaEnabledCategories  []string
+	qaDisabledCategories []string
 }
 
 func transformHandler(cmd *cobra.Command, flags transformFlags) {
@@ -125,10 +130,45 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 	}
 
+	// qa-disable and qa=enable are mutually exclusive
+	if len(flags.qaEnabledCategories) > 0 && len(flags.qaDisabledCategories) > 0 {
+		logrus.Fatalf("--qa-enable and --qa-disable cannot be used together.\n")
+	}
+
+	// Read the QA categories from the QA mapping file
+	var qaMapping qaengine.QAMapping
+	qaMappingFilepath := filepath.Join("built-in/qa", "qamappings.yaml")
+	file, err := assets.AssetsDir.ReadFile(qaMappingFilepath)
+	if err != nil {
+		logrus.Fatalf("failed to read qa-mapping file at %s. Error: %q\n", qaMappingFilepath, err)
+	}
+
+	if err := yaml.Unmarshal(file, &qaMapping); err != nil {
+		logrus.Fatalf("failed to decode qa-mapping file. Error: %q\n", err)
+	}
+
+	for _, mapping := range qaMapping.Categories {
+		common.QACategoryMap[mapping.Name] = mapping.Questions
+	}
+	common.QACategoryMap["default"] = []string{}
+	common.QACategoryMap["external"] = []string{}
+
 	// Global settings
 	common.IgnoreEnvironment = flags.ignoreEnv
 	common.DisableLocalExecution = flags.disableLocalExecution
-	// Global settings
+	// if --qa-enable is passed, all categories are disabled by default. Otherwise, only categories passed to --qa-disable
+	// are disabled
+	if len(flags.qaEnabledCategories) > 0 {
+		for k := range common.QACategoryMap {
+			if !common.IsStringPresent(flags.qaEnabledCategories, k) {
+				common.DisabledCategories = append(common.DisabledCategories, k)
+			}
+		}
+	} else {
+		for _, cat := range flags.qaDisabledCategories {
+			common.DisabledCategories = append(common.DisabledCategories, cat)
+		}
+	}
 
 	// Parameter cleaning and curate plan
 	transformationPlan := plan.Plan{}
@@ -250,6 +290,10 @@ func GetTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory or a git url (see https://move2kube.konveyor.io/concepts/git-support) where customizations are stored. By default we look for "+common.DefaultCustomizationDir)
 	transformCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "t", "", "Specify the transformer selector.")
 	transformCmd.Flags().BoolVar(&flags.qaskip, qaSkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
+
+	// QA options
+	transformCmd.Flags().StringSliceVar(&flags.qaEnabledCategories, qaEnabledCategoriesFlag, []string{}, "Specify the QA categories to enable (cannot be used in conjunction with qa-disable)")
+	transformCmd.Flags().StringSliceVar(&flags.qaDisabledCategories, qaDisabledCategoriesFlag, []string{}, "Specify the QA categories to disable (cannot be used in conjunction with qa-enable)")
 
 	// Advanced options
 	transformCmd.Flags().BoolVar(&flags.ignoreEnv, ignoreEnvFlag, false, "Ignore data from local machine.")
