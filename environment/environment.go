@@ -223,8 +223,8 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 		}
 		return e.Env.Upload(path)
 	}
-	if reflect.ValueOf(obj).Kind() == reflect.String {
-		val, err := processPath(obj.(string))
+	if objS, ok := obj.(string); ok {
+		val, err := processPath(objS)
 		if err != nil {
 			logrus.Errorf("Unable to process paths for obj %+v : %s", obj, err)
 		}

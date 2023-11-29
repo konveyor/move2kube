@@ -38,6 +38,8 @@ import (
 
 type transformFlags struct {
 	qaflags
+	// maxVCSRepoCloneSize is the maximum size in bytes for cloning repos
+	maxVCSRepoCloneSize int64
 	// ignoreEnv tells us whether to use data collected from the local machine
 	ignoreEnv bool
 	// disableLocalExecution disables execution of executables locally
@@ -72,6 +74,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		defer pprof.StopCPUProfile()
 	}
+	vcs.SetMaxRepoCloneSize(flags.maxVCSRepoCloneSize)
 
 	ctx, cancel := context.WithCancel(cmd.Context())
 	logrus.AddHook(common.NewCleanupHook(cancel))
@@ -250,7 +253,14 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 		startQA(flags.qaflags)
 	}
-	if err := lib.Transform(ctx, transformationPlan, preExistingPlan, flags.outpath, flags.transformerSelector, flags.maxIterations); err != nil {
+	if err := lib.Transform(
+		ctx,
+		transformationPlan,
+		preExistingPlan,
+		flags.outpath,
+		flags.transformerSelector,
+		flags.maxIterations,
+	); err != nil {
 		logrus.Fatalf("failed to transform. Error: %q", err)
 	}
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
@@ -290,6 +300,7 @@ func GetTransformCommand() *cobra.Command {
 	transformCmd.Flags().StringVarP(&flags.customizationsPath, customizationsFlag, "c", "", "Specify directory or a git url (see https://move2kube.konveyor.io/concepts/git-support) where customizations are stored. By default we look for "+common.DefaultCustomizationDir)
 	transformCmd.Flags().StringVarP(&flags.transformerSelector, transformerSelectorFlag, "t", "", "Specify the transformer selector.")
 	transformCmd.Flags().BoolVar(&flags.qaskip, qaSkipFlag, false, "Enable/disable the default answers to questions posed in QA Cli sub-system. If disabled, you will have to answer the questions posed by QA during interaction.")
+	transformCmd.Flags().Int64Var(&flags.maxVCSRepoCloneSize, maxCloneSizeBytesFlag, -1, "Max size in bytes when cloning a git repo. Default -1 is infinite")
 
 	// QA options
 	transformCmd.Flags().StringSliceVar(&flags.qaEnabledCategories, qaEnabledCategoriesFlag, []string{}, "Specify the QA categories to enable (cannot be used in conjunction with qa-disable)")

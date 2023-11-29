@@ -27,8 +27,9 @@ import (
 // VCSCloneOptions stores version control system clone options
 type VCSCloneOptions struct {
 	CommitDepth          int
-	CloneDestinationPath string
 	Overwrite            bool
+	MaxSize              int64
+	CloneDestinationPath string
 }
 
 // VCS defines interface for version control system
@@ -47,36 +48,14 @@ type FailedVCSPush struct {
 	Err     error
 }
 
-// GetClonedPath takes input and folder name performs clone with the appropriate VCS and then return the file system and remote paths
-func GetClonedPath(input, folderName string, overwrite bool) string {
-	vcsRepo, err := GetVCSRepo(input)
-	var vcsSrcPath string
-	if err != nil {
-		_, ok := err.(*NoCompatibleVCSFound)
-		if ok {
-			logrus.Debugf("source path provided is not compatible with any of the supported VCS. Info : %q", err)
-		} else {
-			logrus.Fatalf("failed to get vcs repo for the provided source path %s. Error : %v", input, err)
-		}
-		vcsSrcPath = ""
-	} else {
-		tempPath, err := filepath.Abs(common.RemoteTempPath)
-		if err != nil {
-			logrus.Fatalf("failed to get absolute path for the temp path - %s", tempPath)
-		}
-		cloneOpts := VCSCloneOptions{CommitDepth: 1, Overwrite: overwrite, CloneDestinationPath: filepath.Join(tempPath, folderName)}
-		logrus.Debugf("%+v", vcsRepo)
-		vcsSrcPath, err = vcsRepo.Clone(cloneOpts)
-		if err != nil {
-			logrus.Fatalf("failed to clone a repository with the provided vcs url %s and clone options %+v. Error : %+v", input, cloneOpts, err)
-		}
-	}
-	return vcsSrcPath
-}
+var (
+	// maxRepoCloneSize is the maximum size (in bytes) allowed when cloning VCS repos
+	// default -1 means infinite
+	maxRepoCloneSize int64 = -1
+)
 
-// IsRemotePath returns if the provided input is a remote path or not
-func IsRemotePath(input string) bool {
-	return isGitVCS(input)
+func SetMaxRepoCloneSize(size int64) {
+	maxRepoCloneSize = size
 }
 
 // Error returns the error message for no valid vcs is found
@@ -86,7 +65,17 @@ func (e *NoCompatibleVCSFound) Error() string {
 
 // Error returns the error message for failed push
 func (e *FailedVCSPush) Error() string {
-	return fmt.Sprintf("failed to commit and push for the given VCS path %s. Error : %+v", e.VCSPath, e.Err)
+	return fmt.Sprintf("failed to commit and push for the given VCS path %s. Error: %+v", e.VCSPath, e.Err)
+}
+
+// IsRemotePath returns if the provided input is a remote path or not
+func IsRemotePath(input string) bool {
+	return isGitVCS(input)
+}
+
+// PushVCSRepo commits and pushes the changes in the provide vcs remote path
+func PushVCSRepo(remotePath, folderName string) error {
+	return pushGitVCS(remotePath, folderName, maxRepoCloneSize)
 }
 
 // GetVCSRepo extracts information from the given vcsurl and returns a relevant vcs repo struct
@@ -94,14 +83,40 @@ func GetVCSRepo(vcsurl string) (VCS, error) {
 	if isGitVCS(vcsurl) {
 		vcsRepo, err := getGitRepoStruct(vcsurl)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get git vcs repo for the input %s. Error : %v", vcsurl, err)
+			return nil, fmt.Errorf("failed to get git vcs repo for the input '%s' . Error: %w", vcsurl, err)
 		}
 		return vcsRepo, nil
 	}
 	return nil, &NoCompatibleVCSFound{URLInput: vcsurl}
 }
 
-// PushVCSRepo commits and pushes the changes in the provide vcs remote path
-func PushVCSRepo(remotePath, folderName string) error {
-	return pushGitVCS(remotePath, folderName)
+// GetClonedPath takes a vcsurl and a folder name,
+// performs a clone with the appropriate VCS,
+// and then returns the file system and remote paths.
+// If the VCS is not supported, the returned path will be an empty string.
+func GetClonedPath(vcsurl, destDirName string, overwrite bool) (string, error) {
+	vcsRepo, err := GetVCSRepo(vcsurl)
+	if err != nil {
+		if _, ok := err.(*NoCompatibleVCSFound); ok {
+			logrus.Debugf("the vcsurl '%s' is not compatible with any supported VCS. Error: %+v", vcsurl, err)
+			return "", nil
+		}
+		return "", fmt.Errorf("failed to get a VCS for the provided vcsurl '%s'. Error: %w", vcsurl, err)
+	}
+	logrus.Debugf("vcsRepo: %+v", vcsRepo)
+	tempPath, err := filepath.Abs(common.RemoteTempPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to get absolute path for the temp path '%s'", common.RemoteTempPath)
+	}
+	cloneOpts := VCSCloneOptions{
+		CommitDepth:          1,
+		Overwrite:            overwrite,
+		MaxSize:              maxRepoCloneSize,
+		CloneDestinationPath: filepath.Join(tempPath, destDirName),
+	}
+	vcsSrcPath, err := vcsRepo.Clone(cloneOpts)
+	if err != nil {
+		return "", fmt.Errorf("failed to clone using vcs url '%s' and clone options %+v. Error: %w", vcsurl, cloneOpts, err)
+	}
+	return vcsSrcPath, nil
 }

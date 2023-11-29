@@ -36,6 +36,7 @@ import (
 )
 
 type planFlags struct {
+	maxVCSRepoCloneSize   int64
 	progressServerPort    int
 	planfile              string
 	srcpath               string
@@ -64,6 +65,8 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 		common.Interrupt()
 	}()
 	defer lib.Destroy()
+
+	vcs.SetMaxRepoCloneSize(flags.maxVCSRepoCloneSize)
 
 	var err error
 	planfile := flags.planfile
@@ -182,6 +185,7 @@ func GetPlanCommand() *cobra.Command {
 	planCmd.Flags().StringSliceVar(&flags.preSets, preSetFlag, []string{}, "Specify preset config to use.")
 	planCmd.Flags().StringArrayVar(&flags.setconfigs, setConfigFlag, []string{}, "Specify config key-value pairs.")
 	planCmd.Flags().IntVar(&flags.progressServerPort, planProgressPortFlag, 0, "Port for the plan progress server. If not provided, the server won't be started.")
+	planCmd.Flags().Int64Var(&flags.maxVCSRepoCloneSize, maxCloneSizeBytesFlag, -1, "Max size in bytes when cloning a git repo. Default -1 is infinite")
 	planCmd.Flags().BoolVar(&flags.disableLocalExecution, common.DisableLocalExecutionFlag, false, "Allow files to be executed locally.")
 	planCmd.Flags().BoolVar(&flags.failOnEmptyPlan, common.FailOnEmptyPlan, false, "If true, planning will exit with a failure exit code if no services are detected (and no default transformers are found).")
 
