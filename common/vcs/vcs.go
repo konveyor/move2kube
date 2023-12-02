@@ -54,6 +54,7 @@ var (
 	maxRepoCloneSize int64 = -1
 )
 
+// SetMaxRepoCloneSize sets the maximum size (in bytes) for cloning a repo
 func SetMaxRepoCloneSize(size int64) {
 	maxRepoCloneSize = size
 }
