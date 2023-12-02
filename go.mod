@@ -1,6 +1,6 @@
 module github.com/konveyor/move2kube
 
-go 1.18
+go 1.19
 
 require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
@@ -18,12 +18,14 @@ require (
 	github.com/docker/cli v23.0.3+incompatible
 	github.com/docker/docker v23.0.3+incompatible
 	github.com/docker/libcompose v0.4.1-0.20171025083809-57bd716502dc
+	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/gobwas/glob v0.2.3
 	github.com/google/go-cmp v0.5.9
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-version v1.6.0
 	github.com/joho/godotenv v1.4.0
+	github.com/kopoli/go-terminal-size v0.0.0-20170219200355-5c97524c8b54
 	github.com/magiconair/properties v1.8.5
 	github.com/mikefarah/yq/v4 v4.16.2
 	github.com/mitchellh/mapstructure v1.4.3
@@ -109,7 +111,6 @@ require (
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/go-git/go-billy/v5 v5.3.1 // indirect
 	github.com/go-kit/log v0.2.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
@@ -149,7 +150,6 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
 	github.com/klauspost/compress v1.16.0 // indirect
-	github.com/kopoli/go-terminal-size v0.0.0-20170219200355-5c97524c8b54 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect

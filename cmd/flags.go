@@ -52,6 +52,7 @@ const (
 	qadisablecliFlag         = "qa-disable-cli"
 	qaportFlag               = "qa-port"
 	planProgressPortFlag     = "plan-progress-port"
+	maxCloneSizeBytesFlag    = "max-clone-size"
 	transformerSelectorFlag  = "transformer-selector"
 	qaEnabledCategoriesFlag  = "qa-enable"
 	qaDisabledCategoriesFlag = "qa-disable"

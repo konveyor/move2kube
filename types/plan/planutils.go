@@ -17,6 +17,7 @@
 package plan
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -33,41 +34,44 @@ func ReadPlan(path string, sourceDir string) (Plan, error) {
 	var err error
 	absSourceDir := ""
 	if err = common.ReadMove2KubeYaml(path, &plan); err != nil {
-		logrus.Errorf("Failed to load the plan file at path %q Error %q", path, err)
-		return plan, err
+		return plan, fmt.Errorf("failed to load the plan file at path '%s' . Error: %w", path, err)
 	}
 	if sourceDir != "" {
 		plan.Spec.SourceDir = sourceDir
 	}
 	if plan.Spec.SourceDir != "" {
-		remoteSrcPath := vcs.GetClonedPath(plan.Spec.SourceDir, common.RemoteSourcesFolder, false)
+		remoteSrcPath, err := vcs.GetClonedPath(plan.Spec.SourceDir, common.RemoteSourcesFolder, false)
+		if err != nil {
+			return plan, fmt.Errorf("failed to clone the repo. Error: %w", err)
+		}
 		if remoteSrcPath != "" {
 			plan.Spec.SourceDir = remoteSrcPath
 		}
 		absSourceDir, err = filepath.Abs(plan.Spec.SourceDir)
 		if err != nil {
-			logrus.Errorf("Unable to convert sourceDir to full path : %s", err)
-			return plan, err
+			return plan, fmt.Errorf("failed to convert sourceDir to full path. Error: %w", err)
 		}
 	}
 	if err = pathconverters.MakePlanPathsAbsolute(&plan, absSourceDir, common.TempPath); err != nil {
 		return plan, err
 	}
 	plan.Spec.SourceDir = absSourceDir
-	return plan, err
+	return plan, nil
 }
 
 // WritePlan encodes the plan to yaml converting absolute paths to relative.
 func WritePlan(path string, plan Plan) error {
 	inputFSPath := plan.Spec.SourceDir
-	remoteSrcPath := vcs.GetClonedPath(plan.Spec.SourceDir, common.RemoteSourcesFolder, false)
+	remoteSrcPath, err := vcs.GetClonedPath(plan.Spec.SourceDir, common.RemoteSourcesFolder, false)
+	if err != nil {
+		return fmt.Errorf("failed to clone the repo. error: %w", err)
+	}
 	if remoteSrcPath != "" {
 		inputFSPath = remoteSrcPath
 	}
 	newPlan := deepcopy.DeepCopy(plan).(Plan)
 	if err := pathconverters.ChangePaths(&newPlan, map[string]string{inputFSPath: "", common.TempPath: ""}); err != nil {
-		logrus.Errorf("Unable to convert plan to use relative paths : %s", err)
-		return err
+		return fmt.Errorf("failed to convert plan to use relative paths. Error: %w", err)
 	}
 	wd, err := os.Getwd()
 	if err != nil {
