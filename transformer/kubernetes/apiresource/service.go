@@ -307,7 +307,10 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR, t
 		if relPaths[i] == "" {
 			continue
 		}
-		route := d.createRoute(ir.Name, service, servicePort, hostPrefixes[i], relPaths[i], ir, targetCluster)
+		desc := "Select a TLS termination policy for the route. (default: passthrough)"
+		options := []string{string(okdroutev1.TLSTerminationEdge), string(okdroutev1.TLSTerminationPassthrough), string(okdroutev1.TLSTerminationReencrypt)}
+		terminationPolicy := qaengine.FetchSelectAnswer(common.ConfigRouteTLSTerminationPolicy, desc, nil, string(okdroutev1.TLSTerminationPassthrough), options, nil)
+		route := d.createRoute(ir.Name, service, servicePort, hostPrefixes[i], relPaths[i], ir, targetCluster, okdroutev1.TLSTerminationType(terminationPolicy))
 		routes = append(routes, route)
 	}
 	return routes
@@ -318,7 +321,7 @@ func (d *Service) createRoutes(service irtypes.Service, ir irtypes.EnhancedIR, t
 // [https://bugzilla.redhat.com/show_bug.cgi?id=1773682]
 // Can't use https because of this https://github.com/openshift/origin/issues/2162
 // When service has multiple ports,the route needs a port name. Port number doesn't seem to work.
-func (d *Service) createRoute(irName string, service irtypes.Service, port core.ServicePort, hostprefix, path string, ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata) *okdroutev1.Route {
+func (d *Service) createRoute(irName string, service irtypes.Service, port core.ServicePort, hostprefix, path string, ir irtypes.EnhancedIR, targetCluster collecttypes.ClusterMetadata, tlsTerminationKind okdroutev1.TLSTerminationType) *okdroutev1.Route {
 	weight := int32(1)                                    //Hard-coded to 1 to avoid Helm v3 errors
 	ingressArray := []okdroutev1.RouteIngress{{Host: ""}} //Hard-coded to empty string to avoid Helm v3 errors
 
@@ -347,6 +350,7 @@ func (d *Service) createRoute(irName string, service irtypes.Service, port core.
 				Name:   service.Name,
 				Weight: &weight,
 			},
+			TLS:  d.getTlsConfig(tlsTerminationKind),
 			Port: &okdroutev1.RoutePort{TargetPort: intstr.IntOrString{Type: intstr.String, StrVal: port.Name}},
 		},
 		Status: okdroutev1.RouteStatus{
@@ -540,4 +544,26 @@ func (d *Service) getExposeInfo(service irtypes.Service) (servicePorts []core.Se
 
 func (d *Service) getHostName(irName string) string {
 	return irName + ".com"
+}
+
+func (d *Service) getTlsConfig(tlsTerminationKind okdroutev1.TLSTerminationType) *okdroutev1.TLSConfig {
+	switch tlsTerminationKind {
+	case okdroutev1.TLSTerminationPassthrough, okdroutev1.TLSTerminationReencrypt:
+		return &okdroutev1.TLSConfig{
+			Termination: tlsTerminationKind,
+		}
+	case okdroutev1.TLSTerminationEdge:
+		keyDesc := "Enter the contents of the TLS Key. (PEM Format)"
+		key := qaengine.FetchMultilineInputAnswer(common.ConfigRouteTLSKeyKey, keyDesc, nil, "", nil)
+		certDesc := "Enter the contents of the TLS Certificate. (PEM Format)"
+		cert := qaengine.FetchMultilineInputAnswer(common.ConfigRouteTLSCertificateKey, certDesc, nil, "", nil)
+
+		return &okdroutev1.TLSConfig{
+			Termination: tlsTerminationKind,
+			Key:         key,
+			Certificate: cert,
+		}
+	}
+
+	return nil // unreachable
 }

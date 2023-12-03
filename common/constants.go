@@ -143,6 +143,16 @@ const (
 	ConfigIngressHostKeySuffix = IngressKey + d + "host"
 	//ConfigIngressTLSKeySuffix represents ingress tls Key
 	ConfigIngressTLSKeySuffix = IngressKey + d + "tls"
+	//RouteKey represents route keyword
+	RouteKey = "route"
+	//TLSKey represents TLS keyword
+	TLSKey = "tls"
+	//ConfigRouteTLSTerminationPolicy represents the Route's TLS Termination Policy
+	ConfigRouteTLSTerminationPolicy = RouteKey + d + TLSKey + d + "terminationpolicy"
+	//ConfigRouteTLSKeyKey represents the Route's TLS Key
+	ConfigRouteTLSKeyKey = RouteKey + d + TLSKey + d + "key"
+	//ConfigRouteTLSCertificateKey represents the Route's TLS Certificate
+	ConfigRouteTLSCertificateKey = RouteKey + d + TLSKey + d + "certificate"
 	//ConfigTargetClusterTypeKey represents target cluster type key
 	ConfigTargetClusterTypeKey = ConfigTargetKey + d + "clustertype"
 	//ConfigImageRegistryKey represents image registry Key
@@ -234,6 +244,10 @@ var (
 	DisableLocalExecution = false
 	// DefaultIgnoreDirRegexps specifies directory name regexes that would be ignored
 	DefaultIgnoreDirRegexps = []*regexp.Regexp{regexp.MustCompile("^[.].*")}
+	// DisabledCategories is a list of QA categories that are disabled
+	DisabledCategories = []string{}
+	// QACategoryMap maps category names to problem IDs
+	QACategoryMap = map[string][]string{}
 	// disallowedDNSCharactersRegex provides pattern for characters not allowed in a DNS Name
 	disallowedDNSCharactersRegex = regexp.MustCompile(`[^a-z0-9\-]`)
 	// disallowedEnvironmentCharactersRegex provides pattern for characters not allowed in a DNS Name

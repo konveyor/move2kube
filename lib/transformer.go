@@ -33,9 +33,16 @@ import (
 )
 
 // Transform transforms the artifacts and writes output
-func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, outputPath string, transformerSelector string, maxIterations int) error {
+func Transform(
+	ctx context.Context,
+	plan plantypes.Plan,
+	preExistingPlan bool,
+	outputPath string,
+	transformerSelector string,
+	maxIterations int,
+) error {
 	logrus.Infof("Starting transformation")
-
+	defer logrus.Infof("Transformation done")
 	common.ProjectName = plan.Name
 	logrus.Debugf("common.TempPath: '%s'", common.TempPath)
 
@@ -50,7 +57,10 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 	requirements, _ := selectorsInPlan.Requirements()
 	transformerSelectorObj = transformerSelectorObj.Add(requirements...)
 
-	remoteOutputFSPath := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
+	remoteOutputFSPath, err := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
+	if err != nil {
+		return fmt.Errorf("failed to clone the repo '%s'. Error: %w", outputPath, err)
+	}
 	outputFSPath := outputPath
 	if remoteOutputFSPath != "" {
 		outputFSPath = remoteOutputFSPath
@@ -112,11 +122,8 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 		return fmt.Errorf("failed to transform using the plan. Error: %w", err)
 	}
 
-	logrus.Infof("Transformation done")
-
 	if vcs.IsRemotePath(outputPath) {
-		err := vcs.PushVCSRepo(outputPath, common.RemoteOutputsFolder)
-		if err != nil {
+		if err := vcs.PushVCSRepo(outputPath, common.RemoteOutputsFolder); err != nil {
 			logrus.Fatalf("failed to commit and push the output artifacts for the given remote path %s. Errro : %+v", outputPath, err)
 		}
 		logrus.Infof("move2kube generated artifcats are commited and pushed")
@@ -128,19 +135,13 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 func Destroy() {
 	logrus.Debugf("Cleaning up!")
 	transformer.Destroy()
-	err := os.RemoveAll(common.TempPath)
-	if err != nil {
-		logrus.Debug("failed to delete temp directory. Error : ", err)
+	if err := os.RemoveAll(common.TempPath); err != nil {
+		logrus.Debugf("failed to delete temp directory. Error: %+v", err)
 	}
-
-	err = os.RemoveAll(external.DetectContainerOutputDir)
-	if err != nil {
-		logrus.Debug("failed to delete temp directory. Error : ", err)
+	if err := os.RemoveAll(external.DetectContainerOutputDir); err != nil {
+		logrus.Debugf("failed to delete temp directory. Error: %+v", err)
 	}
-
-	err = os.RemoveAll(external.TransformContainerOutputDir)
-	if err != nil {
-		logrus.Debug("failed to delete temp directory. Error : ", err)
+	if err := os.RemoveAll(external.TransformContainerOutputDir); err != nil {
+		logrus.Debugf("failed to delete temp directory. Error: %+v", err)
 	}
-
 }

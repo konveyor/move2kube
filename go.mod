@@ -1,6 +1,6 @@
 module github.com/konveyor/move2kube
 
-go 1.18
+go 1.19
 
 require (
 	code.cloudfoundry.org/cli v7.1.0+incompatible
@@ -19,11 +19,14 @@ require (
 	github.com/docker/cli v23.0.3+incompatible
 	github.com/docker/docker v23.0.3+incompatible
 	github.com/docker/libcompose v0.4.1-0.20171025083809-57bd716502dc
+	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.7.0
+	github.com/gobwas/glob v0.2.3
 	github.com/google/go-cmp v0.5.9
 	github.com/gorilla/mux v1.8.0
 	github.com/hashicorp/go-version v1.6.0
 	github.com/joho/godotenv v1.4.0
+	github.com/kopoli/go-terminal-size v0.0.0-20170219200355-5c97524c8b54
 	github.com/magiconair/properties v1.8.5
 	github.com/mikefarah/yq/v4 v4.16.2
 	github.com/mitchellh/mapstructure v1.5.0
@@ -121,7 +124,6 @@ require (
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-redis/cache/v9 v9.0.0 // indirect
-	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-yaml v1.9.5 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect

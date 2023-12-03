@@ -48,11 +48,14 @@ const (
 	// maxIterationsFlag is the name of the flag that lets you set the maximum number of iterations to allow
 	maxIterationsFlag = "max-iterations"
 	// customizationsFlag is the path to customizations directory
-	customizationsFlag      = "customizations"
-	qadisablecliFlag        = "qa-disable-cli"
-	qaportFlag              = "qa-port"
-	planProgressPortFlag    = "plan-progress-port"
-	transformerSelectorFlag = "transformer-selector"
+	customizationsFlag       = "customizations"
+	qadisablecliFlag         = "qa-disable-cli"
+	qaportFlag               = "qa-port"
+	planProgressPortFlag     = "plan-progress-port"
+	maxCloneSizeBytesFlag    = "max-clone-size"
+	transformerSelectorFlag  = "transformer-selector"
+	qaEnabledCategoriesFlag  = "qa-enable"
+	qaDisabledCategoriesFlag = "qa-disable"
 )
 
 type qaflags struct {
