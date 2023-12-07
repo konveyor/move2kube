@@ -15,6 +15,24 @@
 BIN_DIR=./bin
 BIN_NAME=move2kube.wasm
 WEB_UI_DIR=m2k-web-ui
+GIT_COMMIT = $(shell git rev-parse HEAD)
+GIT_SHA    = $(shell git rev-parse --short HEAD)
+GIT_TAG    = $(shell git tag --points-at | tail -n 1)
+GIT_DIRTY  = $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
+
+#LDFLAGS    := -w -s
+LDFLAGS    :=
+
+VERSION ?= latest
+
+VERSION_METADATA = unreleased
+ifneq ($(GIT_TAG),)
+	VERSION_METADATA =
+endif
+LDFLAGS += -X github.com/konveyor/move2kube-wasm/types/info.buildmetadata=${VERSION_METADATA}
+
+LDFLAGS += -X github.com/konveyor/move2kube-wasm/types/info.gitCommit=${GIT_COMMIT}
+LDFLAGS += -X github.com/konveyor/move2kube-wasm/types/info.gitTreeState=${GIT_DIRTY}
 
 .PHONY: all
 all:
@@ -23,7 +41,7 @@ all:
 .PHONY: build
 build:
 	mkdir -p "${BIN_DIR}"
-	CGO_ENABLED=0 GOOS=wasip1 GOARCH=wasm go build -o "${BIN_DIR}/${BIN_NAME}" .
+	CGO_ENABLED=0 GOOS=wasip1 GOARCH=wasm go build -ldflags '$(LDFLAGS)' -o "${BIN_DIR}/${BIN_NAME}" .
 	# We have to put require github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af
 	# in order for logrus to work. See https://github.com/HarikrishnanBalagopal/test-wasi-fs-browser/tree/main
 	# CGO_ENABLED=0 tinygo build -o "${BIN_DIR}/${BIN_NAME}" -target=wasi .

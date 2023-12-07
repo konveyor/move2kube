@@ -62,10 +62,10 @@ func GetRootCmd() *cobra.Command {
 	rootCmd.PersistentFlags().StringVar(&logFile, "log-file", "", "File to store the logs in. By default it only prints to console.")
 
 	rootCmd.AddCommand(GetVersionCommand())
-	rootCmd.AddCommand(GetCollectCommand())
+	//rootCmd.AddCommand(GetCollectCommand())
 	rootCmd.AddCommand(GetPlanCommand())
 	rootCmd.AddCommand(GetTransformCommand())
-	rootCmd.AddCommand(GetGenerateDocsCommand())
-	rootCmd.AddCommand(GetGraphCommand())
+	//rootCmd.AddCommand(GetGenerateDocsCommand())
+	//rootCmd.AddCommand(GetGraphCommand())
 	return rootCmd
 }

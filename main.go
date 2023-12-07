@@ -1,5 +1,5 @@
 /*
- *  Copyright IBM Corporation 2022
+ *  Copyright IBM Corporation 2020, 2021
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,12 +25,7 @@ import (
 )
 
 func main() {
-	logrus.Infof("start")
-	planCmd := cmd.GetPlanCommand()
-	transformCmd := cmd.GetTransformCommand()
-	transformCmd.SetArgs([]string{
-		"--qa-skip",
-	})
+	rootCmd := cmd.GetRootCmd()
 	assetsFilePermissions := map[string]int{}
 	err := yaml.Unmarshal([]byte(assets.AssetFilePermissions), &assetsFilePermissions)
 	if err != nil {
@@ -45,11 +40,7 @@ func main() {
 	common.RemoteTempPath = remoteTempPath
 	//defer os.RemoveAll(tempPath)
 	//defer os.RemoveAll(remoteTempPath)
-	if err := planCmd.Execute(); err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatalf("Error: %q", err)
 	}
-	if err := transformCmd.Execute(); err != nil {
-		logrus.Fatalf("Error: %q", err)
-	}
-	logrus.Infof("end")
 }
