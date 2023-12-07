@@ -126,12 +126,12 @@ func Transform(ctx context.Context, plan plantypes.Plan, preExistingPlan bool, o
 func Destroy() {
 	logrus.Debugf("Cleaning up!")
 	transformer.Destroy()
-	err := os.RemoveAll(common.TempPath)
-	if err != nil {
-		logrus.Debug("failed to delete temp directory. Error : ", err)
-	}
+	//err := os.RemoveAll(common.TempPath)
+	//if err != nil {
+	//	logrus.Debug("failed to delete temp directory. Error : ", err)
+	//}
 
-	err = os.RemoveAll(external.DetectContainerOutputDir)
+	err := os.RemoveAll(external.DetectContainerOutputDir)
 	if err != nil {
 		logrus.Debug("failed to delete temp directory. Error : ", err)
 	}

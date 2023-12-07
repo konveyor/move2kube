@@ -22,7 +22,6 @@ import (
 	"github.com/konveyor/move2kube-wasm/common"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
-	"os"
 )
 
 func main() {
@@ -44,8 +43,8 @@ func main() {
 	common.TempPath = tempPath
 	common.AssetsPath = assetsPath
 	common.RemoteTempPath = remoteTempPath
-	defer os.RemoveAll(tempPath)
-	defer os.RemoveAll(remoteTempPath)
+	//defer os.RemoveAll(tempPath)
+	//defer os.RemoveAll(remoteTempPath)
 	if err := planCmd.Execute(); err != nil {
 		logrus.Fatalf("Error: %q", err)
 	}

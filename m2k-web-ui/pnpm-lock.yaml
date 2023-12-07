@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@bjorn3/browser_wasi_shim':
-    specifier: github:bjorn3/browser_wasi_shim
-    version: github.com/bjorn3/browser_wasi_shim/9289c4c88eec135d828ddfb6e7bf0acefcf2227a
+    specifier: github:bjorn3/browser_wasi_shim#88878d6f6a931719f937e1d222ba5c2c2ea5fa11
+    version: github.com/bjorn3/browser_wasi_shim/88878d6f6a931719f937e1d222ba5c2c2ea5fa11
   xterm:
     specifier: ^5.2.1
     version: 5.3.0
@@ -1427,8 +1427,8 @@ packages:
     resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
     dev: true
 
-  github.com/bjorn3/browser_wasi_shim/9289c4c88eec135d828ddfb6e7bf0acefcf2227a:
-    resolution: {tarball: https://codeload.github.com/bjorn3/browser_wasi_shim/tar.gz/9289c4c88eec135d828ddfb6e7bf0acefcf2227a}
+  github.com/bjorn3/browser_wasi_shim/88878d6f6a931719f937e1d222ba5c2c2ea5fa11:
+    resolution: {tarball: https://codeload.github.com/bjorn3/browser_wasi_shim/tar.gz/88878d6f6a931719f937e1d222ba5c2c2ea5fa11}
     name: '@bjorn3/browser_wasi_shim'
     version: 0.2.16
     prepare: true
