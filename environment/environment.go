@@ -329,7 +329,7 @@ func (e *Environment) DownloadAndDecode(obj interface{}, downloadSource bool) in
 		if common.IsParent(path, e.GetEnvironmentOutput()) {
 			relPath, err := filepath.Rel(e.GetEnvironmentOutput(), path)
 			if err != nil {
-				return path, fmt.Errorf("failed to make the path %s relative to the output directory %s . Error: %q", path, e.GetEnvironmentOutput(), err)
+				return path, fmt.Errorf("failed to make the path '%s' relative to the output directory '%s' . Error: %w", path, e.GetEnvironmentOutput(), err)
 			}
 			return relPath, nil
 		}

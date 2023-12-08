@@ -19,10 +19,6 @@
 "built-in/presets/docker-file-only.yaml" : 0644
 "built-in/presets/enable-containerized-transformers.yaml" : 0644
 "built-in/presets/use-podman-in-scripts.yaml" : 0644
-"built-in/transformers/cloudfoundry/transformer.yaml" : 0644
-"built-in/transformers/cnb/transformer.yaml" : 0644
-"built-in/transformers/compose/composeanalyser/transformer.yaml" : 0644
-"built-in/transformers/compose/composegenerator/transformer.yaml" : 0644
 "built-in/transformers/containerimagespushscript/templates/pushimages.bat" : 0755
 "built-in/transformers/containerimagespushscript/templates/pushimages.sh" : 0755
 "built-in/transformers/containerimagespushscript/transformer.yaml" : 0644
@@ -75,7 +71,6 @@
 "built-in/transformers/dockerfilegenerator/windows/winsilverlightweb/transformer.yaml" : 0644
 "built-in/transformers/dockerfilegenerator/windows/winweb/templates/Dockerfile" : 0644
 "built-in/transformers/dockerfilegenerator/windows/winweb/transformer.yaml" : 0644
-"built-in/transformers/kubernetes/argocd/transformer.yaml" : 0644
 "built-in/transformers/kubernetes/buildconfig/transformer.yaml" : 0644
 "built-in/transformers/kubernetes/clusterselector/clusters/aws-eks.yaml" : 0644
 "built-in/transformers/kubernetes/clusterselector/clusters/azure-aks.yaml" : 0644
@@ -91,14 +86,7 @@
 "built-in/transformers/kubernetes/operator/templates/README.md" : 0644
 "built-in/transformers/kubernetes/operator/templates/subscription.yaml" : 0644
 "built-in/transformers/kubernetes/operator/transformer.yaml" : 0644
-"built-in/transformers/kubernetes/operatorsfromtca/Dockerfile" : 0644
-"built-in/transformers/kubernetes/operatorsfromtca/cfservices.yaml" : 0644
-"built-in/transformers/kubernetes/operatorsfromtca/detect.py" : 0644
-"built-in/transformers/kubernetes/operatorsfromtca/preprocess.py" : 0644
-"built-in/transformers/kubernetes/operatorsfromtca/transform.py" : 0644
-"built-in/transformers/kubernetes/operatorsfromtca/transformer.yaml" : 0644
 "built-in/transformers/kubernetes/parameterizer/parameterizers/replicas.yaml" : 0644
 "built-in/transformers/kubernetes/parameterizer/transformer.yaml" : 0644
-"built-in/transformers/kubernetes/tekton/transformer.yaml" : 0644
 "built-in/transformers/readmegenerator/templates/Readme.md" : 0644
 "built-in/transformers/readmegenerator/transformer.yaml" : 0644
