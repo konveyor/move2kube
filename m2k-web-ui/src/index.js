@@ -67,8 +67,8 @@ const start_wasm = async (rootE, filename, fileContentsArr) => {
     // const args = ["move2kube", "-h"];
     // const args = ["move2kube", "version", "-l"];
     // const args = ["move2kube", "plan"];
-    const args = ["move2kube", "plan", "-s", filename];
-    // const args = ["move2kube", "transform", "-s", filename, "--qa-skip"];
+    // const args = ["move2kube", "plan", "-s", filename];
+    const args = ["move2kube", "transform", "-s", filename, "--qa-skip"];
     const env = [];
     // const env = ["FOO=bar", "MYPWD=/"];
     // const env = ["FOO=bar", "PWD=/", "MYPWD=/"];

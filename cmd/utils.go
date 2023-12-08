@@ -30,9 +30,12 @@ import (
 	"github.com/spf13/cast"
 )
 
+var supportedExtensions = []string{".zip", ".tar", ".tar.gz", ".tgz"}
+
 // checkSourcePath checks if the source path is an existing directory.
-func checkSourcePath(srcpath string) {
+func checkSourcePath(srcpath string) bool {
 	fi, err := os.Stat(srcpath)
+
 	if os.IsNotExist(err) {
 		logrus.Fatalf("The given source directory %s does not exist. Error: %q", srcpath, err)
 	}
@@ -40,7 +43,17 @@ func checkSourcePath(srcpath string) {
 		logrus.Fatalf("Error while accessing the given source directory %s Error: %q", srcpath, err)
 	}
 	if !fi.IsDir() {
-		logrus.Fatalf("The given source path %s is a file. Expected a directory. Exiting.", srcpath)
+		supported := false
+		for _, ext := range supportedExtensions {
+			if strings.HasSuffix(fi.Name(), ext) {
+				supported = true
+				break
+			}
+		}
+		if !supported {
+			logrus.Fatalf("The input path '%s' is a file, expected a directory", srcpath)
+		}
+		//logrus.Fatalf("The given source path %s is a file. Expected a directory. Exiting.", srcpath)
 	}
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -49,6 +62,7 @@ func checkSourcePath(srcpath string) {
 	if common.IsParent(pwd, srcpath) {
 		logrus.Fatalf("The given source directory %s is a parent of the current working directory.", srcpath)
 	}
+	return fi.IsDir()
 }
 
 // checkOutputPath checks if the output path is already in use.
