@@ -138,13 +138,14 @@ func NewEnvironment(envInfo EnvInfo, grpcQAReceiver net.Addr) (env *Environment,
 			logrus.Errorf("failed to create the local environment. Falling back to peer container environment. Error: %q", err)
 		}
 	}
-	// TODO: Disabled for WASI
-	//if env.Env == nil {
-	//	env.Env, err = NewPeerContainer(envInfo, grpcQAReceiver, containerInfo, envInfo.SpawnContainers)
-	//	if err != nil {
-	//		return env, fmt.Errorf("failed to create the peer container environment. Error: %w", err)
-	//	}
-	//}
+
+	if env.Env == nil {
+		logrus.Fatalf("TODO: Disabled for WASI, newPeerContainer")
+		//env.Env, err = NewPeerContainer(envInfo, grpcQAReceiver, containerInfo, envInfo.SpawnContainers)
+		//if err != nil {
+		//	return env, fmt.Errorf("failed to create the peer container environment. Error: %w", err)
+		//}
+	}
 	return env, nil
 }
 
