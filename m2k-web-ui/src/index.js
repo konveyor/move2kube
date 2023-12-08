@@ -99,25 +99,25 @@ const start_wasm = async (rootE, filename, fileContentsArr) => {
     console.log('importObject.wasi_snapshot_preview1', importObject.wasi_snapshot_preview1);
     const all_wasi_host_func_names = Object.keys(importObject.wasi_snapshot_preview1);
     console.log('all_wasi_host_func_names', all_wasi_host_func_names);
-    all_wasi_host_func_names.forEach(k => {
-        const orig = importObject.wasi_snapshot_preview1[k];
-        importObject.wasi_snapshot_preview1[k] = (...args) => {
-            // https://wasix.org/docs/api-reference/wasi/path_open
-            // dirfd dirflags path path_len o_flags fs_rights_base fs_rights_inheriting fs_flags fd
-            // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
-            // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
-            // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
-            // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281872
-            // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
-            // TinyGo
-            // proxy for path_open !! 3 1 151536 10 0 0n 0n 0 133972
-            // proxy for path_open !! 3 1 151536 8 0 0n 0n 0 133972
-            console.log('proxy for', k, '!!', ...args);
-            const return_value = orig(...args);
-            console.log('return_value for', k, 'is', return_value);
-            return return_value;
-        };
-    });
+    // all_wasi_host_func_names.forEach(k => {
+    //     const orig = importObject.wasi_snapshot_preview1[k];
+    //     importObject.wasi_snapshot_preview1[k] = (...args) => {
+    //         // https://wasix.org/docs/api-reference/wasi/path_open
+    //         // dirfd dirflags path path_len o_flags fs_rights_base fs_rights_inheriting fs_flags fd
+    //         // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
+    //         // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
+    //         // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
+    //         // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281872
+    //         // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
+    //         // TinyGo
+    //         // proxy for path_open !! 3 1 151536 10 0 0n 0n 0 133972
+    //         // proxy for path_open !! 3 1 151536 8 0 0n 0n 0 133972
+    //         console.log('proxy for', k, '!!', ...args);
+    //         const return_value = orig(...args);
+    //         console.log('return_value for', k, 'is', return_value);
+    //         return return_value;
+    //     };
+    // });
     const wasmUrl = 'move2kube.wasm';
     const wasmModule = await WebAssembly.instantiateStreaming(fetch(wasmUrl), importObject);
     console.log(wasmModule);
