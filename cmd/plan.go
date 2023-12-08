@@ -168,7 +168,6 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 			logrus.Fatalf("Unable to access source directory : %s", err)
 		}
 		if !fi.IsDir() {
-			supportedExtensions := []string{".zip", ".tar", ".tar.gz", ".tgz"}
 			supported := false
 			for _, ext := range supportedExtensions {
 				if strings.HasSuffix(fi.Name(), ext) {

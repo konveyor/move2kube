@@ -18,6 +18,8 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"io/fs"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -154,9 +156,60 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		checkOutputPath(flags.outpath, flags.overwrite)
 		//if flags.srcpath != "" && !isRemotePath {
 		if flags.srcpath != "" {
-			checkSourcePath(flags.srcpath)
+			isDir := checkSourcePath(flags.srcpath)
 			if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
 				logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
+			}
+
+			if !isDir {
+				// expand the archive
+				archivePath := flags.srcpath
+				archiveExpandedPath := flags.srcpath + "-expanded"
+				if err := archiver.Unarchive(archivePath, archiveExpandedPath); err != nil {
+					logrus.Fatalf("failed to expand the archive at path %s into path %s . Trying other formats. Error: %q", archivePath, archiveExpandedPath, err)
+				}
+				flags.srcpath = archiveExpandedPath
+				logrus.Infof("using '%s' as the source directory", flags.srcpath)
+				if err := os.WriteFile(filepath.Join(archiveExpandedPath, ".m2kignore"), []byte("."), common.DefaultFilePermission); err != nil {
+					logrus.Fatalf("Could not write .m2kignore file. Error: %q", err)
+				}
+				{
+					logrus.Infof("DEBUG after expanding zip archive")
+					fs, err := os.ReadDir(".")
+					if err != nil {
+						panic(err)
+					}
+					for i, f := range fs {
+						logrus.Infof("DEBUG file[%d] %+v", i, f)
+					}
+				}
+				{
+					logrus.Infof("DEBUG look at files in source directory")
+					// fs, err := os.ReadDir(srcpath)
+					// if err != nil {
+					// 	panic(err)
+					// }
+					// for i, f := range fs {
+					// 	logrus.Infof("file[%d] %+v", i, f)
+					// }
+					if err := filepath.Walk(flags.srcpath, func(path string, info fs.FileInfo, err error) error {
+						if err != nil {
+							return fmt.Errorf("failed to filepath.Walk on file '%s'. error: %w", path, err)
+						}
+						logrus.Infof("DEBUG file[%s] %+v", path, info)
+						if info.IsDir() {
+							return nil
+						}
+						byt, err := os.ReadFile(path)
+						if err != nil {
+							return fmt.Errorf("failed to read the file '%s'. error: %w", path, err)
+						}
+						logrus.Infof("the file data is:\n%s", string(byt))
+						return nil
+					}); err != nil {
+						logrus.Fatalf("failed to filepath.Walk on directory '%s'. error: %q", flags.srcpath, err)
+					}
+				}
 			}
 		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
