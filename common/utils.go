@@ -83,6 +83,9 @@ func WriteYaml(outputPath string, data interface{}) error {
 // IsParent can be used to check if a path is one of the parent directories of another path.
 // Also returns true if the paths are the same.
 func IsParent(child, parent string) bool {
+	if child == "" || parent == "" {
+		return false
+	}
 	var err error
 	child, err = filepath.Abs(child)
 	if err != nil {

@@ -20,6 +20,7 @@ GIT_SHA    = $(shell git rev-parse --short HEAD)
 GIT_TAG    = $(shell git tag --points-at | tail -n 1)
 GIT_DIRTY  = $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
 
+PKG        := ./...
 #LDFLAGS    := -w -s
 LDFLAGS    :=
 
@@ -66,3 +67,7 @@ serve-web:
 copy-web:
 	rm -rf docs/
 	cp -r "${WEB_UI_DIR}/dist" docs
+
+.PHONY: generate
+generate: ## Generate assets
+	go generate ${PKG}
