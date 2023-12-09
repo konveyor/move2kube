@@ -25,13 +25,12 @@ func TestMergeDeletionCallBack(t *testing.T) {
 			t.Fatalf("Expected source file to not exist, but got error: %v", err)
 		}
 
-		// Additional checks based on the expected behavior after fixing the source path
-		// For example, check the state of the destination directory or other behavior
+		
 		_, destErr := os.Stat(destination)
 		if !os.IsNotExist(destErr) {
 			t.Error("Expected destination directory not to exist, but it exists")
 		}
 
-		// Additional checks specific to your expected behavior can be added here
+		
 	})
 }
