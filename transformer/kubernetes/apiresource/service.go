@@ -79,6 +79,13 @@ func (d *Service) createNewResources(ir irtypes.EnhancedIR, supportedKinds []str
 		}
 		obj := d.createService(service)
 		objs = append(objs, obj)
+		// for Argo Rollouts, 2 services are required: one for the stable version, and one
+		// for the experimental version
+		if service.DeploymentType == irtypes.DeploymentTypeArgoRollout {
+			previewSvc := d.createService(service)
+			previewSvc.ObjectMeta.Name = service.Name + "-preview"
+			objs = append(objs, previewSvc)
+		}
 	}
 
 	// Create one ingress for all services
@@ -474,7 +481,7 @@ func (d *Service) createService(service irtypes.Service) *core.Service {
 			Ports:    ports,
 		},
 	}
-	if len(ports) == 0 || service.StatefulSet {
+	if len(ports) == 0 || service.DeploymentType == irtypes.DeploymentTypeStatefulSet {
 		svc.Spec.ClusterIP = "None"
 	}
 	return svc

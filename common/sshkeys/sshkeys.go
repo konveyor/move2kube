@@ -114,7 +114,7 @@ func loadSSHKeysOfCurrentUser() {
 	message := `The CI/CD pipeline needs access to the git repos in order to clone, build and push.
 If any of the repos require ssh keys you will need to provide them.
 Select an option:`
-	selectedOption := qaengine.FetchSelectAnswer(common.ConfigRepoLoadPrivKey, message, nil, "", options, nil)
+	selectedOption := qaengine.FetchSelectAnswer(common.ConfigRepoLoadPrivKey, message, nil, options[2], options, nil)
 	switch selectedOption {
 	case options[0]:
 		selectedKeyFilenames, err := loadKeysFromDirectory(privateKeyDir)

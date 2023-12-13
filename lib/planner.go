@@ -32,10 +32,16 @@ import (
 func CreatePlan(ctx context.Context, inputPath, outputPath string, customizationsPath, transformerSelector, prjName string) (plantypes.Plan, error) {
 	logrus.Trace("CreatePlan start")
 	defer logrus.Trace("CreatePlan end")
-	remoteInputFSPath := vcs.GetClonedPath(inputPath, common.RemoteSourcesFolder, true)
-	remoteOutputFSPath := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
-	logrus.Debugf("common.TempPath: '%s' inputPath: '%s' remoteInputFSPath '%s'", common.TempPath, inputPath, remoteInputFSPath)
 	plan := plantypes.NewPlan()
+	remoteInputFSPath, err := vcs.GetClonedPath(inputPath, common.RemoteSourcesFolder, true)
+	if err != nil {
+		return plan, fmt.Errorf("failed to clone the repo '%s'. Error: %w", inputPath, err)
+	}
+	remoteOutputFSPath, err := vcs.GetClonedPath(outputPath, common.RemoteOutputsFolder, true)
+	if err != nil {
+		return plan, fmt.Errorf("failed to clone the repo '%s'. Error: %w", outputPath, err)
+	}
+	logrus.Debugf("common.TempPath: '%s' inputPath: '%s' remoteInputFSPath '%s'", common.TempPath, inputPath, remoteInputFSPath)
 	plan.Name = prjName
 	common.ProjectName = prjName
 	plan.Spec.SourceDir = inputPath

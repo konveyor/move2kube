@@ -25,6 +25,7 @@ import (
 	dockercliconfig "github.com/docker/cli/cli/config"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
+	"github.com/konveyor/move2kube/types/ir"
 	qatypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -152,8 +153,20 @@ func GetPortForService(detectedPorts []int32, qaSubKey string) int32 {
 	return int32(selectedPort)
 }
 
-// IsStateful returns whether the Service should generate a StatefulSet
-func IsStateful(serviceName string) bool {
-	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigStatefulSetKey)
-	return qaengine.FetchBoolAnswer(quesKey, fmt.Sprintf("For the service '%s', do you require a StatefulSet instead of a Deployment?", serviceName), nil, false, nil)
+// GetDeploymentType returns the type of Deployment the service should generate
+func GetDeploymentType(serviceName string) ir.DeploymentType {
+	quesKey := common.JoinQASubKeys(common.ConfigServicesKey, serviceName, common.ConfigDeploymentTypeKey)
+	desc := fmt.Sprintf("For the service %s, which type of deployment is required?", serviceName)
+	def := string(ir.DeploymentTypeDeployment)
+	options := []string{string(ir.DeploymentTypeDeployment), string(ir.DeploymentTypeStatefulSet), string(ir.DeploymentTypeArgoRollout)}
+	deplType := qaengine.FetchSelectAnswer(quesKey, desc, nil, def, options, nil)
+
+	switch deplType {
+	case string(ir.DeploymentTypeDeployment):
+		return ir.DeploymentTypeDeployment
+	case string(ir.DeploymentTypeStatefulSet):
+		return ir.DeploymentTypeStatefulSet
+	default:
+		return ir.DeploymentTypeArgoRollout
+	}
 }

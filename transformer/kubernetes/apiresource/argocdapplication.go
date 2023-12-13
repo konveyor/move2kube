@@ -82,7 +82,7 @@ func (*ArgoCDApplication) createNewResource(irApplication irtypes.Application, t
 		TypeMeta:   metav1.TypeMeta{APIVersion: appGVK.GroupVersion().String(), Kind: appGVK.Kind},
 		ObjectMeta: metav1.ObjectMeta{Name: irApplication.Name, Namespace: argoCDNameSpace},
 		Spec: v1alpha1.ApplicationSpec{
-			Source: v1alpha1.ApplicationSource{
+			Source: &v1alpha1.ApplicationSource{
 				RepoURL:        repoURL,
 				TargetRevision: repoRef,
 				Path:           repoPath,

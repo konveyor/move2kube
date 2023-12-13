@@ -32,7 +32,10 @@ const TransformerTypeMeta = "Transformer"
 
 // CheckAndCopyCustomizations checks if the customizations path is an existing directory and copies to assets
 func CheckAndCopyCustomizations(customizationsPath string) error {
-	remoteCustomizationsPath := vcs.GetClonedPath(customizationsPath, common.RemoteCustomizationsFolder, true)
+	remoteCustomizationsPath, err := vcs.GetClonedPath(customizationsPath, common.RemoteCustomizationsFolder, true)
+	if err != nil {
+		return fmt.Errorf("failed to clone the repo. Error: %w", err)
+	}
 	customizationsFSPath := customizationsPath
 	if remoteCustomizationsPath != "" {
 		customizationsFSPath = remoteCustomizationsPath
@@ -40,7 +43,7 @@ func CheckAndCopyCustomizations(customizationsPath string) error {
 	if customizationsFSPath == "" {
 		return nil
 	}
-	customizationsFSPath, err := filepath.Abs(customizationsFSPath)
+	customizationsFSPath, err = filepath.Abs(customizationsFSPath)
 	if err != nil {
 		return fmt.Errorf("failed to make the customizations directory path '%s' absolute. Error: %w", customizationsFSPath, err)
 	}

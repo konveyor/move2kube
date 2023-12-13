@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/konveyor/move2kube/common"
 )
 
 func TestIsGitCommitHash(t *testing.T) {
@@ -125,45 +124,47 @@ func TestIsGitVCS(t *testing.T) {
 }
 
 func TestClone(t *testing.T) {
-	// Test case - clone a valid vcs url with overwrite true
+	t.Log("Test case - clone a valid vcs url with overwrite true")
 	gitURL := "git+https://github.com/konveyor/move2kube.git"
 	repo, err := getGitRepoStruct(gitURL)
 	if err != nil {
-		t.Errorf("failed to get git repo struct for the given git URL %s. Error : %+v", gitURL, err)
+		t.Fatalf("failed to get git repo struct for the given git URL %s. Error : %+v", gitURL, err)
 	}
 	overwrite := true
-	tempPath, err := filepath.Abs(common.RemoteTempPath)
-	if err != nil {
-		t.Errorf("failed to get absolute path of %s. Error : %+v", common.RemoteTempPath, err)
+	tempPath := t.TempDir()
+	cloneDestPath := filepath.Join(tempPath, "test-clone")
+	var infiniteSize int64 = -1
+	cloneOpts := VCSCloneOptions{
+		CommitDepth:          1,
+		Overwrite:            overwrite,
+		CloneDestinationPath: cloneDestPath,
+		MaxSize:              infiniteSize,
 	}
-	folderName := "test-clone"
-	cloneOpts := VCSCloneOptions{CommitDepth: 1, Overwrite: overwrite, CloneDestinationPath: filepath.Join(tempPath, folderName)}
 	clonedPath, err := repo.Clone(cloneOpts)
 	if err != nil {
-		t.Errorf("failed to clone the git repo. Error : %+v", err)
+		t.Fatalf("failed to clone the git repo. Error : %+v", err)
 	}
 
-	// Test case 2 - Repository already exists with overwrite true
+	t.Log("Test case 2 - Repository already exists with overwrite false")
 	gitURL = "git+https://github.com/konveyor/move2kube.git"
 	repo, err = getGitRepoStruct(gitURL)
 	if err != nil {
-		t.Errorf("failed to get git repo struct for the given git URL %s. Error : %+v", gitURL, err)
+		t.Fatalf("failed to get git repo struct for the given git URL '%s' . Error : %+v", gitURL, err)
 	}
 	overwrite = false
-	tempPath, err = filepath.Abs(common.RemoteTempPath)
-	if err != nil {
-		t.Errorf("failed to get absolute path of %s. Error : %+v", common.RemoteTempPath, err)
+	cloneOpts = VCSCloneOptions{
+		CommitDepth:          1,
+		Overwrite:            overwrite,
+		CloneDestinationPath: cloneDestPath,
+		MaxSize:              infiniteSize,
 	}
-	folderName = "test-clone"
-	cloneOpts = VCSCloneOptions{CommitDepth: 1, Overwrite: overwrite, CloneDestinationPath: filepath.Join(tempPath, folderName)}
 	clonedPathWithoutOverwrite, err := repo.Clone(cloneOpts)
 	if err != nil {
-		t.Errorf("failed to clone the git repo. Error : %+v", err)
+		t.Fatalf("failed to clone the git repo. Error : %+v", err)
 	}
 	if clonedPath != clonedPathWithoutOverwrite {
-		t.Errorf("cloned paths did not match with overwrite false. cloned path %s, cloned path without overwrite: %s", clonedPath, clonedPathWithoutOverwrite)
+		t.Fatalf("cloned paths did not match with overwrite false. cloned path '%s', cloned path without overwrite: '%s'", clonedPath, clonedPathWithoutOverwrite)
 	}
-
 }
 
 func TestIsGitBranch(t *testing.T) {

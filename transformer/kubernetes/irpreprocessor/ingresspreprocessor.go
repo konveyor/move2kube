@@ -43,7 +43,7 @@ func (opt *ingressPreprocessor) preprocess(ir irtypes.IR, targetCluster collecti
 				portForwarding.ServiceRelPath = "/" + serviceName
 			}
 			// Create Headless Services for services that are to be converted into StatefulSets
-			if service.StatefulSet {
+			if service.DeploymentType == irtypes.DeploymentTypeStatefulSet {
 				portForwarding.ServiceType = core.ServiceTypeClusterIP
 			}
 			noneServiceType := "Don't create service"
