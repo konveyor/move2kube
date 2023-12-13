@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"os"
 	"os/signal"
@@ -191,43 +190,43 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 			}
 		}
 	}
-	{
-		logrus.Infof("DEBUG before os.Stat on plan file")
-		fs, err := os.ReadDir(".")
-		if err != nil {
-			panic(err)
-		}
-		for i, f := range fs {
-			logrus.Infof("DEBUG file[%d] %+v", i, f)
-		}
-	}
-	{
-		logrus.Infof("DEBUG look at files in source directory")
-		// fs, err := os.ReadDir(srcpath)
-		// if err != nil {
-		// 	panic(err)
-		// }
-		// for i, f := range fs {
-		// 	logrus.Infof("file[%d] %+v", i, f)
-		// }
-		if err := filepath.Walk(srcpath, func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				return fmt.Errorf("failed to filepath.Walk on file '%s'. error: %w", path, err)
-			}
-			logrus.Infof("DEBUG file[%s] %+v", path, info)
-			if info.IsDir() {
-				return nil
-			}
-			byt, err := os.ReadFile(path)
-			if err != nil {
-				return fmt.Errorf("failed to read the file '%s'. error: %w", path, err)
-			}
-			logrus.Infof("the file data is:\n%s", string(byt))
-			return nil
-		}); err != nil {
-			logrus.Fatalf("failed to filepath.Walk on directory '%s'. error: %q", srcpath, err)
-		}
-	}
+	//{
+	//	logrus.Infof("DEBUG before os.Stat on plan file")
+	//	fs, err := os.ReadDir(".")
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	for i, f := range fs {
+	//		logrus.Infof("DEBUG file[%d] %+v", i, f)
+	//	}
+	//}
+	//{
+	//	logrus.Infof("DEBUG look at files in source directory")
+	//	// fs, err := os.ReadDir(srcpath)
+	//	// if err != nil {
+	//	// 	panic(err)
+	//	// }
+	//	// for i, f := range fs {
+	//	// 	logrus.Infof("file[%d] %+v", i, f)
+	//	// }
+	//	if err := filepath.Walk(srcpath, func(path string, info fs.FileInfo, err error) error {
+	//		if err != nil {
+	//			return fmt.Errorf("failed to filepath.Walk on file '%s'. error: %w", path, err)
+	//		}
+	//		logrus.Infof("DEBUG file[%s] %+v", path, info)
+	//		if info.IsDir() {
+	//			return nil
+	//		}
+	//		byt, err := os.ReadFile(path)
+	//		if err != nil {
+	//			return fmt.Errorf("failed to read the file '%s'. error: %w", path, err)
+	//		}
+	//		logrus.Infof("the file data is:\n%s", string(byt))
+	//		return nil
+	//	}); err != nil {
+	//		logrus.Fatalf("failed to filepath.Walk on directory '%s'. error: %q", srcpath, err)
+	//	}
+	//}
 	logrus.Infof("planfile: '%s'", planfile)
 	fi, err = os.Stat(planfile)
 	if err == nil && fi.IsDir() {
@@ -268,16 +267,16 @@ func planHandler(cmd *cobra.Command, flags planFlags) {
 		}
 		logrus.Warnf("Did not detect any services in the directory %s . Also we didn't find any default transformers to run.", srcpath)
 	}
-	{
-		logrus.Infof("DEBUG after planning, list files")
-		fs, err := os.ReadDir(".")
-		if err != nil {
-			panic(err)
-		}
-		for i, f := range fs {
-			logrus.Infof("DEBUG file[%d] %+v", i, f)
-		}
-	}
+	//{
+	//	logrus.Infof("DEBUG after planning, list files")
+	//	fs, err := os.ReadDir(".")
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	for i, f := range fs {
+	//		logrus.Infof("DEBUG file[%d] %+v", i, f)
+	//	}
+	//}
 }
 
 // GetPlanCommand returns a command to do the planning
