@@ -11,7 +11,7 @@ module.exports = {
         }),
         new CopyPlugin({
             patterns: [
-                { from: path.resolve(__dirname, '..', 'bin', 'move2kube.wasm'), to: "move2kube.wasm" },
+                { from: path.resolve(__dirname, '..', 'bin', 'move2kube.wasm.gz'), to: "move2kube.wasm.gz" },
             ],
         }),
     ],

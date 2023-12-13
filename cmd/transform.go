@@ -18,8 +18,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"io/fs"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -173,43 +171,43 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 				if err := os.WriteFile(filepath.Join(archiveExpandedPath, ".m2kignore"), []byte("."), common.DefaultFilePermission); err != nil {
 					logrus.Fatalf("Could not write .m2kignore file. Error: %q", err)
 				}
-				{
-					logrus.Infof("DEBUG after expanding zip archive")
-					fs, err := os.ReadDir(".")
-					if err != nil {
-						panic(err)
-					}
-					for i, f := range fs {
-						logrus.Infof("DEBUG file[%d] %+v", i, f)
-					}
-				}
-				{
-					logrus.Infof("DEBUG look at files in source directory")
-					// fs, err := os.ReadDir(srcpath)
-					// if err != nil {
-					// 	panic(err)
-					// }
-					// for i, f := range fs {
-					// 	logrus.Infof("file[%d] %+v", i, f)
-					// }
-					if err := filepath.Walk(flags.srcpath, func(path string, info fs.FileInfo, err error) error {
-						if err != nil {
-							return fmt.Errorf("failed to filepath.Walk on file '%s'. error: %w", path, err)
-						}
-						logrus.Infof("DEBUG file[%s] %+v", path, info)
-						if info.IsDir() {
-							return nil
-						}
-						byt, err := os.ReadFile(path)
-						if err != nil {
-							return fmt.Errorf("failed to read the file '%s'. error: %w", path, err)
-						}
-						logrus.Infof("the file data is:\n%s", string(byt))
-						return nil
-					}); err != nil {
-						logrus.Fatalf("failed to filepath.Walk on directory '%s'. error: %q", flags.srcpath, err)
-					}
-				}
+				//{
+				//	logrus.Infof("DEBUG after expanding zip archive")
+				//	fs, err := os.ReadDir(".")
+				//	if err != nil {
+				//		panic(err)
+				//	}
+				//	for i, f := range fs {
+				//		logrus.Infof("DEBUG file[%d] %+v", i, f)
+				//	}
+				//}
+				//{
+				//	logrus.Infof("DEBUG look at files in source directory")
+				//	// fs, err := os.ReadDir(srcpath)
+				//	// if err != nil {
+				//	// 	panic(err)
+				//	// }
+				//	// for i, f := range fs {
+				//	// 	logrus.Infof("file[%d] %+v", i, f)
+				//	// }
+				//	if err := filepath.Walk(flags.srcpath, func(path string, info fs.FileInfo, err error) error {
+				//		if err != nil {
+				//			return fmt.Errorf("failed to filepath.Walk on file '%s'. error: %w", path, err)
+				//		}
+				//		logrus.Infof("DEBUG file[%s] %+v", path, info)
+				//		if info.IsDir() {
+				//			return nil
+				//		}
+				//		byt, err := os.ReadFile(path)
+				//		if err != nil {
+				//			return fmt.Errorf("failed to read the file '%s'. error: %w", path, err)
+				//		}
+				//		logrus.Infof("the file data is:\n%s", string(byt))
+				//		return nil
+				//	}); err != nil {
+				//		logrus.Fatalf("failed to filepath.Walk on directory '%s'. error: %q", flags.srcpath, err)
+				//	}
+				//}
 			}
 		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
@@ -273,22 +271,23 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	if err := lib.Transform(ctx, transformationPlan, preExistingPlan, flags.outpath, flags.transformerSelector, flags.maxIterations); err != nil {
 		logrus.Fatalf("failed to transform. Error: %q", err)
 	}
-	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
 	{
 		if err := archiver.Archive([]string{"myproject"}, "myproject.zip"); err != nil {
 			logrus.Fatalf("Cannot archive myproject dir. Error: %q", err)
 		}
 	}
-	{
-		logrus.Infof("DEBUG after planning, list files")
-		fs, err := os.ReadDir("myproject/source/language-platforms/")
-		if err != nil {
-			panic(err)
-		}
-		for i, f := range fs {
-			logrus.Infof("DEBUG file[%d] %+v", i, f)
-		}
-	}
+	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)
+	//{
+	//	logrus.Infof("DEBUG after transformation, list files")
+	//	fs, err := os.ReadDir("myproject/source/language-platforms/")
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	for i, f := range fs {
+	//		logrus.Infof("DEBUG file[%d] %+v", i, f)
+	//	}
+	//}
+
 }
 
 // GetTransformCommand returns a command to do the transformation

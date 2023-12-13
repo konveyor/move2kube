@@ -3,6 +3,11 @@ import 'xterm/css/xterm.css';
 import { WASI, Fd, File, OpenFile, PreopenDirectory } from "@bjorn3/browser_wasi_shim";
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
+import pako from 'pako';
+import axios from 'axios';
+
+const wasmUrl = 'move2kube.wasm.gz';
+let wasmData = null;
 
 // https://wasix.org/docs/api-reference/wasi/poll_oneoff
 const poll_oneoff = (in_, out, nsubscriptions, nevents) => {
@@ -54,7 +59,7 @@ const start_wasm = async (rootE, filename, fileContentsArr) => {
                 // console.log(iovec.buf, iovec.buf_len, view8.slice(iovec.buf, iovec.buf + iovec.buf_len));
                 const buffer = view8.slice(iovec.buf, iovec.buf + iovec.buf_len);
                 const msg = decoder.decode(buffer);
-                console.log('XtermStdio.fd_write msg', msg);
+                // console.log('XtermStdio.fd_write msg', msg);
                 // this.term.writeUtf8(buffer);
                 // this.term.write(msg);
                 this.term.write(buffer);
@@ -89,7 +94,7 @@ const start_wasm = async (rootE, filename, fileContentsArr) => {
         }),
     ];
     FILE_SYSTEM = fds
-    const wasi = new WASI(args, env, fds);
+    const wasi = new WASI(args, env, fds, {debug: false});
 
     const importObject = {
         "wasi_snapshot_preview1": wasi.wasiImport,
@@ -118,8 +123,11 @@ const start_wasm = async (rootE, filename, fileContentsArr) => {
     //         return return_value;
     //     };
     // });
-    const wasmUrl = 'move2kube.wasm';
-    const wasmModule = await WebAssembly.instantiateStreaming(fetch(wasmUrl), importObject);
+    // const response = await fetch(wasmUrl);
+    // const buffer = await response.arrayBuffer();
+    const buffer = wasmData;
+    const moduleObject = await pako.inflate(new Uint8Array(buffer));
+    const wasmModule = await WebAssembly.instantiate(moduleObject, importObject);
     console.log(wasmModule);
     console.log(wasmModule.instance.exports);
     console.log(wasmModule.instance.exports.memory.buffer);
@@ -132,11 +140,24 @@ const start_wasm = async (rootE, filename, fileContentsArr) => {
         // console.log(Object.entries(e));
         console.log('the wasm module finished with exit code:', e);
     }
+    const btn_download = document.getElementById("btn-download");
+    btn_download.disabled = false;
 };
 
 const add_controls = (rootE) => {
     const div_controls = document.createElement('div');
     div_controls.classList.add('controls');
+    const progress = document.createElement("progress");
+    progress.id = "fetch-progress";
+    progress.value = 0;
+    progress.setAttribute("max", 100);
+    const progress_label = document.createElement("label");
+    progress_label.classList.add("fetch-progress-label");
+    const progress_span = document.createElement("span");
+    progress_span.id = "fetch-progress-span"
+    progress_span.textContent = "0%";
+    progress_label.appendChild(progress);
+    progress_label.appendChild(progress_span);
 
     // const button_start = document.createElement('button');
     // button_start.textContent = 'start';
@@ -145,6 +166,7 @@ const add_controls = (rootE) => {
     const label_input_file = document.createElement('label');
     label_input_file.textContent = 'please select a zip/tar archive containing the directory to be processed:';
     const input_file = document.createElement('input');
+    input_file.id = "input-file";
     input_file.setAttribute('type', 'file');
     input_file.setAttribute('accept', '.zip,.tar,.tar.gz,.tgz');
     input_file.addEventListener('change', async () => {
@@ -172,13 +194,17 @@ const add_controls = (rootE) => {
     const label_download_output = document.createElement('label');
     label_download_output.textContent = 'click on the button to download "myproject" folder';
     const btn_download = document.createElement('button');
+    btn_download.id = "btn-download";
     btn_download.textContent = 'Download "myproject"';
     btn_download.addEventListener("click", () => {
         console.log(FILE_SYSTEM);
         downloadArrayBufferAsBlob(FILE_SYSTEM[3].dir.contents["myproject.zip"].data.buffer);
-    })
+    });
+    btn_download.disabled = true;
+    input_file.disabled = true;
     label_input_file.appendChild(input_file);
     label_download_output.appendChild(btn_download);
+    div_controls.appendChild(progress_label);
     div_controls.appendChild(label_input_file);
     div_controls.appendChild(document.createElement("br"));
     div_controls.appendChild(label_download_output);
@@ -199,14 +225,37 @@ body {
 
 .controls {
     padding: 1em;
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr;
 }
+
+.fetch-progress-label {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 5em;
+}
+
+.hidden {
+    display: none;
+}
+
+#fetch-progress {
+    width: 100%;
+}
+
+#fetch-progress-span {
+    text-align: right;
+}
+
 `;
     document.head.appendChild(styles);
 };
 
 const main = async () => {
     console.log('main start');
+
     add_styles();
+
 
     // create terminal element
     const rootE = document.createElement('div');
@@ -214,10 +263,36 @@ const main = async () => {
     rootE.style.width = '1024px';
     rootE.style.height = '640px';
     // rootE.style.border = '1px solid red';
-    document.body.appendChild(rootE);
-
     add_controls(rootE);
 
+    document.body.appendChild(rootE);
+
+    const progress = document.getElementById("fetch-progress");
+    const progress_span = document.getElementById("fetch-progress-span");
+    const progress_label = document.querySelector(".fetch-progress-label");
+    const axiosget = await axios.get(wasmUrl, {
+        responseType: 'arraybuffer',
+        onDownloadProgress: function (axiosProgressEvent) {
+            // console.log(axiosProgressEvent);
+            progress.value = Math.trunc(axiosProgressEvent.progress * 10000)/100;
+            progress_span.textContent = `${progress.value}%`;
+            /*{
+              loaded: number;
+              total?: number;
+              progress?: number;
+              bytes: number;
+              estimated?: number;
+              rate?: number; // download speed in bytes
+              download: true; // download sign
+            }*/
+        }
+
+    });
+    // console.log(axiosget);
+    wasmData = axiosget.data;
+    const input_file = document.getElementById("input-file");
+    input_file.disabled = false;
+    progress_label.classList.add("hidden");
     console.log('main done');
 };
 
