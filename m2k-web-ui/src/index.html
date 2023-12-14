@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Move2Kube in WASM</title>
+    <style>
+        :root {
+            --font-stack: -apple-system, BlinkMacSystemFont, "helvetica neue", helvetica, roboto, noto, "segoe ui", arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        body,
+        h1 {
+            margin: 0;
+        }
+
+        body {
+            padding: 1em;
+            min-height: 100vh;
+            font-family: var(--font-stack);
+        }
+
+        button {
+            font-family: var(--font-stack);
+            padding: 1em;
+            border-radius: 0.5em;
+        }
+
+        button:enabled {
+            border-color: steelblue;
+            cursor: pointer;
+        }
+
+        input[type=file] {
+            font-family: var(--font-stack);
+            border: 2px dashed steelblue;
+            border-radius: 0.5em;
+            cursor: pointer;
+            padding: 1em;
+        }
+
+        .controls {
+            padding-top: 1em;
+            padding-bottom: 1em;
+            display: grid;
+            grid-template-rows: minmax(3em, auto) minmax(3em, auto);
+            gap: 1em;
+            align-items: center;
+        }
+
+        .fetch-progress-label {
+            padding-top: 1em;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 5em;
+        }
+
+        #fetch-progress {
+            width: 100%;
+        }
+
+        #fetch-progress-span {
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Move2Kube running in the browser using WebAssembly</h1>
+    <label for="" class="fetch-progress-label">
+        <progress id="fetch-progress" max="100" value="0"></progress>
+        <span id="fetch-progress-span">0%</span>
+    </label>
+    <div class="controls">
+        <label>
+            Please select a zip/tar archive containing the directory to be processed:
+            <input type="file" disabled="true" id="input-file" accept=".zip,.tar,.tar.gz,.tgz" />
+        </label>
+        <label>
+            After the transformation is done you can download the output:
+            <button disabled="true" id="button-download">Download output</button>
+        </label>
+    </div>
+    <div id="div-root"></div>
+</body>
+
+</html>

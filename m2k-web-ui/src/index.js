@@ -1,32 +1,30 @@
 import 'xterm/css/xterm.css';
 
-import { WASI, Fd, File, OpenFile, PreopenDirectory } from "@bjorn3/browser_wasi_shim";
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import pako from 'pako';
 import axios from 'axios';
 
-const wasmUrl = 'move2kube.wasm.gz';
-let wasmData = null;
+// CONSTANTS ---------------------------------------------------------------
 
-// https://wasix.org/docs/api-reference/wasi/poll_oneoff
-const poll_oneoff = (in_, out, nsubscriptions, nevents) => {
-    // throw "my simple: async io not supported";
-    console.log('poll_oneoff in_, out, nsubscriptions, nevents', in_, out, nsubscriptions, nevents);
-    return 0;
-};
+const MSG_WASM_MODULE = 'wasm-module';
+const MSG_TERM_PRINT = 'terminal-print';
+const MSG_TRANFORM_DONE = 'transform-done';
 
-// https://wasix.org/docs/api-reference/wasi/sock_accept
-const sock_accept = (sock, fd_flags, ro_fd, ro_addr) => {
-    console.log('sock_accept sock, fd_flags, ro_fd, ro_addr', sock, fd_flags, ro_fd, ro_addr);
-    return 0;
-};
+const WASM_MODULE_URL = 'move2kube.wasm.gz';
 
-var FILE_SYSTEM;
+// VARIABLES ---------------------------------------------------------------
+
+let WASM_MODULE_COMPILED = null;
+let WASM_WEB_WORKER = null;
+let TERMINAL = null;
+let TRANSFORM_RESULT = null;
+
+// FUNCTIONS ---------------------------------------------------------------
 
 function downloadArrayBufferAsBlob(arrayBuffer) {
     const bs = new Blob([arrayBuffer]);
-    const ys=URL.createObjectURL(bs);
+    const ys = URL.createObjectURL(bs);
     const aelem = document.createElement('a');
     aelem.setAttribute('href', ys);
     aelem.download = 'myproject.zip';
@@ -34,141 +32,43 @@ function downloadArrayBufferAsBlob(arrayBuffer) {
     aelem.click();
 }
 
-const start_wasm = async (rootE, filename, fileContentsArr) => {
-    // create terminal object and attach to the element
-    const term = new Terminal({
-        convertEol: true,
-    });
-    console.log('term', term);
-    const fitAddon = new FitAddon();
-    term.loadAddon(fitAddon);
-    term.open(rootE);
-    fitAddon.fit();
-
-    // terminal as a file descriptor
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-    class XtermStdio extends Fd {
-        constructor(term/*: Terminal*/) {
-            super();
-            this.term = term;
+const processWorkerMessage = async (e) => {
+    const msg = e.data;
+    // console.log('main: got a message from worker:', msg);
+    switch (msg.type) {
+        case MSG_TERM_PRINT: {
+            // console.log('main: print something to terminal');
+            // console.log(msg.payload);
+            TERMINAL.write(msg.payload);
+            break;
         }
-        fd_write(view8/*: Uint8Array*/, iovs/*: [wasi.Iovec]*/)/*: {ret: number, nwritten: number}*/ {
-            let nwritten = 0;
-            for (let iovec of iovs) {
-                // console.log(iovec.buf, iovec.buf_len, view8.slice(iovec.buf, iovec.buf + iovec.buf_len));
-                const buffer = view8.slice(iovec.buf, iovec.buf + iovec.buf_len);
-                const msg = decoder.decode(buffer);
-                // console.log('XtermStdio.fd_write msg', msg);
-                // this.term.writeUtf8(buffer);
-                // this.term.write(msg);
-                this.term.write(buffer);
-                nwritten += iovec.buf_len;
-            }
-            return { ret: 0, nwritten };
+        case MSG_TRANFORM_DONE: {
+            console.log('main: transformation finished');
+            TRANSFORM_RESULT = msg.payload;
+            const btn_download = document.getElementById("button-download");
+            btn_download.disabled = false;
+            break;
+        }
+        default: {
+            console.error('main: unknown worker message type:', msg);
         }
     }
-
-    // const args = ["move2kube", "-h"];
-    // const args = ["move2kube", "version", "-l"];
-    // const args = ["move2kube", "plan"];
-    // const args = ["move2kube", "plan", "-s", filename];
-    const args = ["move2kube", "transform", "-s", filename, "--qa-skip"];
-    const env = [];
-    // const env = ["FOO=bar", "MYPWD=/"];
-    // const env = ["FOO=bar", "PWD=/", "MYPWD=/"];
-    // const env = ["FOO=bar", "PWD=.", "MYPWD=."];
-    // const env = ["FOO=bar", "PWD=app", "MYPWD=app"];
-    const fds = [
-        // new OpenFile(new File([])), // stdin
-        // new OpenFile(new File([])), // stdout
-        // new OpenFile(new File([])), // stderr
-        new XtermStdio(term), // stdin
-        new XtermStdio(term), // stdout
-        new XtermStdio(term), // stderr
-        new PreopenDirectory("/", {
-            "example.c": new File(encoder.encode(`#include "a"`)),
-            "hello.rs": new File(encoder.encode(`fn main() { println!("Hello World!"); }`)),
-            "dep.json": new File(encoder.encode(`{"a": 42, "b": 12}`)),
-            [filename]: new File(fileContentsArr),
-        }),
-    ];
-    FILE_SYSTEM = fds
-    const wasi = new WASI(args, env, fds, {debug: false});
-
-    const importObject = {
-        "wasi_snapshot_preview1": wasi.wasiImport,
-    };
-    importObject.wasi_snapshot_preview1['poll_oneoff'] = poll_oneoff;
-    importObject.wasi_snapshot_preview1['sock_accept'] = sock_accept;
-    console.log('importObject.wasi_snapshot_preview1', importObject.wasi_snapshot_preview1);
-    const all_wasi_host_func_names = Object.keys(importObject.wasi_snapshot_preview1);
-    console.log('all_wasi_host_func_names', all_wasi_host_func_names);
-    // all_wasi_host_func_names.forEach(k => {
-    //     const orig = importObject.wasi_snapshot_preview1[k];
-    //     importObject.wasi_snapshot_preview1[k] = (...args) => {
-    //         // https://wasix.org/docs/api-reference/wasi/path_open
-    //         // dirfd dirflags path path_len o_flags fs_rights_base fs_rights_inheriting fs_flags fd
-    //         // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
-    //         // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
-    //         // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
-    //         // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281872
-    //         // proxy for path_open !! -1 1 21021328 8 0 267910846n 268435455n 0 21281856
-    //         // TinyGo
-    //         // proxy for path_open !! 3 1 151536 10 0 0n 0n 0 133972
-    //         // proxy for path_open !! 3 1 151536 8 0 0n 0n 0 133972
-    //         console.log('proxy for', k, '!!', ...args);
-    //         const return_value = orig(...args);
-    //         console.log('return_value for', k, 'is', return_value);
-    //         return return_value;
-    //     };
-    // });
-    // const response = await fetch(wasmUrl);
-    // const buffer = await response.arrayBuffer();
-    const buffer = wasmData;
-    const moduleObject = await pako.inflate(new Uint8Array(buffer));
-    const wasmModule = await WebAssembly.instantiate(moduleObject, importObject);
-    console.log(wasmModule);
-    console.log(wasmModule.instance.exports);
-    console.log(wasmModule.instance.exports.memory.buffer);
-    // console.log(m.instance.exports._start());
-    try {
-        wasi.start(wasmModule.instance);
-    } catch (e) {
-        // console.log(typeof e);
-        // console.log(e.exit_code);
-        // console.log(Object.entries(e));
-        console.log('the wasm module finished with exit code:', e);
-    }
-    const btn_download = document.getElementById("btn-download");
-    btn_download.disabled = false;
 };
 
-const add_controls = (rootE) => {
-    const div_controls = document.createElement('div');
-    div_controls.classList.add('controls');
-    const progress = document.createElement("progress");
-    progress.id = "fetch-progress";
-    progress.value = 0;
-    progress.setAttribute("max", 100);
-    const progress_label = document.createElement("label");
-    progress_label.classList.add("fetch-progress-label");
-    const progress_span = document.createElement("span");
-    progress_span.id = "fetch-progress-span"
-    progress_span.textContent = "0%";
-    progress_label.appendChild(progress);
-    progress_label.appendChild(progress_span);
+const startWasmTransformation = async (filename, fileContentsArr) => {
+    console.log('main: send the WASM module and zip file to the web worker');
+    WASM_WEB_WORKER.postMessage({
+        type: MSG_WASM_MODULE,
+        payload: {
+            'wasmModule': WASM_MODULE_COMPILED,
+            'filename': filename,
+            'fileContentsArr': fileContentsArr,
+        },
+    });
+};
 
-    // const button_start = document.createElement('button');
-    // button_start.textContent = 'start';
-    // div_controls.appendChild(button_start);
-
-    const label_input_file = document.createElement('label');
-    label_input_file.textContent = 'please select a zip/tar archive containing the directory to be processed:';
-    const input_file = document.createElement('input');
-    input_file.id = "input-file";
-    input_file.setAttribute('type', 'file');
-    input_file.setAttribute('accept', '.zip,.tar,.tar.gz,.tgz');
+const addEventListeners = () => {
+    const input_file = document.getElementById('input-file');
     input_file.addEventListener('change', async () => {
         if (!input_file.files || input_file.files.length === 0) return;
         console.log('got these files', input_file.files.length, input_file.files);
@@ -181,119 +81,76 @@ const add_controls = (rootE) => {
             reader.addEventListener('load', () => resolve(reader.result));
             reader.addEventListener('error', (e) => reject(e));
         });
-        reader.readAsArrayBuffer(f);
         try {
+            reader.readAsArrayBuffer(f);
             const contents = await get_contents;
-            console.log('contents', contents);
+            // console.log('input file contents:', contents);
             const contentsArr = new Uint8Array(contents);
-            start_wasm(rootE, f.name, contentsArr);
+            startWasmTransformation(f.name, contentsArr);
         } catch (e) {
             console.error(`failed to read the file '${f.name}' . error:`, e);
         }
     });
-    const label_download_output = document.createElement('label');
-    label_download_output.textContent = 'click on the button to download "myproject" folder';
-    const btn_download = document.createElement('button');
-    btn_download.id = "btn-download";
-    btn_download.textContent = 'Download "myproject"';
+
+    const btn_download = document.getElementById('button-download');
     btn_download.addEventListener("click", () => {
-        console.log(FILE_SYSTEM);
-        downloadArrayBufferAsBlob(FILE_SYSTEM[3].dir.contents["myproject.zip"].data.buffer);
+        if (!TRANSFORM_RESULT) throw new Error('no transformation result');
+        downloadArrayBufferAsBlob(TRANSFORM_RESULT);
     });
-    btn_download.disabled = true;
-    input_file.disabled = true;
-    label_input_file.appendChild(input_file);
-    label_download_output.appendChild(btn_download);
-    div_controls.appendChild(progress_label);
-    div_controls.appendChild(label_input_file);
-    div_controls.appendChild(document.createElement("br"));
-    div_controls.appendChild(label_download_output);
-    document.body.appendChild(div_controls);
-};
 
-const add_styles = () => {
-    const styles = document.createElement('style');
-    styles.innerHTML = `
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    min-height: 100vh;
-}
-
-.controls {
-    padding: 1em;
-    display: grid;
-    grid-template-rows: 1fr 1fr 1fr;
-}
-
-.fetch-progress-label {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 5em;
-}
-
-.hidden {
-    display: none;
-}
-
-#fetch-progress {
-    width: 100%;
-}
-
-#fetch-progress-span {
-    text-align: right;
-}
-
-`;
-    document.head.appendChild(styles);
+    // create the terminal object and attach it to the element
+    const rootE = document.getElementById("div-root");
+    const term = new Terminal({ convertEol: true });
+    // console.log('term', term);
+    const fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(rootE);
+    fitAddon.fit();
+    TERMINAL = term;
 };
 
 const main = async () => {
     console.log('main start');
 
-    add_styles();
+    addEventListeners();
 
+    // start a web worker that can handle the transformation requests
+    if (!window.Worker) {
+        const err = 'Web Workers are not supported';
+        alert('Web Workers are not supported');
+        throw new Error(err);
+    }
+    const wasmWorker = new Worker(new URL('./worker.js', import.meta.url));
+    console.log('wasmWorker', wasmWorker);
+    wasmWorker.addEventListener('message', processWorkerMessage);
+    WASM_WEB_WORKER = wasmWorker;
 
-    // create terminal element
-    const rootE = document.createElement('div');
-    rootE.id = 'div-root';
-    rootE.style.width = '1024px';
-    rootE.style.height = '640px';
-    // rootE.style.border = '1px solid red';
-    add_controls(rootE);
-
-    document.body.appendChild(rootE);
-
+    console.log('fetching the Move2Kube WASM module');
     const progress = document.getElementById("fetch-progress");
     const progress_span = document.getElementById("fetch-progress-span");
-    const progress_label = document.querySelector(".fetch-progress-label");
-    const axiosget = await axios.get(wasmUrl, {
+    const axiosget = await axios.get(WASM_MODULE_URL, {
         responseType: 'arraybuffer',
         onDownloadProgress: function (axiosProgressEvent) {
             // console.log(axiosProgressEvent);
-            progress.value = Math.trunc(axiosProgressEvent.progress * 10000)/100;
+            progress.value = Math.trunc(axiosProgressEvent.progress * 10000) / 100;
             progress_span.textContent = `${progress.value}%`;
-            /*{
-              loaded: number;
-              total?: number;
-              progress?: number;
-              bytes: number;
-              estimated?: number;
-              rate?: number; // download speed in bytes
-              download: true; // download sign
-            }*/
         }
-
     });
-    // console.log(axiosget);
-    wasmData = axiosget.data;
+
+    // expand the gzip compressed archive and compile the WASM module
+    const moduleObject = pako.inflate(new Uint8Array(axiosget.data));
+    console.log('typeof moduleObject', typeof moduleObject, moduleObject);
+    const compiledWasmModule = await WebAssembly.compile(moduleObject);
+    console.log('typeof compiledWasmModule', typeof compiledWasmModule, compiledWasmModule);
+    WASM_MODULE_COMPILED = compiledWasmModule;
+
+    // enable the UI controls so the user can upload the input
+    const progress_label = document.querySelector(".fetch-progress-label");
+    progress_label.classList.add("hidden");
     const input_file = document.getElementById("input-file");
     input_file.disabled = false;
-    progress_label.classList.add("hidden");
-    console.log('main done');
+
+    console.log('main end');
 };
 
 main().catch(console.error);

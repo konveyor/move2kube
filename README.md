@@ -11,17 +11,33 @@ Similar to https://github.com/HarikrishnanBalagopal/test-wasi-fs-browser/tree/ma
 - Python3 HTTP server
 - Optional: Custom fork of TinyGo with stubs added for required system calls https://github.com/Prakhar-Agarwal-byte/tinygo/tree/stub
 
-## Usage
-
 ### Install dependencies
 
-This should only be run once (or whenever the Javascript) dep
+This should only be run once (or if the Javascript dependencies change)
 
 ```shell
 $ cd m2k-web-ui/ && pnpm install
 ```
 
-### Build and run the Server
+## Usage
+
+### Development
+
+If only changing the Web UI, HTML, CSS, Javascript, etc.  
+then you can start the WebPack development server.
+From the root directory run the following command:
+
+```shell
+$ make dev
+```
+
+If the WebAssembly (Golang code) changes then you will need to rebuild the WASM module.
+
+```
+$ make build
+```
+
+### Production
 
 From the root directory run the following command:
 
@@ -40,7 +56,7 @@ You can go to http://localhost:8080/ to access the UI
 
 To publish to Github pages run:
 
-```
+```shell
 $ make all
 $ make copy-web
 ```

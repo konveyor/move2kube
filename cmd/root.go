@@ -47,6 +47,7 @@ func GetRootCmd() *cobra.Command {
 				logl = logrus.InfoLevel
 			}
 			logrus.SetLevel(logl)
+			logrus.SetFormatter(&logrus.TextFormatter{ForceColors: true})
 			if logFile != "" {
 				f, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, common.DefaultFilePermission)
 				if err != nil {
