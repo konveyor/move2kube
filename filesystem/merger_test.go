@@ -53,13 +53,14 @@ func TestMergeDeletionCallBack(t *testing.T) {
 func TestMergeProcessFileCallBack_SameContent(t *testing.T) {
 	t.Run("test for source and destination files with same content", func(t *testing.T) {
 		nonExistentPath := ""
+
 		sourceFile, err := ioutil.TempFile(nonExistentPath, "source")
 		if err != nil {
 			t.Fatalf("Failed to create source file: %v", err)
 		}
 		defer os.Remove(sourceFile.Name())
 
-		destinationFile, err := ioutil.TempFile("", "destination")
+		destinationFile, err := ioutil.TempFile(nonExistentPath , "destination")
 		if err != nil {
 			t.Fatalf("Failed to create destination file: %v", err)
 		}
