@@ -93,3 +93,18 @@ func TestMergeProcessFileCallBack_SameContent(t *testing.T) {
 		}
 	})
 }
+func TestMergeAdditionCallBack(t *testing.T) {
+	t.Run("test for mergeAdditionCallBack to check for a nil output", func(t *testing.T) {
+		source := "/source"
+		destination := "/destination"
+		config := interface{}(nil)
+
+		// Call the merge addition callback
+		err := mergeAdditionCallBack(source, destination, config)
+
+		// check that the error is nil
+		if err != nil {
+			t.Errorf("Expected nil error, but got: %v", err)
+		}
+	})
+}
