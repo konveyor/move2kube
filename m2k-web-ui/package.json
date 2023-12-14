@@ -1,15 +1,17 @@
 {
-  "name": "public",
+  "name": "move2kube-wasm",
   "version": "1.0.0",
-  "packageManager": "pnpm@8.6.12",
-  "description": "",
+  "packageManager": "pnpm@8.12.1",
+  "description": "Run Move2Kube CLI in WASM/WASI",
   "private": true,
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "serve": "cd dist && python3 -m http.server 8080"
+    "dev": "webpack serve --open --config webpack.config.dev.js",
+    "clean": "rm -rf dist/",
+    "build": "webpack --config webpack.config.prod.js",
+    "serve": "cd dist/ && python3 -m http.server 8080"
   },
   "keywords": [],
-  "author": "",
+  "author": "Move2Kube contributors",
   "license": "Apache-2.0",
   "dependencies": {
     "@bjorn3/browser_wasi_shim": "github:bjorn3/browser_wasi_shim#88878d6f6a931719f937e1d222ba5c2c2ea5fa11",
@@ -24,6 +26,7 @@
     "html-webpack-plugin": "^5.5.3",
     "style-loader": "^3.3.3",
     "webpack": "^5.88.2",
-    "webpack-cli": "^5.1.4"
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1"
   }
 }

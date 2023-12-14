@@ -4,10 +4,15 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
     mode: 'development',
-    entry: './src/index.js',
+    entry: path.resolve(__dirname, 'src', 'index.js'),
+    devtool: 'inline-source-map',
+    devServer: {
+        static: './dist',
+    },
     plugins: [
         new HtmlWebpackPlugin({
             title: 'Move2Kube in WASM',
+            template: path.resolve(__dirname, 'src', 'index.html'),
         }),
         new CopyPlugin({
             patterns: [
