@@ -21,7 +21,7 @@
  )
  
  func TestNewProcessor(t *testing.T) {
-	 t.Run("test newProcessor", func(t *testing.T) {
+	 t.Run("checks for a processor instance with given options", func(t *testing.T) {
 		 // Create a sample options struct
 		 mockOptions := options{
 			 processFileCallBack: func(sourcecFilePath, destinationFilePath string, config interface{}) (err error) {
