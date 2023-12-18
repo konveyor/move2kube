@@ -17,7 +17,7 @@
 
  import (
 	 "testing"
-	 "github.com/stretchr/testify/assert"
+	
 	 
  )
  
@@ -80,7 +80,9 @@
         err := processor.processFile(source, destination)
 
         // Assert the result
-        assert.NoError(t, err)
+		if err != nil {
+			t.Errorf("Unexpected error during processing: %v", err)
+		}
     })
 }
  
