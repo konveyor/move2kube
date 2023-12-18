@@ -85,4 +85,44 @@
 		}
     })
 }
+
+func TestProcessDirectory(t *testing.T) {
+	
+	t.Run("test for scenario when a existing source and existing destination directory is processed succesfully ", func(t *testing.T) {
+		source := "testdata/source"
+	destination := "testdata/destination"
+	mockOptions := options{
+		processFileCallBack: func(sourcecFilePath, destinationFilePath string, config interface{}) (err error) {
+			
+			return nil
+		},
+		additionCallBack: func(sourcePath, destinationPath string, config interface{}) (err error) {
+			
+			return nil
+		},
+		deletionCallBack: func(sourcePath, destinationPath string, config interface{}) (err error) {
+			
+			return nil
+		},
+		mismatchCallBack: func(sourcePath, destinationPath string, config interface{}) (err error) {
+			
+			return nil
+		},
+		config: nil,
+	}
+
+	// Call the newProcessor function
+	processor := newProcessor(mockOptions)
+
+	// Call the code under test
+	err := processor.processDirectory(source, destination)
+
+	
+	if err != nil {
+		t.Errorf("Expected no error, but got: %v", err)
+	}
+		})
+	
+}
+
  
