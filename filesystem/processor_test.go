@@ -17,6 +17,7 @@
 
  import (
 	 "testing"
+	 "github.com/stretchr/testify/assert"
 	 
  )
  
@@ -47,8 +48,39 @@
 			 t.Error("Expected non-nil processor, but got nil")
 		 }
  
-		 // Additional checks specific to your expected behavior can be added here
+		
 	 })
  }
+ func TestProcessFile(t *testing.T) {
  
+    t.Run("test for the scenario where the processing of a file is successful", func(t *testing.T) {
+	source := "path/to/source/file.txt"
+    destination := "path/to/destination/file.txt"
+    options := options{
+        processFileCallBack: func(sourcecFilePath, destinationFilePath string, config interface{}) (err error) {
+            
+            return nil
+        },
+        additionCallBack: func(sourcePath, destinationPath string, config interface{}) (err error) {
+           
+            return nil
+        },
+        deletionCallBack: func(sourcePath, destinationPath string, config interface{}) (err error) {
+          
+            return nil
+        },
+        mismatchCallBack: func(sourcePath, destinationPath string, config interface{}) (err error) {
+           
+            return nil
+        },
+        config: nil,
+    }
+    processor := newProcessor(options)
+        // Invoke the code under test
+        err := processor.processFile(source, destination)
+
+        // Assert the result
+        assert.NoError(t, err)
+    })
+}
  
