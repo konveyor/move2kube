@@ -126,3 +126,44 @@ func TestProcessDirectory(t *testing.T) {
 }
 
  
+func TestProcess(t *testing.T) {
+	t.Run("test for scenario where it succesfully processes existing source and destination directory", func(t *testing.T) {
+		// Initialize test data
+		source := "testdata/source/empty.txt"
+		destination := "testdata/destination"
+		mockOptions := options{
+			processFileCallBack: func(sourcecFilePath, destinationFilePath string, config interface{}) (err error) {
+				
+				return nil
+			},
+			additionCallBack: func(sourcePath, destinationPath string, config interface{}) (err error) {
+			
+				return nil
+			},
+			deletionCallBack: func(sourcePath, destinationPath string, config interface{}) (err error) {
+				
+				return nil
+			},
+			mismatchCallBack: func(sourcePath, destinationPath string, config interface{}) (err error) {
+				
+				return nil
+			},
+			config: nil,
+		}
+		processor := newProcessor(mockOptions)
+
+		
+		err := processor.process(source, destination)
+
+		// Check the result
+		if err != nil {
+			t.Fatalf("Expected no error, but got: %v", err)
+		}
+
+		
+		_, err = os.Lstat(destination)
+		if err != nil {
+			t.Fatalf("Expected no error, but got: %v", err)
+		}
+	})
+}
