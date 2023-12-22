@@ -54,4 +54,8 @@ VOLUME ["/workspace"]
 #"/var/run/docker.sock" needs to be mounted for container based transformers to work with docker
 # Start app
 WORKDIR /workspace
+
+RUN microdnf install -y openssh openssh-clients
+RUN mkdir -p $HOME/.ssh
+
 CMD move2kube
