@@ -18,6 +18,7 @@ package filesystem
 import (
 	"os"
 	"testing"
+	"io/ioutil"
 )
 
 func TestMergeDeletionCallBack(t *testing.T) {
@@ -46,5 +47,49 @@ func TestMergeDeletionCallBack(t *testing.T) {
 		}
 
 		
+	})
+}
+
+func TestMergeProcessFileCallBack_SameContent(t *testing.T) {
+	t.Run("test for source and destination files with same content", func(t *testing.T) {
+		nonExistentPath := ""
+
+		sourceFile, err := ioutil.TempFile(nonExistentPath, "source")
+		if err != nil {
+			t.Fatalf("Failed to create source file: %v", err)
+		}
+		defer os.Remove(sourceFile.Name())
+
+		destinationFile, err := ioutil.TempFile(nonExistentPath , "destination")
+		if err != nil {
+			t.Fatalf("Failed to create destination file: %v", err)
+		}
+		defer os.Remove(destinationFile.Name())
+
+		// Write content to both files
+		content := "same content"
+		_, err = sourceFile.WriteString(content)
+		if err != nil {
+			t.Fatalf("Failed to write to source file: %v", err)
+		}
+		_, err = destinationFile.WriteString(content)
+		if err != nil {
+			t.Fatalf("Failed to write to destination file: %v", err)
+		}
+
+		
+		err = mergeProcessFileCallBack(sourceFile.Name(), destinationFile.Name(), false)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		// Assert that the destination file content is not updated
+		updatedContent, err := ioutil.ReadFile(destinationFile.Name())
+		if err != nil {
+			t.Fatalf("Failed to read destination file: %v", err)
+		}
+		if string(updatedContent) != content {
+			t.Errorf("Destination file content should not be updated")
+		}
 	})
 }
