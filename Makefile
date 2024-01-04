@@ -102,7 +102,7 @@ build: get $(BINDIR)/$(BINNAME) ## Build go code
 	@printf "\033[32m-------------------------------------\n BUILD SUCCESS\n-------------------------------------\033[0m\n"
 
 $(BINDIR)/$(BINNAME): $(SRC) $(ASSETS) $(WEB_ASSETS)
-	CGO_ENABLED=0 go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) .
+	CGO_ENABLED=1 go build -ldflags '$(LDFLAGS)' -o $(BINDIR)/$(BINNAME) .
 	mkdir -p $(GOPATH)/bin/
 	cp $(BINDIR)/$(BINNAME) $(GOPATH)/bin/
 
@@ -165,7 +165,7 @@ $(GOX):
 
 .PHONY: build-cross
 build-cross: $(GOX) clean $(SRC) $(ASSETS) $(WEB_ASSETS)
-	CGO_ENABLED=0 $(GOX) -parallel=3 -output="$(DISTDIR)/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' .
+	CGO_ENABLED=1 $(GOX) -parallel=3 -output="$(DISTDIR)/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' .
 
 .PHONY: dist
 dist: clean build-cross ## Build distribution
