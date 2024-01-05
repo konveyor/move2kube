@@ -16,9 +16,9 @@
 package filesystem
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
-	"io/ioutil"
 )
 
 func TestMergeDeletionCallBack(t *testing.T) {
@@ -40,13 +40,59 @@ func TestMergeDeletionCallBack(t *testing.T) {
 			t.Fatalf("Expected source file to not exist, but got error: %v", err)
 		}
 
-		
 		_, destErr := os.Stat(destination)
 		if !os.IsNotExist(destErr) {
 			t.Error("Expected destination directory not to exist, but it exists")
 		}
 
-		
+	})
+	t.Run("test for scenario which checks for permissions of the destination directory to match the permissions of the source file when both the source file and destination directory exist", func(t *testing.T) {
+		sourceDir, err := ioutil.TempDir("", "sourceDir")
+		if err != nil {
+			t.Fatalf("Failed to create source directory: %v", err)
+		}
+		defer os.RemoveAll(sourceDir)
+
+		// Create a temporary file within the source directory
+		sourceFile, err := ioutil.TempFile(sourceDir, "sourceFile.txt")
+		if err != nil {
+			t.Fatalf("Failed to create source file: %v", err)
+		}
+		defer os.Remove(sourceFile.Name())
+
+		// Create a temporary destination directory
+		destinationDir, err := ioutil.TempDir("", "destinationDir")
+		if err != nil {
+			t.Fatalf("Failed to create destination directory: %v", err)
+		}
+		defer os.RemoveAll(destinationDir)
+
+		// Call the mergedeletion callback function
+		err = mergeDeletionCallBack(sourceFile.Name(), destinationDir, nil)
+		if err != nil {
+			t.Fatalf("Unexpected error during merge: %v", err)
+		}
+
+		// Check if the destination directory exists
+		destInfo, destErr := os.Stat(destinationDir)
+		if destErr != nil {
+			t.Fatalf("Failed to get destination directory info: %v", destErr)
+		}
+
+		// Checking if the destination is indeed a directory or not
+		if !destInfo.IsDir() {
+			t.Fatalf("Expected destination to be a directory but it is not.")
+		}
+
+		// Check if the destination directory permissions match the source file
+		sourceFileInfo, sourceFileErr := os.Stat(sourceFile.Name())
+		if sourceFileErr != nil {
+			t.Fatalf("Failed to get source file info: %v", sourceFileErr)
+		}
+
+		if destInfo.Mode().Perm() != sourceFileInfo.Mode().Perm() {
+			t.Errorf("Expected destination directory permissions to be %s, but got %s", sourceFileInfo.Mode().Perm(), destInfo.Mode().Perm())
+		}
 	})
 }
 
@@ -60,7 +106,7 @@ func TestMergeProcessFileCallBack_SameContent(t *testing.T) {
 		}
 		defer os.Remove(sourceFile.Name())
 
-		destinationFile, err := ioutil.TempFile(nonExistentPath , "destination")
+		destinationFile, err := ioutil.TempFile(nonExistentPath, "destination")
 		if err != nil {
 			t.Fatalf("Failed to create destination file: %v", err)
 		}
@@ -77,7 +123,6 @@ func TestMergeProcessFileCallBack_SameContent(t *testing.T) {
 			t.Fatalf("Failed to write to destination file: %v", err)
 		}
 
-		
 		err = mergeProcessFileCallBack(sourceFile.Name(), destinationFile.Name(), false)
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
