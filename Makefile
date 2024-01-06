@@ -62,7 +62,7 @@ else ifneq ($(filter v%[0-9].%[0-9].%[0-9]-%,$(GIT_TAG)),)
 else ifneq ($(filter v%[0-9].%[0-9].%[0-9]-released,$(GIT_TAG)),)
     VERSION_METADATA = released
 endif
-endif
+
 LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.buildmetadata=${VERSION_METADATA}
 
 LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.gitCommit=${GIT_COMMIT}
