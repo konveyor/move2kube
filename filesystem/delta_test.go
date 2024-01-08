@@ -16,42 +16,79 @@
 package filesystem
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
 func TestGenerateDelta(t *testing.T) {
-	t.Run("this test scenario covers the creation of source and destination directory and successful execution of function", func(t *testing.T) {
-
-		tempDir, err := ioutil.TempDir("", "test_generate_delta")
+	t.Run("This test scenario covers the creation of source and destination directory and successful execution of function", func(t *testing.T) {
+		sourceDir, err := ioutil.TempDir("", "source")
 		if err != nil {
-			t.Fatalf("Failed to create temporary directory: %v", err)
+			t.Fatal(err)
 		}
-		defer os.RemoveAll(tempDir)
+		defer os.RemoveAll(sourceDir)
 
-		// Create source and destination directories
-		sourceDir := filepath.Join(tempDir, "source")
-		destinationDir := filepath.Join(tempDir, "destination")
-		if err := os.Mkdir(sourceDir, 0755); err != nil {
-			t.Fatalf("Failed to create source directory: %v", err)
-		}
-		if err := os.Mkdir(destinationDir, 0755); err != nil {
-			t.Fatalf("Failed to create destination directory: %v", err)
-		}
-
-		err = GenerateDelta(sourceDir, destinationDir, tempDir)
-
-		// Check for errors
+		destinationDir, err := ioutil.TempDir("", "destination")
 		if err != nil {
-			t.Errorf("Unexpected error during GenerateDelta: %v", err)
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(destinationDir)
+
+		storeDir, err := ioutil.TempDir("", "store")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(storeDir)
+
+		// Add a file to the source directory that isn't in the destination
+		sourceOnlyFile := filepath.Join(sourceDir, "source_only.txt")
+		if err := ioutil.WriteFile(sourceOnlyFile, []byte("source only"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		// Add a file to both directories and then modify it in the source
+		commonFile := "common.txt"
+		sourceCommonFilePath := filepath.Join(sourceDir, commonFile)
+		destCommonFilePath := filepath.Join(destinationDir, commonFile)
+		if err := ioutil.WriteFile(sourceCommonFilePath, []byte("original"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if err := ioutil.WriteFile(destCommonFilePath, []byte("original"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if err := ioutil.WriteFile(sourceCommonFilePath, []byte("modified"), 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		// Call GenerateDelta
+		err = GenerateDelta(sourceDir, destinationDir, storeDir)
+		if err != nil {
+			t.Errorf("GenerateDelta returned an error: %v", err)
+		}
+
+		// Check that the destination directory has the expected contents
+		expectedFiles := []string{commonFile}
+		files, err := ioutil.ReadDir(destinationDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var destFiles []string
+		for _, file := range files {
+			destFiles = append(destFiles, file.Name())
+		}
+
+		if !reflect.DeepEqual(expectedFiles, destFiles) {
+			t.Errorf("destination directory contents mismatch. got: %v, want: %v", destFiles, expectedFiles)
 		}
 
 	})
 
 	t.Run("this test covers the scenario for the presence of a modifications file and its content after calling the function", func(t *testing.T) {
-
 		tempDir, err := ioutil.TempDir("", "test_generate_delta")
 		if err != nil {
 			t.Fatalf("Failed to create temporary directory: %v", err)
@@ -78,12 +115,24 @@ func TestGenerateDelta(t *testing.T) {
 			t.Errorf("Unexpected error during GenerateDelta: %v", err)
 		}
 
-		// Check for modifications file
+		// Check for modifications file existence
 		modificationsFilePath := filepath.Join(tempDir, "modifications", "file.txt")
 		if _, err := os.Stat(modificationsFilePath); os.IsNotExist(err) {
 			t.Errorf("Expected modifications file to be created, but it doesn't exist")
 		}
+
+		// Check modifications file contents
+		contents, err := ioutil.ReadFile(modificationsFilePath)
+		if err != nil {
+			t.Errorf("Failed to read modifications file: %v", err)
+		}
+
+		expectedContents := []byte("content")
+		if !bytes.Equal(contents, expectedContents) {
+			t.Errorf("Modifications file contents mismatch. got: %v, want: %v", contents, expectedContents)
+		}
 	})
+
 }
 
 func TestGenerateDeltaAdditionCallBack(t *testing.T) {
@@ -123,6 +172,20 @@ func TestGenerateDeltaAdditionCallBack(t *testing.T) {
 		replicatedFilePath := filepath.Join(tempDir, additionsDir, "newfile.txt")
 		if _, err := os.Stat(replicatedFilePath); os.IsNotExist(err) {
 			t.Errorf("Replicated file not found at expected path: %s", replicatedFilePath)
+		}
+
+		// Check the contents of the replicated file
+		replicatedContent, err := ioutil.ReadFile(replicatedFilePath)
+		if err != nil {
+			t.Fatalf("Failed to read replicated file: %v", err)
+		}
+
+		// Define the expected content
+		expectedContent := []byte("Hello, move2kubee!")
+
+		// Compare the contents
+		if !bytes.Equal(replicatedContent, expectedContent) {
+			t.Errorf("Replicated file content mismatch. got: %s, want: %s", replicatedContent, expectedContent)
 		}
 	})
 }
