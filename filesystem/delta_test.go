@@ -28,26 +28,26 @@ func TestGenerateDelta(t *testing.T) {
 	t.Run("This test scenario covers the creation of source and destination directory and successful execution of function", func(t *testing.T) {
 		sourceDir, err := ioutil.TempDir("", "source")
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("failed to create source directory")
 		}
 		defer os.RemoveAll(sourceDir)
 
 		destinationDir, err := ioutil.TempDir("", "destination")
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("failed to create destination directory")
 		}
 		defer os.RemoveAll(destinationDir)
 
 		storeDir, err := ioutil.TempDir("", "store")
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("failed to create store directory")
 		}
 		defer os.RemoveAll(storeDir)
 
 		// Add a file to the source directory that isn't in the destination
 		sourceOnlyFile := filepath.Join(sourceDir, "source_only.txt")
 		if err := ioutil.WriteFile(sourceOnlyFile, []byte("source only"), 0644); err != nil {
-			t.Fatal(err)
+			t.Fatalf("Failed to add to source only file: %v", err)
 		}
 
 		// Add a file to both directories and then modify it in the source
@@ -55,13 +55,16 @@ func TestGenerateDelta(t *testing.T) {
 		sourceCommonFilePath := filepath.Join(sourceDir, commonFile)
 		destCommonFilePath := filepath.Join(destinationDir, commonFile)
 		if err := ioutil.WriteFile(sourceCommonFilePath, []byte("original"), 0644); err != nil {
-			t.Fatal(err)
+			t.Fatalf("Failed to write original content to source common file: %v", err)
+
 		}
 		if err := ioutil.WriteFile(destCommonFilePath, []byte("original"), 0644); err != nil {
-			t.Fatal(err)
+			t.Fatalf("Failed to write original content to destinatio common file: %v", err)
+
 		}
 		if err := ioutil.WriteFile(sourceCommonFilePath, []byte("modified"), 0644); err != nil {
-			t.Fatal(err)
+			t.Fatalf("Failed to modify common file in source directory: %v", err)
+
 		}
 
 		// Call GenerateDelta
@@ -74,7 +77,7 @@ func TestGenerateDelta(t *testing.T) {
 		expectedFiles := []string{commonFile}
 		files, err := ioutil.ReadDir(destinationDir)
 		if err != nil {
-			t.Fatal(err)
+			t.Errorf("destination directory contents mismatch. got: %v, want: %v", destFiles, expectedFiles)
 		}
 
 		var destFiles []string
