@@ -40,7 +40,7 @@ func TestGenerateDelta(t *testing.T) {
 
 		storeDir, err := ioutil.TempDir("", "store")
 		if err != nil {
-			t.Fatalf("failed to create store directory")
+			t.Fatal("failed to create source directory")
 		}
 		defer os.RemoveAll(storeDir)
 
@@ -56,15 +56,12 @@ func TestGenerateDelta(t *testing.T) {
 		destCommonFilePath := filepath.Join(destinationDir, commonFile)
 		if err := ioutil.WriteFile(sourceCommonFilePath, []byte("original"), 0644); err != nil {
 			t.Fatalf("Failed to write original content to source common file: %v", err)
-
 		}
 		if err := ioutil.WriteFile(destCommonFilePath, []byte("original"), 0644); err != nil {
-			t.Fatalf("Failed to write original content to destinatio common file: %v", err)
-
+			t.Fatalf("Failed to write original content to destination common file: %v", err)
 		}
 		if err := ioutil.WriteFile(sourceCommonFilePath, []byte("modified"), 0644); err != nil {
 			t.Fatalf("Failed to modify common file in source directory: %v", err)
-
 		}
 
 		// Call GenerateDelta
@@ -77,7 +74,7 @@ func TestGenerateDelta(t *testing.T) {
 		expectedFiles := []string{commonFile}
 		files, err := ioutil.ReadDir(destinationDir)
 		if err != nil {
-			t.Errorf("destination directory contents mismatch. got: %v, want: %v", destFiles, expectedFiles)
+			t.Fatalf("failed to read destination directory %v", err)
 		}
 
 		var destFiles []string
