@@ -12,7 +12,7 @@ Move2Kube is a command-line tool that accelerates the process of re-platforming 
 
 ## Installation
 
-### Using install script
+### Using the install script
 
 To install the latest stable version:
 
@@ -32,11 +32,26 @@ To install the bleeding edge version:
 BLEEDING_EDGE='true' bash <(curl https://raw.githubusercontent.com/konveyor/move2kube/main/scripts/install.sh)
 ```
 
+### Uninstall CLI installed via the install script
+
+Simply remove the binary
+
+```shell
+rm /usr/local/bin/move2kube
+```
+
 ### Using Homebrew
 
 ```shell
 brew tap konveyor/move2kube
 brew install move2kube
+```
+
+### Uninstall CLI installed via Homebrew
+
+```shell
+brew uninstall move2kube
+brew untap konveyor/move2kube
 ```
 
 ## UI
