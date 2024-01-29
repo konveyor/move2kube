@@ -117,6 +117,32 @@ To browse code  [![Open in VSCode](https://badgen.net/badge/icon/Visual%20Studio
   * OpenShift Templates
   * Docker compose
 
+## Some Useful Configuration 
+You can set an alias for move2kube to make it more convenient to use. The following command allows you to refer to move2kube as m2k for the current terminal session:
+
+```
+alias m2k="move2kube"
+
+```
+#### To configure it globally: 
+
+#### Bash (.bashrc or .bash_profile)
+```
+echo 'alias m2k="move2kube"' >> ~/.bashrc
+source ~/.bashrc
+
+```
+#### Zsh (.zshrc)
+```
+echo 'alias m2k="move2kube"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+#### Fish (config.fish)
+```
+echo 'alias m2k="move2kube"' >> ~/.config/fish/config.fish
+
+```
 ## Discussion
 
 * For any questions reach out to us on any of the communication channels given on our website https://move2kube.konveyor.io/
