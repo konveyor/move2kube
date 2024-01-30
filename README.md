@@ -124,7 +124,8 @@ You can set an alias for move2kube to make it more convenient to use. The follow
 alias m2k="move2kube"
 
 ```
-#### To configure it globally: 
+### To configure it globally: 
+To keep aliases between sessions, you can save them in your user’s shell configuration profile file
 
 #### Bash (.bashrc or .bash_profile)
 ```
@@ -132,17 +133,7 @@ echo 'alias m2k="move2kube"' >> ~/.bashrc
 source ~/.bashrc
 
 ```
-#### Zsh (.zshrc)
-```
-echo 'alias m2k="move2kube"' >> ~/.zshrc
-source ~/.zshrc
-```
 
-#### Fish (config.fish)
-```
-echo 'alias m2k="move2kube"' >> ~/.config/fish/config.fish
-
-```
 ## Discussion
 
 * For any questions reach out to us on any of the communication channels given on our website https://move2kube.konveyor.io/
