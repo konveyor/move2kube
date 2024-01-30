@@ -16,6 +16,7 @@
 package container
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func mockFunction() types.ContainerPathStat {
 	return types.ContainerPathStat{
 		Name:  "mockfile.txt",
 		Size:  int64(512),
-		Mode:  0755,
+		Mode:  os.ModeDir | 0755,
 		Mtime: time.Now(),
 	}
 }
