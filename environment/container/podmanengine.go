@@ -97,3 +97,15 @@ func (e *podmanEngine) RunContainer(image string, cmd string, volsrc string, vol
 	}
 	return string(o), true, nil
 }
+
+// RemoveImage removes a container image
+func (e *podmanEngine) RemoveImage(image string) (err error) {
+	removecmd := exec.Command("podman", "rmi", image)
+	logrus.Debugf("Removing image %s", image)
+	output, err := removecmd.CombinedOutput()
+	if err != nil {
+		logrus.Debugf("Failed to remove image %s : %s : %s", image, err, output)
+		return err
+ 	}
+	return nil
+}
