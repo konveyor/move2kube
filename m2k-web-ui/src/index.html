@@ -71,6 +71,28 @@
         #fetch-progress-span {
             text-align: right;
         }
+
+        #transformation-status {
+            padding: 1em;
+            border-radius: 0.5em;
+        }
+
+        .success {
+            border: 2px solid limegreen;
+            background-color: lightgreen;
+        }
+
+        .failure {
+            border: 2px solid red;
+            background-color: lightcoral;
+        }
+
+        .running {
+            border: 2px solid yellow;
+            background-color: lightyellow;
+            /* border: 2px solid blue; */
+            /* background-color: steelblue; */
+        }
     </style>
 </head>
 
@@ -85,6 +107,12 @@
             Please select a zip/tar archive containing the directory to be processed:
             <input type="file" disabled="true" id="input-file" accept=".zip,.tar,.tar.gz,.tgz" />
         </label>
+        <label>
+            Optional: You can select a zip/tar archive containing any customizations that you want to apply:
+            <input type="file" disabled="true" id="input-file-customizations" accept=".zip,.tar,.tar.gz,.tgz" />
+        </label>
+        <button id="button-start-transformation" disabled="true">Start Transformation!</button>
+        <label id="transformation-status" class="hidden"></label>
         <label>
             After the transformation is done you can download the output:
             <button disabled="true" id="button-download">Download output</button>

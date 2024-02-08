@@ -10,8 +10,13 @@ import axios from 'axios';
 const MSG_WASM_MODULE = 'wasm-module';
 const MSG_TERM_PRINT = 'terminal-print';
 const MSG_TRANFORM_DONE = 'transform-done';
+const MSG_TRANFORM_ERR = 'transform-error';
 
 const WASM_MODULE_URL = 'move2kube.wasm.gz';
+const CLASS_HIDDEN = 'hidden';
+const CLASS_SUCCESS = 'success';
+const CLASS_FAILURE = 'failure';
+const CLASS_RUNNING = 'running';
 
 // VARIABLES ---------------------------------------------------------------
 
@@ -19,6 +24,7 @@ let WASM_MODULE_COMPILED = null;
 let WASM_WEB_WORKER = null;
 let TERMINAL = null;
 let TRANSFORM_RESULT = null;
+let TRANSFORM_ERROR = null;
 
 // FUNCTIONS ---------------------------------------------------------------
 
@@ -34,6 +40,8 @@ function downloadArrayBufferAsBlob(arrayBuffer) {
 
 const processWorkerMessage = async (e) => {
     const msg = e.data;
+    const button_start = document.getElementById('button-start-transformation');
+    const transformation_status = document.getElementById('transformation-status');
     // console.log('main: got a message from worker:', msg);
     switch (msg.type) {
         case MSG_TERM_PRINT: {
@@ -45,8 +53,27 @@ const processWorkerMessage = async (e) => {
         case MSG_TRANFORM_DONE: {
             console.log('main: transformation finished');
             TRANSFORM_RESULT = msg.payload;
+            TRANSFORM_ERROR = null;
             const btn_download = document.getElementById("button-download");
             btn_download.disabled = false;
+            button_start.disabled = false; // unlock after doing the transformation
+            transformation_status.textContent = '✅ Success';
+            transformation_status.classList.remove(CLASS_FAILURE);
+            transformation_status.classList.remove(CLASS_RUNNING);
+            transformation_status.classList.add(CLASS_SUCCESS);
+            transformation_status.classList.remove(CLASS_HIDDEN);
+            break;
+        }
+        case MSG_TRANFORM_ERR: {
+            console.log('main: transformation error');
+            TRANSFORM_RESULT = null;
+            TRANSFORM_ERROR = msg.payload;
+            button_start.disabled = false; // unlock after doing the transformation
+            transformation_status.textContent = '❌ Failed - ' + msg.payload;
+            transformation_status.classList.remove(CLASS_SUCCESS);
+            transformation_status.classList.remove(CLASS_RUNNING);
+            transformation_status.classList.add(CLASS_FAILURE);
+            transformation_status.classList.remove(CLASS_HIDDEN);
             break;
         }
         default: {
@@ -55,43 +82,81 @@ const processWorkerMessage = async (e) => {
     }
 };
 
-const startWasmTransformation = async (filename, fileContentsArr) => {
+const startWasmTransformation = async (srcFilename, srcContents, custFilename, custContents) => {
     console.log('main: send the WASM module and zip file to the web worker');
     WASM_WEB_WORKER.postMessage({
         type: MSG_WASM_MODULE,
         payload: {
             'wasmModule': WASM_MODULE_COMPILED,
-            'filename': filename,
-            'fileContentsArr': fileContentsArr,
+            'srcFilename': srcFilename,
+            'srcContents': srcContents,
+            'custFilename': custFilename,
+            'custContents': custContents,
         },
+    });
+};
+
+const readFileAsync = (f) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.addEventListener('load', () => resolve(reader.result));
+        reader.addEventListener('error', (e) => reject(e));
+        reader.readAsArrayBuffer(f);
     });
 };
 
 const addEventListeners = () => {
     const input_file = document.getElementById('input-file');
+    const input_file_cust = document.getElementById('input-file-customizations');
+    const button_start = document.getElementById('button-start-transformation');
+    let srcFilename, contentsArr, custFilename, contentsCustArr;
     input_file.addEventListener('change', async () => {
         if (!input_file.files || input_file.files.length === 0) return;
         console.log('got these files', input_file.files.length, input_file.files);
-        const files = Array.from(input_file.files)
+        const files = Array.from(input_file.files);
         if (files.length > 1) return console.error('only single file processing is supported for now');
         const f = files[0];
         console.log('reading the file named', f.name);
-        const reader = new FileReader();
-        const get_contents = new Promise((resolve, reject) => {
-            reader.addEventListener('load', () => resolve(reader.result));
-            reader.addEventListener('error', (e) => reject(e));
-        });
         try {
-            reader.readAsArrayBuffer(f);
-            const contents = await get_contents;
-            // console.log('input file contents:', contents);
-            const contentsArr = new Uint8Array(contents);
-            startWasmTransformation(f.name, contentsArr);
+            button_start.disabled = true; // lock while reading the file
+            // const contentsArr = new Uint8Array(await readFileAsync(f));
+            contentsArr = new Uint8Array(await readFileAsync(f));
+            srcFilename = f.name;
+            // console.log('input source file contentsArr:', contentsArr);
+            input_file_cust.disabled = false; // TODO: support customizations without a source archive
+            button_start.disabled = false;
         } catch (e) {
-            console.error(`failed to read the file '${f.name}' . error:`, e);
+            console.error(`failed to read the source archive file '${f.name}' . error:`, e);
         }
     });
-
+    input_file_cust.addEventListener('change', async () => {
+        if (!input_file_cust.files || input_file_cust.files.length === 0) return;
+        console.log('got these files', input_file_cust.files.length, input_file_cust.files);
+        const files = Array.from(input_file_cust.files);
+        if (files.length > 1) return console.error('only single file processing is supported for now');
+        const f = files[0];
+        console.log('reading the file named', f.name);
+        try {
+            button_start.disabled = true; // lock while reading the file
+            // const contentsArr = new Uint8Array(await readFileAsync(f));
+            contentsCustArr = new Uint8Array(await readFileAsync(f));
+            custFilename = f.name;
+            button_start.disabled = false;
+            // console.log('input customizations file contentsArr:', contentsArr);
+        } catch (e) {
+            console.error(`failed to read the customizations archive file '${f.name}' . error:`, e);
+        }
+    });
+    button_start.addEventListener('click', () => {
+        button_start.disabled = true; // lock while doing the transformation
+        const transformation_status = document.getElementById('transformation-status');
+        transformation_status.classList.remove(CLASS_SUCCESS);
+        transformation_status.classList.remove(CLASS_FAILURE);
+        transformation_status.classList.add(CLASS_RUNNING);
+        transformation_status.classList.remove(CLASS_HIDDEN);
+        transformation_status.textContent = '⚡ Running...';
+        startWasmTransformation(srcFilename, contentsArr, custFilename, contentsCustArr);
+    });
     const btn_download = document.getElementById('button-download');
     btn_download.addEventListener("click", () => {
         if (!TRANSFORM_RESULT) throw new Error('no transformation result');
@@ -146,7 +211,7 @@ const main = async () => {
 
     // enable the UI controls so the user can upload the input
     const progress_label = document.querySelector(".fetch-progress-label");
-    progress_label.classList.add("hidden");
+    progress_label.classList.add(CLASS_HIDDEN);
     const input_file = document.getElementById("input-file");
     input_file.disabled = false;
 

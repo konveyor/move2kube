@@ -20,6 +20,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"runtime"
+	"sort"
+	"strings"
+
 	"github.com/konveyor/move2kube-wasm/common"
 	"github.com/konveyor/move2kube-wasm/environment"
 	containertypes "github.com/konveyor/move2kube-wasm/environment/container"
@@ -30,25 +37,18 @@ import (
 	"github.com/konveyor/move2kube-wasm/transformer/dockerfilegenerator"
 	"github.com/konveyor/move2kube-wasm/transformer/dockerfilegenerator/java"
 	"github.com/konveyor/move2kube-wasm/transformer/dockerfilegenerator/windows"
+	"github.com/konveyor/move2kube-wasm/transformer/external"
 	"github.com/konveyor/move2kube-wasm/transformer/kubernetes"
 	"github.com/konveyor/move2kube-wasm/types"
 	environmenttypes "github.com/konveyor/move2kube-wasm/types/environment"
-	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
-	"github.com/spf13/cast"
-	"k8s.io/apimachinery/pkg/labels"
-	"os"
-	"path/filepath"
-	"runtime"
-	"sort"
-	"strings"
-
 	graphtypes "github.com/konveyor/move2kube-wasm/types/graph"
 	plantypes "github.com/konveyor/move2kube-wasm/types/plan"
-	"reflect"
-
 	transformertypes "github.com/konveyor/move2kube-wasm/types/transformer"
+	"github.com/konveyor/move2kube-wasm/types/transformer/artifacts"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cast"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // Transformer interface defines transformer that transforms files and converts it to ir representation
@@ -127,6 +127,7 @@ func init() {
 		new(kubernetes.Knative),
 		//new(kubernetes.Tekton),
 		// new(kubernetes.ArgoCD),
+		new(external.WasmTransformer),
 		new(kubernetes.BuildConfig),
 		new(kubernetes.Parameterizer),
 		new(kubernetes.KubernetesVersionChanger),
@@ -692,8 +693,31 @@ func runSingleTransform(artifactsToProcess, allArtifacts []transformertypes.Arti
 		for _, artifact := range artifactsToProcess {
 			sourceVertexId, ok := artifact.Configs[graphtypes.GraphSourceVertexKey].(int)
 			if !ok {
-				logrus.Errorf("the artifact is missing a source vertex id. Actual %+v", artifact)
-				continue
+				x, ok := artifact.Configs[graphtypes.GraphSourceVertexKey]
+				if !ok {
+					logrus.Errorf("the artifact is missing a source vertex id. Actual %+v", artifact)
+					continue
+				}
+				// logrus.Debugf("%s type %T value %+v", graphtypes.GraphSourceVertexKey, x, x)
+				y, ok := x.(float64)
+				if !ok {
+					logrus.Errorf("source vertex id type is not float64. Actual type %T value %+v", x, x)
+					continue
+				}
+				sourceVertexId = cast.ToInt(y)
+				artifact.Configs[graphtypes.GraphSourceVertexKey] = sourceVertexId
+				logrus.Debugf("source vertex id converted float (from json) to integer %d", sourceVertexId)
+				// {
+				// 	p, ok := artifact.Configs[graphtypes.GraphProcessVertexKey]
+				// 	if ok {
+				// 		logrus.Debugf("%s type %T value %+v", graphtypes.GraphProcessVertexKey, p, p)
+				// 	}
+				// }
+				if processVertexIdFloat, ok := artifact.Configs[graphtypes.GraphProcessVertexKey].(float64); ok {
+					processVertexId := cast.ToInt(processVertexIdFloat)
+					artifact.Configs[graphtypes.GraphProcessVertexKey] = processVertexId
+					logrus.Debugf("process vertex id converted float (from json) to integer %d", processVertexId)
+				}
 			}
 			edgeName := fmt.Sprintf("%d -> %d", sourceVertexId, targetVertexId)
 			if processVertexId, ok := artifact.Configs[graphtypes.GraphProcessVertexKey].(int); ok {

@@ -25,13 +25,13 @@ import (
 
 	"github.com/konveyor/move2kube-wasm/common"
 	"github.com/konveyor/move2kube-wasm/common/download"
-	//"github.com/konveyor/move2kube-wasm/common/vcs"
 	"github.com/konveyor/move2kube-wasm/lib"
 	"github.com/konveyor/move2kube-wasm/types/plan"
 	"github.com/mholt/archiver/v3"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	//"github.com/konveyor/move2kube-wasm/common/vcs"
 )
 
 type transformFlags struct {
@@ -90,7 +90,12 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	//if flags.srcpath != "" && !isRemotePath {
 	if flags.srcpath != "" {
 		if flags.srcpath, err = filepath.Abs(flags.srcpath); err != nil {
-			logrus.Fatalf("Failed to make the source directory path %q absolute. Error: %q", flags.srcpath, err)
+			logrus.Fatalf("Failed to make the source directory path '%s' absolute. Error: %q", flags.srcpath, err)
+		}
+	}
+	if flags.customizationsPath != "" {
+		if flags.customizationsPath, err = filepath.Abs(flags.customizationsPath); err != nil {
+			logrus.Fatalf("Failed to make the customizations directory path '%s' absolute. Error: %q", flags.customizationsPath, err)
 		}
 	}
 	//isRemoteOutPath := vcs.IsRemotePath(flags.outpath)
@@ -107,7 +112,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 			// make all path(s) absolute
 			flags.customizationsPath, err = filepath.Abs(flags.customizationsPath)
 			if err != nil {
-				logrus.Fatalf("Failed to make the customizations directory path %q absolute. Error: %q", flags.customizationsPath, err)
+				logrus.Fatalf("Failed to make the customizations directory path '%s' absolute. Error: %q", flags.customizationsPath, err)
 			}
 		}
 	}
@@ -156,7 +161,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if flags.srcpath != "" {
 			isDir := checkSourcePath(flags.srcpath)
 			if flags.srcpath == flags.outpath || common.IsParent(flags.outpath, flags.srcpath) || common.IsParent(flags.srcpath, flags.outpath) {
-				logrus.Fatalf("The source path %s and output path %s overlap.", flags.srcpath, flags.outpath)
+				logrus.Fatalf("The source path '%s' and the output path '%s' overlap.", flags.srcpath, flags.outpath)
 			}
 
 			if !isDir {
@@ -210,9 +215,81 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 				//}
 			}
 		}
+		if flags.customizationsPath != "" {
+			isDir := checkSourcePath(flags.customizationsPath)
+			if flags.customizationsPath == flags.outpath || common.IsParent(flags.outpath, flags.customizationsPath) || common.IsParent(flags.customizationsPath, flags.outpath) {
+				logrus.Fatalf("The customizations path '%s' and the output path '%s' overlap.", flags.customizationsPath, flags.outpath)
+			}
+
+			if !isDir {
+				// expand the archive
+				archivePath := flags.customizationsPath
+				archiveExpandedPath := flags.customizationsPath + "-expanded"
+				if err := archiver.Unarchive(archivePath, archiveExpandedPath); err != nil {
+					logrus.Fatalf("failed to expand the archive at path %s into path %s . Trying other formats. Error: %q", archivePath, archiveExpandedPath, err)
+				}
+				flags.customizationsPath = archiveExpandedPath
+				logrus.Infof("using '%s' as the customizations directory", flags.customizationsPath)
+				if err := os.WriteFile(filepath.Join(archiveExpandedPath, ".m2kignore"), []byte("."), common.DefaultFilePermission); err != nil {
+					logrus.Fatalf("Could not write .m2kignore file. Error: %q", err)
+				}
+				// {
+				// 	logrus.Infof("DEBUG after expanding the customizations zip archive")
+				// 	fs, err := os.ReadDir(".")
+				// 	if err != nil {
+				// 		panic(err)
+				// 	}
+				// 	for i, f := range fs {
+				// 		logrus.Infof("DEBUG file[%d] %+v", i, f)
+				// 	}
+				// }
+				// {
+				// 	logrus.Infof("DEBUG look at files in customizations directory")
+				// 	// fs, err := os.ReadDir(srcpath)
+				// 	// if err != nil {
+				// 	// 	panic(err)
+				// 	// }
+				// 	// for i, f := range fs {
+				// 	// 	logrus.Infof("file[%d] %+v", i, f)
+				// 	// }
+				// 	if err := filepath.Walk(flags.customizationsPath, func(path string, info fs.FileInfo, err error) error {
+				// 		if err != nil {
+				// 			return fmt.Errorf("failed to filepath.Walk on file '%s'. error: %w", path, err)
+				// 		}
+				// 		logrus.Infof("DEBUG file[%s] %+v", path, info)
+				// 		if info.IsDir() {
+				// 			return nil
+				// 		}
+				// 		if strings.HasSuffix(path, ".wasm") {
+				// 			logrus.Infof("DEBUG skip reading the contents of wasm file '%s'", path)
+				// 			return nil
+				// 		}
+				// 		byt, err := os.ReadFile(path)
+				// 		if err != nil {
+				// 			return fmt.Errorf("failed to read the file '%s'. error: %w", path, err)
+				// 		}
+				// 		logrus.Infof("the file data is:\n%s", string(byt))
+				// 		return nil
+				// 	}); err != nil {
+				// 		logrus.Fatalf("failed to filepath.Walk on directory '%s'. error: %q", flags.srcpath, err)
+				// 	}
+				// }
+			}
+		}
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
 		}
+		// {
+		// 	logrus.Infof("[DEBUG] in new plan branch, created output directory: %s", flags.outpath)
+		// 	fs, err := os.ReadDir(flags.outpath)
+		// 	if err != nil {
+		// 		logrus.Fatalf("failed to read the output directory. Error: %q", err)
+		// 	}
+		// 	if len(fs) > 0 {
+		// 		panic("expected no files in the output directory")
+		// 	}
+		// 	logrus.Infof("[DEBUG] output directory exists and is readable")
+		// }
 		//}
 		startQA(flags.qaflags)
 		logrus.Debugf("Creating a new plan.")
@@ -265,6 +342,17 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
 			logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
 		}
+		// {
+		// 	logrus.Infof("[DEBUG] in pre-existing plan branch, created output directory: %s", flags.outpath)
+		// 	fs, err := os.ReadDir(flags.outpath)
+		// 	if err != nil {
+		// 		logrus.Fatalf("failed to read the output directory. Error: %q", err)
+		// 	}
+		// 	if len(fs) > 0 {
+		// 		panic("expected no files in the output directory")
+		// 	}
+		// 	logrus.Infof("[DEBUG] output directory exists and is readable")
+		// }
 		//}
 		startQA(flags.qaflags)
 	}
@@ -272,8 +360,51 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		logrus.Fatalf("failed to transform. Error: %q", err)
 	}
 	{
-		if err := archiver.Archive([]string{"myproject"}, "myproject.zip"); err != nil {
-			logrus.Fatalf("Cannot archive myproject dir. Error: %q", err)
+		// logrus.Infof("[DEBUG] flags.outpath: '%s'", flags.outpath)
+		outputDir := "myproject"
+		if flags.outpath != "" {
+			outputDir = flags.outpath
+		}
+		// const DEFAULT_IN_BROWSER_OUTPUT_DIR = "/my-m2k-output"
+		const DEFAULT_IN_BROWSER_OUTPUT_ZIP = "myproject.zip"
+		// {
+		// 	logrus.Infof("DEBUG check for preexisting output zip file")
+		// 	f, err := os.Stat(DEFAULT_IN_BROWSER_OUTPUT_ZIP)
+		// 	logrus.Infof("f %+v err %+v", f, err)
+		// }
+		logrus.Infof("Archiving the output directory: '%s'", outputDir)
+		if err := archiver.Archive([]string{outputDir}, DEFAULT_IN_BROWSER_OUTPUT_ZIP); err != nil {
+			logrus.Fatalf("failed to archive the output directory '%s'. Error: %q", outputDir, err)
+			// 	logrus.Infof("failed to archive the output directory '%s'. Error: %q", outputDir, err)
+			// 	{
+			// 		logrus.Infof("DEBUG check again for new output zip file")
+			// 		f, err := os.Stat(DEFAULT_IN_BROWSER_OUTPUT_ZIP)
+			// 		logrus.Infof("f %+v err %+v", f, err)
+			// 		if err == nil {
+			// 			logrus.Infof("removing the new output zip file and retrying")
+			// 			if err := os.RemoveAll(DEFAULT_IN_BROWSER_OUTPUT_ZIP); err != nil {
+			// 				panic(err)
+			// 			}
+			// 		}
+			// 	}
+			// 	outputDirParent := filepath.Dir(outputDir)
+			// 	logrus.Infof("trying with the parent of output dir: '%s'", outputDirParent)
+			// 	fs, err := os.ReadDir(outputDirParent)
+			// 	if err != nil {
+			// 		panic(err)
+			// 	}
+			// 	logrus.Infof("len(fs) %d", len(fs))
+			// 	for i, f := range fs {
+			// 		logrus.Infof("f[%d] %s %+v", i, f.Name(), f)
+			// 	}
+			// 	if outputDirParent == DEFAULT_IN_BROWSER_OUTPUT_DIR {
+			// 		outputDir = outputDirParent
+			// 		if err := archiver.Archive([]string{outputDir}, "myproject.zip"); err != nil {
+			// 			logrus.Fatalf("failed to archive the output directory '%s'. Error: %q", outputDir, err)
+			// 		}
+			// 	} else {
+			// 		logrus.Fatalf("failed to archive the output directory '%s'. Error: %q", outputDir, err)
+			// 	}
 		}
 	}
 	logrus.Infof("Transformed target artifacts can be found at [%s].", flags.outpath)

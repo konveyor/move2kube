@@ -18,7 +18,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"github.com/konveyor/move2kube-wasm/qaengine"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -26,6 +25,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/konveyor/move2kube-wasm/common"
+	"github.com/konveyor/move2kube-wasm/qaengine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
@@ -51,7 +51,7 @@ func checkSourcePath(srcpath string) bool {
 			}
 		}
 		if !supported {
-			logrus.Fatalf("The input path '%s' is a file, expected a directory", srcpath)
+			logrus.Fatalf("The input file at path '%s' does not have a supported extension. Supported extensions: %+v", srcpath, supportedExtensions)
 		}
 		//logrus.Fatalf("The given source path %s is a file. Expected a directory. Exiting.", srcpath)
 	}

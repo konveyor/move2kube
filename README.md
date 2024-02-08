@@ -16,7 +16,7 @@ Similar to https://github.com/HarikrishnanBalagopal/test-wasi-fs-browser/tree/ma
 This should only be run once (or if the Javascript dependencies change)
 
 ```shell
-$ cd m2k-web-ui/ && pnpm install
+$ cd m2k-web-ui/ && pnpm install && cd -
 ```
 
 ## Usage
@@ -33,7 +33,7 @@ $ make dev
 
 If the WebAssembly (Golang code) changes then you will need to rebuild the WASM module.
 
-```
+```shell
 $ make build
 ```
 
