@@ -57,11 +57,22 @@ const processMessage = async (e) => {
             case MSG_WASM_MODULE: {
                 console.log('worker: got a wasm module:', typeof msg.payload, msg.payload);
                 // const { wasmModule, filename, fileContentsArr, filenameCust, fileContentsCustArr } = msg.payload;
-                const { wasmModule, srcFilename, srcContents, custFilename, custContents } = msg.payload;
+                const { wasmModule, srcFilename, srcContents, custFilename, custContents, configFilename, configContents } = msg.payload;
                 // const encoder = new TextEncoder();
-                const args = ["move2kube", "transform", "--source", srcFilename, "--qa-skip", "--output", OUTPUT_DIR];
+                const args = ["move2kube", "transform", "--qa-skip", "--source", srcFilename, "--output", OUTPUT_DIR];
+                const preOpenDir = {
+                    // "example.c": new File(encoder.encode(`#include "a"`)),
+                    // "hello.rs": new File(encoder.encode(`fn main() { println!("Hello World!"); }`)),
+                    // "dep.json": new File(encoder.encode(`{"a": 42, "b": 12}`)),
+                    [srcFilename]: new File(srcContents),
+                };
                 if (custFilename && custContents) {
                     args.push('--customizations', custFilename);
+                    preOpenDir[custFilename] = new File(custContents);
+                }
+                if (configFilename && configContents) {
+                    args.push('--config', configFilename);
+                    preOpenDir[configFilename] = new File(configContents);
                 }
                 const env = [];
                 const fds = [
@@ -71,13 +82,7 @@ const processMessage = async (e) => {
                     new XtermStdio(), // stdin
                     new XtermStdio(), // stdout
                     new XtermStdio(), // stderr
-                    new PreopenDirectory("/", {
-                        // "example.c": new File(encoder.encode(`#include "a"`)),
-                        // "hello.rs": new File(encoder.encode(`fn main() { println!("Hello World!"); }`)),
-                        // "dep.json": new File(encoder.encode(`{"a": 42, "b": 12}`)),
-                        [srcFilename]: new File(srcContents),
-                        [custFilename]: new File(custContents),
-                    }),
+                    new PreopenDirectory("/", preOpenDir),
                 ];
                 MY_DEBUG_FDS = fds;
                 const wasi = new WASI(args, env, fds, { debug: false });

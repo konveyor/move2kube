@@ -82,7 +82,7 @@ const processWorkerMessage = async (e) => {
     }
 };
 
-const startWasmTransformation = async (srcFilename, srcContents, custFilename, custContents) => {
+const startWasmTransformation = async (srcFilename, srcContents, custFilename, custContents, configFilename, configContents) => {
     console.log('main: send the WASM module and zip file to the web worker');
     WASM_WEB_WORKER.postMessage({
         type: MSG_WASM_MODULE,
@@ -92,6 +92,8 @@ const startWasmTransformation = async (srcFilename, srcContents, custFilename, c
             'srcContents': srcContents,
             'custFilename': custFilename,
             'custContents': custContents,
+            'configFilename': configFilename,
+            'configContents': configContents,
         },
     });
 };
@@ -108,8 +110,9 @@ const readFileAsync = (f) => {
 const addEventListeners = () => {
     const input_file = document.getElementById('input-file');
     const input_file_cust = document.getElementById('input-file-customizations');
+    const input_file_config = document.getElementById('input-file-config');
     const button_start = document.getElementById('button-start-transformation');
-    let srcFilename, contentsArr, custFilename, contentsCustArr;
+    let srcFilename, contentsArr, custFilename, contentsCustArr, configFilename, contentsConfigArr;
     input_file.addEventListener('change', async () => {
         if (!input_file.files || input_file.files.length === 0) return;
         console.log('got these files', input_file.files.length, input_file.files);
@@ -124,6 +127,7 @@ const addEventListeners = () => {
             srcFilename = f.name;
             // console.log('input source file contentsArr:', contentsArr);
             input_file_cust.disabled = false; // TODO: support customizations without a source archive
+            input_file_config.disabled = false; // TODO: support config + customizations without a source archive
             button_start.disabled = false;
         } catch (e) {
             console.error(`failed to read the source archive file '${f.name}' . error:`, e);
@@ -147,6 +151,24 @@ const addEventListeners = () => {
             console.error(`failed to read the customizations archive file '${f.name}' . error:`, e);
         }
     });
+    input_file_config.addEventListener('change', async () => {
+        if (!input_file_config.files || input_file_config.files.length === 0) return;
+        console.log('got these files', input_file_config.files.length, input_file_config.files);
+        const files = Array.from(input_file_config.files);
+        if (files.length > 1) return console.error('only single file processing is supported for now');
+        const f = files[0];
+        console.log('reading the file named', f.name);
+        try {
+            button_start.disabled = true; // lock while reading the file
+            // const contentsArr = new Uint8Array(await readFileAsync(f));
+            contentsConfigArr = new Uint8Array(await readFileAsync(f));
+            configFilename = f.name;
+            button_start.disabled = false;
+            // console.log('input customizations file contentsArr:', contentsArr);
+        } catch (e) {
+            console.error(`failed to read the config yaml file '${f.name}' . error:`, e);
+        }
+    });
     button_start.addEventListener('click', () => {
         button_start.disabled = true; // lock while doing the transformation
         const transformation_status = document.getElementById('transformation-status');
@@ -155,7 +177,7 @@ const addEventListeners = () => {
         transformation_status.classList.add(CLASS_RUNNING);
         transformation_status.classList.remove(CLASS_HIDDEN);
         transformation_status.textContent = '⚡ Running...';
-        startWasmTransformation(srcFilename, contentsArr, custFilename, contentsCustArr);
+        startWasmTransformation(srcFilename, contentsArr, custFilename, contentsCustArr, configFilename, contentsConfigArr);
     });
     const btn_download = document.getElementById('button-download');
     btn_download.addEventListener("click", () => {

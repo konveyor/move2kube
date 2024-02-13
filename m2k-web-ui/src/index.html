@@ -93,6 +93,12 @@
             /* border: 2px solid blue; */
             /* background-color: steelblue; */
         }
+
+        .controls-file-upload {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 
@@ -103,13 +109,17 @@
         <span id="fetch-progress-span">0%</span>
     </label>
     <div class="controls">
-        <label>
+        <label class="controls-file-upload">
             Please select a zip/tar archive containing the directory to be processed:
             <input type="file" disabled="true" id="input-file" accept=".zip,.tar,.tar.gz,.tgz" />
         </label>
-        <label>
+        <label class="controls-file-upload">
             Optional: You can select a zip/tar archive containing any customizations that you want to apply:
             <input type="file" disabled="true" id="input-file-customizations" accept=".zip,.tar,.tar.gz,.tgz" />
+        </label>
+        <label class="controls-file-upload">
+            Optional: You can select a config.yaml to reuse the answers from a previous transformation:
+            <input type="file" disabled="true" id="input-file-config" accept=".yaml,.yml" />
         </label>
         <button id="button-start-transformation" disabled="true">Start Transformation!</button>
         <label id="transformation-status" class="hidden"></label>
