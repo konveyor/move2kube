@@ -25,13 +25,29 @@ class XtermStdio extends Fd {
 
 const MSG_WASM_MODULE = 'wasm-module';
 const MSG_TERM_PRINT = 'terminal-print';
+const MSG_ASK_QUESTION = 'ask-question';
 const MSG_TRANFORM_DONE = 'transform-done';
 const MSG_TRANFORM_ERR = 'transform-error';
+const MSG_INIT_WORKER = 'initialize-worker';
+const MSG_WORKER_INITIALIZED = 'worker-initialized';
 
 const WASI_PREVIEW_1 = 'wasi_snapshot_preview1';
 const OUTPUT_DIR = 'my-m2k-output';
 
+let SHARED_BUF_UINT8 = null;
+let SHARED_BUF_INT32 = null;
+let MY_DEBUG_FDS = null;
+
 // FUNCTIONS ---------------------------------------------------------------
+
+const fromMsg = (uint8, int32) => {
+    const len = int32[1];
+    if (len <= 0) throw new Error('object length is zero or negative');
+    const x = uint8.slice(8, 8 + len);
+    const dec = new TextDecoder();
+    const s = dec.decode(x);
+    return JSON.parse(s);
+};
 
 // https://wasix.org/docs/api-reference/wasi/poll_oneoff
 const poll_oneoff = (in_, out, nsubscriptions, nevents) => {
@@ -46,39 +62,46 @@ const sock_accept = (sock, fd_flags, ro_fd, ro_addr) => {
     return 0;
 };
 
-let MY_DEBUG_FDS = null;
-
 const processMessage = async (e) => {
     console.log('worker: processMessage start');
     try {
         const msg = e.data;
         console.log('worker: got a message:', msg);
         switch (msg.type) {
+            case MSG_INIT_WORKER: {
+                console.log('MSG_INIT_WORKER payload:', msg.payload);
+                const { sab } = msg.payload;
+                console.log('sab', sab);
+                if (sab) {
+                    SHARED_BUF_UINT8 = new Uint8Array(sab);
+                    SHARED_BUF_INT32 = new Int32Array(sab);
+                }
+                self.postMessage({ 'type': MSG_WORKER_INITIALIZED });
+                break;
+            }
             case MSG_WASM_MODULE: {
                 console.log('worker: got a wasm module:', typeof msg.payload, msg.payload);
-                // const { wasmModule, filename, fileContentsArr, filenameCust, fileContentsCustArr } = msg.payload;
-                const { wasmModule, srcFilename, srcContents, custFilename, custContents, configFilename, configContents } = msg.payload;
-                // const encoder = new TextEncoder();
-                const args = ["move2kube", "transform", "--qa-skip", "--source", srcFilename, "--output", OUTPUT_DIR];
+                const {
+                    wasmModule, srcFilename, srcContents, custFilename,
+                    custContents, configFilename, configContents, qaSkip,
+                } = msg.payload;
+                const args = ["move2kube", "transform", "--source", srcFilename, "--output", OUTPUT_DIR];
                 const preOpenDir = {
-                    // "example.c": new File(encoder.encode(`#include "a"`)),
-                    // "hello.rs": new File(encoder.encode(`fn main() { println!("Hello World!"); }`)),
-                    // "dep.json": new File(encoder.encode(`{"a": 42, "b": 12}`)),
                     [srcFilename]: new File(srcContents),
                 };
+                if (qaSkip) {
+                    args.push("--qa-skip");
+                }
                 if (custFilename && custContents) {
-                    args.push('--customizations', custFilename);
+                    args.push("--customizations", custFilename);
                     preOpenDir[custFilename] = new File(custContents);
                 }
                 if (configFilename && configContents) {
-                    args.push('--config', configFilename);
+                    args.push("--config", configFilename);
                     preOpenDir[configFilename] = new File(configContents);
                 }
                 const env = [];
                 const fds = [
-                    // new OpenFile(new File([])), // stdin
-                    // new OpenFile(new File([])), // stdout
-                    // new OpenFile(new File([])), // stderr
                     new XtermStdio(), // stdin
                     new XtermStdio(), // stdout
                     new XtermStdio(), // stderr
@@ -161,44 +184,44 @@ const processMessage = async (e) => {
                     if (!(wasmModuleId in MODULE_MAP)) throw new Error(`There is no wasm module with id ${wasmModuleId}`);
                     // debugger;
                     console.log('[DEBUG] run_transform is_dir_detect:', is_dir_detect);
-                    const wasmModule = MODULE_MAP[wasmModuleId];
+                    const customTransformerWasmModule = MODULE_MAP[wasmModuleId];
                     const { buf, s } = load_string(inputJsonPtr, inputJsonLength);
                     // console.log('run_transform: load_string buf', buf, 's', s);
                     console.log('run_transform: load_string buf', buf);
                     const input = JSON.parse(s); // DEBUG: just to make sure it is json parseable
                     // console.log('run_transform called with: wasmModuleId:', wasmModuleId, 'wasmModule', wasmModule, 's:', s, 'input:', input);
-                    console.log('run_transform called with: wasmModuleId:', wasmModuleId, 'wasmModule', wasmModule);
-                    console.log('wasmModule.exports.myAllocate', wasmModule.exports.myAllocate);
-                    console.log('wasmModule.exports.RunDirectoryDetect', wasmModule.exports.RunDirectoryDetect);
-                    console.log('wasmModule.exports.RunTransform', wasmModule.exports.RunTransform);
+                    console.log('run_transform called with: wasmModuleId:', wasmModuleId, 'wasmModule', customTransformerWasmModule);
+                    console.log('wasmModule.exports.myAllocate', customTransformerWasmModule.exports.myAllocate);
+                    console.log('wasmModule.exports.RunDirectoryDetect', customTransformerWasmModule.exports.RunDirectoryDetect);
+                    console.log('wasmModule.exports.RunTransform', customTransformerWasmModule.exports.RunTransform);
                     // const len = s.length;
                     const len = buf.byteLength;
                     console.log('run_transform: allocate some memory of size:', len);
-                    const ptr = wasmModule.exports.myAllocate(len);
+                    const ptr = customTransformerWasmModule.exports.myAllocate(len);
                     console.log('run_transform: ptr', ptr, 'len', len);
                     if (ptr < 0) throw new Error('failed to allocate, invalid pointer into memory');
-                    let memory = new Uint8Array(wasmModule.exports.memory.buffer);
+                    let memory = new Uint8Array(customTransformerWasmModule.exports.memory.buffer);
                     memory.set(buf, ptr);
                     console.log('run_transform: json input set at ptr', ptr);
                     console.log('run_transform: allocate space for the output pointers');
-                    const ptrptr = wasmModule.exports.myAllocate(8); // 2 uint32 values
+                    const ptrptr = customTransformerWasmModule.exports.myAllocate(8); // 2 uint32 values
                     console.log('run_transform: ptrptr', ptrptr);
                     if (ptrptr < 0) throw new Error('failed to allocate, invalid pointer into memory');
                     if (is_dir_detect) {
                         console.log('calling custom transformer directory detect');
-                        const result = wasmModule.exports.RunDirectoryDetect(ptr, len, ptrptr, ptrptr + 4);
+                        const result = customTransformerWasmModule.exports.RunDirectoryDetect(ptr, len, ptrptr, ptrptr + 4);
                         console.log('run_transform: directory detect result', result);
                         if (result < 0) throw new Error('run_transform: directory detect failed');
                     } else {
                         console.log('calling custom transformer transform');
-                        const result = wasmModule.exports.RunTransform(ptr, len, ptrptr, ptrptr + 4);
+                        const result = customTransformerWasmModule.exports.RunTransform(ptr, len, ptrptr, ptrptr + 4);
                         console.log('run_transform: transformation result', result);
                         if (result < 0) throw new Error('run_transform: transformation failed');
                     }
-                    const outJsonPtr = new DataView(wasmModule.exports.memory.buffer, ptrptr, 4).getUint32(0, true);
-                    const outJsonLen = new DataView(wasmModule.exports.memory.buffer, ptrptr + 4, 4).getUint32(0, true);
+                    const outJsonPtr = new DataView(customTransformerWasmModule.exports.memory.buffer, ptrptr, 4).getUint32(0, true);
+                    const outJsonLen = new DataView(customTransformerWasmModule.exports.memory.buffer, ptrptr + 4, 4).getUint32(0, true);
                     console.log('run_transform: transformation outJsonPtr', outJsonPtr, 'outJsonLen', outJsonLen);
-                    memory = new Uint8Array(wasmModule.exports.memory.buffer);
+                    memory = new Uint8Array(customTransformerWasmModule.exports.memory.buffer);
                     console.log('run_transform: memory', memory);
                     const outJsonBytes = memory.slice(outJsonPtr, outJsonPtr + outJsonLen);
                     console.log('run_transform: outJsonBytes', outJsonBytes);
@@ -209,12 +232,38 @@ const processMessage = async (e) => {
                     store_bytes(outJsonBytes, outputJsonPtr);
                     return outJsonBytes.length;
                 };
+                const ask_question = (inputJsonPtr, inputJsonLength, outputJsonPtr) => {
+                    if (outputJsonPtr < 0) throw new Error('the output pointer is an invalid pointer into memory');
+                    const { s } = load_string(inputJsonPtr, inputJsonLength);
+                    // console.log('ask_question: load_string buf', buf, 's', s);
+                    const ques = JSON.parse(s);
+                    console.log('ask the main thread to ask the question:', ques);
+                    self.postMessage({
+                        'type': MSG_ASK_QUESTION,
+                        'payload': ques,
+                    });
+                    console.log('ask_question: wait until the question is answered');
+                    const waitOk = Atomics.wait(SHARED_BUF_INT32, 0, 0);
+                    console.log('ask_question: waitOk:', waitOk);
+                    if (waitOk !== 'ok') throw new Error(`Atomics.wait failed waitOk: ${waitOk}`);
+                    // const len = s.length;
+                    const ans = fromMsg(SHARED_BUF_UINT8, SHARED_BUF_INT32);
+                    console.log('got an answer from main thread, ans:', ans);
+                    const ansStr = JSON.stringify(ans);
+                    // console.log('ansStr:', ansStr);
+                    const enc = new TextEncoder();
+                    const ansBytes = enc.encode(ansStr);
+                    // console.log('ansBytes:', ansBytes);
+                    store_bytes(ansBytes, outputJsonPtr);
+                    return ansBytes.byteLength;
+                };
                 const importObject = {
                     [WASI_PREVIEW_1]: wasiImport,
                     "mym2kmodule": {
                         "load_wasm_module": load_wasm_module,
                         "run_dir_detect": run_transform(true),
                         "run_transform": run_transform(false),
+                        "ask_question": ask_question,
                     },
                 };
                 // console.log('worker: importObject.wasi_snapshot_preview1', importObject.wasi_snapshot_preview1);

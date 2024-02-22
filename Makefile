@@ -37,7 +37,7 @@ LDFLAGS += -X github.com/konveyor/move2kube-wasm/types/info.gitTreeState=${GIT_D
 
 .PHONY: all
 all:
-	make build && make build-web && make serve-web
+	make clean && make build && make build-web && make serve-web
 
 .PHONY: build
 build:
@@ -50,7 +50,7 @@ build:
 
 .PHONY: clean
 clean:
-	rm -rf "${BIN_DIR}/${BIN_NAME}"
+	rm -rf "${BIN_DIR}"
 
 .PHONY: run
 run:

@@ -60,8 +60,14 @@ type TransformOutput struct {
 
 const (
 	// maxOutputLength TODO: this is hardcoded since we can't export myAllocate yet
-	maxOutputLength uint32 = 8192
+	maxOutputLength uint32 = 65536
 )
+
+// To receive the output of a transform the WASM host
+// needs a pointer to some space allocated in the WASM memory.
+// We can't export a myAllocate function to allow the host to decide the size
+// https://github.com/golang/go/issues/42372
+// https://github.com/tinygo-org/tinygo/issues/411#issuecomment-503066868
 
 //go:wasmimport mym2kmodule load_wasm_module
 func load_wasm_module(ptr unsafe.Pointer, len uint32) int32
@@ -81,17 +87,6 @@ func run_transform(
 	len uint32,
 	outPtr unsafe.Pointer,
 ) int32
-
-// https://github.com/tinygo-org/tinygo/issues/411#issuecomment-503066868
-var keyToAllocatedBytes = map[uint32][]byte{}
-var nextKey uint32 = 41
-
-func myAllocate(size uint32) *byte {
-	nextKey += 1
-	newArr := make([]byte, size)
-	keyToAllocatedBytes[nextKey] = newArr
-	return &newArr[0]
-}
 
 func toPtr(path []byte) unsafe.Pointer {
 	return unsafe.Pointer(&path[0])
@@ -148,7 +143,10 @@ func (t *WasmTransformer) DirectoryDetect(dir string) (map[string][]transformert
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal the input as json. Error: %w", err)
 	}
-	ptr := myAllocate(maxOutputLength)
+
+	newArr := make([]byte, maxOutputLength)
+	ptr := &newArr[0]
+
 	len := run_dir_detect(
 		t.ModuleId,
 		toPtr(inputJson),
@@ -181,7 +179,10 @@ func (t *WasmTransformer) Transform(
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to marshal the input as json. Error: %w", err)
 	}
-	ptr := myAllocate(maxOutputLength)
+
+	newArr := make([]byte, maxOutputLength)
+	ptr := &newArr[0]
+
 	len := run_transform(
 		t.ModuleId,
 		toPtr(inputJson),
