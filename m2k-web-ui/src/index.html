@@ -40,6 +40,10 @@
             cursor: pointer;
         }
 
+        label {
+            cursor: pointer;
+        }
+
         input[type=file] {
             font-family: var(--font-stack);
             border: 2px dashed steelblue;
@@ -99,6 +103,80 @@
             justify-content: space-between;
             align-items: center;
         }
+
+        .modal-wrapper {
+            display: grid;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.2);
+            place-content: center;
+            z-index: 9;
+        }
+
+        .modal {
+            background-color: white;
+            width: 30em;
+            height: 30em;
+            border-radius: 1em;
+            padding: 1em;
+            border: 1px solid black;
+            display: grid;
+            grid-template-rows: 2em 1fr 4em;
+            z-index: 10;
+            box-shadow: 10px 5px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #div-modal-header {
+            font-weight: 800;
+            text-align: center;
+        }
+
+        #div-modal-body {
+            overflow: scroll;
+            border: 1px solid black;
+            padding: 1em;
+            box-shadow: inset 2px 1px 2px 2px rgba(0, 0, 0, 0.2);
+            display: grid;
+            grid-template-rows: min-content min-content 1fr;
+            gap: 0.5em;
+        }
+
+        #div-modal-footer {
+            display: flex;
+            justify-content: space-around;
+            align-items: end;
+        }
+
+        .modal-text-input,
+        .modal-select {
+            width: 100%;
+            padding: 1em;
+            font-size: 1em;
+        }
+
+        .modal-multi-select {
+            margin: 0;
+        }
+
+        .modal-confirm {
+            text-align: center;
+            width: 100%;
+            display: inline-block;
+        }
+
+        .border-bottom {
+            border-bottom: 1px solid black;
+            padding-bottom: 1em;
+            margin-bottom: 1em;
+        }
+
+        #div-modal-ques-id {
+            border-bottom: 1px solid black;
+            padding-bottom: 0.5em;
+        }
     </style>
 </head>
 
@@ -121,14 +199,31 @@
             Optional: You can select a config.yaml to reuse the answers from a previous transformation:
             <input type="file" disabled="true" id="input-file-config" accept=".yaml,.yml" />
         </label>
+        <label id="label-input-qa-skip">
+            Skip all questions during transformation:
+            <input type="checkbox" id="input-qa-skip" checked="true" />
+        </label>
         <button id="button-start-transformation" disabled="true">Start Transformation!</button>
-        <label id="transformation-status" class="hidden"></label>
+        <div id="transformation-status" class="hidden"></div>
         <label class="controls-file-upload">
             After the transformation is done you can download the output:
             <button disabled="true" id="button-download">Download output</button>
         </label>
     </div>
     <div id="div-root"></div>
+    <div id="div-modal" class="hidden modal-wrapper">
+        <div class="modal">
+            <div id="div-modal-header">Question</div>
+            <div id="div-modal-body">
+                <div id="div-modal-ques-id"></div>
+                <div id="div-modal-ques-desc"></div>
+                <div id="div-modal-ques-body"></div>
+            </div>
+            <div id="div-modal-footer">
+                <button id="button-modal-confirm">Next</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

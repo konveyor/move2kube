@@ -8,7 +8,7 @@
     "dev": "webpack serve --open --config webpack.config.dev.js",
     "clean": "rm -rf dist/",
     "build": "webpack --config webpack.config.prod.js",
-    "serve": "cd dist/ && python3 -m http.server 8080"
+    "serve": "node server.js"
   },
   "keywords": [],
   "author": "Move2Kube contributors",
