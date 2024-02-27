@@ -13,7 +13,7 @@ class XtermStdio extends Fd {
             // console.log(iovec.buf, iovec.buf_len, view8.slice(iovec.buf, iovec.buf + iovec.buf_len));
             const buffer = view8.slice(iovec.buf, iovec.buf + iovec.buf_len);
             // const msg = decoder.decode(buffer);
-            // console.log('worker: XtermStdio.fd_write msg:', msg);
+            // console.log('XtermStdio.fd_write msg:', msg);
             self.postMessage({ 'type': MSG_TERM_PRINT, 'payload': buffer });
             nwritten += iovec.buf_len;
         }
@@ -63,10 +63,10 @@ const sock_accept = (sock, fd_flags, ro_fd, ro_addr) => {
 };
 
 const processMessage = async (e) => {
-    console.log('worker: processMessage start');
+    console.log('processMessage start');
     try {
         const msg = e.data;
-        console.log('worker: got a message:', msg);
+        console.log('got a message:', msg);
         switch (msg.type) {
             case MSG_INIT_WORKER: {
                 console.log('MSG_INIT_WORKER payload:', msg.payload);
@@ -80,7 +80,7 @@ const processMessage = async (e) => {
                 break;
             }
             case MSG_WASM_MODULE: {
-                console.log('worker: got a wasm module:', typeof msg.payload, msg.payload);
+                console.log('got a wasm module:', typeof msg.payload, msg.payload);
                 const {
                     wasmModule, srcFilename, srcContents, custFilename,
                     custContents, configFilename, configContents, qaSkip,
@@ -266,65 +266,69 @@ const processMessage = async (e) => {
                         "ask_question": ask_question,
                     },
                 };
-                // console.log('worker: importObject.wasi_snapshot_preview1', importObject.wasi_snapshot_preview1);
+                // console.log('importObject.wasi_snapshot_preview1', importObject.wasi_snapshot_preview1);
                 // -------------------------------------------------------------------------------
                 // -------------------------------------------------------------------------------
+                const tInstantiateStart = performance.now();
                 const wasmModuleInstance = await WebAssembly.instantiate(wasmModule, importObject);
+                const tInstantiateEnd = performance.now();
+                const tInstantiate = tInstantiateEnd - tInstantiateStart;
+                const tInstantiateSeconds = tInstantiate / 1000;
+                console.log('tInstantiateStart', tInstantiateStart, 'tInstantiateEnd', tInstantiateEnd, 'tInstantiate', tInstantiate, 'tInstantiateSeconds', tInstantiateSeconds);
                 WASM_INSTANCE = wasmModuleInstance;
-                console.log('worker: wasmModuleInstance', wasmModuleInstance);
-                console.log('worker: wasmModuleInstance.exports', wasmModuleInstance.exports);
-                console.log('worker: wasmModuleInstance.exports.memory.buffer', wasmModuleInstance.exports.memory.buffer);
+                console.log('wasmModuleInstance', wasmModuleInstance);
+                console.log('wasmModuleInstance.exports', wasmModuleInstance.exports);
+                console.log('wasmModuleInstance.exports.memory.buffer', wasmModuleInstance.exports.memory.buffer);
                 try {
                     // wasi.start(wasmModule.instance);
-                    wasi.start(wasmModuleInstance);
-                    // TODO: unreachable?
-                    self.postMessage({ 'type': MSG_TRANFORM_DONE, 'payload': 'transformation result (no exit code)' });
-                } catch (e) {
-                    console.log('worker: the wasm module finished:', e);
-                    // console.log(typeof e);
-                    // console.log(e.exit_code);
-                    // console.log(Object.entries(e));
-                    const eStr = `${e}`;
-                    const exitCodePrefix = 'exit with exit code ';
-                    if (eStr.startsWith(exitCodePrefix)) {
-                        console.log('error message has exit code prefix');
-                        const exitCodeStr = eStr.slice(exitCodePrefix.length);
-                        // console.log('WOW!!!! exitCodeStr', exitCodeStr);
-                        const exitCode = parseInt(exitCodeStr, 10);
-                        console.log('exitCode', exitCode);
-                        if (!Number.isFinite(exitCode) || exitCode !== 0) {
-                            self.postMessage({ 'type': MSG_TRANFORM_ERR, 'payload': eStr });
-                            console.log('ERROR non-zero exit code, DEBUG fds:', MY_DEBUG_FDS);
-                            break;
-                        }
-                    } else {
-                        console.log('error message does not have exit code prefix');
+                    const tTransformStart = performance.now();
+                    const exitCode = wasi.start(wasmModuleInstance);
+                    const tTransformEnd = performance.now();
+                    const tTransform = tTransformEnd - tTransformStart;
+                    const tTransformSeconds = tTransform / 1000;
+                    console.log('tTransformStart', tTransformStart, 'tTransformEnd', tTransformEnd, 'tTransform', tTransform, 'tTransformSeconds', tTransformSeconds);
+                    console.log('exitCode:', exitCode);
+                    if (exitCode !== 0) {
+                        const eStr = `got a non-zero exit code: ${exitCode}`;
+                        console.error(eStr, 'DEBUG fds:', MY_DEBUG_FDS);
+                        self.postMessage({ 'type': MSG_TRANFORM_ERR, 'payload': eStr });
+                        break;
                     }
-                    console.log('TODO: assuming the output file name is myproject.zip');
                     const myprojectzip = fds[3]?.dir?.contents["myproject.zip"]?.data?.buffer;
                     if (!myprojectzip) {
-                        self.postMessage({ 'type': MSG_TRANFORM_ERR, 'payload': eStr });
+                        self.postMessage({ 'type': MSG_TRANFORM_ERR, 'payload': 'The output "myproject.zip" file is missing.' });
                         console.log('ERROR myproject.zip is missing, DEBUG fds:', MY_DEBUG_FDS);
                         break;
                     }
-                    self.postMessage({ 'type': MSG_TRANFORM_DONE, 'payload': myprojectzip });
+                    self.postMessage({
+                        'type': MSG_TRANFORM_DONE,
+                        'payload': { myprojectzip, tTransform },
+                    });
+                } catch (e) {
+                    console.error('the wasm module finished with an error:', e, 'DEBUG fds:', MY_DEBUG_FDS);
+                    const eStr = `${e}`;
+                    self.postMessage({ 'type': MSG_TRANFORM_ERR, 'payload': eStr });
                 }
                 break;
             }
             default: {
-                console.error('worker: unknown message type:', msg);
+                throw new Error(`unknown message type: ${msg.type}`);
             }
         }
     } catch (e) {
-        console.error('worker: failed to process the message. error:', e);
+        console.error('failed to process the message. error:', e);
     }
-    console.log('worker: processMessage end');
+    console.log('processMessage end');
 };
 
 const main = () => {
-    console.log('worker: main start');
+    const prevConsoleLog = console.log;
+    console.log = (...args) => prevConsoleLog('[worker]', ...args);
+    const prevConsoleErr = console.error;
+    console.error = (...args) => prevConsoleErr('[worker]', ...args);
+    console.log('main start');
     self.addEventListener('message', processMessage);
-    console.log('worker: main end');
+    console.log('main end');
 };
 
 main();
