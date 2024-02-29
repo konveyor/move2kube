@@ -54,11 +54,16 @@ You can go to http://localhost:8080/ to access the UI
 
 ## Publish
 
-To publish to Github pages run:
+The webapp is published to Github pages here https://move2kube.konveyor.io/experimental
+
+First create the production build:
 
 ```shell
 $ make all
-$ make copy-web
 ```
 
-This copies the built `m2k-web-ui/dist` directory into `docs` directory.
+Then replace the `assets/wasm` directory in the website repo with the `m2k-web-ui/dist` directory that was just built.
+
+https://github.com/konveyor/move2kube-website/tree/main/assets/wasm
+
+Then make a PR to the website repo.
