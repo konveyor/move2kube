@@ -72,6 +72,7 @@ const handleSendAnswer = (ques, answer) => {
     console.log('notify the worker about the answer to the question');
     const awoke = Atomics.notify(SHARED_BUF_INT32, 0);
     console.log('awoke', awoke);
+    if (awoke !== 1) throw new Error('expected to wake 1 threads');
 };
 
 const handleAskQuestion = (ques) => {
@@ -200,11 +201,13 @@ const processWorkerMessage = async (e) => {
         }
         case MSG_TRANFORM_DONE: {
             console.log('main: transformation finished');
-            TRANSFORM_RESULT = msg.payload;
+            const { myprojectzip, tTransform } = msg.payload;
+            TRANSFORM_RESULT = myprojectzip;
             const btn_download = document.getElementById("button-download");
             btn_download.disabled = false;
             button_start.disabled = false; // unlock after doing the transformation
-            transformation_status.textContent = '✅ Success';
+            const tTransformSeconds = Math.round((100 * (tTransform / 1000))) / 100;
+            transformation_status.textContent = `✅ Success (Transformation finished in ${tTransformSeconds} seconds)`;
             transformation_status.classList.remove(CLASS_FAILURE);
             transformation_status.classList.remove(CLASS_RUNNING);
             transformation_status.classList.add(CLASS_SUCCESS);
@@ -413,7 +416,12 @@ const main = async () => {
     // expand the gzip compressed archive and compile the WASM module
     const moduleObject = pako.inflate(new Uint8Array(axiosget.data));
     console.log('typeof moduleObject', typeof moduleObject, moduleObject);
+    const tCompileStart = performance.now();
     const compiledWasmModule = await WebAssembly.compile(moduleObject);
+    const tCompileEnd = performance.now();
+    const tCompile = tCompileEnd - tCompileStart;
+    const tCompileSeconds = tCompile / 1000;
+    console.log('tCompileStart', tCompileStart, 'tCompileEnd', tCompileEnd, 'tCompile', tCompile, 'tCompileSeconds', tCompileSeconds);
     console.log('typeof compiledWasmModule', typeof compiledWasmModule, compiledWasmModule);
     WASM_MODULE_COMPILED = compiledWasmModule;
 
