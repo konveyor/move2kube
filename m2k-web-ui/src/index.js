@@ -239,7 +239,7 @@ const processWorkerMessage = async (e) => {
 
 const startWasmTransformation = async (
     srcFilename, srcContents, custFilename, custContents,
-    configFilename, configContents, qaSkip,
+    configFilename, configContents, qaSkip, enableMetrics,
 ) => {
     console.log('startWasmTransformation: send the WASM module and zip file to the web worker');
     WASM_WEB_WORKER.postMessage({
@@ -253,6 +253,7 @@ const startWasmTransformation = async (
             'configFilename': configFilename,
             'configContents': configContents,
             'qaSkip': qaSkip,
+            'enableMetrics': enableMetrics,
         },
     });
 };
@@ -269,6 +270,7 @@ const readFileAsync = (f) => {
 const addEventListeners = () => {
     const input_file = document.getElementById('input-file');
     const input_qa_skip = document.getElementById('input-qa-skip');
+    const input_enable_metrics = document.getElementById('input-enable-metrics');
     const input_file_cust = document.getElementById('input-file-customizations');
     const input_file_config = document.getElementById('input-file-config');
     const button_start = document.getElementById('button-start-transformation');
@@ -338,8 +340,9 @@ const addEventListeners = () => {
         transformation_status.classList.remove(CLASS_HIDDEN);
         transformation_status.textContent = '⚡ Running...';
         const qaSkip = input_qa_skip.checked;
-        console.log('qaSkip', qaSkip);
-        startWasmTransformation(srcFilename, contentsArr, custFilename, contentsCustArr, configFilename, contentsConfigArr, qaSkip);
+        const enableMetrics = input_enable_metrics.checked;
+        console.log('qaSkip', qaSkip, 'enableMetrics', enableMetrics);
+        startWasmTransformation(srcFilename, contentsArr, custFilename, contentsCustArr, configFilename, contentsConfigArr, qaSkip, enableMetrics);
     });
     const btn_download = document.getElementById('button-download');
     btn_download.addEventListener("click", () => {

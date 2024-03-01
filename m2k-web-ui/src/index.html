@@ -56,7 +56,7 @@
             padding-top: 1em;
             padding-bottom: 1em;
             display: grid;
-            grid-template-rows: minmax(3em, auto) minmax(3em, auto);
+            grid-auto-rows: minmax(3em, auto);
             gap: 1em;
             align-items: center;
         }
@@ -98,10 +98,17 @@
             /* background-color: steelblue; */
         }
 
-        .controls-file-upload {
-            display: flex;
-            justify-content: space-between;
+        .controls-row {
+            display: grid;
+            grid-template-columns: 1fr 15em;
             align-items: center;
+        }
+
+        .controls-qa-skip-and-metrics {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .modal-wrapper {
@@ -182,30 +189,36 @@
 
 <body>
     <h1>Move2Kube running in the browser using WebAssembly</h1>
-    <label for="" class="fetch-progress-label">
+    <label class="fetch-progress-label">
         <progress id="fetch-progress" max="100" value="0"></progress>
         <span id="fetch-progress-span">0%</span>
     </label>
     <div class="controls">
-        <label class="controls-file-upload">
+        <label class="controls-row">
             Please select a zip/tar archive containing the directory to be processed:
             <input type="file" disabled="true" id="input-file" accept=".zip,.tar,.tar.gz,.tgz" />
         </label>
-        <label class="controls-file-upload">
+        <label class="controls-row">
             Optional: You can select a zip/tar archive containing any customizations that you want to apply:
             <input type="file" disabled="true" id="input-file-customizations" accept=".zip,.tar,.tar.gz,.tgz" />
         </label>
-        <label class="controls-file-upload">
+        <label class="controls-row">
             Optional: You can select a config.yaml to reuse the answers from a previous transformation:
             <input type="file" disabled="true" id="input-file-config" accept=".yaml,.yml" />
         </label>
-        <label id="label-input-qa-skip">
-            Skip all questions during transformation:
-            <input type="checkbox" id="input-qa-skip" checked="true" />
-        </label>
+        <div class="controls-qa-skip-and-metrics">
+            <label id="label-input-qa-skip">
+                Skip all questions during transformation:
+                <input type="checkbox" id="input-qa-skip" checked="true" />
+            </label>
+            <label id="label-input-metrics">
+                Enable metrics:
+                <input type="checkbox" id="input-enable-metrics" />
+            </label>
+        </div>
         <button id="button-start-transformation" disabled="true">Start Transformation!</button>
         <div id="transformation-status" class="hidden"></div>
-        <label class="controls-file-upload">
+        <label class="controls-row">
             After the transformation is done you can download the output:
             <button disabled="true" id="button-download">Download output</button>
         </label>
