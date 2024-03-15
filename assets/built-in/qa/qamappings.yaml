@@ -46,6 +46,7 @@ categories:
       - move2kube.services.*.*.servicetype
       - move2kube.services.*.*.urlpath
       - move2kube.services.*.ports
+      - move2kube.services.*.port
       - move2kube.target.*.ingress.ingressclassname
       - move2kube.target.*.ingress.host
       - move2kube.target.*.ingress.tls
