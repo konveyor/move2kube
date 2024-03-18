@@ -1599,7 +1599,9 @@ func IsHTTPURL(str string) bool {
 func GetDefaultContainerRuntime() string {
 	_, err := exec.LookPath("podman")
 	if err == nil {
+		logrus.Info("Podman executable found in the directories named by the PATH environment variable. Using Podman as the container runtime.")
 		return "podman"
 	}
+	logrus.Info("Couldn't find Podman executable in the directories named by the PATH environment variable. Using Docker as the container runtime.")
 	return "docker"
 }
