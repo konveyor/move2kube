@@ -29,6 +29,10 @@ if not %basename% == "scripts" (
 REM go to the parent directory so that all the relative paths will be correct
 cd {{ .RelParentOfSourceDir }}
 
+SET CONTAINER_RUNTIME={{ .ContainerRuntime }}
+GOTO DOCKER_CONTAINER_RUNTIME
+
+
 IF "%3"=="" GOTO DEFAULT_PLATFORMS
 SET PLATFORMS=%3%
 GOTO REGISTRY
@@ -49,15 +53,34 @@ GOTO REGISTRY
     SET REGISTRY_NAMESPACE={{ .RegistryNamespace }}
 	GOTO MAIN
 
+:DOCKER_CONTAINER_RUNTIME
+	IF NOT "%CONTAINER_RUNTIME%" == "docker" GOTO PODMAN_CONTAINER_RUNTIME
+	GOTO MAIN
+
+:PODMAN_CONTAINER_RUNTIME
+	IF NOT "%CONTAINER_RUNTIME%" == "podman" GOTO UNSUPPORTED_BUILD_SYSTEM
+	GOTO MAIN
+
+:UNSUPPORTED_BUILD_SYSTEM
+    echo 'Unsupported build system passed as an argument for pushing the images.'
+    GOTO SKIP
+
 :MAIN
 :: Uncomment the below line if you want to enable login before pushing
 :: docker login %REGISTRY_URL%
 {{- range $dockerfile := .DockerfilesConfig }}
-
 echo "building and pushing image {{ $dockerfile.ImageName }}"
 pushd {{ $dockerfile.ContextWindows }}
-docker buildx build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }} --push --tag ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} .
+IF  "%CONTAINER_RUNTIME%" == "docker" (
+    docker buildx build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }}  --push --tag ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} . 
+) ELSE ( 
+    podman manifest create ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }}
+    podman build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }} --manifest ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} .
+    podman manifest push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }}
+)
 popd
 {{- end }}
 
 echo "done"
+
+:SKIP
