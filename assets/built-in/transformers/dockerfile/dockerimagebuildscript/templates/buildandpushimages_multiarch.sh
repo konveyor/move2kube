@@ -36,13 +36,28 @@ fi
 if [ "$#" -eq 3 ]; then
   PLATFORMS=$3
 fi
+
+CONTAINER_RUNTIME={{ .ContainerRuntime }}
+if [ "${CONTAINER_RUNTIME}" != "docker" ] && [ "${CONTAINER_RUNTIME}" != "podman" ]; then
+   echo 'Unsupported container runtime passed as an argument for building the images: '"${CONTAINER_RUNTIME}"
+   exit 1
+fi
+
+
 # Uncomment the below line if you want to enable login before pushing
 # docker login ${REGISTRY_URL}
 {{- range $dockerfile := .DockerfilesConfig }}
-
 echo 'building and pushing image {{ $dockerfile.ImageName }}'
 cd {{ $dockerfile.ContextUnix }}
-docker buildx build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }}  --push --tag ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} .
+if [ "${CONTAINER_RUNTIME}" == "docker" ]
+then
+  docker buildx build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }}  --push --tag ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} .
+else 
+  podman manifest create ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }}
+  podman build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }} --manifest ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} .
+  podman manifest push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }}
+fi
+
 cd -
 {{- end }}
 
