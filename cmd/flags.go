@@ -77,4 +77,8 @@ type qaflags struct {
 	preSets []string
 	// persistPasswords sets whether to persist the password or not
 	persistPasswords bool
+	// qaEnabledCategories contains list of categories to be enabled
+	qaEnabledCategories []string
+	// qaDisabledCategories contains list of categories to be disabled
+	qaDisabledCategories []string
 }

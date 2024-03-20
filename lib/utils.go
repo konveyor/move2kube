@@ -67,7 +67,7 @@ func CheckAndCopyCustomizations(customizationsPath string) error {
 	// check if the customization path has files other than YAMLs
 	yamls, err := common.GetYamlsWithTypeMeta(customizationsFSPath, TransformerTypeMeta)
 	if err == nil && len(yamls) == 0 {
-		logrus.Warnf("no manifests for external transformers found in %s, the transformers won't be loaded.", customizationsFSPath)
+		logrus.Infof("No manifests for external transformers found in the customizations directory '%s'.", customizationsFSPath)
 	}
 	if err = CopyCustomizationsAssetsData(customizationsFSPath); err != nil {
 		return fmt.Errorf("failed to copy the customizations data from the directory '%s' . Error: %w", customizationsFSPath, err)

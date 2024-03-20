@@ -21,19 +21,30 @@ import (
 
 	"github.com/gobwas/glob"
 	"github.com/konveyor/move2kube/common"
+	"github.com/konveyor/move2kube/types"
 	"github.com/sirupsen/logrus"
 )
 
-// QAMapping defines the structure of the QA Category mapping file
-type QAMapping struct {
-	Categories []QACategory `yaml:"categories"`
+// QAMappingsKind represents the QAMappings kind
+const QAMappingsKind = "QAMappings"
+
+// QAMappings defines the structure of the QA Category mapping file
+type QAMappings struct {
+	types.TypeMeta   `yaml:",inline" json:",inline"`
+	types.ObjectMeta `yaml:"metadata,omitempty" json:"metadata,omitempty"`
+	Spec             QAMappingsSpec `yaml:"spec" json:"spec"`
+}
+
+// QAMappingsSpec defines the structure of the QA mapping spec file
+type QAMappingsSpec struct {
+	Categories []QACategory `yaml:"categories" json:"categories"`
 }
 
 // QACategory represents a category of QA engine questions
 type QACategory struct {
-	Name      string   `yaml:"name"`
-	Enabled   bool     `yaml:"enabled"`
-	Questions []string `yaml:"questions"`
+	Name      string   `yaml:"name" json:"name"`
+	Enabled   bool     `yaml:"enabled" json:"enabled"`
+	Questions []string `yaml:"questions" json:"questions"`
 }
 
 // GetProblemCategories returns the list of categories a particular question belongs to
