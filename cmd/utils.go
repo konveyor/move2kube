@@ -134,13 +134,18 @@ func initDisabledCategories(flags qaflags) {
 	if err != nil {
 		logrus.Fatalf("failed to read the QAMappings file. Error: %q", err)
 	}
-	for _, mapping := range qaMapping.Spec.Categories {
-		common.QACategoryMap[mapping.Name] = mapping.Questions
+	for _, category := range qaMapping.Spec.Categories {
+		common.QACategoryMap[category.Name] = category.Questions
 	}
 	common.QACategoryMap["default"] = []string{}
 	common.QACategoryMap["external"] = []string{}
 	// if --qa-enable is passed, all categories are disabled by default. Otherwise, only categories passed to --qa-disable
 	// are disabled
+	for _, category := range qaMapping.Spec.Categories {
+		if !category.Enabled {
+			common.DisabledCategories = append(common.DisabledCategories, category.Name)
+		}
+	}
 	if len(flags.qaEnabledCategories) > 0 {
 		for k := range common.QACategoryMap {
 			if !common.IsStringPresent(flags.qaEnabledCategories, k) {
@@ -149,6 +154,9 @@ func initDisabledCategories(flags qaflags) {
 		}
 	} else {
 		common.DisabledCategories = append(common.DisabledCategories, flags.qaDisabledCategories...)
+	}
+	if len(common.DisabledCategories) > 0 {
+		logrus.Infof("Disabling the questions in the following categories: %v", common.DisabledCategories)
 	}
 }
 
