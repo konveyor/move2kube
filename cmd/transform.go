@@ -23,17 +23,14 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 
-	"github.com/konveyor/move2kube/assets"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/download"
 	"github.com/konveyor/move2kube/common/vcs"
 	"github.com/konveyor/move2kube/lib"
 	"github.com/konveyor/move2kube/types/plan"
-	"github.com/konveyor/move2kube/types/qaengine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"gopkg.in/yaml.v3"
 )
 
 type transformFlags struct {
@@ -59,10 +56,8 @@ type transformFlags struct {
 	// maxIterations is the maximum number of iterations to allow before aborting with an error
 	maxIterations int
 	// CustomizationsPaths contains the path to the customizations directory
-	customizationsPath   string
-	transformerSelector  string
-	qaEnabledCategories  []string
-	qaDisabledCategories []string
+	customizationsPath  string
+	transformerSelector string
 }
 
 func transformHandler(cmd *cobra.Command, flags transformFlags) {
@@ -133,46 +128,9 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		}
 	}
 
-	// qa-disable and qa=enable are mutually exclusive
-	if len(flags.qaEnabledCategories) > 0 && len(flags.qaDisabledCategories) > 0 {
-		logrus.Fatalf("--qa-enable and --qa-disable cannot be used together.\n")
-	}
-
-	// Read the QA categories from the QA mapping file
-	var qaMapping qaengine.QAMapping
-	qaMappingFilepath := filepath.Join("built-in/qa", "qamappings.yaml")
-	file, err := assets.AssetsDir.ReadFile(qaMappingFilepath)
-	if err != nil {
-		logrus.Fatalf("failed to read qa-mapping file at %s. Error: %q\n", qaMappingFilepath, err)
-	}
-
-	if err := yaml.Unmarshal(file, &qaMapping); err != nil {
-		logrus.Fatalf("failed to decode qa-mapping file. Error: %q\n", err)
-	}
-
-	for _, mapping := range qaMapping.Categories {
-		common.QACategoryMap[mapping.Name] = mapping.Questions
-	}
-	common.QACategoryMap["default"] = []string{}
-	common.QACategoryMap["external"] = []string{}
-
 	// Global settings
 	common.IgnoreEnvironment = flags.ignoreEnv
 	common.DisableLocalExecution = flags.disableLocalExecution
-	// if --qa-enable is passed, all categories are disabled by default. Otherwise, only categories passed to --qa-disable
-	// are disabled
-	if len(flags.qaEnabledCategories) > 0 {
-		for k := range common.QACategoryMap {
-			if !common.IsStringPresent(flags.qaEnabledCategories, k) {
-				common.DisabledCategories = append(common.DisabledCategories, k)
-			}
-		}
-	} else {
-		for _, cat := range flags.qaDisabledCategories {
-			common.DisabledCategories = append(common.DisabledCategories, cat)
-		}
-	}
-
 	// Parameter cleaning and curate plan
 	transformationPlan := plan.Plan{}
 	preExistingPlan := false
@@ -182,7 +140,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		_, err = os.Stat(flags.planfile)
 	}
 	if err != nil {
-		logrus.Debugf("No plan file found.")
+		logrus.Infof("No plan file found.")
 		if cmd.Flags().Changed(planFlag) {
 			logrus.Fatalf("Error while accessing plan file at path %s Error: %q", flags.planfile, err)
 		}
@@ -199,6 +157,11 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 			}
 			if err := os.MkdirAll(flags.outpath, common.DefaultDirectoryPermission); err != nil {
 				logrus.Fatalf("Failed to create the output directory at path %s Error: %q", flags.outpath, err)
+			}
+		}
+		if flags.customizationsPath != "" {
+			if err := lib.CheckAndCopyCustomizations(flags.customizationsPath); err != nil {
+				logrus.Fatalf("Failed to check and copy the customizations. Error: %q", err)
 			}
 		}
 		startQA(flags.qaflags)
@@ -240,7 +203,9 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 		if transformationPlan.Spec.SourceDir != "" {
 			checkSourcePath(transformationPlan.Spec.SourceDir)
 		}
-		lib.CheckAndCopyCustomizations(transformationPlan.Spec.CustomizationsDir)
+		if err := lib.CheckAndCopyCustomizations(transformationPlan.Spec.CustomizationsDir); err != nil {
+			logrus.Fatalf("Failed to check and copy the customizations. Error: %q", err)
+		}
 		if !isRemoteOutPath {
 			flags.outpath = filepath.Join(flags.outpath, transformationPlan.Name)
 			checkOutputPath(flags.outpath, flags.overwrite)

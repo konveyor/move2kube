@@ -54,11 +54,6 @@ func CreatePlan(ctx context.Context, inputPath, outputPath string, customization
 	if remoteOutputFSPath != "" {
 		outputFSPath = remoteOutputFSPath
 	}
-	if customizationsPath != "" {
-		if err := CheckAndCopyCustomizations(customizationsPath); err != nil {
-			return plan, fmt.Errorf("failed to check and copy the customizations. Error: %w", err)
-		}
-	}
 	transformerSelectorObj, err := metav1.ParseToLabelSelector(transformerSelector)
 	if err != nil {
 		return plan, fmt.Errorf("failed to parse the string '%s' as a transformer selector. Error: %w", transformerSelector, err)

@@ -18,16 +18,20 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/konveyor/move2kube/assets"
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/qaengine"
+	qaenginetypes "github.com/konveyor/move2kube/types/qaengine"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
+	"gopkg.in/yaml.v3"
 )
 
 // checkSourcePath checks if the source path is an existing directory.
@@ -82,7 +86,82 @@ Exiting.`, outpath, overwriteFlag, outputFlag)
 	logrus.Infof("Output directory '%s' exists. The contents might get overwritten.", outpath)
 }
 
+func getCustomMappingFilePath() (qaenginetypes.QAMappings, error) {
+	// Read the QA categories from the QA mapping file
+	var qaMapping qaenginetypes.QAMappings
+	customizationsDir := filepath.Join(common.AssetsPath, "custom")
+	_, err := os.Stat(customizationsDir)
+	if err == nil {
+		yamlPaths, err := common.GetFilesByExt(customizationsDir, []string{".yml", ".yaml"})
+		if err != nil {
+			return qaMapping, fmt.Errorf("failed to look for yaml files in the directory '%s' . Error: %w", customizationsDir, err)
+		}
+		for _, yamlPath := range yamlPaths {
+			if err := common.ReadMove2KubeYaml(yamlPath, &qaMapping); err != nil {
+				logrus.Debugf("failed to read the mappings file metadata from the yaml file at path '%s' . Error: %q", yamlPath, err)
+				continue
+			}
+			if qaMapping.Kind != qaenginetypes.QAMappingsKind {
+				logrus.Debugf(
+					"the file at path '%s' is not a valid cluster metadata. Expected kind: '%s' Actual kind: '%s'",
+					yamlPath, qaenginetypes.QAMappingsKind, qaMapping.Kind,
+				)
+				continue
+			}
+			logrus.Infof("Found custom QA mappings file '%s' at path '%s'", qaMapping.ObjectMeta.Name, yamlPath)
+			return qaMapping, nil
+		}
+	}
+	logrus.Infof("Using the default QA mappings file")
+	qaMappingFilepath := filepath.Join("built-in/qa", "qamappings.yaml")
+	file, err := assets.AssetsDir.ReadFile(qaMappingFilepath)
+	if err != nil {
+		return qaMapping, fmt.Errorf("failed to read the mappings file metadata from the yaml file at path '%s' . Error: %w", qaMappingFilepath, err)
+	}
+	if err := yaml.Unmarshal(file, &qaMapping); err != nil {
+		return qaMapping, fmt.Errorf("failed to decode qa-mapping file. Error: %w", err)
+	}
+	return qaMapping, nil
+}
+
+func initDisabledCategories(flags qaflags) {
+	// qa-disable and qa=enable are mutually exclusive
+	if len(flags.qaEnabledCategories) > 0 && len(flags.qaDisabledCategories) > 0 {
+		logrus.Fatalf("--qa-enable and --qa-disable cannot be used together.\n")
+	}
+	// Read the QA categories from the QA mapping file
+	qaMapping, err := getCustomMappingFilePath()
+	if err != nil {
+		logrus.Fatalf("failed to read the QAMappings file. Error: %q", err)
+	}
+	for _, category := range qaMapping.Spec.Categories {
+		common.QACategoryMap[category.Name] = category.Questions
+	}
+	common.QACategoryMap["default"] = []string{}
+	common.QACategoryMap["external"] = []string{}
+	// if --qa-enable is passed, all categories are disabled by default. Otherwise, only categories passed to --qa-disable
+	// are disabled
+	for _, category := range qaMapping.Spec.Categories {
+		if !category.Enabled {
+			common.DisabledCategories = append(common.DisabledCategories, category.Name)
+		}
+	}
+	if len(flags.qaEnabledCategories) > 0 {
+		for k := range common.QACategoryMap {
+			if !common.IsStringPresent(flags.qaEnabledCategories, k) {
+				common.DisabledCategories = append(common.DisabledCategories, k)
+			}
+		}
+	} else {
+		common.DisabledCategories = append(common.DisabledCategories, flags.qaDisabledCategories...)
+	}
+	if len(common.DisabledCategories) > 0 {
+		logrus.Infof("Disabling the questions in the following categories: %v", common.DisabledCategories)
+	}
+}
+
 func startQA(flags qaflags) {
+	initDisabledCategories(flags)
 	qaengine.StartEngine(flags.qaskip, flags.qaport, flags.qadisablecli)
 	if flags.configOut == "" {
 		qaengine.SetupConfigFile("", flags.setconfigs, flags.configs, flags.preSets, flags.persistPasswords)
