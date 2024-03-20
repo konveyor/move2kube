@@ -118,6 +118,19 @@ func SetupConfigFile(writeConfigFile string, configStrings, configFiles, presets
 	}
 }
 
+func isQuestionDisabled(prob qatypes.Problem) bool {
+	isDisabled := false
+	probCategories := qatypes.GetProblemCategories(prob.ID, prob.Categories)
+	for _, category := range probCategories {
+		if common.IsStringPresent(common.DisabledCategories, category) {
+			logrus.Debugf("Question belongs to the disabled category: %s", category)
+			isDisabled = true
+			break
+		}
+	}
+	return isDisabled
+}
+
 // FetchAnswer fetches the answer for the question
 func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	logrus.Trace("FetchAnswer start")
@@ -126,6 +139,9 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 	if prob.Answer != nil {
 		logrus.Debugf("Problem already solved.")
 		return prob, nil
+	}
+	if isQuestionDisabled(prob) {
+		return defaultEngine.FetchAnswer(prob)
 	}
 	var err error
 	logrus.Debug("looping through the engines to try and fetch the answer")
