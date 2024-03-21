@@ -187,7 +187,7 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 		if isDisabled {
 			logrus.Debugf("the question is from a disabled category so try with default engine")
 			prob, err = defaultEngine.FetchAnswer(prob)
-			if err != nil {
+			if err != nil || prob.Answer == nil {
 				return prob, fmt.Errorf("failed to fetch the answer for problem: %+v . Error: %w", prob, err)
 			}
 		}
