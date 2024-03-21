@@ -140,15 +140,24 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 		logrus.Debugf("Problem already solved.")
 		return prob, nil
 	}
-	if isQuestionDisabled(prob) {
-		return defaultEngine.FetchAnswer(prob)
-	}
 	var err error
 	logrus.Debug("looping through the engines to try and fetch the answer")
+	isDisabled := isQuestionDisabled(prob)
 	for _, engine := range engines {
 		logrus.Debugf("engine '%T'", engine)
 		if prob.Desc == "" && engine.IsInteractiveEngine() {
 			return defaultEngine.FetchAnswer(prob)
+		}
+		if isDisabled && engine.IsInteractiveEngine() {
+			logrus.Debugf("The question belongs to a disabled category so we won't ask the user for the answer")
+			prob, err = defaultEngine.FetchAnswer(prob)
+			if err != nil {
+				return prob, err
+			}
+			if prob.Answer != nil {
+				prob = changeSelectToInputForOther(prob)
+			}
+			break
 		}
 		prob, err = engine.FetchAnswer(prob)
 		if err != nil {
@@ -174,6 +183,13 @@ func FetchAnswer(prob qatypes.Problem) (qatypes.Problem, error) {
 		if !lastEngine.IsInteractiveEngine() {
 			logrus.Debug("there is no interactive engine")
 			return prob, fmt.Errorf("failed to fetch the answer for problem: %+v . Error: %w", prob, err)
+		}
+		if isDisabled {
+			logrus.Debugf("the question is from a disabled category so try with default engine")
+			prob, err = defaultEngine.FetchAnswer(prob)
+			if err != nil {
+				return prob, fmt.Errorf("failed to fetch the answer for problem: %+v . Error: %w", prob, err)
+			}
 		}
 		for err != nil || prob.Answer == nil {
 			prob, err = lastEngine.FetchAnswer(prob)
