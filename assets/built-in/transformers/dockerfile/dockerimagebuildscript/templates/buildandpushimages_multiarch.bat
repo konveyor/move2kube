@@ -17,6 +17,8 @@
 :: 1) buildandpush_multiarchimages.bat
 :: 2) buildandpush_multiarchimages.bat index.docker.io your_registry_namespace
 :: 3) buildandpush_multiarchimages.bat quay.io your_quay_username linux/amd64,linux/arm64,linux/s390x
+:: 4) ./buildandpush_multiarchimages.bat docker
+:: 5) ./buildandpush_multiarchimages.bat podman quay.io your_quay_username linux/amd64,linux/arm64,linux/s390x
 
 @echo off
 for /F "delims=" %%i in ("%cd%") do set basename="%%~ni"
@@ -29,9 +31,17 @@ if not %basename% == "scripts" (
 REM go to the parent directory so that all the relative paths will be correct
 cd {{ .RelParentOfSourceDir }}
 
+
+IF "%1"=="docker" (
+    shift
+    GOTO DOCKER_CONTAINER_RUNTIME
+)
+IF "%1"=="podman" (
+    shift
+    GOTO PODMAN_CONTAINER_RUNTIME
+)
 SET CONTAINER_RUNTIME={{ .ContainerRuntime }}
 GOTO DOCKER_CONTAINER_RUNTIME
-
 
 IF "%3"=="" GOTO DEFAULT_PLATFORMS
 SET PLATFORMS=%3%
