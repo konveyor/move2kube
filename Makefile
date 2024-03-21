@@ -55,9 +55,14 @@ endif
 VERSION ?= latest
 
 VERSION_METADATA = unreleased
-ifneq ($(GIT_TAG),)
-	VERSION_METADATA =
+ifneq ($(filter v%[0-9].%[0-9].%[0-9],$(GIT_TAG)),)
+    VERSION_METADATA = stable
+else ifneq ($(filter v%[0-9].%[0-9].%[0-9]-%,$(GIT_TAG)),)
+    VERSION_METADATA = prerelease
+else ifneq ($(filter v%[0-9].%[0-9].%[0-9]-released,$(GIT_TAG)),)
+    VERSION_METADATA = released
 endif
+
 LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.buildmetadata=${VERSION_METADATA}
 
 LDFLAGS += -X github.com/konveyor/${BINNAME}/types/info.gitCommit=${GIT_COMMIT}
