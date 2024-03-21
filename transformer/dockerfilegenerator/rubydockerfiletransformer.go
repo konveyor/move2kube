@@ -59,7 +59,7 @@ func (t *RubyDockerfileGenerator) GetConfig() (transformertypes.Transformer, *en
 
 // DirectoryDetect runs detect in each sub directory
 func (t *RubyDockerfileGenerator) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
-	gemfilePaths, err := common.GetFilesByName(dir, []string{"Gemfile"}, nil)
+	gemfilePaths, err := common.GetFilesInCurrentDirectory(dir, []string{"Gemfile"}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to look for Gemfiles in the dir %s . Error: %q", dir, err)
 	}
