@@ -78,7 +78,7 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 	packSpecConfig.Envs = normEnvs
 	pathedKs, err := k8sschema.GetK8sResourcesWithPaths(cleanSrcDir, false)
 	if err != nil {
-		return filesWritten, err
+		return filesWritten, fmt.Errorf("failed to get the K8s resources in the directory '%s' . Error: %w", cleanSrcDir, err)
 	}
 	if packSpecConfig.Helm != "" {
 		// helm chart with multiple values.yaml
@@ -152,12 +152,12 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 					// compute the json patch
 					currKustPatches := map[string]map[string]PatchT{} // keyed by env and json pointer/path
 					if err := parameterize(TargetKustomize, packSpecConfig.Envs, k, ps, nil, currKustPatches, nil); err != nil {
-						logrus.Errorf("Unable to parameterize %s : %s", finalKPath, err)
+						logrus.Errorf("failed to parameterize for Kustomize the path '%s' . Error: %q", finalKPath, err)
 					}
 					// patch metadata to put in kustomization.yaml
-					group, version, kind, metadataName, err := getGVKNFromK(k)
+					group, version, kind, metadataName, err := k8sschema.GetGVKNFromK(k)
 					if err != nil {
-						logrus.Errorf("Unable to get GVK info for %s : %s", finalKPath, err)
+						logrus.Errorf("failed to get the Group Version Kind info from the YAML at path '%s' . Error: %q", finalKPath, err)
 						continue
 					}
 					patchFilename := fmt.Sprintf("%s-%s-%s-%s.yaml", group, version, kind, metadataName)
@@ -277,25 +277,6 @@ func Parameterize(srcDir, outDir string, packSpecConfig ParameterizerConfigT, ps
 
 // ------------------------------
 // Utilities
-
-func getGVKNFromK(k k8sschema.K8sResourceT) (group string, version string, kind string, metadataName string, err error) {
-	var apiVersion string
-	kind, apiVersion, metadataName, err = k8sschema.GetInfoFromK8sResource(k)
-	if err != nil {
-		return kind, "", "", metadataName, err
-	}
-	t1s := strings.Split(apiVersion, "/")
-	if len(t1s) == 0 || len(t1s) > 2 {
-		err = fmt.Errorf("failed to get group and version from %s", apiVersion)
-		return kind, apiVersion, apiVersion, metadataName, err
-	}
-	if len(t1s) == 1 {
-		version = t1s[0]
-	} else if len(t1s) == 2 {
-		group, version = t1s[0], t1s[1]
-	}
-	return group, version, kind, metadataName, nil
-}
 
 func getParameters(templ string) ([]string, error) {
 	matches := stringInterpRegex.FindAllStringSubmatch(templ, -1)
