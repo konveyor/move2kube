@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/konveyor/move2kube/common"
@@ -49,25 +50,32 @@ func Intersection(objs1 []runtime.Object, objs2 []runtime.Object) []runtime.Obje
 	return objs
 }
 
-// GetInfoFromK8sResource returns some useful information given a k8s resource
-func GetInfoFromK8sResource(k8sResource K8sResourceT) (kind, apiVersion, name string, err error) {
-	logrus.Trace("start getInfoFromK8sResource")
-	defer logrus.Trace("end getInfoFromK8sResource")
+// GetOnlyGVKInfoFromK8sResource returns the Group Version Kind information given a k8s resource
+func GetOnlyGVKInfoFromK8sResource(k8sResource K8sResourceT) (kind, apiVersion string, err error) {
 	kindI, ok := k8sResource["kind"]
 	if !ok {
-		return "", "", "", fmt.Errorf("there is no kind specified in the k8s resource %+v", k8sResource)
+		return "", "", fmt.Errorf("there is no kind specified in the k8s resource %+v", k8sResource)
 	}
 	kind, ok = kindI.(string)
 	if !ok {
-		return "", "", "", fmt.Errorf("expected kind to be of type string. Actual value %+v is of type %T", kindI, kindI)
+		return "", "", fmt.Errorf("expected kind to be of type string. Actual value %+v is of type %T", kindI, kindI)
 	}
 	apiVersionI, ok := k8sResource["apiVersion"]
 	if !ok {
-		return kind, "", "", fmt.Errorf("there is no apiVersion specified in the k8s resource %+v", k8sResource)
+		return kind, "", fmt.Errorf("there is no apiVersion specified in the k8s resource %+v", k8sResource)
 	}
 	apiVersion, ok = apiVersionI.(string)
 	if !ok {
-		return kind, "", "", fmt.Errorf("expected apiVersion to be of type string. Actual value %+v is of type %T", apiVersionI, apiVersionI)
+		return kind, "", fmt.Errorf("expected apiVersion to be of type string. Actual value %+v is of type %T", apiVersionI, apiVersionI)
+	}
+	return kind, apiVersion, nil
+}
+
+// GetInfoFromK8sResource returns some useful information given a k8s resource
+func GetInfoFromK8sResource(k8sResource K8sResourceT) (kind, apiVersion, name string, err error) {
+	kind, apiVersion, err = GetOnlyGVKInfoFromK8sResource(k8sResource)
+	if err != nil {
+		return "", "", "", err
 	}
 	metadataI, ok := k8sResource["metadata"]
 	if !ok {
@@ -158,6 +166,13 @@ func GetK8sResourcesFromYaml(k8sYaml string) ([]K8sResourceT, error) {
 	if err := yaml.Unmarshal([]byte(k8sYaml), &resourceI); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal the string '%s' as YAML. Error: %w", k8sYaml, err)
 	}
+	resourceMap, ok := resourceI.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("expected the YAML to be a map[string]interface{} . Actual type %T value %+v", resourceI, resourceI)
+	}
+	if _, _, err := GetOnlyGVKInfoFromK8sResource(resourceMap); err != nil {
+		return nil, fmt.Errorf("failed to get the Group Version Kind info from the YAML. Error: %w", err)
+	}
 	resourceJSONBytes, err := json.Marshal(resourceI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal the K8s resource as JSON. K8s resource: %+v Error: %w", resourceI, err)
@@ -196,4 +211,24 @@ func GetKubernetesObjsInDir(dir string) []runtime.Object {
 		objs = append(objs, obj)
 	}
 	return objs
+}
+
+// GetGVKNFromK gets the GVK and metadata.name information for a K8s resource
+func GetGVKNFromK(k K8sResourceT) (group string, version string, kind string, metadataName string, err error) {
+	var apiVersion string
+	kind, apiVersion, metadataName, err = GetInfoFromK8sResource(k)
+	if err != nil {
+		return kind, "", "", metadataName, err
+	}
+	t1s := strings.Split(apiVersion, "/")
+	if len(t1s) == 0 || len(t1s) > 2 {
+		err = fmt.Errorf("failed to get group and version from %s", apiVersion)
+		return kind, apiVersion, apiVersion, metadataName, err
+	}
+	if len(t1s) == 1 {
+		version = t1s[0]
+	} else if len(t1s) == 2 {
+		group, version = t1s[0], t1s[1]
+	}
+	return group, version, kind, metadataName, nil
 }
