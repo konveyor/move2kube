@@ -21,7 +21,7 @@
 
 REGISTRY_URL={{ .RegistryURL }}
 REGISTRY_NAMESPACE={{ .RegistryNamespace }}
-CONTAINER_RUNTIME=docker
+CONTAINER_RUNTIME={{ .ContainerRuntime }}
 if [ "$#" -gt 1 ]; then
   REGISTRY_URL=$1
   REGISTRY_NAMESPACE=$2

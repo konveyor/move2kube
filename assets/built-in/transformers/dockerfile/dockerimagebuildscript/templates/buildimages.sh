@@ -22,7 +22,7 @@ if [[ "$(basename "$PWD")" != 'scripts' ]] ; then
   echo 'please run this script from the "scripts" directory'
   exit 1
 fi
-CONTAINER_RUNTIME=docker
+CONTAINER_RUNTIME={{ .ContainerRuntime }}
 if [ "$#" -eq 1 ]; then
     CONTAINER_RUNTIME=$1
 fi
