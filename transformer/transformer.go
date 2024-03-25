@@ -76,6 +76,8 @@ const (
 	DEFAULT_SELECTED_LABEL = types.GroupName + "/default-selected"
 	// CONTAINER_BASED_LABEL is a label that indicates that the transformer needs to spawn containers to run.
 	CONTAINER_BASED_LABEL = types.GroupName + "/container-based"
+	// SORT_ORDER_LABEL is a label that is used while sorting the list of all transformers.
+	SORT_ORDER_LABEL = types.GroupName + "/sort-order"
 )
 
 var (
@@ -232,7 +234,8 @@ func InitTransformers(transformerYamlPaths map[string]string, selector labels.Se
 			deselectedTransformers[transformerName] = transformerYamlPaths[transformerName]
 		}
 	}
-	for _, selectedTransformerName := range selectedTransformerNames {
+	transformerSortOrders := []int{}
+	for currSortOrder, selectedTransformerName := range selectedTransformerNames {
 		transformerConfig, ok := transformerConfigs[selectedTransformerName]
 		if !ok {
 			logrus.Errorf("failed to find the transformer with the name: '%s'", selectedTransformerName)
@@ -284,12 +287,34 @@ func InitTransformers(transformerYamlPaths map[string]string, selector labels.Se
 			continue
 		}
 		transformers = append(transformers, transformer)
+		// for sorting later on
+		newSortOrder := currSortOrder
+		if s, ok := transformerConfig.ObjectMeta.Labels[SORT_ORDER_LABEL]; ok {
+			if x, err := cast.ToIntE(s); err != nil {
+				logrus.Errorf(
+					"Using %d as the sort order since the one specified in the transformer.yaml is not a valid integer. Actual: '%s' Error: %q",
+					currSortOrder, s, err,
+				)
+			} else {
+				logrus.Debugf("using new sort order: %d", x)
+				newSortOrder = x
+			}
+		}
+		transformerSortOrders = append(transformerSortOrders, newSortOrder)
+		// for sorting later on
 		transformerMap[selectedTransformerName] = transformer
 		if transformerConfig.Spec.InvokedByDefault.Enabled {
 			invokedByDefaultTransformers = append(invokedByDefaultTransformers, transformer)
 		}
 	}
 	initialized = true
+	if len(transformerSortOrders) != len(transformers) {
+		panic("expected transformers and transformerSortOrders to have the same length")
+	}
+	logrus.Debugf("before sorting the transformers list, transformerSortOrders: %+v transformers: %+v", transformerSortOrders, transformers)
+	sortable := &common.Sortable[Transformer]{Xs: transformers, Ys: transformerSortOrders}
+	sort.Stable(sortable)
+	logrus.Debugf("after sorting the transformers list, transformerSortOrders: %+v transformers: %+v", transformerSortOrders, transformers)
 	return deselectedTransformers, nil
 }
 

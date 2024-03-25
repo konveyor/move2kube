@@ -4,6 +4,7 @@ metadata:
   name: Parameterizer
   labels:
     move2kube.konveyor.io/built-in: true
+    move2kube.konveyor.io/sort-order: 10000
 spec:
   class: "Parameterizer"
   directoryDetect:

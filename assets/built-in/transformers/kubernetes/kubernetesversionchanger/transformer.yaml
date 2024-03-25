@@ -4,6 +4,7 @@ metadata:
   name: KubernetesVersionChanger
   labels:
     move2kube.konveyor.io/built-in: true
+    move2kube.konveyor.io/sort-order: 9999
 spec:
   class: "KubernetesVersionChanger"
   directoryDetect:
