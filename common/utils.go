@@ -59,6 +59,34 @@ import (
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
+// sorting
+
+// Sortable is an implementation of the sort.Interface interface.
+// This is useful when you want to sort one slice using another slice.
+type Sortable[T any] struct {
+	Xs []T
+	Ys []int
+}
+
+// Len is the number of elements in the collection.
+func (s *Sortable[T]) Len() int {
+	return len(s.Xs)
+}
+
+// Less reports whether the element with index i
+// must sort before the element with index j.
+func (s *Sortable[T]) Less(i, j int) bool {
+	return s.Ys[i] < s.Ys[j]
+}
+
+// Swap swaps the elements with indexes i and j.
+func (s *Sortable[T]) Swap(i, j int) {
+	s.Xs[i], s.Xs[j] = s.Xs[j], s.Xs[i]
+	s.Ys[i], s.Ys[j] = s.Ys[j], s.Ys[i]
+}
+
+// sorting
+
 // LookupEnv looks for a environment variable in a list of environment variables
 func LookupEnv(envNameToLookup string, envList []core.EnvVar) (core.EnvVar, bool) {
 	for _, env := range envList {
