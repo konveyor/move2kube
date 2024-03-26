@@ -66,6 +66,18 @@ type transformFlags struct {
 	transformerSelector string
 }
 
+func writeOutMemoryProfile(outPath string) {
+	profileFile, err := os.Create(outPath)
+	if err != nil {
+		logrus.Fatalf("failed to create a profile file at the path '%s' . Error: %q", outPath, err)
+	}
+	defer profileFile.Close()
+	// runtime.GC() // get up-to-date statistics
+	if err := pprof.WriteHeapProfile(profileFile); err != nil {
+		panic(err)
+	}
+}
+
 func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	if flags.profilepath != "" {
 		absprofilepath, err := filepath.Abs(flags.profilepath)
@@ -90,10 +102,11 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 			if err := os.MkdirAll(flags.profilepath, common.DefaultDirectoryPermission); err != nil {
 				logrus.Fatalf("failed to create a profile directory at the path '%s' . Error: %q", flags.profilepath, err)
 			}
-			idx := 0
 			ticker := time.NewTicker(timeBetweenSamples)
 			done := make(chan interface{})
 			defer close(done)
+			idx := 0
+			writeOutMemoryProfile(filepath.Join(flags.profilepath, fmt.Sprintf("mem-%d.prof", idx)))
 			go func() {
 				for {
 					select {
@@ -104,16 +117,7 @@ func transformHandler(cmd *cobra.Command, flags transformFlags) {
 					case <-ticker.C:
 						{
 							idx++
-							outPath := filepath.Join(flags.profilepath, fmt.Sprintf("mem-%d", idx))
-							profileFile, err := os.Create(outPath)
-							if err != nil {
-								logrus.Fatalf("failed to create a profile file at the path '%s' . Error: %q", outPath, err)
-							}
-							// runtime.GC() // get up-to-date statistics
-							if err := pprof.WriteHeapProfile(profileFile); err != nil {
-								panic(err)
-							}
-							profileFile.Close()
+							writeOutMemoryProfile(filepath.Join(flags.profilepath, fmt.Sprintf("mem-%d.prof", idx)))
 						}
 					}
 				}
