@@ -27,6 +27,10 @@ const (
 	planFlag = "plan"
 	// profileFlag is the name of the flag that contains the path where the CPU profile file should be generated
 	profileFlag = "profile"
+	// profileTypeFlag is the name of the flag that contains the type of profiling that should be performed
+	profileTypeFlag = "profile-type"
+	// profileIntervalFlag is the name of the flag that contains the frequency with which we profile the heap memory
+	profileIntervalFlag = "profile-interval-ms"
 	// ignoreEnvFlag is the name of the flag that tells us whether to use data collected from the local machine
 	ignoreEnvFlag = "ignore-env"
 	// qaSkipFlag is the name of the flag that lets you skip all the question answers

@@ -18,10 +18,12 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime/pprof"
+	"time"
 
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/common/download"
@@ -45,6 +47,10 @@ type transformFlags struct {
 	planfile string
 	// profilepath contains the path to the CPU profile file
 	profilepath string
+	// profiletype contains the type of profiling to do (CPU or Heap Memory)
+	profiletype string
+	// profileInterval contains the time interval between profiles of the heap memory
+	profileInterval int
 	// outpath contains the path to the output folder
 	outpath string
 	// SourceFlag contains path to the source folder
@@ -62,12 +68,59 @@ type transformFlags struct {
 
 func transformHandler(cmd *cobra.Command, flags transformFlags) {
 	if flags.profilepath != "" {
-		if f, err := os.Create(flags.profilepath); err != nil {
-			panic(err)
-		} else if err := pprof.StartCPUProfile(f); err != nil {
-			panic(err)
+		absprofilepath, err := filepath.Abs(flags.profilepath)
+		if err != nil {
+			logrus.Fatalf("failed to make the profile output path '%s' absolute. Error: %q", flags.profilepath, err)
 		}
-		defer pprof.StopCPUProfile()
+		flags.profilepath = absprofilepath
+		if flags.profiletype == "cpu" {
+			logrus.Infof("Starting CPU profiling")
+			profileFile, err := os.Create(flags.profilepath)
+			if err != nil {
+				logrus.Fatalf("failed to create a profile file at the path '%s' . Error: %q", flags.profilepath, err)
+			}
+			defer profileFile.Close()
+			if err := pprof.StartCPUProfile(profileFile); err != nil {
+				panic(err)
+			}
+			defer pprof.StopCPUProfile()
+		} else if flags.profiletype == "heap" {
+			logrus.Infof("Starting Heap Memory profiling (profile every %d milliseconds)", flags.profileInterval)
+			timeBetweenSamples := time.Duration(flags.profileInterval) * time.Millisecond
+			if err := os.MkdirAll(flags.profilepath, common.DefaultDirectoryPermission); err != nil {
+				logrus.Fatalf("failed to create a profile directory at the path '%s' . Error: %q", flags.profilepath, err)
+			}
+			idx := 0
+			ticker := time.NewTicker(timeBetweenSamples)
+			done := make(chan interface{})
+			defer close(done)
+			go func() {
+				for {
+					select {
+					case <-done:
+						{
+							return
+						}
+					case <-ticker.C:
+						{
+							idx++
+							outPath := filepath.Join(flags.profilepath, fmt.Sprintf("mem-%d", idx))
+							profileFile, err := os.Create(outPath)
+							if err != nil {
+								logrus.Fatalf("failed to create a profile file at the path '%s' . Error: %q", outPath, err)
+							}
+							// runtime.GC() // get up-to-date statistics
+							if err := pprof.WriteHeapProfile(profileFile); err != nil {
+								panic(err)
+							}
+							profileFile.Close()
+						}
+					}
+				}
+			}()
+		} else {
+			logrus.Fatalf("unknown profiling type. Please select either 'cpu' or 'heap'")
+		}
 	}
 	vcs.SetMaxRepoCloneSize(flags.maxVCSRepoCloneSize)
 
@@ -251,6 +304,8 @@ func GetTransformCommand() *cobra.Command {
 
 	// Basic options
 	transformCmd.Flags().StringVar(&flags.profilepath, profileFlag, "", "Path where the CPU profile file should be generated. By default we don't profile.")
+	transformCmd.Flags().StringVar(&flags.profiletype, profileTypeFlag, "cpu", "The type of profiling that should be performed. Valid values are 'cpu' and 'heap' (Default 'cpu'). This flag is only used if the --profile flag is also provided.")
+	transformCmd.Flags().IntVar(&flags.profileInterval, profileIntervalFlag, 500, "Time (in milliseconds) between samples of the heap memory profile. Default 500ms. This flag is only used if the --profile-type flag is set to 'heap'.")
 	transformCmd.Flags().StringVarP(&flags.planfile, planFlag, "p", common.DefaultPlanFile, "Specify a plan file to execute.")
 	transformCmd.Flags().BoolVar(&flags.overwrite, overwriteFlag, false, "Overwrite the output directory if it exists. By default we don't overwrite.")
 	transformCmd.Flags().StringVarP(&flags.srcpath, sourceFlag, "s", "", "Specify source directory or a git url (see https://move2kube.konveyor.io/concepts/git-support) to transform. If you already have a m2k.plan then this will override the sourceDir value specified in that plan.")
