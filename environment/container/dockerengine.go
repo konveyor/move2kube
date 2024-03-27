@@ -21,8 +21,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+    "os"
 	"io"
 	"io/fs"
+    "path/filepath"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -231,14 +233,26 @@ func (e *dockerEngine) CopyDirsIntoImage(image, newImageName string, paths map[s
 	return nil
 }
 
-// CopyDirsIntoContainer copies some directories into a container
-func (e *dockerEngine) CopyDirsIntoContainer(containerID string, paths map[string]string) (err error) {
+// CopyDataIntoContainer copies files or directories into a container
+func (e *dockerEngine) CopyDataIntoContainer(containerID string, paths map[string]string) (err error) {
 	for sp, dp := range paths {
-		err = copyDirToContainer(e.ctx, e.cli, containerID, sp, dp)
+        fi, err := os.Stat(sp)
 		if err != nil {
-			return fmt.Errorf("container data copy failed for image '%s' with volume %s:%s . Error: %w", containerID, sp, dp, err)
+			return fmt.Errorf("failed to stat the source path '%s' . Error: %w", sp, err)
 		}
-	}
+		if fi.Mode().IsDir() {
+            err = copyDirToContainer(e.ctx, e.cli, containerID, sp, dp)
+            if err != nil {
+                return fmt.Errorf("container data copy failed for image '%s' with volume %s:%s . Error: %w", containerID, sp, dp, err)
+            }
+        } else {
+            newDestPath := filepath.Join(dp, fi.Name())
+            err = copyDirToContainer(e.ctx, e.cli, containerID, sp, newDestPath)
+            if err != nil {
+                return fmt.Errorf("container data copy failed for image '%s' with volume %s:%s . Error: %w", containerID, sp, newDestPath, err)
+            }
+        }
+    }
 	return nil
 }
 
@@ -253,12 +267,23 @@ func (e *dockerEngine) Stat(containerID string, name string) (fs.FileInfo, error
 	}, err
 }
 
-// CopyDirsFromContainer copies a directory from inside the container
-func (e *dockerEngine) CopyDirsFromContainer(containerID string, paths map[string]string) (err error) {
-	for sp, dp := range paths {
-		if err := copyFromContainer(e.ctx, e.cli, containerID, sp, dp); err != nil {
-			return fmt.Errorf("failed to copy data from the container with ID '%s' from source path '%s' to destination path '%s' . Error: %w", containerID, sp, dp, err)
+// CopyDataFromContainer copies files or directories from inside the container
+func (e *dockerEngine) CopyDataFromContainer(containerID string, paths map[string]string) (err error) {
+    for sp, dp := range paths {
+        fi, err := os.Stat(sp)
+		if err != nil {
+			return fmt.Errorf("failed to stat the source path '%s' . Error: %w", sp, err)
 		}
+        if fi.Mode().IsDir() {
+            if err := copyFromContainer(e.ctx, e.cli, containerID, sp, dp); err != nil {
+                return fmt.Errorf("failed to copy data from the container with ID '%s' from source path '%s' to destination path '%s' . Error: %w", containerID, sp, dp, err)
+            }
+        } else {
+			newDestPath := filepath.Join(dp, fi.Name())
+			if err := copyFromContainer(e.ctx, e.cli, containerID, sp, newDestPath); err != nil {
+				return fmt.Errorf("failed to copy data from the container with ID '%s' from source path '%s' to destination path '%s' . Error: %w", containerID, sp, newDestPath, err)
+			}
+        }
 	}
 	return nil
 }

@@ -296,7 +296,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 		paths[absDir1] = "/dir1"
 		paths[absDir2] = "/dir2"
 
-		err = provider.CopyDirsIntoContainer(containerID, paths)
+		err = provider.CopyDataIntoContainer(containerID, paths)
 		if err != nil {
 			t.Fatalf("failed to copy dirs into iamge '%s' . Error: %q", image, err)
 		}
@@ -365,7 +365,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 		paths[absDir1] = "/dir1"
 		paths[absDir2] = "/dir2"
 
-		err = provider.CopyDirsIntoContainer(containerID, paths)
+		err = provider.CopyDataIntoContainer(containerID, paths)
 		if err != nil {
 			t.Fatalf("failed to copy dirs into iamge '%s' . Error: %q", image, err)
 		}
@@ -383,7 +383,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 		paths["/dir1"] = tempDir
 		paths["/dir2"] = tempDir
 
-		err = provider.CopyDirsFromContainer(containerID, paths)
+		err = provider.CopyDataFromContainer(containerID, paths)
 		if err != nil {
 			t.Fatal("failed to copy Directories from Container ", err)
 		}

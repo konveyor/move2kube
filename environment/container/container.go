@@ -44,8 +44,8 @@ type ContainerEngine interface {
 	InspectImage(image string) (dockertypes.ImageInspect, error)
 	// TODO: Change paths from map to array
 	CopyDirsIntoImage(image, newImageName string, paths map[string]string) (err error)
-	CopyDirsIntoContainer(containerID string, paths map[string]string) (err error)
-	CopyDirsFromContainer(containerID string, paths map[string]string) (err error)
+	CopyDataIntoContainer(containerID string, paths map[string]string) (err error)
+	CopyDataFromContainer(containerID string, paths map[string]string) (err error)
 	BuildImage(image, context, dockerfile string) (err error)
 	RemoveImage(image string) (err error)
 	CreateContainer(container environmenttypes.Container) (containerid string, err error)
