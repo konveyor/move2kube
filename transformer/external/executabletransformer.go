@@ -124,7 +124,6 @@ func (t *Executable) DirectoryDetect(dir string) (services map[string][]transfor
 		containerDetectOutputPath = env.Value
 	}
 	services, err = t.executeDetect(
-		t.ExecConfig.DirectoryDetectCMD,
 		containerDetectInputPath,
 		containerDetectOutputPath,
 	)
@@ -199,7 +198,6 @@ func (t *Executable) Transform(newArtifacts []transformertypes.Artifact, already
 }
 
 func (t *Executable) executeDetect(
-	cmd environmenttypes.Command,
 	inputPath string,
 	outputPath string,
 ) (services map[string][]transformertypes.Artifact, err error) {

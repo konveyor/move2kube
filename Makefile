@@ -171,7 +171,7 @@ $(GOX):
 
 .PHONY: build-cross
 build-cross: $(GOX) clean $(SRC) $(ASSETS) $(WEB_ASSETS)
-	CGO_ENABLED=1 $(GOX) -parallel=3 -output="$(DISTDIR)/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' .
+	CGO_ENABLED=0 $(GOX) -parallel=3 -output="$(DISTDIR)/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' .
 
 .PHONY: dist
 dist: clean build-cross ## Build distribution

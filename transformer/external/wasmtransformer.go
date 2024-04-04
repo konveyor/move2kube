@@ -17,9 +17,10 @@
 package external
 
 import (
-	"encoding/binary"
+	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -27,8 +28,9 @@ import (
 	"github.com/konveyor/move2kube/common"
 	"github.com/konveyor/move2kube/environment"
 	transformertypes "github.com/konveyor/move2kube/types/transformer"
-	"github.com/second-state/WasmEdge-go/wasmedge"
-	"github.com/sirupsen/logrus"
+	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/api"
+	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	core "k8s.io/kubernetes/pkg/apis/core"
 )
 
@@ -49,8 +51,9 @@ type WASM struct {
 
 // WASMYamlConfig is the format of wasm transformer yaml config
 type WASMYamlConfig struct {
-	WASMModule string        `yaml:"wasm_module"`
-	EnvList    []core.EnvVar `yaml:"env,omitempty"`
+	WASMModule    string        `yaml:"wasm_module"`
+	ExecutionMode string        `yaml:"execution_mode"`
+	EnvList       []core.EnvVar `yaml:"env,omitempty"`
 }
 
 // Init Initializes the transformer
@@ -78,49 +81,64 @@ func (t *WASM) GetConfig() (transformertypes.Transformer, *environment.Environme
 	return t.Config, t.Env
 }
 
+func unpack(combinedResult uint64) (ptr uint32, size uint32) {
+	// The pointer is the upper 32 bits of the combinedResult.
+	ptr = uint32(combinedResult >> 32)
+	// The size is the lower 32 bits of the combinedResult.
+	size = uint32(combinedResult)
+	return ptr, size
+}
+
+func pack(pointer uint32, size uint32) uint64 {
+	return (uint64(pointer) << 32) | uint64(size)
+}
+
 // DirectoryDetect runs detect in each sub directory
 func (t *WASM) DirectoryDetect(dir string) (map[string][]transformertypes.Artifact, error) {
-	vm, err := t.initVm([]string{dir + ":" + dir})
+	mod, ctx, rt, err := t.initVm([][]string{{dir, dir}})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize WASM VM: %w", err)
 	}
+	defer rt.Close(ctx)
+	directoryDetectFunc := mod.ExportedFunction("directoryDetect")
+	malloc := mod.ExportedFunction("malloc")
+	free := mod.ExportedFunction("free")
 
-	allocateResult, err := vm.Execute("malloc", int32(len(dir)+1))
+	allocateResult, err := malloc.Call(ctx, uint64(len(dir)+1))
 	if err != nil {
 		return nil, fmt.Errorf("failed to alloc memory for directory: %w", err)
 	}
-	dirPointer := allocateResult[0].(int32)
-	mod := vm.GetActiveModule()
-	mem := mod.FindMemory("memory")
-	memData, err := mem.GetData(uint(dirPointer), uint(len(dir)+1))
-	if err != nil {
-		return nil, fmt.Errorf("failed to load wasm memory region: %w", err)
-	}
-	copy(memData, dir)
-	memData[len(dir)] = 0
-	directoryDetectOutput, dderr := vm.Execute("directoryDetect", dirPointer)
-	if dderr != nil {
-		err = fmt.Errorf("failed to execute directoryDetect in the wasm module. Error : %w", dderr)
-		return nil, err
-	}
-	directoryDetectOutputPointer := directoryDetectOutput[0].(int32)
-	memData, err = mem.GetData(uint(directoryDetectOutputPointer), 8)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load directoryDetect output: %w", err)
-	}
-	resultPointer := binary.LittleEndian.Uint32(memData[:4])
-	resultLength := binary.LittleEndian.Uint32(memData[4:])
-	memData, err = mem.GetData(uint(resultPointer), uint(resultLength))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read directoryDetect output: %w", err)
+	dirPointer := int32(allocateResult[0])
+
+	defer free.Call(ctx, uint64(dirPointer))
+
+	dirBytes := []byte(dir)
+	dirPointerSize := uint32(len(dirBytes))
+
+	if !mod.Memory().Write(uint32(dirPointer), dirBytes) {
+		return nil, fmt.Errorf("Memory.Write(%d, %d) out of range of memory size %d",
+			dirPointer, len(dir)+1, mod.Memory().Size())
 	}
 
-	services := map[string][]transformertypes.Artifact{}
-	err = json.Unmarshal(memData, &services)
+	packedPointerSize := pack(uint32(dirPointer), dirPointerSize)
+	directoryDetectResultPtrSize, err := directoryDetectFunc.Call(ctx, uint64(packedPointerSize))
 	if err != nil {
-		err = fmt.Errorf("failed to unmarshal directoryDetect output: %w", err)
+		return nil, fmt.Errorf("failed to execute directory detect function: %w", err)
 	}
-	return services, err
+
+	directoryDetectResultPtr, directoryDetectResultSize := unpack(directoryDetectResultPtrSize[0])
+
+	bytes, ok := mod.Memory().Read(directoryDetectResultPtr, directoryDetectResultSize)
+	if !ok {
+		return nil, fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d",
+			directoryDetectResultPtr, directoryDetectResultSize, mod.Memory().Size())
+	}
+	services := map[string][]transformertypes.Artifact{}
+	err = json.Unmarshal(bytes, &services)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal directoryDetect output: %w", err)
+	}
+	return services, nil
 }
 
 // Transform transforms the artifacts
@@ -139,9 +157,7 @@ func (t *WASM) Transform(newArtifacts []transformertypes.Artifact, alreadySeenAr
 	preopens := []string{}
 	for _, artifact := range newArtifacts {
 		for _, paths := range artifact.Paths {
-			for _, path := range paths {
-				preopens = append(preopens, path)
-			}
+			preopens = append(preopens, paths...)
 		}
 	}
 
@@ -168,80 +184,104 @@ func (t *WASM) Transform(newArtifacts []transformertypes.Artifact, alreadySeenAr
 		}
 	}
 
-	finalPreopens := []string{}
+	finalPreopens := [][]string{}
 	for _, path := range deduplicatedPreopens {
-		finalPreopens = append(finalPreopens, path+":"+path)
+		finalPreopens = append(finalPreopens, []string{path, path})
 	}
 
-	vm, err := t.initVm(finalPreopens)
+	mod, ctx, rt, err := t.initVm(finalPreopens)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to initialize VM (transform): %w", err)
+		return nil, nil, fmt.Errorf("failed to initialize WASM VM: %w", err)
+	}
+	defer rt.Close(ctx)
+
+	transformFunc := mod.ExportedFunction("transform")
+	malloc := mod.ExportedFunction("malloc")
+	free := mod.ExportedFunction("free")
+
+	allocateResult, err := malloc.Call(ctx, uint64(len(dataStr)+1))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to alloc memory for directory: %w", err)
+	}
+	dataPointer := allocateResult[0]
+	defer free.Call(ctx, dataPointer)
+
+	dataBytes := []byte(dataStr)
+	dataPointerSize := uint32(len(dataBytes))
+
+	if !mod.Memory().Write(uint32(dataPointer), []byte(dataStr)) {
+		return nil, nil, fmt.Errorf("Memory.Write(%d, %d) out of range of memory size %d",
+			dataPointer, len(dataStr)+1, mod.Memory().Size())
 	}
 
-	allocateResult, err := vm.Execute("malloc", int32(len(dataStr)+1))
+	packedPointerSize := pack(uint32(dataPointer), dataPointerSize)
+
+	transformResultPtrSize, err := transformFunc.Call(ctx, packedPointerSize)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to alloc memory for transform input: %w", err)
+		return nil, nil, fmt.Errorf("failed to execute transform function: %w", err)
 	}
-	dataPointer := allocateResult[0].(int32)
-	mod := vm.GetActiveModule()
-	mem := mod.FindMemory("memory")
-	memData, err := mem.GetData(uint(dataPointer), uint(len(dataStr)+1))
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load wasm memory region: %w", err)
+
+	transformResultPtr := uint32(transformResultPtrSize[0] >> 32)
+	transformResultSize := uint32(transformResultPtrSize[0])
+
+	if transformResultPtr != 0 {
+		defer func() error {
+			_, err := free.Call(ctx, uint64(transformResultPtr))
+			if err != nil {
+				return fmt.Errorf("failed to free pointer memory: %w", err)
+			}
+			return nil
+		}()
 	}
-	copy(memData, dataStr)
-	memData[len(dataStr)] = 0
-	transformOutput, err := vm.Execute("transform", dataPointer)
-	transformOutputPointer := transformOutput[0].(int32)
-	memData, err = mem.GetData(uint(transformOutputPointer), 8)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load transform output: %w", err)
+
+	bytes, ok := mod.Memory().Read(uint32(transformResultPtr), uint32(transformResultSize))
+	if !ok {
+		return nil, nil, fmt.Errorf("Memory.Read(%d, %d) out of range of memory size %d",
+			transformResultPtr, transformResultSize, mod.Memory().Size())
 	}
-	resultPointer := binary.LittleEndian.Uint32(memData[:4])
-	resultLength := binary.LittleEndian.Uint32(memData[4:])
-	memData, err = mem.GetData(uint(resultPointer), uint(resultLength))
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read transform output: %w", err)
-	}
-	logrus.Debug(string(memData))
+
 	var output transformertypes.TransformOutput
-	err = json.Unmarshal(memData, &output)
+	err = json.Unmarshal(bytes, &output)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to unmarshal transformer output: %w", err)
 	}
 	pathMappings = append(pathMappings, output.PathMappings...)
 	createdArtifacts = append(createdArtifacts, output.CreatedArtifacts...)
-	return pathMappings, createdArtifacts, err
+	return pathMappings, createdArtifacts, nil
 }
 
-func (t *WASM) initVm(preopens []string) (*wasmedge.VM, error) {
-	wasmedge.SetLogErrorLevel()
-	conf := wasmedge.NewConfigure(wasmedge.WASI)
-	vm := wasmedge.NewVMWithConfig(conf)
-
-	wasi := vm.GetImportModule(wasmedge.WASI)
-	wasi.InitWasi(
-		[]string{},
-		t.prepareEnv(),
-		preopens,
-	)
-
-	err := vm.LoadWasmFile(filepath.Join(t.Env.GetEnvironmentContext(), t.WASMConfig.WASMModule))
-	if err != nil {
-		return nil, fmt.Errorf("failed to load wasm module %s: %w", t.WASMConfig.WASMModule, err)
+func (t *WASM) initVm(preopens [][]string) (api.Module, context.Context, wazero.Runtime, error) {
+	ctx := context.Background()
+	var rt wazero.Runtime
+	if t.WASMConfig.ExecutionMode == "compiler" {
+		rt = wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfigCompiler())
+	} else {
+		rt = wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfigInterpreter())
 	}
-	err = vm.Validate()
-	if err != nil {
-		return nil, fmt.Errorf("failed to validate VM: %w", err)
-	}
-	err = vm.Instantiate()
-	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate VM: %w", err)
-	}
-	_, err = vm.Execute("_start")
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute _start: %w", err)
+	fsconfig := wazero.NewFSConfig()
+	for i := range preopens {
+		fsconfig = wazero.NewFSConfig().WithDirMount(preopens[i][0], preopens[i][1])
 	}
 
-	return vm, nil
+	config := wazero.NewModuleConfig().
+		WithStdout(os.Stdout).WithStderr(os.Stderr).WithFSConfig(fsconfig)
+
+	envVars := t.prepareEnv()
+	for _, envVar := range envVars {
+		keyValue := strings.SplitN(envVar, wasmEnvDelimiter, 2)
+		if len(keyValue) == 2 {
+			config = config.WithEnv(keyValue[0], keyValue[1])
+		}
+	}
+
+	wasi_snapshot_preview1.MustInstantiate(ctx, rt)
+	wasmBinary, err := os.ReadFile(filepath.Join(t.Env.GetEnvironmentContext(), t.WASMConfig.WASMModule))
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to open wasm file: %w", err)
+	}
+	mod, err := rt.InstantiateWithConfig(ctx, wasmBinary, config)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to instantiate wasm binary with the given config: %w", err)
+	}
+	return mod, ctx, rt, nil
 }
