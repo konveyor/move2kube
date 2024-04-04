@@ -31,17 +31,11 @@ if not %basename% == "scripts" (
 REM go to the parent directory so that all the relative paths will be correct
 cd {{ .RelParentOfSourceDir }}
 
-
-IF "%1"=="docker" (
-    shift
-    GOTO DOCKER_CONTAINER_RUNTIME
-)
-IF "%1"=="podman" (
-    shift
-    GOTO PODMAN_CONTAINER_RUNTIME
-)
 SET CONTAINER_RUNTIME={{ .ContainerRuntime }}
-GOTO DOCKER_CONTAINER_RUNTIME
+IF "%1"!="" (
+    SET CONTAINER_RUNTIME=%1%
+    shift
+)
 
 IF "%3"=="" GOTO DEFAULT_PLATFORMS
 SET PLATFORMS=%3%
@@ -56,12 +50,12 @@ GOTO REGISTRY
     IF "%1"=="" GOTO DEFAULT_REGISTRY
     SET REGISTRY_URL=%1
     SET REGISTRY_NAMESPACE=%2
-    GOTO MAIN
+    GOTO DOCKER_CONTAINER_RUNTIME
 
 :DEFAULT_REGISTRY
     SET REGISTRY_URL={{ .RegistryURL }}
     SET REGISTRY_NAMESPACE={{ .RegistryNamespace }}
-	GOTO MAIN
+	GOTO DOCKER_CONTAINER_RUNTIME
 
 :DOCKER_CONTAINER_RUNTIME
 	IF NOT "%CONTAINER_RUNTIME%" == "docker" GOTO PODMAN_CONTAINER_RUNTIME
