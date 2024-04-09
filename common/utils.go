@@ -32,6 +32,7 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -1592,4 +1593,15 @@ func IsHTTPURL(str string) bool {
 	regex := regexp.MustCompile(pattern)
 
 	return regex.MatchString(str)
+}
+
+// GetDefaultContainerRuntime returns the preferred container runtime of the host
+func GetDefaultContainerRuntime() string {
+	_, err := exec.LookPath("podman")
+	if err == nil {
+		logrus.Info("Podman executable found in the directories named by the PATH environment variable. Using Podman as the container runtime.")
+		return "podman"
+	}
+	logrus.Info("Couldn't find Podman executable in the directories named by the PATH environment variable. Using Docker as the container runtime.")
+	return "docker"
 }
