@@ -17,6 +17,8 @@
 :: 1) buildandpush_multiarchimages.bat
 :: 2) buildandpush_multiarchimages.bat index.docker.io your_registry_namespace
 :: 3) buildandpush_multiarchimages.bat quay.io your_quay_username linux/amd64,linux/arm64,linux/s390x
+:: 4) ./buildandpush_multiarchimages.bat docker
+:: 5) ./buildandpush_multiarchimages.bat podman quay.io your_quay_username linux/amd64,linux/arm64,linux/s390x
 
 @echo off
 for /F "delims=" %%i in ("%cd%") do set basename="%%~ni"
@@ -28,6 +30,12 @@ if not %basename% == "scripts" (
 
 REM go to the parent directory so that all the relative paths will be correct
 cd {{ .RelParentOfSourceDir }}
+
+SET CONTAINER_RUNTIME={{ .ContainerRuntime }}
+IF "%1"!="" (
+    SET CONTAINER_RUNTIME=%1%
+    shift
+)
 
 IF "%3"=="" GOTO DEFAULT_PLATFORMS
 SET PLATFORMS=%3%
@@ -42,22 +50,41 @@ GOTO REGISTRY
     IF "%1"=="" GOTO DEFAULT_REGISTRY
     SET REGISTRY_URL=%1
     SET REGISTRY_NAMESPACE=%2
-    GOTO MAIN
+    GOTO DOCKER_CONTAINER_RUNTIME
 
 :DEFAULT_REGISTRY
     SET REGISTRY_URL={{ .RegistryURL }}
     SET REGISTRY_NAMESPACE={{ .RegistryNamespace }}
+	GOTO DOCKER_CONTAINER_RUNTIME
+
+:DOCKER_CONTAINER_RUNTIME
+	IF NOT "%CONTAINER_RUNTIME%" == "docker" GOTO PODMAN_CONTAINER_RUNTIME
 	GOTO MAIN
+
+:PODMAN_CONTAINER_RUNTIME
+	IF NOT "%CONTAINER_RUNTIME%" == "podman" GOTO UNSUPPORTED_BUILD_SYSTEM
+	GOTO MAIN
+
+:UNSUPPORTED_BUILD_SYSTEM
+    echo 'Unsupported build system passed as an argument for pushing the images.'
+    GOTO SKIP
 
 :MAIN
 :: Uncomment the below line if you want to enable login before pushing
 :: docker login %REGISTRY_URL%
 {{- range $dockerfile := .DockerfilesConfig }}
-
 echo "building and pushing image {{ $dockerfile.ImageName }}"
 pushd {{ $dockerfile.ContextWindows }}
-docker buildx build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }} --push --tag ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} .
+IF  "%CONTAINER_RUNTIME%" == "docker" (
+    docker buildx build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }}  --push --tag ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} . 
+) ELSE ( 
+    podman manifest create ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }}
+    podman build --platform ${PLATFORMS} -f {{ $dockerfile.DockerfileName }} --manifest ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }} .
+    podman manifest push ${REGISTRY_URL}/${REGISTRY_NAMESPACE}/{{ $dockerfile.ImageName }}
+)
 popd
 {{- end }}
 
 echo "done"
+
+:SKIP

@@ -48,6 +48,7 @@ type DockerfileImageBuildScriptConfig struct {
 
 // DockerfileImageBuildScriptTemplateConfig represents the data used to fill the build script generator template
 type DockerfileImageBuildScriptTemplateConfig struct {
+	ContainerRuntime     string
 	RelParentOfSourceDir string
 	DockerfilesConfig    []DockerfileImageBuildConfig
 	RegistryURL          string
@@ -177,6 +178,7 @@ func (t *DockerfileImageBuildScript) Transform(newArtifacts []transformertypes.A
 		RegistryURL:          commonqa.ImageRegistry(),
 		RegistryNamespace:    commonqa.ImageRegistryNamespace(),
 		DockerfilesConfig:    dockerfilesImageBuildConfig,
+		ContainerRuntime:     common.GetDefaultContainerRuntime(),
 	}
 	pathMappings = append(pathMappings, transformertypes.PathMapping{
 		Type:           transformertypes.TemplatePathMappingType,
