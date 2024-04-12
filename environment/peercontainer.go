@@ -186,13 +186,6 @@ func (e *PeerContainer) Destroy() error {
 
 // Download downloads the path to outside the environment
 func (e *PeerContainer) Download(path string) (string, error) {
-	fileInfo, err := e.Stat(path)
-	if err != nil {
-		return path, fmt.Errorf("failed to stat the given path : %s. Error: %v", path, err)
-	}
-	if !fileInfo.IsDir() {
-		return path, fmt.Errorf("download only supports directory paths. The path provided is %s. Error: %v", path, err)
-	}
 	output, err := os.MkdirTemp(e.TempPath, "*")
 	if err != nil {
 		return path, fmt.Errorf("failed to create temp dir. Error: %w", err)
@@ -201,7 +194,7 @@ func (e *PeerContainer) Download(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get the container engine. Error: %w", err)
 	}
-	if err := cengine.CopyDirsFromContainer(e.ContainerInfo.ID, map[string]string{path: output}); err != nil {
+	if err := cengine.CopyDataFromContainer(e.ContainerInfo.ID, map[string]string{path: output}); err != nil {
 		return path, fmt.Errorf("failed to copy data from the container with ID '%s' . Error: %w", e.ContainerInfo.ID, err)
 	}
 	return output, nil
@@ -221,7 +214,7 @@ func (e *PeerContainer) Upload(outpath string) (string, error) {
 	if err != nil {
 		return envpath, fmt.Errorf("failed to get the container engine. Error: %w", err)
 	}
-	if err := cengine.CopyDirsIntoContainer(e.ContainerInfo.ID, map[string]string{outpath: envpath}); err != nil {
+	if err := cengine.CopyDataIntoContainer(e.ContainerInfo.ID, map[string]string{outpath: envpath}); err != nil {
 		return envpath, fmt.Errorf("failed to copy data into the container with ID '%s' . Error: %w", e.ContainerInfo.ID, err)
 	}
 	return envpath, nil
