@@ -51,9 +51,9 @@ type WASM struct {
 
 // WASMYamlConfig is the format of wasm transformer yaml config
 type WASMYamlConfig struct {
-	WASMModule    string        `yaml:"wasm_module"`
-	ExecutionMode string        `yaml:"execution_mode"`
-	EnvList       []core.EnvVar `yaml:"env,omitempty"`
+	WASMModule string        `yaml:"wasm_module"`
+	CompileAOT bool          `yaml:"compile_aot"`
+	EnvList    []core.EnvVar `yaml:"env,omitempty"`
 }
 
 // Init Initializes the transformer
@@ -253,7 +253,7 @@ func (t *WASM) Transform(newArtifacts []transformertypes.Artifact, alreadySeenAr
 func (t *WASM) initVm(preopens [][]string) (api.Module, context.Context, wazero.Runtime, error) {
 	ctx := context.Background()
 	var rt wazero.Runtime
-	if t.WASMConfig.ExecutionMode == "compiler" {
+	if t.WASMConfig.CompileAOT {
 		rt = wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfigCompiler())
 	} else {
 		rt = wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfigInterpreter())
