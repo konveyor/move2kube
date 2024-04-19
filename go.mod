@@ -49,7 +49,7 @@ require (
 	golang.org/x/mod v0.12.0
 	golang.org/x/text v0.14.0
 	google.golang.org/grpc v1.58.3
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.26.2
