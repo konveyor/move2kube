@@ -25,7 +25,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.commit_ref }}
       - id: info
-        uses: konveyor/get-env-info@v1
+        uses: konveyor/move2kube-get-env-info@v1
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ steps.info.outputs.go_version }}
@@ -52,7 +52,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.commit_ref }}
       - id: info
-        uses: konveyor/get-env-info@v1
+        uses: konveyor/move2kube-get-env-info@v1
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -153,20 +153,20 @@ jobs:
           ref: ${{ github.event.inputs.commit_ref }}
           fetch-depth: 0
       - name: create release draft
-        uses: konveyor/create-release-draft@v1
+        uses: konveyor/move2kube-create-release-draft@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.event.inputs.tag }}
           prev_tag: ${{ github.event.inputs.prev_tag }}
           config: releasenotes-config.js
       - id: info
-        uses: konveyor/get-env-info@v1
+        uses: konveyor/move2kube-get-env-info@v1
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ steps.info.outputs.go_version }}
       - run: VERSION='${{ github.event.inputs.tag }}' make dist
       - name: upload release assets
-        uses: konveyor/upload-release-action@v3
+        uses: konveyor/move2kube-upload-release-action@v3
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.event.inputs.tag }}
@@ -191,7 +191,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.commit_ref }}
       - id: info
-        uses: konveyor/get-env-info@v1
+        uses: konveyor/move2kube-get-env-info@v1
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
