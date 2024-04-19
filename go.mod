@@ -92,7 +92,7 @@ require (
 	github.com/charlievieth/fs v0.0.2 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/cloudfoundry/bosh-utils v0.0.296 // indirect
-	github.com/containerd/containerd v1.6.24 // indirect
+	github.com/containerd/containerd v1.6.26 // indirect
 	github.com/containerd/typeurl v1.0.2 // indirect
 	github.com/cppforlife/go-patch v0.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
