@@ -1106,6 +1106,9 @@ func ReverseInPlace[T interface{}](xs []T) {
 // Also returns true if the paths are the same.
 func IsParent(child, parent string) bool {
 	var err error
+	if parent == "" || child == "" { 
+		return false 
+	}
 	child, err = filepath.Abs(child)
 	if err != nil {
 		logrus.Fatalf("Failed to make the path %s absolute. Error: %s", child, err)
