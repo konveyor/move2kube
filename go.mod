@@ -11,7 +11,7 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/antchfx/xmlquery v1.3.12
 	github.com/antchfx/xpath v1.2.1
-	github.com/argoproj/argo-cd/v2 v2.8.16
+	github.com/argoproj/argo-cd/v2 v2.8.17
 	github.com/argoproj/argo-rollouts v1.2.2
 	github.com/cloudfoundry-community/go-cfclient/v2 v2.0.0
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
