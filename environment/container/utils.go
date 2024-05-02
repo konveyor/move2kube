@@ -28,7 +28,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func copyDirToContainer(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
+func copyDirToContainer(ctx context.Context, cli *client.Client, containerID, src, dst string, copyUIDGID bool) error {
 	reader := common.ReadFilesAsTar(src, dst, common.NoCompression)
 	if reader == nil {
 		err := fmt.Errorf("error during create tar archive from '%s'", src)
@@ -40,7 +40,7 @@ func copyDirToContainer(ctx context.Context, cli *client.Client, containerID, sr
 	doneChan := make(chan interface{})
 	pr, pw := io.Pipe()
 	go func() {
-		clientErr = cli.CopyToContainer(ctx, containerID, "/", pr, types.CopyToContainerOptions{})
+		clientErr = cli.CopyToContainer(ctx, containerID, "/", pr, types.CopyToContainerOptions{CopyUIDGID: copyUIDGID})
 		close(doneChan)
 	}()
 	func() {
@@ -73,7 +73,7 @@ func copyFromContainer(ctx context.Context, cli *client.Client, containerID stri
 	return archive.CopyTo(preArchive, copyInfo, destPath)
 }
 
-func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst string) error {
+func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst string, copyUIDGID bool) error {
 	reader := common.ReadFilesAsTar(src, dst, common.NoCompression)
 	if reader == nil {
 		err := fmt.Errorf("error during create tar archive from '%s'", src)
@@ -85,7 +85,7 @@ func copyDir(ctx context.Context, cli *client.Client, containerID, src, dst stri
 	doneChan := make(chan interface{})
 	pr, pw := io.Pipe()
 	go func() {
-		clientErr = cli.CopyToContainer(ctx, containerID, "/", pr, types.CopyToContainerOptions{})
+		clientErr = cli.CopyToContainer(ctx, containerID, "/", pr, types.CopyToContainerOptions{CopyUIDGID: copyUIDGID})
 		close(doneChan)
 	}()
 	func() {
