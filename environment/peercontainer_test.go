@@ -238,7 +238,7 @@ func TestPeerContainer(t *testing.T) {
 
 		filename := "container/testdata/buildimage"
 
-		envPath, err := container.Upload(filename)
+		envPath, err := container.Upload(filename, false)
 		if err != nil {
 			t.Fatalf("Failed to upload file %s to environment: %s", filename, err)
 		}
