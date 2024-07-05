@@ -257,11 +257,21 @@ func (gvcsrepo *GitVCSRepo) Clone(cloneOptions VCSCloneOptions) (string, error) 
 		}
 		gvcsrepo.GitRepository, err = git.Clone(limitStorer, repoDirWt, &cloneOpts)
 		if err != nil {
-			logrus.Debugf("failed to clone the given branch '%s' . Will clone the entire repo and try again.", gvcsrepo.Branch)
+			logrus.Warningf("failed to clone the given branch '%s': %v . Will clone the entire repo and try again.", gvcsrepo.Branch, err)
 			cloneOpts := git.CloneOptions{
 				URL:   gvcsrepo.URL,
 				Depth: commitDepth,
 			}
+			logrus.Infof("Removing previous cloned repository folder and recreating storer: %q", repoPath)
+
+			if err := os.RemoveAll(repoPath); err != nil {
+				return "", fmt.Errorf("failed to remove the files/directories at '%s' . error: %w", repoPath, err)
+			}
+			repoDirWt = osfs.New(repoPath)
+			dotGitDir, _ = repoDirWt.Chroot(git.GitDirName)
+			fStorer := filesystem.NewStorage(dotGitDir, cache.NewObjectLRUDefault())
+			limitStorer := Limit(fStorer, cloneOptions.MaxSize)
+
 			gvcsrepo.GitRepository, err = git.Clone(limitStorer, repoDirWt, &cloneOpts)
 			if err != nil {
 				return "", fmt.Errorf("failed to perform clone operation using git. Error: %w", err)
@@ -273,7 +283,7 @@ func (gvcsrepo *GitVCSRepo) Clone(cloneOptions VCSCloneOptions) (string, error) 
 				return "", fmt.Errorf("failed return a worktree for the repostiory. Error: %w", err)
 			}
 			if err := w.Checkout(&git.CheckoutOptions{Create: false, Force: false, Branch: b}); err != nil {
-				logrus.Debugf("failed to checkout the branch '%s', creating it...", b)
+				logrus.Warningf("failed to checkout the branch '%s', creating it...", b)
 				if err := w.Checkout(&git.CheckoutOptions{Create: true, Force: false, Branch: b}); err != nil {
 					return "", fmt.Errorf("failed checkout a new branch. Error : %+v", err)
 				}
