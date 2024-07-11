@@ -75,7 +75,7 @@ func (e *podmanEngine) pullImage(image string) bool {
 }
 
 // RunContainer executes a container using podman
-func (e *podmanEngine) RunContainer(image string, cmd string, volsrc string, voldest string) (output string, containerStarted bool, err error) {
+func (e *podmanEngine) RunContainer(image string, cmd string, volsrc string, voldest string, copyUIDGID bool) (output string, containerStarted bool, err error) {
 	if !e.pullImage(image) {
 		logrus.Debugf("Unable to pull image using podman : %s", image)
 		return "", false, fmt.Errorf("unable to pull image")
