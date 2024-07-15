@@ -137,3 +137,6 @@ source ~/.bashrc
 ## Discussion
 
 * For any questions reach out to us on any of the communication channels given on our website https://move2kube.konveyor.io/
+
+## contributer 
+ [contributing.md](https://github.com/konveyor/move2kube/blob/main/contributing.md)
