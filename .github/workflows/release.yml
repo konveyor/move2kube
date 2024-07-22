@@ -116,8 +116,8 @@ jobs:
               core.info(`the tag ${tag} already exists on ${resp.data.object.type} ${resp.data.object.sha}`);
             } catch(err) {
               core.info('DEBUG 4 an error occurred while checking if the tag exists');
-              core.info(`DEBUG 5 err.status ${err.status}`);
-              if(err.status !== 404){
+              core.info(`DEBUG 5 err.status: ${typeof(err.status)} ${err.status}`);
+              if(err.status !== 404 && err.status !== '404'){
                 throw err;
               }
               core.info('DEBUG 6 the tag does not exist');
