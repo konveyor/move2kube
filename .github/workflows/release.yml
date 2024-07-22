@@ -103,38 +103,51 @@ jobs:
         with:
           github-token: ${{ secrets.MOVE2KUBE_PATOKEN }}
           script: |
+            core.info('DEBUG 1 start');
             const tag = '${{ github.event.inputs.tag }}';
             const sha = '${{ steps.get_sha.outputs.sha }}';
+            core.info(`DEBUG 2 tag ${tag} sha ${sha}`);
 
             let tag_exists = false;
             try {
+              core.info('DEBUG 3 try checking if the tag exists');
               const resp = await github.git.getRef({...context.repo, ref: `tags/${tag}`});
               tag_exists = true;
               core.info(`the tag ${tag} already exists on ${resp.data.object.type} ${resp.data.object.sha}`);
             } catch(err) {
+              core.info('DEBUG 4 an error occurred while checking if the tag exists');
+              core.info(`DEBUG 5 err.status ${err.status}`);
               if(err.status !== 404){
                 throw err;
               }
+              core.info('DEBUG 6 the tag does not exist');
             }
+            core.info('DEBUG 7 after checking if the tag exists');
             if(tag_exists) {
+              core.info('DEBUG 8 the tag exists');
               core.info(`deleting the tag ${tag}`);
               const resp = await github.git.deleteRef({...context.repo, ref: `tags/${tag}`});
+              core.info('DEBUG 9 after deleting the existing tag');
             }
-
+            core.info('DEBUG 10');
             core.info(`creating the tag ${tag} on the commit ${sha}`);
             github.git.createRef({
               ...context.repo,
               ref: `refs/tags/${tag}`,
               sha
             });
+            core.info('DEBUG 11 after creating the tag');
             if(!tag.endsWith('-beta.0')) {
+              core.info('DEBUG 12 the tag does not end with -beta.0');
               return;
             }
+            core.info('DEBUG 13 the tag ends with -beta.0 so create a new release branch');
             // create the release branch
             const major_minor = /^v(\d+\.\d+)/.exec(tag);
             if(!major_minor || major_minor.length !== 2){
               return core.setFailed(`The tag is not a valid semantic version. tag: ${tag}`);
             }
+            core.info('DEBUG 14 creating the new release branch');
             const branch_name = `release-${major_minor[1]}`;
             core.info(`New beta.0 release. Creating new branch for ${branch_name}`);
             github.git.createRef({
@@ -142,6 +155,7 @@ jobs:
               ref: `refs/heads/${branch_name}`,
               sha
             });
+            core.info('DEBUG 15 after creating the new release branch');
 
   create_release_draft:
     needs: [tag]
