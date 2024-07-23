@@ -180,7 +180,7 @@ jobs:
           go-version: ${{ steps.info.outputs.go_version }}
       - run: VERSION='${{ github.event.inputs.tag }}' make dist
       - name: upload release assets
-        uses: konveyor/move2kube-upload-release-action@v3
+        uses: konveyor/move2kube-upload-release-action@v3.0.1
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.event.inputs.tag }}
