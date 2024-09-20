@@ -43,15 +43,15 @@ type ContainerEngine interface {
 	// InspectImage gets Inspect output for a container
 	InspectImage(image string) (dockertypes.ImageInspect, error)
 	// TODO: Change paths from map to array
-	CopyDirsIntoImage(image, newImageName string, paths map[string]string) (err error)
-	CopyDirsIntoContainer(containerID string, paths map[string]string) (err error)
+	CopyDirsIntoImage(image, newImageName string, paths map[string]string, copyUIDGID bool) (err error)
+	CopyDirsIntoContainer(containerID string, paths map[string]string, copyUIDGID bool) (err error) // See here
 	CopyDirsFromContainer(containerID string, paths map[string]string) (err error)
 	BuildImage(image, context, dockerfile string) (err error)
 	RemoveImage(image string) (err error)
 	CreateContainer(container environmenttypes.Container) (containerid string, err error)
 	StopAndRemoveContainer(containerID string) (err error)
 	// RunContainer runs a container from an image
-	RunContainer(image string, cmd environmenttypes.Command, volsrc string, voldest string) (output string, containerStarted bool, err error)
+	RunContainer(image string, cmd environmenttypes.Command, volsrc string, voldest string, copyUIDGID bool) (output string, containerStarted bool, err error)
 	Stat(containerID, name string) (fs.FileInfo, error)
 }
 

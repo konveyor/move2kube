@@ -57,6 +57,7 @@ type ExecutableYamlConfig struct {
 	DirectoryDetectCMD environmenttypes.Command   `yaml:"directoryDetectCMD"`
 	TransformCMD       environmenttypes.Command   `yaml:"transformCMD"`
 	Container          environmenttypes.Container `yaml:"container,omitempty"`
+	CopyUIDGID         bool                       `default:"true" yaml:"copyUIDGID"`
 }
 
 var (
@@ -97,6 +98,8 @@ func (t *Executable) Init(tc transformertypes.Transformer, env *environment.Envi
 		Container: t.ExecConfig.Container,
 		Platforms: t.ExecConfig.Platforms,
 	}
+	env.EnvInfo.CopyUIDGID = t.ExecConfig.CopyUIDGID
+
 	t.Env, err = environment.NewEnvironment(env.EnvInfo, qaRPCReceiverAddr)
 	if err != nil {
 		return fmt.Errorf("failed to create the environment for the executable transformer. Error: %w", err)
@@ -247,7 +250,7 @@ func (t *Executable) uploadInput(data interface{}, inputFile string) (string, er
 	if err := common.WriteJSON(inputFilePath, data); err != nil {
 		return "", fmt.Errorf("failed to create the input json. Error: %w", err)
 	}
-	containerInputDir, err := t.Env.Env.Upload(inputDirPath)
+	containerInputDir, err := t.Env.Env.Upload(inputDirPath, t.ExecConfig.CopyUIDGID)
 	if err != nil {
 		return "", fmt.Errorf("failed to copy input dir to new container image. Error: %w", err)
 	}

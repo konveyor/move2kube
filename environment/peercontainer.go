@@ -89,6 +89,7 @@ func NewPeerContainer(envInfo EnvInfo, grpcQAReceiver net.Addr, containerInfo en
 		peerContainer.OriginalImage,
 		peerContainer.ContainerInfo.Image,
 		map[string]string{envInfo.Source: peerContainer.WorkspaceSource},
+		envInfo.CopyUIDGID,
 	); err != nil {
 		err := fmt.Errorf("failed to create a new container image with the input data copied into the container. Error: %w", err)
 		if peerContainer.ContainerInfo.ImageBuild.Context == "" {
@@ -115,6 +116,7 @@ func NewPeerContainer(envInfo EnvInfo, grpcQAReceiver net.Addr, containerInfo en
 			peerContainer.OriginalImage,
 			peerContainer.ContainerInfo.Image,
 			map[string]string{envInfo.Source: peerContainer.WorkspaceSource},
+			envInfo.CopyUIDGID,
 		); err != nil {
 			return nil, fmt.Errorf("failed to copy paths to new container image. Error: %w", err)
 		}
@@ -208,7 +210,7 @@ func (e *PeerContainer) Download(path string) (string, error) {
 }
 
 // Upload uploads the path from outside the environment into it
-func (e *PeerContainer) Upload(outpath string) (string, error) {
+func (e *PeerContainer) Upload(outpath string, copyUIDGID bool) (string, error) {
 	envpath := "/var/tmp/" + uniuri.NewLen(5) + "/" + filepath.Base(outpath)
 	fileInfo, err := os.Stat(outpath)
 	if err != nil {
@@ -221,7 +223,7 @@ func (e *PeerContainer) Upload(outpath string) (string, error) {
 	if err != nil {
 		return envpath, fmt.Errorf("failed to get the container engine. Error: %w", err)
 	}
-	if err := cengine.CopyDirsIntoContainer(e.ContainerInfo.ID, map[string]string{outpath: envpath}); err != nil {
+	if err := cengine.CopyDirsIntoContainer(e.ContainerInfo.ID, map[string]string{outpath: envpath}, copyUIDGID); err != nil {
 		return envpath, fmt.Errorf("failed to copy data into the container with ID '%s' . Error: %w", e.ContainerInfo.ID, err)
 	}
 	return envpath, nil

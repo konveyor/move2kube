@@ -65,7 +65,7 @@ func TestPodman(t *testing.T) {
 			t.Fatalf("Failed to find the image '%s' locally and/or pull it. Error: %v", image, err)
 		}
 
-		output, containerStarted, err := provider.RunContainer(image, "", "", "")
+		output, containerStarted, err := provider.RunContainer(image, "", "", "", false)
 		if err != nil {
 			t.Fatalf("Failed to run the container '%s' locally. Output: %v , containerStarted: %v  Error: %v", image, output, containerStarted, err)
 		}
