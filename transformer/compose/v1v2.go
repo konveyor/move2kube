@@ -87,8 +87,8 @@ func removeNonExistentEnvFilesV2(path string) preprocessFunc {
 	}
 }
 
-// parseV2 parses version 2 compose files
-func parseV2(path string, interpolate bool) (*project.Project, error) {
+// panicky_parseV2 parses version 2 compose files (can panic on proj.Parse())
+func panicky_parseV2(path string, interpolate bool) (*project.Project, error) {
 	context := project.Context{}
 	context.ComposeFiles = []string{path}
 	context.ResourceLookup = new(lookup.FileResourceLookup)
@@ -122,6 +122,18 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 		return nil, err
 	}
 	return proj, nil
+}
+
+// parseV2 parses version 2 compose files while capturing panics
+func parseV2(path string, interpolate bool) (result *project.Project, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.Errorf("recovered from panic in panicky_parseV2: %q", r)
+			err = fmt.Errorf("panicky_parseV2 failed: %q", r)
+		}
+	}()
+	result, err = panicky_parseV2(path, interpolate)
+	return result, err
 }
 
 // ConvertToIR loads a compose file to IR
