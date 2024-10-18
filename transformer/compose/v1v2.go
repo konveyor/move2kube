@@ -87,6 +87,18 @@ func removeNonExistentEnvFilesV2(path string) preprocessFunc {
 	}
 }
 
+// parseCapturingPanics parses version 2 compose files while capturing panics
+func parseCapturingPanics(proj *project.Project) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("recovered from panic in compose Project.Parse: %q", r)
+			logrus.Error(err)
+		}
+	}()
+	err = proj.Parse()
+	return err
+}
+
 // parseV2 parses version 2 compose files
 func parseV2(path string, interpolate bool) (*project.Project, error) {
 	context := project.Context{}
@@ -114,7 +126,7 @@ func parseV2(path string, interpolate bool) (*project.Project, error) {
 	proj := project.NewProject(&context, nil, &parseOptions)
 	originalLevel := logrus.GetLevel()
 	logrus.SetLevel(logrus.FatalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
-	err = proj.Parse()
+	err = parseCapturingPanics(proj)
 	logrus.SetLevel(originalLevel) // TODO: this is a hack to prevent libcompose from printing errors to the console.
 	if err != nil {
 		err := fmt.Errorf("failed to load docker compose file at path %s Error: %q", path, err)
