@@ -60,6 +60,9 @@ const (
 	ShExt = ".sh"
 	// BatExt is the extension of bat file
 	BatExt = ".bat"
+	// AssetsCustomizationsDir is a directory inside the assets directory
+	// where the user given customizations are copied to.
+	AssetsCustomizationsDir = "custom"
 	// RemoteSourcesFolder stores remote sources
 	RemoteSourcesFolder = "m2ksources"
 	// RemoteCustomizationsFolder stores remote customizations
