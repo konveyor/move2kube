@@ -84,7 +84,7 @@ func CopyCustomizationsAssetsData(customizationsPath string) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to make the assets path '%s' absolute. Error: %w", assetsPath, err)
 	}
-	customizationsAssetsPath := filepath.Join(assetsPath, "custom")
+	customizationsAssetsPath := filepath.Join(assetsPath, common.AssetsCustomizationsDir)
 
 	// Create the subdirectory and copy the assets into it.
 	if err = os.MkdirAll(customizationsAssetsPath, common.DefaultDirectoryPermission); err != nil {

@@ -89,7 +89,7 @@ Exiting.`, outpath, overwriteFlag, outputFlag)
 func getCustomMappingFilePath() (qaenginetypes.QAMappings, error) {
 	// Read the QA categories from the QA mapping file
 	var qaMapping qaenginetypes.QAMappings
-	customizationsDir := filepath.Join(common.AssetsPath, "custom")
+	customizationsDir := filepath.Join(common.AssetsPath, common.AssetsCustomizationsDir)
 	_, err := os.Stat(customizationsDir)
 	if err == nil {
 		yamlPaths, err := common.GetFilesByExt(customizationsDir, []string{".yml", ".yaml"})
@@ -113,7 +113,7 @@ func getCustomMappingFilePath() (qaenginetypes.QAMappings, error) {
 		}
 	}
 	logrus.Infof("Using the default QA mappings file")
-	qaMappingFilepath := filepath.Join("built-in/qa", "qamappings.yaml")
+	qaMappingFilepath := filepath.Join("built-in", "qa", "qamappings.yaml")
 	file, err := assets.AssetsDir.ReadFile(qaMappingFilepath)
 	if err != nil {
 		return qaMapping, fmt.Errorf("failed to read the mappings file metadata from the yaml file at path '%s' . Error: %w", qaMappingFilepath, err)
