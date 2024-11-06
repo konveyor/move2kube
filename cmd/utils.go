@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -113,7 +114,7 @@ func getCustomMappingFilePath() (qaenginetypes.QAMappings, error) {
 		}
 	}
 	logrus.Infof("Using the default QA mappings file")
-	qaMappingFilepath := filepath.Join("built-in", "qa", "qamappings.yaml")
+	qaMappingFilepath := path.Join("built-in", "qa", "qamappings.yaml")
 	file, err := assets.AssetsDir.ReadFile(qaMappingFilepath)
 	if err != nil {
 		return qaMapping, fmt.Errorf("failed to read the mappings file metadata from the yaml file at path '%s' . Error: %w", qaMappingFilepath, err)
