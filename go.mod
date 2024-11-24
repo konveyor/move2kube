@@ -39,6 +39,7 @@ require (
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.10.1
+	github.com/stretchr/testify v1.8.4
 	github.com/tektoncd/pipeline v0.31.1-0.20220112162203-fcca72712ce7
 	github.com/tektoncd/triggers v0.18.0
 	github.com/tetratelabs/wazero v1.7.0
@@ -184,6 +185,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.16.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
