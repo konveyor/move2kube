@@ -280,8 +280,8 @@ github.com/apex/log v1.3.0/go.mod h1:jd8Vpsr46WAe3EZSQ/IUMs2qQD/GOycT5rPWCO1yGcs
 github.com/apex/logs v0.0.4/go.mod h1:XzxuLZ5myVHDy9SAmYpamKKRNApGj54PfYLcFrXqDwo=
 github.com/aphistic/golf v0.0.0-20180712155816-02c07f170c5a/go.mod h1:3NqKYiepwy8kCu4PNA+aP7WUV72eXWJeP9/r3/K9aLE=
 github.com/aphistic/sweet v0.2.0/go.mod h1:fWDlIh/isSE9n6EPsRmC0det+whmX6dJid3stzu0Xys=
-github.com/argoproj/argo-cd/v2 v2.8.16 h1:P2PtDx1OSzNYvaZIYPo/mnHotDS99G9Jwj6BVGZSpn8=
-github.com/argoproj/argo-cd/v2 v2.8.16/go.mod h1:3GmH9xEJtiWZNfZ5hx1qdzbF2t9gIS/3vNV5vJBmI/g=
+github.com/argoproj/argo-cd/v2 v2.8.19 h1:/oY2Hc2PjEK1nujcKnbylyL6XjeB7JrjwXlsNQuKmiE=
+github.com/argoproj/argo-cd/v2 v2.8.19/go.mod h1:KlJ82U5ON9ZDddDIhXbW522l2T4wyBwKsFHZYHIcl2Y=
 github.com/argoproj/argo-rollouts v1.2.2 h1:CONx1ybjt2tpuEl53fHXznyq7ir/O4FxIGLuHvlRgpo=
 github.com/argoproj/argo-rollouts v1.2.2/go.mod h1:ETmWr9Lysxr9SgbqalMMBdytBcDHUt9qulFoKJ9b9ZU=
 github.com/argoproj/gitops-engine v0.7.1-0.20230607163028-425d65e07695 h1:w8OPbqHyhWxLyC4LZgs5JBUe7AOkJpNZqFa92yy7Kmc=
@@ -1857,8 +1857,8 @@ github.com/sirupsen/logrus v1.9.2/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVs
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/sivchari/tenv v1.4.7/go.mod h1:5nF+bITvkebQVanjU6IuMbvIot/7ReNsUV7I5NbprB0=
-github.com/skeema/knownhosts v1.2.1 h1:SHWdIUa82uGZz+F+47k8SY4QhhI291cXCpopT1lK2AQ=
-github.com/skeema/knownhosts v1.2.1/go.mod h1:xYbVRSPxqBZFrdmDyMmsOs+uX1UZC3nTN3ThzgDxUwo=
+github.com/skeema/knownhosts v1.2.2 h1:Iug2P4fLmDw9f41PB6thxUkNUkJzB5i+1/exaj40L3A=
+github.com/skeema/knownhosts v1.2.2/go.mod h1:xYbVRSPxqBZFrdmDyMmsOs+uX1UZC3nTN3ThzgDxUwo=
 github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d/go.mod h1:OnSkiWE9lh6wB0YB77sQom3nweQdgAjqCqsofrRNTgc=
 github.com/smartystreets/assertions v1.0.0/go.mod h1:kHHU4qYBaI3q23Pp3VPrmWhuIUrLW/7eUrw0BU5VaoM=
 github.com/smartystreets/assertions v1.1.0 h1:MkTeG1DMwsrdH7QtLXy5W+fUxWq+vmb6cLmyJ7aRtF0=
