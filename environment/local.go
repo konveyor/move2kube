@@ -156,7 +156,7 @@ func (e *Local) Download(sourcePath string) (string, error) {
 }
 
 // Upload uploads the path from outside the environment into it
-func (e *Local) Upload(sourcePath string) (string, error) {
+func (e *Local) Upload(sourcePath string, copyUIDGID bool) (string, error) {
 	destPath, err := os.MkdirTemp(e.TempPath, "*")
 	if err != nil {
 		return destPath, fmt.Errorf("failed to create the temp dir at path '%s' with pattern '*' . Error: %w", e.TempPath, err)

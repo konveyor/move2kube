@@ -78,7 +78,7 @@ type EnvironmentInstance interface {
 	Reset() error
 	Stat(name string) (fs.FileInfo, error)
 	Download(envpath string) (outpath string, err error)
-	Upload(outpath string) (envpath string, err error)
+	Upload(outpath string, copyUIDGID bool) (envpath string, err error)
 	Exec(cmd environmenttypes.Command, envList []string) (stdout string, stderr string, exitcode int, err error)
 	Destroy() error
 
@@ -196,7 +196,7 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 		if !filepath.IsAbs(path) {
 			var err error
 			if e.CurrEnvOutputBasePath == "" {
-				e.CurrEnvOutputBasePath, err = e.Env.Upload(e.Output)
+				e.CurrEnvOutputBasePath, err = e.Env.Upload(e.Output, e.EnvInfo.CopyUIDGID)
 			}
 			return filepath.Join(e.CurrEnvOutputBasePath, path), err
 		}
@@ -221,7 +221,7 @@ func (e *Environment) Encode(obj interface{}) interface{} {
 			logrus.Error(err)
 			return "", err
 		}
-		return e.Env.Upload(path)
+		return e.Env.Upload(path, e.EnvInfo.CopyUIDGID)
 	}
 	if objS, ok := obj.(string); ok {
 		val, err := processPath(objS)

@@ -226,7 +226,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 		paths[absDir1] = "/dir1"
 		paths[absDir2] = "/dir2"
 
-		err = provider.CopyDirsIntoImage(image, newimage, paths)
+		err = provider.CopyDirsIntoImage(image, newimage, paths, true)
 		if err != nil {
 			t.Fatalf("failed to copy dirs into iamge '%s' . Error: %q", image, err)
 		}
@@ -296,7 +296,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 		paths[absDir1] = "/dir1"
 		paths[absDir2] = "/dir2"
 
-		err = provider.CopyDirsIntoContainer(containerID, paths)
+		err = provider.CopyDirsIntoContainer(containerID, paths, true)
 		if err != nil {
 			t.Fatalf("failed to copy dirs into iamge '%s' . Error: %q", image, err)
 		}
@@ -365,7 +365,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 		paths[absDir1] = "/dir1"
 		paths[absDir2] = "/dir2"
 
-		err = provider.CopyDirsIntoContainer(containerID, paths)
+		err = provider.CopyDirsIntoContainer(containerID, paths, true)
 		if err != nil {
 			t.Fatalf("failed to copy dirs into iamge '%s' . Error: %q", image, err)
 		}
@@ -504,7 +504,7 @@ func TestIsBuilderAvailable(t *testing.T) {
 	t.Run("check for Running a Container ", func(t *testing.T) {
 		provider, _ := newDockerEngine()
 		image := "docker.io/somerandomimage"
-		output, containerStarted, err := provider.RunContainer(image, environmenttypes.Command{"pwd"}, "", "")
+		output, containerStarted, err := provider.RunContainer(image, environmenttypes.Command{"pwd"}, "", "", true)
 		if err == nil {
 			t.Fatalf("Test passed: failed to run the image due to incorrect name '%s' as a container. Error: %q", image, err)
 		}

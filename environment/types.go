@@ -35,4 +35,5 @@ type EnvInfo struct {
 	TempPath              string
 	EnvPlatformConfig     environmenttypes.EnvPlatformConfig
 	SpawnContainers       bool
+	CopyUIDGID            bool
 }

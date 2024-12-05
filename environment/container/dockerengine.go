@@ -62,7 +62,7 @@ func newDockerEngine() (*dockerEngine, error) {
 	if err := engine.updateAvailableImages(); err != nil {
 		return engine, fmt.Errorf("failed to update the list of available images. Error: %w", err)
 	}
-	if _, _, err := engine.RunContainer(testimage, environmenttypes.Command{}, "", ""); err != nil {
+	if _, _, err := engine.RunContainer(testimage, environmenttypes.Command{}, "", "", false); err != nil {
 		return engine, fmt.Errorf("failed to run the test image '%s' as a container. Error: %w", testimage, err)
 	}
 	return engine, nil
@@ -206,7 +206,7 @@ func (e *dockerEngine) StopAndRemoveContainer(containerID string) error {
 }
 
 // CopyDirsIntoImage copies some directories into a container
-func (e *dockerEngine) CopyDirsIntoImage(image, newImageName string, paths map[string]string) (err error) {
+func (e *dockerEngine) CopyDirsIntoImage(image, newImageName string, paths map[string]string, copyUIDGID bool) (err error) {
 	logrus.Trace("CopyDirsIntoImage start")
 	defer logrus.Trace("CopyDirsIntoImage end")
 	if err := e.pullImage(image); err != nil {
@@ -217,7 +217,7 @@ func (e *dockerEngine) CopyDirsIntoImage(image, newImageName string, paths map[s
 		return fmt.Errorf("failed to create container with base image '%s' . Error: %w", image, err)
 	}
 	for sp, dp := range paths {
-		if err := copyDirToContainer(e.ctx, e.cli, cid, sp, dp); err != nil {
+		if err := copyDirToContainer(e.ctx, e.cli, cid, sp, dp, copyUIDGID); err != nil {
 			return fmt.Errorf("container data copy failed for image '%s' with volume %s:%s . Error: %w", image, sp, dp, err)
 		}
 	}
@@ -232,9 +232,9 @@ func (e *dockerEngine) CopyDirsIntoImage(image, newImageName string, paths map[s
 }
 
 // CopyDirsIntoContainer copies some directories into a container
-func (e *dockerEngine) CopyDirsIntoContainer(containerID string, paths map[string]string) (err error) {
+func (e *dockerEngine) CopyDirsIntoContainer(containerID string, paths map[string]string, copyUIDGID bool) (err error) {
 	for sp, dp := range paths {
-		err = copyDirToContainer(e.ctx, e.cli, containerID, sp, dp)
+		err = copyDirToContainer(e.ctx, e.cli, containerID, sp, dp, copyUIDGID)
 		if err != nil {
 			return fmt.Errorf("container data copy failed for image '%s' with volume %s:%s . Error: %w", containerID, sp, dp, err)
 		}
@@ -295,7 +295,7 @@ func (e *dockerEngine) RemoveImage(image string) (err error) {
 }
 
 // RunContainer executes a container
-func (e *dockerEngine) RunContainer(image string, cmd environmenttypes.Command, volsrc string, voldest string) (output string, containerStarted bool, err error) {
+func (e *dockerEngine) RunContainer(image string, cmd environmenttypes.Command, volsrc string, voldest string, copyUIDGID bool) (output string, containerStarted bool, err error) {
 	if err := e.pullImage(image); err != nil {
 		return "", false, fmt.Errorf("failed to pull the image '%s'. Error: %w", image, err)
 	}
@@ -329,7 +329,7 @@ func (e *dockerEngine) RunContainer(image string, cmd environmenttypes.Command, 
 		logrus.Debugf("Container %s created with image %s with no volumes", resp.ID, image)
 		defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true})
 		if volsrc != "" && voldest != "" {
-			err = copyDir(ctx, cli, resp.ID, volsrc, voldest)
+			err = copyDir(ctx, cli, resp.ID, volsrc, voldest, copyUIDGID)
 			if err != nil {
 				return "", false, fmt.Errorf("container data copy failed for image '%s' with volume (%s:%s). Error: %w", image, volsrc, voldest, err)
 			}
