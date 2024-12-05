@@ -137,3 +137,13 @@ source ~/.bashrc
 ## Discussion
 
 * For any questions reach out to us on any of the communication channels given on our website https://move2kube.konveyor.io/
+
+## contributing 
+
+You can click the Fork button in the upper-right area of the screen to create a copy of this repository in your GitHub account. This copy is called a fork. Make any changes you want in your fork, and when you are ready to send those changes to us, go to your fork and create a new pull request to let us know about it.
+
+Once your pull request is created, a maintainer will take responsibility for providing clear, actionable feedback. As the owner of the pull request, it is your responsibility to modify your pull request to address the feedback that has been provided to you by the maintainer.
+
+For more information about contributing , see the contributer file:
+
+ [contributing.md](https://github.com/konveyor/move2kube/blob/main/contributing.md)
