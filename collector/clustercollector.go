@@ -414,26 +414,26 @@ func (c *ClusterCollector) sortVersionList(vList *[]string) {
 	trVersionKeys := []string{"-alpha.", "-beta."}
 	regex := []string{`\-alpha\.`, `\-beta\.`}
 
-	for index, version := range *vList {
+	svObjList := make([]*semver.Version, 0, len(*vList))
+	unparsable := []string{}
+	for _, version := range *vList {
+		transformed := version
 		for i, vKey := range srcVersionKeys {
 			re := regexp.MustCompile(vKey)
 			if re.MatchString(version) {
 				//Tranforming the string to the format suitable for semver pkg
-				(*vList)[index] = re.ReplaceAllString(version, trVersionKeys[i])
+				transformed = re.ReplaceAllString(version, trVersionKeys[i])
 				break
 			}
 		}
-	}
-
-	svObjList := make([]*semver.Version, len(*vList))
-	for index, versionStr := range *vList {
-		svObj, err := semver.NewVersion(versionStr)
+		svObj, err := semver.NewVersion(transformed)
 		if err != nil {
-			logrus.Warnf("Skipping Version: %s", versionStr)
+			// Keep the version as it was given and place it after the sortable ones.
+			logrus.Warnf("Skipping Version: %s", version)
+			unparsable = append(unparsable, version)
 			continue
 		}
-
-		svObjList[index] = svObj
+		svObjList = append(svObjList, svObj)
 	}
 
 	sort.Sort(sort.Reverse(semver.Collection(svObjList)))
@@ -453,6 +453,7 @@ func (c *ClusterCollector) sortVersionList(vList *[]string) {
 			(*vList)[index] = transfVersionStr
 		}
 	}
+	copy((*vList)[len(svObjList):], unparsable)
 }
 
 func (c *ClusterCollector) clusterByGroupsAndSortVersions(gvList []string) []string {
